@@ -1,0 +1,33 @@
+# Folder with external repositories
+external/neuroscience_toolboxes/
+external/general_toolboxes
+
+# Folder with userdata
+_userdata/
+
+# Settings file
+*settings.mat
+
+# Windows default autosave extension
+*.asv
+
+# OSX / *nix default autosave extension
+*.m~
+*.DS_Store
+
+# Compiled MEX binaries (all platforms)
+*.mex*
+
+# Packaged app and toolbox files
+*.mlappinstall
+*.mltbx
+
+# Generated helpsearch folders
+helpsearch*/
+
+# Simulink code generation folders
+slprj/
+sccprj/
+
+# Simulink autosave extension
+*.autosave
