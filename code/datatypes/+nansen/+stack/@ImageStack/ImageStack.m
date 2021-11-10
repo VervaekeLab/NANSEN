@@ -127,7 +127,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         CurrentPlane  = 1       % Sets the current plane(s). getFrames picks data from current planes
         
         ColorModel = ''         % Name of colormodel to use. Options: 'BW', 'Grayscale', 'RGB', 'Custom'
-        
+        DataIntensityLimits
     end
     
     properties (SetAccess = private, Dependent) % Should these be dependent instead?
@@ -145,6 +145,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         DimensionNames          % Names for dimensions of image stack data, i.e ImageHeight, Channels etc
         DynamicCacheEnabled matlab.lang.OnOffSwitchState % Depends on ImageStackData
+        DataTypeIntensityLimits     % Min and max values of datatype i.e [0,255] for uin8 data
     end
     
     properties (Access = private) % Should it be public? 
@@ -157,14 +158,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     end
     
     properties (Hidden)
-        DataIntensityLimits
         CustomColorModel = []
         ChunkLength = inf; % Todo (Not implemented yet)
     end
 
     properties (Dependent = true)
         NumChunks
-        DataTypeIntensityLimits     % Min and max values of datatype i.e [0,255] for uin8 data
     end
 
     properties (Access = private)
@@ -767,13 +766,17 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function set.CurrentChannel(obj, newValue)
+            msg = 'CurrentChannel must be a vector where all elements are in the range of number of channels';
+            assert(all(ismember(newValue, 1:obj.NumChannels)), msg) %#ok<MCSUP> This should not be a problem because...
+            
             obj.CurrentChannel = newValue;
-            % Todo: redfine apparantSize
         end
         
         function set.CurrentPlane(obj, newValue)
+            msg = sprintf('CurrentPlane must be a vector where all elements are in the range of [1, %d]', obj.NumPlanes); %#ok<MCSUP>
+            assert(all(ismember(newValue, 1:obj.NumPlanes)), msg) %#ok<MCSUP> This should not be a problem because...
+            
             obj.CurrentPlane = newValue;
-            % Todo: redfine apparantSize
         end
       
         function set.ColorModel(obj, newValue)
@@ -1105,6 +1108,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % Set size
             obj.onDataDimensionOrderChanged()
 
+            obj.CurrentChannel = 1:obj.NumChannels;
             
         end
         
