@@ -84,6 +84,7 @@ classdef (Abstract) UserSettings < uim.handle
 
     properties (Access = protected, Hidden = true)
         settings_ struct    % For internal use to assign settings without triggering callbacks
+        hSettingsEditor     % For internal use, handle to gui for editing settings
     end
     
     properties (Dependent, Access = protected, Hidden = true)
@@ -106,6 +107,14 @@ classdef (Abstract) UserSettings < uim.handle
         %UserSettings Construct the object
             obj.loadSettings() % Load settings into class instance.
             obj.assignSettingNames() % Todo: move to the load method??
+        end
+        
+        function delete(obj)
+            
+            if ~isempty(obj.hSettingsEditor) && isvalid(obj.hSettingsEditor)
+                delete(obj.hSettingsEditor)
+            end
+            
         end
         
     end
@@ -183,6 +192,11 @@ classdef (Abstract) UserSettings < uim.handle
             titleStr = sprintf('preferences for %s', class(obj));
             doDefault = true; % backward compatibility...
             
+            if ~isempty(obj.hSettingsEditor)
+                figure(obj.hSettingsEditor.Figure)
+                return
+            end
+            
             % Todo: If obj has plugins, grab all settings from plugin
             % classes as well.
             if isprop(obj, 'plugins')
@@ -214,9 +228,25 @@ classdef (Abstract) UserSettings < uim.handle
             end
 
             if doDefault
-                obj.settings = tools.editStruct(obj.settings, 'all', titleStr, ...
-                    'Callback', @obj.onSettingsChanged);
-                obj.saveSettings()
+                try
+                    obj.hSettingsEditor = structeditor.App(obj.settings, ...
+                        'Title', titleStr, 'Callback', @obj.onSettingsChanged);
+
+                    addlistener(obj.hSettingsEditor, 'AppDestroyed', ...
+                        @(s, e) obj.onSettingsEditorClosed);
+                catch ME
+                    
+                    switch ME.identifier
+                        case 'MATLAB:class:InvalidSuperClass'
+
+                            if contains(ME.message, 'uiw.mixin.AssignPVPairs')
+                                msg = 'Settings window requires the Widgets Toolbox to be installed';
+                                errordlg(msg)
+                                error(msg)
+                            end
+
+                    end
+                end
             end
 
         end
@@ -302,7 +332,6 @@ classdef (Abstract) UserSettings < uim.handle
         % Return the value of the settings property.
             S = obj.settings_;
         end
-        
 
     end
     
@@ -361,6 +390,32 @@ classdef (Abstract) UserSettings < uim.handle
             obj.settingsSubs = cellfun(@(name) getSubs(name), obj.settingsNames, 'uni', 0);
             
         end
+        
+        function onSettingsEditorClosed(obj)
+            
+            if ~isvalid(obj.hSettingsEditor); return; end
+            
+            if obj.hSettingsEditor.wasCanceled
+                updatedSettings = obj.hSettingsEditor.dataOrig;
+            else
+                updatedSettings = obj.hSettingsEditor.dataEdit;
+            end
+            
+            obj.saveSettings()
+            
+            delete(obj.hSettingsEditor)
+            obj.hSettingsEditor = [];
+            
+            % Delete hSettingsEditor before assigning settings, because
+            % assigning settings might sometimes want to make updates to
+            % the settings editor, while the figure of settings editor is 
+            % already closed so that would cause errors
+            
+            obj.settings = updatedSettings;
+            obj.saveSettings()
+            
+        end
+        
     end
     
     methods (Static, Access = public)
@@ -373,33 +428,29 @@ classdef (Abstract) UserSettings < uim.handle
         
         % Todo: Shouldnt this be a protected method?
         
+            % Initialize settings from default settings and update values
+            % for all fields that are present in the loaded settings.
+            settings = defaultSettings;
+            
             defaultFields = fieldnames(defaultSettings);
             loadedFields = fieldnames(loadedSettings);
 
-            missingFields = setdiff(defaultFields, loadedFields);
-            if ~isempty(missingFields)
-                for i = 1:numel(missingFields)
-                    loadedSettings.(missingFields{i}) = defaultSettings.(missingFields{i});
-                end
-            end
-
-            removedFields = setdiff(loadedFields, defaultFields);
-            if ~isempty(removedFields)
-                for i = 1:numel(removedFields)
-                    loadedSettings = rmfield(loadedSettings, removedFields{i});
-                end
-            end
+            % Get all fields that are present in the loadedSettings (fields
+            % might be missing whenever the default settings definition
+            % change)
             
-            % Uicontrol configfields should always be updated from default
-            keep = applify.mixin.UserSettings.isConfigField(defaultFields);
-            configFields = defaultFields(keep);
+            isLoaded = ismember(defaultFields, loadedFields);
             
-            for i = 1:numel(configFields)
-                thisField = configFields{i};
-                loadedSettings.(thisField) = defaultSettings.(thisField);
+            % Ignore Uicontrol configfields. They should always be set
+            % according to the default definition.
+            ignore = applify.mixin.UserSettings.isConfigField(defaultFields);
+            
+            fieldsToUpdate = defaultFields(isLoaded & ~ignore);
+            
+            for i = 1:numel(fieldsToUpdate)
+                thisField = fieldsToUpdate{i};
+                settings.(thisField) = loadedSettings.(thisField);
             end
-            
-            settings = loadedSettings;
 
         end
         

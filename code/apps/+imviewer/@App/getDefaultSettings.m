@@ -14,8 +14,8 @@ S = struct();
 %S.cLim          = [0,255];      % Color brightness limits of displayed images
 
 % Options for image display
-S.ImageDisplay.brightnessLimits     = [0, 1];  % Should be automatically adjusted based on loaded image data, but allow for manual override
-S.ImageDisplay.cLim                 = [0,255];      % Color brightness limits of displayed images
+S.ImageDisplay.brightnessSliderLimits = [0, 1];  % Should be automatically adjusted based on loaded image data, but allow for manual override
+S.ImageDisplay.imageBrightnessLimits = [0,255]; % Color brightness limits of displayed images
 
 S.ImageDisplay.movingBinSize        = 9;
 
@@ -25,10 +25,11 @@ S.ImageDisplay.colorMap_     = {'Viridis', 'Magma', 'Gray', 'Copper', 'Bone', ..
                                 'thermal', 'haline', 'solar', 'ice', 'deep', 'dense', ...
                                 'algae','matter','turbid','speed', 'amp','tempo' }; % Colormap alternatives
 
-S.ImageStack.DataDimensionOrder = '';
-S.ImageStack.PixelSize = [1, 1];
-S.ImageStack.PixelUnits = ["um", "um"];
-S.ImageStack.SampleRate = 1;
+
+% S.ImageStack.DataDimensionOrder = '';
+% S.ImageStack.PixelSize = [1, 1];
+% S.ImageStack.PixelUnits = ["um", "um"];
+% S.ImageStack.SampleRate = 1;
 
 
 % Options for loading virtual stacks..

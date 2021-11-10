@@ -393,12 +393,12 @@ methods % App initialization & creation
     function parseVarargin(obj, varargin)
         
         default = struct();
-        default.cLim = [];
+        default.imageBrightnessLimits = [];
         
         options = utility.parsenvpairs(default, 1, varargin);
         
-        if ~isempty(options.cLim)
-            obj.settings.ImageDisplay.cLim = options.cLim;
+        if ~isempty(options.imageBrightnessLimits)
+            obj.settings.ImageDisplay.imageBrightnessLimits = options.imageBrightnessLimits;
         end
         
     end
@@ -1775,11 +1775,11 @@ methods % App update
     function im = adjustMultichannelImage(obj, im)
         switch obj.ImageStack.DataType
             case 'uint8'
-                lowhigh_in = obj.settings.ImageDisplay.cLim /2^8;
+                lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^8;
             case 'uint16'
-                lowhigh_in = obj.settings.ImageDisplay.cLim /2^16;
+                lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^16;
             case 'int16'
-                lowhigh_in = (obj.settings.ImageDisplay.cLim+2^15) /2^16;
+                lowhigh_in = (obj.settings.ImageDisplay.imageBrightnessLimits+2^15) /2^16;
         end
 
         %im = imadjust(im, lowhigh_in);
@@ -1813,7 +1813,7 @@ methods % App update
                 obj.imObj = image(obj.uiaxes.imdisplay, 'CData', im);
             else
                 obj.imObj = image(obj.uiaxes.imdisplay, 'CData', im, 'CDataMapping', 'scaled');
-                obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.cLim;
+                obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
             end
             
             obj.imObj.HitTest = 'off';
@@ -1951,7 +1951,7 @@ methods % Event/widget callbacks
         
         if nargin < 2
             newLimits = obj.ImageStack.DataTypeIntensityLimits;
-            obj.settings_.ImageDisplay.brightnessLimits = newLimits;
+            obj.settings_.ImageDisplay.brightnessSliderLimits = newLimits;
         end
         
         assert(newLimits(1) < newLimits(2), 'L(1) must be smaller than L(2)')
@@ -1972,15 +1972,15 @@ methods % Event/widget callbacks
         % based on the datatype of the image data..
         
         if nargin < 2
-            %newLimits = obj.settings.ImageDisplay.cLim;
+            %newLimits = obj.settings.ImageDisplay.imageBrightnessLimits;
             newLimits = obj.ImageStack.DataIntensityLimits;
             if isempty(obj.ImageStack.DataIntensityLimits)
                 newLimits = obj.ImageStack.DataTypeIntensityLimits;
             end
-            obj.settings_.ImageDisplay.cLim = newLimits;
+            obj.settings_.ImageDisplay.imageBrightnessLimits = newLimits;
         else
             %Use internal property to avoid triggering on settings changed callback
-            obj.settings_.ImageDisplay.cLim = newLimits;
+            obj.settings_.ImageDisplay.imageBrightnessLimits = newLimits;
         end
         
         % Todo: Do i need to round?
@@ -2272,19 +2272,23 @@ methods % Event/widget callbacks
 %                 obj.updateImageDisplay();
 %         end
         
-        if obj.settings.ImageDisplay.cLim(2) <= 1
+        if obj.settings.ImageDisplay.imageBrightnessLimits(2) <= 1
             newCLim = newCLim/100;
         end
         
         % Prevent setting upper limit lower than lower limit.
         if newCLim(2) <= newCLim(1)
-            if obj.settings.ImageDisplay.cLim(2) <= 1
+            if obj.settings.ImageDisplay.imageBrightnessLimits(2) <= 1
                 newCLim(2) = newCLim(1)+0.01;
             else
                 newCLim(2) = newCLim(1)+1;
             end
         end
         
+        % Update settings, but use protected property, dont need to trigger
+        % settings changed, because update is invoked below.
+        obj.settings_.ImageDisplay.imageBrightnessLimits = newCLim;
+
         if obj.ImageStack.NumChannels > 1
             if ~isempty(obj.imObj)
                 imdata = obj.DisplayedImage;
@@ -2295,8 +2299,10 @@ methods % Event/widget callbacks
             obj.uiaxes.imdisplay.CLim = newCLim;
         end
         
-        obj.settings.ImageDisplay.cLim = newCLim;
-
+        if ~isempty( obj.hSettingsEditor )
+             obj.hSettingsEditor.updateFromPreset(obj.settings)
+        end
+        
         %drawnow;
     end
      
@@ -2354,8 +2360,20 @@ methods % Event/widget callbacks
 %             cmap(1, :) = [0.7,0.7,0.7];%obj.Figure.Color;
 
         colormap(obj.uiaxes.imdisplay, cmap)
+        
+        
+        if obj.ImageStack.NumChannels > 1
+            msg = 'Color maps does not have any effect on multi channel images';
+            obj.displayMessage(msg, [], 2)
+        end
+        
+        
         if isfield(obj.uiwidgets, 'thumbnailSelector')
             colormap(obj.uiwidgets.thumbnailSelector.Axes, cmap)
+        end
+        
+        if ~isempty( obj.hSettingsEditor )
+             obj.hSettingsEditor.updateFromPreset(obj.settings)
         end
                 
     end
@@ -3629,7 +3647,7 @@ methods % Misc, most can be outsourced
         obj.editSettings@applify.mixin.UserSettings()
 
         % Why? Is this if the cancel button is hit?
-        obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.cLim;
+        obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
     end
 
     
@@ -3946,10 +3964,10 @@ methods (Access = protected) % Event callbacks
         
         switch name
             
-            case 'brightnessLimits'
+            case 'brightnessSliderLimits'
                 obj.setSliderExtremeLimits(value)
 
-            case 'cLim' % Todo: find better solution...
+            case 'imageBrightnessLimits' % Todo: find better solution...
                 
                 if isfield(obj.uiaxes, 'imdisplay')
                     S = dbstack();
@@ -4896,16 +4914,16 @@ methods (Access = private) % Methods that runs when properties are set
         
         % Set brightness limits. Will trigger callback to set slider Low
         % and High value.
-        obj.settings.ImageDisplay.cLim = obj.ImageStack.DataIntensityLimits;
+        obj.settings.ImageDisplay.imageBrightnessLimits = obj.ImageStack.DataIntensityLimits;
         
         
         % If a "blank" stack is opened, need to readjust limits.
-        if all(obj.settings.ImageDisplay.cLim == 0)
-            obj.settings.ImageDisplay.cLim = [0,1];
+        if all(obj.settings.ImageDisplay.imageBrightnessLimits == 0)
+            obj.settings.ImageDisplay.imageBrightnessLimits = [0,1];
         end
         
-        if obj.settings.ImageDisplay.cLim(1) == 1
-            obj.settings.ImageDisplay.cLim(1) = 0;
+        if obj.settings.ImageDisplay.imageBrightnessLimits(1) == 1
+            obj.settings.ImageDisplay.imageBrightnessLimits(1) = 0;
         end
 
         if obj.ImageStack.IsVirtual  

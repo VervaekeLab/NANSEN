@@ -71,7 +71,9 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
             case 'MATLAB:class:InvalidSuperClass'
                 
                 if contains(ME.message, 'uiw.mixin.AssignPVPairs')
-                    error('Settings window required the Widgets Toolbox to be installed')
+                    msg = 'Settings window requires the Widgets Toolbox to be installed';
+                    errordlg(msg)
+                    error(msg)
                 end
                 
         end

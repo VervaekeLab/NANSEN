@@ -1,5 +1,5 @@
 function hApp = structeditor(varargin)
-%STRUCTEDITOR Open an instance of the structeditor app
+%STRUCTEDITOR Open app to edit the values of a struct
 %   Structeditor is an app for viewing and editing fields of a struct
 %
 %   For more detailed information:

@@ -1676,15 +1676,24 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         % skip for now
 
                     case {'double', 'single', 'uint16', 'uint8'}
-                        strArray = num2str(value);
+                        
+                        % Special case where value is a vector and each
+                        % value has its own inputbox
+                        if numel(hControl) > 1
+                            for i = 1:numel(value)
+                                hControl(i).String = num2str(value(i));
+                            end
+                        else
+                            strArray = num2str(value);
 
-                        if size(strArray, 1) > 1
-                            strArray = arrayfun(@(i) strArray(i,:), 1:size(strArray, 1), 'uni', 0);
-                            strArray = strjoin(strArray, ';       ');
+                            if size(strArray, 1) > 1
+                                strArray = arrayfun(@(i) strArray(i,:), 1:size(strArray, 1), 'uni', 0);
+                                strArray = strjoin(strArray, ';       ');
+                            end
+
+                            hControl.String = strArray;
                         end
-
-                        hControl.String = strArray;
-
+                        
                     otherwise
                         % skip for now
                 end
@@ -1692,7 +1701,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 
             elseif isa(hControl, 'uim.widget.slidebar') % todo.
                 hControl.Value = value;
-
             end
             
         end
@@ -1821,7 +1829,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
             name = src.Tag;
 
-            switch src.Style
+            switch src(1).Style
                 case 'edit'
                     val = src.String;
                 case 'checkbox'
@@ -2087,9 +2095,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function updateFromPreset(obj, newOpts)
+                 
+            % If original data was a struct of structs, need to convert 
+            % input to cell before continuing
+            if obj.ConvertOutputToStruct
+                newOpts = struct2cell(newOpts);
+            end
             
-            guiFig = obj.Figure;
-
             numPages = numel(obj.dataEdit);
             
             getOldValue = @(fieldname) strjoin({'obj.dataEdit{i}', fieldname}, '.');  
@@ -2135,6 +2147,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     newVal = eval( getNewValue(names{j}) );
                     if ~isequal(oldVal, newVal)
                         obj.setControlValue(hControl, newVal);
+                        if numel(hControl)>1
+                            hControl = hControl( ~ismember(oldVal, newVal) );
+                        end
+
                         obj.editCallback_propertyValueChange(hControl, [], true)
                     end
                         
