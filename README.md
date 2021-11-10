@@ -27,3 +27,5 @@ These toolboxes can also be installed using MATLAB's addon manager, but it is im
 
 ### Imviewer
 App for viewing and interacting with videos & image stacks
+
+<img src="https://ehennestad.github.io/images/imviewer.png" alt="Imviewer instance" width="500"/>
