@@ -14,8 +14,6 @@ classdef pan < uim.interface.abstractPointer
     end
     
     
-    
-    
     methods
             
         function obj = pan(hAxes)
@@ -58,7 +56,8 @@ classdef pan < uim.interface.abstractPointer
                 
                 if ~isempty(obj.buttonMotionCallback)
                     obj.buttonMotionCallback(shift)
-                    %moveAxes(obj, shift)
+                else
+                    moveAxes(obj, shift)
                 end
                 
                 %moveAxes(obj, shift)

@@ -1,4 +1,7 @@
 function jControl = findjobj_fast(hControl, jContainer)
+
+    warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
+
     try jControl = hControl.getTable; return, catch, end  % fast bail-out for old uitables
     try jControl = hControl.JavaFrame.getGUIDEView; return, catch, end  % bail-out for HG2 matlab.ui.container.Panel
     oldWarn = warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
@@ -39,6 +42,11 @@ function jControl = findjobj_fast(hControl, jContainer)
     set(hControl,tooltipPropName,oldTooltip);
     try jControl.setToolTipText(oldTooltip); catch, end
     try jControl = jControl.getParent.getView.getParent.getParent; catch, end  % return JScrollPane if exists
+
+
+    warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
+
+
 end
 
 function jControl = findTooltipIn(jContainer, specialTooltipStr)
