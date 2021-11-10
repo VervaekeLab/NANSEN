@@ -36,3 +36,9 @@ so please use the link above.
 App for viewing and interacting with videos & image stacks
 
 <img src="https://ehennestad.github.io/images/imviewer.png" alt="Imviewer instance" width="500"/>
+
+### Fovmanager
+App for registering cranial implants, injection spots and imaging field of views (and RoIs) on an atlas of the dorsal surface of the cortex.
+
+<img src="https://ehennestad.github.io/images/fovmanager.png" alt="Imviewer instance" width="500"/>
+
