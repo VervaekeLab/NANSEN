@@ -6,7 +6,7 @@ A collection of apps and modules for processing, analysis and visualization of t
 ## Installation
 Currently, the only actions that are needed is:
  1) Clone the repository and add all subfolders to MATLAB's search path. 
- 2) Make sure the dependencies listed above are installed
+ 2) Make sure the dependencies listed below are installed
 
 Note: As more modules and toolboxes are added in the next weeks and months, these lists will get updated.
 
