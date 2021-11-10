@@ -65,12 +65,23 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
             clear wasAborted
         end
     
-    catch
-
-            % Create the figure
-            guiFig = createFigure(titleStr);
-            guiFig.UserData.sBak = sIn;   
-            guiFig.UserData.sTmp = sIn;
+    catch ME
+        
+        switch ME.identifier
+            case 'MATLAB:class:InvalidSuperClass'
+                
+                if contains(ME.message, 'uiw.mixin.AssignPVPairs')
+                    error('Settings window required the Widgets Toolbox to be installed')
+                end
+                
+        end
+        
+        
+        
+        % Create the figure
+        guiFig = createFigure(titleStr);
+        guiFig.UserData.sBak = sIn;   
+        guiFig.UserData.sTmp = sIn;
 
         try
 

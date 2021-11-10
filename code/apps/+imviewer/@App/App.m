@@ -87,7 +87,6 @@ end
 
 properties (SetAccess = private) % Image data properties
     ImageStack (1,1) nansen.stack.ImageStack 
-    imageStack (1,1) imviewer.ImageStack    % Image stack object: Todo: Rename to ImageStack
     CurrentImage                            % Current image on display (original image data)
     DisplayedImage                          % Actual image on display (this image can be spatially resampled and have a applied color model...)
     
