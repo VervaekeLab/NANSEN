@@ -42,7 +42,7 @@ function imageStackData = initializeData(dataReference, varargin)
         dataReference = utility.path.checkClipboard();
 
         if isempty(dataReference)
-            dataReference = imviewer.stack.browse();
+            dataReference = nansen.stack.browse();
         else
             fprintf('Opening file found on clipboard: %s\n', ...
                 dataReference{1})
