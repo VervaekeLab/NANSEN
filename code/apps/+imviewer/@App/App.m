@@ -898,7 +898,7 @@ methods % App initialization & creation
             case 'file'
                 obj.displayMessage('Loading File')
                 for n = 1%:numel(evt.Data)
-                    obj.ImageStack = imviewer.stack.initialize(evt.Data{1});
+                    obj.ImageStack = nansen.stack.ImageStack(evt.Data{1});
                 end
 
             case 'string'
@@ -1794,7 +1794,9 @@ methods % App update
         end
         
         % Adjust the image color and brightness if image is truecolor
-        if size(im, 3) > 1 || obj.ImageStack.NumChannels > 1
+        if (size(im, 3) > 1 || obj.ImageStack.NumChannels > 1) && strcmp(obj.ImageStack.ColorModel, 'Grayscale')
+            im = mean(im, 3);
+        elseif size(im, 3) > 1 || obj.ImageStack.NumChannels > 1
             im = obj.setChColors(im);
             im = adjustMultichannelImage(obj, im);
         end

@@ -126,7 +126,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         CurrentChannel = 1      % Sets the current channel(s). getFrames picks data from current channels
         CurrentPlane  = 1       % Sets the current plane(s). getFrames picks data from current planes
         
-        ColorModel = ''         % Name of colormodel to use. Options: 'BW', 'Grayscale', 'RGB', 'Custom'
+        ColorModel = ''         % Name of colormodel to use. Options: 'BW', 'Grayscale', 'RGB', 'Custom' | Should this be on the imviewer class instead?
         DataIntensityLimits
     end
     

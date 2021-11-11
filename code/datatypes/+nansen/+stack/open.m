@@ -53,7 +53,7 @@ function virtualData = open(pathStr, varargin)
                     virtualData = nansen.stack.virtual.TiffMultiPart(pathStr, varargin{:}, nvPairs{:});
                 else
                     %try
-                    %    virtualData = stack.io.fileadapter.Tiff(pathStr, varargin{:}, nvPairs{:});
+                    %    virtualData = nansen.stack.virtual.Tiff(pathStr, varargin{:}, nvPairs{:});
                     %catch
                         virtualData = nansen.stack.virtual.TiffMultiPart(pathStr, varargin{:}, nvPairs{:});
                     %end
@@ -66,39 +66,40 @@ function virtualData = open(pathStr, varargin)
 
             
         case {'.jpg', '.png', '.bmp'}
-            tic
-            if numFiles > 1
-                
-                images = cell(numFiles, 1);
-                for i = 1:numFiles
-                    images{i} = imread(pathStr{i});
-                end
-                try
-                    % Assume rgb images.
-                    imArray = cat(4, images{:});
-                catch
-                    error('Sorry, loading images of different sizes is not supported.')
-                end
-                
-            else
-                imArray = imread(pathStr{1});
-            end
-            toc
+%             tic
+%             if numFiles > 1
+%                 
+%                 images = cell(numFiles, 1);
+%                 for i = 1:numFiles
+%                     images{i} = imread(pathStr{i});
+%                 end
+%                 try
+%                     % Assume rgb images.
+%                     imArray = cat(4, images{:});
+%                 catch
+%                     error('Sorry, loading images of different sizes is not supported.')
+%                 end
+%                 
+%             else
+%                 imArray = imread(pathStr{1});
+%             end
+%             toc
             
-            obj = nansen.stack.imageStack(imArray);
+            virtualData = nansen.stack.virtual.Image(pathStr);
+            %obj = nansen.stack.ImageStack(imArray);
             
         case {'.raw','.ini'}
             
             if nansen.stack.virtual.SciScanRaw.fileCheck(pathStr)
                 virtualData = nansen.stack.virtual.SciScanRaw(pathStr, nvPairs{:});
             else
-                virtualData = stack.io.fileadapter.Raw(pathStr, varargin{:}, nvPairs{:});
+                virtualData = nansen.stack.virtual.Binary(pathStr, varargin{:}, nvPairs{:});
             end
             
             %obj = imviewer.ImageStack(virtualData);
 
         case {'.avi', '.mov', '.mpg', '.mp4'}
-            virtualData = stack.io.fileadapter.Video(pathStr, nvPairs);
+            virtualData = nansen.stack.virtual.Video(pathStr, nvPairs);
             %obj = imviewer.ImageStack(virtualData);
             
         otherwise

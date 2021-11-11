@@ -108,38 +108,30 @@ classdef Video < nansen.stack.data.VirtualArray
         end
 
         function assignDataType(obj)
-            tmpIm = readFrame(obj.videoReaderObj);
+            tmpIm = readFrame(obj.VideoReaderObj);
             obj.DataType = class(tmpIm);
         end
 
     end
     
     methods % Implementation of methods for reading data
-           
-        function data = readData(obj, subs)
-            frameInd = subs{end};
-            data = obj.getFrameSet(frameInd);
-            data = data(subs{1:end-1}, ':');
-        end
         
-        function frameData = getFrame(obj, iFrame)
-            obj.VideoReaderObj.currentTime = (iFrame-1) .* (1/obj.FrameRate);
-            frameData = readFrame(obj.VideoReaderObj);    
-        end
-        
-        function data = getFrameSet(obj, IND)
+        function data = readFrames(obj, frameInd)
             
+            % Determine size of requested data
             newDataSize = obj.DataSize;
-            newDataSize(end) = numel(IND);
-        
-            data = zeros(newDataSize, obj.DataType);
+            newDataSize(end) = numel(frameInd);
+                   
+            nDim = numel(obj.DataSize);
             
-            if iscolumn(IND); IND = IND'; end
+            data = zeros(newDataSize, obj.DataType);
+
+            if iscolumn(frameInd); frameInd = frameInd'; end
             
             c = 0;
-            for i = IND
+            for i = frameInd
                 
-                if i > obj.NumTimepoints
+                if i > obj.DataSize(end)
                     break
                 end
                 
@@ -147,9 +139,9 @@ classdef Video < nansen.stack.data.VirtualArray
                 frameData = obj.VideoReaderObj.readFrame();
                 
                 c = c+1;
-                if obj.NumChannels == 1 && numel(newDataSize) == 3
+                if nDim == 3
                     data(:, :, c) = frameData;
-                elseif obj.NumChannels > 1 && numel(newDataSize) == 4
+                elseif nDim == 4
                     data(:, :, :, c) = frameData;
                 else
                     error('Unexpected data size')
@@ -157,6 +149,16 @@ classdef Video < nansen.stack.data.VirtualArray
             end
             
         end
+        
+        function writeFrames(obj, data, frameInd)
+            
+        end
+        
+        function frameData = getFrame(obj, iFrame)
+            obj.VideoReaderObj.currentTime = (iFrame-1) .* (1/obj.FrameRate);
+            frameData = readFrame(obj.VideoReaderObj);    
+        end
+        
         
     end
     

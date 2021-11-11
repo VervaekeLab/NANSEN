@@ -78,13 +78,7 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function createMemoryMap(obj)
-        
-        mapFormat = {obj.DataType, obj.DataSize, 'ImageArray'};
-        
-        % Memory map the file (newly created or already existing)
-        obj.MemMap = memmapfile( obj.FilePath, 'Writable', true, ...
-            'Format', mapFormat );
-
+        % Images are read one by one from list of image files.
     end
     
     function assignDataSize(obj)
@@ -125,17 +119,23 @@ methods (Access = protected) % Implementation of abstract methods
         end
         
         % Add length of sampling dimension.
-        if numTimepoints > 1
-            obj.DataSize = [obj.DataSize, numTimepoints];
-            obj.DataDimensionArrangement(end+1) = 'T';
-        end
+        obj.DataSize = [obj.DataSize, numTimepoints];
+        obj.DataDimensionArrangement(end+1) = 'T';
 
     end
     
     function assignDataType(obj)
         % Todo: what if it is int? What if single or double?
         
-        bitsPerSample = obj.ImageInfo.BitDepth ./ obj.NumChannels;
+        ind = strfind(obj.DataDimensionArrangement, 'C');
+        if isempty(ind)
+            numChannels = 1;
+        else
+            numChannels = obj.DataSize(ind);
+        end
+        
+        
+        bitsPerSample = obj.ImageInfo.BitDepth ./ numChannels;
         obj.DataType = sprintf('uint%d', bitsPerSample);
     end
     
@@ -143,35 +143,28 @@ end
 
 methods % Implementation of abstract methods for reading/writing data
 
-    function data = readData(obj, subs)
-        frameInd = subs{end};
-        data = obj.getFrameSet(frameInd);
-        data = data(subs{1:end-1}, ':');
-    end
     
     function getFrame(obj, frameInd, subs)
         obj.getFrameSet(frameInd, subs)
     end
     
-    function data = getFrameSet(obj, frameInd, subs)
+    function data = readFrames(obj, frameInd)
+        
+        % Note: Assume that frames are the last dimension of data...
+        
         % Todo: This is the same for all. Should generalize
+        
         % Todo: simplify. Do not need subs, only need stacksize...
+        
         % Todo: Add error handling if requested image is not right
         % dimension
-        if nargin < 3
-            subs = repmat({':'}, 1, ndims(obj));
-            subs{end} = frameInd;
-            % subs = obj.frameind2subs(frameInd);
-        end
 
-        % Resolve which is the subs containing number of samples. Hmm,
-        % should always be the last one....? Todo: Is this necessary?
-        sampleDim = strfind(obj.DataDimensionArrangement, 'T');
-        frameInd = subs{sampleDim};
-
+        
         % Determine size of requested data
         newDataSize = obj.DataSize;
         newDataSize(end) = numel(frameInd);
+
+        nDim = numel(obj.DataSize);
 
         % Preallocate data
         data = zeros(newDataSize, obj.DataType);
@@ -181,45 +174,42 @@ methods % Implementation of abstract methods for reading/writing data
 
             frameNum = frameInd(i);
 
-            if obj.NumChannels > 1
+            if nDim == 4
                 data(:,:,:,i) = imread(obj.FilePathList{frameNum});
-            else
+            elseif nDim == 3
                 data(:,:,i) = imread(obj.FilePathList{frameNum});
+            else
+                error('Virtual data from images must be 3D or 4D')
             end
 
         end
 
     end
     
-    function writeFrameSet(obj, data, frameInd, subs)
+    function writeFrames(obj, data, frameInd)
         
         % Todo: combine with getFrameSet???
         % Todo: Test thoroughly
-        
-        if nargin < 4
-            subs = repmat({':'}, 1, ndims(obj));
-            subs{end} = frameInd;
-        end
-        
+
         % Todo: Make assertion that data has the same size as the stack
         % (width and height, numchannels) 
         
-        % Resolve which is the subs containing number of samples. % Todo:
-        % Test in all possible cases.
-        sampleDim = strfind(obj.DimensionOrder, 'T');
-        frameIndices = subs{sampleDim};
+        nDim = numel(obj.DataSize);
+
                 
         % Loop through frames and load into data.
-        for i = 1:numel( frameIndices )
+        for i = 1:numel( frameInd )
 
-            frameNum = frameIndices(i);
+            frameNum = frameInd(i);
             iFilePath = obj.FilePathList{frameNum};
             
             % Todo: include planes as well
-            if obj.NumChannels > 1
+            if nDim == 4
                 imwrite(iFilePath, data(:, :, :, i));
-            else
+            elseif nDim == 3
                 imwrite(iFilePath, data(:, :, i));
+            else
+                error('Virtual data from images must be 3D or 4D')
             end
 
         end
@@ -227,19 +217,6 @@ methods % Implementation of abstract methods for reading/writing data
     end
 
 end
-
-
-methods % Override superclass methods
-    
-    function assignDataClass(obj)
-        % Todo: what if it is int? What if single or double?
-        
-        bitsPerSample = obj.ImageInfo.BitDepth ./ obj.NumChannels;
-        obj.DataType = sprintf('uint%d', bitsPerSample);
-    end
-    
-end
-
 
 methods (Static)
     

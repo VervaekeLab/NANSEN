@@ -91,18 +91,10 @@ methods (Access = protected) % Implementation of abstract methods
     
     function createMemoryMap(obj)
         
-        mapFormat = {obj.DataType, obj.DataSize, 'ImageArray'};
-        
-        % Memory map the file (newly created or already existing)
-        obj.MemMap = memmapfile( obj.FilePath, 'Writable', true, ...
-            'Format', mapFormat );
-
     end
     
     function assignDataSize(obj)
-        
         obj.DataSize = obj.MetaData.Size;
-
     end
     
     function assignDataType(obj)
@@ -115,10 +107,17 @@ methods % Implementation of abstract methods
 
     
     function data = readData(obj, subs)
-        
         [start, count, stride] = obj.subs2h5ReadKeys(subs, size(obj));
         data = h5read(obj.FilePath, ['/', obj.DatasetName], start, count, stride);
-        
+    end
+    
+    function data = readFrames(obj, frameInd)
+        % Not implemented, can read data directly from h5 file using 
+        % readData method 
+    end
+    
+    function writeFrames(obj, data, frameInd)
+        % Not implemented
     end
     
     function data = getFrame(obj, frameInd, subs)

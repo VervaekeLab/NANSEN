@@ -3,6 +3,12 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
 
 % Questions. Implement frame caches using mixin class?
 
+% todo: 
+%   [ ] Get data should call method readFrames instead of method
+%       readData??? Or need to add both readData and readFrames as abstract
+%       methods.
+
+
     properties
         FilePath
         Writable = false    % Todo: implement this
@@ -51,6 +57,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     end
     
     methods (Abstract)
+        % todo: readData and writeData
         
         data = readFrames(obj, frameIndex)      % Frame index is a vector or a cell array of vectors.
         writeFrames(obj, frameIndex, data)      % Frame index is a vector or a cell array of vectors.
@@ -132,6 +139,28 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         
     end
     
+    methods % Methods for reading/writing data; subclasses can override
+        
+        function data = readData(obj, subs)
+            % Reads data using the readFrames methods of subclasses.
+
+            % This function assumes that data is organized as YXCT or YXCZ
+            if numel(subs) < numel(obj.DataSize)
+                assert(obj.DataSize(end)==1, 'Something unexpected')
+                subs{end+1} = 1;
+            end
+
+            frameInd = subs{end};
+
+            data = obj.readFrames(frameInd);
+            data = data(subs{1:end-1}, ':');
+        end
+        
+        function writeData(obj, subs, data)
+            error('Not implemented yet')
+        end
+    end
+    
     methods (Access = protected) % Subclasses can override
         
         function obj = assignFilePath(obj, filePath, ~)
@@ -140,6 +169,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         
         function data = getData(obj, subs)
              
+            % Todo, use readFrames, not readData. And resolve which
+            % frameindices to retrieve....
             
             % Are any of these frames found in the cache?
             if obj.HasCachedData
@@ -152,12 +183,12 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function data = setData(obj, subs, data)
-              
+            
             % Are any of these frames found in the cache?
             if obj.HasCachedData
                 % Add to cache?
             else
-                data = obj.writeData(subs);
+                obj.writeData(subs, data);
             end
             
         end
