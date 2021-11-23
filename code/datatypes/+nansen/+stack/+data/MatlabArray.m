@@ -24,6 +24,52 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
         
     end
     
+    methods 
+        function insertImageData(obj, imageData, insertInd)
+            
+            % Assume imageData should be inserted along last dimension
+            
+            stackSize = size(obj.DataArray);
+            nDim = max([3, numel(stackSize)]);
+            
+            subs = repmat({':'}, 1, nDim);
+            
+            msg = 'Image can not be inserted into this stack because sizes does not match';
+            assert( isequal(stackSize(1:nDim-1), size(imageData)), msg)
+            
+            if insertInd == 1
+                obj.DataArray = cat(nDim, imageData, ...
+                    obj.DataArray(subs{:}));
+            else
+                
+                % Todo: Use insert into array function... Todo:
+                [subsPre, subsPost] = deal(subs);
+                subsPre{dim} = 1:insertInd(1)-1;
+                subsPost{dim} = insertInd(1):subsPost{dim}(end);
+
+                obj.DataArray = cat(dim, obj.DataArray(subsPre{:}), ...
+                    imageData, obj.DataArray(subsPost{:}) );
+            end
+            
+            obj.assignDataSize()
+            
+            % Temp fix of dimension orders if stack changes size.
+            % (Should only happen if stack is 1 frame long and a new image
+            % is added)
+            if numel(stackSize) ~= ndims(obj.DataArray)
+                if strcmp(obj.DataDimensionArrangement, 'YX')
+                    obj.DataDimensionArrangement = 'YXT';
+                end
+            end
+            
+        end
+        
+        function removeImageData(obj, frameIdx)
+            
+        end
+        
+    end
+    
     methods (Access = protected) % Implement abstract ImageStackData methods
         
         function assignDataSize(obj)

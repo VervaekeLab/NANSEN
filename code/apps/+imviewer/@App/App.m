@@ -85,8 +85,11 @@ properties (Transient = true, Dependent = true)
     Axes 
 end
 
+properties (SetAccess = private, SetObservable) % Image data properties
+    ImageStack (1,1) nansen.stack.ImageStack
+end
+
 properties (SetAccess = private) % Image data properties
-    ImageStack (1,1) nansen.stack.ImageStack 
     CurrentImage                            % Current image on display (original image data)
     DisplayedImage                          % Actual image on display (this image can be spatially resampled and have a applied color model...)
     
@@ -261,7 +264,7 @@ methods % Structors
         
         obj.isConstructed = true; %obj.onThemeChanged()
         
-        if ~all(isnan(obj.image(:)))
+        if ~all(isnan(obj.DisplayedImage(:)))
             set(obj.hDropbox, 'Visible', 'off')
         end
         
@@ -1994,6 +1997,18 @@ methods % Event/widget callbacks
             obj.brightnessSlider.High = min([newLimits(2), obj.brightnessSlider.Max]);
         end
         
+        
+%         % If a "blank" stack is opened, need to readjust limits.
+%         if all(obj.settings.ImageDisplay.imageBrightnessLimits == 0)
+%             obj.settings.ImageDisplay.imageBrightnessLimits = [0,1];
+%         end
+%         
+%         if obj.settings.ImageDisplay.imageBrightnessLimits(1) == 1
+%             obj.settings.ImageDisplay.imageBrightnessLimits(1) = 0;
+%         end
+        
+        
+        
     end
     
     
@@ -2161,10 +2176,14 @@ methods % Event/widget callbacks
         if ~obj.isConstructed; return; end
         
         obj.uiwidgets.playback.CurrentChannels = obj.currentChannel;
+
         obj.ImageStack.CurrentChannel = obj.currentChannel;
+            
+        if ~isempty(obj.imObj)
+            obj.updateImage()
+            obj.updateImageDisplay()
+        end
         
-        obj.updateImage()
-        obj.updateImageDisplay()
     end
     
     function changePlane(obj, planeNum, mode) %#ok<INUSD>
@@ -2451,25 +2470,27 @@ methods % Handle user actions
         if all(isnan(obj.image(:))) % No image present...
 
             delete(obj.ImageStack)
-            obj.ImageStack = imviewer.ImageStack(newImage, 'isVirtual', false);
-            
             obj.resetImageDisplay()
+
+            obj.ImageStack = nansen.stack.ImageStack(newImage, 'isVirtual', false);
+            
             
             [figurePosition, ~] = initializeFigurePosition(obj);
             deltaPos = figurePosition(3:4) - obj.Figure.Position(3:4);
             obj.resizeWindow([], [], 'manual', deltaPos)
             
-            obj.setSliderLimits( obj.ImageStack.DataIntensityLimits ) % Todo
+            %obj.setSliderLimits( obj.ImageStack.DataIntensityLimits ) % Todo
             
         else
             obj.ImageStack.insertImage(newImage, obj.currentFrameNo)
+            obj.setTempProperties()
+            obj.updateImage()
+            obj.updateImageDisplay()
+            obj.updateInfoText()
         end
         
        
-        obj.setTempProperties()
-        obj.updateImage()
-        obj.updateImageDisplay()
-        obj.updateInfoText()
+
     end
     
     function resetFprintfToBuiltin(obj)
@@ -2721,9 +2742,9 @@ methods % Misc, most can be outsourced
                 continue
             end
             
-            if isa(guiList{i}, 'imviewer') || isa(guiList{i}, 'imviewer.App')
+            if isa(guiList{i}, 'imviewer.App')
                 guiList{i}.changeFrame(struct('String', newPropValue), [], 'jumptoframe');
-            elseif isa(guiList{i}, 'timeseriesPlot') || isa(guiList{i}, 'signalviewer.timeseriesPlot')
+            elseif isa(guiList{i}, 'signalviewer.App')
                 guiList{i}.interactiveFrameChangeRequest(struct('String', newPropValue), [], 'jumptoframe');
             elseif isa(guiList{i}, 'roiClassifier')
                 guiList{i}.changeFrame(obj.image)
@@ -4869,8 +4890,14 @@ methods (Access = private) % Methods that runs when properties are set
 
         if  obj.isConstructed
             obj.setSliderExtremeLimits()
+            obj.setSliderLimits()
             obj.updateImage();
             obj.updateImageDisplay();
+
+            if ~all(isnan(obj.DisplayedImage(:)))
+                set(obj.hDropbox, 'Visible', 'off')
+            end
+            
             obj.configureSpatialDownsampling()
         end
         
@@ -4914,17 +4941,17 @@ methods (Access = private) % Methods that runs when properties are set
         
         % Set brightness limits. Will trigger callback to set slider Low
         % and High value.
-        obj.settings.ImageDisplay.imageBrightnessLimits = obj.ImageStack.DataIntensityLimits;
+        %obj.settings.ImageDisplay.imageBrightnessLimits = obj.ImageStack.DataIntensityLimits;
         
         
-        % If a "blank" stack is opened, need to readjust limits.
-        if all(obj.settings.ImageDisplay.imageBrightnessLimits == 0)
-            obj.settings.ImageDisplay.imageBrightnessLimits = [0,1];
-        end
-        
-        if obj.settings.ImageDisplay.imageBrightnessLimits(1) == 1
-            obj.settings.ImageDisplay.imageBrightnessLimits(1) = 0;
-        end
+% %         % If a "blank" stack is opened, need to readjust limits.
+% %         if all(obj.settings.ImageDisplay.imageBrightnessLimits == 0)
+% %             obj.settings.ImageDisplay.imageBrightnessLimits = [0,1];
+% %         end
+% %         
+% %         if obj.settings.ImageDisplay.imageBrightnessLimits(1) == 1
+% %             obj.settings.ImageDisplay.imageBrightnessLimits(1) = 0;
+% %         end
 
         if obj.ImageStack.IsVirtual  
             obj.currentChannel = obj.ImageStack.CurrentChannel;

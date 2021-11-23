@@ -309,17 +309,22 @@ classdef ImageStackData < uim.mixin.assignProperties
             
             % Check if any dimensions were redefined
             if ~isempty(oldValue) && ~isempty(obj.StackDimensionArrangement)
-                if ~isempty(setdiff(oldValue, newValue))
-                    oldDim = setdiff(oldValue, newValue);
-                    newDim = setdiff(newValue, oldValue);
-
-                    if numel(oldDim) == 1 && numel(newDim) == 1 
-                        obj.StackDimensionArrangement = strrep(obj.StackDimensionArrangement, oldDim, newDim);
-                    else
-                        error('Something went wrong')
-                    end
-                    
+                        
+                oldDim = setdiff(oldValue, newValue);
+                newDim = setdiff(newValue, oldValue);
+                
+                if numel(oldDim) == 1 && numel(newDim) == 1
+                    % A data dimension was exchanged for another. Update
+                    obj.StackDimensionArrangement = strrep(obj.StackDimensionArrangement, oldDim, newDim);
+                elseif ~isempty(newDim) && isempty(oldDim)
+                    % A data dimension was added
+                    % Note: This assumes the dimension was added at the end
+                    % I dont know if thats a valid assumption.
+                    obj.StackDimensionArrangement = strcat(obj.StackDimensionArrangement, newDim);
+                else
+                    error('Something went wrong')
                 end
+
             end
             
             obj.updateDimensionOrders()
