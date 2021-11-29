@@ -9,13 +9,15 @@ function roiImageStack = extractRoiImages(imArray, roiArray, dff, varargin)
 %   AutoAdjust : Autoadjust contrast (boolean) - Not implemented.
 
 
+% Todo: Dff should be nFrames x nRois!
+
 def = struct('BoxSize', [21, 21], 'ImageType', 'enhanced average', 'AutoAdjust', true, 'Debug', false);
 opt = utility.parsenvpairs(def, [], varargin);
 
 % Get the roimanager as a local package (1 folder up)
-rootPath = fileparts(fileparts(mfilename('fullpath')));
-roitools = tools.path2module(rootPath);
-
+%rootPath = fileparts(fileparts(mfilename('fullpath')));
+%roitools = tools.path2module(rootPath);
+import roimanager.imenhance.*
 
 boxSize = opt.BoxSize;
 assert(all(mod(boxSize,2)==1), 'Boxsize should be odd')
@@ -97,7 +99,7 @@ for i = 1:nRois
             currentRoiIm = mean(imArray(tmpY, tmpX, frameInd), 3);
             currentRoiIm = normalizeimage(currentRoiIm);
         case {'correlation', 'enhanced correlation'}
-            [rhoIm, ~] = roitools.getPixelCorrelationImage(dff(i, frameInd)', imArray(tmpY, tmpX, frameInd));
+            [rhoIm, ~] = getPixelCorrelationImage(dff(i, frameInd)', imArray(tmpY, tmpX, frameInd));
             rhoIm(isnan(rhoIm)) = 0;
             currentRoiIm = rhoIm.*255;
     end

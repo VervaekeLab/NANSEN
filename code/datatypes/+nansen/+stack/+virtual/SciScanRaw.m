@@ -43,7 +43,7 @@ methods % Implementation of VirtualArray abstract methods
     end
        
     function writeFrames(obj, frameIndex, data)
-        error('Not implemented yet')
+        error('Writing to a raw image data file is not supported')
     end
     
 end
@@ -290,6 +290,8 @@ methods (Static)
                 iniFilePath = pathStr;
                 rawFilePath = fullfile(folderPath, [fileName, '.raw']);
             end
+        else
+            isValid = false; return
         end
         
         isValid = isfile(rawFilePath) & isfile(iniFilePath);

@@ -537,6 +537,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
             end
             
             obj.hActiveRangeBar = patch(obj.SliderAxes, X, Y, 'g');
+            
             obj.hActiveRangeBar.FaceAlpha = 0.5;
             obj.hActiveRangeBar.EdgeColor = 'none';
             obj.hActiveRangeBar.HitTest = 'off';
@@ -578,7 +579,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
                 
                 case 'ActiveRangeBar'
                     l = obj.getSliderXposition( abs(range(obj.ActiveRange)) );
-                    dx = obj.getSliderXposition( min(obj.ActiveRange) );
+                    dx = obj.getSliderXposition( min(obj.ActiveRange) - 1 );
                 case 'SliderBar'
                     l = obj.getSliderXposition( obj.Maximum - obj.Minimum );
                 case 'IndicatorBar'

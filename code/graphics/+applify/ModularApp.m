@@ -66,7 +66,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
         AppName
     end
     
-    properties (Hidden) % Layout properties
+    properties (Hidden) % Layout properties % Abstract?
         %Margins = [0, 0, 0, 0] % Margins (left, bottom, right, top) in pixels
     end
     
@@ -94,6 +94,11 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
         isConstructed = false
     end
     
+    properties (Access = protected) % Todo: Move to pointermanager. Make pointermanager a property of this class.
+        isMouseDown             
+        PreviousMouseClickPoint   % Point where mouse was last clicked
+        PreviousMousePoint
+    end
     
     
 % - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - - -
@@ -373,7 +378,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
                 hFig.WindowKeyReleaseFcn = @obj.onKeyReleased;
                 
                 % Todo: Resolve whether to use listeners or callback for
-                % mouse actions. Dow not work in imviewer with the current
+                % mouse actions. Does not work in imviewer with the current
                 % pointertool setup to use figure callback properties..
                 
                 obj.FigureInteractionListeners.WindowMousePress = addlistener(...
@@ -388,8 +393,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
                 obj.FigureInteractionListeners.WindowScrollWheel = addlistener(...
                     hFig, 'WindowScrollWheel', @obj.onMouseScrolled);
                 
-                
-                
                 %hFig.WindowScrollWheelFcn = @obj.onMouseScrolled;
                 %hFig.WindowButtonDownFcn = @obj.onMousePressed;
                 %hFig.WindowButtonMotionFcn = @obj.onMouseMotion;
@@ -399,7 +402,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
                 
                 % Todo: Probably can remove, but need to test more properly
                 
-                % Not this is done differentyl, by having the dashboard
+                % Not this is done differently, by having the dashboard
                 % that these modules are placed in invoke the interactive
                 % callback functions if the pointer is over the module...
                 

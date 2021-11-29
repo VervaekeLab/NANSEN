@@ -135,6 +135,7 @@ properties (Access = private) % Private components (todo: clean up)
 
     dndObj
     hDropbox
+    hDropbox2
     hThumbnail 
 
 
@@ -485,10 +486,13 @@ methods % App initialization & creation
 % % %          start(t)
                  
         obj.clearMessage()
-        obj.addLandingPage()  
-
+        obj.addLandingPage()
+        
+        % This should happen after all components are created...
+        uicc.bringTooltipToFront()
+        
         obj.Panel.SizeChangedFcn = @obj.resizePanel;
-
+        
         
         drawnow
         obj.setFigureWindowBackgroundColor() %BG of java window. Set
@@ -844,9 +848,24 @@ methods % App initialization & creation
     
         % todo: Add a browse button..
 
+
+        uicc = getappdata(obj.Figure, 'UIComponentCanvas');
+% % 
+% %         axesXLim = uicc.Axes.XLim;
+% %         axesYLim = uicc.Axes.YLim;
+        
         axesXLim = [1,512];
         axesYLim = [1,512];
-
+        
+        
+% %         hBox = uim.decorator.box(uicc, 'Size', [250, 60], 'SizeMode', 'manual', ...
+% %             'Location', 'center', 'HorizontalAlignment', 'center', ...
+% %             'VerticalAlignment', 'middle');
+% %         hBox.BorderWidth = 1;
+% %         hBox.BorderColor = 'w';
+% %         hBox.CornerRadius = 10;
+        
+        
         rectSize = [250, 60]; cornerRadius = 10;
         [X, Y] = uim.shape.rectangle( rectSize, cornerRadius );
         
@@ -858,6 +877,7 @@ methods % App initialization & creation
         h2.HorizontalAlignment = 'center';
         h2.VerticalAlignment = 'middle';
         h2.Color = obj.Theme.FigureFgColor;
+        hBox.BorderColor = obj.Theme.FigureFgColor;
         h2.FontSize = 20;
         
         % Important...lol
@@ -868,6 +888,14 @@ methods % App initialization & creation
         
         obj.hDropbox = [h, h2];
         
+        
+% %         hButton = uim.control.Button_(obj.Panel, 'Text', 'Load Images...', ...
+% %             'Size', [100, 25], 'SizeMode', 'manual', ...
+% %             'Location', 'center', 'HorizontalAlignment', 'center', ...
+% %             'VerticalAlignment', 'middle', 'Margin', [0,-75,0,0], ...
+% %             'HorizontalTextAlignment', 'center');
+% %         
+% %         obj.hDropbox2 = hButton;
     end
 
     function addDragAndDropFunctionality(obj)
@@ -895,15 +923,32 @@ methods % App initialization & creation
     
     function fileDropFcn(obj, ~, evt)
 
-        obj.resetImageDisplay()
-        
-        switch evt.DropType
+        switch evt.DropTypeimdata
             case 'file'
-                obj.displayMessage('Loading File')
-                for n = 1%:numel(evt.Data)
-                    obj.ImageStack = nansen.stack.ImageStack(evt.Data{1});
-                end
-
+                
+                [~, ~, ext] = fileparts(evt.Data{1});
+                
+                switch ext
+                    case '.mat'
+                        S = whos('-file', evt.Data{1});
+                        if ~isempty(S) && contains(S.name, 'roiArray')
+                            S = load(evt.Data{1});
+                            numColors = size(obj.Axes.ColorOrder, 1);
+                            color = obj.Axes.ColorOrder(randi(numColors), :);
+                            h = imviewer.plot.plotRoiArray(obj.Axes, S.roiArray);
+                            set(h, 'Color', color);
+                        end
+                            
+                    otherwise % assume image file...
+                        
+                        obj.resetImageDisplay()
+                        
+                        obj.displayMessage('Loading File')
+                        for n = 1%:numel(evt.Data)
+                            obj.ImageStack = nansen.stack.ImageStack(evt.Data{1});
+                        end
+                end      
+                
             case 'string'
                 
             case 'image'
@@ -1780,6 +1825,9 @@ methods % App update
                 lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^16;
             case 'int16'
                 lowhigh_in = (obj.settings.ImageDisplay.imageBrightnessLimits+2^15) /2^16;
+            case {'single', 'double'}
+                cLim = obj.settings.ImageDisplay.imageBrightnessLimits;
+                lowhigh_in = (cLim - min(cLim)) ./ range(obj.settings.ImageDisplay.brightnessSliderLimits);
         end
 
         %im = imadjust(im, lowhigh_in);
@@ -1799,7 +1847,7 @@ methods % App update
         % Adjust the image color and brightness if image is truecolor
         if (size(im, 3) > 1 || obj.ImageStack.NumChannels > 1) && strcmp(obj.ImageStack.ColorModel, 'Grayscale')
             im = mean(im, 3);
-        elseif size(im, 3) > 1 || obj.ImageStack.NumChannels > 1
+        elseif size(im, 3) > 1 && obj.ImageStack.NumChannels > 1
             im = obj.setChColors(im);
             im = adjustMultichannelImage(obj, im);
         end
@@ -2035,7 +2083,7 @@ methods % Event/widget callbacks
         switch action
             case 'mousescroll'
                 i = event.VerticalScrollCount;
-                if obj.nFrames / obj.settings.Interaction.scrollFactor < obj.settings.Interaction.scrollFactor
+                if obj.nFrames / obj.settings.Interaction.scrollFactor < 100% obj.settings.Interaction.scrollFactor
                     scrollFactor = 1;
                 else
                     scrollFactor = obj.settings.Interaction.scrollFactor;
@@ -2110,6 +2158,11 @@ methods % Event/widget callbacks
         
         obj.textStrings.CurrentFrame = sprintf('%d/%d', obj.currentFrameNo, obj.nFrames);
 
+        if ~strcmpi(obj.imageDisplayMode.projection, 'none')
+            obj.imageDisplayMode.projection = 'none';
+        end
+        
+        
         if ~isempty(obj.imObj)% && i~=0
             
             obj.updateImage()
@@ -2122,6 +2175,10 @@ methods % Event/widget callbacks
             end
         end
 
+    end
+    
+    function onNumFramesChanged(obj)
+        obj.uiwidgets.playback.Maximum = obj.nFrames;
     end
     
     function changeChannel(obj, channelNum, mode)
@@ -2196,6 +2253,12 @@ methods % Event/widget callbacks
     
     function onPlaneChanged(obj) %#ok<MANU>
     end
+    
+    function set.nFrames(obj, newValue)
+        obj.nFrames = newValue;
+        obj.onNumFramesChanged()
+    end
+        
     
     
     function onDisplayLimitsChanged(obj)
@@ -2290,9 +2353,11 @@ methods % Event/widget callbacks
 %                 obj.updateImageDisplay();
 %         end
         
-        if obj.settings.ImageDisplay.imageBrightnessLimits(2) <= 1
-            newCLim = newCLim/100;
-        end
+%         if obj.settings.ImageDisplay.imageBrightnessLimits(2) <= 1
+%             newCLim = newCLim/100;
+%         end
+        
+        
         
         % Prevent setting upper limit lower than lower limit.
         if newCLim(2) <= newCLim(1)
@@ -2821,6 +2886,7 @@ methods % Misc, most can be outsourced
         if src.Value
             obj.autoAdjustLimits = true;
             P = prctile(double(obj.image(:)), [0.05, 99.95]);
+            if all(isnan(P)); return; end
             obj.brightnessSlider.Low = P(1);
             obj.brightnessSlider.High = P(2);
             %obj.changeBrightness(P)

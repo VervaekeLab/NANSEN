@@ -47,8 +47,8 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous
         onPluginActivated % Todo: find better name..
     end
     
-    methods (Abstract, Static) % Should be a property or part of settings?
-        getPluginIcon()
+    methods (Abstract, Static) % Should it be a property or part of settings?
+        %getPluginIcon()
     end
     
     

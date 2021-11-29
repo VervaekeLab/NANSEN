@@ -34,10 +34,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       [x] Fix Scroller... Does it need its own panel???
 %       [ ] Scrollerposition does not reset to top when changing tabs... 
 %      *[ ] Implement dependable fields...
+%       [ ] Implement transient fields
 %           Q: 1) How are these updated? Is there any way of making that
 %           simple, or not? True/false, enable/diable... 
 %              2) Make data models?
-%      *[ ] Make a struct with the same fields as the input struct
+%      *[x] Make a struct with the same fields as the input struct
 %           containing the controls. Will be much easier to find things 
 %           back and update things when needed.
 %       [ ] Fix onMouseMotion bug (if closing a docked structeditor??)
@@ -107,6 +108,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     properties % Callback properties. Need to clean 
         Callback     
         TestFunc % Why is there a second one????
+        
+        ValidationFcn % todo
         ValueChangedFcn
     end
 
@@ -171,7 +174,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     
     properties (Access = private, Hidden = true)
         ConvertOutputToStruct = false % Convert output to struct. Struct of struct is converted to cell, need to convert back before outputting
-    
         Debug = false
     end
     
@@ -199,7 +201,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % struct or a cell array of structs. 
             [S, varargin] = structeditor.validateStruct(varargin{:});
             % Above function fails if S is invalid. varargin has S removed
-            
             
             obj.assignPVPairs(varargin{:});
             obj.parseStruct(S)
@@ -981,10 +982,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             
             % Adjust margins/sidebar to fit with tabbuttons
-            deltaWidth = width - obj.Margins(1);
-            obj.Margins(1) = width;
-            obj.Figure.Position(3) = obj.Figure.Position(3) + deltaWidth;
-            
+            if strcmp(obj.TabMode, 'sidebar') && strcmp(obj.mode, 'standalone')
+                deltaWidth = width - obj.Margins(1);
+                obj.Margins(1) = width;
+                obj.Figure.Position(3) = obj.Figure.Position(3) + deltaWidth;
+            end
             
             panelPos = getpixelposition(obj.uiPanel.Tab);
             linePos([1,3]) = floor([panelPos(3), panelPos(3)]);
@@ -1525,8 +1527,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % % %                             inputbox = uim.control.Button_(guiPanel, ...
 % % %                                 'mode', 'pushbutton', config.args{:}, ...
 % % %                                 'HorizontalTextAlignment', 'center');
-                            
-                            ycorr = obj.RowSpacing;
+                            if strcmp(obj.LabelPosition, 'Over')
+                                ycorr = obj.RowSpacing;
+                            end
                             xcorr = -3;
                             
                         case 'togglebutton'
@@ -2081,12 +2084,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             newOpts = obj.OptionsManager.getOptions(newName);
             
-            % Todo: turn this into a method.
-            if numel(obj.dataEdit) > 1
-                newOpts = struct2cell(newOpts);
-            else
-                newOpts = {newOpts};
-            end
+% % %             % Todo: turn this into a method.
+% % %             if numel(obj.dataEdit) > 1
+% % %                 newOpts = struct2cell(newOpts);
+% % %             else
+% % %                 newOpts = {newOpts};
+% % %             end
             
             obj.updateFromPreset(newOpts)
             %obj.refreshPresetDropdown(src)

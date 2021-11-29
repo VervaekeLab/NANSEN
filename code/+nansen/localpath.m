@@ -2,16 +2,25 @@ function pathStr = localpath(pathKeyword, project)
 % Get (absolute) local paths for files & folders used in the nansen package
 %
 %   pathStr = localpath(pathKeyword)
+%
+%   See also nansen.config.addlocalpath (TODO)
+
+    
+    if ispref('nansen_localpath', pathKeyword)
+        pathStr = getpref('nansen_localpath', pathKeyword);
+        return
+    end
+
+
 
     if nargin < 2 || strcmp(project, 'current') % Should it be called current?
-        projectRootDir = getpref('Nansen', 'CurrentProjectPath');
+        projectRootDir = getpref('Nansen', 'CurrentProjectPath'); %todo: add default
     else
         error('Not implemented yet')
     end
 
     % Determine path folder (and filename if relevant) based input keyword
     switch pathKeyword
-        
         
       % % Folders
         
@@ -20,6 +29,11 @@ function pathStr = localpath(pathKeyword, project)
             thisPath = fileparts( mfilename( 'fullpath' ) );
             folderPath = utility.path.getAncestorDir(thisPath, 1);
             
+        case 'subfolder_list'
+            initPath = fullfile(nansen.localpath('nansen_root'), 'code');
+            folderPath = strsplit(genpath(initPath), ':');
+            folderPath = folderPath(1:end-1);
+
         case {'_user_data', 'user_data', '_userdata', 'userdata'} % Todo...
             initPath = nansen.localpath('nansen_root');
             folderPath = fullfile(initPath, '_userdata');
@@ -76,8 +90,10 @@ function pathStr = localpath(pathKeyword, project)
     
     
     % Make folder if it does not exist
-    if ~exist(folderPath, 'dir');  mkdir(folderPath);    end
-
+    if ischar( folderPath )
+        if ~exist(folderPath, 'dir');  mkdir(folderPath);  end
+    end
+    
     % Prepare output, either file- or folderpath
     if exist('fileName', 'var')
         pathStr = fullfile(folderPath, fileName);

@@ -419,17 +419,22 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             if obj.IsConstructed
                 obj.hBackground.FaceColor = obj.BackgroundColor;
                 obj.hBackground.FaceAlpha = obj.BackgroundAlpha;
+                obj.hBackground.EdgeColor = obj.BorderColor;
+                obj.hBackground.LineWidth = obj.BorderWidth;
+                obj.hBackground.LineStyle = '--';
             end
         end
         
         function onShapeChanged(obj)
             % todo: create an updateBackground method in addition to
             % updateSize
-            try
-                obj.updateBackground()
-            catch
+            % Todo: What is the difference between these 2??
+            
+%             try
+%                 obj.updateBackground()
+%             catch
                 obj.updateBackgroundSize()
-            end
+%             end
         end
         
     end

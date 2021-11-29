@@ -54,6 +54,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         
         setData(obj, data, subs)
         
+        data = getLinearizedData(obj)
     end
     
     methods (Sealed) % Override size, class, ndims, subsref & subsasgn
@@ -137,7 +138,8 @@ classdef ImageStackData < uim.mixin.assignProperties
                     numRequestedDim = numel(s.subs);
                     
                     if isequal(s.subs, {':'})
-                        error('Linear indexing is not implemented yet')
+                        varargout{1} = obj.getLinearizedData();
+                        return
                     elseif numRequestedDim == ndims(obj)
                         subs = obj.rearrangeSubs(s.subs);
                     else

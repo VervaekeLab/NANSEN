@@ -23,7 +23,7 @@ end
 
 if cropAmount ~= 0
     imSize = size(imArray);
-    imArray = imcropcenter(imArray, imSize(1:2)-cropAmount);
+    imArray = stack.reshape.imcropcenter(imArray, imSize(1:2)-cropAmount);
 end
 
 

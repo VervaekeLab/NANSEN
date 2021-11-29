@@ -1,10 +1,10 @@
-classdef computeImageStats < nansen.stack.ChunkProcessor & abstract.SessionMethod
+classdef computeImageStats < nansen.stack.ImageStackProcessor
     
       
-    properties (Constant) % SessionMethod properties
-        BatchMode = 'serial'
-        IsQueueable = true;
-        OptionsManager = []
+    properties (Constant)
+        MethodName = 'Compute Image Stats'
+        IsManual = false        % Does method require manual supervision
+        IsQueueable = true      % Can method be added to a queue
     end
     
     properties %Options
@@ -13,85 +13,88 @@ classdef computeImageStats < nansen.stack.ChunkProcessor & abstract.SessionMetho
     
     properties (Access = private)  
         ImageStats
+        SaturationValue
     end
+    
+    methods (Static)
+        function S = getDefaultOptions()
+            S = struct();
+            S.PercentileLevels = [0.05, 0.005];
+            
+            className = mfilename('class');
+            superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
+            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
+        end
+    end
+    
     
     methods % Structor
         
         function obj = computeImageStats(varargin)
+            obj@nansen.stack.ImageStackProcessor(varargin{:})
             
-            obj@abstract.SessionMethod(varargin{:})
-            obj@nansen.stack.ChunkProcessor()      
-            
+            if ~nargout
+                obj.runMethod()
+                clear obj
+            end
         end
         
+    end
+    
+    methods (Access = protected)
+        
         function onInitialization(obj)
-            obj.openSourceStack()
+            
+            % obj.openSourceStack() % todo...
             obj.initializeImageStats();
+            
+            % Get saturation value from ImageStack object.
+            dataIntensityLimits = obj.SourceStack.DataTypeIntensityLimits;
+            obj.SaturationValue = dataIntensityLimits(2);
         end
 
     end
     
-    methods (Access = protected) % Implementation of methods from ChunkProcessor
+    methods (Access = protected) % Implement methods from ImageStackProcessor
         
-        function openSourceStack(obj)
-             
-            % Get filepath for raw 2p-images
-            DATANAME = 'TwoPhotonSeries_Original';
-            filePath = obj.SessionObjects.getDataFilePath(DATANAME);
-            
-            % Initialize file reference for raw 2p-images
-            obj.SourceStack = imviewer.stack.open(filePath);
-            
-        end
-        
-
-        function Y = processPart(obj, Y, IND)
-            
-            % Reshape to 2D array where all pixels from each image is 1D
-            Y_ = reshape(Y, [], size(Y, 3));
-            
-            obj.ImageStats.meanValue(IND) = nanmean( Y_ );
-            obj.ImageStats.medianValue(IND) = nanmedian( Y_ );
-            obj.ImageStats.minimumValue(IND) = min( Y_ );
-            obj.ImageStats.maximumValue(IND) = max( Y_ );
-            
-            pLevels = obj.ImageStats.percentileValues;
-
-            % Collect different stats.
-            prctValues = prctile(Y_, pLevels)';
-            if iscolumn(prctValues); prctValues = prctValues'; end % If size(Y, 3)==1. 
-            
-            obj.ImageStats.prctileL1(IND) = prctValues(:, 1);
-            obj.ImageStats.prctileL2(IND) = prctValues(:, 2);
-            obj.ImageStats.prctileU1(IND) = prctValues(:, 3);
-            obj.ImageStats.prctileU2(IND) = prctValues(:, 4);
-            
-            saturationValue = 2^16; %Todo: Get from image type/class
-            obj.ImageStats.pctSaturatedValues(IND) = mean(Y_ == saturationValue);
-            
+% % %         function openSourceStack(obj)
+% % %              
+% % %             % Get filepath for raw 2p-images
+% % %             DATANAME = 'TwoPhotonSeries_Original';
+% % %             filePath = obj.SessionObjects.getDataFilePath(DATANAME);
+% % %             
+% % %             % Initialize file reference for raw 2p-images
+% % %             obj.SourceStack = imviewer.stack.open(filePath);
+% % %             
+% % %         end
+% % %         
+        function Y = processPart(obj, Y)
+            obj.updateImageStats(Y)
             obj.saveImageStats() % Save results for every part
-        
             Y = [];
         end
         
+        function tf = checkIfPartIsFinished(obj, frameIndices)
+            tf = all( ~isnan(obj.ImageStats.meanValue(frameIndices) ) );
+        end
+        
     end
     
-    methods (Access = private)
+    methods (Access = private) 
 
         function S = initializeImageStats(obj)
         %initializeImageStats Create new or load existing struct.
         %
 
-            % Check if image stats already exist for this session
-            iSession = obj.SessionObjects;
-            filePath = iSession.getDataFilePath('imageStats', ...
+            % Check if image stats already exist for this datalocation
+            filePath = obj.getDataFilePath('imageStats', ...
                 'Subfolder', 'raw_image_info');
             
             if isfile(filePath)
-                S = iSession.loadData('imageStats');
+                S = obj.loadData('imageStats');
             else
                 
-                numFrames = obj.SourceStack.numFrames;
+                numFrames = obj.SourceStack.NumFrames;
 
                 nanArray = nan(numFrames, 1);
                     
@@ -114,7 +117,7 @@ classdef computeImageStats < nansen.stack.ChunkProcessor & abstract.SessionMetho
                 
                 S.pctSaturatedValues = nanArray;
 
-                iSession.saveData('imageStats', S, ...
+                obj.saveData('imageStats', S, ...
                     'Subfolder', 'raw_image_info');
                 
             end
@@ -123,21 +126,45 @@ classdef computeImageStats < nansen.stack.ChunkProcessor & abstract.SessionMetho
 
         end
         
-        function S = saveImageStats(obj, Y, S, IND)
-        %saveImageStats Get/save statistical values of image data  
-        %
-        %   saveImageStats(obj, Y, S, IND)
+        function updateImageStats(obj, Y)
             
-        %   Question: Move this to a more general image processing class?
+            IND = obj.CurrentFrameIndices;
+            
+            % Reshape to 2D array where all pixels from each image is 1D
+            Y_ = reshape(Y, [], size(Y, 3));
+            
+            obj.ImageStats.meanValue(IND) = nanmean( Y_ );
+            obj.ImageStats.medianValue(IND) = nanmedian( Y_ );
+            obj.ImageStats.minimumValue(IND) = min( Y_ );
+            obj.ImageStats.maximumValue(IND) = max( Y_ );
+            
+            pLevels = obj.ImageStats.percentileValues;
+
+            % Collect different stats.
+            prctValues = prctile(Y_, pLevels)';
+            if iscolumn(prctValues); prctValues = prctValues'; end % If size(Y, 3)==1. 
+            
+            obj.ImageStats.prctileL1(IND) = prctValues(:, 1);
+            obj.ImageStats.prctileL2(IND) = prctValues(:, 2);
+            obj.ImageStats.prctileU1(IND) = prctValues(:, 3);
+            obj.ImageStats.prctileU2(IND) = prctValues(:, 4);
+            
+            obj.ImageStats.pctSaturatedValues(IND) = mean(Y_ == obj.SaturationValue, 1);
+                        
+        end
         
+        function saveImageStats(obj)
+        %saveImageStats Save statistical values of image data  
+        %
+        %   saveImageStats(obj, Y)
+        
+            % Save updated image stats to data location
             S = obj.ImageStats;
-        
-            % Save updated image stats to session
-            iSession = obj.SessionObjects;
-            iSession.saveData('imageStats', S)
+            obj.saveData('imageStats', S)
             
         end
 
     end
+    
 
 end

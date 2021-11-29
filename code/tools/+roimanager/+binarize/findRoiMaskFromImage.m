@@ -5,11 +5,13 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
 % quantify the edgemagnitude.
 % quantify uniformness of edges and brightness inside donut
 
-    def = struct('method', 'donut');
+    def = struct('method', 'donut', 'output', 'mask', 'us', 4);
     opt = utility.parsenvpairs(def, [], varargin);
 
+    imSizeSmall = size(im);
+    
     %Upsample and smooth image.
-    upSampleFactor = 4;
+    upSampleFactor = opt.us;
     im = imresize(im, upSampleFactor);
     imSize = size(im);
     
@@ -43,7 +45,14 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
         'variance', {}, ...
         'ridgeFraction', {});
     
-    mask = zeros([origImSize(1:2), numImages], 'logical');
+    switch opt.output
+        case 'mask'
+            mask = zeros([origImSize(1:2), numImages], 'logical');
+        case 'coords'
+            mask = cell(1, numImages);
+    end
+            
+        
 
     
     for i = 1:numImages
@@ -65,7 +74,7 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
                 
             case 'donut'
                 [edgeCoordsInn, statInn] = findEdge(tmpGradient, 'rise');
-                edgeCoordsInnS = utility.circularsmooth(edgeCoordsInn, 2*upSampleFactor);
+                edgeCoordsInnS = utility.circularsmooth(edgeCoordsInn, max([1, 2*upSampleFactor]));
 
                 lowerLim = floor(min(edgeCoordsInnS));
                 newIm = nan(size(tmpGradient) - [lowerLim, 0]);
@@ -75,12 +84,12 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
                     newIm(1:numel(values), j) = values;
                 end
 
-                h = min([size(newIm,1), 3*upSampleFactor ]);% why 3??????? parameterize
-                newIm = newIm(1:h, :);
+                %h = min([size(newIm,1), 3*upSampleFactor ]);% why 3??????? parameterize
+                %newIm = newIm(1:h, :);
                 
                 [edgeCoordsOut, statOut] = findEdge(newIm, 'fall');
                 edgeCoordsOut = edgeCoordsOut+edgeCoordsInnS;
-                edgeCoordsOutS = utility.circularsmooth(edgeCoordsOut, 2*upSampleFactor);
+                edgeCoordsOutS = utility.circularsmooth(edgeCoordsOut, max([1, 2*upSampleFactor]));
 
                 edgeCoordsOutS(edgeCoordsOutS<1)=1;
                 edgeCoordsOutS(edgeCoordsOutS>size(grad,1))=size(grad,1);
@@ -92,13 +101,20 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
 
 
         if showPlot
-            figure('Position', [300,300,300,300]); axes('Position', [0,0,1,1]);
-            imagesc(tmpUnrolled); hold on
-    %         imagesc(grad); hold on
-            plot(1:size(tmpUnrolled, 2), edgeCoordsInn, 'ow')
-            plot(1:size(tmpUnrolled, 2), edgeCoordsOut, 'or')
-            plot(1:size(tmpUnrolled, 2), edgeCoordsInnS, 'w')
-            plot(1:size(tmpUnrolled, 2), edgeCoordsOutS, 'r')
+            persistent f ax hIm
+            if isempty(f) || ~isvalid(f)
+                f = figure('Position', [300,300,300,300]); axes('Position', [0,0,1,1]);
+                ax = axes(f, 'Position',[0,0,1,1]);
+            else
+                cla(ax)
+            end
+            
+            h = imagesc(ax, grad); hold on
+    
+            plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsInn, 'ow')
+            plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsOut, 'or')
+            plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsInnS, 'w')
+            plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsOutS, 'r')
 
     %         plot(1:size(unrolled,2), innerBnd, 'or')
     %         plot(1:size(unrolled,2), innerBnd1, 'r')
@@ -116,10 +132,21 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
 
         [xi, yi] = pol2cart(deg2rad(theta(1:end-1)), outerRadius);
 
-
+        
         x = center(i, 1); y = center(i, 2);
-        mask(:, :, i) = poly2mask(x+xi-0.25, y-yi-0.25, origImSize(1), origImSize(2));
-
+        switch opt.output
+            case 'mask'
+                mask(:, :, i) = poly2mask(x+xi-0.25, y-yi-0.25, origImSize(1), origImSize(2));
+            case 'coords'
+                xOffset = imSizeSmall(2)/2; % min(xi);
+                yOffset = imSizeSmall(1)/2; % min(yi);
+                xi = xi + xOffset; yi = yi + yOffset;
+                bwTmp = poly2mask(xi, yi, imSizeSmall(1), imSizeSmall(2));
+                [Y, X] = find(bwTmp);            
+                mask{i} = [x+X-xOffset, y-Y+yOffset];
+        end
+        
+        
 
         % Create some stat values:
         imCenter = fliplr( imSize(1:2)./2 );

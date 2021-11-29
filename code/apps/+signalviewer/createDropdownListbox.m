@@ -1,0 +1,36 @@
+function [hAppbar, hBtn] = createDropdownListbox(parent, strings, options)
+
+    % Change order because buttons are created bottom to top?
+    strings = fliplr(strings); 
+
+    uicc = uim.UIComponentCanvas(parent);
+
+    newButtonSize = [100, 20];
+
+    % Create a toolbar for app-related buttons in upper right corner.
+    hAppbar = uim.widget.toolbar(uicc, 'Location', 'northwest', ...
+        'ComponentAlignment', 'right', ...
+        'BackgroundColor', ones(1,3)*0.5, ...
+        'BackgroundAlpha', 1, 'Size', [110, 200], ...
+        'IsFixedSize', [true, false], ...
+        'NewButtonSize', newButtonSize, ...
+        'Margin', [35,5,5,62], 'Padding', [5,5,5,5], 'Spacing', 0, ...
+        'CornerRadius', 5, 'BorderColor', 'k');
+
+    %hAppbar.Orientation = 'vertical'
+
+    buttonArgs = {'Padding', [0,0,0,0], 'Style', uim.style.listboxButton, ...
+        'CornerRadius', 0};
+
+    hBtn = uim.control.Button.empty;
+    
+    for i = 1:numel(strings)
+        hBtn(i) = hAppbar.addButton('String', strings{i}, ...
+            'Padding', [0,0,0,0], 'Style', uim.style.listboxButton, ...
+            'ButtonDownFcn', @(s,e,m) disp('test click'), ...
+            'Type', 'togglebutton', buttonArgs{:});
+        
+    end
+
+
+end

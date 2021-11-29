@@ -31,10 +31,15 @@ function varargout = clahe(imageIn, varargin)
     if size(imageIn,1) < 32 ||  size(imageIn,2) < 32
         im = imageIn;
     else
-        im = adapthisteq(imageIn, 'NumTiles', param.NumTiles, ...
-                        'ClipLimit', param.ClipLimit, ...
-                        'Distribution', param.Distribution, ...
-                        'Range', param.Range);
+        numFrames = size(imageIn, 3);
+        im = zeros(size(imageIn));
+        
+        for i = 1:numFrames
+            im(:, :, i) = adapthisteq(imageIn(:, :, i), 'NumTiles', param.NumTiles, ...
+                            'ClipLimit', param.ClipLimit, ...
+                            'Distribution', param.Distribution, ...
+                            'Range', param.Range);
+        end
                     
         % Should I use range = full instead???
         im = im .* (maxVal-minVal) + minVal;

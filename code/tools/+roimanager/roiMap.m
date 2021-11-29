@@ -133,8 +133,8 @@ classdef roiMap < handle
                 case {'initialize', 'append', 'insert'}
                     
                     obj.plotRoi(evt.roiArray, evt.roiIndices, evt.eventType)
-                    obj.updateRoiMaskAll(evt.roiIndices, evt.eventType)
-                    obj.updateRoiIndexMap()
+                    %obj.updateRoiMaskAll(evt.roiIndices, evt.eventType)
+                    obj.updateRoiIndexMap(evt.roiIndices, evt.eventType)
                     
                 case {'modify', 'reshape'}
                     for i = evt.roiIndices
@@ -142,7 +142,7 @@ classdef roiMap < handle
                     end
                     obj.updateLinkPlot(evt.roiIndices)
 
-                    obj.updateRoiMaskAll(evt.roiIndices, evt.eventType)
+                    %obj.updateRoiMaskAll(evt.roiIndices, evt.eventType)
                     obj.updateRoiIndexMap()
                     
                 case 'remove'
@@ -156,7 +156,7 @@ classdef roiMap < handle
 
                     obj.roiLinePos(evt.roiIndices, :) = [];
                     obj.roiTextPos(evt.roiIndices) = [];
-                    obj.updateRoiMaskAll(evt.roiIndices, 'remove') 
+                    %obj.updateRoiMaskAll(evt.roiIndices, 'remove') 
                     
                     % TODO: Should this be done before or after i delete
                     % the rois from roiArray in roiGroup. I could pass
@@ -572,7 +572,7 @@ classdef roiMap < handle
         function roiObj = addUserData(obj, roiObj)
             
             if true % classifier is open
-                imArray = obj.displayApp.imageStack.getFrameSet('all');
+                imArray = obj.displayApp.ImageStack.getFrameSet('all');
                 
                 imSize = size(imArray);
                 if imSize(end)<10; return; end
@@ -683,9 +683,20 @@ classdef roiMap < handle
             
             [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, pad);
             
-            imData = obj.displayApp.imageStack.getFrameSet('all');
+            oldXLim = obj.displayApp.ImageStack.DataXLim;
+            oldYLim = obj.displayApp.ImageStack.DataYLim;
+
+            obj.displayApp.ImageStack.DataXLim = [S(1), L(1)];
+            obj.displayApp.ImageStack.DataYLim = [S(2), L(2)];
+
+            imChunk = obj.displayApp.ImageStack.getFrameSet('all');
             
-            imChunk = roimanager.imtools.getPixelChunk(imData, S, L);
+            obj.displayApp.ImageStack.DataXLim = oldXLim;
+            obj.displayApp.ImageStack.DataYLim =  oldYLim;
+            
+            
+            %imData = obj.displayApp.ImageStack.getCompleteFrameSet('all');
+            %imChunk = roimanager.imtools.getPixelChunk(imData, S, L);
             
             
             % Get x- and y-coordinate for the image subset.
@@ -717,8 +728,8 @@ classdef roiMap < handle
                     %Todo: specify local center... This function should use local
                     %center, not assume to start in center of small image.
                     IM = mean(imChunk(:, :, IND), 3);            
-                    [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, [x, y], imSize);
-
+                    [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, [x, y], imSize, 'output', 'coords', 'us', 4);
+                    roiMask = roiMask{1};
                 case 2
                     IM = max(imChunk(:, :, IND), [], 3);
                     roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
@@ -771,7 +782,7 @@ classdef roiMap < handle
             
             if ~nargout
                 
-                newRoi = RoI('Mask', roiMask);
+                newRoi = RoI('Mask', roiMask, imSize);
 
                 if doReplace
                     i = obj.selectedRois;
@@ -785,7 +796,7 @@ classdef roiMap < handle
                 clear newRoi
                 
             else
-                newRoi = roiMask;
+                newRoi = RoI('Mask', roiMask, imSize);%roiMask;
             end
             
             % add/reshape&replace roi
@@ -841,15 +852,45 @@ classdef roiMap < handle
             
             
             if isempty(obj.roiMaskAll)
-                obj.roiMaskAll = cat(3, obj.roiGroup.roiArray(:).mask);
-                return
+                obj.roiMaskAll = {};
+                
+                %obj.roiMaskAll = cat(3, obj.roiGroup.roiArray(:).mask);
+                %return
             end
+            
+            
+                        
+            obj.roiMaskAll = {};
+
+            roiInd = sort(roiInd, 'descend');
+
+            switch lower(action)
+                
+                case 'add'
+                    for i = roiInd
+                        thisRoi = obj.roiArray(i);
+                        obj.roiIndexMap{i} = thisRoi.getPixelIdxList();
+                        
+%                         mask = obj.roiArray(roiInd(i)).mask;
+%                         obj.roiIndMap(mask) = roiInd(i);
+                    end
+                    
+                case 'remove'
+                    obj.roiIndexMap{i} = [];
+            end
+            
             
             % TODO: How does this work for inserts?
             
             switch lower(action)
                 case {'add', 'reshape', 'append', 'modify'}
-                    obj.roiMaskAll(:,:,roiInd) = cat(3, obj.roiGroup.roiArray(roiInd).mask);
+                    for i = roiInd                        
+                        [localMask, globalSubs] = obj.roiGroup.roiArray(i).getLocalMask();
+                        [Y, X] = ind2sub(obj.roiGroup.FovImageSize, globalSubs);
+                        obj.roiMaskAll(Y(:,1),X(1,:),i) = localMask;
+                    end
+                    %obj.roiMaskAll(:,:,roiInd) = cat(3, obj.roiGroup.roiArray(roiInd).mask);
+                    
                 case {'insert'}
                     dataToInsert =  cat(3, obj.roiGroup.roiArray(roiInd).mask);
                     obj.roiMaskAll = utility.insertIntoArray(obj.roiMaskAll, dataToInsert, roiInd, 3);
@@ -862,35 +903,48 @@ classdef roiMap < handle
         
         function updateRoiIndexMap(obj, roiInd, action)
             
-            % Todo: Make this smarter
-            if isempty( obj.roiIndexMap )
-                obj.roiIndexMap = zeros(size(obj.roiGroup.roiArray(1).mask));
-            else
-                obj.roiIndexMap(:) = 0;
-            end
-            
-            
-
-            for i = 1:obj.roiGroup.roiCount
-                tmpMask = obj.roiGroup.roiArray(i).mask;
-                obj.roiIndexMap(tmpMask) = i;
-                
-            end
-            
-% % %             switch lower(action)
-% % %                 
-% % %                 case 'add'
-% % %                     for i = 1:obj.roiCount
-% % %                         mask = obj.roiArray(roiInd(i)).mask;
-% % %                         obj.roiIndMap(mask) = roiInd(i);
-% % %                     end
-% % %                     
-% % %                 case 'remove'
-% % %                     
-% % %                     
+            % This is super slow....
+% % %             if isempty( obj.roiIndexMap )
+% % %                 tic
+% % %                 obj.roiIndexMap = zeros(size(obj.roiGroup.roiArray(1).mask));
+% % %                 toc
+% % %             else
+% % %                 obj.roiIndexMap = zeros(size(obj.roiGroup.roiArray(1).mask));
+% % %                 %obj.roiIndexMap(:) = 0;
+% % %             end
+% % %             
+% % %             tic
+% % %             obj.roiIndexMap = zeros(size(obj.roiGroup.roiArray(1).mask));
+% % %             toc
+% % %             for i = 1:obj.roiGroup.roiCount
+% % %                 %tmpMask = obj.roiGroup.roiArray(i).mask;
+% % %                 pixelIdxList = obj.roiGroup.roiArray(i).getPixelIdxList();
+% % %                 tic;obj.roiIndexMap(pixelIdxList) = i;toc
 % % %             end
             
+            if obj.roiGroup.roiCount == 0
+                return
+            end
+
             
+            % Todo: Make this smarter
+            
+            % Assign the "label matrix" to a temporary variable. For some
+            % reason this code is very slow if the matrix is assigned to
+            % the object property and then updated.
+            L = zeros(size(obj.roiGroup.roiArray(1).mask));
+
+            for i = 1:obj.roiGroup.roiCount
+                %tmpMask = obj.roiGroup.roiArray(i).mask;
+                pixelIdxList = obj.roiGroup.roiArray(i).getPixelIdxList();
+                L(pixelIdxList) = i;
+            end
+            
+            obj.roiIndexMap = L;
+            
+%             tic
+%             obj.roiMaskAll = obj.roiIndexMap ~= 0;
+%             toc
         end
         
         
@@ -900,6 +954,33 @@ classdef roiMap < handle
         
         function hideRoiTextLabels(obj)
             set(obj.roiTextHandles, 'Visible', 'off')
+        end
+        
+        
+        
+        function showClassifiedCells(obj, label)
+            
+            clsf = obj.roiGroup.roiClassification;
+            
+            set(obj.roiPlotHandles, 'Visible', 'on')
+            
+            switch label
+                
+                case 'Show Accepted'
+                    indShow = clsf == 1;
+                case 'Show Rejected'
+                    indShow = clsf == 2;
+                case 'Show All'
+                    indShow = clsf >= 0;
+                case 'Show Unclassified'
+                    indShow = clsf == 3;
+            end
+            
+            indHide = ~indShow;
+            
+            set(obj.roiPlotHandles(indShow), 'Visible', 'on')
+            set(obj.roiPlotHandles(indHide), 'Visible', 'off')
+            
         end
         
         
@@ -1074,6 +1155,9 @@ classdef roiMap < handle
                     
                 case 'select'
                     obj.selectedRois = union(obj.selectedRois, roiIndices);
+                    if iscolumn(obj.selectedRois)
+                        obj.selectedRois = transpose(obj.selectedRois);
+                    end
                     
                     colorCellArray = repmat({'White'}, numel(roiIndices), 1);
                     newLineWidth = min([obj.lineWidth+2, 3]);

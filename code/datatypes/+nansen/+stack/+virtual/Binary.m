@@ -15,7 +15,7 @@ classdef Binary < nansen.stack.data.VirtualArray
     
     %   [x] Add list of file formats, i.e .raw and .bin??
     
-properties (Constant)
+properties (Hidden, Constant)
     FILE_FORMATS = {'RAW', 'BIN'} 
 end
     
@@ -139,6 +139,15 @@ end
 
 methods % Implementation of abstract methods
 
+    
+    function readFrames(obj) 	% defined in nansen.stack.data.VirtualArray
+        % Todo
+    end
+    
+    function writeFrames(obj, data, frameInd)	% defined in nansen.stack.data.VirtualArray
+        obj.writeFrameSet(data, frameInd)
+    end
+        
     function data = readData(obj, subs)
         data = obj.MemMap.Data.ImageArray(subs{:});
     end
@@ -153,7 +162,7 @@ methods % Implementation of abstract methods
             subs = obj.frameind2subs(frameInd);
         end
         
-        data = obj.MemMap.Data.yxt(subs{:});
+        data = obj.MemMap.Data.ImageArray(subs{:});
     end
     
     function writeFrameSet(obj, data, frameInd, subs)
@@ -167,7 +176,7 @@ methods % Implementation of abstract methods
             subs{end} = frameInd;
         end
         
-        obj.MemMap.Data.yxt(subs{:}) = data;
+        obj.MemMap.Data.ImageArray(subs{:}) = data;
         
     end
     
@@ -305,6 +314,10 @@ methods (Static)
         
     end
     
+    function createFile(filePath, arraySize, arrayClass)
+        nansen.stack.virtual.Binary.initializeFile(filePath, arraySize, arrayClass)
+    end
+    
     function initializeFile(filePath, arraySize, arrayClass)
     
         S = struct('Size', arraySize, 'Class', arrayClass);
@@ -315,7 +328,7 @@ methods (Static)
             assert(isfield(S, 'Class'), 'Class input is missing')
             
             % Todo: Make this function part of the utility package?
-            stack.io.fileadapter.Raw.writeinifile(filePath, S)
+            nansen.stack.virtual.Binary.writeinifile(filePath, S)
 
             nNumEntries = prod(S.Size);
 

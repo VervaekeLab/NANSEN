@@ -107,8 +107,21 @@ methods % Implementation of abstract methods
 
     
     function data = readData(obj, subs)
+        
         [start, count, stride] = obj.subs2h5ReadKeys(subs, size(obj));
-        data = h5read(obj.FilePath, ['/', obj.DatasetName], start, count, stride);
+
+        if isa(start, 'cell')
+            data = cell(1, numel(start));
+            
+            for i = 1:numel(start)
+                data{i} = h5read(obj.FilePath, ['/', obj.DatasetName], start{i}, count{i}, stride{i});
+            end    
+            data = cat(numel(subs), data{:});
+            
+        else
+            data = h5read(obj.FilePath, ['/', obj.DatasetName], start, count, stride);
+        end
+
     end
     
     function data = readFrames(obj, frameInd)
@@ -272,8 +285,21 @@ methods (Static) % H5 specific methods
                 % stride value.
                 if length(I) > 1
                     strides = unique(diff(I));
-                    assert(length(strides) == 1,'Selection cannot be defined with a single stride value. Consider indexing multiple times.');
-                    stride(i) = strides(1);
+                    if length(strides) > 1 && i == numel(subs)
+                        
+                        [start, count, stride] = nansen.stack.virtual.HDF5.subs2h5ReadKeysMultiStride(subs, sz);
+                        return
+                        
+                        %id = 'NANSEN:VirtualH5:IrregularStrideOnLastIndex';
+                        %msg = 'Selection cannot be defined with a single stride value. Consider indexing multiple times.';
+                        %throw( MException(id, msg) );
+                    elseif length(strides) > 1 && i ~= numel(subs)
+                        id = 'NANSEN:VirtualH5:IrregularStrideOnIndexing';
+                        msg = 'Selection cannot be defined with a single stride value. Consider indexing multiple times.';
+                        throw( MException(id, msg) );
+                    else
+                        stride(i) = strides;
+                    end
                 else
                     stride(i) = 1;
                 end
@@ -283,6 +309,41 @@ methods (Static) % H5 specific methods
             end
         end
 
+    end
+    
+    function [start, count, stride] = subs2h5ReadKeysMultiStride(subs, sz)
+        
+        
+        subsLastDim = subs{end};
+                
+        segments = {};
+        count = 1;
+        
+        finished = false;
+        while ~finished
+        
+            strideTransition = find(diff(subsLastDim, 2) ~= 0, 1, 'first') + 1;
+            if isempty(strideTransition)
+                strideTransition = numel(subsLastDim);
+            end
+            segments{count} = subsLastDim(1:strideTransition);
+            
+            subsLastDim(1:strideTransition) = [];
+            count = count+1;
+            
+            if isempty(subsLastDim)
+                finished = true;
+            end
+        end
+        
+        [start, count, stride] = deal({});
+        
+        tmpSubs = subs;
+        for i = 1:numel(segments)
+            tmpSubs{end} = segments{i};
+            [start{i}, count{i}, stride{i}] = nansen.stack.virtual.HDF5.subs2h5ReadKeys(tmpSubs, sz);
+        end
+        
     end
     
     function initializeFile(filePath, arraySize, arrayClass)

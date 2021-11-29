@@ -15,13 +15,14 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
     
     
     properties 
-                
+        isActive = false % Is tool doing something right now?
+ 
         hFigure
         hAxes
         
-        buttonDownCallback
-        buttonUpCallback
-        buttonMotionCallback
+        buttonDownCallback % protected?
+        buttonUpCallback % protected?
+        buttonMotionCallback % protected?
         
 %         activatedCallback  Jusrt use toggle event instead??
 %         deactivatedCallback
@@ -30,7 +31,6 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
     
     properties (Access = protected)
         state = 'off';      % on | on hold | off
-        isActive = false % Is tool doing something right now?
         
         pointerCData = [];
     end

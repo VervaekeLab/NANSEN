@@ -36,7 +36,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             
             roiTable = obj.rois2table(roiGroup.roiArray);
             
-            obj.UITable = nansen.MetaTableViewer(obj.Panel, roiTable);
+            obj.UITable = nansen.ui.MetaTableViewer(obj.Panel, roiTable);
             
             obj.UITable.HTable.hideHorizontalScroller()
             obj.UITable.HTable.hideVerticalScroller()

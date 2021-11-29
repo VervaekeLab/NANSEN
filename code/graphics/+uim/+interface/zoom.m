@@ -1,7 +1,11 @@
 classdef zoom < handle
     
-    % Todo: add switcher to only zoom in x or only zoom in y.
-    % Todo: Add plot zoom region here.
+    % TODO:
+    % [ ] Add switcher to only zoom in x or only zoom in y.
+    % [ ] Add plot zoom region here.
+    %
+    % [ ] Make this super class for both zoom and panning, i.e an
+    %     axesDataLimits mixin (abstract) pointer tool...
     
     properties (Abstract)
         zoomFactor
@@ -11,6 +15,7 @@ classdef zoom < handle
     
     properties
         zoomFinishedCallback
+        % LimitsChangedFcn % Function to run when limits change. 
     end
 
     methods
@@ -160,6 +165,40 @@ classdef zoom < handle
             end
             
         end
+        
+        
+        function setNewXLims(obj, newLimits)
+                      
+            if nargin == 1 || isempty(newLimits)
+                newLimits = obj.xLimOrig;
+            end
+            
+            % Todo: Make sure XLim2 > XLim1
+            
+            newLimits(1) = max([obj.xLimOrig(1), newLimits(1)]);
+            newLimits(2) = min([obj.xLimOrig(2), newLimits(2)]);
+            
+            % Set new limits
+            set(obj.ax, 'XLim', newLimits);
+
+            drawnow limitrate
+            
+        end
+        
+        function setNewYLims(obj, newLimits)
+            
+            % Set new limits
+            if nargin == 1 || isempty(newLimits)
+                set(obj.ax, 'YLim', obj.YLimExtreme.(obj.ActiveYAxis))
+                obj.updateFrameMarker('update_y')
+%                 set(obj.ax, 'XLim', [1, obj.tsArray(1).Time(end)])
+            else
+                set(obj.ax, 'YLim', newLimits);
+                obj.updateFrameMarker('update_y')
+            end
+            
+        end
+        
         
     end
     

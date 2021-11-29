@@ -6,13 +6,15 @@ function pathStr = getAncestorDir(pathStr, numFoldersUp)
 %   pathStr = getAncestorDir(pathStr, N) return the path to a directory 3 
 %   nodes up in the folder hierarchy.  
 
+    % todo: fix line 17. Should check if ext is empty, not name...
+
     if nargin < 2
         numFoldersUp = 0;
     end
     
     % Check if the current path is a file or a folder:
-    [folderPath, fileName, ~] = fileparts(pathStr);
-    if ~isempty(fileName)
+    [folderPath, name, ext] = fileparts(pathStr);
+    if ~isempty(name)
         pathStr = folderPath;
     end
     

@@ -1,13 +1,5 @@
 function S = getDefaultSettings()
 
-% %     S = struct();    % GUI settings
-% %     S.showTags = false;
-% %     S.showNpMask = false;
-% %     S.maxNumFramesToLoad = 10000;
-% %     S.downSampleForSegmentation = true;
-% %     S.colorRoiBy_ = {'Activity Level', 'Category', 'Validation Status'};
-% %     S.colorRoiBy = 'Validation Status';
-    
     S = struct(...
         'GridSize_', {{'3x5', '4x6', '5x8', '6x10', '7x12', '8x12', '9x14', '10x16'}}, ...
         'GridSize', '8x12', ...
