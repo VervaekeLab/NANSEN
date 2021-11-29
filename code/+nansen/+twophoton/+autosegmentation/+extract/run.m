@@ -1,23 +1,15 @@
 function [foundRois, im, stat] = run(M, config)
 
-% %     config = get_defaults(config);
-% % 
-% %     [S, T, summary] = run_extract(M, config);
-% %     
-% %     imSize = size(M);
-% %     numRois = size(S,2);
+% TODO: add stats from extract outputs. Create more images???
+%   Create images and stats in an external function and use for different
+%   segmentation methods.
 
+    config = get_defaults(config);
 
-    filePath = '/Volumes/Data8_EH/Processed/subject-m3073/session-m3073-20200604-1901-behave-image/Processed/image_segmentation/m3073-20200604-1901-behave-image_two_photon_corrected_extract_results_temp_1.mat';
-
-    S = load(filePath);
-    results = S.extractResultsTemp1{1};
+    [S, T, ~] = run_extract(M, config);
     
-    S = results.spatial_weights;
-    T = results.temporal_weights;
-    
-    imSize = size(S);
-    numRois = size(S,3);
+    imSize = size(M);
+    numRois = size(S,2);
 
     
     S = reshape(S, [imSize(1:2), numRois]);
