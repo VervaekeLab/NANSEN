@@ -923,7 +923,7 @@ methods % App initialization & creation
     
     function fileDropFcn(obj, ~, evt)
 
-        switch evt.DropTypeimdata
+        switch evt.DropType
             case 'file'
                 
                 [~, ~, ext] = fileparts(evt.Data{1});
@@ -936,6 +936,12 @@ methods % App initialization & creation
                             numColors = size(obj.Axes.ColorOrder, 1);
                             color = obj.Axes.ColorOrder(randi(numColors), :);
                             h = imviewer.plot.plotRoiArray(obj.Axes, S.roiArray);
+                            set(h, 'Color', color);
+                        elseif ~isempty(S) && contains(S.name, 'roi_arr')
+                            S = load(evt.Data{1});
+                            numColors = size(obj.Axes.ColorOrder, 1);
+                            color = obj.Axes.ColorOrder(randi(numColors), :);
+                            h = imviewer.plot.plotRoiArray(obj.Axes, S.roi_arr);
                             set(h, 'Color', color);
                         end
                             

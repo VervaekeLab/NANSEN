@@ -84,8 +84,8 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
                     newIm(1:numel(values), j) = values;
                 end
 
-                %h = min([size(newIm,1), 3*upSampleFactor ]);% why 3??????? parameterize
-                %newIm = newIm(1:h, :);
+                h = min([size(newIm,1), 3*upSampleFactor ]);% why 3??????? parameterize
+                newIm = newIm(1:h, :);
                 
                 [edgeCoordsOut, statOut] = findEdge(newIm, 'fall');
                 edgeCoordsOut = edgeCoordsOut+edgeCoordsInnS;
@@ -125,13 +125,14 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
         innerRadius = edgeCoordsInnS ./ upSampleFactor;
         outerRadius = edgeCoordsOutS ./ upSampleFactor;
 
-        outerRadius = outerRadius+0.5;
+        outerRadius = outerRadius+0.5; % Add small offset
 
         % Transform back to cartesian coordinates
         theta = 0 : (360 / (size(unrolled, 2))) : 360;
 
         [xi, yi] = pol2cart(deg2rad(theta(1:end-1)), outerRadius);
 
+        
         
         x = center(i, 1); y = center(i, 2);
         switch opt.output
@@ -141,9 +142,12 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
                 xOffset = imSizeSmall(2)/2; % min(xi);
                 yOffset = imSizeSmall(1)/2; % min(yi);
                 xi = xi + xOffset; yi = yi + yOffset;
+                
                 bwTmp = poly2mask(xi, yi, imSizeSmall(1), imSizeSmall(2));
-                [Y, X] = find(bwTmp);            
-                mask{i} = [x+X-xOffset, y-Y+yOffset];
+                [Y, X] = find(bwTmp);   
+                
+                offsetCorrection = -0.5;
+                mask{i} = [x+X-xOffset, y-Y+yOffset] + offsetCorrection;
         end
         
         

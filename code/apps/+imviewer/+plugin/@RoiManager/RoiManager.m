@@ -153,13 +153,13 @@ classdef RoiManager < applify.mixin.AppPlugin
             % Update menu, by adding some roimanager options:
             obj.createMenu()
 
-            obj.roiGroup.AncestorApp = obj.PrimaryApp;
+            obj.roiGroup.ParentApp = obj.PrimaryApp;
             
             obj.roiDisplay = roimanager.roiMap(hImviewer, hAxes, obj.roiGroup);
             
             % Assign the Ancestor App of the roigroup to the app calling
             % for its creation.
-            obj.roiDisplay.roiGroup.AncestorApp = hImviewer;
+            obj.roiDisplay.roiGroup.ParentApp = hImviewer;
             obj.roiDisplay.hRoimanager = obj;
             
             obj.initializePointerTools()
@@ -207,7 +207,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             
             % Assign the Ancestor App of the roigroup to the app calling
             % for its creation.
-            newRoiMap.roiGroup.AncestorApp = obj.StackViewer;
+            newRoiMap.roiGroup.ParentApp = obj.StackViewer;
             newRoiMap.hRoimanager = obj;
             
             colorMap=cbrewer('qual', 'Set1', 8, 'spline');

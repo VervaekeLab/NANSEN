@@ -5,6 +5,7 @@ classdef roiMap < handle
     %   [ ] Can i find another way than adding userdata everytime a roi is
     %       created or modified....???
     %   [ ] Rename to roiFovMap?
+    %   [ ] Make this a subclass of RoiDisplay
     
     properties (Access = public)
         roiGroup
@@ -725,11 +726,17 @@ classdef roiMap < handle
           
             switch autodetectionMode
                 case 1
-                    %Todo: specify local center... This function should use local
-                    %center, not assume to start in center of small image.
+                    % Todo: specify local center... This function should use local
+                    % center, not assume to start in center of small image.
+                    
                     IM = mean(imChunk(:, :, IND), 3);            
-                    [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, [x, y], imSize, 'output', 'coords', 'us', 4);
-                    roiMask = roiMask{1};
+                    outputType = 'coords';
+                    
+                    [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, [x, y], imSize, 'output', outputType, 'us', 4);
+                    if strcmp(outputType, 'coords')
+                        roiMask = roiMask{1};
+                    end
+                    
                 case 2
                     IM = max(imChunk(:, :, IND), [], 3);
                     roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
