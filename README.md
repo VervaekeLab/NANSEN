@@ -23,12 +23,13 @@ If any of the above toolboxes are not installed, they can be installed by
 navigating to MATLAB's Home tab and then selecting Add-Ons > Get Add-Ons
 
 ### Other toolboxes
- - GUI Layout Toolbox ([Go to toolbox site](https://se.mathworks.com/matlabcentral/fileexchange/66235-widgets-toolbox-compatibility-support?s_tid=srchtitle))
- - Widgets Toolbox ([Go to toolbox site](https://se.mathworks.com/matlabcentral/fileexchange/66235-widgets-toolbox-compatibility-support?s_tid=srchtitle))
+ - GUI Layout Toolbox ([View toolbox site](https://se.mathworks.com/matlabcentral/fileexchange/66235-widgets-toolbox-compatibility-support?s_tid=srchtitle))
+ - Widgets Toolbox ([Download toolbox installer](https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/b0bebf59-856a-4068-9d9c-0ed8968ac9e6/099f0a4d-9837-4e5f-b3df-aa7d4ec9c9c9/packages/mltbx) | [View toolbox site](https://se.mathworks.com/matlabcentral/fileexchange/66235-widgets-toolbox-compatibility-support?s_tid=srchtitle))
+
 
 These toolboxes can also be installed using MATLAB's addon manager, but it 
-is important to install a compatibility version of the Widgets Toolbox, 
-so please use the link above.
+is important to install a compatibility version (v1.3.330) of the Widgets Toolbox, 
+so please use the download link above.
 
 ## Apps
 
