@@ -224,7 +224,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
         
         function createUiTable(obj)
-            finished = false;
             
             for i = 1:2
             
@@ -245,25 +244,16 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         'Visible', 'off', ...
                         'BackgroundColor', [1,1,0.5]);
                     break
-                catch
                     
-                    widgetsInstallPath = widgetsRoot;
-                    jarFilePath = fullfile(widgetsInstallPath, 'resource', 'MathWorksConsultingWidgets.jar');
-                    success = nansen.addons.Addons.addStaticJavaPath(jarFilePath);
-                    warning('off', 'MATLAB:javaclasspath:jarAlreadySpecified')
-                    javaclasspath( jarFilePath ) %Temp add to dynamic path...
-                    warning('on', 'MATLAB:javaclasspath:jarAlreadySpecified')
-                    
-% % %                     addonManager = nansen.addons.Addons;
-% % %                     isMatch = strcmp({addonManager.AddonList.Name}, 'Widgets Toolbox');
-% % %                     pkgInstallationDir = addonManager.AddonList(isMatch).FilePath;
-% % %                     jarFilePath = fullfile(pkgInstallationDir, 'resource', 'MathWorksConsultingWidgets.jar');
-% % %                     success = nansen.setup.model.Addons.addStaticJavaPath(jarFilePath);
-% % %                     warning('off', 'MATLAB:javaclasspath:jarAlreadySpecified')
-% % %                     javaclasspath( jarFilePath ) %Temp add to dynamic path...
-% % %                     warning('on', 'MATLAB:javaclasspath:jarAlreadySpecified')
-                    
+                catch ME
+                    switch ME.identifier
+                        case 'MATLAB:Java:ClassLoad'
+                            nansen.config.path.addUiwidgetsJarToJavaClassPath()
+                        otherwise
+                            rethrow(ME)
+                    end
                 end
+                
             end
             
             obj.HTable.CellEditCallback = @obj.onCellValueEdited;
