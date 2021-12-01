@@ -525,6 +525,16 @@ classdef App < mclassifier.manualClassifier
 
         end
         
+        function classifyRois(obj, classification)
+            
+            roiInd = obj.selectedItem;
+            if isempty(roiInd); return; end
+            newClass = repmat(classification, size(roiInd));
+            obj.roiGroup.setRoiClassification(...
+                roiInd, newClass)
+                        
+        end
+        
         % Todo: Make protected
         function roiImage = getRoiImage(obj, roiInd, varargin)
             

@@ -934,15 +934,14 @@ methods
     
     function data = getappdata(obj, name)
         
-        % todo: check all...
-        if ~isfield(obj(1).ApplicationData, name)
-            data = []; return
-        end
-        
         data = cell(numel(obj), 1);
         
         for i = 1:numel(obj)
-            data{i} = obj(i).ApplicationData.(name);
+            if ~isfield(obj(i).ApplicationData, name)
+                data{i} = [];
+            else
+                data{i} = obj(i).ApplicationData.(name);
+            end
         end
         
         % Make sure we got data  for each field....

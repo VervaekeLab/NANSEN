@@ -469,6 +469,13 @@ classdef App < signalviewer.App
                     obj.resetSignalPlot(evtData.roiIndices)
                     
                 case 'select'
+                    
+%                     if numel(evt.roiIndices > 25)
+%                         roiIndicesToPlot = evtData.roiIndices(1:25);
+%                     else
+%                         roiIndicesToPlot = evtData.roiIndices;
+%                     end
+                    
                     obj.updateSignalPlot(evtData.roiIndices, 'append');
 
             end

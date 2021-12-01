@@ -831,6 +831,7 @@ classdef RoiManager < applify.mixin.AppPlugin
 
             foundRois = foundRois(keep);
             foundRois.setappdata('roiClassification', zeros(numel(foundRois), 1));
+            
             if ~isempty(im)
                 im = im(keep);
                 foundRois = foundRois.setappdata('roiImages', im);
@@ -840,7 +841,8 @@ classdef RoiManager < applify.mixin.AppPlugin
                 foundRois = foundRois.setappdata('roiStats', stat);
             end
             
-            
+            foundRois = foundRois.setappdata('roiClassification', zeros(1, numel(foundRois)));
+
             switch obj.settings.Autosegmentation.finalization
                 
                 case 'Add rois to current Roi Group'
