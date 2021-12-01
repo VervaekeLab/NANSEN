@@ -246,14 +246,22 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         'BackgroundColor', [1,1,0.5]);
                     break
                 catch
-                    addonManager = nansen.setup.model.Addons;
-                    isMatch = strcmp({addonManager.AddonList.Name}, 'Widgets Toolbox');
-                    pkgInstallationDir = addonManager.AddonList(isMatch).FilePath;
-                    jarFilePath = fullfile(pkgInstallationDir, 'resource', 'MathWorksConsultingWidgets.jar');
-                    success = nansen.setup.model.Addons.addStaticJavaPath(jarFilePath);
+                    
+                    widgetsInstallPath = widgetsRoot;
+                    jarFilePath = fullfile(widgetsInstallPath, 'resource', 'MathWorksConsultingWidgets.jar');
+                    success = nansen.addons.Addons.addStaticJavaPath(jarFilePath);
                     warning('off', 'MATLAB:javaclasspath:jarAlreadySpecified')
                     javaclasspath( jarFilePath ) %Temp add to dynamic path...
                     warning('on', 'MATLAB:javaclasspath:jarAlreadySpecified')
+                    
+% % %                     addonManager = nansen.addons.Addons;
+% % %                     isMatch = strcmp({addonManager.AddonList.Name}, 'Widgets Toolbox');
+% % %                     pkgInstallationDir = addonManager.AddonList(isMatch).FilePath;
+% % %                     jarFilePath = fullfile(pkgInstallationDir, 'resource', 'MathWorksConsultingWidgets.jar');
+% % %                     success = nansen.setup.model.Addons.addStaticJavaPath(jarFilePath);
+% % %                     warning('off', 'MATLAB:javaclasspath:jarAlreadySpecified')
+% % %                     javaclasspath( jarFilePath ) %Temp add to dynamic path...
+% % %                     warning('on', 'MATLAB:javaclasspath:jarAlreadySpecified')
                     
                 end
             end

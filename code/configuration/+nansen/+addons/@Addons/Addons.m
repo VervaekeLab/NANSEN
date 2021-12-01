@@ -136,7 +136,7 @@ classdef Addons < handle
         %   %todo: rename
         
             % Get package list
-            defaultAddonList = nansen.setup.defaults.getAddonList();
+            defaultAddonList = nansen.addons.getAddonList();
             
             %numAddons = numel(defaultAddonList);
             
@@ -460,7 +460,7 @@ classdef Addons < handle
         function S = initializeAddonList()
         %initializeAddonList Create an empty struct with addon fields.
         
-            names = nansen.setup.model.Addons.addonFields;
+            names = nansen.addons.Addons.addonFields;
             values = repmat({{}}, size(names));
             
             structInit = [names; values];
