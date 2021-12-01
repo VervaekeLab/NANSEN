@@ -119,7 +119,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                             varargout{1} = builtin('subsref', obj, s);
                         catch ME
                             switch ME.identifier
-                                case 'MATLAB:TooManyOutputs'
+                                case {'MATLAB:TooManyOutputs', 'MATLAB:maxlhs'}
                                     try
                                         builtin('subsref', obj, s)
                                     catch ME

@@ -36,6 +36,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             
             roiTable = obj.rois2table(roiGroup.roiArray);
             
+            
             obj.UITable = nansen.ui.MetaTableViewer(obj.Panel, roiTable);
             
             obj.UITable.HTable.hideHorizontalScroller()
@@ -96,7 +97,15 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             S = rmfield(S, {'coordinates', 'imagesize', 'boundary', ...
                 'connectedrois', 'layer', 'tags', 'enhancedImage'});
             
+            % add column with label and number for roi
+            
             roiTable = struct2table(S, 'AsArray', true);
+            
+            % Add column in beginning for showing ids.
+            numRois = numel(roiArray);
+            T = table('Size',[numRois 1], 'VariableNames',{'ID'}, 'VariableTypes', {'string'});
+        
+            roiTable = [T, roiTable];
             
         end
         
@@ -148,6 +157,15 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
                     newTable = obj.roiTable;
                     newTable(evtData.roiIndices,:) = [];  
             end
+            
+            tags = {obj.roiGroup.roiArray.tag};
+            nums = arrayfun(@(i) num2str(i, '%03d'), 1:obj.roiGroup.roiCount, 'uni', 0);
+            roiLabels = strcat(tags, nums);
+            
+            newTable{:,1} = roiLabels';
+            
+            
+            %[table(roiLabels', 'VariableNames', {'ID'}), newTable];
             
             obj.roiTable = newTable;
             obj.UITable.refreshTable(newTable)

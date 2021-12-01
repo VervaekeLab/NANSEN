@@ -96,7 +96,7 @@ methods
         end
         
         def = struct('numChan', 1, 'tileUnits', 'pixel');
-        opt = utilities.parsenvpairs(def, [], nvpairs);
+        opt = utility.parsenvpairs(def, [], nvpairs);
         
         obj.loadSettings()
         obj.createFigure()
@@ -210,7 +210,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
     %addTiledImageAxes Add a tiledImageAxes object. This is the "plotter"
         
         def = struct('numChan', 1, 'tileUnits', 'pixel');
-        opt = utilities.parsenvpairs(def, [], varargin);
+        opt = utility.parsenvpairs(def, [], varargin);
     
         % Get aspect ratio of the panel that will hold the tiledImageAxes
         panelPixelPosition = getpixelposition(obj.hPanelImage);
@@ -1105,7 +1105,7 @@ methods
     % getRoiImage Get images for all specified rois based on image selection
         
         def = struct('Resize', false);
-        opt = utilities.parsenvpairs(def, [], varargin{:});
+        opt = utility.parsenvpairs(def, [], varargin{:});
     
         imageSelection = getCurrentImageSelection(obj);
         imageSize = obj.hTiledImageAxes.imageSize;

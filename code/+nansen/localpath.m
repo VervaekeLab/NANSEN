@@ -4,8 +4,17 @@ function pathStr = localpath(pathKeyword, project)
 %   pathStr = localpath(pathKeyword)
 %
 %   See also nansen.config.addlocalpath (TODO)
+%
+%   This function provides absolute local paths for directory or filepaths
+%   of folders or files that are used within the nansen package.
+% 
+%   To add user
 
-    
+
+
+
+    % Check if preferences has a localpath field and if user defined local
+    % paths are present there.
     if ispref('nansen_localpath', pathKeyword)
         pathStr = getpref('nansen_localpath', pathKeyword);
         return
@@ -13,10 +22,12 @@ function pathStr = localpath(pathKeyword, project)
 
 
 
-    if nargin < 2 || strcmp(project, 'current') % Should it be called current?
-        projectRootDir = getpref('Nansen', 'CurrentProjectPath'); %todo: add default
+    if nargin < 2 % Assume no project path is requested
+        projectRootDir = '';
+    elseif strcmp(project, 'current') % Should it be called current?
+        projectRootDir = nansen.localpath('current_project_dir');
     else
-        error('Not implemented yet')
+        error('Project specification is not implemented yet')
     end
 
     % Determine path folder (and filename if relevant) based input keyword
@@ -38,9 +49,15 @@ function pathStr = localpath(pathKeyword, project)
             initPath = nansen.localpath('nansen_root');
             folderPath = fullfile(initPath, '_userdata');
             
+        case 'current_project_dir'
+            rootDir = fullfile(nansen.localpath('user_data'));
+            defaultProjectDir = fullfile(rootDir, 'projects', 'default');
+            folderPath = getpref('Nansen', 'CurrentProjectPath', defaultProjectDir); %todo: add default
+            
         case 'project_settings'
             initPath = nansen.localpath('nansen_root');
             folderPath = fullfile(initPath, '_userdata', 'projects');
+            
             
         case 'custom_options'
             initPath = nansen.localpath('nansen_root');
