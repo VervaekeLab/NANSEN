@@ -332,11 +332,15 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 return; 
             end
             
+            % Make sure data types are valid types for the
+            % uiw.widgets.Table
             dataTypes = cellfun(@(cell) class(cell), T(1,:), 'uni', 0);
             isNumeric = cellfun(@(cell) isnumeric(cell), T(1,:), 'uni', 1);
-            
+            isString =  cellfun(@(cell) isstring(cell), T(1,:), 'uni', 1);
+
             dataTypes(isNumeric) = {'numeric'};
-            
+            dataTypes(isString) = {'char'};
+
             obj.HTable.ColumnFormat = dataTypes;
 
             % Maybe call this separately???

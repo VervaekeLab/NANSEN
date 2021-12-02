@@ -239,7 +239,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Make them look good.
             if ~isempty(hUic)
                 h = applify.uicontrolSchemer(hUic);
-                el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
+                %el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
             end
             
             
@@ -1738,7 +1738,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Make them look good.
             if ~isempty(hUic)
                 h = applify.uicontrolSchemer(hUic);
-                el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
+                el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(h));
                 
             end
             %drawnow

@@ -103,7 +103,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             
             % Add column in beginning for showing ids.
             numRois = numel(roiArray);
-            T = table('Size',[numRois 1], 'VariableNames',{'ID'}, 'VariableTypes', {'string'});
+            
+            C = cell(repmat({''}, numRois, 1));
+            T = cell2table(C, 'VariableNames',{'ID'});
         
             roiTable = [T, roiTable];
             
@@ -164,9 +166,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             
             newTable{:,1} = roiLabels';
             
-            
-            %[table(roiLabels', 'VariableNames', {'ID'}), newTable];
-            
+                        
             obj.roiTable = newTable;
             obj.UITable.refreshTable(newTable)
 

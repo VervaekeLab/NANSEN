@@ -181,18 +181,30 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         function colIndices = getColumnIndices(obj)
         %getColumnIndices Get column indices for current metadata table..    
        
-            indAll = obj.MetaTableIndicesAll;
+            indAll = obj.MetaTableIndicesAll;            
             
             indSkip = [obj.settings(indAll).SkipColumn];
             indShow = [obj.settings(indAll).ShowColumn];
             
+            indSkip = [obj.settings(obj.SettingsIndices).SkipColumn];
+            indShow = [obj.settings(obj.SettingsIndices).ShowColumn];
+            
+            
+            % This yields the column indices 
             colIndices = 1:size(obj.MetaTable, 2);
             colIndices = colIndices(indShow & ~indSkip);
+            
+            % Reorder table indices
+            %IND = intersect(colIndices, obj.SettingsIndices, )
         end
         
         function colNames = getColumnNames(obj)
             IND = obj.getIndicesToShowInMetaTable();
             colNames = {obj.settings(IND).ColumnLabel};
+            
+            [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
+            colNames(indSort) = colNames;
+            
         end
         
         function colWidths = getColumnWidths(obj)
@@ -203,6 +215,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             if iscolumn(colWidths)
                 colWidths = transpose(colWidths);
             end
+            
+            [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
+            colWidths(indSort) = colWidths;
             
             % Question: Do I need to return as cell array?
         end
@@ -216,8 +231,12 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             msg = 'Something went wrong. Please send bug report';
             assert(numel(IND) == numel(columnWidths), msg)
             
+            % Todo: debug with complex tables!!! % Do this to make sure the
+            % value is inserted at the right point in settings.
+            [~, ~, iB] = intersect( obj.SettingsIndices, IND, 'stable');
+            
             for i = 1:numel(IND)
-                obj.settings_(IND(i)).ColumnWidth = columnWidths(i);
+                obj.settings_(IND(iB(i))).ColumnWidth = columnWidths(i);
             end
             
             if ~isempty(obj.UIEditorTable)
@@ -232,9 +251,10 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         end
         
         function hideColumn(obj, columnIdx)
-            IND = obj.getIndicesToShowInMetaTable();
-            columnIdxSetting = IND(columnIdx);            
-            
+            %IND = obj.getIndicesToShowInMetaTable();
+            %columnIdxSetting = IND(columnIdx);            
+            columnIdxSetting = obj.SettingsIndices(columnIdx);            
+
             obj.settings_(columnIdxSetting).ShowColumn = false;
                     
             % Todo: Update table view (remove columns).
@@ -312,16 +332,18 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % Todo: Update Indices based on what variables are present in
             % the metatable.
             
-            varNamesA = {obj.settings.VariableName}; % VarNames already in settings.
-            varNamesB = obj.MetaTable.Properties.VariableNames;
+            varNamesSettings = {obj.settings.VariableName}; % VarNames already in settings.
+            varNamesTable = obj.MetaTable.Properties.VariableNames;
             
-            % Get indices of names in A that are also in B
-            [~, iA] = intersect(varNamesA, varNamesB, 'stable');
+            % Get indices of names in settings that are also in table
+            [~, iA] = intersect(varNamesSettings, varNamesTable, 'stable');
             obj.MetaTableIndicesAll = iA;
+            %obj.SettingsVarTableIdx = iA;
             
             % Do I need this?
-            [~, iB] = intersect(varNamesB, varNamesA, 'stable');
-            obj.SettingsIndices = iB;
+            [~, ~, iC] = intersect(varNamesTable, varNamesSettings, 'stable');
+            obj.SettingsIndices = iC;
+            %obj.TableVarSettingsIdx = iC;
         end
         
         function checkAndUpdateColumnEntries(obj)
@@ -385,7 +407,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             indB = find( [obj.settings.SkipColumn] );
             
             % Indices of variables in current metatable that are displayable
-            IND = setdiff(indA, indB); % I.e keep those in A that are not in B
+            IND = setdiff(indA, indB, 'stable'); % I.e keep those in A that are not in B
         end
         
         function IND = getIndicesToShowInMetaTable(obj)

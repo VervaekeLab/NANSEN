@@ -576,7 +576,7 @@ classdef roiMap < handle
                 imArray = obj.displayApp.ImageStack.getFrameSet('all');
                 
                 imSize = size(imArray);
-                if imSize(end)<10; return; end
+                if numel(imSize) == 2 || imSize(end)<10; return; end
 
                 % Todo: Can I get signal array from roimanager??? If it
                 % exists???

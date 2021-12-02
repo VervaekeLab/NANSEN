@@ -66,6 +66,9 @@ classdef uicontrolSchemer < handle
                 obj.hPanel = hPanel;
             end
             
+            varName = sprintf('uischemer%05d', randi(10000));
+            assignin('base', varName, obj)
+            
             obj.ParentContainerSizeChanged = addlistener(obj.hPanel, ...
                 'SizeChanged', @obj.onPanelSizeChanged);
             
@@ -110,7 +113,7 @@ classdef uicontrolSchemer < handle
                 hTmp.Units = origUnits;
 
             end
-            
+
             
             if ~nargout
                 clear obj
@@ -119,7 +122,8 @@ classdef uicontrolSchemer < handle
         end
         
         function delete(obj, ~, ~)
-
+            delete(obj.FigureDestroyedListener)
+            delete@handle(obj) % Why does this have to be explicit?
         end
         
         
@@ -627,48 +631,55 @@ classdef uicontrolSchemer < handle
         
         
         function mouseEnterPopupButton(obj, src)
-            src.ForegroundColor = src.ForegroundColor * 1.5;
+            if isvalid(src)
+                src.ForegroundColor = src.ForegroundColor * 1.5;
+            end
         end
         
         
         function mouseLeavePopupButton(obj, src)
-            src.ForegroundColor = src.ForegroundColor / 1.5;
+            if isvalid(src)
+                src.ForegroundColor = src.ForegroundColor / 1.5;
+            end
         end
         
         
         function mouseEnterButton(obj, hControl, hStyle)
-            hStyle.hBorder.FaceAlpha = 0.25;
-            hFig = ancestor(hStyle.hBorder, 'figure');
-            hFig.Pointer = 'hand';
-            
-            
-            switch hControl.Style
-                case 'togglebutton'
-                    if hControl.Value
-                        hStyle.hBorder.FaceAlpha = 0.4;
-                    end
-                        
-                case 'pushbutton'
-                    % Continue
+            if isvalid(hControl)
+                hStyle.hBorder.FaceAlpha = 0.25;
+                hFig = ancestor(hStyle.hBorder, 'figure');
+                hFig.Pointer = 'hand';
+
+
+                switch hControl.Style
+                    case 'togglebutton'
+                        if hControl.Value
+                            hStyle.hBorder.FaceAlpha = 0.4;
+                        end
+
+                    case 'pushbutton'
+                        % Continue
+                end
             end
         end
         
         
         function mouseLeaveButton(obj, hControl, hStyle)
-            hStyle.hBorder.FaceAlpha = 0.1;
-            hFig = ancestor(hStyle.hBorder, 'figure');
-            hFig.Pointer = 'arrow';
-            
-            switch hControl.Style
-                case 'togglebutton'
-                    if hControl.Value
-                        hStyle.hBorder.FaceAlpha = 0.25;
-                    end
-                        
-                case 'pushbutton'
-                    % Continue
-            end
+            if isvalid(hControl)
+                hStyle.hBorder.FaceAlpha = 0.1;
+                hFig = ancestor(hStyle.hBorder, 'figure');
+                hFig.Pointer = 'arrow';
 
+                switch hControl.Style
+                    case 'togglebutton'
+                        if hControl.Value
+                            hStyle.hBorder.FaceAlpha = 0.25;
+                        end
+
+                    case 'pushbutton'
+                        % Continue
+                end
+            end
         end
         
 
