@@ -9,14 +9,17 @@ classdef roiMap < handle
     
     properties (Access = public)
         roiGroup
-        roiMaskAll = [];            % A logical mask where all rois are added.
         defaultColor = ones(1,3)*0.8; % Add color picker to settings...
         
-        lineWidth = 1 % Todo: implement this and make it adjustable from settings
+        RoiOutlineWidth = 1 % Todo: implement this and make it adjustable from settings
         %roiArray (property of roigroup)
         %roiCount        % A counter for the number of rois that have been drawn
         
         Visible matlab.lang.OnOffSwitchState = true
+    end
+    
+    properties (Dependent)
+        roiMaskAll          % A logical mask where all rois are added.
     end
     
     
@@ -32,6 +35,7 @@ classdef roiMap < handle
         roiOutlineVisible = true % Todo: make set method, so that this is updated when value is changed...
         roiLabelVisible = false
         neuropilMaskVisible = false % Todo: make set method, so that this is updated when value is changed...
+        RoiColorScheme = 'None'
     end
     
         
@@ -62,6 +66,8 @@ classdef roiMap < handle
         roiLinePos = {}         % A list of coordinates for roi outlines
         roiTextPos = {}         % A list of coordinates roi text labels.
         
+        % Todo: roiPatch+roiImage  (for patching / showing image of roi
+        % interior
     end
     
     
@@ -75,6 +81,8 @@ classdef roiMap < handle
         selectedRois     % Should it be property of this class?               % Numbers of the selected/active rois %  
         unselectedRois   % Should it be property of this class? 
         
+        VisibleClassification = 'All'
+        IsVisibleRoi = []
     end
     
     
@@ -175,6 +183,7 @@ classdef roiMap < handle
                     
             end %switch
             
+            obj.showClassifiedCells() % Todo: Rename or make a method for this..
             obj.notify('mapUpdated')
             
         end %function
@@ -191,6 +200,10 @@ classdef roiMap < handle
                 end
             end
             
+        end
+        
+        function onRoiColorSchemeChanged(obj)
+            obj.updateRoiColors()
         end
         
         function onVisibleChanged(obj)
@@ -213,10 +226,20 @@ classdef roiMap < handle
     end %methods
     
     methods % Set / get
+        
+        function BW = get.roiMaskAll(obj)
+            BW = obj.roiIndexMap ~= 0;
+        end
+        
         function set.neuropilMaskVisible(obj, newValue)
             
             obj.neuropilMaskVisible = newValue;
             obj.onNeuropilMaskVisibleChanged()
+        end
+        
+        function set.RoiColorScheme(obj, newValue)
+            obj.RoiColorScheme = newValue;
+            obj.onRoiColorSchemeChanged()
         end
         
         function set.Visible(obj, newValue)
@@ -291,7 +314,7 @@ classdef roiMap < handle
             set(hLine, 'HitTest', 'off')
             set(hLine, 'PickableParts', 'none')
             set(hLine, 'Tag', 'RoI')
-            set(hLine, 'LineWidth', obj.lineWidth)
+            set(hLine, 'LineWidth', obj.RoiOutlineWidth)
 
             set(hText, {'color'}, colorCellArray)
             set(hText, 'HitTest', 'off')
@@ -967,32 +990,44 @@ classdef roiMap < handle
         
         function showClassifiedCells(obj, label)
             
-            clsf = obj.roiGroup.roiClassification;
-            
-            set(obj.roiPlotHandles, 'Visible', 'on')
-            
-            switch label
-                
-                case 'Show Accepted'
-                    indShow = clsf == 1;
-                case 'Show Rejected'
-                    indShow = clsf == 2;
-                case 'Show All'
-                    indShow = clsf >= 0;
-                case 'Show Unclassified'
-                    indShow = clsf == 3;
+            if nargin < 2
+                classificationToShow = obj.VisibleClassification;
+            else
+                classificationToShow = strrep(label, 'Show ', '');
             end
             
-            indHide = ~indShow;
+            clsf = obj.roiGroup.roiClassification;
             
-            set(obj.roiPlotHandles(indShow), 'Visible', 'on')
+            %set(obj.roiPlotHandles, 'Visible', 'on')
+            
+            switch classificationToShow % Todo: Should read cases from some config...
+                case 'All'
+                    isVisibleRoi = clsf >= 0;
+                case 'Unclassified'
+                    isVisibleRoi = clsf == 0;
+                case 'Accepted'
+                    isVisibleRoi = clsf == 1;
+                case 'Rejected'
+                    isVisibleRoi = clsf == 2;
+                case 'Unresolved'
+                    isVisibleRoi = clsf == 3;
+            end
+            
+            obj.VisibleClassification = classificationToShow;
+            
+            indHide = ~isVisibleRoi;
+            
+            set(obj.roiPlotHandles(isVisibleRoi), 'Visible', 'on')
             set(obj.roiPlotHandles(indHide), 'Visible', 'off')
+            
+            obj.IsVisibleRoi = isVisibleRoi ;
             
         end
         
         
         function showRoiOutlines(obj)
-            set(obj.roiPlotHandles, 'Visible', 'on')
+            set(obj.roiPlotHandles(obj.IsVisibleRoi), 'Visible', 'on')
+            set(obj.roiPlotHandles(~obj.IsVisibleRoi), 'Visible', 'off')
         end
         
         function hideRoiOutlines(obj)
@@ -1152,7 +1187,7 @@ classdef roiMap < handle
                         colorCellArray{c} = obj.getRoiColor(obj.roiGroup.roiArray(i));
                         c = c+1;
                     end
-                    newLineWidth = obj.lineWidth;
+                    newLineWidth = obj.RoiOutlineWidth;
                     
                     if obj.neuropilMaskVisible
                         for i = roiIndices
@@ -1167,7 +1202,7 @@ classdef roiMap < handle
                     end
                     
                     colorCellArray = repmat({'White'}, numel(roiIndices), 1);
-                    newLineWidth = min([obj.lineWidth+2, 3]);
+                    newLineWidth = min([obj.RoiOutlineWidth+2, 3]);
                     
                     if evtData.zoomOnRoi
                         obj.zoomInOnRoi(obj.selectedRois(end), true)
@@ -1240,13 +1275,16 @@ classdef roiMap < handle
                 wasInRoi = true;
             end
             
+            % Dont select rois that are not visible!
+            roiIndices = intersect( find(obj.IsVisibleRoi), roiIndices);
+            
             obj.unselectedRois = []; % Make sure this is empty.
             
             switch selectionType
                 
                 case {'normal', 'open'} % RoiIndices should have length 1
                     
-                    assert(numel(roiIndices)==1, 'Please report')
+                    % assert(numel(roiIndices)==1, 'Please report')
                     
                     % Reset selection of all unselected rois
                     deselectedRois = setdiff(obj.selectedRois, roiIndices);
@@ -1410,7 +1448,10 @@ classdef roiMap < handle
         function color = getRoiColor(obj, roi)
         % Return a color for the roi based on which group it belongs to.
 
-            switch 'None' %'Validation Status' %obj.hRoimanager.settings.colorRoiBy
+            switch obj.RoiColorScheme
+                
+                
+               % 'None' %'Validation Status' %obj.hRoimanager.settings.colorRoiBy
             %switch 'Classification' %'Validation Status'
 
                 case 'Category'
@@ -1433,7 +1474,7 @@ classdef roiMap < handle
 % % %                         color = ones(1,3)*0.8;
 % % %                     end
                     
-                case 'Validation Status' %'Classification'
+                case {'Validation Status', 'Classification'}
                     clsf = getappdata(roi, 'roiClassification');
                     if isempty(clsf); color = ones(1,3)*0.8; return; end
                     
@@ -1445,8 +1486,7 @@ classdef roiMap < handle
                         case 3
                             color = [0.176, 0.374, 0.908];
                         otherwise 
-                            color =  ones(1,3)*0.9;
-                            color = 'm';
+                            color = obj.defaultColor;
                     end
 
                 case 'Activity Level'
@@ -1465,9 +1505,14 @@ classdef roiMap < handle
             if nargin < 2; roiInd = 1:obj.roiGroup.roiCount; end
             
             for i = roiInd
-                if ismember(i, obj.selectedRois); continue; end
+                if ismember(i, obj.selectedRois)
+                    newLineWidth = min([obj.RoiOutlineWidth+2, 3]);
+                else
+                    newLineWidth = obj.RoiOutlineWidth;
+                end
+                
                 color = obj.getRoiColor(obj.roiGroup.roiArray(i));
-                obj.roiPlotHandles(i).LineWidth = 0.5;
+                obj.roiPlotHandles(i).LineWidth = newLineWidth;
                 obj.roiPlotHandles(i).Color = color;
                 obj.roiTextHandles(i).Color = color;
             end

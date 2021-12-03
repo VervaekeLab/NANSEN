@@ -7,6 +7,8 @@ function [foundRois, im, stat] = run(M, config)
     config = get_defaults(config);
 
     [S, T, ~] = run_extract(M, config);
+    % S = height x width x num_rois
+    % T = num_rois x num_timpoints
     
     imSize = size(M);
     numRois = size(S,2);
@@ -37,7 +39,7 @@ function [foundRois, im, stat] = run(M, config)
         stats = stats(ind);
         stat(i).Area = stats.Area;
         stat(i).Circularity = stats.Circularity;
-        stat(i).PeakF = max(T(:,i));
+        stat(i).PeakF = max(T(i,:));
         
         [xx0, yy0] = deal(-12:12);
         xx = xx0 + round(stats.Centroid(1)); 
@@ -51,9 +53,7 @@ function [foundRois, im, stat] = run(M, config)
     end
     
     roiImSmall = uint8(roiImSmall./max(roiImSmall(:)).*255);
-    
     roiIm = arrayfun(@(i) roiImSmall(:, :, i), 1:numRois, 'uni', 0);
-    
     
     im = struct('extractSpatialWeight', roiIm);
     

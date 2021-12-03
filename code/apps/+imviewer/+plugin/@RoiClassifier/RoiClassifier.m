@@ -46,31 +46,33 @@ classdef RoiClassifier < applify.mixin.AppPlugin
 
                 %TODO: Make sure roigroup has images and stat, otherwise generate
                 % it
+                
+                hasRoiData = roiGroup.validateForClassification();
 
-                if isempty(roiGroup.roiImages) || isempty(roiGroup.roiStats)
+                if ~hasRoiData
 
                     % get roi images/stats
                     
-                    roiArray = obj.roiGroup.roiArray;
+                    roiArray = roiGroup.roiArray;
 
                     % % Get image stack and rois. Cancel if there are no rois
                     imageData = imviewerApp.ImageStack.getFrameSet('all');
                     
                     imviewerApp.displayMessage('Please wait. Creating thumbnail images of rois and calculating statistics. This might take a minute')
 
-                    imageTypes = {'enhanced average', 'peak dff', 'correlation', 'enhanced correlation'};
+                    imageTypes = {'enhancedAverage', 'peakDff', 'correlation', 'enhancedCorrelation'};
                     [roiImages, roiStats] = roimanager.gatherRoiData(imageData, ...
                         roiArray, 'ImageTypes', imageTypes);
 
-                    obj.roiGroup.roiImages = roiImages;
-                    obj.roiGroup.roiStats = roiStats;
+                    % Todo: set to appdata of roiarray...
+                    roiGroup.roiImages = roiImages;
+                    roiGroup.roiStats = roiStats;
+                    roiGroup.roiClassification = zeros(1, roiGroup.roiCount);
                     
                     obj.clearMessage();
-                        
                     
                 end
 
-                tf = roiGroup.validateForClassification();
                 
                 if roiGroup.roiCount > 0 && tf
                     % Initialize roi classifier

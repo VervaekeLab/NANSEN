@@ -93,7 +93,7 @@ classdef autoDetect < uim.interface.abstractPointer
         function setPointerSymbol(obj)
             %obj.hFigure.Pointer = 'cross';
             switch obj.mode
-                case 1
+                case {1, 5}
                     pdata = NaN(16,16);
                     pdata(7:10, 7:10) = 2;
                     pdata(8:9, 8:9) = 1;
@@ -103,6 +103,11 @@ classdef autoDetect < uim.interface.abstractPointer
                     pdata(8:9, 6:11) = 2;
                     isWhite = imdilate(pdata==2, ones(3,3)) & ~(pdata==2);
                     pdata(isWhite)=1;
+            end
+            
+            switch obj.mode
+                case {2,5}
+                    pdata(1:2,1:2) = 2;
             end
             
             obj.hFigure.Pointer = 'custom';
@@ -197,7 +202,7 @@ classdef autoDetect < uim.interface.abstractPointer
                         obj.updateRoi()
                     end
                     
-                case {'1', '2', '3', '4'}
+                case {'1', '2', '3', '4', '5'}
                     obj.mode = str2double(event.Key);
                     obj.setPointerSymbol()
                     if obj.mode == 4

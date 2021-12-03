@@ -9,7 +9,15 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     % [ ] Rename to ColumnModel...
     % [ ] Test and debug if this works if more metatables are added to
     %     settings. I think I need to work more on the different indexing
-    %     methods (Later comment: You should have explained WTF you meant here...)
+    %     methods 
+    %     - Do we get the correct values for each table variable from the
+    %     settings. Even if variable names are shuffled around in settings?
+    %     - Do we set the right values to settings, even when names are
+    %       shuffled?
+    %     - What if multiple tables are activated/deactivated on the fly?
+    %
+    % [ ] Add better comments regarding indexing of variables from table to
+    %     settings and vice versa
     %
     % [ ] Settings should be saved indiviually based on where the table is used...
     %
@@ -49,11 +57,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     properties (SetAccess = private)
         
         % Indices to use for retrieval of values from the settings. These
-        % should be updated it the MetaTable changes, and if the any of 
+        % should be updated if the MetaTable changes, and if the any of 
         % the values in the ShowColumn settings changes.
-        SettingsIndices
-        MetaTableIndicesAll
-        MetaTableIndicesShow
+        SettingsIndices         % Indices of metatable variable, in the order they appear in the settings.
+        MetaTableIndicesAll     % Indices of all metatable variable that are included in settings.
+        MetaTableIndicesShow  
     end
     
     properties (Access = private, Hidden)

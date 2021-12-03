@@ -24,10 +24,12 @@ classdef roiGroup < handle
     
     properties (SetAccess = private)
         roiArray RoI
+        roiCount = 0
+
+        % % Should these be private? Dependent?
         roiClassification
         roiImages struct % Struct array
         roiStats  struct % Struct array
-        roiCount = 0
     end
     
     properties 
@@ -120,7 +122,7 @@ classdef roiGroup < handle
             
                 D = obj.roiArray.getappdata(fields{i});
                 
-                if ~isempty(D)
+                if numel(D) == obj.roiCount
                     obj.(fields{i}) = D;
                     tf(i) = true;
                 end
@@ -186,6 +188,14 @@ classdef roiGroup < handle
                     newRois = roimanager.utilities.roiarray2struct(newRois);
                 end
             end
+            
+            
+            % Make sure classification is part of userdata
+            for i = 1:numel(newRois)
+                if isempty(getappdata(newRois(i), 'roiClassification'))
+                    newRois(i) = setappdata(newRois(i), 'roiClassification', 0);
+                end
+            end
 
             % Add rois, either by appending or by inserting into array.
             switch mode
@@ -242,9 +252,11 @@ classdef roiGroup < handle
                 obj.roiArray(i) = obj.roiArray(i).reshape('Mask', modifiedRois(cnt).mask);
                 obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiImages', getappdata(modifiedRois(cnt), 'roiImages') );
                 obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiStats', getappdata(modifiedRois(cnt), 'roiStats') );
+                
                 im = getappdata(obj.roiArray(i), 'roiImages');
-                obj.roiArray(i).enhancedImage = im.enhancedAverage;
-
+                if ~isempty(im)
+                    obj.roiArray(i).enhancedImage = im.enhancedAverage;
+                end
                 cnt = cnt+1;
             end
             

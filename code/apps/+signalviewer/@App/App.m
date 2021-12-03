@@ -1857,8 +1857,10 @@ classdef App < applify.ModularApp
                     obj.PointerManager.currentPointerTool.startEdit(S)
                     
                 else
-                    if isa(obj.PointerManager.currentPointerTool, 'signalviewer.pointerTool.eventAnnotator')
-                        obj.PointerManager.togglePointerMode('eventAnnotator')
+                    if ~isempty(obj.PointerManager)
+                        if isa(obj.PointerManager.currentPointerTool, 'signalviewer.pointerTool.eventAnnotator')
+                            obj.PointerManager.togglePointerMode('eventAnnotator')
+                        end
                     end
                 end
             end

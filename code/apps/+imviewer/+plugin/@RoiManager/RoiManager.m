@@ -476,11 +476,52 @@ classdef RoiManager < applify.mixin.AppPlugin
                 error('File not found')
             end
             
+            % Todo: Current group / Current channel etc...
+            currentRoiGroup = obj.roiGroup;
             
-            obj.roiDisplay.roiGroup.addRois(roi_arr, [], 'initialize')
+            % If rois already exist, determine how to add new ones
+            if ~isempty(currentRoiGroup.roiArray)
+                % If the loaded rois are identical, abort here
+                if isequal(currentRoiGroup.roiArray, roi_arr)
+                    return
+                else
+                    addMode = obj.getModeForAddingRois();
+                end
+            else
+                addMode = 'initialize';
+            end
+            
+            % If rois should be replaced, remove current rois. Also remove
+            % overlapping rois if that is requested.
+            switch addMode
+                case 'replace'
+                    roiInd = 1:currentRoiGroup.roiCount;
+                    currentRoiGroup.removeRois(roiInd);
+                case 'append non-overlapping'
+                    addMode = 'append';
+                    
+                    [iA, ~] = roimanager.utilities.findOverlappingRois(...
+                                    roi_arr, currentRoiGroup.roiArray);
+                    roi_arr(iA) = [];
+            end
+                        
+            obj.roiDisplay.roiGroup.addRois(roi_arr, [], addMode)
             
         end
         
+        function mode = getModeForAddingRois(obj)
+        %getModeForAddingRois Ask user for how to add rois    
+        
+            message = 'Should new rois replace current rois?';
+            title = 'Options for Loading New Rois';
+            alternatives = {'Replace', 'Append', 'Append non-overlapping'};
+            defaultChoice = 'Append';
+            
+            mode = questdlg(message, title, alternatives{:}, defaultChoice);
+            mode = lower(mode);
+            
+        end
+                    
         function saveRois(obj, initPath)
            
             if nargin < 2; initPath = ''; end
@@ -688,7 +729,7 @@ classdef RoiManager < applify.mixin.AppPlugin
         %plotRoiStaticImage Overlay a static image on all rois.
         
             % Get mean image of stack
-            avgIm = obj.PrimaryApp.imageStack.getProjection('average');
+            avgIm = obj.PrimaryApp.ImageStack.getProjection('average');
 
             obj.hImageRoiStatic = imagesc(avgIm, 'Parent', obj.PrimaryApp.Axes);
             
@@ -736,7 +777,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                 end
             end
             
-            roiIndexMap
+            %A = obj.roiDisplay.roiIndexMap
         end
         
         

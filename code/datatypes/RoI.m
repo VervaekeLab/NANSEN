@@ -1173,12 +1173,14 @@ methods (Access = protected)
         % Find and set area of RoI 
         switch obj.shape
             case 'Circle'
-                obj.area = round( pi*obj.coordinates(3)^2 );
+                A = pi*obj.coordinates(3)^2 ;
             case 'Polygon'
-                obj.area = polyarea(obj.coordinates(:, 1), obj.coordinates(:, 2));
+                A = polyarea(obj.coordinates(:, 1), obj.coordinates(:, 2));
             case {'Mask', 'Donut'}
-                obj.area = size(obj.coordinates, 1);
+                A = size(obj.coordinates, 1);
         end
+        
+        obj.area = round(A);
     end
 
     

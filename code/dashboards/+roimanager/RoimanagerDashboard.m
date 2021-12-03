@@ -6,7 +6,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     %       showing/hiding the signal viewer panel
     %   [ ] Bug when creating rois and modifying them before the
     %       roisignalarray is initalized.
-    %
+    %   [ ] Register roitable as a modular app, so that keypresses are
+    %       passed on...
     
     properties
         ApplicationName = 'Roimanager'
@@ -276,12 +277,15 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
 
         
         function onRoiDisplayPreferencesChanged(obj, name, value)
-            
+                        
             % Todo: move to roiMap class...!
             switch name
                 
                 case 'showNeuropilMask'
                     obj.roiDisplay.neuropilMaskVisible = value;
+                    
+                case 'roiColorScheme'
+                    obj.roiDisplay.RoiColorScheme = value;
                     
                 case 'showByClassification'
                     obj.roiDisplay.showClassifiedCells(value)
@@ -305,6 +309,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                     
             end
             
+            % Why not set this first??
             obj.settings.RoiDisplayPreferences.(name) = value;
 
         end

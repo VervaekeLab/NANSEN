@@ -14,7 +14,7 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiArray, varargin)
     import roimanager.autosegment.extractRoiImages
     
     params = struct;
-    params.ImageTypes = {'enhanced average', 'peak dff', 'correlation', 'enhanced correlation'};
+    params.ImageTypes = {'enhancedAverage', 'peakDff', 'correlation', 'enhancedCorrelation'};
 
     params = utility.parsenvpairs(params, [], varargin{:});
     
@@ -40,18 +40,18 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiArray, varargin)
 
     % Collect output as a struct array.
     nvPairs = cat(1, params.ImageTypes, roiImages);
-    roiImageData = struct(nvPairs);
+    roiImageData = struct(nvPairs{:});
     
     
     if nargout == 2
         
         % Todo: Add parameters for what stats to get. Make sure correct 
         % images are available for getting the stats....       
-        ringW = mean(cat(3, roiImages.enhancedAverage), 3);
-        diskW = mean(cat(3, roiImages.correlation), 3);
+        ringW = mean(cat(3, roiImageData.enhancedAverage), 3);
+        diskW = mean(cat(3, roiImageData.correlation), 3);
                 
         roiStats = roimanager.autosegment.calculateRoiStats(roiArray, ...
-            roiImages, dff, ringW, diskW);
+            roiImageData, dff, ringW, diskW);
 
     end
     

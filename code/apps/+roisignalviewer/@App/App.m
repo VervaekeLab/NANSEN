@@ -909,14 +909,15 @@ classdef App < signalviewer.App
                 obj.hLineObjects.(signalType)(numTrimmed+1 : end) = [];
                 
                 obj.tsArray(tsIND).Data(:, (numTrimmed+1 : end)) = [];
+            
+            
+                % Make sure that there is one line object for each data column
+                numDataSeries = size(obj.tsArray(tsIND).Data, 2);
+                numLineObjects = numel(obj.hLineObjects.(signalType));
+
+                assert(numDataSeries==numLineObjects, 'Something went wrong')
+                obj.showLegend()
             end
-            
-            % Make sure that there is one line object for each data column
-            numDataSeries = size(obj.tsArray(tsIND).Data, 2);
-            numLineObjects = numel(obj.hLineObjects.(signalType));
-            
-            assert(numDataSeries==numLineObjects, 'Something went wrong')
-            obj.showLegend()
 
         end
         

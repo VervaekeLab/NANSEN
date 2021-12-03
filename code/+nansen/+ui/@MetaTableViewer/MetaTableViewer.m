@@ -153,11 +153,21 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function refreshTable(obj, newTable)
         %refreshTable Method for refreshing the table
         
+            currentTable = obj.MetaTable;
+        
             if nargin == 2
                 obj.MetaTable = newTable;
+            else
+                fprintf('Print message if this case occurs...\n')
             end
             
-            obj.updateColumnLayout()
+            % only update column layout if number of columns change
+            if size(newTable, 2) ~= size(currentTable, 2)
+                obj.updateColumnLayout()
+            elseif size(currentTable, 1) == 0
+                obj.updateColumnLayout()
+            end
+            
             obj.DataFilterMap = []; % reset data filter map
             obj.updateTableView()
             
@@ -311,12 +321,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             if isempty(obj.ColumnModel); return; end
             
             colIndices = obj.ColumnModel.getColumnIndices();
-            numColumns = numel(colIndices);
+            %numColumns = numel(colIndices);
             
             % Set column names
             columnNames = obj.ColumnModel.getColumnNames();
-            obj.HTable.ColumnName = columnNames;
-
+            if ~isequal(columnNames, obj.HTable.ColumnName)
+                obj.HTable.ColumnName = columnNames;
+            end
+            
             obj.updateColumnEditable()
             
             
