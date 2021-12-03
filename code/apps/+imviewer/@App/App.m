@@ -198,6 +198,7 @@ properties (Access = private, Hidden = true) % Internal states/settings
     isShiftDown = false;
     isControlDown = false;
     isImageToolbarPinned = false;
+    isThumbnailSelectorPinned = false; % Todo: move to class...
     autoAdjustLimits = false;
 
     limitsListener
@@ -1106,6 +1107,8 @@ methods % App initialization & creation
         % todo: error handling in case the imviewer gui is closed while the
         % thumbnails are being created.
         
+        % todo: move code to widget class
+        
         if nargin < 2; showMessage = false; end
         
         if obj.imHeight==0 || obj.imWidth == 0; return; end
@@ -1230,36 +1233,13 @@ methods % App initialization & creation
             % Center vertically:
             tmpAx.Position(2) = imAxPos(2) + (imAxPos(4)-tmpAx.Position(4))/2;
             
-            
             obj.uiwidgets.thumbnailSelector.createScrollBar()
             
             
-            toolbarPosition = [tmpAx.Position(1)+5, tmpAx.Position(2)-32, ...
+            toolbarPosition = [tmpAx.Position(1)-5, tmpAx.Position(2)-32, ...
                            tmpAx.Position(3), 30 ];
-        
-            %uicc = getappdata(obj.Figure, 'UIComponentCanvas');
-            uicc = getappdata(obj.Panel, 'UIComponentCanvas');
-
-            % Create toolbar for changing thumbnail selector mode
-            % i.e projection, binning or filtering.
-
-            hToolbar = uim.widget.toolbar(uicc, 'Position', toolbarPosition, 'Margin', [0,0,0,0],'ComponentAlignment', 'center', 'BackgroundAlpha', 0.5);
-            hToolbar.Position = toolbarPosition;
-            hToolbar.BackgroundMode = 'full';      
-            hToolbar.SizeMode = 'manual';
-            
-            hBtn(1) = hToolbar.addButton('Icon', obj.ICONS.proj2, 'Type', 'togglebutton', 'Tag', 'Projection', 'Tooltip', 'Projection (shift-p)');
-            hBtn(2) = hToolbar.addButton('Icon', obj.ICONS.binning, 'Type', 'togglebutton', 'Tag', 'Binning', 'Tooltip', 'Binning (shift-b)');
-            hBtn(3) = hToolbar.addButton('Icon', obj.ICONS.filter2, 'Type', 'togglebutton', 'Tag', 'Filter', 'Tooltip', 'Filter (shift-f)');
-            
-            obj.uiwidgets.thumbnailSelector.toggleButtons = hBtn;
-            
-            for i = 1:numel(hBtn)
-                hBtn(i).ButtonDownFcn = @(s,e,h) obj.uiwidgets.thumbnailSelector.changeThumbnailClass(hBtn(i).Tag);
-            end
-            
-            hToolbar.Visible = 'off';
-            obj.uiwidgets.thumbNailToggler = hToolbar;
+                       
+            obj.createThumbnailSelectorToolbar(toolbarPosition)
             
             if showMessage
                 obj.clearMessage()
@@ -1285,6 +1265,44 @@ methods % App initialization & creation
 
     end
 
+    function createThumbnailSelectorToolbar(obj, toolbarPosition)
+
+        %uicc = getappdata(obj.Figure, 'UIComponentCanvas');
+        uicc = getappdata(obj.Panel, 'UIComponentCanvas');
+
+        % Create toolbar for changing thumbnail selector mode
+        % i.e projection, binning or filtering.
+        
+        toolbarConfig = {'Margin', [0,0,0,0], 'Padding', [3,3,3,3], ...
+            'ComponentAlignment', 'left', 'BackgroundAlpha', 0.5, ...
+            'Position', toolbarPosition, 'Spacing', 3};
+        
+        hToolbar = uim.widget.toolbar_(obj.Panel, toolbarConfig{:});
+        %hToolbar = uim.widget.toolbar(uicc, 'Position', toolbarPosition, 'Margin', [0,0,0,0],'ComponentAlignment', 'center', 'BackgroundAlpha', 0.5);
+        hToolbar.Position = toolbarPosition;
+        hToolbar.BackgroundMode = 'wrap';      
+        hToolbar.SizeMode = 'manual';
+
+        hBtn(1) = hToolbar.addButton('Icon', obj.ICONS.pin3, 'Padding', [5,5,5,5], 'Mode', 'togglebutton', 'Tag', 'pinThumbnails', 'Tooltip', 'Pin Thumbnail', 'MechanicalAction', 'Switch when pressed', 'Callback', @obj.togglePinThumbnailSelector, 'IconAlignment', 'center');
+
+        hBtn(2) = hToolbar.addButton('Icon', obj.ICONS.proj2, 'Mode', 'togglebutton', 'Tag', 'Projection', 'Tooltip', 'Projection (shift-p)');
+        hBtn(3) = hToolbar.addButton('Icon', obj.ICONS.binning, 'Mode', 'togglebutton', 'Tag', 'Binning', 'Tooltip', 'Binning (shift-b)');
+        hBtn(4) = hToolbar.addButton('Icon', obj.ICONS.filter2, 'Mode', 'togglebutton', 'Tag', 'Filter', 'Tooltip', 'Filter (shift-f)');
+
+        obj.uiwidgets.thumbnailSelector.toggleButtons = hBtn;
+
+        for i = 2:numel(hBtn)
+            %hBtn(i).ButtonDownFcn = @(s,e,h) obj.uiwidgets.thumbnailSelector.changeThumbnailClass(hBtn(i).Tag);
+            hBtn(i).Callback = @(s,e,h) obj.uiwidgets.thumbnailSelector.changeThumbnailClass(hBtn(i).Tag);
+        end
+
+        hToolbar.Visible = 'off';
+        obj.uiwidgets.thumbNailToggler = hToolbar;
+
+
+
+    end
+    
     function addImageToolbar(obj)
     %ADDIMAGETOOLBAR Add toolbar with image tools to the image display
     
@@ -2967,6 +2985,10 @@ methods % Misc, most can be outsourced
         
     end
     
+    function togglePinThumbnailSelector(obj, ~, ~)
+        obj.isThumbnailSelectorPinned = ~obj.isThumbnailSelectorPinned;
+    end
+    
     function switchHeaderVisibility(obj)
         
         if obj.showHeader
@@ -3454,9 +3476,14 @@ methods % Misc, most can be outsourced
             tmpAx.Position(3:4) = [w, h];
             tmpAx.Position(2) = imAxPos(2) + (imAxPos(4)-tmpAx.Position(4))/2;
             
-            obj.uiwidgets.thumbNailToggler.Position = [tmpAx.Position(1)+5, tmpAx.Position(2)-32, ...
+            obj.uiwidgets.thumbNailToggler.Position = [tmpAx.Position(1), tmpAx.Position(2)-32, ...
                            tmpAx.Position(3), 30 ];
             
+            if obj.isThumbnailSelectorPinned
+                obj.uiwidgets.thumbnailSelector.Visible = 'on';
+                obj.uiwidgets.thumbNailToggler.Visible = 'on';
+            end
+                       
         end
         
         if isfield(obj.uiwidgets, 'msgBox')
@@ -4352,18 +4379,18 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             
             if contains(obj.uiwidgets.Toolbar.Location, 'north')
                 isTouch = isTop(1) & ~isOutside;
-                isGo = ~any(isTop);
+                isUntouch = ~any(isTop);
             elseif contains(obj.uiwidgets.Toolbar.Location, 'south')
                 isTouch = isBottom(1) & ~isOutside;   
-                isGo = ~any(isBottom);
+                isUntouch = ~any(isBottom);
             else
                 isTouch = false;
-                isGo = false;
+                isUntouch = false;
             end
             
             if isTouch && strcmp(obj.uiwidgets.Toolbar.Visible, 'off')
                 obj.uiwidgets.Toolbar.Visible = 'on';
-            elseif isGo && strcmp(obj.uiwidgets.Toolbar.Visible, 'on')
+            elseif isUntouch && strcmp(obj.uiwidgets.Toolbar.Visible, 'on')
                 if ~obj.isImageToolbarPinned
                     obj.uiwidgets.Toolbar.Visible = 'off';
                 end
@@ -4387,14 +4414,21 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         if isfield(obj.uiwidgets, 'thumbnailSelector') && ~isempty(obj.uiwidgets.thumbnailSelector)
             isVisible = strcmp(obj.uiwidgets.thumbnailSelector.Visible, 'on');
-            if isLeft(1) && ~isVisible
+            
+            isTouch = isLeft(1);
+            isUntouch = ~any(isLeft);
+            
+            if isTouch && ~isVisible
                 obj.uiwidgets.thumbnailSelector.Visible = 'on';
                 obj.uiwidgets.thumbNailToggler.Visible = 'on';
-            elseif ~any(isLeft) && isVisible
+            elseif isUntouch && isVisible
                 if x > obj.uiwidgets.thumbnailSelector.Position(3) + 35 || ...
                     y < obj.uiwidgets.thumbnailSelector.Position(1)
-                    obj.uiwidgets.thumbnailSelector.Visible = 'off';
-                    obj.uiwidgets.thumbNailToggler.Visible = 'off';
+                    
+                    if ~obj.isThumbnailSelectorPinned
+                        obj.uiwidgets.thumbnailSelector.Visible = 'off';
+                        obj.uiwidgets.thumbNailToggler.Visible = 'off';
+                    end
                 end
             end
         elseif ~isfield(obj.uiwidgets, 'thumbnailSelector') % Create widget on demand
@@ -4643,7 +4677,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 % Todo: Assign selection from imageStack.imageData...
                 % assignin('base', 'imviewerData')
                 
-            case {'+', 'slash'} %, '0'}
+            case {'+', 'slash', '0'}
                 if ispc && strcmp(event.Key, '0')
                     obj.imageZoom('in');
                 elseif ~ispc && strcmp(event.Key, '0')
