@@ -74,7 +74,7 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                 end
 
                 
-                if roiGroup.roiCount > 0 && tf
+                if roiGroup.roiCount > 0 && hasRoiData
                     % Initialize roi classifier
                     hClsf = roiclassifier.App(roiGroup, 'tileUnits', 'scaled');
                     obj.ClassifierApp = hClsf;
