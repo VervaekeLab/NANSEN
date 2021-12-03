@@ -13,7 +13,7 @@ function sessionArray = detectNewSessions(metaTable, dataLocationType)
     
     
     % % Use the folder structure to detect session folders.
-    sessionFolders = nansen.listSessionFolders(dlModel, dataLocationType);
+    sessionFolders = nansen.dataio.session.listSessionFolders(dlModel, dataLocationType);
     sessionFolders = sessionFolders.(dataLocationType);
     
     existingDataLocs = arrayfun(@(s) s.Rawdata, metaTable.entries.DataLocation, 'uni', 0);
