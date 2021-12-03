@@ -3,31 +3,33 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
     % TODO:
     %  [x] make setSelectedEntries for uitable, so that selection works
     %      also when rows are sorted
-    %  [ ] Fix bug when selecting from sorted tables...
+    %  [x] Fix bug when selecting from sorted tables...
+    
     
     properties (Constant) % Inherited from applify.HasTheme via ModularApp
         DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
     end
     
     properties (Constant ) % Inherited from applify.ModularApp
-        AppName = 'Signal Viewer'
+        AppName = 'Roi Info Table'
     end
 
     
     properties
-        roiTable
-        selectedRois
+        roiTable        % Keeps a data table with info for all rois
+        selectedRois    % List of rois(rows) that are selected in the table
     end
     
     properties (Access = protected)
-        UITable
+        UITable         % Handle to the ui table
     end
     
     
     methods
         
         function obj = RoiTable(varargin)
-            
+        %RoiTable Create an instance of a RoiTable modular app
+        
             [h, varargin] = applify.ModularApp.splitArgs(varargin{:});
             obj@applify.ModularApp(h);
             
@@ -147,25 +149,35 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             % Take action for this EventType
             switch lower(evtData.eventType)
                 
-                case {'initialize', 'append', 'insert'}
-                    
+                case {'initialize', 'append'}
                     T = obj.rois2table(evtData.roiArray);
                     newTable = cat(1, oldTable, T);
-
+                    
+                case 'insert'
+                    T = obj.rois2table(evtData.roiArray);
+                    ind = evtData.roiIndices;
+                    newTable = utility.insertRowInTable(oldTable, T, ind);
+                    
                 case {'modify', 'reshape'}
-                    newTable = oldTable; %todo
+                    T = obj.rois2table(evtData.roiArray);
+                    newTable = oldTable;
+                    newTable(evtData.roiIndices, :) = T;
                     
                 case 'remove'
                     newTable = obj.roiTable;
                     newTable(evtData.roiIndices,:) = [];  
             end
             
-            tags = {obj.roiGroup.roiArray.tag};
-            nums = arrayfun(@(i) num2str(i, '%03d'), 1:obj.roiGroup.roiCount, 'uni', 0);
-            roiLabels = strcat(tags, nums);
+            if obj.roiGroup.roiCount ~= 0
             
-            newTable{:,1} = roiLabels';
-            
+                tags = {obj.roiGroup.roiArray.tag};
+                numRois = numel(tags);
+                nums = arrayfun(@(i) num2str(i, '%03d'), 1:numRois, 'uni', 0);
+                roiLabels = strcat(tags, nums);
+
+                newTable{:,1} = roiLabels';
+                
+            end
                         
             obj.roiTable = newTable;
             obj.UITable.refreshTable(newTable)
@@ -211,6 +223,14 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
         
         function onRoiClassificationChanged(obj, evtData)
             
+        end
+    end
+    
+    methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
+        
+        function onKeyPressed(obj, src, evt)
+            % Todo implement...
+            disp(evt.Key)
         end
         
     end
