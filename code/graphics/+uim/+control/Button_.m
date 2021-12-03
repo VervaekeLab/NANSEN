@@ -489,17 +489,6 @@ classdef Button_ < uim.abstract.Control
             
         end
         
-        function toggleState(obj, ~, event)
-        %toggleState Toggle the state (value) of the button.
-        
-        % Todo: make sure mechanical action is switch type...
-
-            if obj.Value ~= event.Value
-                obj.Value = event.Value;
-                obj.changeAppearance()
-            end
-            
-        end
     end
     
     methods (Access = protected)
@@ -548,6 +537,18 @@ classdef Button_ < uim.abstract.Control
             end
             
             obj.setTooltipPosition()
+            
+        end
+        
+        function toggleState(obj, ~, event)
+        %toggleState Toggle the state (value) of the button.
+        
+        % Todo: make sure mechanical action is switch type...
+
+            if obj.Value ~= event.Value
+                obj.Value = event.Value;
+                obj.changeAppearance()
+            end
             
         end
     end

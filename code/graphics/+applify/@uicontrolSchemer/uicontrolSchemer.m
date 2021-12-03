@@ -122,6 +122,7 @@ classdef uicontrolSchemer < handle
         end
         
         function delete(obj, ~, ~)
+            if ~isvalid(obj); return; end
             delete(obj.FigureDestroyedListener)
             delete@handle(obj) % Why does this have to be explicit?
         end

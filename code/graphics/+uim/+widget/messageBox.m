@@ -231,10 +231,37 @@ classdef messageBox < uim.mixin.isResizable
             btnPos = 1 - ([0.05, 0.05] .* [1, pixpos(3)/pixpos(4)]);
             obj.xButton.XData = btnPos(1);
             obj.xButton.YData = btnPos(2);
+
+            if ~isempty(obj.xButtonBg)
+                [xData, yData] = obj.getXButtonBackgroundCoords();
+                set(obj.xButtonBg, 'XData', xData, 'YData', yData)
+            end
+                
         end
         
         
         function addXbuttonBackground(obj)
+            
+
+            [xData, yData] = obj.getXButtonBackgroundCoords();
+            hBtn = patch(obj.hAxes, xData, yData, 'w');
+
+            % Configure patch which will be visible when hovering over X
+            hBtn.FaceColor = [209, 210, 211] ./ 255;
+            hBtn.EdgeColor = 'none';
+            hBtn.FaceAlpha = 0.01;
+            hBtn.LineWidth = 1;
+            hBtn.Tag = sprintf('Close Button');
+            hBtn.ButtonDownFcn = @(s, e) obj.clearMessage;
+            hBtn.HitTest = 'off';
+            hBtn.PickableParts = 'none';
+            hBtn.Visible = 'off'; 
+
+            obj.xButtonBg = hBtn;
+
+        end
+        
+        function [xData, yData] = getXButtonBackgroundCoords(obj)
             
             margin = 6;
             offset = 0;
@@ -253,30 +280,9 @@ classdef messageBox < uim.mixin.isResizable
 
             % Shift coordinates to be centered on xPos and yPos.
             edgeCoords = edgeCoords - mean(edgeCoords,1) + [xPos, yPos];
-
-            hBtn = patch(obj.hAxes, edgeCoords(:,1), edgeCoords(:,2), 'w');
-
-            % Configure patch which will be visible when hovering over X
-            hBtn.FaceColor = [209, 210, 211] ./ 255;
-            hBtn.EdgeColor = 'none';
-            hBtn.FaceAlpha = 0.01;
-            hBtn.LineWidth = 1;
-            hBtn.Tag = sprintf('Close Button');
-            hBtn.ButtonDownFcn = @(s, e) obj.clearMessage;
-            hBtn.HitTest = 'off';
-            hBtn.PickableParts = 'none';
-            hBtn.Visible = 'off'; 
-
-            obj.xButtonBg = hBtn;
             
-% %             pointerBehavior.enterFcn    = @obj.onMouseEnteredButton;
-% %             pointerBehavior.exitFcn     = @obj.onMouseExitedButton;
-% %             pointerBehavior.traverseFcn = [];%@obj.moving;
-% %             
-% %             iptSetPointerBehavior(obj.xButtonBg, pointerBehavior);
-% %             iptPointerManager(ancestor(obj.xButtonBg, 'figure'));
-            
-
+            xData = edgeCoords(:, 1);
+            yData = edgeCoords(:, 2);
             
         end
         

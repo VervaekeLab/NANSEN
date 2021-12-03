@@ -60,7 +60,6 @@ classdef zoom < handle
             mp_f = get(obj.hFigure, 'CurrentPoint');
             obj.hFigure.Units = figUnits;
 
-            
             axUnits = obj.hAxes.Units;
             obj.hAxes.Units = 'pixel';
             mp_a = get(obj.hAxes, 'CurrentPoint');
@@ -68,7 +67,7 @@ classdef zoom < handle
             mp_a = mp_a(1, 1:2);
 
             
-            axPos = getpixelposition(obj.hAxes);
+            axPos = getpixelposition(obj.hAxes, true); % Need axes position in figure
 
             axLim = axPos + [0, 0, axPos(1), axPos(2)];
 
