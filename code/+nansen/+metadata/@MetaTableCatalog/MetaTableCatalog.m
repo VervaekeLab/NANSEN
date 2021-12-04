@@ -111,12 +111,12 @@ classdef MetaTableCatalog < uim.handle
         %getFilePath Get filepath where the MetaTableCatalog is located
         
             projectRootDir = getpref('Nansen', 'CurrentProjectPath');
-            saveDir = fullfile(projectRootDir, 'Metadata Tables');
+            metaTableDir = fullfile(projectRootDir, 'Metadata Tables');
             
-            if ~exist(saveDir, 'dir');  mkdir(saveDir);    end
+            if ~exist(metaTableDir, 'dir');  mkdir(metaTableDir);    end
             
             % Get path string from project settings 
-            pathString = fullfile(saveDir, 'metatable_catalog.mat');
+            pathString = fullfile(metaTableDir, 'metatable_catalog.mat');
             
 % %             % Alternatively:
 % %             token = 'MetaTableCatalog'

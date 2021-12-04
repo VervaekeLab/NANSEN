@@ -1,5 +1,5 @@
 classdef DataIoModel < handle
-%nansen.iomodel.DataIoModel Map a variable to a file on disk.
+%nansen.dataio.DataIoModel Map a variable to a file on disk.
 %
 %   Superclass for classes that provide save/load functionality.
 %
@@ -9,11 +9,9 @@ classdef DataIoModel < handle
 %
 
 
-
 %   Todo: 
 %
-%       [ ] Incorporate the datalocation model filepath model.
-%
+%       [ ] Incorporate the datalocation model + filepath model.
 %       [ ] Temporary saving results in a different location, i.e on an SSD drive.
 
 

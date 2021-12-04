@@ -66,8 +66,9 @@ classdef uicontrolSchemer < handle
                 obj.hPanel = hPanel;
             end
             
-            varName = sprintf('uischemer%05d', randi(10000));
-            assignin('base', varName, obj)
+% % %             % For debugging...
+% % %             varName = sprintf('uischemer%05d', randi(10000));
+% % %             assignin('base', varName, obj)
             
             obj.ParentContainerSizeChanged = addlistener(obj.hPanel, ...
                 'SizeChanged', @obj.onPanelSizeChanged);

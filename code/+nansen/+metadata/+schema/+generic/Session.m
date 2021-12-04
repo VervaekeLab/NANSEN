@@ -9,7 +9,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
 
 %   Questions: 
 %       - Is it better to have get/create session folders as methods in
-%           DataLocations (the model)
+%         DataLocations (the model)
 
 %   Todo:
 %       [ ] Implement methods for saving processing/analysis results to
@@ -32,7 +32,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         subjectID      % Add some validation scheme.... Can I dynamically set this according to whatever?
         sessionID    char
                
-        IgnoreFlag = false
+        IgnoreFlag = false 
 
         % Date and time for experimental session
         Date

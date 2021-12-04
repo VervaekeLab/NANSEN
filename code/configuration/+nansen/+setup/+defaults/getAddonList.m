@@ -8,6 +8,11 @@ function S = getAddonList()
 % SetupName     : Name of setup file if there are any
 % FunctionName  : Name of function in repository (used to check if repository already exists on matlab's path)
     
+% Todo: Add git commit id, and use it for checking if latest version is
+% downloaded...
+% Use git instead of downloading zipped versions of repositories...
+
+
     i = 1;
     S(i).Name = 'GUI Layout Toolbox';
     S(i).Description = 'Layout manager for MATLAB graphical user interfaces';
@@ -46,6 +51,18 @@ function S = getAddonList()
     S(i).HasSetupFile = false;
     S(i).SetupFileName = '';
     S(i).FunctionName = 'CNMFSetParms';
+        
+    i = i + 1;
+    S(i).Name = 'EXTRACT';
+    S(i).Description = 'Tractable and Robust Automated Cell extraction Tool for calcium imaging';
+    S(i).IsRequired = false;
+    S(i).Type = 'Neuroscience';
+    S(i).Source = 'Github';
+    S(i).WebUrl = 'https://github.com/schnitzer-lab/EXTRACT-public';
+    S(i).DownloadUrl = 'https://github.com/schnitzer-lab/EXTRACT-public/archive/refs/heads/master.zip';
+    S(i).HasSetupFile = false;
+    S(i).SetupFileName = '';
+    S(i).FunctionName = 'run_extract';
     
     i = i + 1;
     S(i).Name = 'NoRMCorre';
