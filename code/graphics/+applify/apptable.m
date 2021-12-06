@@ -112,8 +112,11 @@ classdef apptable < applify.minitable
             obj.ColumnHeaderBorder.Position = obj.ColumnHeaderPosition;
             obj.ColumnHeaderBorder.ImageSource = imagePathStr;
             
-            rootPath = fileparts( mfilename('fullpath') );
-            imgPath = fullfile(rootPath, '_graphics', 'icons');
+% %             rootPath = fileparts( mfilename('fullpath') );
+% %             imgPath = fullfile(rootPath, '_graphics', 'icons');
+
+            rootPath = fileparts(nansen.rootpath);
+            imgPath = fullfile(rootPath, 'setup', '_icons');
             
             yOff = 5; % Correction factor in pixels to keep labels closer 
                       % to horizontal border below
