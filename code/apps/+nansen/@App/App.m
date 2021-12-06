@@ -68,8 +68,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.loadMetaTable()
             
-%             app.loadExperimentInventory()
             
+            %Todo: Should be part of project manager...
+
+            % Add project folder to path. 
+            projectPath = nansen.localpath('Current Project');
+            currentPath = path;
+            if ~contains(currentPath, projectPath)
+                addpath(projectPath)
+            end
+            
+
             app.switchJavaWarnings('off')
             
             app.configureWindow()

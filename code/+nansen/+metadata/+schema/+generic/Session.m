@@ -96,6 +96,55 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         
     end
     
+    methods % Data location
+        
+        function updateDataLocations(obj)
+            global dataLocationModel
+            if isempty(dataLocationModel); return; end
+            
+            
+            numDataLocations = numel(dataLocationModel.Data);
+            
+            for i = 1:numDataLocations
+                thisName = dataLocationModel.Data(i).Name;
+                
+                if isfield(obj.DataLocation, thisName)
+                    continue
+                end
+                
+                thisDataLocation = dataLocationModel.Data(i);
+                pathString = obj.detectSessionFolder(thisDataLocation);
+                
+                obj.DataLocation.(thisName) = pathString;
+            end
+            
+        end
+        
+        function pathString = detectSessionFolder(obj, dataLocation)
+            
+            rootPath = dataLocation.RootPath{1};
+            S = dataLocation.SubfolderStructure;
+
+            for j = 1:numel(S)
+                expression = S(j).Expression;
+                ignoreList = S(j).IgnoreList;
+                [rootPath, ~] = utility.path.listSubDir(rootPath, expression, ignoreList);
+            end
+            
+            isMatch = contains(rootPath, obj.sessionID);
+            
+            if sum(isMatch) == 0
+                pathString = '';
+            elseif sum(isMatch) == 1
+                pathString = rootPath{isMatch};
+            else 
+                warning('Multiple session folders mathed. Selected first one')
+                pathString = rootPath{find(isMatch, 1, 'first')};
+            end
+            
+        end
+    end
+    
     
     methods % Load data variables
 

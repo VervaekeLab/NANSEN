@@ -29,6 +29,9 @@ classdef TwoPhotonSession < nansen.metadata.schema.generic.Session
                 obj(numObjects).Notebook = struct.empty;
                 obj.fromTable(varargin{1})
                 
+                
+                
+            % This case is if input is a "data location"
             elseif isa(varargin{1}, 'struct') % Temporary; data location struct.
                 
                 % Todo: Generalize for all data locations.
@@ -43,6 +46,13 @@ classdef TwoPhotonSession < nansen.metadata.schema.generic.Session
                 obj.assignSessionID(pathStr)
                 obj.assignDateInfo(pathStr)
                 obj.assignTimeInfo(pathStr)
+                
+% %                 % Todo: Autoassign all data locations
+% %                 if numel(obj.DataLocation) ~= numel(dataLocationModel.Data)
+% %                     % Should also make sure that names are matching...
+% %                     obj.updateDataLocations()
+% %                 end
+                
                 
             elseif isa(varargin{1}, 'char')
                 % Todo:

@@ -34,6 +34,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       [x] Fix Scroller... Does it need its own panel???
 %       [ ] Scrollerposition does not reset to top when changing tabs... 
 %      *[ ] Implement dependable fields...
+%       [ ] Implement validation of inputs. Each field should have a
+%           validation function to thest that the entered value is valid.
 %       [ ] Implement transient fields
 %           Q: 1) How are these updated? Is there any way of making that
 %           simple, or not? True/false, enable/diable... 
@@ -1929,6 +1931,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 if ~isInternal && ~isempty(obj.OptionsManager)
                     obj.changePresetToModified()
                 end
+                
+                % Todo: Enable save button
+                
+                
             end
 
         end
