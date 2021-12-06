@@ -174,6 +174,19 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
         
+        function rowInd = getMetaTableRows(obj, rowInd)
+            
+            dataInd = get(obj.HTable.JTable.Model, 'Indexes');
+            
+            if ~isempty(dataInd)
+                rowInd = dataInd(rowInd)+1; % +1 because java indices start at 0
+                rowInd = transpose( double( sort(rowInd) ) ); % return as row vector
+            else
+                rowInd = rowInd; 
+            end
+            
+        end
+        
         function IND = getSelectedEntries(obj)
             
             IND = obj.HTable.SelectedRows;
@@ -407,14 +420,18 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
             columnNames = obj.ColumnModel.getColumnNames();
             numColumns = numel(columnNames);
-
+            
             % Set column editable (By default, none are editable)
-            allowEdit = false(1, numColumns);
+            allowEdit = obj.ColumnModel.getColumnEditableFlag;
             
             % Set ignoreFlag to editable if options allow
             if obj.AllowTableEdits
                 allowEdit( contains(lower(columnNames), 'ignore') ) = true;
+            else
+                allowEdit(:) = false;
             end
+            
+            
             
             obj.HTable.ColumnEditable = allowEdit;
             
@@ -539,6 +556,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     
             elseif evt.Button == 3 || strcmp(evt.SelectionType, 'alt')
 
+                
+                    
                 % Get row where mouse press ocurred.
                 row = evt.Cell(1);
                 
@@ -564,6 +583,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
         end  
         
+        function onMouseMotionInTable(obj, src, evt)
+            % This functionality is put in the nansen app for now.            
+        end
         
         function onCellValueEdited(obj, src, evtData)
         %onCellValueEdited Callback for value change in cell
@@ -668,17 +690,21 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             if isempty(obj.TableContextMenu); return; end
             
-            xOff = obj.HTable.getHorizontalScrollOffset();
-            
+            % This is now corrected for in caller function...
+            %xOff = obj.HTable.getHorizontalScrollOffset();
+
             tablePosition = getpixelposition(obj.HTable, true);
             tableLocationX = tablePosition(1) + 1; % +1 because ad hoc...
             tableHeight = tablePosition(4);
             
-            cMenuPos = [tableLocationX + x - xOff, tableHeight - y + 15]; % +15 because ad hoc...
+            cMenuPos = [tableLocationX + x, tableHeight - y + 15]; % +15 because ad hoc...
+            
+            %hFigure = ancestor(obj.TableContextMenu, 'figure');
             
             % Set position and make menu visible.
             obj.TableContextMenu.Position = cMenuPos;
             obj.TableContextMenu.Visible = 'on';
+            
         end
         
         function sortColumn(obj, columnIdx, sortDirection)

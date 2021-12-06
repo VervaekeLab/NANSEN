@@ -5,6 +5,11 @@ classdef Notebook < nansen.metadata.abstract.TableVariable
     %   implementation. Was taken from sessionInventory.
     %   [ ] Same for: editMessages, onEditNotesButtonPress
     
+    properties (Constant)
+        IS_EDITABLE = false
+        DEFAULT_VALUE = struct.empty
+    end
+
     properties
         % Struct array containing note entries. Each note entry should have 
         % the following fields:
@@ -12,13 +17,15 @@ classdef Notebook < nansen.metadata.abstract.TableVariable
         %   type        % Comment, warning
         %   title       % Title of message
         %   message     % Actual message
-        Value struct
+        
+        % Value struct
         
     end
    
     methods
         function obj = Notebook(S)
             obj@nansen.metadata.abstract.TableVariable(S);
+            assert(isstruct(obj.Value), 'Value must be a struct')
         end
     end
     
@@ -26,8 +33,50 @@ classdef Notebook < nansen.metadata.abstract.TableVariable
     methods % Implement abstract methods of superclass
        
         function str = getCellDisplayString(obj)
+                        
+            % Struct is wrapped in a cell. This was done because
+            % structarrays are not compatible with tables as far as I could
+            % figure out...
             
-            %noteStruct = metaVar.Notes;
+            commentStruct = obj.Value;
+            
+            if iscell(commentStruct)
+                commentStruct = commentStruct{1};
+            end
+            
+            if isempty(commentStruct)
+                str = '0 Notes';
+                return
+            else
+                msgLevel = {commentStruct.level};
+                numComments = sum(contains(lower(msgLevel), 'comment'));
+                numWarnings = sum(contains(lower(msgLevel), 'warning'));
+            end
+            
+            str1 = sprintf('Comments (%d)', numComments);
+            icon1 = '/Applications/MATLAB_R2017b.app/toolbox/matlab/uitools/private/icon_help_32.png';
+            str1 = sprintf('<html><img src="file:%s" width="10" height="10"><font color="#000000">%s</font>', icon1, str1);
+            
+            str2 = sprintf('Warnings (%d)', numWarnings);    
+            icon2 = '/Applications/MATLAB_R2017b.app/toolbox/matlab/uitools/private/icon_warn_32.png';
+            str2 = sprintf('<html><img src="file:%s" width="10" height="10"><font color="#000000">%s</font>', icon2, str2);
+
+            
+            
+            if numComments == 0 && numWarnings > 0
+                formattedStr = sprintf('%s', str2);
+            elseif numWarnings == 0 && numComments > 0
+                formattedStr = sprintf('%s', str1);
+            elseif numWarnings > 0 && numComments > 0
+                formattedStr = sprintf('%s , %s', str2, str1);
+            end
+            
+            
+            str = formattedStr;
+        end
+       
+        function str = getCellTooltipString(obj)
+           
             noteStruct = obj.Value;
             
             if isempty(noteStruct)
@@ -44,10 +93,6 @@ classdef Notebook < nansen.metadata.abstract.TableVariable
                 end
 
             end
-        end
-       
-        function str = getCellTooltipString(obj)
-        
         end
         
     end

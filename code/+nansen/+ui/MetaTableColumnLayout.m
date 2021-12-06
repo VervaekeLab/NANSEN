@@ -25,7 +25,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     % MetaTable property was a nansen.metadata.MetaTable object), but now
     % it should not be. Need to rethink what to do, but I think it is
     % sufficient just to change this value to false, since the parent class
-    % already shuld take care of changing a struct variable to a valid type
+    % already should take care of changing a struct variable to a valid type
     % before it ends up in the MetaTable property.
     
     % Ideas for appearance:
@@ -76,6 +76,17 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             %obj@applify.mixin.UserSettings;
             %obj.loadSettings()
+            
+            % Temporary! Todo: remove. (Make sure IsEditable is added)
+            if ~isfield(obj.settings, 'IsEditable')
+                for i = 1:numel(obj.settings)
+                    variableName = obj.settings(i).VariableName;
+                    tic
+                    tf = obj.checkIfColumnIsEditable(variableName);
+                    toc
+                    obj.settings_(i).IsEditable = tf;
+                end
+            end
             
             obj.MetaTableUi = hViewer;
             
@@ -213,6 +224,15 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
             colNames(indSort) = colNames;
             
+        end
+        
+        function isEditable = getColumnEditableFlag(obj)
+            IND = obj.getIndicesToShowInMetaTable();
+            
+            isEditable = [obj.settings(IND).IsEditable];
+            
+            [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
+            isEditable(indSort) = isEditable;
         end
         
         function colWidths = getColumnWidths(obj)
@@ -390,6 +410,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 % Get data type of this variable and check if it is valid
                 dataValue = tableRow.(iVarName);          % Todo: Check if this works if dataValue is cell array....
                 isValidDatatype = obj.checkIfColumnDataIsValid(dataValue);
+                isEditable = obj.checkIfColumnIsEditable(iVarName);
                 
                 iColumn = numOldEntries + i;
                 obj.settings_(iColumn).VariableName = iVarName;
@@ -397,7 +418,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 obj.settings_(iColumn).ShowColumn = true;
                 obj.settings_(iColumn).SkipColumn = ~isValidDatatype;
                 obj.settings_(iColumn).ColumnWidth = obj.DEFAULT_COLUMN_WIDTH;
-                
+                obj.settings_(iColumn).IsEditable = isEditable;
             end
             
             obj.saveSettings()
@@ -440,7 +461,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             IND = obj.getIndicesToShowInLayoutEditor();
             
             % Get subset of table to display in column layout editor.
-            T = T(IND, [1,2,3,5]); % 4th column is not editable.
+            T = T(IND, [1,2,3,5]); % 4th + 6th column is not editable.
         
         end
         
@@ -453,10 +474,13 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             S = struct(...
                 'VariableName', {}, ...   % Metadata variable name
                 'ColumnLabel', {}, ...    % What name to display in column header
-                'ShowColumn', [], ...       % Show or hide column in table viewer ui
-                'SkipColumn', [], ...       % Skip column when displaying table data (if data is not renderable, i.e matlab arrays, etc)
-                'ColumnWidth', {} );      % What width to assign column
-                %'ColumnNumber', []
+                'ShowColumn', [], ...     % Show or hide column in table viewer ui
+                'SkipColumn', [], ...     % Skip column when displaying table data (if data is not renderable, i.e matlab arrays, etc)
+                'ColumnWidth', {}, ...    % What width to assign column
+                'IsEditable', logical.empty ); % Is column editable
+            %'ColumnNumber', []
+                %
+                
             % Todo: Add a way to change order or columns...
             
         end
@@ -483,6 +507,30 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 tf = true;
             else
                 tf = false;
+            end
+            
+        end
+        
+        function tf = checkIfColumnIsEditable(variableName)
+            
+            % Todo: Check pre-programmed variables as well..
+            
+            import nansen.metadata.utility.getCustomTableVariableNames
+            import nansen.metadata.utility.getCustomTableVariableFcn
+            
+            tf = false;
+            
+            customVarNames = getCustomTableVariableNames();
+            
+            if ~contains(variableName, customVarNames)
+                return
+            end
+            
+            thisFcn = getCustomTableVariableFcn(variableName);
+            fcnValue = thisFcn();
+
+            if isa(fcnValue, 'nansen.metadata.abstract.TableVariable')
+                tf = fcnValue.IS_EDITABLE;
             end
             
         end

@@ -21,11 +21,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema
     
 
     % Implement superclass abstract property
-    properties (Constant, Hidden)
+    properties (Constant, Hidden) % Protected?
         IDNAME = 'sessionID'
     end
 
-    
     properties
         
         % Unique identification properties.
@@ -46,6 +45,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         DataLocation struct % Where is session data stored
         Progress struct     % Whats the pipeline status / progress
         
+    end
+    
+    properties (Constant, Hidden)
+        InternalVariables = {'IgnoreFlag', 'DataLocation', 'Notebook'}
     end
     
     

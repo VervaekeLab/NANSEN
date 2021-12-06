@@ -15,6 +15,10 @@ function pathStr = localpath(pathKeyword, project)
 
     % Check if preferences has a localpath field and if user defined local
     % paths are present there.
+    
+    % Note: This is slow if 100s of calls are made. Not optimal, some
+    % functions calling localpath might do so in a loop, and this is not
+    % efficient. Need to fix
     if ispref('nansen_localpath', pathKeyword)
         pathStr = getpref('nansen_localpath', pathKeyword);
         return

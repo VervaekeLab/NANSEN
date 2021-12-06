@@ -1,28 +1,36 @@
-function createTableVariableUserFunction(initializationStruct)
-%createTableVariableUserFunction Create function template for custom var
-
-%createFunctionForCustomTableVar
+function createClassForCustomTableVar(initializationStruct)
+%createClassForCustomTableVar Create class template for custom var
+    
+    % Todo: second input that signals if the template file should be opened
+    % in the editor.
+    
     variableName = initializationStruct.VariableName;
     tableClass = initializationStruct.MetadataClass;
     dataType = initializationStruct.DataType;
-
+    
     % Make sure the variable name is valid
     assert(isvarname(variableName), '%s is not a valid variable name', variableName)
     
     % Get the path for the template function
     rootPathSource = nansen.rootpath;
-    fcnSourcePath = fullfile(rootPathSource, '+metadata', '+tablevar', 'TemplateFunction.m');
+    fcnSourcePath = fullfile(rootPathSource, '+metadata', '+tablevar', 'TemplateVariable.m');
     
     % Modify the template function by adding the variable name
     fcnContentStr = fileread(fcnSourcePath);
-    fcnContentStr = strrep(fcnContentStr, 'TemplateFunction', variableName);
-    fcnContentStr = strrep(fcnContentStr, 'TEMPLATEFUNCTION', upper(variableName));
-    fcnContentStr = strrep(fcnContentStr, 'metadata', lower(tableClass));
+    fcnContentStr = strrep(fcnContentStr, 'TemplateVariable', variableName);
+    fcnContentStr = strrep(fcnContentStr, 'TEMPLATEVARIABLE', upper(variableName));
+    %fcnContentStr = strrep(fcnContentStr, 'metadata', lower(tableClass));
 
-    % Add initialization of output
+    % Edit initialization of output (default value)
     defaultValue = getDefaultValueAsChar(dataType);
-    valueExpr = sprintf('value = %s', defaultValue);
-    fcnContentStr = strrep(fcnContentStr, 'value = []', valueExpr);
+    valueExpr = sprintf('DEFAULT_VALUE = %s', defaultValue);
+    fcnContentStr = strrep(fcnContentStr, 'DEFAULT_VALUE = []', valueExpr);
+    
+    % Edit attribute for whether variable is editable or not
+    if strcmp(initializationStruct.InputMode, 'Manual')
+        fcnContentStr = strrep(fcnContentStr, 'IS_EDITABLE = false', ...
+                                'IS_EDITABLE = true');
+    end
     
     % Create a target path for the function. Place it in the current
     % project folder.
@@ -38,7 +46,7 @@ function createTableVariableUserFunction(initializationStruct)
     fclose(fid);
     
     % Finally, open the function in the matlab editor.
-    edit(fullfile(fcnTargetPath, fcnFilename))
+    % edit(fullfile(fcnTargetPath, fcnFilename))
     
 end
 
@@ -52,7 +60,7 @@ function defaultValue = getDefaultValueAsChar(dataType)
         case 'numeric'
             defaultValue = 'nan';
         case 'char'
-            defaultValue = '{N/A}'; 
+            defaultValue = '{''N/A''}'; 
     end
             
 end

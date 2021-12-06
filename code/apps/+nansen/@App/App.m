@@ -247,6 +247,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function createMenu(app)
         %createMenu Create menu components for the main gui.
+    
         
             % Create a software menu
             m = uimenu(app.Figure, 'Text', 'Nansen');
@@ -278,8 +279,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text', 'Quit');
             mitem.MenuSelectedFcn = @(s, e) app.delete;
         
-            
-            
+
             % Create a "Manage" menu
             m = uimenu(app.Figure, 'Text', 'Manage');
             
@@ -315,20 +315,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
             % Create a "Session" menu
             m = uimenu(app.Figure, 'Text', 'Session');
-            
-            mitem = uimenu(m, 'Text','Add Table Variable...');
-            mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
-            
-            mitem = uimenu(m, 'Text','Edit Table Variable Definition');            
-            columnVariables = app.MetaTable.entries.Properties.VariableNames;
-            for iVar = 1:numel(columnVariables)
-                hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
-                hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
-            end
-            
-            
-            mitem = uimenu(m, 'Text','Remove Table Variable...', 'Enable', 'off');
-            mitem.MenuSelectedFcn = @(s,e) app.removeTableVariable;
+            app.createSessionInfoMenus(m)
+
 
             nansenPath = utility.path.getAncestorDir(nansen.rootpath, 1);
             menuRootPath = fullfile(nansenPath, 'code', 'sessionMethods');
@@ -355,6 +343,47 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem.MenuSelectedFcn = @app.menuCallback_EditSettings;
             mitem = uimenu(m, 'Text','Edit Search/Filter History');
             mitem.MenuSelectedFcn = @app.menuCallback_EditSettings;
+            
+        end
+        
+        function createSessionInfoMenus(app, hMenu, updateFlag)
+            
+            import nansen.metadata.utility.getPublicSessionInfoVariables
+
+            if nargin < 3
+                updateFlag = false;
+            end
+            
+            if nargin < 2 || isempty(hMenu)
+                hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Session');
+            end
+            
+            if updateFlag
+                delete(hMenu.Children)
+            end
+            
+            
+            mitem = uimenu(hMenu, 'Text','Add Table Variable...');
+            mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
+            
+            mitem = uimenu(hMenu, 'Text','Edit Table Variable Definition');            
+            columnVariables = getPublicSessionInfoVariables(app.MetaTable);
+
+            for iVar = 1:numel(columnVariables)
+                hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
+                hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
+            end
+            
+            mitem = uimenu(hMenu, 'Text','Remove Table Variable...');
+            
+            varNames = nansen.metadata.utility.getCustomTableVariableNames();
+            mc = ?nansen.metadata.schema.generic.Session;
+            varNames = setdiff(varNames, {mc.PropertyList.Name});
+            
+            for iVar = 1:numel(varNames)
+                hSubmenuItem = uimenu(mitem, 'Text', varNames{iVar});
+                hSubmenuItem.MenuSelectedFcn = @app.removeTableVariable;
+            end
             
         end
         
@@ -458,6 +487,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
+        function updateSessionInfoDependentMenus(app)
+            app.createSessionTableContextMenu()
+            app.createSessionInfoMenus([], true)
+        end
+        
         function createLayout(app)
             
 %             app.hLayout.TopBorder = uipanel('Parent', app.Figure);
@@ -547,9 +581,42 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Add keypress callback to uiw.Table object
             h.HTable.KeyPressFcn = @app.onKeyPressed;
+            %h.HTable.MouseMotionFcn = @(s,e) onMouseMotionInTable(h, s, e);
+            
+            addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
             
             app.createSessionTableContextMenu()
+            
+        end
+        
+        function onMouseMoveInTable(app, src, evt)
+            
+            thisRow = evt.Cell(1);
+            thisCol = evt.Cell(2);
+            
+            if thisRow == 0 || thisCol == 0
+                return
+            end
+            
+            colNames = app.UiMetaTableViewer.ColumnModel.getColumnNames;
+            thisColumnName = colNames{thisCol};
+            
+            
+            % Todo: This SHOULD NOT be hardcoded like this...
+            if contains(thisColumnName, {'Notebook', 'Progress', 'DataLocation'})
+                dispFcn = str2func(strjoin({'nansen.metadata.tablevar', thisColumnName}, '.') );
+                
+                tableRow = app.UiMetaTableViewer.getMetaTableRows(thisRow);
+                
+                tableValue = app.MetaTable.entries{tableRow, thisColumnName};
+                tmpObj = dispFcn(tableValue);
+                
+                str = tmpObj.getCellTooltipString();
+            else
+                str = '';
+            end
 
+            set(app.UiMetaTableViewer.HTable.JTable, 'ToolTipText', str)
         end
         
         function createSidePanelComponents(app)
@@ -658,7 +725,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     entries = getSelectedMetaTableEntries(app);
                     if isempty(entries); return; end
                     app.UiFileViewer.update(entries(1, :))
-                    
                     
             end
             
@@ -873,11 +939,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             import nansen.metadata.utility.createTableVariableUserFunction
+            import nansen.metadata.utility.createClassForCustomTableVar
+
             
             S = struct();
             S.VariableName = '';
             S.DataType = 'numeric';
-            S.DataType_ = {'numeric', 'char', 'logical'};
+            S.DataType_ = {'numeric', 'char', 'logical (true)', 'logical (false)'};
             S.InputMode = 'Manual';
             S.InputMode_ = {'Manual', 'Create Function...'};
             
@@ -887,7 +955,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                      
             % Make sure variable does not already exist
             currentVars = app.MetaTable.entries.Properties.VariableNames;
-            if contains(S.VariableName, currentVars )
+            if any(strcmp( S.VariableName, currentVars ))
                 error('Variable with name %s already exists in this table', ...
                     S.VariableName )
             end
@@ -899,17 +967,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             switch S.InputMode
                 case 'Manual'
-                    
+                    S.MetadataClass = metadataClass;
+                    createClassForCustomTableVar(S)
                 case 'Create Function...'
-                    createTableVariableUserFunction(S.VariableName, metadataClass)
-
+                    S.MetadataClass = metadataClass;
+                    createTableVariableUserFunction(S)
             end
             
             
             % Todo: Add variable to table and table settings....
             
             switch S.DataType
-                case 'logical'
+                case 'logical (true)'
+                    initValue = true;
+                case 'logical (false)'
                     initValue = false;
                 case 'numeric'
                     initValue = nan;
@@ -917,14 +988,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     initValue = {'N/A'}; 
             end
             
-            numTableRows = size(app.MetaTable.entries, 1);
-            app.MetaTable.entries{:, S.VariableName} = repmat(initValue, numTableRows, 1);
-            
+            app.MetaTable.addTableVariable(S.VariableName, initValue)
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
-            % Refresh session context menu...
-            app.createSessionTableContextMenu()
-            
+            % Refresh menus that show the variables of the session table...
+            app.updateSessionInfoDependentMenus()         
         end
         
         function editTableVariableDefinition(app, src, evt)
@@ -956,11 +1024,38 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             for iSession = 1:numel(sessionObj)
                 newValue = updateFcn(sessionObj(iSession));
+                if isa(newValue, 'nansen.metadata.abstract.TableVariable')
+                    if isequal(newValue.Value, newValue.DEFAULT_VALUE)
+                        return
+                    else
+                        newValue = newValue.Value;
+                    end
+                end
+                
                 if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
                 app.MetaTable.editEntries(rows(iSession), varName, newValue);
             end
             
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+        end
+        
+        function removeTableVariable(app, src, evt)
+        %removeTableVariable Remove variable from the session table
+            
+            varName = src.Text;
+
+            app.MetaTable.removeTableVariable(varName)
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+            % Refresh session context menu...
+            app.updateSessionInfoDependentMenus()
+            
+            % Todo: Delete function template in project folder..
+            pathStr = nansen.metadata.utility.getTableVariableUserFunctionPath(varName, 'session');
+            if isfile(pathStr)
+                delete(pathStr);
+            end
             
         end
         
@@ -1054,7 +1149,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
-        
         
         %onSettingsChanged Callback for change of fields in settings
         function onSettingsChanged(obj, name, value)    
@@ -1259,6 +1353,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
         
+        function openFolder(app, dataLocationName)
+            
+            sessionObj = app.getSelectedMetaObjects();
+
+            for i = 1:numel(sessionObj)
+                folderPath = sessionObj(i).DataLocation.(dataLocationName);
+                utility.system.openFolder(folderPath)
+            end
+
+        end
         
     end
     

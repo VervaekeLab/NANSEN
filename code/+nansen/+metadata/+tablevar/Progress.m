@@ -6,17 +6,24 @@ classdef Progress < nansen.metadata.abstract.TableVariable
 %
 %   See also nansen.metadata.abstract.TableVariable
     
+    properties (Constant)
+        IS_EDITABLE = false
+        DEFAULT_VALUE = struct.empty
+    end
+
     properties
         % Struct of fields with logical values. Each field represents a
         % step in the pipeline, and the value indicates whether that step
         % is performed or not.
-        Value struct
+        
+        %Value struct
     end
     
     
     methods
         function obj = Progress(S)
             obj@nansen.metadata.abstract.TableVariable(S);
+            assert(isstruct(obj.Value), 'Value must be a struct')
         end
 
         function progressBarString = getCellDisplayString(obj)

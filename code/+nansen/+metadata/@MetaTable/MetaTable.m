@@ -396,6 +396,9 @@ classdef MetaTable < handle
                 columnIndices = 1:size(obj.entries, 2);
             end
         
+            % Todo: implement better way for detecting variables that have
+            % their own display functions...
+            
             % Check if any of the columns contain structs
             row = table2cell( obj.entries(1,columnIndices) );
             isStruct = cellfun(@(c) isstruct(c), row);
@@ -428,6 +431,28 @@ classdef MetaTable < handle
         
         
 % % % % Methods for modifying entries
+
+        function tf = isVariable(obj, varName)
+            tf = contains(varName, obj.entries.Properties.VariableNames);
+        end
+
+        function addTableVariable(obj, variableName, initValue)
+        %addTableVariable Add a variable as a new column of the table
+        %
+        %   addTableVariable(obj, variableName, initValue) adds a new
+        %   variable to the table and initializes all column values to the
+        %   initValue.
+        
+            numTableRows = size(obj.entries, 1);
+            columnValues = repmat(initValue, numTableRows, 1);
+            
+            obj.entries{:, variableName} = columnValues;
+
+        end
+
+        function removeTableVariable(obj, variableName)
+            obj.entries(:, variableName) = [];
+        end
 
         % Add entry/entries to MetaTable table
         function addEntries(obj, newEntries)
@@ -750,7 +775,6 @@ classdef MetaTable < handle
         
     end
     
-    
     methods (Access = private, Hidden)
        
         function openMetaTableSelectionDialog(obj)
@@ -792,7 +816,6 @@ classdef MetaTable < handle
         end
         
     end
-    
     
     methods (Static)
         

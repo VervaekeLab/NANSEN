@@ -2,11 +2,12 @@ classdef MetadataDefinitionTable < applify.apptable
 % Class interface for editing metadata specifications in a uifigure
 
 % Todo: Simplify component creation. 
-%     [] Get cell locations as array with one entry for each column of a row.
-%     [] Do the centering when getting the cell locations.
-%     [] Set fontsize/bg color and other properties in batch.
-
-
+%    [ ] Get cell locations as array with one entry for each column of a row.
+%    [ ] Do the centering when getting the cell locations.
+%    [ ] Set fontsize/bg color and other properties in batch.
+%
+%    [ ] Include "data model" as property and update values whenever new values
+%        are entered.
 
 
     properties

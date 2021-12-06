@@ -1,6 +1,7 @@
 function hMenu = createSessionTableContextMenu(app, hMenu)
 %createSessionTableContextMenu Create a context menu for sessions in table
 
+    import nansen.metadata.utility.getPublicSessionInfoVariables
 
     hContextMenu = uicontextmenu(app.Figure);
     hContextMenu.ContextMenuOpeningFcn = @(s,e,m) disp('test');%onContextMenuOpening;
@@ -17,31 +18,26 @@ function hMenu = createSessionTableContextMenu(app, hMenu)
     
     % Create a context menu
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Open Session Folder');
-
     
-    % Todo: Get from data location definitions...
-    dataLocation = {'Datadrive', 'Dropbox'};
-    dataFolder = {'PROCESSED', 'microscope_data', 'rig_data'};
-    dataFolderLabel = {'Processed', 'Microscope Data', 'Rig Data'};
-
-    for i = 1:2
-        mTmpI = uimenu(hMenuItem(c), 'Text', dataLocation{i});
-        for j = 1:3
-            mTmpJ = uimenu(mTmpI, 'Text', dataFolderLabel{j}, ....
-                'Callback', @(s, e, rootdir, datatype) app.openFolder(lower(dataLocation{i}), dataFolder{j}) );
-        end
+    % Get available datalocations from a session object
+    if ~isempty(app.MetaTable.entries)
+        dataLocations = fieldnames(app.MetaTable.entries{1, 'DataLocation'});
     end
     
-    
+
+    for i = 1:numel(dataLocations)
+        mTmpI = uimenu(hMenuItem(c), 'Text', dataLocations{i});
+        mTmpI.Callback = @(s, e, datatype) app.openFolder(dataLocations{i});
+    end
     
     % % Todo... Create method for adding session to other databases....
     %m0 = uimenu(hContextMenu, 'Text', 'Add to Database', 'Tag', 'Add to Database', 'Separator', 'on');
     %app.updateRelatedInventoryLists(m0)
 
-    
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Update Column Variable');
-    columnVariables = app.MetaTable.entries.Properties.VariableNames;
+    columnVariables = getPublicSessionInfoVariables(app.MetaTable);
+    
     for iVar = 1:numel(columnVariables)
         hSubmenuItem = uimenu(hMenuItem(c), 'Text', columnVariables{iVar});
         hSubmenuItem.Callback = @app.updateTableVariable;
