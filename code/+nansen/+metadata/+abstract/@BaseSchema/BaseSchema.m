@@ -75,7 +75,7 @@ classdef BaseSchema < uim.mixin.structAdapter
                 end
             end
             
-            T = struct2table(S);
+            T = struct2table(S, 'AsArray', true);
             
         end
         
