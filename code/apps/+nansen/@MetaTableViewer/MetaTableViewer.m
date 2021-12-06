@@ -1,4 +1,14 @@
 classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
+%MetaTableViewer Implementation of UI table for viewing metadata tables.
+%
+%   This class is built around the Table class from the Widgets Toolbox.
+%   This is a very responsive java based table implementation. This class
+%   extends the functionality of the uiw.widget.Table in primarily two
+%   ways:
+%       1) Columns can be filtered
+%       2) Settings for columns are saved until next time table is opened.
+%           (Columns widths, column visibility and column label is saved
+%           across matlab sessions) Todo: Also save column editable...
 
     
 % - - - - - - - - - - - - - - - TODO - - - - - - - - - - - - - - - - -
@@ -55,6 +65,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         JTable
         
         ColumnContextMenu = []
+        TableContextMenu = []
         
         DataFilterMap = []
         ColumnWidthChangedListener
@@ -85,7 +96,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
 
         % % % Todo: Uncomment this (it was commented out when implementing roi table, dont remember why)
-           %  obj.ColumnFilter = nansen.MetaTableColumnFilter(obj, obj.AppRef);
+            obj.ColumnFilter = nansen.ui.MetaTableColumnFilter(obj, obj.AppRef);
 
         end
         
@@ -242,6 +253,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         'Units','normalized', ...
                         'Position',[0 0.0 1 1], ...
                         'HeaderPressedCallback', @obj.onMousePressedInHeader, ...
+                        'MouseClickedCallback', @obj.onMousePressedInTable, ...
                         'Visible', 'off', ...
                         'BackgroundColor', [1,1,0.5]);
                     break
@@ -306,7 +318,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
     end
     
-    methods (Access = {?nansen.MetaTableViewer, ?nansen.MetaTableColumnLayout, ?nansen.MetaTableColumnFilter})
+    methods (Access = {?nansen.MetaTableViewer, ?nansen.ui.MetaTableColumnLayout, ?nansen.ui.MetaTableColumnFilter})
            
         function updateColumnLayout(obj) %protected
 
@@ -486,6 +498,73 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
         
+        function onMousePressedInTable(obj, src, evt)
+        %onMousePressedInTable Callback for mousepress in table.
+        %
+        %   This function is primarily used for 
+        %       1) Creating an action on doubleclick
+        %       2) Selecting cell on right click
+
+            % Return if instance is not valid.
+            if ~exist('obj', 'var') || ~isvalid(obj); return; end
+
+
+            if strcmp(evt.SelectionType, 'normal')
+                % Do nothing.
+                    
+            elseif strcmp(evt.SelectionType, 'open')
+            
+                % Todo:
+                % Double click action should depend on which column click
+                % happens over.
+
+% %                     if isequal(get(event, 'button'), 3)
+% %                         return
+% %                     end
+% %                     
+% %                     currentFields = app.tableSettings.FieldNames(app.tableSettings.FieldsToShow);
+% %                     so = retrieveSessionObject(app, app.highlightedSessions(end));
+% %                     
+% %                     if numel(app.highlightedSessions) > 1
+% %                         warning('Multiple sessions, selected, operation applies to last session only.')
+% %                     end
+% %                     
+% %                     if strcmp(currentFields{j+1}, 'Notes')
+% %                         app.showNotes(so.sessionID)
+% %                     else
+% %                         %so.openFolder
+% %                         openFolder(so.sessionID, 'datadrive', 'processed')
+% %                     end
+
+                    
+            elseif evt.Button == 3 || strcmp(evt.SelectionType, 'alt')
+
+                % Get row where mouse press ocurred.
+                row = evt.Cell(1);
+                
+                % Select row where mouse is pressed if it is not already
+                % selected
+                if ~ismember(row, obj.HTable.SelectedRows)
+                    obj.HTable.SelectedRows = row;
+                end
+                
+                % Get scroll positions in table
+                xScroll = obj.HTable.JScrollPane.getHorizontalScrollBar().getValue();
+                yScroll = obj.HTable.JScrollPane.getVerticalScrollBar().getValue();
+              
+                % Get position where mouseclick occured (in figure)
+                clickPosX = evt.Position(1) - xScroll;
+                clickPosY = evt.Position(2) - yScroll;
+                
+                % Open context menu for table
+                if ~isempty(obj.TableContextMenu)
+                    obj.openTableContextMenu(clickPosX, clickPosY);
+                end
+            end
+
+        end  
+        
+        
         function onCellValueEdited(obj, src, evtData)
         %onCellValueEdited Callback for value change in cell
         %
@@ -583,6 +662,23 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.ColumnContextMenu.Position = [x+20-xOff,y+25];
             obj.ColumnContextMenu.Visible = 'on';
             
+        end
+        
+        function openTableContextMenu(obj, x, y)            
+            
+            if isempty(obj.TableContextMenu); return; end
+            
+            xOff = obj.HTable.getHorizontalScrollOffset();
+            
+            tablePosition = getpixelposition(obj.HTable, true);
+            tableLocationX = tablePosition(1) + 1; % +1 because ad hoc...
+            tableHeight = tablePosition(4);
+            
+            cMenuPos = [tableLocationX + x - xOff, tableHeight - y + 15]; % +15 because ad hoc...
+            
+            % Set position and make menu visible.
+            obj.TableContextMenu.Position = cMenuPos;
+            obj.TableContextMenu.Visible = 'on';
         end
         
         function sortColumn(obj, columnIdx, sortDirection)

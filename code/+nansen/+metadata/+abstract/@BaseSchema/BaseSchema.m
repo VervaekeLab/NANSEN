@@ -44,7 +44,9 @@ classdef BaseSchema < uim.mixin.structAdapter
             
             for i = 1:numObjects
                 for j = 1:numel(propertyNames)
-                    obj(i).(propertyNames{j}) = S(i).(propertyNames{j});
+                    if isprop(obj, propertyNames{j})
+                        obj(i).(propertyNames{j}) = S(i).(propertyNames{j});
+                    end
                 end
             end
             

@@ -4,7 +4,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     % Todo: 
     %   [ ] Make method for figure title name
     %   [ ] More methods/options for updating statusfield. Timers, progress
-    %   
+    %   [ ] Make sure that project directory is on path on startup or when
+    %       project is changed...
+    %   [ ] Create Menu in separate funcyion.
+    %   [ ] Update menu or submenu using call to that function
     
 
     properties (Constant, Access=protected) % Inherited from uiw.abstract.AppWindow
@@ -41,7 +44,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         MetaTable 
         Modules
         SessionMethods matlab.ui.container.Menu
-        SessionMethodsMenu 
+        SessionMethodsMenu
+        SessionContextMenu
     end
     
     properties
@@ -129,6 +133,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     methods (Hidden, Access = private) % Methods for app creation
+        
+        createSessionTableContextMenu(app) % Function in file...
         
         function createWindow(app)
         %createWindow Create and customize UIFigure 
@@ -219,7 +225,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function configFigureCallbacks(app)
-                    
+            
+            app.Figure.WindowButtonDownFcn = @app.onMousePressed;
             app.Figure.WindowKeyPressFcn = @app.onKeyPressed;
             app.Figure.WindowKeyReleaseFcn = @app.onKeyReleased;
             
@@ -264,7 +271,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
             
             
-            % Create a file menu
+            % Create a "Manage" menu
             m = uimenu(app.Figure, 'Text', 'Manage');
             
             mitem = uimenu(m, 'Text', 'Create New Metatable...');
@@ -296,6 +303,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % struct before creating the menus..
             
             
+        
+            % Create a "Session" menu
+            m = uimenu(app.Figure, 'Text', 'Session');
+            
+            mitem = uimenu(m, 'Text','Add Table Variable...');
+            mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
+            
+            mitem = uimenu(m, 'Text','Edit Table Variable Definition');            
+            columnVariables = app.MetaTable.entries.Properties.VariableNames;
+            for iVar = 1:numel(columnVariables)
+                hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
+                hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
+            end
+            
+            
+            mitem = uimenu(m, 'Text','Remove Table Variable...', 'Enable', 'off');
+            mitem.MenuSelectedFcn = @(s,e) app.removeTableVariable;
+
             nansenPath = utility.path.getAncestorDir(nansen.rootpath, 1);
             menuRootPath = fullfile(nansenPath, 'code', 'sessionMethods');
             
@@ -482,6 +507,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     case 'Overview'
                         app.openMetaTableViewer(hTab)
                         
+                        
                     case 'File Viewer'
                         h = nansen.FileViewer(hTab);
                         app.UiFileViewer = h;
@@ -505,11 +531,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             nvPairs = utility.struct2nvpairs(S);
             nvPairs = [{'AppRef', app}, nvPairs];
            
-            % Create table + assign to property+ set callback
+            % Create table + assign to property + set callback
             h = nansen.MetaTableViewer(hTab, app.MetaTable, nvPairs{:});
             app.UiMetaTableViewer = h;
             h.CellEditCallback = @app.onMetaTableDataChanged;
             
+            % Add keypress callback to uiw.Table object
+            h.HTable.KeyPressFcn = @app.onKeyPressed;
+            
+            app.createSessionTableContextMenu()
+
         end
         
         function createSidePanelComponents(app)
@@ -601,6 +632,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.Figure.Color = app.Theme.FigureBackgroundColor;
             app.hLayout.MainPanel.BackgroundColor = app.Theme.FigureBackgroundColor;
             %app.hLayout.StatusPanel.BackgroundColor = app.Theme.FigureBackgroundColor;
+            
+            % Something like this: 
+            %app.UiMetaTableViewer.HTable.Theme = uim.style.tableDark;
         end
         
         function onFigureSizeChanged(app)
@@ -619,6 +653,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
             end
             
+        end
+        
+        function onMousePressed(obj, src, evt)
         end
        
         function onKeyPressed(app, src, evt)
@@ -806,6 +843,118 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.MetaTable.entries(evt.Indices(1), evt.Indices(2)) = {evt.NewValue};
         end
         
+        function addTableVariable(app, metadataClass)
+        %addTableVariable Opens a dialog where user can add table variable
+        %
+        %   User gets the choice to create a variable that can be edited
+        %   from the table or which is retrieved from a fucntion.
+        
+        %  Q: This belongs to MetaTableViewer, but was more convenient to
+        %  add it here for now. 
+        
+        % Todo: Use class instead of functions / add class as a third
+        % choice. Can make more configurations using a class, i.e class can
+        % provides a mouse over effect etc.
+
+    
+            % Create a struct to open in a dialog window
+            
+            if nargin < 2
+                error('Missing input')
+            end
+            
+            import nansen.metadata.utility.createTableVariableUserFunction
+            
+            S = struct();
+            S.VariableName = '';
+            S.DataType = 'numeric';
+            S.DataType_ = {'numeric', 'char', 'logical'};
+            S.InputMode = 'Manual';
+            S.InputMode_ = {'Manual', 'Create Function...'};
+            
+            S = tools.editStruct(S, '', 'New variable');
+            
+            if isempty(S.VariableName); return; end
+                     
+            % Make sure variable does not already exist
+            currentVars = app.MetaTable.entries.Properties.VariableNames;
+            if contains(S.VariableName, currentVars )
+                error('Variable with name %s already exists in this table', ...
+                    S.VariableName )
+            end
+            
+
+            % Make sure the variable name is valid
+            msg = sprintf('%s is not a valid variable name', S.VariableName);
+            if ~isvarname(S.VariableName); errordlg(msg); error(msg); end
+            
+            switch S.InputMode
+                case 'Manual'
+                    
+                case 'Create Function...'
+                    createTableVariableUserFunction(S.VariableName, metadataClass)
+
+            end
+            
+            
+            % Todo: Add variable to table and table settings....
+            
+            switch S.DataType
+                case 'logical'
+                    initValue = false;
+                case 'numeric'
+                    initValue = nan;
+                case 'char'
+                    initValue = {'N/A'}; 
+            end
+            
+            numTableRows = size(app.MetaTable.entries, 1);
+            app.MetaTable.entries{:, S.VariableName} = repmat(initValue, numTableRows, 1);
+            
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+            % Refresh session context menu...
+            app.createSessionTableContextMenu()
+            
+        end
+        
+        function editTableVariableDefinition(app, src, evt)
+            
+            import nansen.metadata.utility.getTableVariableUserFunctionPath
+            
+            varName = src.Text;
+            filepath = getTableVariableUserFunctionPath(varName, 'session');
+            edit(filepath)
+            
+        end
+        
+        function updateTableVariable(app, src, evt)
+        %updateTableVariable Update a table variable for selected sessions   
+        %
+        %   This function is a callback for the context menu
+        
+            sessionObj = app.getSelectedMetaObjects();
+            if isempty(sessionObj); error('No sessions are selected'); end
+            
+            rows = app.UiMetaTableViewer.getSelectedEntries();
+
+            
+            varName = src.Text;
+            
+            % Create function call for variable:
+            updateFcnName = strjoin( {'tablevar', 'session', varName}, '.');
+            updateFcn = str2func(updateFcnName);
+            
+            for iSession = 1:numel(sessionObj)
+                newValue = updateFcn(sessionObj(iSession));
+                if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
+                app.MetaTable.editEntries(rows(iSession), varName, newValue);
+            end
+            
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+        end
+        
         function loadMetaTable(app, loadPath)
             
             if nargin < 2 || isempty(loadPath)
@@ -988,8 +1137,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function sendToWorkspace(app)
                     
             sessionObj = app.getSelectedMetaObjects();
-            assignin('base', 'sessionObjects', sessionObj)
-
+            if ~isempty(sessionObj)
+                assignin('base', 'sessionObjects', sessionObj)
+            end
+            
         end
         
         function runTasksWithDefaults(app, sessionMethod, sessionObj, optsName)
