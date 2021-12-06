@@ -15,9 +15,12 @@ function newProjectPath = autoUpdateProjectPath(projectNewName, projectOldName, 
     % Make sure the last folder of the path is the project folder
     [folderPath, fileName] = fileparts(projectRootFolder);
     if strcmp(fileName, projectOldName)
-        newProjectPath = fullfile(folderPath, projectNewName);
-    else
-        newProjectPath = fullfile(projectRootFolder, projectNewName);
+        projectRootFolder = folderPath;
     end
+    
+    setpref('NansenSetup', 'DefaultProjectPath', projectRootFolder);
+
+    newProjectPath = fullfile(projectRootFolder, projectNewName);
+
 
 end
