@@ -52,7 +52,7 @@ function defaultValue = getDefaultValueAsChar(dataType)
         case 'numeric'
             defaultValue = 'nan';
         case 'char'
-            defaultValue = '{N/A}'; 
+            defaultValue = '{''N/A''}'; 
     end
             
 end

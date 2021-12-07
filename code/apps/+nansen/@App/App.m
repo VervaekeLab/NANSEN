@@ -63,7 +63,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             setappdata(app.Figure, 'AppInstance', app)
             
-            
             %app.loadSettings()
             
             app.loadMetaTable()
@@ -314,7 +313,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         
             % Create a "Session" menu
-            m = uimenu(app.Figure, 'Text', 'Session');
+            m = uimenu(app.Figure, 'Text', 'Session Table');
             app.createSessionInfoMenus(m)
 
 
@@ -355,7 +354,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             if nargin < 2 || isempty(hMenu)
-                hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Session');
+                hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Session Table');
             end
             
             if updateFlag
@@ -1048,16 +1047,36 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.MetaTable.removeTableVariable(varName)
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
-            % Refresh session context menu...
-            app.updateSessionInfoDependentMenus()
             
-            % Todo: Delete function template in project folder..
+            % Delete function template in project folder..
             pathStr = nansen.metadata.utility.getTableVariableUserFunctionPath(varName, 'session');
             if isfile(pathStr)
                 delete(pathStr);
             end
             
+            % Refresh session context menu...
+            app.updateSessionInfoDependentMenus()
+            
+
         end
+        
+        function checkIfMetaTableComplete(app)
+        %checkIfMetaTableComplete Check if user-defined variables are
+        %missing from the table.
+            
+            tableVarNames = app.MetaTable.entries.Properties.VariableNames;
+            userVarNames = nansen.metadata.utility.getCustomTableVariableNames;
+            missingVarNames = setdiff(userVarNames, tableVarNames);
+            
+            for iVarName = 1:numel(missingVarNames)
+                thisName = missingVarNames{iVarName};
+                varFunction = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
+                defaultValue = varFunction();
+                app.MetaTable.addTableVariable(thisName, defaultValue)
+            end
+            
+        end
+            
         
         function loadMetaTable(app, loadPath)
             
@@ -1080,6 +1099,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     %app.experimentInventoryPath = app.experimentInventory.filepath;
                 end
 
+                app.checkIfMetaTableComplete()
+                
 % %                 if app.initialized % todo
 % %                     app.updateRelatedInventoryLists()
 % %                 end
