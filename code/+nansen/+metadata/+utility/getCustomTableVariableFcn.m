@@ -1,5 +1,7 @@
 function funcHandles = getCustomTableVariableFcn(varNames)
 
+    %rename: varname2tablevarfunc
+
     if nargin < 1
         varNames = nansen.metadata.utility.getCustomTableVariableNames();
     end

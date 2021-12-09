@@ -1,35 +1,53 @@
-function createClassForCustomTableVar(initializationStruct)
+function createClassForCustomTableVar(S)
 %createClassForCustomTableVar Create class template for custom var
     
     % Todo: second input that signals if the template file should be opened
     % in the editor.
     
-    variableName = initializationStruct.VariableName;
-    tableClass = initializationStruct.MetadataClass;
-    dataType = initializationStruct.DataType;
+    variableName = S.VariableName;
+    tableClass = S.MetadataClass;
+    dataType = S.DataType;
     
     % Make sure the variable name is valid
     assert(isvarname(variableName), '%s is not a valid variable name', variableName)
     
     % Get the path for the template function
-    rootPathSource = nansen.rootpath;
-    fcnSourcePath = fullfile(rootPathSource, '+metadata', '+tablevar', 'TemplateVariable.m');
+    folderPathSource = fullfile( nansen.rootpath, '+metadata', '+tablevar');
     
+    switch S.InputMode
+        case 'Enter values manually'
+            templateName = 'TemplateVariable';
+            isEditable = true;
+        case 'Get values from list'
+            templateName = 'TemplateListVariable';
+            isEditable = true;
+        otherwise
+            % Unknown
+    end
+
+    fcnSourcePath = fullfile(folderPathSource, [templateName, '.m']);
+
     % Modify the template function by adding the variable name
     fcnContentStr = fileread(fcnSourcePath);
-    fcnContentStr = strrep(fcnContentStr, 'TemplateVariable', variableName);
-    fcnContentStr = strrep(fcnContentStr, 'TEMPLATEVARIABLE', upper(variableName));
+    fcnContentStr = strrep(fcnContentStr, templateName, variableName);
+    fcnContentStr = strrep(fcnContentStr, upper(templateName), upper(variableName));
     %fcnContentStr = strrep(fcnContentStr, 'metadata', lower(tableClass));
 
     % Edit initialization of output (default value)
-    defaultValue = getDefaultValueAsChar(dataType);
+    defaultValue = nansen.metadata.utility.getDefaultValueAsChar(dataType);
     valueExpr = sprintf('DEFAULT_VALUE = %s', defaultValue);
     fcnContentStr = strrep(fcnContentStr, 'DEFAULT_VALUE = []', valueExpr);
     
     % Edit attribute for whether variable is editable or not
-    if strcmp(initializationStruct.InputMode, 'Manual')
-        fcnContentStr = strrep(fcnContentStr, 'IS_EDITABLE = false', ...
-                                'IS_EDITABLE = true');
+    if isEditable
+        fcnContentStr = strrep(fcnContentStr, ...
+            'IS_EDITABLE = false', 'IS_EDITABLE = true');
+    end
+    
+    if strcmp( S.InputMode, 'Get values from list')
+        oldExpr = 'LIST_ALTERNATIVES = {}';
+        newExpr = sprintf('LIST_ALTERNATIVES = %s', cellarray2char(S.SelectionList));
+        fcnContentStr = strrep(fcnContentStr, oldExpr, newExpr);
     end
     
     % Create a target path for the function. Place it in the current
@@ -50,17 +68,10 @@ function createClassForCustomTableVar(initializationStruct)
     
 end
 
-function defaultValue = getDefaultValueAsChar(dataType)
 
-    switch dataType
-        case 'logical (true)'
-            defaultValue = 'true';
-        case 'logical (false)'
-            defaultValue = 'false';
-        case 'numeric'
-            defaultValue = 'nan';
-        case 'char'
-            defaultValue = '{''N/A''}'; 
-    end
-            
+function charVector = cellarray2char(cellArray)
+    
+    cellArray = cellfun(@(c) sprintf('''%s''', c), cellArray, 'uni', 0); 
+    charVector = sprintf('{%s}', strjoin(cellArray, ','));
+    
 end

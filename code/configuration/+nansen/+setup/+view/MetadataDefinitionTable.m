@@ -18,9 +18,12 @@ classdef MetadataDefinitionTable < applify.apptable
         DataLocations = struct('Name', {'Rawdata', 'Processed', '', ''}, ...
             'RootPath', {{'HDD', ''}, {'HDD', ''}, {'', ''}, {'', ''}}, ...
             'Backup', {[], [], [], []});
-                
+        
         IsAdvancedView = true
-
+    end
+    
+    properties (Access = protected)
+        StringFormat = cell(1, 4);
     end
 
 
@@ -176,11 +179,43 @@ classdef MetadataDefinitionTable < applify.apptable
                 hRow.StrfindResultEditbox.Value = substring;
                 hRow.StrfindResultEditbox.Tooltip = substring;
             
+                
+                % Get datetime values for date & time variables.
                 if strcmp(hRow.VariableName.Text, 'Experiment Date')
-                    str = inputdlg('Please enter date format, i.e yyyy-mm-dd');
+                    dlgTitle = 'Enter Date Format';
+                    msg = sprintf('Please enter date format, i.e yyyy-MM-dd\n');
+                    datetimeFormat = 'MMM-dd-yyyy';
                 elseif strcmp(hRow.VariableName.Text, 'Experiment Time')
-                    str = inputdlg('Please enter time format, i.e HH:MM:SS');
+                    dlgTitle = 'Enter Time Format';
+                    msg = sprintf('Please enter time format, i.e HH-mm-ss\n');
+                    datetimeFormat = 'HH:mm:ss';
                 end
+                
+                if obj.isDateTimeVariable(hRow.VariableName.Text)
+                    
+                    shortName = strrep(hRow.VariableName.Text, 'Experiment', '');
+                    
+                    msg = strjoin({msg, '(See doc datetime for full list of examples).'});
+                    str = inputdlg(msg, dlgTitle);
+                    
+                    if ~isempty(str) && ~isempty(str{1})
+                        str = str{1};
+                    
+                        try
+                            datetimeValue = datetime(substring, 'InputFormat', str);
+                            datetimeValue.Format = datetimeFormat;
+                            hRow.StrfindResultEditbox.Value = char(datetimeValue);  
+                            obj.StringFormat{rowNumber} = str;
+                        catch ME
+                            uialert(hFig, ME.message, sprintf('%s Format Error', shortName))
+                        end
+                    else
+                        message = 'This value will be represented as text. You can still change your mind!';
+                        uialert(hFig, message, sprintf('%s is represented as text', shortName), 'Icon','warning')
+                    end
+                    
+                end
+                
             end
             
             obj.IsDirty = true;
@@ -191,6 +226,8 @@ classdef MetadataDefinitionTable < applify.apptable
         end
         
         function onStringInputValueChanged(obj, src, event)
+            
+            M = obj.DataLocations.Data(1).MetaDataDef;
             
             rowNumber = obj.getComponentRowNumber(src);
             mode = obj.getStrSearchMode(rowNumber);
@@ -215,12 +252,28 @@ classdef MetadataDefinitionTable < applify.apptable
                 uialert(hFig, ME.message, 'Invalid input')
             end
             
+            % Convert date/time value if date/time format is available
+            if obj.isDateTimeVariable(M(rowNumber).VariableName)
+                
+                examplePath = obj.DataLocations.Data(1).ExamplePath;
+                
+                switch M(rowNumber).VariableName
+                    case 'Experiment Time'
+                        value = obj.DataLocations.getTime(examplePath);
+                    case 'Experiment Date'
+                        value = obj.DataLocations.getDate(examplePath);
+                end
+                
+                substring = char(value);
+                
+            end
+
             hRow.StrfindResultEditbox.Value = substring;
             hRow.StrfindResultEditbox.Tooltip = substring;
             
             obj.IsDirty = true;
         end
-       
+        
         function setFolderSelectionItems(obj, dataLocModel)
            
             % TODO: Fix error that will occur if several subfolders are
@@ -288,6 +341,7 @@ classdef MetadataDefinitionTable < applify.apptable
                 S(i).StringDetectMode = obj.getStrSearchMode(i);
                 S(i).StringDetectInput = obj.getStrSearchPattern(i);
                 S(i).SubfolderLevel = obj.getSubfolderLevel(i);
+                S(i).StringFormat = obj.StringFormat{i};
             end
             
             %S = obj.Data;
@@ -430,5 +484,12 @@ classdef MetadataDefinitionTable < applify.apptable
             
         end
         
+    end
+    
+    methods (Static)
+        
+        function tf = isDateTimeVariable(varName)
+            tf = contains(varName, {'Date', 'Time'});
+        end
     end
 end

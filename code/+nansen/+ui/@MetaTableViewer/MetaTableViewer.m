@@ -73,7 +73,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Take care of input arguments.
             obj.parseInputs(varargin)
             
-            % Supply metaTableViewer.
+            % Initialize the column model.
             obj.ColumnModel = nansen.ui.MetaTableColumnLayout(obj);
             
             obj.createUiTable()

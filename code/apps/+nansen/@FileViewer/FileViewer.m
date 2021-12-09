@@ -1,20 +1,42 @@
 classdef FileViewer < handle
-    
-    
+%FileViewer Display a DataLocation in a uitree structure.
+%
+%   This class can be placed in a uipanel and be used for displaying
+%   the files and folders of a DataLocation in a tree structure.
+%
+%   h = nansen.FileViewer(hParent) creates the fileviewer in the parent
+%   container specified as the first input. The parent can be a figure, a
+%   uipanel or a uitab.
+%
+%   Construction of the fileviewer will not create the actual uitree. Use
+%   the update method for creating a uitree for a datalocation. For
+%   example:
+%       h.update(sessionTableEntry)
+%
+%   The update method takes as input a metatable entry from the session
+%   table in nansen's sessionbrowser.
+%
+%   The fileviewer will create an individual tab for each datalocation of
+%   the provided session.
+
+
+%   Note: Should generalize this class to work with datalocations, not just
+%   session entries in the metatable.
+
+
 %   Todo
 %       [ ] Create refresh button...
 
 
-
     properties
-        Parent
-        hFolderTree
-        hContextMenu
-        TabGroup
-        
         CurrentSessionObj
     end
     
+    properties (SetAccess = private)
+        Parent
+        hFolderTree
+        TabGroup
+    end
     
     properties (Access = private, Hidden)
         IconFolderPath
@@ -23,23 +45,78 @@ classdef FileViewer < handle
         IsInitialized = false
         
         CurrentNode
+        hContextMenu
     end
     
     
-    methods
+    methods % Constructor
         
         function obj = FileViewer(varargin)
-            
+        %FileViewer Construct a fileviewer object
+        
             % Take care of input arguments.
             obj.parseInputs(varargin)
+            
+            
             obj.setIconFolderPath()  
             
+            % Initialize the context menu on construction. This will be 
+            % reused across data locations and items in the uitree.
             obj.hContextMenu = obj.createTreeItemContextMenu();
             
         end
 
     end
     
+    methods (Access = public)
+        
+        function update(obj, metaTableEntry)
+        %update Update the uitree based on a session entry from a metatable
+        %
+        %   hFileviewer.update(sessionTableEntry)
+        
+            % Todo: Accept multiple sessions and create entry for each.
+            if isempty(metaTableEntry); return; end
+            
+            if ~obj.IsInitialized
+                obj.createTabgroup(metaTableEntry)
+            end
+            
+            sessionID = metaTableEntry.sessionID{:};
+            
+            % Determine if an update is needed.
+            if ~isempty(obj.hFolderTree)
+                
+                dataLocationType = obj.TabGroup.SelectedTab.Title;
+                hTree = obj.hFolderTree.(dataLocationType);
+                
+                
+                if ~contains(hTree.Root.Name, sessionID)
+                    
+                    obj.CurrentSessionObj = metaTableEntry;
+                    obj.markTabsAsDirty()
+                    
+                    obj.resetTreeControls()
+                    
+                    doUpdate = true;
+%                     delete(obj.hFolderTree)
+%                     obj.hFolderTree = [];
+                else
+                    doUpdate = false;
+                end
+            else
+                doUpdate = true;
+                obj.CurrentSessionObj = metaTableEntry;
+            end
+            
+            if doUpdate
+                obj.createFolderTreeControl()
+            end
+
+            
+        end
+        
+    end 
     
     methods (Access = protected)
         
@@ -110,7 +187,6 @@ classdef FileViewer < handle
             
         end
         
-        
         function changeTab(obj, ~, ~)
             
             dataLocationType = obj.TabGroup.SelectedTab.Title;
@@ -121,56 +197,7 @@ classdef FileViewer < handle
             end
             
         end
-        
-        
-    end
     
-    
-    methods
-        
-        function update(obj, metaTableEntry)
-            
-            % Todo: Accept multiple sessions and create entry for each.
-            if isempty(metaTableEntry); return; end
-            
-            if ~obj.IsInitialized
-                obj.createTabgroup(metaTableEntry)
-            end
-            
-            sessionID = metaTableEntry.sessionID{:};
-            
-            % Determine if an update is needed.
-            if ~isempty(obj.hFolderTree)
-                
-                dataLocationType = obj.TabGroup.SelectedTab.Title;
-                hTree = obj.hFolderTree.(dataLocationType);
-                
-                
-                if ~contains(hTree.Root.Name, sessionID)
-                    
-                    obj.CurrentSessionObj = metaTableEntry;
-                    obj.markTabsAsDirty()
-                    
-                    obj.resetTreeControls()
-                    
-                    doUpdate = true;
-%                     delete(obj.hFolderTree)
-%                     obj.hFolderTree = [];
-                else
-                    doUpdate = false;
-                end
-            else
-                doUpdate = true;
-                obj.CurrentSessionObj = metaTableEntry;
-            end
-            
-            if doUpdate
-                obj.createFolderTreeControl()
-            end
-
-            
-        end
-        
         function createFolderTreeControl(obj)
             
             warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
@@ -212,6 +239,8 @@ classdef FileViewer < handle
             
             if ~isfolder(dirPath)
                 W.Root.Name = sprintf('%s (Not available)', W.Root.Name);
+            else
+                W.Root.UserData.filePath = dirPath;
             end
             
             addSubFolderToNode(obj, dirPath, W.Root, true)
@@ -317,76 +346,84 @@ classdef FileViewer < handle
                 switch fileExt
                     case {'.ini', '.tif', '.avi', '.raw'}
                         imviewer(currentNode.UserData.filePath)
+                        
                     case '.mat'
-%                         uiopen(currentNode.UserData.filePath)
-                        [status, ~] = unix(sprintf('open -a finder ''%s''', currentNode.UserData.filePath));
+                        if ismac
+                            [status, ~] = unix(sprintf('open -a finder ''%s''', currentNode.UserData.filePath));
+                        else
+                            uiopen(currentNode.UserData.filePath)    
+                        end
+                        
                     case '.png'
-                        filepath = strrep(currentNode.UserData.filePath, ' ', '\ ');
-                        [status, msg] = unix(sprintf('open -a Preview %s', filepath));
+                        if ismac
+                            filepath = strrep(currentNode.UserData.filePath, ' ', '\ ');
+                            [status, msg] = unix(sprintf('open -a Preview %s', filepath));
+                        else
+                            error('Can not open this file type')
+                        end
+                    otherwise
+                        if isfile(currentNode.UserData.filePath)
+                            error('Can not open this file type')
+                        else
+                            % Do nothing (Double clicking on folders should
+                            % expand the tree).
+                        end
                 end
                 
             end
             
         end
         
-        function m = createTreeItemContextMenu(obj, nodeHandle)
-            % Big todo: Should not create one contextmenu for each branch/leaf
-            
-            if nargin < 2
-                nodeHandle = [];
-            end
+        function m = createTreeItemContextMenu(obj)
+        %createTreeItemContextMenu Create contextmenu for uitree  
+        %
+        %   
+        
+        %   Note: This contextmenu is not assigned to a specific uitree
+        %   because it will be reused across uitrees.
             
             hFig = ancestor(obj.Parent, 'figure');
             m = uicontextmenu(hFig);
             
-            mitem = uimenu(m, 'Text', 'Refresh', 'Callback', @(s, e, h) obj.onTreeItemContextMenuSelected(s, nodeHandle));
-            mitem = uimenu(m, 'Text', 'Show In Finder', 'Separator', 'on', 'Callback', @(s, e, h) obj.onTreeItemContextMenuSelected(s, nodeHandle));
-            mitem = uimenu(m, 'Text', 'Load Variables to Workspace', 'Callback', @(s, e, h) obj.onTreeItemContextMenuSelected(s, nodeHandle));
-            mitem = uimenu(m, 'Text', 'Plot Variables in Timeseries Plotter', 'Callback', @(s, e, h) obj.onTreeItemContextMenuSelected(s, nodeHandle));
+            mitem = uimenu(m, 'Text', 'Refresh');
+            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
+            
+            appName = utility.system.getOsDependentName('Finder');
+            mitem = uimenu(m, 'Text', sprintf('Show In %s', appName), 'Separator', 'on');
+            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
+            
+            mitem = uimenu(m, 'Text', 'Load Variables to Workspace');
+            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
+            
+            
+            mitem = uimenu(m, 'Text', 'Plot Variables in Timeseries Plotter');
+            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
 
         end
         
-        function onTreeItemContextMenuSelected(obj, src, nodeHandle)
+        function onTreeItemContextMenuSelected(obj, src)
 
             nodeHandle = obj.CurrentNode;
             
             switch src.Text
                 
                 case 'Refresh'
-                    
                     % Create tree if the tab is dirty...
                     obj.createFolderTreeControl()
-
                 
-                case 'Show In Finder'
-                
-                    dirPath = fileparts(nodeHandle.UserData.filePath);
-                
-                    if isunix
-                        [status, ~] = unix(sprintf('open -a finder ''%s''', dirPath));
-                        if status
-                            fprintf('Something went wrong')
-                        end
-
-                    elseif ispc
-                        winopen(dirPath);
-                    end
-                    
+                case {'Show In Finder', 'Show In Explorer'}
+                    folderPath = fileparts(nodeHandle.UserData.filePath);
+                    utility.system.openFolder(folderPath)
                     
                 case 'Load Variables to Workspace'
-                    
                     S = load(nodeHandle.UserData.filePath);
-                    
                     varNames = fieldnames(S);
-                    
                     for i = 1:numel(S)
                         assignin('base', varNames{i}, S.(varNames{i}))
                     end
                     
                 case 'Plot Variables in Timeseries Plotter'
-            
                     S = load(nodeHandle.UserData.filePath);
-                    
                     timeSeriesData = struct2cell(S);
                     timeseriesPlot(timeSeriesData, 'Name', fieldnames(S))
                     

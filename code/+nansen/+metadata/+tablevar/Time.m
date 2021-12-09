@@ -9,14 +9,25 @@ classdef Time < nansen.metadata.abstract.TableVariable
         DEFAULT_VALUE = []
     end
     
+    properties
+        TimeFormat = 'HH:mm:ss'
+    end
+    
     methods
+        
         function obj = Time(S)
             obj@nansen.metadata.abstract.TableVariable(S);
         end
         
         function str = getCellDisplayString(obj)
-            str = datestr(obj.Value, 'HH:MM:SS');
+        %getCellDisplayString Return text to display in cell of table
+            obj.Value.Format = obj.TimeFormat;
+            str = sprintf(['\t\t', char(obj.Value)]);
         end
+        
+%         function value = getValue(obj)
+%             
+%         end
     end
     
 end

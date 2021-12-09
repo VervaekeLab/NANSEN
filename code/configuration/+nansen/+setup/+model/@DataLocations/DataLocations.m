@@ -39,7 +39,8 @@ classdef DataLocations < utility.data.ObjectCatalog
                 'VariableName', varNames, ...
                 'SubfolderLevel', {[]}, ...
                 'StringDetectMode', repmat({'ind'}, 1, numVars), ...
-                'StringDetectInput', repmat({''}, 1, numVars) );
+                'StringDetectInput', repmat({''}, 1, numVars), ...
+                'StringFormat', repmat({''}, 1, numVars));
         end
         
         function S = getDefaultSubfolderStructure()
@@ -133,13 +134,15 @@ classdef DataLocations < utility.data.ObjectCatalog
         function substring = getSubjectID(obj, pathStr)
             % Todo: Specify index as well....
             
-            substring = obj.getSubstringFromFolder(pathStr, 'Animal ID');
+            S = obj.getMetavariableStruct('Animal ID');
+            substring = obj.getSubstringFromFolder(pathStr, S);
 
         end
         
         function substring = getSessionID(obj, pathStr)
-                        
-            substring = obj.getSubstringFromFolder(pathStr, 'Session ID');
+            
+            S = obj.getMetavariableStruct('Session ID');
+            substring = obj.getSubstringFromFolder(pathStr, S);
             
             % If no substring is retrieved, used the foldername of the last
             % folder in the pathstring.
@@ -149,23 +152,60 @@ classdef DataLocations < utility.data.ObjectCatalog
 
         end
         
-        function substring = getTime(obj, pathStr)
-            substring = obj.getSubstringFromFolder(pathStr, 'Experiment Time');
+        function value = getTime(obj, pathStr)
             
-            % Todo: Convert to datetime type.
+            S = obj.getMetavariableStruct('Experiment Time');
+            substring = obj.getSubstringFromFolder(pathStr, S);
+            
+            % Convert to datetime type.
+            if ~isempty(substring) && ~isempty(S.StringFormat)
+                value = datetime(substring, 'InputFormat', S.StringFormat);
+                value.Format = 'HH:mm:ss'; % Format output as a time.
+            else
+                value = substring;
+            end
         end
         
-        function substring = getDate(obj, pathStr)
-                    
-            substring = obj.getSubstringFromFolder(pathStr, 'Experiment Date');
+        function value = getDate(obj, pathStr)
             
-            % Todo: Convert to datetime type.
+            S = obj.getMetavariableStruct('Experiment Date');
+            substring = obj.getSubstringFromFolder(pathStr, S);
+            
+            % Convert to datetime type.
+            if ~isempty(substring) && ~isempty(S.StringFormat)
+                value = datetime(substring, 'InputFormat', S.StringFormat);
+            else
+                value = substring;
+            end
+            
         end
         
     end
     
     methods (Access = protected)
-        function substring = getSubstringFromFolder(obj, pathStr, varName)
+        
+        function S = getMetavariableStruct(obj, varName)
+        %getMetavariableStruct Get metadata struct for given variable
+        %
+        % Get struct containing instructions for how to find substring
+        % (value of a metadata variable) from a directory path.
+            
+            dataLocIdx = 1;
+            S = obj.Data(dataLocIdx).MetaDataDef;
+
+            % Find struct entry corresponding to requested variable
+            variableIdx = strcmp({S.VariableName}, varName);
+            S = S(variableIdx);
+                
+            % Need to know how many subfolders the data location has
+            numSubfolders = numel(obj.Data(dataLocIdx).SubfolderStructure);
+            S.NumSubfolders = numSubfolders;
+
+        end
+           
+        
+        
+        function substring = getSubstringFromFolder(obj, pathStr, S)
         %getSubstringFromFolder Find substring from a pathstring.
         %
         %   substring = getSubstringFromFolder(obj, pathStr, varName) Get a
@@ -175,19 +215,10 @@ classdef DataLocations < utility.data.ObjectCatalog
         
         % Initialize output
             substring = '';
-            
-            % Get struct containing instructions for how to find substring
-            idxA = 1;
-            S = obj.Data(idxA).MetaDataDef;
-            
-            numSubfolders = numel(obj.Data(idxA).SubfolderStructure);
-            
-            % Find struct entry corresponding to requested variable
-            idxB = strcmp({S.VariableName}, varName);
 
-            mode = S(idxB).StringDetectMode;
-            strPattern = S(idxB).StringDetectInput;
-            folderLevel = S(idxB).SubfolderLevel;
+            mode = S.StringDetectMode;
+            strPattern = S.StringDetectInput;
+            folderLevel = S.SubfolderLevel;
             
             % Abort if instructions are not present.
             if isempty(strPattern) || isempty(folderLevel)
@@ -196,7 +227,7 @@ classdef DataLocations < utility.data.ObjectCatalog
             
             % Get the index of the folder containing the substring,
             % counting backward from the deepest subfolder level.
-            reversedFolderIdx = numSubfolders - folderLevel;
+            reversedFolderIdx = S.NumSubfolders - folderLevel;
             
             folderNames = strsplit(pathStr, filesep);
             folderName = folderNames{end-reversedFolderIdx}; % Unpack from cell array

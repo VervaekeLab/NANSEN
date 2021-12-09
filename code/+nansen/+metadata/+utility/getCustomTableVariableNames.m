@@ -1,5 +1,6 @@
 function varNames = getCustomTableVariableNames()
-    
+%getCustomTableVariableNames Get names of custom tablevars for current project
+
     rootPathTarget = nansen.localpath('Custom Metatable Variable', 'current');
     fcnTargetPath = fullfile(rootPathTarget, '+session');
     

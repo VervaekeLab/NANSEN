@@ -25,13 +25,13 @@ classdef uicontrolSchemer < handle
 %   foreground colors.
     
     properties(Access = private)
-       
         hPanel          % Panel which uicontrols are parented to.
         hAxes           % Axes where uicontrol visualizations are plotted
         
         hUicontrol      % Handles for uicontrols. (Not in use)
         jhUicontrol     % Java Handles for uicontrols. (Not in use)
         
+        PanelColor
         checkboxIcon = []
         
         ParentContainerSizeChanged
@@ -44,9 +44,10 @@ classdef uicontrolSchemer < handle
         highlightColor = [0.9454    0.8998    0.1127]
         
         cornerRadius = 5
-        
         checkboxSize = [14, 14] % Pixels (14,14)
-
+        
+        
+        
     end
     
     
@@ -76,6 +77,8 @@ classdef uicontrolSchemer < handle
             obj.FigureDestroyedListener = listener(ancestor(obj.hPanel, 'figure'), ...
             'ObjectBeingDestroyed', @obj.delete);
             
+            obj.PanelColor = obj.hPanel.BackgroundColor;
+        
             obj.initializeStylerAxes()
             
             cmap = magma(255);
@@ -83,7 +86,7 @@ classdef uicontrolSchemer < handle
             
             findjavacomps = @applify.uicontrolSchemer.findJavaComponents;
             javaHandles = findjavacomps(hUIControls, obj.hPanel);
-                        
+               
 
             if isempty(javaHandles) || numel(javaHandles) ~= numel(hUIControls)
                 return %Abort
@@ -106,6 +109,7 @@ classdef uicontrolSchemer < handle
 
                 hS = obj.addExtras(hTmp, jTmp);
                 hS = obj.createBorder(hTmp, jTmp, hS);
+                hS = obj.changeAppearance(hTmp, jTmp, hS);
                 
                 obj.configureInteractivityCallbacks(hTmp, jTmp, hS);
                 
@@ -134,8 +138,12 @@ classdef uicontrolSchemer < handle
             numUIControls = numel( obj.hUicontrol );
             for i = 1:numUIControls
 
+
                 hTmp = obj.hUicontrol(i);
                 jTmp = obj.jhUicontrol{i};
+            
+                bgColor = hTmp.Parent.BackgroundColor;
+
                 
                 if strcmp( hTmp.Style, 'checkbox')
                     bgColor = hTmp.Parent.BackgroundColor;
@@ -204,7 +212,7 @@ classdef uicontrolSchemer < handle
 %                     hControl.BackgroundColor = bgColor;
                     set(jControl, 'Opaque', 0)
                     
-                case 'edit'
+                case {'edit'}
 
                     % Set background color.
                     hControl.BackgroundColor = bgColor;
@@ -262,7 +270,7 @@ classdef uicontrolSchemer < handle
                     set(jControl, 'Border', []);
 
                 otherwise
-                    fprintf('Not implemented yet\n')
+                    %fprintf('Not implemented yet\n')
                 
             end
             
@@ -452,11 +460,6 @@ classdef uicontrolSchemer < handle
             hS.hBorder.HitTest = 'off';
             hS.hBorder.PickableParts = 'none';
             
-            switch hControl.Style % attempt fix bug with button 
-                case {'pushbutton', 'togglebutton'}
-                    hS.hBorder.FaceAlpha = 0.1;
-                    hControl.ForegroundColor = ones(1,3)*0.8;
-            end
             
             % Create a slightly bigger box
             margin2 = margin+2;
@@ -492,6 +495,21 @@ classdef uicontrolSchemer < handle
                 
                 
             end
+        end
+        
+        function hS = changeAppearance(obj, hControl, ~, hS)
+            
+            foregroundColor = mod(1-obj.PanelColor, 1);
+            
+            switch hControl.Style % attempt fix bug with button 
+                case {'pushbutton', 'togglebutton'}
+                    hS.hBorder.FaceAlpha = 0.1;
+                    hControl.ForegroundColor = foregroundColor;
+                case 'edit'
+                    hControl.ForegroundColor = foregroundColor;
+            end
+            
+            
         end
         
         
@@ -623,7 +641,6 @@ classdef uicontrolSchemer < handle
         end
         
         
-        
         function updatePopup(obj, hControl, hEditBox)
             
             hEditBox.String = hControl.String{hControl.Value};
@@ -708,6 +725,9 @@ classdef uicontrolSchemer < handle
         
         
         function mouseReleaseButton(obj, hControl, hStyle)
+            
+            if ~isvalid(obj); return; end
+            
             hStyle.hBorder.EdgeColor = obj.borderColor * 0.5;
             
             switch hControl.Style
@@ -779,6 +799,7 @@ classdef uicontrolSchemer < handle
         end
         
         function clicked(hControl, hS)
+            if ~isvalid(hControl); return; end
             
             if contains(hControl.Style, 'checkbox')
                 

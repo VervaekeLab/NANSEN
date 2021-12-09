@@ -6,8 +6,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     %   [ ] More methods/options for updating statusfield. Timers, progress
     %   [ ] Make sure that project directory is on path on startup or when
     %       project is changed...
-    %   [ ] Create Menu in separate funcyion.
+    %   [ ] Create Menu in separate function.
     %   [ ] Update menu or submenu using call to that function
+    %   [ ] Remove vars from table on load if vars are not represented in
+    %       tablevar folder.
+    
     
 
     properties (Constant, Access=protected) % Inherited from uiw.abstract.AppWindow
@@ -313,7 +316,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         
             % Create a "Session" menu
-            m = uimenu(app.Figure, 'Text', 'Session Table');
+            m = uimenu(app.Figure, 'Text', 'Table');
             app.createSessionInfoMenus(m)
 
 
@@ -354,7 +357,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             if nargin < 2 || isempty(hMenu)
-                hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Session Table');
+                hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Table');
             end
             
             if updateFlag
@@ -362,27 +365,36 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             
-            mitem = uimenu(hMenu, 'Text','Add Table Variable...');
+            mitem = uimenu(hMenu, 'Text','Add New Variable...');
             mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
-            
-            mitem = uimenu(hMenu, 'Text','Edit Table Variable Definition');            
-            columnVariables = getPublicSessionInfoVariables(app.MetaTable);
 
-            for iVar = 1:numel(columnVariables)
-                hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
-                hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
-            end
+% %             menuAlternatives = {'Enter values manually...', 'Get values from function...', 'Get values from dropdown...'};
+% %             for i = 1:numel(menuAlternatives)
+% %                 hSubmenuItem = uimenu(mitem, 'Text', menuAlternatives{i});
+% %                 hSubmenuItem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
+% %             end
             
-            mitem = uimenu(hMenu, 'Text','Remove Table Variable...');
+            mitem = uimenu(hMenu, 'Text','Manage Variables...');
             
-            varNames = nansen.metadata.utility.getCustomTableVariableNames();
-            mc = ?nansen.metadata.schema.generic.Session;
-            varNames = setdiff(varNames, {mc.PropertyList.Name});
             
-            for iVar = 1:numel(varNames)
-                hSubmenuItem = uimenu(mitem, 'Text', varNames{iVar});
-                hSubmenuItem.MenuSelectedFcn = @app.removeTableVariable;
-            end
+% %             mitem = uimenu(hMenu, 'Text','Edit Table Variable Definition');            
+% %             columnVariables = getPublicSessionInfoVariables(app.MetaTable);
+% % 
+% %             for iVar = 1:numel(columnVariables)
+% %                 hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
+% %                 hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
+% %             end
+% %             
+% %             mitem = uimenu(hMenu, 'Text','Remove Table Variable...');
+% %             
+% %             varNames = nansen.metadata.utility.getCustomTableVariableNames();
+% %             mc = ?nansen.metadata.schema.generic.Session;
+% %             varNames = setdiff(varNames, {mc.PropertyList.Name});
+% %             
+% %             for iVar = 1:numel(varNames)
+% %                 hSubmenuItem = uimenu(mitem, 'Text', varNames{iVar});
+% %                 hSubmenuItem.MenuSelectedFcn = @app.removeTableVariable;
+% %             end
             
         end
         
@@ -937,61 +949,77 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 error('Missing input')
             end
             
-            import nansen.metadata.utility.createTableVariableUserFunction
+            import nansen.metadata.utility.createFunctionForCustomTableVar
             import nansen.metadata.utility.createClassForCustomTableVar
-
             
+            
+            inputModeSelection = {...
+                'Enter values manually', ...
+                'Get values from function', ...
+                'Get values from list' };
+            
+            % Create a struct for opening in the structeditor dialog
             S = struct();
             S.VariableName = '';
             S.DataType = 'numeric';
-            S.DataType_ = {'numeric', 'char', 'logical (true)', 'logical (false)'};
-            S.InputMode = 'Manual';
-            S.InputMode_ = {'Manual', 'Create Function...'};
+            S.DataType_ = {'numeric', 'text', 'logical'};
+            S.InputMode = inputModeSelection{1};
+            S.InputMode_ = inputModeSelection;
             
-            S = tools.editStruct(S, '', 'New variable');
+            S = tools.editStruct(S, '', 'New Variable', ...
+                'ReferencePosition', app.Figure.Position);
             
             if isempty(S.VariableName); return; end
                      
             % Make sure variable does not already exist
             currentVars = app.MetaTable.entries.Properties.VariableNames;
             if any(strcmp( S.VariableName, currentVars ))
-                error('Variable with name %s already exists in this table', ...
-                    S.VariableName )
+                
+                message = sprintf(['The variable "%s" already exists in this table. ', ...
+                    'Do you want to modify this variable? ', ...
+                    'Note: The old variable definition will be lost.'], S.VariableName);
+                title = 'Confirm Variable Modification';
+                answer = questdlg(message, title);
+                 
+                switch answer
+                    case 'Yes'
+                        % Proceed
+                    case {'No', 'Cancel'}
+                        return
+                end
+% %                 error('Variable with name %s already exists in this table', ...
+% %                     S.VariableName )
             end
-            
+        
+            % Add the metadata class to s. An idea is to also select this
+            % on creation.
+            S.MetadataClass = metadataClass;
 
             % Make sure the variable name is valid
             msg = sprintf('%s is not a valid variable name', S.VariableName);
             if ~isvarname(S.VariableName); errordlg(msg); error(msg); end
             
             switch S.InputMode
-                case 'Manual'
-                    S.MetadataClass = metadataClass;
+                case 'Enter values manually'
                     createClassForCustomTableVar(S)
-                case 'Create Function...'
-                    S.MetadataClass = metadataClass;
-                    createTableVariableUserFunction(S)
+                case 'Get values from function'
+                    createFunctionForCustomTableVar(S)
+                case 'Get values from list'
+                    dlgTitle = sprintf('Create list of choices for %s', S.VariableName);
+                    selectionList = multiLineListbox({}, 'Title', dlgTitle, ...
+                        'ReferencePosition', app.Figure.Position);
+                    S.SelectionList = selectionList;
+                    createClassForCustomTableVar(S)
             end
-            
             
             % Todo: Add variable to table and table settings....
-            
-            switch S.DataType
-                case 'logical (true)'
-                    initValue = true;
-                case 'logical (false)'
-                    initValue = false;
-                case 'numeric'
-                    initValue = nan;
-                case 'char'
-                    initValue = {'N/A'}; 
-            end
+            initValue = nansen.metadata.utility.getDefaultValue(S.DataType);
             
             app.MetaTable.addTableVariable(S.VariableName, initValue)
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
             % Refresh menus that show the variables of the session table...
-            app.updateSessionInfoDependentMenus()         
+            app.updateSessionInfoDependentMenus()
         end
         
         function editTableVariableDefinition(app, src, evt)
@@ -1013,7 +1041,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isempty(sessionObj); error('No sessions are selected'); end
             
             rows = app.UiMetaTableViewer.getSelectedEntries();
-
             
             varName = src.Text;
             
@@ -1066,15 +1093,35 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             tableVarNames = app.MetaTable.entries.Properties.VariableNames;
             userVarNames = nansen.metadata.utility.getCustomTableVariableNames;
+            
+            
+            % Check if any functions are present the tablevar folder, but
+            % the corresponding variable is missing from the table.
             missingVarNames = setdiff(userVarNames, tableVarNames);
             
             for iVarName = 1:numel(missingVarNames)
                 thisName = missingVarNames{iVarName};
                 varFunction = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
                 defaultValue = varFunction();
+                if isa(defaultValue, 'nansen.metadata.abstract.TableVariable')
+                    defaultValue = defaultValue.DEFAULT_VALUE;
+                end
                 app.MetaTable.addTableVariable(thisName, defaultValue)
             end
             
+            % Also, check if any functions were removed from the tablevar
+            % folder while the corresponding variable is still present in
+            % the table.
+            
+            % TODO
+            % Get list of default table variables. 
+            % Get those variables in the table that are not default
+            % Find the difference between those and the userVarNames
+
+            % Display a warning to the user if any variables will be
+            % removed. If user does not want to removed those variables,
+            % create a dummy function for that table var.
+
         end
             
         

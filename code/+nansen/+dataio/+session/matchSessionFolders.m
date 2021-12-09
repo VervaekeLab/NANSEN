@@ -43,7 +43,7 @@ function [sessionFolderListOut] = matchSessionFolders(dataLocationModel, session
             elseif sum(isMatch) == 1
                 pathStr = jSessionFolderList{isMatch};
             else 
-                warning('Multiple session folders mathed for session %s. Selected first one', sessionID)
+                warning('Multiple session folders matched for session %s. Selected first one', sessionID)
                 pathStr = jSessionFolderList{find(isMatch, 1, 'first')};
             end
             

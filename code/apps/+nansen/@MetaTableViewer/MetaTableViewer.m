@@ -12,11 +12,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
     
 % - - - - - - - - - - - - - - - TODO - - - - - - - - - - - - - - - - -
-    %   [ ] Make ignore column editable 
+    %   [x] Make ignore column editable 
     %   [x] Set method for metaTable...
     %   [x] Revert change from metatable. need to get formatted data from
     %       table!
-    %   [ ] Should the filter be a RowModel? 
+    %   [ ] Should the filter be a RowModel?
     %   [ ] Straighten out what to do about the MetaTable property.
     %       Problem: if the input metatable was a MetaTable object, it
     %       might contain data which is not renderable in the uitable, i.e
@@ -84,7 +84,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Take care of input arguments.
             obj.parseInputs(varargin)
             
-            % Supply metaTableViewer.
+            % Initialize the column model.
             obj.ColumnModel = nansen.ui.MetaTableColumnLayout(obj);
             
             obj.createUiTable()
@@ -248,7 +248,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
         
         function createUiTable(obj)
-            finished = false;
             
             for i = 1:2
             
@@ -270,16 +269,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         'Visible', 'off', ...
                         'BackgroundColor', [1,1,0.5]);
                     break
-                catch
-                    addonManager = nansen.setup.model.Addons;
-                    isMatch = strcmp({addonManager.AddonList.Name}, 'Widgets Toolbox');
-                    pkgInstallationDir = addonManager.AddonList(isMatch).FilePath;
-                    jarFilePath = fullfile(pkgInstallationDir, 'resource', 'MathWorksConsultingWidgets.jar');
-                    success = nansen.setup.model.Addons.addStaticJavaPath(jarFilePath);
-                    warning('off', 'MATLAB:javaclasspath:jarAlreadySpecified')
-                    javaclasspath( jarFilePath ) %Temp add to dynamic path...
-                    warning('on', 'MATLAB:javaclasspath:jarAlreadySpecified')
-                    
+                
+                catch ME
+                    switch ME.identifier
+                        case 'MATLAB:Java:ClassLoad'
+                            nansen.config.path.addUiwidgetsJarToJavaClassPath()
+                        otherwise
+                            rethrow(ME)
+                    end
                 end
             end
             
@@ -338,11 +335,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             if isempty(obj.ColumnModel); return; end
             
             colIndices = obj.ColumnModel.getColumnIndices();
-            numColumns = numel(colIndices);
             
             % Set column names
-            columnNames = obj.ColumnModel.getColumnNames();
-            obj.HTable.ColumnName = columnNames;
+            [columnLabels, variableNames] = obj.ColumnModel.getColumnNames();
+            obj.HTable.ColumnName = columnLabels;
 
             obj.updateColumnEditable()
             
@@ -351,20 +347,47 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             newColumnWidths = obj.ColumnModel.getColumnWidths();
             obj.changeColumnWidths(newColumnWidths)
             
-            % Set column format            
-            T = obj.MetaTableCell; % Column format is determied for the cell version of table.
+            
+            T = obj.MetaTableCell; % Column format is determined from the cell version of table.
             T = T(:, colIndices);
             
-            if size(T,1)==0
-                return; 
-            end
+            % Return if table has no rows. 
+            if size(T,1)==0; return; end
             
+            % Set column format and formatdata
             dataTypes = cellfun(@(cell) class(cell), T(1,:), 'uni', 0);
+            colFormatData = arrayfun(@(i) [], 1:numel(dataTypes), 'uni', 0);
+
+            % All numeric types should be called 'numeric'
             isNumeric = cellfun(@(cell) isnumeric(cell), T(1,:), 'uni', 1);
-            
             dataTypes(isNumeric) = {'numeric'};
             
+            isDatetime = cellfun(@(cell) isdatetime(cell), T(1,:), 'uni', 1);
+            dataTypes(isDatetime) = {'date'};
+        
+            % Todo: get from nansen preferences...      
+            colFormatData(isDatetime) = {'MMM-dd-yyyy    '};      
+            
+            % NOTE: This is temporary. Need to generalize, not make special
+            % treatment for session table
+            customVars = nansen.metadata.utility.getCustomTableVariableNames();
+            [customVars, iA] = intersect(variableNames, customVars);
+            
+            for i = 1:numel(customVars)
+                thisName = customVars{i};
+                varFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
+                varDef = varFcn();
+                
+                if isa(varDef, 'nansen.metadata.abstract.TableVariable')
+                    if isprop(varDef, 'LIST_ALTERNATIVES')
+                        dataTypes(iA(i)) = {'popup'};
+                        colFormatData(iA(i)) = {varDef.LIST_ALTERNATIVES};
+                    end
+                end
+            end
+            
             obj.HTable.ColumnFormat = dataTypes;
+            obj.HTable.ColumnFormatData = colFormatData;
 
             % Maybe call this separately???
             %obj.updateTableView()
@@ -373,6 +396,29 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % stuff better.
             obj.HTable.Theme = obj.HTable.Theme;
 
+        end
+        
+        function updateColumnEditable(obj)
+        %updateColumnEditable Update the ColumnEditable property of table
+        %
+        %   Set column editable, adjusting for which columns are currently
+        %   displayed and whether table should be editable or not.
+            
+            if isempty(obj.ColumnModel); return; end % On construction...
+            
+            % Set column editable (By default, none are editable)
+            allowEdit = obj.ColumnModel.getColumnIsEditable;
+            
+            % Set ignoreFlag to editable if options allow
+            columnNames = obj.ColumnModel.getColumnNames();
+            if obj.AllowTableEdits
+                allowEdit( contains(lower(columnNames), 'ignore') ) = true;
+            else
+                allowEdit(:) = false;
+            end
+                        
+            obj.HTable.ColumnEditable = allowEdit;
+            
         end
         
         function updateTableView(obj)
@@ -410,33 +456,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end % Todo: make dependent property and set method (?)
 
-        function updateColumnEditable(obj)
-        %updateColumnEditable Update the ColumnEditable property of table
-        %
-        %   Set column editable, adjusting for which columns are currently
-        %   displayed and whether table should be editable or not.
-            
-            if isempty(obj.ColumnModel); return; end % On construction...
-        
-            columnNames = obj.ColumnModel.getColumnNames();
-            numColumns = numel(columnNames);
-            
-            % Set column editable (By default, none are editable)
-            allowEdit = obj.ColumnModel.getColumnEditableFlag;
-            
-            % Set ignoreFlag to editable if options allow
-            if obj.AllowTableEdits
-                allowEdit( contains(lower(columnNames), 'ignore') ) = true;
-            else
-                allowEdit(:) = false;
-            end
-            
-            
-            
-            obj.HTable.ColumnEditable = allowEdit;
-            
-        end
-        
+
     end
     
     methods (Access = private) % Update table & internal housekeeping

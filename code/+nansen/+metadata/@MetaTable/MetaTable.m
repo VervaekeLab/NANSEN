@@ -400,35 +400,50 @@ classdef MetaTable < handle
             % their own display functions...
             
             % Check if any of the columns contain structs
-            row = table2cell( obj.entries(1,columnIndices) );
+            row = table2cell( obj.entries(1, columnIndices) );
             isStruct = cellfun(@(c) isstruct(c), row);
             
             T = obj.entries(:, columnIndices);
             if ~any(isStruct);    return;    end
 
+            % Todo: This should not depend on if type is struct
+            % Todo: Make method to get typdef private and public typedef
+            % functions.
             columnNumbers = find(isStruct);
             columnNames = T.Properties.VariableNames(columnNumbers);
+            
+            columnNames = ['Time', columnNames];
             
             tmpfun = @(name) sprintf('nansen.metadata.tablevar.%s', name);
             typeDef = cellfun(@(name) str2func(tmpfun(name)), columnNames, 'uni', 0);
             
-            tempS = table2struct(T);
-            for i = 1:numel(tempS) % Go through all rows
+            % Convert table to struct for the formatting of values.
+            % Can't change the datatype of the table columns otherwise...?
+            tempStruct = table2struct(T);
                 
-                for j = 1:numel(columnNames)
-                    tmpObj = typeDef{j}(tempS(i).(columnNames{j}));
-                    str = tmpObj.getCellDisplayString();
-                    % Todo: have a backup if there is no typeDef for column
+            numRows = numel(tempStruct);
+            for iRow = 1:numRows % Go through all rows
+                
+                for jColumn = 1:numel(columnNames) % Go through columns
+                    thisColumnName = columnNames{jColumn};
+                    thisValue = tempStruct(iRow).(thisColumnName);
                     
-                    tempS(i).(columnNames{j}) = str;
+                    tmpObj = typeDef{jColumn}( thisValue );
+                    str = tmpObj.getCellDisplayString();
+                    
+                    % Todo: have a backup if there is no typeDef for column
+                    tempStruct(iRow).(thisColumnName) = str;
                 end
                 
             end
             
-            T = struct2table(tempS, 'AsArray', true); % Convert back to table.
-                
+            T = struct2table(tempStruct, 'AsArray', true); % Convert back to table.
+            
+            % NOTE/TODO: This should be made efficient if tables are going
+            % to get large. Typedef functions should be made to work on
+            % vectors! (And maybe also use static methods for formatting)
+
         end
-        
         
 % % % % Methods for modifying entries
 

@@ -1,4 +1,4 @@
-function createTableVariableUserFunction(initializationStruct)
+function createFunctionForCustomTableVar(initializationStruct)
 %createTableVariableUserFunction Create function template for custom var
 
 %createFunctionForCustomTableVar
@@ -20,7 +20,7 @@ function createTableVariableUserFunction(initializationStruct)
     fcnContentStr = strrep(fcnContentStr, 'metadata', lower(tableClass));
 
     % Add initialization of output
-    defaultValue = getDefaultValueAsChar(dataType);
+    defaultValue = nansen.metadata.utility.getDefaultValueAsChar(dataType);
     valueExpr = sprintf('value = %s', defaultValue);
     fcnContentStr = strrep(fcnContentStr, 'value = []', valueExpr);
     
@@ -40,19 +40,4 @@ function createTableVariableUserFunction(initializationStruct)
     % Finally, open the function in the matlab editor.
     edit(fullfile(fcnTargetPath, fcnFilename))
     
-end
-
-function defaultValue = getDefaultValueAsChar(dataType)
-
-    switch dataType
-        case 'logical (true)'
-            defaultValue = 'true';
-        case 'logical (false)'
-            defaultValue = 'false';
-        case 'numeric'
-            defaultValue = 'nan';
-        case 'char'
-            defaultValue = '{''N/A''}'; 
-    end
-            
 end

@@ -5,7 +5,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 %   MetaTableViewer UI.
 
     
-    % Todo:
+    % TODO:
     % [ ] Rename to ColumnModel...
     % [ ] Test and debug if this works if more metatables are added to
     %     settings. I think I need to work more on the different indexing
@@ -28,12 +28,13 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     % already should take care of changing a struct variable to a valid type
     % before it ends up in the MetaTable property.
     
+    
     % Ideas for appearance:
     %
-    % Hide gridlines.
-    % Add number dropdowns for column orderering (left to right)
+    % [ ] Hide gridlines.
+    % [ ] Add number dropdowns for column orderering (left to right)
     
-    % Questions:
+    % QUESTIONS:
     % Is metatable the metatable or the data table. If it is the data
     % table, this class does not have to take care of variables that are
     % not renderable... If it is the metatable, this class should do
@@ -76,16 +77,17 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             %obj@applify.mixin.UserSettings;
             %obj.loadSettings()
-            
-            % Temporary! Todo: remove. (Make sure IsEditable is added)
-            if ~isfield(obj.settings, 'IsEditable')
-                for i = 1:numel(obj.settings)
-                    variableName = obj.settings(i).VariableName;
-                    tic
+
+            % Todo: Make this into a method. Also, need to call this
+            % whenever a table variable was edited in sessionbrowser/nansen
+            for i = 1:numel(obj.settings)
+                variableName = obj.settings(i).VariableName;
+                try
                     tf = obj.checkIfColumnIsEditable(variableName);
-                    toc
-                    obj.settings_(i).IsEditable = tf;
+                catch
+                    tf = false;
                 end
+                obj.settings_(i).IsEditable = tf;
             end
             
             obj.MetaTableUi = hViewer;
@@ -217,16 +219,21 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             %IND = intersect(colIndices, obj.SettingsIndices, )
         end
         
-        function colNames = getColumnNames(obj)
+        function [colNames, varNames] = getColumnNames(obj)
             IND = obj.getIndicesToShowInMetaTable();
             colNames = {obj.settings(IND).ColumnLabel};
             
             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
             colNames(indSort) = colNames;
             
+            if nargout == 2
+                varNames = {obj.settings(IND).VariableName};
+                varNames(indSort) = varNames;
+            end
+
         end
         
-        function isEditable = getColumnEditableFlag(obj)
+        function isEditable = getColumnIsEditable(obj)
             IND = obj.getIndicesToShowInMetaTable();
             
             isEditable = [obj.settings(IND).IsEditable];
@@ -234,6 +241,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
             isEditable(indSort) = isEditable;
         end
+        
+        % Todo: Set method for whether columns are editable..
         
         function colWidths = getColumnWidths(obj)
             IND = obj.getIndicesToShowInMetaTable();
@@ -504,6 +513,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             elseif isa(value, 'char')
                 tf = true;
             elseif isa(value, 'struct') % TODO.
+                tf = true;
+            elseif isa(value, 'datetime') % TODO.
                 tf = true;
             else
                 tf = false;

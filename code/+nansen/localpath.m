@@ -8,24 +8,24 @@ function pathStr = localpath(pathKeyword, project)
 %   This function provides absolute local paths for directory or filepaths
 %   of folders or files that are used within the nansen package.
 % 
-%   To add user
 
 
 
+%   Use global variable to keep preference variables while matlab session
+%   is running. Getting values using getprefs is quite slow, so this is a
+%   "work around"
 
-    % Check if preferences has a localpath field and if user defined local
-    % paths are present there.
+    global nansenPreferences
+    if isempty(nansenPreferences)
+        nansenPreferences = struct('localpath', containers.Map);
+    end
     
-    % Note: This is slow if 100s of calls are made. Not optimal, some
-    % functions calling localpath might do so in a loop, and this is not
-    % efficient. Need to fix
-    if ispref('nansen_localpath', pathKeyword)
-        pathStr = getpref('nansen_localpath', pathKeyword);
+    if isKey(nansenPreferences.localPath, pathKeyword)
+        pathStr = nansenPreferences.localPath(pathKeyword);
         return
     end
 
-
-
+    
     if nargin < 2 % Assume no project path is requested
         projectRootDir = '';
     elseif strcmp(project, 'current') % Should it be called current?
@@ -106,8 +106,18 @@ function pathStr = localpath(pathKeyword, project)
         otherwise
             % open dialog and save to preferences or get from preferences
             % if it exists there...
+    
+            % Check if preferences has a localpath field and if user defined local
+            % paths are present there. Checking prefs is slow, so this is
+            % the last resort (previously it was the first)
             
-            error('No localpath found for "%s"', pathKeyword)
+            if ispref('nansen_localpath', pathKeyword)
+                pathStr = getpref('nansen_localpath', pathKeyword);
+                nansenPreferences.localPath(pathKeyword) = pathStr;
+                return
+            else
+                error('No localpath found for "%s"', pathKeyword)
+            end
             
     end
     
@@ -123,6 +133,8 @@ function pathStr = localpath(pathKeyword, project)
     else
         pathStr = folderPath;
     end
-            
     
+    nansenPreferences.localPath(pathKeyword) = pathStr;
+
 end
+

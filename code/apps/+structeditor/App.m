@@ -99,7 +99,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         ColSpacing = 10;
         Margins = [160, 45, 15, 45] % Layout. Space for header/footer + sidepanels
 
-        
+        IsModal logical = false;
+        ReferencePosition = []; % If struct editor is opened as a dialog window from another app, open on correct screen
     end
     
     properties % Options manager / preset selection
@@ -305,6 +306,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             tf = obj.numTabs > 1 && contains(obj.TabMode, 'sidebar');
         end
         
+        function set.IsModal(obj, value)
+            obj.IsModal = value;
+            obj.onModalChanged()
+        end
+        
+    end
+    
+    methods
+        
     end
     
     methods (Access = protected) % Window / panel configurations
@@ -327,6 +337,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     obj.Figure.Position(3) = obj.Figure.Position(3) + 100;
                 end
                 
+            end
+            
+            if ~isempty(obj.ReferencePosition)
+                uim.utility.layout.centerObjectInRectangle(obj.Figure, obj.ReferencePosition)
             end
             
             obj.setDefaultFigureCallbacks()
@@ -1065,6 +1079,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.moveElementsToTop()
             end
 
+        end
+        
+        function onModalChanged(obj)
+            if obj.IsModal
+                obj.Figure.WindowStyle = 'modal';
+            else
+                obj.Figure.WindowStyle = 'normal';
+            end
         end
         
         function updateScrollbar(obj, panelNum)

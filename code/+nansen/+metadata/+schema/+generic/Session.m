@@ -31,7 +31,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         subjectID      % Add some validation scheme.... Can I dynamically set this according to whatever?
         sessionID    char
                
-        IgnoreFlag = false 
+        Ignore = false 
 
         % Date and time for experimental session
         Date
@@ -48,7 +48,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
     end
     
     properties (Constant, Hidden)
-        InternalVariables = {'IgnoreFlag', 'DataLocation', 'Notebook'}
+        InternalVariables = {'Ignore', 'DataLocation', 'Notebook'}
     end
     
     
@@ -82,7 +82,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             
             global dataLocationModel
             if isempty(dataLocationModel); return; end
-
+            
             obj.Time = dataLocationModel.getTime(pathStr);
         end
         
