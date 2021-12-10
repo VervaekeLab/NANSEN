@@ -6,6 +6,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 
     
     % TODO:
+    %
     % [ ] Rename to ColumnModel...
     % [ ] Test and debug if this works if more metatables are added to
     %     settings. I think I need to work more on the different indexing
@@ -453,7 +454,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             
             % Todo: Update table view (remove columns).
-            obj.MetaTableUi.refreshTable()
+            obj.MetaTableUi.refreshTable([], true)
             obj.updateUiTableEditor()
 
         end
@@ -642,10 +643,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                     
                 case 'ShowColumn'
                     obj.settings(iChanged).ShowColumn = event.NewData;
-                    
+                    %Todo: Use java column model for this
                     % Todo: Update table view (remove columns).
-                    obj.MetaTableUi.refreshTable()
-                    %obj.MetaTableUi.updateTableView()
+                    obj.MetaTableUi.refreshTable([], true)
                     
                 case 'ColumnWidth'
                     obj.settings(iChanged).ColumnWidth = event.NewData;

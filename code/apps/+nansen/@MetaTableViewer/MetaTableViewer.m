@@ -12,6 +12,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
     
 % - - - - - - - - - - - - - - - TODO - - - - - - - - - - - - - - - - -
+    %  *[ ] Update table without emptying data! Use add column/remove
+    %       column from the java column model when hiding/showing columns
+    %   [ ] Outsource everything column related to column model
+    %   [ ] Create table with all columns and store the tablecolumn objects in the column model if rows are hidden? 
+    %
     %   [x] Make ignore column editable 
     %   [x] Set method for metaTable...
     %   [x] Revert change from metatable. need to get formatted data from
@@ -167,14 +172,21 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
     methods % Public methods
         
-        function refreshTable(obj, newTable)
+        function refreshTable(obj, newTable, flushTable)
         %refreshTable Method for refreshing the table
         
-            if nargin == 2
+            if nargin >= 2 && ~isempty(newTable)
                 obj.MetaTable = newTable;
             end
             
-            obj.HTable.Data = {};
+            if nargin < 3
+                flushTable = false;
+            end
+            
+            if flushTable % Empty table, gives smoother update in some cases
+                obj.HTable.Data = {};
+            end
+            
             drawnow
             obj.updateColumnLayout()
             obj.DataFilterMap = []; % reset data filter map
@@ -767,7 +779,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         hTmp.Callback = @(s,e,iCol) obj.hideColumn(colNumber);
                         
                     case 'Update Column'
-                        if varAttr.IsCustom && ~varAttr.IsEditable
+                        if varAttr.IsCustom && varAttr.HasFunction
                             hTmp.Enable = 'on';
                             if ~isempty(obj.UpdateColumnFcn) 
                                 % Children are reversed from creation
