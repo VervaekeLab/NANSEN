@@ -4,6 +4,8 @@ function varNames = getPublicSessionInfoVariables(metaTable)
 %   This function returns only those variables in a session metatable that
 %   are public, meaning either user-defined or editable by the user
 
+    % Todo: remove this? use getMetaTableVariableAttributes instead
+
     % All variable names
     columnVariables = metaTable.entries.Properties.VariableNames;
     

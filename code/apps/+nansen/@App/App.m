@@ -374,7 +374,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %                 hSubmenuItem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
 % %             end
             
-            mitem = uimenu(hMenu, 'Text','Manage Variables...');
+            mitem = uimenu(hMenu, 'Text','Manage Variables...', 'Enable', 'off');
             
             
 % %             mitem = uimenu(hMenu, 'Text','Edit Table Variable Definition');            
@@ -596,6 +596,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
             
+            h.UpdateColumnFcn = @app.updateTableVariable;
+            h.DeleteColumnFcn = @app.removeTableVariable;
+
             app.createSessionTableContextMenu()
             
         end
@@ -672,7 +675,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function metaObjects = getSelectedMetaObjects(app)
                         
             entries = app.getSelectedMetaTableEntries();
-
+            metaObjects = app.tableEntriesToMetaObjects(entries);
+            
+        end
+        
+        function metaObjects = tableEntriesToMetaObjects(app, entries)
+        %tableEntriesToMetaObjects Create meta objects from table rows
+        
             schema = str2func(class(app.MetaTable));
             
             if isempty(entries)
@@ -683,6 +692,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
         end
+        
  
     %%% Methods for side panel
         
@@ -1037,18 +1047,40 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %
         %   This function is a callback for the context menu
         
-            sessionObj = app.getSelectedMetaObjects();
-            if isempty(sessionObj); error('No sessions are selected'); end
+            if ischar(src)
+                varName = src;
+                updateMode = evt;
+            else
+                varName = src.Text;
+                updateMode = 'SelectedRows';
+            end
+
             
-            rows = app.UiMetaTableViewer.getSelectedEntries();
+            switch updateMode
+                case 'SelectedRows'
+                    sessionObj = app.getSelectedMetaObjects();
+                    rows = app.UiMetaTableViewer.getSelectedEntries();
+
+                    if isempty(sessionObj)
+                        error('No sessions are selected'); 
+                    end
+                case 'AllRows'
+                    rows = 1:size(app.MetaTable.entries, 1);
+                    sessionObj = app.tableEntriesToMetaObjects(app.MetaTable.entries);
             
-            varName = src.Text;
+            end
+            
+            numSessions = numel(sessionObj);
+            
+            if numSessions > 5
+                h = waitbar(0, 'Please wait while updating values');
+            end
             
             % Create function call for variable:
             updateFcnName = strjoin( {'tablevar', 'session', varName}, '.');
             updateFcn = str2func(updateFcnName);
             
-            for iSession = 1:numel(sessionObj)
+            for iSession = 1:numSessions
                 newValue = updateFcn(sessionObj(iSession));
                 if isa(newValue, 'nansen.metadata.abstract.TableVariable')
                     if isequal(newValue.Value, newValue.DEFAULT_VALUE)
@@ -1060,20 +1092,47 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
                 app.MetaTable.editEntries(rows(iSession), varName, newValue);
+                
+                if numSessions > 5
+                    waitbar(iSession/numSessions, h)
+                end
             end
             
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+            if numSessions > 5
+                delete(h)
+            end
             
         end
         
         function removeTableVariable(app, src, evt)
         %removeTableVariable Remove variable from the session table
             
-            varName = src.Text;
+            if ischar(src)
+                varName = src;
+            else
+                varName = src.Text;
+            end
 
+            
+            % Create a dialog here.
+            message = sprintf( ['This will delete the data of column ', ...
+                '%s from the table. The associated tablevar function ', ...
+                'will also be deleted. Are you sure you want to continue?'], ...
+                varName );
+            title = 'Delete data?';
+            
+            answer = questdlg(message, title);
+            switch answer
+                case {'No', 'Cancel', ''}
+                    return
+                case 'Yes'
+                    % Continue
+            end
+            
             app.MetaTable.removeTableVariable(varName)
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
-            
             
             % Delete function template in project folder..
             pathStr = nansen.metadata.utility.getTableVariableUserFunctionPath(varName, 'session');
@@ -1092,19 +1151,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %missing from the table.
             
             tableVarNames = app.MetaTable.entries.Properties.VariableNames;
-            userVarNames = nansen.metadata.utility.getCustomTableVariableNames;
+            
+            variableAttributes = nansen.metadata.utility.getMetaTableVariableAttributes('session');
+            referenceVarNames = {variableAttributes.Name};
+            customVarNames = referenceVarNames([variableAttributes.IsCustom]);
             
             
             % Check if any functions are present the tablevar folder, but
             % the corresponding variable is missing from the table.
-            missingVarNames = setdiff(userVarNames, tableVarNames);
+            missingVarNames = setdiff(customVarNames, tableVarNames);
             
             for iVarName = 1:numel(missingVarNames)
                 thisName = missingVarNames{iVarName};
                 varFunction = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
-                defaultValue = varFunction();
-                if isa(defaultValue, 'nansen.metadata.abstract.TableVariable')
-                    defaultValue = defaultValue.DEFAULT_VALUE;
+                fcnResult = varFunction();
+                if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
+                    defaultValue = fcnResult.DEFAULT_VALUE;
+                else
+                    defaultValue = fcnResult;
                 end
                 app.MetaTable.addTableVariable(thisName, defaultValue)
             end
@@ -1113,17 +1177,58 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % folder while the corresponding variable is still present in
             % the table.
             
-            % TODO
-            % Get list of default table variables. 
+            %Get list of default table variables. 
+            schemaVarNames = referenceVarNames(~[variableAttributes.IsCustom]);
+            
             % Get those variables in the table that are not default
+            tableCustomVarNames = setdiff(tableVarNames, schemaVarNames);
+            
             % Find the difference between those and the userVarNames
+            missingVarNames = setdiff(tableCustomVarNames, customVarNames);
+            
+            for iVarName = 1:numel(missingVarNames)
+                thisName = missingVarNames{iVarName};
 
-            % Display a warning to the user if any variables will be
-            % removed. If user does not want to removed those variables,
-            % create a dummy function for that table var.
+                message = sprintf( ['The tablevar definition is missing ', ...
+                    'for "%s". Do you want to delete data for this variable ', ...
+                    'from the table?'], thisName );
+                title = 'Delete Table Data?';
+                
+                answer = questdlg(message, title);
+                
+                switch answer
+                    case 'Yes'
+                        app.MetaTable.removeTableVariable(varName)
+                    case {'Cancel', 'No', ''}
+                        
+                        % Todo (Is it necessary): Maybe if the variable is
+                        % editable...(which we dont know when the definition 
+                        % is removed.) Should resolve based on user
+                        % feedback/tests
+                        
+                        % Get table row as struct in order to check data
+                        % type. (Some data is within a cell array in the table)
+                        tableRow = app.MetaTable.entries(1, :);
+                        rowAsStruct = table2struct(tableRow);
+                        
+                        % Create dummy function
+                        S = struct();
+                        S.VariableName = thisName;
+                        S.MetadataClass = 'session'; % Todo: get current table
+                        S.DataType = class(rowAsStruct.(thisName));
+                        
+                        S.InputMode = '';
+                        
+                        nansen.metadata.utility.createClassForCustomTableVar(S)
+                end
+                
+            end
+                
+                % Display a warning to the user if any variables will be
+                % removed. If user does not want to removed those variables,
+                % create a dummy function for that table var.
 
         end
-            
         
         function loadMetaTable(app, loadPath)
             

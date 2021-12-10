@@ -41,6 +41,32 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     % that... Not sure yet...
     
     
+    % Need to clean up the table layout
+    %
+    %   1) One subset of variables from settings are displayed in the settings
+    %   editor. Every property and method related to this behavior should
+    %   be private to this class.
+    %   
+    %   2) Another subset of this subset is displayed in the metatable.
+    %      The order which this subset is displayed is determined by column
+    %      order. This order should be the main IndexList for interacting
+    %      with an object of this class.
+    %       1) When getting colIndices for table, or values from settings
+    %       2) When modifying values from settings...
+    %
+    %       1) Columns -> setting columns
+    %       2) Settings column - column
+    %
+    
+    %   Column order determines which order columns are displayed at.
+    %   
+    %   ColumnVisible determines if column is part of list to display
+    %   
+    
+        
+    
+    
+    
     properties(Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false
         DEFAULT_SETTINGS = nansen.ui.MetaTableColumnLayout.getDefaultSettings()
@@ -62,7 +88,17 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % the values in the ShowColumn settings changes.
         SettingsIndices         % Indices of metatable variable, in the order they appear in the settings.
         MetaTableIndicesAll     % Indices of all metatable variable that are included in settings.
-        MetaTableIndicesShow  
+        MetaTableIndicesShow
+        
+        SortedSettingsInd
+        
+        OriginalColumnArrangement
+    end
+    
+    properties (Access = private)
+        AllTablePropertyNames
+        VisibleTablePropertyNames
+        SettingsPropertyNames
     end
     
     properties (Access = private, Hidden)
@@ -78,6 +114,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             %obj@applify.mixin.UserSettings;
             %obj.loadSettings()
 
+            obj.addColumnOrderToSettings() % temporary
+            
             % Todo: Make this into a method. Also, need to call this
             % whenever a table variable was edited in sessionbrowser/nansen
             for i = 1:numel(obj.settings)
@@ -110,10 +148,51 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             delete(obj.MetaTableChangedListener)
         end
+        
     end
     
+    methods %temp
+        
+        function addColumnOrderToSettings(obj)
+            
+            if ~isfield(obj.settings, 'ColumnOrder')
+                for i = 1:numel(obj.settings)
+                    obj.settings_(i).ColumnOrder = i;
+                end
+            end
+        end
+        
+    end
     
     methods (Access = private) % Create gui for editing settings
+        
+        function IND = getIndicesToShowInLayoutEditor(obj)
+        %getIndicesToShowInLayoutEditor For indexing the settings struct 
+        
+            % Indices of those variables in settings that are present in
+            % current metatable.
+            indA = obj.MetaTableIndicesAll;
+            
+            % Indices of those varibles that are not displayable
+            indB = find( [obj.settings.SkipColumn] );
+            
+            % Indices of variables in current metatable that are displayable
+            IND = setdiff(indA, indB, 'stable'); % I.e keep those in A that are not in B
+        end
+        
+        function T = getTableDataForUiEditor(obj)
+            
+            % Get column layout settings as a table.
+            T = struct2table(obj.settings);
+        
+            % Get indices of variables in current metatable that are
+            % displayable:
+            IND = obj.getIndicesToShowInLayoutEditor();
+            
+            % Get subset of table to display in column layout editor.
+            T = T(IND, [1,2,3,5,7]); % 4th + 6th column is not editable.
+        
+        end
         
         function openEditorGui(obj, T)
             
@@ -147,9 +226,16 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % Wait for figure...
             uiwait(tmpF)
         end
+
+        function updateUiTableEditor(obj)
+            
+            if ~isempty(obj.UIEditorTable)
+                T = getTableDataForUiEditor(obj);
+                obj.UIEditorTable.Data = table2cell(T);
+            end
+        end
         
     end
-    
     
     methods
         
@@ -168,12 +254,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % settings will be saved.
             
             % Todo: Fix bug if editor is deleted because app is deleted.
-
             obj.saveSettings()
             
         end
         
-        function loadSettings(obj)    
+        function loadSettings(obj)
             % Simplified loading... Todo: This should be modified because
             % table is used in different classes....
             %
@@ -199,9 +284,13 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
         end
         
+        
         function colIndices = getColumnIndices(obj)
         %getColumnIndices Get column indices for current metadata table..    
        
+        % dont remember what the difference is between 
+        % obj.MetaTableIndicesAll & obj.SettingsIndices
+            
             indAll = obj.MetaTableIndicesAll;            
             
             indSkip = [obj.settings(indAll).SkipColumn];
@@ -210,25 +299,62 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             indSkip = [obj.settings(obj.SettingsIndices).SkipColumn];
             indShow = [obj.settings(obj.SettingsIndices).ShowColumn];
             
+            columnOrder = [obj.settings(obj.SettingsIndices).ColumnOrder];
+            columnOrder = columnOrder(indShow & ~indSkip);
+            
+            [~, sortInd] = sort(columnOrder);
             
             % This yields the column indices 
             colIndices = 1:size(obj.MetaTable, 2);
             colIndices = colIndices(indShow & ~indSkip);
             
             % Reorder table indices
+            colIndices = colIndices(sortInd);
+            
             %IND = intersect(colIndices, obj.SettingsIndices, )
+        end % Table
+        
+        
+        
+        function currentIndices = getColumnIndicesSettings(obj)
+                
+            indSkip = [obj.settings(obj.SettingsIndices).SkipColumn];
+            indShow = [obj.settings(obj.SettingsIndices).ShowColumn];
+            
+            columnOrder = [obj.settings(obj.SettingsIndices).ColumnOrder];
+            columnOrder = columnOrder(indShow & ~indSkip);
+            
+            [~, sortInd] = sort(columnOrder);
+            
+            currentIndices = obj.SettingsIndices(indShow & ~indSkip);
+            
+            % Reorder indices according to display order
+
+            currentIndices = currentIndices(sortInd);
+
         end
+            
+      % % Methods for getting varibles from settings:
         
         function [colNames, varNames] = getColumnNames(obj)
             IND = obj.getIndicesToShowInMetaTable();
-            colNames = {obj.settings(IND).ColumnLabel};
+            colNames = {obj.settings(IND).ColumnLabel};            
             
+            % Why this? 
             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
             colNames(indSort) = colNames;
             
-            if nargout == 2
-                varNames = {obj.settings(IND).VariableName};
-                varNames(indSort) = varNames;
+            varNames = {obj.settings(IND).VariableName};
+            varNames(indSort) = varNames;
+            
+            colOrder = [obj.settings(IND).ColumnOrder];
+            [~, indSort] = sort(colOrder);
+            colNames = colNames(indSort);
+            varNames = varNames(indSort);
+
+            
+            if nargout == 1
+                clear varNames
             end
 
         end
@@ -256,6 +382,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
             colWidths(indSort) = colWidths;
             
+            
+            
             % Question: Do I need to return as cell array?
         end
         
@@ -268,13 +396,34 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             msg = 'Something went wrong. Please send bug report';
             assert(numel(IND) == numel(columnWidths), msg)
             
+            visibleColumnOrder = [obj.settings(IND).ColumnOrder];
+            
+            
+            
             % Todo: debug with complex tables!!! % Do this to make sure the
             % value is inserted at the right point in settings.
-            [~, ~, iB] = intersect( obj.SettingsIndices, IND, 'stable');
+            [~, ~, iB] = intersect( obj.SettingsIndices, visibleColumnOrder, 'stable');
             
             for i = 1:numel(IND)
                 obj.settings_(IND(iB(i))).ColumnWidth = columnWidths(i);
             end
+            
+            
+            obj.updateUiTableEditor()
+            obj.saveSettings()
+            
+        end
+        
+        function hideColumn(obj, columnIdx)
+            %IND = obj.getIndicesToShowInMetaTable();
+            %columnIdxSetting = IND(columnIdx);            
+              
+            colInd = obj.getColumnIndicesSettings;
+            columnIdxSetting = colInd(columnIdx);
+            
+            % Todo: what if columns are rearranged
+
+            obj.settings_(columnIdxSetting).ShowColumn = false;
             
             if ~isempty(obj.UIEditorTable)
                 % If the ui editor table is open, need to update the table
@@ -283,20 +432,79 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 obj.UIEditorTable.Data = table2cell(T);
             end
             
-            obj.saveSettings()
             
+            % Todo: Update table view (remove columns).
+            obj.MetaTableUi.refreshTable()
+            obj.updateUiTableEditor()
+
         end
         
-        function hideColumn(obj, columnIdx)
-            %IND = obj.getIndicesToShowInMetaTable();
-            %columnIdxSetting = IND(columnIdx);            
-            columnIdxSetting = obj.SettingsIndices(columnIdx);            
-
-            obj.settings_(columnIdxSetting).ShowColumn = false;
-                    
-            % Todo: Update table view (remove columns).
-            obj.MetaTableUi.updateColumnLayout()
-            obj.MetaTableUi.updateTableView()
+        
+        function setNewColumnOrder(obj, newColumnArrangement)
+        %setNewColumnOrder 
+        %
+        
+        %   Note: This methods should be used to update settings when the
+        %   columns have already been rearranged. 
+        %
+        %   This is currently the only behavior, but an idea is to be able
+        %   to change these values for the column settings editor, and in
+        %   this case we need to also to the actual rearranging of columns
+        
+            % newColumnOrder is a cellarray of column names in the order 
+            % they appear in the table   
+            
+            % Indices of variables in settings that are currently visible
+            % in the metatable.
+            IND = getIndicesToShowInMetaTable(obj);
+            
+            % Get the names of the visible variables and their order in the
+            % settings.
+            visibleNames = {obj.settings(IND).VariableName};
+            visibleOrder = [obj.settings(IND).ColumnOrder];
+            
+            % Get the current arrangement of columns
+            currentInd = 1:numel(visibleNames);
+            [~, sortInd] = sort(visibleOrder);
+            currentInd = currentInd(sortInd);
+            
+            currentColumnArrangement = visibleNames(currentInd);
+            
+            % Get indices (iC) describing how the newColumnArrangement is
+            % relative to the arrangement in settings.
+            [~, ~, iC] = intersect(currentColumnArrangement, newColumnArrangement, 'stable');
+            
+            % Find indices which changed:
+            hasChanged = iC' ~= 1:numel(visibleNames);
+            
+            
+            rearrangedColumns = iC(hasChanged);
+            rearrangedColumnsSettingsInd = IND( currentInd(rearrangedColumns) );
+            
+            newOrder = [obj.settings(rearrangedColumnsSettingsInd).ColumnOrder];
+            
+            currentColumnsSettingsInd = IND(currentInd(hasChanged));
+            
+            for count = 1:numel(currentColumnsSettingsInd)
+                thisInd = currentColumnsSettingsInd(count);
+                obj.settings_(thisInd).ColumnOrder = newOrder(count);
+            end
+            
+            obj.updateUiTableEditor()
+            return
+            
+            newInd = currentInd(iC);
+            
+            % Rearrange the previous order according to the changes
+            newOrder = visibleOrder(iC);
+            
+            % Update settings. Use internal settings variable is order to
+            % not invoke the onSettingsChanged (change already happened)
+            for count = 1:numel(IND)
+                obj.settings_(IND(count)).ColumnOrder = newOrder(newInd(count));
+            end
+            
+            obj.updateUiTableEditor()
             
         end
         
@@ -313,76 +521,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     end
     
     methods (Access = protected)
-        
-        function onSettingsChanged(obj, src, event)
-        %onSettingsChanged Callback for when settings are changed. 
-        %
-        %   Note: This method has a slightly different implementation than
-        %   the definition from the superclass. This is because
-        %   editSettings opens settings in a table view instead of a
-        %   structeditor.
-        
-            
-            % Get those indices of the settings struct array that are 
-            % currently shown in the column-layout table editor.
-            IND = obj.getIndicesToShowInLayoutEditor();
-            
-            rowNum = event.Indices(1); % Row number of edited cell
-            colNum = event.Indices(2); % Col number of edited cell
-            
-            % Index of entry in the settings struct that was changed.
-            iChanged = IND(rowNum);
-            
-            switch src.ColumnName{colNum}
                 
-                case 'ColumnLabel'
-                    obj.settings(iChanged).ColumnLabel = event.NewData;
-                    
-                    % Update column names in the meta table ui
-                    newNames = obj.getColumnNames();
-                    obj.MetaTableUi.changeColumnNames(newNames);
-                    
-                case 'ShowColumn'
-                    obj.settings(iChanged).ShowColumn = event.NewData;
-                    
-                    % Todo: Update table view (remove columns).
-                    obj.MetaTableUi.updateColumnLayout()
-                    obj.MetaTableUi.updateTableView()
-                    
-                case 'ColumnWidth'
-                    obj.settings(iChanged).ColumnWidth = event.NewData;
-                    
-                    % Update column widths in the meta table ui
-                    newWidths = obj.getColumnWidths();
-                    obj.MetaTableUi.changeColumnWidths(newWidths);
-                    
-            end
-            
-        end
-        
-        function onMetaTableChanged(obj)
-            
-            obj.MetaTable = obj.MetaTableUi.MetaTable; %Todo: Change to TableVariables 
-
-            obj.checkAndUpdateColumnEntries()
-            
-            % Todo: Update Indices based on what variables are present in
-            % the metatable.
-            
-            varNamesSettings = {obj.settings.VariableName}; % VarNames already in settings.
-            varNamesTable = obj.MetaTable.Properties.VariableNames;
-            
-            % Get indices of names in settings that are also in table
-            [~, iA] = intersect(varNamesSettings, varNamesTable, 'stable');
-            obj.MetaTableIndicesAll = iA;
-            %obj.SettingsVarTableIdx = iA;
-            
-            % Do I need this?
-            [~, ~, iC] = intersect(varNamesTable, varNamesSettings, 'stable');
-            obj.SettingsIndices = iC;
-            %obj.TableVarSettingsIdx = iC;
-        end
-        
         function checkAndUpdateColumnEntries(obj)
         %checkAndUpdateColumnEntries Check if new variables are present in
         % the metatable that are missing from the settings.
@@ -428,24 +567,89 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 obj.settings_(iColumn).SkipColumn = ~isValidDatatype;
                 obj.settings_(iColumn).ColumnWidth = obj.DEFAULT_COLUMN_WIDTH;
                 obj.settings_(iColumn).IsEditable = isEditable;
+                obj.settings_(iColumn).ColumnOrder = iColumn;
             end
             
             obj.saveSettings()
 
         end
         
-        function IND = getIndicesToShowInLayoutEditor(obj)
-        %getIndicesToShowInLayoutEditor For indexing the settings struct 
+        function onSettingsChanged(obj, src, event)
+        %onSettingsChanged Callback for when settings are changed. 
+        %
+        %   Note: This method has a slightly different implementation than
+        %   the definition from the superclass. This is because
+        %   editSettings opens settings in a table view instead of a
+        %   structeditor.
         
-            % Indices of those variables in settings that are present in
-            % current metatable.
-            indA = obj.MetaTableIndicesAll;
             
-            % Indices of those varibles that are not displayable
-            indB = find( [obj.settings.SkipColumn] );
+            % Get those indices of the settings struct array that are 
+            % currently shown in the column-layout table editor.
+            IND = obj.getIndicesToShowInLayoutEditor();
             
-            % Indices of variables in current metatable that are displayable
-            IND = setdiff(indA, indB, 'stable'); % I.e keep those in A that are not in B
+            rowNum = event.Indices(1); % Row number of edited cell
+            colNum = event.Indices(2); % Col number of edited cell
+            
+            % Index of entry in the settings struct that was changed.
+            iChanged = IND(rowNum);
+            
+            switch src.ColumnName{colNum}
+                
+                case 'ColumnLabel'
+                    obj.settings(iChanged).ColumnLabel = event.NewData;
+                    
+                    % Update column names in the meta table ui
+                    newNames = obj.getColumnNames();
+                    obj.MetaTableUi.changeColumnNames(newNames);
+                    
+                case 'ShowColumn'
+                    obj.settings(iChanged).ShowColumn = event.NewData;
+                    
+                    % Todo: Update table view (remove columns).
+                    obj.MetaTableUi.refreshTable()
+                    %obj.MetaTableUi.updateTableView()
+                    
+                case 'ColumnWidth'
+                    obj.settings(iChanged).ColumnWidth = event.NewData;
+                    
+                    % Update column widths in the meta table ui
+                    newWidths = obj.getColumnWidths();
+                    obj.MetaTableUi.changeColumnWidths(newWidths);
+                    
+            end
+            
+        end
+        
+        function onMetaTableChanged(obj)
+            
+            obj.MetaTable = obj.MetaTableUi.MetaTable; %Todo: Change to TableVariables 
+
+            obj.checkAndUpdateColumnEntries()
+            
+            % Todo: Update Indices based on what variables are present in
+            % the metatable.
+            
+            varNamesSettings = {obj.settings.VariableName}; % VarNames already in settings.
+            varNamesTable = obj.MetaTable.Properties.VariableNames;
+            
+            % Get indices of names in settings that are also in table
+            [~, iA] = intersect(varNamesSettings, varNamesTable, 'stable');
+            obj.MetaTableIndicesAll = iA;
+            %obj.SettingsVarTableIdx = iA;
+            
+            % Do I need this?
+            [~, ~, iC] = intersect(varNamesTable, varNamesSettings, 'stable');
+            obj.SettingsIndices = iC;
+            
+            columnOrder = [obj.settings(obj.SettingsIndices).ColumnOrder];
+            [~, sortedOrder] = sort(columnOrder);
+            obj.SortedSettingsInd = obj.SettingsIndices(sortedOrder);
+            
+            %obj.TableVarSettingsIdx = iC;
+            
+            % Set order of data
+            obj.OriginalColumnArrangement = obj.MetaTable.Properties.VariableNames;
+
         end
         
         function IND = getIndicesToShowInMetaTable(obj)
@@ -460,22 +664,15 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
         end
         
-        function T = getTableDataForUiEditor(obj)
-            
-            % Get column layout settings as a table.
-            T = struct2table(obj.settings);
         
-            % Get indices of variables in current metatable that are
-            % displayable:
-            IND = obj.getIndicesToShowInLayoutEditor();
+        function IND = getRearrangedColumnIndices(obj)
             
-            % Get subset of table to display in column layout editor.
-            T = T(IND, [1,2,3,5]); % 4th + 6th column is not editable.
-        
+            IND = obj.getIndicesToShowInMetaTable();
+
+            
         end
-        
+
     end
-    
     
     methods (Static)
         function S = getDefaultSettings()

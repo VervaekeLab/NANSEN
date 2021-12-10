@@ -17,7 +17,9 @@ function pathStr = localpath(pathKeyword, project)
 
     global nansenPreferences
     if isempty(nansenPreferences)
-        nansenPreferences = struct('localpath', containers.Map);
+        nansenPreferences = struct('localPath', containers.Map);
+    elseif ~isfield(nansenPreferences, 'localPath')
+        nansenPreferences.localPath = containers.Map;
     end
     
     if isKey(nansenPreferences.localPath, pathKeyword)

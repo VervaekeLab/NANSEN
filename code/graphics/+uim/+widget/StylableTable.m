@@ -42,10 +42,12 @@ classdef StylableTable < uiw.widget.Table
         % changed via the user interface by mouse drag actions.
         WasMouseDraggedInHeader = false;
         OldColumnWidth = []
+        OldColumnOrder = {}
     end
     
     events
         ColumnWidthChanged % Event listener for if column width changes (if user drags column headers to resize)
+        ColumnsRearranged % Event listener for if columns are rearranged (if user drags column headers to rearrange)
     end
     
     
@@ -86,7 +88,7 @@ classdef StylableTable < uiw.widget.Table
         
     end
     
-    methods (Access = protected) % Internal creation
+    methods (Access = protected) % Internal (creation)
         
         function retrieveJavaHandles(obj)
         %retrieveJavaHandles Retrieve java handles that will be modified
@@ -127,7 +129,6 @@ classdef StylableTable < uiw.widget.Table
         end
     end
     
-    
     methods
         
         function xOffset = getHorizontalScrollOffset(obj)
@@ -156,10 +157,26 @@ classdef StylableTable < uiw.widget.Table
             obj.JVScroller.updateUI()
         end
         
+        function columnNames = getColumnOrder(obj)
+
+            % Todo: Move to columnlayout class...
+            
+            jTableHeader = obj.JTable.getTableHeader();
+            jColumnModel = jTableHeader.getColumnModel();
+            numColumns = jColumnModel.getColumnCount;
+            
+            columnNames = cell(1, numColumns);
+
+            for i = 1:numColumns
+                columnNames{i} = jColumnModel.getColumn(i-1).getHeaderValue;
+            end
+            
+        end
+        
     end
     
-    
-    methods
+    methods % Set / get methods
+        
         function set.Theme(obj, newTheme)
             obj.Theme = newTheme;
             obj.updateTheme()
@@ -208,10 +225,10 @@ classdef StylableTable < uiw.widget.Table
         function jTable = get.JTable(obj)
             jTable = obj.JControl;
         end
+        
     end
     
-    
-    methods (Access = protected) % Internal updating
+    methods (Access = protected) % Internal (updating)
         
         function updateTheme(obj)
             if ~obj.IsConstructed; return; end
@@ -351,20 +368,31 @@ classdef StylableTable < uiw.widget.Table
             if ~obj.WasMouseDraggedInHeader
                 obj.WasMouseDraggedInHeader = true;
                 obj.OldColumnWidth = obj.ColumnWidth;
+                obj.OldColumnOrder = obj.getColumnOrder();
             end
         end
         
         function onMouseReleasedFromHeader(obj, src, evt)
         %onMouseReleasedFromHeader Used to test if column widths are changed
+            
             if obj.WasMouseDraggedInHeader
-                if any(obj.ColumnWidth ~= obj.OldColumnWidth)
+
+                % Need to check if columns are rearranged before checking if
+                % columns are resized. If columns of different sizes are
+                % rearranged, it will appear as columns have been resized.
+                currentColumnOrder = obj.getColumnOrder();
+                if ~isequal(obj.OldColumnOrder, currentColumnOrder) % (1)
+                    obj.notify('ColumnsRearranged', event.EventData)
+                
+                elseif any(obj.ColumnWidth ~= obj.OldColumnWidth)   % (2)
                     obj.updateColumnHeaderWidth()
                     obj.notify('ColumnWidthChanged', event.EventData)
                 end
+                
                 obj.WasMouseDraggedInHeader = false;
             end
         end
-        
+
     end
     
 end

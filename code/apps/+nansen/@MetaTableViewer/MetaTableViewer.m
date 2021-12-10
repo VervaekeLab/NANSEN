@@ -44,12 +44,17 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         SelectedEntries         % Selected rows from full table, irrespective of sorting and filtering.
         CellEditCallback
         KeyPressCallback
+        
+        DeleteColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
+        UpdateColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
     end
     
     properties (SetAccess = private, SetObservable = true)
         MetaTable               % Table version of the table data
         MetaTableCell cell      % Cell array version of the table data
         MetaTableVariableNames  % Cell array of variable names in full table
+        MetaTableVariableAttributes % Struct with attributes of metatable variables.
+
     end
     
     properties %(Access = private)
@@ -69,6 +74,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         DataFilterMap = []
         ColumnWidthChangedListener
+        ColumnsRearrangedListener
     end
     
     properties (Access = private)
@@ -168,6 +174,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.MetaTable = newTable;
             end
             
+            obj.HTable.Data = {};
+            drawnow
             obj.updateColumnLayout()
             obj.DataFilterMap = []; % reset data filter map
             obj.updateTableView()
@@ -281,19 +289,28 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
             
             obj.HTable.CellEditCallback = @obj.onCellValueEdited;
+            obj.HTable.JTable.getTableHeader().setReorderingAllowed(true);
             
             % Listener that detects if column widths change if user drags
             % column headers edges to resize columns.
-            el = listener(obj.HTable, 'ColumnWidthChanged', ...
-                @obj.onColumnWidthChanged);
-            obj.ColumnWidthChangedListener = el;
+            obj.ColumnWidthChangedListener = listener(obj.HTable, ...
+                'ColumnWidthChanged', @obj.onColumnWidthChanged);
+            
+            obj.ColumnsRearrangedListener = listener(obj.HTable, ...
+                'ColumnsRearranged', @obj.onColumnsRearranged);
             
             obj.HTable.Theme = uim.style.tableLight;
             
         end
         
         function createColumnContextMenu(obj)
-            
+        %createColumnContextMenu Create a context menu for columns
+        
+        % Note: This context menu is reused for all columns, but because
+        % it's appeareance might depend on the column it is opened above,
+        % some changes are done in the method openColumnContextMenu before
+        % it is made visible. Also, a callback function is set there.
+        
             hFigure = ancestor(obj.Parent, 'figure');
             
             % Create a context menu item for each of the different column
@@ -319,6 +336,18 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Column settings...');
             hTmp.Tag = 'ColumnSettings';
             hTmp.MenuSelectedFcn = @(s,e) obj.ColumnModel.editSettings;
+            
+            
+            hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Update column data');
+            hTmp.Separator = 'on';
+            hTmp.Tag = 'Update Column';
+              hSubMenu = uimenu(hTmp, 'Label', 'Update selected rows');
+              hSubMenu.Tag = 'Update selected rows';
+              hSubMenu = uimenu(hTmp, 'Label', 'Update all rows');
+              hSubMenu.Tag = 'Update all rows';
+                
+            hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Delete this column');
+            hTmp.Tag = 'Delete Column';
             
         end
         
@@ -357,7 +386,15 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Set column format and formatdata
             dataTypes = cellfun(@(cell) class(cell), T(1,:), 'uni', 0);
             colFormatData = arrayfun(@(i) [], 1:numel(dataTypes), 'uni', 0);
-
+            
+            
+% % %             % Note: Important to reset this before updating. Columns can be 
+% % %             % rearranged and number of columns can change. If 
+% % %             % ColumnFormatData does not match the specified column format
+% % %             % an error might occur.
+% % %             obj.HTable.ColumnFormatData = colFormatData;
+            
+            
             % All numeric types should be called 'numeric'
             isNumeric = cellfun(@(cell) isnumeric(cell), T(1,:), 'uni', 1);
             dataTypes(isNumeric) = {'numeric'};
@@ -386,9 +423,26 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 end
             end
             
+            % Update the column formatting properties
             obj.HTable.ColumnFormat = dataTypes;
             obj.HTable.ColumnFormatData = colFormatData;
 
+            
+            
+            % Set column names. Do this last because this will control that
+            % the correct number of columns are shown.
+            obj.HTable.ColumnName = columnLabels;
+            
+            
+            % Rearrange the column model index...
+            
+            jColumnModel = obj.HTable.JTable.getTableHeader.getColumnModel;
+            
+            for i = 1:numel(columnLabels)
+                jColumn = jColumnModel.getColumn(i-1);
+                jColumn.setModelIndex(i-1)
+            end
+            
             % Maybe call this separately???
             %obj.updateTableView()
             
@@ -455,7 +509,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function changeColumnToShow(obj)
             
         end % Todo: make dependent property and set method (?)
-
+        
+        function changeColumnOrder(obj)
+            % todo howdo
+        end
 
     end
     
@@ -469,6 +526,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         % the UI table. (Relevant mostly for MetaTable objects because they
         % might contain column data that needs to be formatted.
         
+            import nansen.metadata.utility.getMetaTableVariableAttributes
+        
             if isa(newTable, 'nansen.metadata.MetaTable')
                 T = newTable.getFormattedTableData();
                 obj.MetaTableCell = table2cell(T);
@@ -476,6 +535,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.MetaTableCell = table2cell(newTable);
             end
             
+            % Todo: 'session should not be hardcoded here'
+            obj.MetaTableVariableAttributes = getMetaTableVariableAttributes('session');
+                        
         end
         
         function rowInd = getCurrentRowSelection(obj)
@@ -643,6 +705,16 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.ColumnModel.setColumnWidths(obj.HTable.ColumnWidth)
         end
         
+        function onColumnsRearranged(obj, src, evt)
+        %onColumnsRearranged Callback for event when columns are rearranged
+        %
+        % This event is triggered when user drags columns to rearrange
+            
+            % Tell columnmodel of new order...
+            newColumnArrangement = obj.HTable.getColumnOrder;
+            obj.ColumnModel.setNewColumnOrder(newColumnArrangement)
+        end
+        
         function openColumnContextMenu(obj, x, y)
             
             if isempty(obj.ColumnContextMenu)
@@ -654,6 +726,17 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Todo: select appearance of context menu based on column type.
             colNumber = obj.HTable.JTable.columnAtPoint(mPos) + 1; % Note, java indexing starts at 0.
             columnType = obj.HTable.ColumnFormat{colNumber};
+            
+            [~, varNames] = obj.ColumnModel.getColumnNames();
+            currentColumnName = varNames{colNumber};
+            
+            isMatch = strcmp( {obj.MetaTableVariableAttributes.Name}, currentColumnName );
+            if any(isMatch)
+                varAttr = obj.MetaTableVariableAttributes(isMatch); 
+            else
+                error('Variable attributes does not exist. This is unexpected.')
+            end
+            
             
             for i = 1:numel(obj.ColumnContextMenu.Children)
                 hTmp = obj.ColumnContextMenu.Children(i);
@@ -686,6 +769,28 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         
                     case 'Hide Column'
                         hTmp.Callback = @(s,e,iCol) obj.hideColumn(colNumber);
+                        
+                    case 'Update Column'
+                        if varAttr.IsCustom && ~varAttr.IsEditable
+                            hTmp.Enable = 'on';
+                            if ~isempty(obj.UpdateColumnFcn) 
+                                % Children are reversed from creation
+                                hTmp.Children(2).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'SelectedRows');
+                                hTmp.Children(1).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'AllRows');
+                            end
+                        else
+                            hTmp.Enable = 'off';
+                        end
+                        
+                    case 'Delete Column'
+                        if varAttr.IsCustom
+                            hTmp.Enable = 'on';
+                            if ~isempty(obj.DeleteColumnFcn)
+                                hTmp.Callback = @(colName, evt) obj.DeleteColumnFcn(currentColumnName);
+                            end
+                        else
+                            hTmp.Enable = 'off';
+                        end
                         
                     otherwise
                         % Do nothing
@@ -747,6 +852,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             obj.ColumnFilter.openFilterControl(dataColumnIndex)            
             obj.AppRef.showSidePanel()
+            
         end
     end
     

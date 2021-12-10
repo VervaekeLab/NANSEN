@@ -42,11 +42,13 @@ classdef BaseSchema < uim.mixin.structAdapter
             numObjects = numel(S);
             propertyNames = fieldnames(S);
             
-            for i = 1:numObjects
-                for j = 1:numel(propertyNames)
-                    if isprop(obj, propertyNames{j})
-                        obj(i).(propertyNames{j}) = S(i).(propertyNames{j});
+            for jProp = 1:numel(propertyNames)
+                if isprop(obj, propertyNames{jProp})
+                    for i = 1:numObjects
+                        obj(i).(propertyNames{jProp}) = S(i).(propertyNames{jProp});
                     end
+                else
+                    % Todo: Add to dynamic property?
                 end
             end
             

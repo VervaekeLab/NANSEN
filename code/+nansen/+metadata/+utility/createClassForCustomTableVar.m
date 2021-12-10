@@ -22,6 +22,8 @@ function createClassForCustomTableVar(S)
             templateName = 'TemplateListVariable';
             isEditable = true;
         otherwise
+            templateName = 'TemplateVariable';
+            isEditable = false;
             % Unknown
     end
 
