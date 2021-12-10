@@ -433,16 +433,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % the correct number of columns are shown.
             obj.HTable.ColumnName = columnLabels;
             
-            
-            % Rearrange the column model index...
-            
-            jColumnModel = obj.HTable.JTable.getTableHeader.getColumnModel;
-            
-            for i = 1:numel(columnLabels)
-                jColumn = jColumnModel.getColumn(i-1);
-                jColumn.setModelIndex(i-1)
-            end
-            
+            obj.ColumnModel.updateJavaColumnModel()
+
             % Maybe call this separately???
             %obj.updateTableView()
             
@@ -474,6 +466,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.HTable.ColumnEditable = allowEdit;
             
         end
+        
         
         function updateTableView(obj)
 
@@ -686,7 +679,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             % Get row and column indices for original data (unfiltered, unsorted, allcolumns)
             tableRowInd = rowInd(evtData.Indices(1));
-            tableColInd = colInd(evtData.Indices(2));
+            
+            evtColIdx = obj.ColumnModel.getColumnIdx( evtData.Indices(2) );
+            tableColInd = colInd(evtColIdx);
+            
             
             % Update value in table and table cell array
             %obj.MetaTable(tableRowInd, tableColInd) = {evtData.NewValue};

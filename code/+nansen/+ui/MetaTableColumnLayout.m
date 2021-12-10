@@ -99,6 +99,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         AllTablePropertyNames
         VisibleTablePropertyNames
         SettingsPropertyNames
+        
+        JColumnModel
+        JColumnModelIndices
     end
     
     properties (Access = private, Hidden)
@@ -341,11 +344,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             colNames = {obj.settings(IND).ColumnLabel};            
             
             % Why this? 
-            [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
-            colNames(indSort) = colNames;
+% %             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
+% %             colNames(indSort) = colNames;
             
             varNames = {obj.settings(IND).VariableName};
-            varNames(indSort) = varNames;
+% %             varNames(indSort) = varNames;
             
             colOrder = [obj.settings(IND).ColumnOrder];
             [~, indSort] = sort(colOrder);
@@ -360,12 +363,19 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         end
         
         function isEditable = getColumnIsEditable(obj)
+            
             IND = obj.getIndicesToShowInMetaTable();
             
             isEditable = [obj.settings(IND).IsEditable];
             
-            [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
-            isEditable(indSort) = isEditable;
+%             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
+%             isEditable(indSort) = isEditable;
+                        
+            % Adjust widths according to the column order
+            colOrder = [obj.settings(IND).ColumnOrder];
+            [~, indSort] = sort(colOrder);
+            isEditable = isEditable(indSort);
+            
         end
         % Todo: Set method for whether columns are editable..
         
@@ -378,8 +388,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 colWidths = transpose(colWidths);
             end
             
-            [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
-            colWidths(indSort) = colWidths;
+% %             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
+% %             colWidths(indSort) = colWidths;
             
             % Adjust widths according to the column order
             colOrder = [obj.settings(IND).ColumnOrder];
@@ -405,7 +415,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 
             % Todo: debug with complex tables!!! % Do this to make sure the
             % value is inserted at the right point in settings.
-            [~, ~, iB] = intersect( obj.SettingsIndices, visibleColumnOrder, 'stable');
+            %[~, ~, iB] = intersect( obj.SettingsIndices, visibleColumnOrder, 'stable');
+
+            [~, iB] = sort(visibleColumnOrder);
+            
+            
             
             for i = 1:numel(IND)
                 obj.settings_(IND(iB(i))).ColumnWidth = columnWidths(i);
@@ -463,7 +477,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             % Get the names of the visible variables and their order in the
             % settings.
-            visibleNames = {obj.settings(IND).VariableName};
+            visibleNames = {obj.settings(IND).ColumnLabel};
             visibleOrder = [obj.settings(IND).ColumnOrder];
             
             % Get the current arrangement of columns
@@ -478,8 +492,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             [~, ~, iC] = intersect(currentColumnArrangement, newColumnArrangement, 'stable');
             
             % Find indices which changed:
-            hasChanged = iC' ~= 1:numel(visibleNames);
-            
+            try
+                hasChanged = iC' ~= 1:numel(visibleNames);
+            catch ME
+                disp(ME.message)
+            end
             
             rearrangedColumns = iC(hasChanged);
             rearrangedColumnsSettingsInd = IND( currentInd(rearrangedColumns) );
@@ -492,25 +509,40 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 thisInd = currentColumnsSettingsInd(count);
                 obj.settings_(thisInd).ColumnOrder = newOrder(count);
             end
-            
-            obj.updateUiTableEditor()
-            return
-            
-            newInd = currentInd(iC);
-            
-            % Rearrange the previous order according to the changes
-            newOrder = visibleOrder(iC);
-            
-            % Update settings. Use internal settings variable is order to
-            % not invoke the onSettingsChanged (change already happened)
-            for count = 1:numel(IND)
-                obj.settings_(IND(count)).ColumnOrder = newOrder(newInd(count));
-            end
-            
+                    
             obj.updateUiTableEditor()
             
         end
         
+        
+        function updateJavaColumnModel(obj)
+            
+            if isempty(obj.JColumnModel)
+                obj.JColumnModel = obj.MetaTableUi.HTable.JTable.getTableHeader.getColumnModel;
+            end
+            
+            numColumns = get(obj.JColumnModel, 'ColumnCount');
+            % Rearrange the column model index...
+            for i = 1:numColumns
+                jColumn = obj.JColumnModel.getColumn(i-1);
+                jColumn.setModelIndex(i-1)
+            end
+            
+            obj.JColumnModelIndices = 1:numColumns;
+        end
+        
+        function idx = getColumnIdx(obj, idx)
+            
+            numColumns = get(obj.JColumnModel, 'ColumnCount');
+            for i = 1:numColumns
+                jColumn = obj.JColumnModel.getColumn(i-1);
+                colIdx = jColumn.getModelIndex();
+                if colIdx == idx
+                    return
+                end
+            end
+            
+        end
     end
     
     methods % Set/get
@@ -664,6 +696,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             indB = find( [obj.settings.ShowColumn] );
             
             IND = intersect(indA, indB);
+            
+            if ~isrow(IND); IND = transpose(IND); end
             
         end
         
