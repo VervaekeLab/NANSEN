@@ -71,6 +71,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         USE_DEFAULT_SETTINGS = false
         DEFAULT_SETTINGS = nansen.ui.MetaTableColumnLayout.getDefaultSettings()
         DEFAULT_COLUMN_WIDTH = 100
+        
+        debug = false
     end
     
     
@@ -158,7 +160,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         
         function addColumnOrderToSettings(obj)
             
-            if ~isfield(obj.settings, 'ColumnOrder')
+            if ~isfield(obj.settings, 'ColumnOrder') || obj.debug
                 for i = 1:numel(obj.settings)
                     obj.settings_(i).ColumnOrder = i;
                 end
@@ -537,7 +539,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             for i = 1:numColumns
                 jColumn = obj.JColumnModel.getColumn(i-1);
                 colIdx = jColumn.getModelIndex();
-                if colIdx == idx
+                if colIdx+1 == idx
+                    idx = i;
                     return
                 end
             end
