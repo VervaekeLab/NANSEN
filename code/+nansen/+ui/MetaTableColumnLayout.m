@@ -367,7 +367,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
             isEditable(indSort) = isEditable;
         end
-        
         % Todo: Set method for whether columns are editable..
         
         function colWidths = getColumnWidths(obj)
@@ -381,6 +380,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
             colWidths(indSort) = colWidths;
+            
+            % Adjust widths according to the column order
+            colOrder = [obj.settings(IND).ColumnOrder];
+            [~, indSort] = sort(colOrder);
+            colWidths = colWidths(indSort);
             
             
             
@@ -398,8 +402,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             visibleColumnOrder = [obj.settings(IND).ColumnOrder];
             
-            
-            
+
             % Todo: debug with complex tables!!! % Do this to make sure the
             % value is inserted at the right point in settings.
             [~, ~, iB] = intersect( obj.SettingsIndices, visibleColumnOrder, 'stable');
