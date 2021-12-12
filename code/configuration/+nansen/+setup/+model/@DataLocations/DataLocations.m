@@ -8,7 +8,9 @@ classdef DataLocations < utility.data.ObjectCatalog
     
     % QUESTIONS:
     
-    
+    properties (Dependent, SetAccess = private)
+        NumDataLocations 
+    end
     
     methods (Static) % Methods in separate files
         S = getDefaultEntry()
@@ -67,11 +69,39 @@ classdef DataLocations < utility.data.ObjectCatalog
         end
     end
     
+    methods % Set/get methods
+    
+        function numDataLocations = get.NumDataLocations(obj)
+            numDataLocations = numel(obj.Data);
+        end
+    end
+    
     methods 
         function setGlobal(obj)
             global dataLocationModel
             dataLocationModel = obj;
         end
+        
+        function validateRootPath(obj, dataLocIdx)
+            
+            % Todo: Loop through all entries in cell array (if many are present) 
+            
+            thisDataLoc = obj.Data(dataLocIdx);
+            if ~isfolder(thisDataLoc.RootPath{1})
+                thisName = obj.Data(dataLocIdx).Name;
+                error('Root path for DataLocation "%s" does not exist', thisName)
+            end
+            
+        end
+        
+        function createRootPath(obj, dataLocIdx)
+            thisRootPath = obj.Data(dataLocIdx).RootPath{1};
+            if ~isfolder(thisRootPath)
+                mkdir(thisRootPath)
+                fprintf('Created root directory for DataLocation %s', obj.Data(dataLocIdx).Name)
+            end
+        end
+            
     end
     
     methods % Methods for updating substructs of data location
@@ -261,7 +291,7 @@ classdef DataLocations < utility.data.ObjectCatalog
         %getFilePath Get filepath for loading/saving datalocation settings   
             fileName = 'DataLocationSettings';
             try
-                pathString = nansen.setup.model.ProjectManager.getFilePath(fileName);
+                pathString = nansen.config.project.ProjectManager.getFilePath(fileName);
             catch
                 pathString = '';
             end

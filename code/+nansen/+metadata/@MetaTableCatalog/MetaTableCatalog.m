@@ -141,7 +141,7 @@ classdef MetaTableCatalog < uim.handle
         %QUICKLOAD Static method for loading catalog without constructing class    
             
             filePath = nansen.metadata.MetaTableCatalog.getFilePath();
-
+            
             if exist(filePath, 'file')
                 S = load(filePath);
                 MT = S.metaTableCatalog;

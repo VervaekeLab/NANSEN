@@ -254,21 +254,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Create a software menu
             m = uimenu(app.Figure, 'Text', 'Nansen');
             
-            mitem = uimenu(m, 'Text','Create New Project...');
-            mitem.MenuSelectedFcn = @app.menuCallback_CreateDb;
             
-            mitem = uimenu(m, 'Text','Change Project');            
-            pm = nansen.ProjectManager;
-            names = {pm.Catalog.Name};
-            for i = 1:numel(names)
-                msubitem = uimenu(mitem, 'Text', names{i});
-                msubitem.MenuSelectedFcn = @app.menuCallback_CreateDb;
-            end
+            
+            % % % % % % Create menu items for PROJECTS % % % % % % 
+            
+            mitem = uimenu(m, 'Text','New Project');
+            uimenu( mitem, 'Text', 'Create New...', 'MenuSelectedFcn', @app.onNewProjectMenuClicked);
+            uimenu( mitem, 'Text', 'Add Existing...', 'MenuSelectedFcn', @app.onNewProjectMenuClicked);
+            
+            mitem = uimenu(m, 'Text','Change Project');
+            app.updateProjectList(mitem)
             
             mitem = uimenu(m, 'Text','Manage Projects');
-            mitem.MenuSelectedFcn = @app.menuCallback_CreateDb;    
+            mitem.MenuSelectedFcn = @app.onManageProjectsMenuClicked;
             
-            mitem = uimenu(m, 'Text','Configure', 'Separator', 'on');
+
+            % % % % % % Create menu items for CONFIGURATION % % % % % % 
+            
+            mitem = uimenu(m, 'Text','Configure', 'Separator', 'on', 'Enable', 'off');
             mitem.MenuSelectedFcn = [];
             
             mitem = uimenu(m, 'Text','Preferences');
@@ -283,7 +286,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
 
             % Create a "Manage" menu
-            m = uimenu(app.Figure, 'Text', 'Manage');
+            m = uimenu(app.Figure, 'Text', 'Manage', 'Enable', 'off');
             
             mitem = uimenu(m, 'Text', 'Create New Metatable...');
             mitem.MenuSelectedFcn = @app.menuCallback_CreateDb;
@@ -291,6 +294,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Database');
             %app.updateRelatedInventoryLists(mitem)
 
+            
+            % % % Create menu items for METATABLE loading and saving % % %
+            
             mitem = uimenu(m, 'Text','Load Metatable...');
             mitem.MenuSelectedFcn = @app.menuCallback_LoadDb;
             mitem = uimenu(m, 'Text','Refresh Metatable');
@@ -346,6 +352,30 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Edit Search/Filter History');
             mitem.MenuSelectedFcn = @app.menuCallback_EditSettings;
             
+        end
+        
+        function updateProjectList(app, mItem)
+        %updateProjectList Update lists of projects in uicomponents
+            
+            if nargin < 2
+                mItem = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Change Project');
+            end
+            
+            pm = nansen.ProjectManager;
+            names = {pm.Catalog.Name};
+            
+            if ~isempty(mItem.Children)
+                delete(mItem.Children)
+            end
+
+            for i = 1:numel(names)
+                msubitem = uimenu(mItem, 'Text', names{i});
+                msubitem.MenuSelectedFcn = @app.onChangeProjectMenuClicked;
+                if strcmp(names{i}, getpref('Nansen', 'CurrentProject'))
+                    msubitem.Checked = 'on';
+                end
+            end
+
         end
         
         function createSessionInfoMenus(app, hMenu, updateFlag)
@@ -656,6 +686,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     methods
+        
+        function changeProject(app, varargin)
+            
+            % Make sure project list is displayed correctly
+            % Indicating current project
+            app.updateProjectList()
+            
+            disp('Work in progress')
+            app.loadMetaTable()
+            
+        end
         
         function entries = getSelectedMetaTableEntries(app)
             
@@ -1343,7 +1384,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onNewMetaTableSet(app)
             if isempty(app.UiMetaTableViewer);    return;    end
-            app.UiMetaTableViewer.MetaTable = app.MetaTable;
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
         
         function onSessionMethodSelected(app, ~, evt)
@@ -1537,6 +1578,71 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         end
         
+    end
+    
+    
+    methods (Access = protected) % Menu Callbacks
+        
+        function onNewProjectMenuClicked(app, src, evt)
+        %onNewProjectMenuClicked Let user add a new project
+        
+            import nansen.config.project.ProjectManagerUI
+
+            switch src.Text
+                case 'Create New...' 
+                    % Todo: open setup from create project page
+                    
+                    msg = 'This will close the current app and open nansen setup. Do you want to continue?';
+                    answer = questdlg(msg, 'Close and continue?');
+                    
+                    switch answer
+                        case 'Yes'
+                            app.onExit(app.Figure)
+                            nansen.setup
+                            return
+                        otherwise
+                            % Do nothing
+                    end
+
+                    
+                case 'Add Existing...'
+                    ProjectManagerUI().addExistingProject()
+            end
+            
+            app.updateProjectList()
+
+        end
+        
+        function onChangeProjectMenuClicked(app, src, evt)
+        %onChangeProjectMenuClicked Let user change current project
+            
+            projectManager = nansen.ProjectManager;
+            projectManager.changeProject(src.Text)
+            
+            % Todo: Update session table!
+            app.changeProject()
+            
+        end
+        
+        function onManageProjectsMenuClicked(app, src, evt)
+            
+            % Todo: Create the ProjectManagerApp
+            import nansen.config.project.ProjectManagerUI
+
+            hFigure = uifigure;
+            hFigure.Position(3:4) = [699,229];
+            uim.utility.layout.centerObjectInRectangle(hFigure, app.Figure)
+            
+            hProjectManager = ProjectManagerUI(hFigure);
+            listener(hProjectManager, 'ProjectChanged', @app.changeProject)
+            hFigure.WindowStyle = 'modal';
+            uiwait(hFigure)
+            
+            app.updateProjectList()
+            
+        end
+            
+            
     end
     
     methods (Hidden, Access = private) % Internal methods for app deletion

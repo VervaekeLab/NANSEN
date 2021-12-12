@@ -230,7 +230,7 @@ classdef DataLocations < utility.data.ObjectCatalog
         %getFilePath Get filepath for loading/saving datalocation settings   
             fileName = 'DataLocationSettings';
             try
-                pathString = nansen.setup.model.ProjectManager.getFilePath(fileName);
+                pathString = nansen.config.project.ProjectManager.getFilePath(fileName);
             catch
                 pathString = '';
             end

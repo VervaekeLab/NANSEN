@@ -185,7 +185,7 @@ classdef FilePathSettingsEditor < handle
         %getFilePath Get filepath for loading/saving filepath settings   
             fileName = 'FilePathSettings';
             try
-                pathString = nansen.setup.model.ProjectManager.getProjectSubPath(fileName);
+                pathString = nansen.config.project.ProjectManager.getProjectSubPath(fileName);
             catch
                 pathString = '';
             end

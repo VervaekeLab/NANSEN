@@ -37,7 +37,7 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
     % Add default information for saving the metatable to a struct
     S = struct();
     S.MetaTableName = metaTable.createDefaultName;
-    S.SavePath = nansen.ProjectManager.getProjectSubPath('MetaTable');
+    S.SavePath = nansen.config.project.ProjectManager.getProjectSubPath('MetaTable');
     S.IsDefault = true;
     S.IsMaster = true;
 

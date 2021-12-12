@@ -99,7 +99,12 @@ classdef MetaTable < handle
         function members = get.members(obj)
             members = obj.MetaTableMembers;
         end
-              
+         
+        function set.entries(obj, value)
+            obj.entries = value;
+            obj.onEntriesChanged()
+        end
+            
         function name = getName(obj)
             name = obj.MetaTableName;
         end
@@ -589,6 +594,10 @@ classdef MetaTable < handle
                 obj.synchToMaster(S)
             end
             
+        end
+        
+        function onEntriesChanged(obj)
+            obj.IsModified = true;
         end
         
         function sort(obj)

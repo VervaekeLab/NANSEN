@@ -1,4 +1,4 @@
-function newFolder = changeProjectFolder(currentFolder, projectName)
+function newFolder = uisetProjectFolder(currentFolder, projectName)
 
     % Todo: Should this be a method of project manager???
 

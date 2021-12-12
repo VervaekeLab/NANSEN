@@ -17,7 +17,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
 %   ABSTRACT PROPERTIES:
 %       AppName (Constant)
 %
-%   ABSTRACT METHODS:
+%   ABSTRACT METHODS (protected): Todo: not abstract
 %       pos = initializeFigurePosition(app)
 %       resizePanel(app, src, evt)
 
@@ -103,12 +103,21 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
     
 % - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - - -
 
-    methods (Abstract, Access = protected)
+    methods (Access = protected)
                 
         % use for when restoring figure size from maximized
-        pos = initializeFigurePosition(app)
+        function pos = initializeFigurePosition(~)
+            screenCoords = get(0, 'ScreenSize');
+            figureSize = [560, 420];
+            figureLocation = screenCoords(1:2) + (figureSize - screenCoords(3:4)) / 2;
+            
+            pos = [figureLocation, figureSize];
+        end
            
-        resizePanel(app, src, evt)
+        function resizePanel(app, src, evt)
+            % Subclass may implement
+        end
+        
     end
     
     methods
