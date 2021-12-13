@@ -21,8 +21,16 @@ classdef Time < nansen.metadata.abstract.TableVariable
         
         function str = getCellDisplayString(obj)
         %getCellDisplayString Return text to display in cell of table
-            obj.Value.Format = obj.TimeFormat;
-            str = sprintf(['\t\t', char(obj.Value)]);
+            
+            if isa(obj.Value, 'datetime')
+                obj.Value.Format = obj.TimeFormat;
+                str = sprintf(['\t\t', char(obj.Value)]);
+            elseif isa(obj.Value, 'char')
+                str = obj.Value;
+            else
+                str = 'N/A';
+            end
+            
         end
         
 %         function value = getValue(obj)

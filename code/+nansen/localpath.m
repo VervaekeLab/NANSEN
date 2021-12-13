@@ -7,8 +7,6 @@ function pathStr = localpath(pathKeyword, project)
 %
 %   This function provides absolute local paths for directory or filepaths
 %   of folders or files that are used within the nansen package.
-% 
-
 
 
 %   Use global variable to keep preference variables while matlab session

@@ -188,7 +188,7 @@ classdef DataLocations < utility.data.ObjectCatalog
             substring = obj.getSubstringFromFolder(pathStr, S);
             
             % Convert to datetime type.
-            if ~isempty(substring) && ~isempty(S.StringFormat)
+            if ~isempty(substring) && isfield(S, 'StringFormat') && ~isempty(S.StringFormat)
                 value = datetime(substring, 'InputFormat', S.StringFormat);
                 value.Format = 'HH:mm:ss'; % Format output as a time.
             else
@@ -202,7 +202,7 @@ classdef DataLocations < utility.data.ObjectCatalog
             substring = obj.getSubstringFromFolder(pathStr, S);
             
             % Convert to datetime type.
-            if ~isempty(substring) && ~isempty(S.StringFormat)
+            if ~isempty(substring) && isfield(S, 'StringFormat') && ~isempty(S.StringFormat)
                 value = datetime(substring, 'InputFormat', S.StringFormat);
             else
                 value = substring;

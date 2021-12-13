@@ -240,9 +240,16 @@ classdef ProjectManager < handle
             end
             
             % Update data in nansenGlobal. Todo: Improve this...
-            global dataLocationModel dataFilePathModel
+            global nansenPreferences dataLocationModel dataFilePathModel
             if ~isempty(dataLocationModel); dataLocationModel.refresh(); end
             if ~isempty(dataFilePathModel); dataFilePathModel.refresh(); end
+            
+            % Reset local path variable
+            if ~isempty(nansenPreferences)
+                if isfield(nansenPreferences, 'localPath')
+                    nansenPreferences.localPath = containers.Map;
+                end
+            end
             
         end
         
