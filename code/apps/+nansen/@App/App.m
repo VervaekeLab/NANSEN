@@ -75,10 +75,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Add project folder to path. 
             projectPath = nansen.localpath('Current Project');
-            currentPath = path;
-            if ~contains(currentPath, projectPath)
-                addpath(projectPath)
-            end
+            addpath(genpath(projectPath)) % todo. dont brute force this..
+            
             
 
             app.switchJavaWarnings('off')
@@ -691,7 +689,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Indicating current project
             app.updateProjectList()
             
-            disp('Work in progress')
+            disp('Changing project is a work in progress. Some things might not work as expected.')
             app.loadMetaTable()
             
         end

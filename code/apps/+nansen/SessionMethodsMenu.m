@@ -151,7 +151,11 @@ classdef SessionMethodsMenu < handle
                         continue
                     end
                     
-                    iMenu = uimenu(hParent, 'Text', menuName);
+                    % Check if menu already exist.
+                    iMenu = findobj(obj.ParentApp.Figure, 'Type', 'uimenu', '-and', 'Text', menuName);
+                    if isempty(iMenu)
+                        iMenu = uimenu(hParent, 'Text', menuName);
+                    end
                     
                     % Recursively add subdirectory as a submenu
                     subDirPath = fullfile(L(i).folder, L(i).name);

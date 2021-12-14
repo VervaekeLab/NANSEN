@@ -234,6 +234,9 @@ classdef ProjectManager < handle
             setpref('Nansen', 'CurrentProject', projectEntry.Name)
             setpref('Nansen', 'CurrentProjectPath', projectEntry.Path)
                         
+            % Add project to path...
+            addpath(genpath(projectEntry.Path))
+            
             msg = sprintf('Current NANSEN project was changed to "%s"\n', name);
             if ~nargout
                 fprintf(msg); clear msg
