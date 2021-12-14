@@ -326,15 +326,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createSessionInfoMenus(m)
 
 
-            nansenPath = utility.path.getAncestorDir(nansen.rootpath, 1);
-            menuRootPath = fullfile(nansenPath, 'code', 'sessionMethods');
+            menuRootPath = fullfile(nansen.rootpath, '+session', '+methods');
             
             app.SessionMethodsMenu = nansen.SessionMethodsMenu(app);
             
             l = listener(app.SessionMethodsMenu, 'MethodSelected', ...
                 @app.onSessionMethodSelected);
             app.TaskInitializationListener = l;
-            
             
             
             % app.createMenuFromDir(app.Figure, menuRootPath)
@@ -1400,19 +1398,32 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return
             end
             
-            % Get function handle for session method.
-            sessionMethod = evt.MethodFcn;
+            functionName = func2str(evt.MethodFcn);
+            returnToIdle = app.setBusy(functionName); %#ok<NASGU>
             
-            returnToIdle = app.setBusy(sessionMethod); %#ok<NASGU>
-
+            
             % Get configuration attributes for session method. 
             try
                 % Call with no inputs should give configuration struct
                 mConfig = evt.MethodFcn();
-            catch
-                % Get defaults if session method is just a function handle
-                mConfig = abstract.SessionMethod.setAttributes();
+
+                if isa(mConfig, 'struct')
+                    % Add an options manager to the mConfig struct
+                    mConfig.OptionsManager = nansen.manage.OptionsManager(..., 
+                        functionName, mConfig.DefaultOptions);
+                    
+                elseif isa(mConfig, 'nansen.session.SessionMethod')
+                    % Pass
+                    
+                else
+                    %TODO: create proper exception
+                    error('%s is not a valid SessionMethod')
+                end
+
+            catch ME
+                throwAsCaller(ME)
             end
+            
             
             % Check if session task should be run in serial or batch
             isSerial = strcmp(mConfig.BatchMode, 'serial');
@@ -1428,19 +1439,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 sessionObj = {sessionObj};
             end
             
+            sessionMethod = evt.MethodFcn; 
             
             % Todo: What if there is a keyword???
             optsName = evt.OptionsSelection;
+            opts = mConfig.OptionsManager.getOptions(optsName);
                 
             switch evt.Mode
                 case 'Default'
-                    app.runTasksWithDefaults(sessionMethod, sessionObj, optsName)
+                    app.runTasksWithDefaults(sessionMethod, sessionObj, opts, optsName)
 
                 case 'Preview'
-                    app.runTasksWithPreview(sessionMethod, sessionObj, optsName)
+                    app.runTasksWithPreview(sessionMethod, sessionObj, opts, optsName)
 
                 case 'TaskQueue'
-                    app.addTasksToQueue(sessionMethod, sessionObj, optsName)
+                    app.addTasksToQueue(sessionMethod, sessionObj, opts, optsName)
             end
               
             % Clear the statusfield
@@ -1460,18 +1473,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
-        function runTasksWithDefaults(app, sessionMethod, sessionObj, optsName)
-            
-            % Get default options
-            %options = struct();
-            %options = sessionMethod();
-            
-            mConfig = sessionMethod();
-            optManager = mConfig.OptionsManager;
-            opts = optManager.getOptions(optsName);
+        function runTasksWithDefaults(app, sessionMethod, sessionObj, opts, ~)
+        %runTasksWithDefaults Run session method with default options
             
             % Get task name
-            taskName = 'Testing';
+            taskName = nansen.session.SessionMethod.getMethodName(sessionMethod);
                         
             % Todo: Check if there is a maximum number of tasks for this
             % method.
@@ -1483,22 +1489,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.updateStatusField(i-1, numTasks, sessionMethod)
                 
                 % Run the task
-                sessionMethod(sessionObj{i}, opts)
-
+                try
+                    sessionMethod(sessionObj{i}, opts)
+                catch ME
+                    
+                    errorMessage = sprintf('Session method ''%s'' failed for session ''%s''.\n', ...
+                        taskName, sessionObj{i}.sessionID);
+                    errordlg([errorMessage, ME.message])
+                    rethrow(ME)
+                end
                 %pause(2)
                 
             end
             
         end
         
-        function runTasksWithPreview(app, sessionMethod, sessionObj, optsName)
+        function runTasksWithPreview(app, sessionMethod, sessionObj, opts, optsName)
             % Get default options
-            
             % Get task name
 
-            %   TODO (NB): If closing (canceling) struct dialog, method is
-            %   still run.
-            
             % Use normcorre as an example: how to open the preview mode 
             % i.e open the image stack in imviewer and open the normcorre
             % plugin? 
@@ -1509,41 +1518,34 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             numTasks = numel(sessionObj);
             for i = 1:numTasks
                 
-                % Open the options / method in preview mode
-                sMethod = sessionMethod(sessionObj{i});
+                sMethod = sessionMethod();
                 
-                if isa(sMethod, 'abstract.SessionMethod')
+                % Open the options / method in preview mode
+                if isa(sMethod, 'nansen.session.SessionMethod')
+                    sMethod = sessionMethod(sessionObj{i});
                     sMethod.usePreset(optsName)
                     isSuccess = sMethod.preview();
                     if isSuccess
                         sMethod.run()
                     end
                 else
-                    optManager = sMethod.OptionsManager;
-                    params = optManager.getOptions(optsName);
-
-                    %params = fcnConfig.Parameters;
-                    %options = sessionMethod('Options', optsName);
-
-                    params = tools.editStruct(params, nan, '', 'OptionsManager', optManager);
-
-                    sessionMethod(sessionObj{i}, params)
-                
+                    fcnName = func2str(sessionMethod);
+                    optManager = nansen.manage.OptionsManager(fcnName);
+                    [opts, wasAborted] = tools.editStruct(opts, nan, ...
+                        '', 'OptionsManager', optManager);
+                    
+                    if ~wasAborted
+                        sessionMethod(sessionObj{i}, opts)
+                    end
                 end
                 
             end
             
             % Todo: Add method for updating menu options for this submenu
-             
+            
         end
         
-        function addTasksToQueue(app, sessionMethod, sessionObj, optsName)
-            
-            % Get default options
-            
-            mConfig = sessionMethod();
-            optManager = mConfig.OptionsManager;
-            opts = optManager.getOptions(optsName);
+        function addTasksToQueue(app, sessionMethod, sessionObj, opts, optsName)
 
             % Add tasks to the queue
             numTasks = numel(sessionObj);

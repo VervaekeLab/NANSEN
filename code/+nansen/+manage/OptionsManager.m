@@ -194,7 +194,7 @@ classdef OptionsManager < handle
                 else
                     % Check if provided options already exist...
                     if obj.hasOptions(obj.OptionsName)
-                        warning('This option preset already exists, retrieving existing preset')
+                        %warning('This option preset already exists, retrieving existing preset')
                         obj.getOptions(obj.OptionsName)
                         
                     % Save custom options to file
@@ -815,6 +815,7 @@ classdef OptionsManager < handle
                             return
 
                         case {'MATLAB:TooManyOutputs', 'MATLAB:minrhs'}
+                            % Function returns many outputs?
                             fcnType = 1;
                             
                         otherwise

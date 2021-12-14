@@ -51,6 +51,13 @@ classdef SessionMethodsMenu < handle
         hMenuItems matlab.ui.container.Menu
     end
     
+    properties (Access = private)
+        DefaultMethodsPath char % Todo: Tie to a session type. Ie Ephys, ophys etc.
+        ProjectMethodsPath char
+        
+        ProjectChangedListener
+    end
+    
     
     events
         MethodSelected
@@ -65,11 +72,10 @@ classdef SessionMethodsMenu < handle
             % NB: This assumes that the ParentApp has a Figure property
             hFig = obj.ParentApp.Figure;
             
-            % Todo: Get rootPaths from different directories
-            nansenPath = utility.path.getAncestorDir(nansen.rootpath, 1);
-            menuRootPath = fullfile(nansenPath, 'code', 'sessionMethods');
+            obj.assignDefaultMethodsPath()
+            obj.assignProjectMethodsPath()
             
-            obj.createMenuFromDirectory(hFig, menuRootPath);
+            obj.createMenuFromDirectory(hFig);
             
         end
 
@@ -90,6 +96,19 @@ classdef SessionMethodsMenu < handle
     end
     
     methods (Access = private)
+        
+        function assignDefaultMethodsPath(obj)
+            %Todo: This should depend on session schema.
+            obj.DefaultMethodsPath = fullfile(nansen.rootpath, '+session', '+methods');
+        end
+        
+        function assignProjectMethodsPath(obj)
+            
+            projectRootPath = nansen.localpath('project');
+            [~, projectName] = fileparts(projectRootPath);
+            obj.ProjectMethodsPath = fullfile(projectRootPath, ...
+                'Session Methods', ['+', projectName] );
+        end
                 
         function createMenuFromDirectory(obj, hParent, dirPath)
         %createMenuFromDirectory Create menu items from a directory tree
@@ -104,8 +123,18 @@ classdef SessionMethodsMenu < handle
         
         % Requires: utility.string.varname2label
         
+            if nargin < 3
+                dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
+            end
+        
             % List contents of directory given in inputs
-            L = dir(dirPath);
+            if isa(dirPath, 'cell')
+                L = cellfun(@(pStr) dir(pStr), dirPath, 'uni', 0);
+                L = cat(1, L{:});
+            else
+                L = dir(dirPath);
+            end
+            
             L = L(~strncmp({L.name}, '.', 1));
             
             
@@ -118,7 +147,7 @@ classdef SessionMethodsMenu < handle
                     menuName = strrep(L(i).name, '+', '');
                     menuName = utility.string.varname2label(menuName);
                 
-                    if strcmp(menuName, 'Abstract')
+                    if strcmp(menuName, 'Abstract') || strcmp(menuName, 'Template')
                         continue
                     end
                     
@@ -311,9 +340,8 @@ classdef SessionMethodsMenu < handle
             try
                 mConfig = hfun(); % Call with no input should give configs
             catch % Get defaults it there are no config:
-                mConfig = abstract.SessionMethod.setAttributes();
+                mConfig = nansen.session.SessionMethod.setAttributes();
             end
-            
         end
         
     end
@@ -332,7 +360,7 @@ end
 % % %         
 % % %         
 % % %             % Todo: Get from superclass constant properties. 
-% % %             % utility.class.findproperties('abstract.SessionMethod', 'Constant')
+% % %             % utility.class.findproperties('nansen.session.SessionMethod', 'Constant')
 % % %             
 % % %             attributes = {'BatchMode', 'Alternatives', 'IsQueueable'};
 % % %             S = struct();

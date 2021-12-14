@@ -166,7 +166,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                     error('File does not hold specified variable')
                 end
             else
-                error('File not found')
+                error('Variable ''%s'' was not found.', varName)
             end
             
         end

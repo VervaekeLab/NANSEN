@@ -24,6 +24,12 @@ if isunderscore(varname)
 
     label = strrep(varname, '_', ' ');
     
+    [strInd] = regexp(label, ' ');
+    strInd = [0, strInd] + 1;
+    
+    for i = strInd
+        label(i) = upper(label(i));
+    end
 
 elseif iscamelcase(varname)
     
