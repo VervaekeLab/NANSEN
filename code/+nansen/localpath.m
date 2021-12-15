@@ -28,8 +28,8 @@ function pathStr = localpath(pathKeyword, projectName)
     end
 
     
-    if nargin < 2 || strcmp(projectName, 'current') % Should it be called current?
-        projectRootDir = nansen.localpath('current_project_dir');
+    if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')% Should it be called current?
+        projectRootDir = nansen.config.project.ProjectManager.getProjectPath();
     else
         projectRootDir = nansen.config.project.ProjectManager.getProjectPath(projectName);
     end

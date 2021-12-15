@@ -273,6 +273,10 @@ classdef ProjectManager < handle
         
         function pathStr = getProjectPath(projectName)
             
+            if ~nargin
+                projectName = getpref('Nansen', 'CurrentProject', '');
+            end
+            
             catalogPath = nansen.config.project.ProjectManager.getCatalogPath();
             S = load(catalogPath);
             

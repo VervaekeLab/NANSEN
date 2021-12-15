@@ -48,6 +48,7 @@ classdef SessionMethodsMenu < handle
     end
     
     properties (Access = private)
+        hMenuDirs matlab.ui.container.Menu
         hMenuItems matlab.ui.container.Menu
     end
     
@@ -99,7 +100,13 @@ classdef SessionMethodsMenu < handle
     
     methods
         function refresh(obj)
+            delete( obj.hMenuDirs )
             delete( obj.hMenuItems )
+            
+            obj.SessionMethods = struct('Name', {}, 'Attributes', {});
+
+            
+            obj.assignProjectMethodsPath() % Should make this happen only if project is changed... Not urgent
             obj.createMenuFromDirectory(obj.ParentApp.Figure);
         end
         
@@ -130,6 +137,7 @@ classdef SessionMethodsMenu < handle
             obj.ProjectMethodsPath = fullfile(projectRootPath, ...
                 'Session Methods', ['+', projectName] );
             
+            if ~isfolder(obj.ProjectMethodsPath); mkdir(obj.ProjectMethodsPath); end
             obj.ProjectMethodsPackage = utility.path.pathstr2packagename(obj.ProjectMethodsPath);
             
         end
@@ -220,6 +228,7 @@ classdef SessionMethodsMenu < handle
                     iMenu = findobj(hParent, 'Type', 'uimenu', '-and', 'Text', menuName, '-depth', 1);
                     if isempty(iMenu)
                         iMenu = uimenu(hParent, 'Text', menuName);
+                        obj.hMenuDirs(end+1) = iMenu;
                     end
                     
                     % Recursively add subdirectory as a submenu

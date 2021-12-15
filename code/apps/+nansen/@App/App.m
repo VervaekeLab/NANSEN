@@ -49,6 +49,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         SessionMethods matlab.ui.container.Menu
         SessionMethodsMenu
         SessionContextMenu
+        
+        MessagePanel
+        MessageBox
     end
     
     properties
@@ -87,6 +90,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createMenu()
             app.createLayout()
             app.createComponents()
+            app.createMessagePanel()
             
             app.switchJavaWarnings('on')
             
@@ -570,6 +574,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
+        function createMessagePanel(app)
+            
+% %             app.MessagePanel = uipanel(app.Figure, 'units', 'pixels');
+% %             app.MessagePanel.Position(3:4) = [400, 100];
+% %             app.MessagePanel.Visible = 'off';
+% %             app.MessagePanel.BorderType = 'line';
+% %             referencePosition =  [1,1,app.Figure.Position(3:4)];
+% %             uim.utility.layout.centerObjectInRectangle(app.MessagePanel, referencePosition)
+% %             app.MessageBox = uim.widget.messageBox(app.MessagePanel);
+            
+        end
+        
+        
         function createStatusField(app)
             
             app.h.StatusField = uicontrol('Parent', app.hLayout.StatusPanel, 'style', 'text');
@@ -699,6 +716,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             disp('Changing project is a work in progress. Some things might not work as expected.')
             app.loadMetaTable()
+            
+            app.SessionMethodsMenu.refresh()
             
         end
         
@@ -1623,7 +1642,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onChangeProjectMenuClicked(app, src, evt)
         %onChangeProjectMenuClicked Let user change current project
-            
+        
             projectManager = nansen.ProjectManager;
             projectManager.changeProject(src.Text)
             
