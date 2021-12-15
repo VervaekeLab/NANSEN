@@ -19,10 +19,16 @@ classdef MetaTableCatalog < uim.handle
     
     methods
         
-        function obj = MetaTableCatalog()
+        function obj = MetaTableCatalog(filePath)
         % Construct an instance of the metatable catalog
-            obj.FilePath = obj.getFilePath();
-            obj.Table = obj.quickload();
+        
+            if nargin < 1
+                obj.FilePath = obj.getFilePath();
+            else
+                obj.FilePath = filePath;
+            end
+            
+            obj.load();
         end
         
         function disp(obj)
@@ -36,6 +42,11 @@ classdef MetaTableCatalog < uim.handle
         
         function delete(obj)
            % Todo: Check for unsaved changes. 
+        end
+        
+        function load(obj)
+            S = load(obj.FilePath, 'metaTableCatalog');
+            obj.Table = S.metaTableCatalog;
         end
         
         function save(obj)

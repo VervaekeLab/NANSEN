@@ -159,18 +159,34 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             filePath = obj.getDataFilePath(varName, '-r', varargin{:});
             
             if isfile(filePath)
-                S = load(filePath, varName);
-                if isfield(S, varName)
-                    data = S.(varName);
-                else
-                    error('File does not hold specified variable')
+                
+                [~, ~, ext] = fileparts(filePath);
+
+                switch ext
+                    case '.mat'
+                        S = load(filePath, varName);
+                        if isfield(S, varName)
+                            data = S.(varName);
+                        else
+                            S = load(filePath);
+                            data = S;
+        %                 else
+        %                     error('File does not hold specified variable')
+                        end
+                        
+                    case {'.raw', '.tif'}
+                        data = nansen.stack.ImageStack(filePath);
+                        
+                    otherwise
+                        error('Nansen:Session:LoadData', 'Files of type ''%s'' is not supported for loading', ext)
+ 
                 end
+
             else
                 error('Variable ''%s'' was not found.', varName)
             end
             
         end
-        
         
         function saveData(obj, varName, data, varargin)
             
@@ -183,7 +199,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             save(filePath, '-struct', 'S')
             
         end
-        
         
         function pathStr = getDataFilePath(obj, varName, varargin)
         %getDataFilePath Get filepath to data within a session folder
@@ -233,12 +248,19 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             % Get the entry for given variable name from model
             [S, isExistingEntry] = dataFilePathModel.getEntry(varName);
         
-            % Get path to session folder
-            sessionFolder = obj.getSessionFolder(S.DataLocation);
+            if ~isExistingEntry
+                S = utility.parsenvpairs(S, [], parameters);
+            end
             
-            % Check if file should be located within a subfolder.
-            if isfield(parameters, 'Subfolder') && ~isExistingEntry
-                S.Subfolder = parameters.Subfolder;
+            % Get path to session folder
+            try
+                sessionFolder = obj.getSessionFolder(S.DataLocation);
+            catch ME
+                if strcmp(mode, 'write')
+                    sessionFolder = obj.createSessionFolder(S.DataLocation);
+                else
+                    rethrow(ME)
+                end
             end
             
             if ~isempty(S.Subfolder)
@@ -251,7 +273,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             
             
             if isempty(S.FileNameExpression)
-                fileName = obj.createFileName(varName, parameters);
+                fileName = obj.createFileName(varName, S);
             else
                 fileName = obj.lookForFile(sessionFolder, S);
                 if isempty(fileName)
@@ -367,6 +389,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             if isempty(dataLocationModel)
                 dataLocationModel = nansen.setup.model.DataLocations();
             end
+            
+            folderPath = '';
             
             if isfield(obj.DataLocation, dataLocationType)
                 folderPath = obj.DataLocation.(dataLocationType);

@@ -403,6 +403,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(hMenu, 'Text','Manage Variables...', 'Enable', 'off');
             
             
+            mitem = uimenu(hMenu, 'Text', 'Create New Session Method', 'Separator', 'on');
+            mitem.MenuSelectedFcn = @app.onCreateSessionMethodMenuClicked;
+
+            mitem = uimenu(hMenu, 'Text', 'Refresh Session Methods');
+            mitem.MenuSelectedFcn = @app.onRefreshSessionMethodMenuClicked;
+
+            
+            
 % %             mitem = uimenu(hMenu, 'Text','Edit Table Variable Definition');            
 % %             columnVariables = getPublicSessionInfoVariables(app.MetaTable);
 % % 
@@ -1642,6 +1650,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
             
+        function onCreateSessionMethodMenuClicked(app, src, evt)
+
+            nansen.session.methods.template.createNewSessionMethod(app);
+            
+            % Update session menu!
+            
+        end
+        
+        function onRefreshSessionMethodMenuClicked(app, src, evt)
+            app.SessionMethodsMenu.refresh()
+        end
             
     end
     

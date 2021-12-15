@@ -29,6 +29,7 @@ classdef SessionData < dynamicprops
     
     properties (Access = private)
         VariableList = {};
+        FileList containers.Map
     end
     
     
@@ -54,6 +55,10 @@ classdef SessionData < dynamicprops
             obj.Time = sessionObj.Time;
             obj.DataLocation = sessionObj.DataLocation;
 
+            
+            % Initialize the property value here (because Map is handle)
+            obj.FileList = containers.Map;
+            
         end
         
     end
@@ -62,6 +67,7 @@ classdef SessionData < dynamicprops
     
     methods
         function updateDataVariables(obj)
+            
             tic
             varNames = {obj.DataFilePathModel.VariableList.VariableName};
             
@@ -93,11 +99,12 @@ classdef SessionData < dynamicprops
             pPrivate.SetAccess = 'private';
             pPrivate.GetAccess = 'private';
             
-            obj.(privateVariableName) = [];
+            %obj.(privateVariableName) = [];
             
             pPuplic.GetMethod = @(h, varName) obj.getDataVariable(variableName);
-            pPuplic.SetMethod = @obj.setDataVariable;
             
+            %pPuplic.SetMethod = @obj.setDataVariable;
+            pPuplic.SetAccess = 'private'; %todo: Add set functionality
             obj.VariableList{end+1} = variableName;
 
         end
@@ -220,18 +227,32 @@ classdef SessionData < dynamicprops
             %   [ ] Implement file adapters.
             
             filePath = obj.getDataFilePath(varName, '-r', varargin{:});
-            
+
             if isfile(filePath)
                 
-                S = load(filePath, varName);
-                if isfield(S, varName)
-                    data = S.(varName);
-                else
-                    S = load(filePath);
-                    data = S;
-%                 else
-%                     error('File does not hold specified variable')
+                [~, ~, ext] = fileparts(filePath);
+                
+                switch ext
+                    case '.mat'
+                        S = load(filePath, varName);
+                        if isfield(S, varName)
+                            data = S.(varName);
+                        else
+                            S = load(filePath);
+                            data = S;
+        %                 else
+        %                     error('File does not hold specified variable')
+                        end
+                        
+                    case {'.raw', '.tif'}
+                        data = nansen.stack.ImageStack(filePath);
+                        
+                    otherwise
+                        error('Nansen:Session:LoadData', 'Files of type ''%s'' is not supported for loading', ext)
+ 
                 end
+                
+
             else
                 error('File not found')
             end
@@ -298,33 +319,35 @@ classdef SessionData < dynamicprops
             % Get the entry for given variable name from model
             [S, isExistingEntry] = dataFilePathModel.getEntry(varName);
         
+            if ~isExistingEntry
+                S = utility.parsenvpairs(S, [], parameters);
+            end
+            
             % Get path to session folder
             sessionFolder = obj.getSessionFolder(S.DataLocation);
             
             % Check if file should be located within a subfolder.
-            if isfield(parameters, 'Subfolder') && ~isExistingEntry
-                S.Subfolder = parameters.Subfolder;
-            end
-            
             if ~isempty(S.Subfolder)
-                sessionFolder = fullfile(sessionFolder, S.Subfolder);
+                dataFolder = fullfile(sessionFolder, S.Subfolder);
                 
-                if ~isfolder(sessionFolder) && strcmp(mode, 'write')
-                    mkdir(sessionFolder)
+                if ~isfolder(dataFolder) && strcmp(mode, 'write')
+                    mkdir(dataFolder)
                 end
+            else
+                dataFolder = sessionFolder;
             end
             
             
             if isempty(S.FileNameExpression)
-                fileName = obj.createFileName(varName, parameters);
+                fileName = obj.createFileName(varName, S);
             else
-                fileName = obj.lookForFile(sessionFolder, S);
+                fileName = obj.lookForFile(dataFolder, S);
                 if isempty(fileName)
                     fileName = obj.getFileName(S);
                 end
             end
             
-            pathStr = fullfile(sessionFolder, fileName);
+            pathStr = fullfile(dataFolder, fileName);
             
             % Save filepath entry to filepath settings if it did
             % not exist from before...
@@ -364,6 +387,27 @@ classdef SessionData < dynamicprops
             else
                 expression = ['*', expression, fileType]; % Todo: ['*', expression, '*', fileType] <- Is this necessary???
             end
+            
+            
+            % Is this faster if there are many files?
+% % %             if isKey(obj.FileList, sessionFolder)
+% % %                 fileList = obj.FileList(sessionFolder);
+% % %             else
+% % %                 L = dir(sessionFolder);
+% % %                 L = L(~strncmp({L.name}, '.', 1));
+% % %                 fileList = {L.name};
+% % %                 obj.FileList(sessionFolder) = fileList;
+% % %             end
+% % % 
+% % %             expression = strrep(expression, '*', '')
+% % %             isMatch = contains(fileList, expression);
+% % %             if any(isMatch) && sum(isMatch)==1
+% % %                 fileName = fileList{isMatch};
+% % %             elseif any(isMatch) && sum(isMatch) < 1
+% % %                 error('Multiple files were found')
+% % %             else
+% % %                 fileName = '';
+% % %             end
             
             L = dir(fullfile(sessionFolder, expression));
             L = L(~strncmp({L.name}, '.', 1));

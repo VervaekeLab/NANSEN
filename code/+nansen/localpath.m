@@ -1,4 +1,4 @@
-function pathStr = localpath(pathKeyword, project)
+function pathStr = localpath(pathKeyword, projectName)
 % Get (absolute) local paths for files & folders used in the nansen package
 %
 %   pathStr = localpath(pathKeyword)
@@ -20,18 +20,18 @@ function pathStr = localpath(pathKeyword, project)
         nansenPreferences.localPath = containers.Map;
     end
     
-    if isKey(nansenPreferences.localPath, pathKeyword)
-        pathStr = nansenPreferences.localPath(pathKeyword);
-        return
+    if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')
+        if isKey(nansenPreferences.localPath, pathKeyword)
+            pathStr = nansenPreferences.localPath(pathKeyword);
+            return
+        end
     end
 
     
-    if nargin < 2 % Assume no project path is requested
-        projectRootDir = '';
-    elseif strcmp(project, 'current') % Should it be called current?
+    if nargin < 2 || strcmp(projectName, 'current') % Should it be called current?
         projectRootDir = nansen.localpath('current_project_dir');
     else
-        error('Project specification is not implemented yet')
+        projectRootDir = nansen.config.project.ProjectManager.getProjectPath(projectName);
     end
 
     % Determine path folder (and filename if relevant) based input keyword

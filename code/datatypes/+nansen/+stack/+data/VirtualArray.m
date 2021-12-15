@@ -190,6 +190,10 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 %data = obj.readFrames(subs);
             end
             
+            if ~all( size(data, [1,2]) == cellfun(@numel, subs(1:2) ) )
+                data = data(subs{1:ndims(data)});
+            end
+                
         end
         
         function setData(obj, subs, data)

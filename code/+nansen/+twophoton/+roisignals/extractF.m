@@ -86,7 +86,7 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
     if numRois < 100
         if imageStack.IsVirtual
             %blockSize = imageStack.getBatchSize(class(imageStack.imageData));
-            blockSize = imageStack.chooseChunkLength(class(imageStack.imageData));
+            blockSize = imageStack.chooseChunkLength(imageStack.DataType);
         else
             blockSize = imageStack.NumTimepoints;
         end

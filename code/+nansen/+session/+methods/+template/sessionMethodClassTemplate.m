@@ -1,10 +1,12 @@
 classdef sessionMethodClassTemplate < nansen.session.SessionMethod
-
+%SESSIONMETHODCLASSTEMPLATE Summary of this function goes here
+%   Detailed explanation goes here
     
     properties (Constant) % SessionMethod attributes
+        MethodName = ''
         BatchMode = 'serial'
         IsQueueable = true;
-        OptionsManager = nansen.OptionsManager('nansen.adapter.NAME')
+        OptionsManager = nansen.OptionsManager.empty % todo...
     end
     
     

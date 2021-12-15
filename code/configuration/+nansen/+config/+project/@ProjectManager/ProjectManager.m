@@ -271,6 +271,21 @@ classdef ProjectManager < handle
             pathStr = fullfile(projectRootPath, 'project_catalog.mat');
         end
         
+        function pathStr = getProjectPath(projectName)
+            
+            catalogPath = nansen.config.project.ProjectManager.getCatalogPath();
+            S = load(catalogPath);
+            
+            isMatch = strcmp({S.projectCatalog.Name}, projectName);
+            
+            if any(isMatch)
+                pathStr = S.projectCatalog(isMatch).Path;
+            else
+                error('Project with name ''%s'' was not found', projectName);
+            end
+            
+        end
+        
         function pathStr = getProjectSubPath(keyword)
         %getProjectSubPath Get a filepath within given current project
         %

@@ -54,6 +54,8 @@ classdef SessionMethodsMenu < handle
     properties (Access = private)
         DefaultMethodsPath char % Todo: Tie to a session type. Ie Ephys, ophys etc.
         ProjectMethodsPath char
+        DefaultMethodsPackage char
+        ProjectMethodsPackage char
         
         ProjectChangedListener
     end
@@ -95,11 +97,30 @@ classdef SessionMethodsMenu < handle
         end
     end
     
+    methods
+        function refresh(obj)
+            delete( obj.hMenuItems )
+            obj.createMenuFromDirectory(obj.ParentApp.Figure);
+        end
+        
+        function menuNames = getTopMenuNames(obj)
+            
+            dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
+            ignoreList = {'+abstract', '+template'};
+            
+           	[~, menuNames] = utility.path.listSubDir(dirPath, '', ignoreList);
+            menuNames = strrep(menuNames, '+', '');
+            menuNames = unique(menuNames);
+        end
+    end
+    
+    
     methods (Access = private)
         
         function assignDefaultMethodsPath(obj)
             %Todo: This should depend on session schema.
             obj.DefaultMethodsPath = fullfile(nansen.rootpath, '+session', '+methods');
+            obj.DefaultMethodsPackage = utility.path.pathstr2packagename(obj.DefaultMethodsPath);
         end
         
         function assignProjectMethodsPath(obj)
@@ -108,8 +129,52 @@ classdef SessionMethodsMenu < handle
             [~, projectName] = fileparts(projectRootPath);
             obj.ProjectMethodsPath = fullfile(projectRootPath, ...
                 'Session Methods', ['+', projectName] );
+            
+            obj.ProjectMethodsPackage = utility.path.pathstr2packagename(obj.ProjectMethodsPath);
+            
         end
+        
+        function packagePathList = listPackageHierarchy(obj)
+        %listPackageHierarchy Get all package folders containing session methods   
+        %
+        %   This function retrieves all package folders that contain
+        %   session method, both default nansen methods and user project
+        %   methods.
+        
+            dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
+            ignoreList = {'+abstract', '+template'};
+            
+            finished = false;
+            packagePathList = {};
+            
+            while ~finished
                 
+                [absPath, ~] = utility.path.listSubDir(dirPath, '', ignoreList);
+
+                if isempty(absPath)
+                    finished = true;
+                else
+                    packagePathList = [packagePathList, absPath];
+                    dirPath = absPath;
+                end
+            end
+
+            packagePathList = obj.sortPackageHierarchy(packagePathList);
+            
+        end
+        
+        function packagePathList = sortPackageHierarchy(obj, packagePathList)
+        %sortPackageHierarchy Sort package folders so that subpackages from
+        %different root directories are put in successive order.
+        
+            packageListLocal = packagePathList;
+            packageListLocal = strrep(packageListLocal, obj.DefaultMethodsPath, '');
+            packageListLocal = strrep(packageListLocal, obj.ProjectMethodsPath, '');
+            
+            [~, sortInd] = sort(packageListLocal);
+            packagePathList = packagePathList(sortInd);
+        end
+
         function createMenuFromDirectory(obj, hParent, dirPath)
         %createMenuFromDirectory Create menu items from a directory tree
         %
@@ -152,7 +217,7 @@ classdef SessionMethodsMenu < handle
                     end
                     
                     % Check if menu already exist.
-                    iMenu = findobj(obj.ParentApp.Figure, 'Type', 'uimenu', '-and', 'Text', menuName);
+                    iMenu = findobj(hParent, 'Type', 'uimenu', '-and', 'Text', menuName, '-depth', 1);
                     if isempty(iMenu)
                         iMenu = uimenu(hParent, 'Text', menuName);
                     end
@@ -174,6 +239,103 @@ classdef SessionMethodsMenu < handle
                     % Get the full function name (including package names)
                     functionName = obj.getFunctionStringName(L(i).folder, fileName);
 
+                    
+                    % Create menu items with function handle as callback
+                    if ~isempty(meta.class.fromName(functionName))
+                        
+                        % Get attributes for session method/function.
+                        fcnConfig = obj.getMethodAttributes(functionName);
+                        options = fcnConfig.OptionsManager.listAllOptionNames();
+                          
+                        iSubMenu = uimenu(hParent, 'Text', menuName);
+                        
+                        if isempty(options)
+                            obj.createMenuCallback(iSubMenu, functionName)
+                            obj.registerMenuObject(iSubMenu, functionName)
+                        
+                        else
+                            
+                            % Create menu item for each function option
+                            for j = 1:numel(options)
+                                menuName = utility.string.varname2label(options{j});
+                                menuName = options{j};
+                                iMitem = uimenu(iSubMenu, 'Text', menuName);
+                                
+                                obj.createMenuCallback(iMitem, functionName, options{j})   
+                                obj.registerMenuObject(iMitem, functionName)
+                            end
+                        end
+                        
+                    else
+                        iMitem = uimenu(hParent, 'Text', menuName);
+                        obj.createMenuCallback(iMitem, functionName)
+                        obj.registerMenuObject(iMitem, functionName)
+                        
+                    end
+                    
+                end
+                
+            end
+
+        end
+        
+        function createMenuFromDirectory2(obj, hParent, dirPath)
+        %createMenuFromDirectory Create menu items from a directory tree
+        %
+        % Go recursively through a directory tree of matlab packages 
+        % and create a menu item for each matlab function which is found 
+        % inside. The menu item is configured to trigger an event when it
+        % is selected.
+        % 
+        % See also SessionMethod (todo: update reference)
+
+        
+        % Requires: utility.string.varname2label
+        
+            if nargin < 3
+                dirPath = obj.listPackageHierarchy();
+            elseif isfolder(dirPath)
+                L = dir(fullfile(dirPath, '*.m'));
+                if isempty(L); return; end
+                L = L(~strncmp({L.name}, '.', 1));
+                dirPath = fullfile({L.folder}, {L.name});
+            end
+           
+            if ~isa(dirPath, 'cell')
+                dirPath = {dirPath};
+            end
+            
+            
+            % Loop through contents of directory
+            for i = 1:numel(dirPath)
+                
+                thisPath = dirPath{i};
+                
+                [~, menuName, ext] = fileparts(thisPath);
+                menuName = strrep(menuName, '+', '');
+                menuName = utility.string.varname2label(menuName);
+
+                % For folders, add submenu
+                if isfolder(thisPath)
+                    
+                    % Check if menu already exist.
+                    iMenu = findobj(hParent, 'Type', 'uimenu', '-and', 'Text', menuName);
+                    if isempty(iMenu)
+                        iMenu = uimenu(hParent, 'Text', menuName);
+                    end
+                    
+                    % Recursively add subdirectory as a submenu
+                    obj.createMenuFromDirectory(iMenu, thisPath)
+                   
+                % For m-files, add submenu item with callback
+                else
+                    
+                    if ~strcmp(ext, '.m') % Skip files that are not .m
+                        continue
+                    end
+                    
+                    % Get the full function name (including package names)
+                    functionName = utility.path.abspath2funcname(thisPath);
                     
                     % Create menu items with function handle as callback
                     if ~isempty(meta.class.fromName(functionName))
