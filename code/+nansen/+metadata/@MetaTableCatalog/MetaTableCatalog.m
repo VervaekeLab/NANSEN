@@ -45,8 +45,16 @@ classdef MetaTableCatalog < uim.handle
         end
         
         function load(obj)
-            S = load(obj.FilePath, 'metaTableCatalog');
-            obj.Table = S.metaTableCatalog;
+            % Todo: Call the static load method?
+            filePath = obj.FilePath;
+            
+            if exist(filePath, 'file')
+                S = load(filePath);
+                obj.Table = S.metaTableCatalog;
+            else
+                obj.Table = [];
+            end
+
         end
         
         function save(obj)
