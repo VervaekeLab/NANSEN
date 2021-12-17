@@ -453,7 +453,9 @@ classdef imageVector < handle
             shapes = cat(1, [obj.hPolygon.Shape] );
             coords = cat(1, shapes.Vertices);
             
-            bbox = [min(coords), range(coords)];
+            coordinateRange = max(coords) - min(coords);
+            
+            bbox = [min(coords), coordinateRange];
 
         end
 
