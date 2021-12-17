@@ -29,6 +29,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         MethodName = 'Motion Correction (FlowRegistration)'
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
+        OptionsManager = nansen.OptionsManager('nansen.module.flowreg.Processor')
     end
     
     properties (Constant, Access = protected)
