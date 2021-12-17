@@ -38,7 +38,7 @@ function [hFig, hTable] = createFolderListUiTable(hFigSetupApp)
     
     hTable = uim.widget.StylableTable('Parent', hFig, tableParams{:});
     
-    hTable.Units = 'points';
+    hTable.Units = 'pixels';
     hTable.Position = [20,20,newFigPosition(3:4)-[40, 60]];
     hTable.FontName = 'helvetica';
     hTable.FontSize = 9;
