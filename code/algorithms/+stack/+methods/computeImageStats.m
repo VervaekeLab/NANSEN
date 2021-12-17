@@ -5,6 +5,7 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
         MethodName = 'Compute Image Stats'
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
+        OptionsManager = nansen.OptionsManager('nansen.stack.ImageStackProcessor')
     end
     
     properties %Options
@@ -31,6 +32,7 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
     methods % Structor
         
         function obj = computeImageStats(varargin)
+            
             obj@nansen.stack.ImageStackProcessor(varargin{:})
             
             if ~nargout

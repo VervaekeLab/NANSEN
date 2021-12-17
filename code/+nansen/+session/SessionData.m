@@ -72,15 +72,18 @@ classdef SessionData < dynamicprops
             varNames = {obj.DataFilePathModel.VariableList.VariableName};
             
             for i = 1:numel(varNames)
-                
-                filePath = obj.getDataFilePath(varNames{i});
-                
-                if isfile(filePath)
-                    if ~isprop(obj, varNames{i})
-                        obj.addDataProperty(varNames{i})
+                try
+                    filePath = obj.getDataFilePath(varNames{i});
+
+                    if isfile(filePath)
+                        if ~isprop(obj, varNames{i})
+                            obj.addDataProperty(varNames{i})
+                        end
                     end
+                catch
+                    % Todo: Find if session folder is not found, otherwise
+                    % need to do something...
                 end
-                
             end
             toc
         end

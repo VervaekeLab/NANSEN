@@ -191,6 +191,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             end
             
             if ~all( size(data, [1,2]) == cellfun(@numel, subs(1:2) ) )
+                subs(3:end) = {':'}; % Only subindex along x-y dimension here.
                 data = data(subs{1:ndims(data)});
             end
                 

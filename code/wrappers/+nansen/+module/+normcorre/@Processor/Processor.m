@@ -1,8 +1,8 @@
 classdef Processor < nansen.processing.MotionCorrection & ...
                         nansen.module.abstract.ToolboxWrapper
-%nansen.adapter.normcorre.Processor Wrapper for running normcorre on nansen
+%nansen.module.normcorre.Processor Wrapper for running normcorre on nansen
 %
-%   h = nansen.adapter.normcorre.Processor(imageStackReference)
+%   h = nansen.module.normcorre.Processor(imageStackReference)
 %
 %   This class provides functionality for running normcorre within
 %   the nansen package.
@@ -24,7 +24,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         MethodName = 'Motion Correction (NoRMCorre)'
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
+        OptionsManager = nansen.OptionsManager('nansen.module.normcorre.Processor')
     end
+    
+
     
 % % %     properties (Constant, Access = protected)
 % % %         DependentPaths = nansen.module.normcorre.getDependentPaths()
@@ -62,9 +65,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 % %             end
             
             % Assign options manager
-            if isempty(obj.Options)
-                obj.assignOptionsManager(mfilename('class'))
-            end
+%             if isempty(obj.Options)
+%                 obj.assignOptionsManager(mfilename('class'))
+%             end
             
             % Todo. Move to superclass
             obj.Options.Export.FileName = obj.SourceStack.Name;
@@ -122,7 +125,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         function initializeShifts(obj, numFrames)
         %initializeShifts Load or initialize shifts...
         
-            filePath = obj.getDataFilePath('normcorreShifts', ...
+            filePath = obj.getDataFilePath('normcorreShifts', '-w', ...
                 'Subfolder', 'image_registration');
             
             if isfile(filePath)
@@ -195,7 +198,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             % Get toolbox options and template for motion correction.
             options = obj.ToolboxOptions;
-            template = obj.CurrentRefImage;
+            template = single( obj.CurrentRefImage );
             
             [M, shifts, templateOut] = normcorre_batch(Y, options, template);
             
@@ -230,6 +233,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         options = getDefaultOptions()
         
         pathList = getDependentPaths()
+    
     end
 
 end

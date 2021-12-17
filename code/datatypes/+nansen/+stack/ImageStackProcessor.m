@@ -119,40 +119,46 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         Y = processPart(obj, Y, iIndices);
     end
     
-    methods 
+    methods % Constructor
         function obj = ImageStackProcessor(varargin)
-                    
-            % Get datalocation from first input argument.
-            if isa(varargin{1}, 'nansen.stack.ImageStack')
-                dataLocation = varargin{1}.FileName;
-            else
-                dataLocation = varargin{1};
-            end
-            
-            % Get options from second input argument if present.
-            if numel(varargin) > 1
-                if isstruct(varargin{2})
-                    options = varargin{2};
+                  
+            if numel(varargin) == 0
+                dataLocation = struct.empty;
+                
+            elseif numel(varargin) >= 1
+                
+                nvPairs = utility.getnvpairs(varargin{:});
+                dataIoModel = utility.getnvparametervalue(nvPairs, 'DataIoModel');
+                
+                % Get datalocation from first input argument.
+                if ~isempty(dataIoModel)
+                    dataLocation = dataIoModel;
+                elseif isa(varargin{1}, 'nansen.stack.ImageStack')
+                    dataLocation = varargin{1}.FileName;
                 else
-                    options = [];
+                    dataLocation = varargin{1};
                 end
-            else
-                options = [];
+                
             end
             
             % Call the constructor of the DataMethod parent class
             nvPairs = {};
-            obj@nansen.DataMethod(dataLocation, options, nvPairs{:})
-        
-    
+            obj@nansen.DataMethod(dataLocation, nvPairs{:})
+            
+            if numel(varargin) == 0
+                return
+            end
+            
             % Open source stack based on the first input argument.
             if ischar(varargin{1}) && isfile(varargin{1})
                 obj.openSourceStack(varargin{1})
+                
             elseif isa(varargin{1}, 'nansen.stack.ImageStack')
-                % Todo: obj.SourceStack = varargin{1};
                 obj.openSourceStack(varargin{1})
+                
             elseif isa(varargin{1}, 'struct')
                 % Todo. Subclass must implement....
+                
             end
             
         end
@@ -164,7 +170,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         function runInitialization(obj)
             obj.initialize()
         end
-        
         
         function runMethod(obj, skipInit)
             

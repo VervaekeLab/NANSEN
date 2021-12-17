@@ -1,63 +1,103 @@
 classdef HasOptions < handle
-%nansen.mixin.HasOptions Superclass providing options for a class based method
+%nansen.mixin.HasOptions Mixin to provide options for a class based method
 %
+%   This class provides an interface for classes that represent an
+%   algorithm which is dependent on a set of options/parameters.
+%   
+%   Options can be edited interactively, and edited options can be saved as
+%   presets and retrieved at a later time using an OptionsManager object. 
+%   The OptionsManager is implemented as an abstract, constant method.
+%   Therefore, any class that inherits this mixin must assign the
+%   OptionsManager in the class definition.
+%
+%   If a subclass which implement this mixin does not assign options,
+%   explicitly, the get method for options will return the default options
+%   from the OptionsManager.
+%
+%   EXAMPLES 
+%       hAlgorithm = subclassInheritingHasOptions()
+%
+%       % Retrieve options:
+%       opts = hAlgorithm.Options
+%
+%       % Open dialog to edit options:
+%       hAlgorithm.editOptions()
 
-% Should options manager be set only if options are not provided?
-% Or should it be transiently added when editing options??
-% Reason for asking: Might become messy when it is executed during batch...
+
+%   - - - - - - - - - - - - - SUBCLASSING - - - - - - - - - - - - - 
+%
+%   Any subclass MUST implement:
+%       OptionsManager (Constant property)
+%
+%   Any subclass SHOULD implement:
+%       options = getDefaultOptions() (Static method)
 
 
+%   - - - - - - - - - - - - - - NOTES - - - - - - - - - - - - - - - 
+%
+%   Notes on implementation: The OptionsManager is implemented as a 
+%   "singleton" for each instance of a subclass (algorithm). This might not
+%   be a good idea, but I'll let the programming oracle be the judge of 
+%   that. The shortterm benefit is that available options for an algorithm 
+%   can be retrieved without creating an object of the class, and the
+%   options manager only needs to be constructed once. One drawback happens
+%   during development, if e.g default options are changed, it will not
+%   register with the optionsmanager until the next clear all/clear classes
 
-    % TODO:
-    % [ ] Edit options method, or use optionsmanager?
-   
-    properties (Dependent)
-        Options
-    end
+
+%   TODO:
+%   [ ] Edit options method, or use optionsmanager?
+%  *[ ] Create a method for detecting options from varargin and assigning 
+%       to the options property (to be used in a subclass constructor). 
+%   [ ] 
+
+%   QUESTIONS
+%   [ ] How to deal with options names which are necessary for storing and
+%       retrieving preset options
+%  
+%   [ ]
     
-    properties (Access = protected)
-        Options_
-    end
-    
-    properties (Access = protected)
+    properties (Abstract, Constant)
         OptionsManager nansen.manage.OptionsManager
     end
     
-    methods (Static, Abstract)
-        options = getDefaultOptions()
+    properties (Dependent)
+        OptionsName   % here or options manager?
+        Options       %
     end
     
-    methods % Constructor
-        
-        function obj = HasOptions(options, optionsName)
-            
-            % Todo: What about options name?
-            
-            if nargin == 0 || isempty(options)
-                obj.assignOptionsManager()
-            elseif nargin == 1
-                obj.Options_ = options;
-            end
-            
-        end
-        
+    properties (Access = protected)
+        Options_    %
     end
     
-    methods
-        function assignOptionsManager(obj, className)
-            if nargin < 2
-                className = class(obj);
-            end
-            obj.OptionsManager = nansen.OptionsManager(className);
-        end
+    methods (Static)
+        function options = getDefaultOptions() % Subclasses should override
+        %getDefaultOptions Method to provide the default options.
+        %
+        %   Any algorithm that requires options must override this method
+        %   and provide a struct containing fields and values representing
+        %   the parameter names and values.
         
-        function editOptions(obj)
+            options = struct.empty;
+        end
+    end
+    
+    
+    methods % Public methods
+        
+        function optsStruct = editOptions(obj)
+            
             [~, optsStruct] = obj.OptionsManager.editOptions('Custom', obj.Options);
             obj.Options_ = optsStruct;
+            
+            if ~nargout
+                clear optsStruct
+            end
         end
+        
     end
     
-    methods
+    methods % Set/get methods
         
         function set.Options(obj, opts)
             obj.Options_ = opts;
@@ -69,6 +109,30 @@ classdef HasOptions < handle
             elseif ~isempty(obj.OptionsManager)
                 opts = obj.OptionsManager.Options;
             end
+        end
+        
+    end
+    
+    methods (Access = protected)
+        
+        function opts = checkArgsForOptions(obj, varargin)
+            
+            isStruct = cellfun(@isstruct, varargin);
+            
+            if any(isStruct)
+                opts = varargin{ find(isStruct, 1) };
+                defaultOpts = obj.OptionsManager.getOptions();
+                
+                isValidOpts = isequal(fieldnames(opts), fieldnames(defaultOpts));
+                if isValidOpts
+                    obj.Options_ = opts;
+                end
+            end
+            
+            if ~nargout
+                clear opts
+            end
+            
         end
         
     end
@@ -113,6 +177,4 @@ classdef HasOptions < handle
         
     end
     
-
-
 end

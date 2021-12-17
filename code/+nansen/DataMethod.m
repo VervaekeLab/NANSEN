@@ -1,4 +1,4 @@
-classdef DataMethod < nansen.dataio.DataIoModel & nansen.mixin.HasOptions
+classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel & 
     
     % TODO:
     % [ ] Make property to determine what should be done if a method is
@@ -9,31 +9,51 @@ classdef DataMethod < nansen.dataio.DataIoModel & nansen.mixin.HasOptions
     %     logging?
    
     properties (Constant, Abstract)
-        MethodName
-        IsManual   % Does method require manual supervision
-        IsQueueable
+        MethodName      % Name of method
+        IsManual        % Does method require manual supervision
+        IsQueueable     % Is method suitable for queueing. Examples were not: method creates figures or requires manual input
+    end
+    
+    properties (Access = protected)
+        DataIoModel
     end
     
     methods (Static) % Make abstract???
         function pathList = getDependentPaths()
             pathList = {};
-            % Todo
+            % Todo: what was this again?
         end
     end
     
     methods % Constructor
         function obj = DataMethod(varargin)
             
-            if numel(varargin) < 2
-                varargin{2} = [];
+            if isempty(varargin)
+                return
+                % Todo: Assign default data io model...
             end
             
-            obj@nansen.dataio.DataIoModel(varargin{1})
-            obj@nansen.mixin.HasOptions(varargin{2})
+            %obj@nansen.dataio.DataIoModel(varargin{1})
+            obj.DataIoModel = varargin{1};
+            
             
         end
     end
     
+    methods (Access = public)
     
+        function data = loadData(obj, varargin)
+            data = obj.DataIoModel.loadData(varargin{:});
+        end
+        
+        function saveData(obj, varargin)
+            obj.DataIoModel.saveData(varargin{:})
+        end
+        
+        function filePath = getDataFilePath(obj, varargin)
+            filePath = obj.DataIoModel.getDataFilePath(varargin{:});
+        end
+        
+    end
     
 end

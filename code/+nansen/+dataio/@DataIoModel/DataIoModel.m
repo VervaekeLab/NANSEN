@@ -37,7 +37,7 @@ classdef DataIoModel < handle
         %
         %   h = nansen.dataio.DataIoModel(filePath)
 
-            if isempty(varargin)
+            if isempty(varargin) || (numel(varargin) == 1 && isempty(varargin{1}))
                 % Pass
             
             elseif ischar(varargin{1}) && isfile(varargin{1})

@@ -1,4 +1,4 @@
-classdef SessionMethod < handle
+classdef SessionMethod < nansen.DataMethod
 %SessionMethod Abstract class for session methods
 %   
 %   Classes inheriting SessionMethod should provide a method for use on one
@@ -61,18 +61,18 @@ classdef SessionMethod < handle
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
     
     properties (Abstract, Constant)
-        MethodName
+        %MethodName
         BatchMode               % char      : 'serial' | 'batch'
-        IsQueueable             % logical   : true | false
+        %IsQueueable             % logical   : true | false
         % maxAllowedSessions = inf;
-        OptionsManager
+        %OptionsManager
     end
     
     
     properties 
         SessionObjects          % Array of session objects
-        ExternalFcn             % ??
-        Options                 % Todo: Keep only Options or Parameters
+        %ExternalFcn             % ??
+        %Options                 % Todo: Keep only Options or Parameters
         Parameters
     end
     
@@ -86,9 +86,9 @@ classdef SessionMethod < handle
     methods (Abstract, Static)
     end
     
-    methods (Abstract) % Todo: Should there be any abstract methods??? Maybe make run abstract... Or maybe figure out how to make sure to call the subclass version of run....?
-        runMethod(obj)
-    end
+% %     methods (Abstract) % Todo: Should there be any abstract methods??? Maybe make run abstract... Or maybe figure out how to make sure to call the subclass version of run....?
+% %         runMethod(obj)
+% %     end
     
     methods % Constructor
         
@@ -113,7 +113,9 @@ classdef SessionMethod < handle
             
             % Assign session objects to properties
             obj.SessionObjects = varargin{1};
-
+            
+            % Set session object as data I/O model
+            obj.DataIoModel = obj.SessionObjects;
             
             % Parse name-value pairs and assign to parameters property.
             if ~isempty(obj.OptionsManager)
@@ -147,22 +149,22 @@ classdef SessionMethod < handle
             end
         end
         
-        function tf = preview(obj, optsName)
-            % Todo:
-            % How to do this?
-               
-            
-            if nargin == 2 && ~isempty(optsName)
-                params = obj.OptionsManager.getOptions(optsName);
-            else
-                params = obj.Parameters;
-            end
-            
-            nvPairs = { 'OptionsManager', obj.OptionsManager };
-            params = tools.editStruct(params, nan, '', nvPairs{:} );
-            
-            tf = true;
-        end
+%         function tf = preview(obj, optsName)
+%             % Todo:
+%             % How to do this?
+%                
+%             
+%             if nargin == 2 && ~isempty(optsName)
+%                 params = obj.OptionsManager.getOptions(optsName);
+%             else
+%                 params = obj.Parameters;
+%             end
+%             
+%             nvPairs = { 'OptionsManager', obj.OptionsManager };
+%             params = tools.editStruct(params, nan, '', nvPairs{:} );
+%             
+%             tf = true;
+%         end
         
         function setup(obj)
                         
@@ -269,6 +271,42 @@ classdef SessionMethod < handle
             attributes = S;
             
         end
+        
+        function attributes = getAttributesFromFunction(fcnName)
+            
+        end
+        
+        function attributes = getAttributesFromClass(className)
+                       
+            
+            
+            hfun = str2func(functionName);
+            functionName
+            
+            mc = meta.class.fromName(functionName);
+            if ~isempty(mc)
+                tic
+                allPropertyNames = {mc.PropertyList.Name};
+                mConfig = struct;
+                propertyNames = {'BatchMode', 'IsManual', 'IsQueueable'};
+                for i = 1:numel(propertyNames)
+                    thisName = propertyNames{i};
+                    isMatch = strcmp(allPropertyNames, propertyNames{i});
+                    mConfig.(thisName) = mc.PropertyList(isMatch).DefaultValue;
+                end
+                toc
+            end
+            
+            try
+                tic;mConfig = hfun();toc % Call with no input should give configs
+            catch % Get defaults it there are no config:
+                mConfig = nansen.session.SessionMethod.setAttributes();
+            end
+            
+            
+            
+        end
+        
     end
         
     methods (Static, Access = private)

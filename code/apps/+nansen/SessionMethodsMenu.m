@@ -254,7 +254,7 @@ classdef SessionMethodsMenu < handle
                         
                         % Get attributes for session method/function.
                         fcnConfig = obj.getMethodAttributes(functionName);
-                        options = fcnConfig.OptionsManager.listAllOptionNames();
+                        options = fcnConfig.OptionsManager.AllOptionNames;
                           
                         iSubMenu = uimenu(hParent, 'Text', menuName);
                         
@@ -511,9 +511,24 @@ classdef SessionMethodsMenu < handle
         function mConfig = getMethodAttributes(functionName)
                                 
             hfun = str2func(functionName);
-
+            functionName
+            
+            mc = meta.class.fromName(functionName);
+            if ~isempty(mc)
+                tic
+                allPropertyNames = {mc.PropertyList.Name};
+                mConfig = struct;
+                propertyNames = {'BatchMode', 'IsManual', 'IsQueueable', 'OptionsManager'};
+                for i = 1:numel(propertyNames)
+                    thisName = propertyNames{i};
+                    isMatch = strcmp(allPropertyNames, propertyNames{i});
+                    mConfig.(thisName) = mc.PropertyList(isMatch).DefaultValue;
+                end
+                toc
+            end
+            
             try
-                mConfig = hfun(); % Call with no input should give configs
+                tic;mConfig = hfun();toc % Call with no input should give configs
             catch % Get defaults it there are no config:
                 mConfig = nansen.session.SessionMethod.setAttributes();
             end

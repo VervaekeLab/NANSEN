@@ -361,9 +361,12 @@ classdef FileViewer < handle
                         else
                             error('Can not open this file type')
                         end
+                        
                     otherwise
                         if isfile(currentNode.UserData.filePath)
-                            error('Can not open this file type')
+                            errorMsg = 'Can not open this file type';
+                            errordlg(errorMsg)
+                            error(errorMsg)
                         else
                             % Do nothing (Double clicking on folders should
                             % expand the tree).

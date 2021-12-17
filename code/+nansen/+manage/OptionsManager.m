@@ -50,7 +50,7 @@ classdef OptionsManager < handle
 %          also has a set of default options which are detected by the
 %          options manager. 
 %
-%   OUTPUT:
+%   Properties:
 %       The options manager object contains the following properties
 %       
 %       FunctionName: Name of function for the current options manager instance 
@@ -59,11 +59,13 @@ classdef OptionsManager < handle
 
 
   
-%     A preset option is a set of options that are defined in a special
+%     A PRESET option is a set of options that are defined in a special
 %     class.
-%     A custom option is a set of options that are saved to a predefined
+
+%     A CUSTOM option is a set of options that are saved to a predefined
 %     file location
-%     A modified option is a set of options that are modified from one of
+
+%     A MODIFIED option is a set of options that are modified from one of
 %     the above. This option type is only stored in this class in a
 %     transient manner.
     
@@ -75,7 +77,9 @@ classdef OptionsManager < handle
     %  *[ ] Are original options saved at all??? No. => They should be...
     %  *[ ] If options are saved for the first time, tag the original as
     %       default...
-    %   [ ] Add a star (*) next to default options in the list of names... 
+    %   [ ] Add a star (*) next to default options in the list of names...
+    %   [ ] method to validate options against default options...
+    %
     %   [x] Add function for sticking a preset tab onto the options struct.
     %   [x] Add callback for handling ui changes on the preset tab.
     %
@@ -97,8 +101,12 @@ classdef OptionsManager < handle
     
     properties (SetAccess = private)
         FunctionName char       % Name of function (or class) 
-        Options struct          % Current set of options
+        Options struct          % Current set of options % make dependent
         OptionsName char        % Name of current set of options
+    end
+    
+    properties (Hidden)
+        DefaultGetMode = 'default' % 'default' or 'favorite'
     end
     
 %     Todo
@@ -113,6 +121,7 @@ classdef OptionsManager < handle
     properties (Dependent) % Available options names
         % These properties are dependent in order for them to be updated
         % from file whenever they are accessed.
+        AllOptionNames
         PresetOptionNames       % Names of available preset options (created by developer)
         CustomOptionNames       % Names of available preset options (created by user)
     end 
@@ -532,6 +541,11 @@ classdef OptionsManager < handle
     
     methods % Set/get
         
+        function names = get.AllOptionNames(obj)
+            names = [obj.listPresetOptions, ...
+                obj.listCustomOptions];
+        end
+        
         function names = get.PresetOptionNames(obj)
              names = obj.listPresetOptions();
         end
@@ -789,6 +803,8 @@ classdef OptionsManager < handle
         
         function fcnType = getFunctionType(functionName)
             
+            % Todo: Write doc for this function...
+            
             fcnType = 0;
 
             if exist(functionName, 'class')
@@ -796,6 +812,7 @@ classdef OptionsManager < handle
                 superClassNames = superclasses(functionName);
                 if contains('nansen.mixin.HasOptions', superClassNames)
                     fcnType = 3;
+                    
                 elseif contains('nansen.module.abstract.OptionsAdapter', superClassNames)
                     fcnType = 4;
                 end
@@ -825,7 +842,6 @@ classdef OptionsManager < handle
                 end
                 
             end
-                
 
         end
 

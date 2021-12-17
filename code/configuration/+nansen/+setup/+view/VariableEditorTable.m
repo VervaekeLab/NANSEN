@@ -10,6 +10,10 @@ classdef VariableEditorTable < applify.apptable
 %     [x] Dynamic update of file type choices based on what is entered in
 %        the filename expression field.
 
+    properties (Constant)
+        DEFAULT_FILETYPES = {'.mat', '.tif', '.raw'}
+    end
+    
     properties
         
         % Need Datalocations handle
@@ -148,6 +152,10 @@ classdef VariableEditorTable < applify.apptable
             for i = 1:numel(L)
                 [~, ~, ext] = fileparts(L(i).name);
                 listOfFileExtension{i} = ext;
+            end
+            
+            if isempty(listOfFileExtension)
+                listOfFileExtension = {'.mat', '.tif', '.raw'};
             end
             
             hRow.FileTypeSelect.Items = listOfFileExtension;

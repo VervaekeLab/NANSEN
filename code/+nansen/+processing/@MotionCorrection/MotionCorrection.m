@@ -88,9 +88,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
         function obj = MotionCorrection(varargin)
         %MotionCorrection Constructor for MotionCorrection superclass
-        
             obj@nansen.stack.ImageStackProcessor(varargin{:})
-        
         end
         
         function delete(obj)
@@ -141,7 +139,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             recastOutput = ~strcmp(dataTypeIn, dataTypeOut);
             
             if recastOutput % Todo: Calculate imagestats.
-                stack.methods.computeImageStats(obj.SourceStack)
+                stack.methods.computeImageStats(obj.SourceStack, ...
+                    'DataIoModel', obj.DataIoModel)
             end
 
             
