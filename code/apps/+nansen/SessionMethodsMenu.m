@@ -103,6 +103,9 @@ classdef SessionMethodsMenu < handle
             delete( obj.hMenuDirs )
             delete( obj.hMenuItems )
             
+            obj.hMenuDirs = matlab.ui.container.Menu.empty;
+            obj.hMenuItems = matlab.ui.container.Menu.empty;
+            
             obj.SessionMethods = struct('Name', {}, 'Attributes', {});
 
             
@@ -511,11 +514,11 @@ classdef SessionMethodsMenu < handle
         function mConfig = getMethodAttributes(functionName)
                                 
             hfun = str2func(functionName);
-            functionName
+            
             
             mc = meta.class.fromName(functionName);
             if ~isempty(mc)
-                tic
+                
                 allPropertyNames = {mc.PropertyList.Name};
                 mConfig = struct;
                 propertyNames = {'BatchMode', 'IsManual', 'IsQueueable', 'OptionsManager'};
@@ -524,11 +527,11 @@ classdef SessionMethodsMenu < handle
                     isMatch = strcmp(allPropertyNames, propertyNames{i});
                     mConfig.(thisName) = mc.PropertyList(isMatch).DefaultValue;
                 end
-                toc
+                
             end
             
             try
-                tic;mConfig = hfun();toc % Call with no input should give configs
+                mConfig = hfun(); % Call with no input should give configs
             catch % Get defaults it there are no config:
                 mConfig = nansen.session.SessionMethod.setAttributes();
             end

@@ -710,14 +710,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function changeProject(app, varargin)
             
+            app.UiMetaTableViewer.refreshTable(table.empty, true)
+            drawnow
+            disp('Changing project is a work in progress. Some things might not work as expected.')
+            
+            app.loadMetaTable()
+            drawnow
+            
+            app.SessionMethodsMenu.refresh()
+            
             % Make sure project list is displayed correctly
             % Indicating current project
             app.updateProjectList()
-            
-            disp('Changing project is a work in progress. Some things might not work as expected.')
-            app.loadMetaTable()
-            
-            app.SessionMethodsMenu.refresh()
             
         end
         
@@ -1213,6 +1217,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function checkIfMetaTableComplete(app)
         %checkIfMetaTableComplete Check if user-defined variables are
         %missing from the table.
+        
+        % Todo: Add to metatable class?
             
             tableVarNames = app.MetaTable.entries.Properties.VariableNames;
             
@@ -1329,7 +1335,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.updateFigureTitle();
             end
             
-            
         end
         
         function saveMetaTable(app, src, ~)
@@ -1425,8 +1430,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             functionName = func2str(evt.MethodFcn);
             returnToIdle = app.setBusy(functionName); %#ok<NASGU>
-            
-            
+                           
+            app.SessionMethodsMenu.Mode = 'Default';
+
             % Get configuration attributes for session method. 
             try
                 % Call with no inputs should give configuration struct

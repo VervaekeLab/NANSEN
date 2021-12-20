@@ -1171,9 +1171,9 @@ classdef App < applify.ModularApp
                     i = event.VerticalScrollCount .* obj.settings.ScrollFactorPanX;
                     
                 case 'mousepress'
-                    if event.Button == 3 % Right click
-                        return
-                    end
+% %                     if event.Button == 3 % Right click
+% %                         return
+% %                     end
                     
                     newValue = event.IntersectionPoint(1);                    
                     i = round( newValue -  obj.currentFrameNo );
@@ -1839,6 +1839,9 @@ classdef App < applify.ModularApp
                 obj.isMouseDown = true;
                 obj.PreviousMouseClickPoint = obj.Figure.CurrentPoint;
                 obj.PreviousMousePoint = obj.Figure.CurrentPoint;
+                
+                obj.interactiveFrameChangeRequest(src, event, 'mousepress')
+                
             
             elseif strcmp(obj.Figure.SelectionType, 'open')
                 xPoint = round( obj.ax.CurrentPoint(1) );

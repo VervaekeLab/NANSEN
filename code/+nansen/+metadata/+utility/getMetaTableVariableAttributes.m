@@ -45,6 +45,7 @@ function S = getMetaTableVariableAttributes(tableClassName)
         S(iVar).IsEditable = false; % Default assumption
         S(iVar).HasFunction = false; % Default assumption
         
+        
         % Check the custom variable definition for attribute values
         if contains(S(iVar).Name, varNamesCustom)
             varFunction = getCustomTableVariableFcn(S(iVar).Name);
@@ -56,8 +57,21 @@ function S = getMetaTableVariableAttributes(tableClassName)
 % % %                 if isprop(fcnResult, 'LIST_ALTERNATIVES')
 % % %                     S(iVar).List = {fcnResult.LIST_ALTERNATIVES};
 % % %                 end
+                
+                if ismethod(fcnResult, 'update')
+                	S(iVar).HasFunction = true;
+                end
+                
             else
                 S(iVar).HasFunction = true;
+            end
+        else
+            functionName = ['nansen.metadata.tablevar.', S(iVar).Name];
+            mc = meta.class.fromName(functionName);
+            if ~isempty(mc)
+                if any( strcmp({mc.MethodList.Name}, 'update') )
+                    S(iVar).HasFunction = true;
+                end
             end
         end
          
