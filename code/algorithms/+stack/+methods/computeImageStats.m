@@ -132,6 +132,8 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
             
             IND = obj.CurrentFrameIndices;
             
+            Y = single(Y);
+            
             % Reshape to 2D array where all pixels from each image is 1D
             Y_ = reshape(Y, [], size(Y, 3));
             
