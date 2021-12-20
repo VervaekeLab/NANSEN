@@ -175,7 +175,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function refreshTable(obj, newTable, flushTable)
         %refreshTable Method for refreshing the table
         
-            if nargin >= 2 && ~isempty(newTable)
+            if nargin >= 2 %&& ~isempty(newTable)
                 obj.MetaTable = newTable;
             end
             
@@ -374,6 +374,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function updateColumnLayout(obj) %protected
 
             if isempty(obj.ColumnModel); return; end
+            if isempty(obj.MetaTable); return; end
             
             colIndices = obj.ColumnModel.getColumnIndices();
             
@@ -540,7 +541,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.MetaTableCell = table2cell(newTable);
             end
             
-            % Todo: 'session should not be hardcoded here'
+            % Todo: session should not be hardcoded here
             obj.MetaTableVariableAttributes = getMetaTableVariableAttributes('session');
                         
         end

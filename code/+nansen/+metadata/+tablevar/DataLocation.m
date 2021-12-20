@@ -64,6 +64,24 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
             end
         end
        
+        function value = update(obj, sessionObj)
+                  
+            value = obj.Value;
+            
+            global dataLocationModel % Todo: dont use global
+            if isempty(dataLocationModel)
+                dataLocationModel = nansen.setup.model.DataLocations();
+            end
+            
+            for i = 1:numel(dataLocationModel.Data)
+                thisLoc = dataLocationModel.Data(i).Name;
+                pathString = sessionObj.detectSessionFolder(thisLoc, dataLocationModel);
+                if ~isempty(pathString)
+                    value.(thisLoc) = pathString; 
+                end
+            end
+            
+        end
    end
     
     
