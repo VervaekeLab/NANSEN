@@ -2,7 +2,6 @@ classdef normcorre < nansen.session.SessionMethod & nansen.module.normcorre.Proc
 %normcorre Summary of this function goes here
 %   Detailed explanation goes here
     
-
     properties (Constant) % SessionMethod attributes
         BatchMode = 'serial' % Move to data method?
     end

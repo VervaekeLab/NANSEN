@@ -120,6 +120,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     end
     
     methods % Constructor
+        
         function obj = ImageStackProcessor(varargin)
                   
             if numel(varargin) == 0

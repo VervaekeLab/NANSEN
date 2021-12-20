@@ -53,9 +53,10 @@ classdef SessionMethod < nansen.DataMethod
     
     
     % TODO (implemented in options manager):
+    % * [ ] Change name of class to SessionTask
     %   [x] methods/functionality for preset options.
     %   [x] append a page in options for saving a preset
-    %   [x] create method for getting options based on name. 
+    %   [x] create method for getting options based on name.
     
     
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
@@ -71,7 +72,6 @@ classdef SessionMethod < nansen.DataMethod
     
     properties 
         SessionObjects          % Array of session objects
-        %ExternalFcn             % ??
         %Options                 % Todo: Keep only Options or Parameters
         Parameters
     end

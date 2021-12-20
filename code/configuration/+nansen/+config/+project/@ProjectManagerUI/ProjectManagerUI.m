@@ -83,6 +83,10 @@ classdef ProjectManagerUI < handle
             end
             
             projectInfo = S.ProjectConfiguration;
+            
+            % Todo: Make sure the path of the project corresponds with the
+            % folder...
+            
             obj.ProjectManager.addProject(projectInfo)
             
             obj.updateProjectTableData()

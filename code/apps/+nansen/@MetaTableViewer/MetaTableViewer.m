@@ -372,7 +372,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     methods (Access = {?nansen.MetaTableViewer, ?nansen.ui.MetaTableColumnLayout, ?nansen.ui.MetaTableColumnFilter})
            
         function updateColumnLayout(obj) %protected
-
+        %updateColumnLayout Update the columnlayout based on user settings
+        
+        
             if isempty(obj.ColumnModel); return; end
             if isempty(obj.MetaTable); return; end
             

@@ -29,6 +29,4 @@ classdef sessionMethodClassTemplate < nansen.session.SessionMethod
         
     end
 
-    
-
 end

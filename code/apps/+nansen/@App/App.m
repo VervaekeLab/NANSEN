@@ -8,7 +8,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     %       project is changed...
     %   [ ] Create Menu in separate function.
     %   [ ] Update menu or submenu using call to that function
-    %   [ ] Remove vars from table on load if vars are not represented in
+    %   [x] Remove vars from table on load if vars are not represented in
     %       tablevar folder.
     
     
