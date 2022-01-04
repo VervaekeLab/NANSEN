@@ -23,7 +23,7 @@ If any of the above toolboxes are not installed, they can be installed by
 navigating to MATLAB's Home tab and then selecting Add-Ons > Get Add-Ons
 
 ### Other toolboxes
- - GUI Layout Toolbox ([View toolbox site](https://se.mathworks.com/matlabcentral/fileexchange/66235-widgets-toolbox-compatibility-support?s_tid=srchtitle))
+ - GUI Layout Toolbox ([View toolbox site](https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox))
  - Widgets Toolbox ([Download toolbox installer](https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/b0bebf59-856a-4068-9d9c-0ed8968ac9e6/099f0a4d-9837-4e5f-b3df-aa7d4ec9c9c9/packages/mltbx) | [View toolbox site](https://se.mathworks.com/matlabcentral/fileexchange/66235-widgets-toolbox-compatibility-support?s_tid=srchtitle))
 
 
