@@ -97,6 +97,8 @@ classdef FilePathSettingsEditor < handle
         
         function addEntry(obj, entry)
             
+            entry = obj.validateEntry(entry);
+            
             varNames = {obj.VariableList.VariableName};
             
             isMatch = strcmp(varNames, entry.VariableName);
@@ -181,6 +183,7 @@ classdef FilePathSettingsEditor < handle
     end
     
     methods (Static)
+        
         function pathString = getFilePath()
         %getFilePath Get filepath for loading/saving filepath settings   
             fileName = 'FilePathSettings';
@@ -189,6 +192,15 @@ classdef FilePathSettingsEditor < handle
             catch
                 pathString = '';
             end
+        end
+        
+        function entry = validateEntry(entry)
+            
+            if isempty(entry.FileAdapter)
+                % Todo: Have defaults for different filetypes...
+                entry.FileAdapter = 'Default';
+            end
+            
         end
     end
     

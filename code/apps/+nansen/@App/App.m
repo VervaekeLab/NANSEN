@@ -46,8 +46,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         MetaTablePath = ''
         MetaTable 
         Modules
-        SessionMethods matlab.ui.container.Menu
-        SessionMethodsMenu
+        SessionTasks matlab.ui.container.Menu
+        SessionTaskMenu
         SessionContextMenu
         
         MessagePanel
@@ -330,10 +330,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             menuRootPath = fullfile(nansen.rootpath, '+session', '+methods');
             
-            app.SessionMethodsMenu = nansen.SessionMethodsMenu(app);
+            app.SessionTaskMenu = nansen.SessionTaskMenu(app);
             
-            l = listener(app.SessionMethodsMenu, 'MethodSelected', ...
-                @app.onSessionMethodSelected);
+            l = listener(app.SessionTaskMenu, 'MethodSelected', ...
+                @app.onSessionTaskSelected);
             app.TaskInitializationListener = l;
             
             
@@ -439,7 +439,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function createMenuFromDir(app, hParent, dirPath)
         %createMenuFromDir Create menu components from a folder/folder tree
         %
-        % Purpose: Create a folder called sessionMethods with different 
+        % Purpose: Create a folder called SessionTasks with different 
         % packages, all with functions that can be called with sessionIDs.
         % These functions will be organized in the menu according the the
         % packages within the root folder.
@@ -511,7 +511,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
                     end
                     
-                    app.SessionMethods(end+1) = iMitem;
+                    app.SessionTasks(end+1) = iMitem;
                     
                 end
                 
@@ -521,16 +521,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function refreshMenuLabels(app, modifier)
                          
-             for i = 1:numel(app.SessionMethods)
+             for i = 1:numel(app.SessionTasks)
                  
                  switch modifier
                      case ''
-                         app.SessionMethods(i).Text = strrep(app.SessionMethods(i).Text, '...', '');
-                         app.SessionMethods(i).Text = strrep(app.SessionMethods(i).Text, ' (q)', '');
+                         app.SessionTasks(i).Text = strrep(app.SessionTasks(i).Text, '...', '');
+                         app.SessionTasks(i).Text = strrep(app.SessionTasks(i).Text, ' (q)', '');
                      case 'shift'
-                         app.SessionMethods(i).Text = [app.SessionMethods(i).Text, '...'];
+                         app.SessionTasks(i).Text = [app.SessionTasks(i).Text, '...'];
                      case 'alt'
-                         app.SessionMethods(i).Text = [app.SessionMethods(i).Text, ' (q)'];
+                         app.SessionTasks(i).Text = [app.SessionTasks(i).Text, ' (q)'];
                  end
              end
             
@@ -610,7 +610,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 switch pageName
                     case 'Overview'
-                        app.openMetaTableViewer(hTab)
+                        app.createMetaTableViewer(hTab)
                         
                         
                     case 'File Viewer'
@@ -629,7 +629,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         end
         
-        function openMetaTableViewer(app, hTab)
+        function createMetaTableViewer(app, hTab)
             
             % Prepare inputs
             S = app.settings.MetadataTable;
@@ -717,26 +717,29 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.loadMetaTable()
             drawnow
             
-            app.SessionMethodsMenu.refresh()
+            app.SessionTaskMenu.refresh()
             
             % Make sure project list is displayed correctly
             % Indicating current project
             app.updateProjectList()
             
+            % Todo: 
+            
         end
         
+    % % Get meta objects from table selections
+        
         function entries = getSelectedMetaTableEntries(app)
-            
+        %getSelectedMetaTableEntries Get currently selected meta-entries
+        
             entries = [];
             
-            % Selected entries.
-            rows = app.UiMetaTableViewer.getSelectedEntries();
-            if isempty(rows);    return;    end
+            % Get indices of selected entries from the table viewer.
+            entryIdx = app.UiMetaTableViewer.getSelectedEntries();
+            if isempty(entryIdx);    return;    end
             
-            % Todo: Correct for if data is filtered, or ignored entries are
-            % not shown.
-            
-            entries = app.MetaTable.entries(rows, :);
+            % Get selected entries from the metatable.
+            entries = app.MetaTable.entries(entryIdx, :);
                     
         end
         
@@ -832,9 +835,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             switch evt.Key
                 
                 case 'shift'
-                    app.SessionMethodsMenu.Mode = 'Preview';
+                    app.SessionTaskMenu.Mode = 'Preview';
                 case 'q'
-                    app.SessionMethodsMenu.Mode = 'TaskQueue';
+                    app.SessionTaskMenu.Mode = 'TaskQueue';
+                case 'e'
+                    app.SessionTaskMenu.Mode = 'Edit';
                     
                 case 'w'
                     app.sendToWorkspace()
@@ -849,11 +854,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             switch evt.Key
-                
-                case 'shift'
-                    app.SessionMethodsMenu.Mode = 'Default';
-                case 'q'
-                    app.SessionMethodsMenu.Mode = 'Default';
+                case {'shift', 'q', 'e'}
+                    app.SessionTaskMenu.Mode = 'Default';
+                    
             end
 
         end
@@ -1094,6 +1097,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             initValue = nansen.metadata.utility.getDefaultValue(S.DataType);
             
             app.MetaTable.addTableVariable(S.VariableName, initValue)
+            app.UiMetaTableViewer.refreshColumnModel();
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
             % Refresh menus that show the variables of the session table...
@@ -1115,10 +1119,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %
         %   This function is a callback for the context menu
         
-            if ischar(src)
+            if ischar(src) % For manual calls: If the value of src is the name of the variable, evt should be the update mode.
                 varName = src;
                 updateMode = evt;
-            else
+            else % If invoked as callback, update selected rows
                 varName = src.Text;
                 updateMode = 'SelectedRows';
             end
@@ -1132,6 +1136,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     if isempty(sessionObj)
                         error('No sessions are selected'); 
                     end
+                    
                 case 'AllRows'
                     rows = 1:size(app.MetaTable.entries, 1);
                     sessionObj = app.tableEntriesToMetaObjects(app.MetaTable.entries);
@@ -1400,8 +1405,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 case 'ShowIgnoredEntries'
                     obj.settings.MetadataTable.(name) = value;
+                    
+                    selectedEntries = obj.UiMetaTableViewer.getSelectedEntries();
                     obj.UiMetaTableViewer.ShowIgnoredEntries = value;
-
+                    
+                    % Make sure selection is preserved.
+                    obj.UiMetaTableViewer.setSelectedEntries(selectedEntries);
+                    
+                    
                 case 'AllowTableEdits'
                     obj.settings.MetadataTable.(name) = value;
                     obj.UiMetaTableViewer.AllowTableEdits = value;
@@ -1412,15 +1423,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onNewMetaTableSet(app)
             if isempty(app.UiMetaTableViewer);    return;    end
+            app.UiMetaTableViewer.refreshColumnModel()
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
         
-        function onSessionMethodSelected(app, ~, evt)
+        function onSessionTaskSelected(app, ~, evt)
             
             % Todo: Implement error handling.
             
             sessionObj = app.getSelectedMetaObjects();
             numSessions = numel(sessionObj);
+            
+            if strcmp(evt.Mode, 'Edit')
+                edit(func2str(evt.MethodFcn))
+                return
+            end
+            
             
             if numSessions == 0
                 msg = 'No sessions are selected';
@@ -1431,7 +1449,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             functionName = func2str(evt.MethodFcn);
             returnToIdle = app.setBusy(functionName); %#ok<NASGU>
                            
-            app.SessionMethodsMenu.Mode = 'Default';
+            app.SessionTaskMenu.Mode = 'Default';
 
             % Get configuration attributes for session method. 
             try
@@ -1485,6 +1503,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 case 'TaskQueue'
                     app.addTasksToQueue(sessionMethod, sessionObj, opts, optsName)
+
             end
               
             % Clear the statusfield
@@ -1555,25 +1574,31 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if isa(sMethod, 'nansen.session.SessionMethod')
                     sMethod = sessionMethod(sessionObj{i});
                     sMethod.usePreset(optsName)
+                    
                     isSuccess = sMethod.preview();
+
                     if isSuccess
                         sMethod.run()
                     end
+                    
+                    % Update session task menu (in case new options were defined...)
+                    app.SessionTaskMenu.refresh()
+                    % Todo: Only refresh this submenu.
+                    % Todo: Only refresh if options sets were added. 
+                    
                 else
                     fcnName = func2str(sessionMethod);
-                    optManager = nansen.manage.OptionsManager(fcnName);
-                    [opts, wasAborted] = tools.editStruct(opts, nan, ...
-                        '', 'OptionsManager', optManager);
+                    optManager = nansen.manage.OptionsManager(fcnName, opts);
+                    
+                    [~, opts, wasAborted] = optManager.editOptions();
                     
                     if ~wasAborted
                         sessionMethod(sessionObj{i}, opts)
                     end
                 end
-                
+
             end
-            
-            % Todo: Add method for updating menu options for this submenu
-            
+
         end
         
         function addTasksToQueue(app, sessionMethod, sessionObj, opts, optsName)
@@ -1684,7 +1709,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onRefreshSessionMethodMenuClicked(app, src, evt)
-            app.SessionMethodsMenu.refresh()
+            app.SessionTaskMenu.refresh()
         end
             
     end

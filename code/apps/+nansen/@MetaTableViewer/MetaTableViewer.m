@@ -172,6 +172,20 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
     methods % Public methods
         
+        function refreshColumnModel(obj)
+        %refreshColumnModel Refresh the columnmodel 
+        %
+        %   Note: This method should be called whenever a new metatable is
+        %   set, and whenever a metatable variable definition is changed.
+        %
+        %   Todo: {Find a way to make this happen when it is needed, instead
+        %   of requiring this method to be called explicitly. This fix need
+        %   to be implemented on the class (table model) owning the 
+        %   columnmodel}
+            
+            obj.ColumnModel.updateColumnEditableState()
+        end
+        
         function refreshTable(obj, newTable, flushTable)
         %refreshTable Method for refreshing the table
         
@@ -196,6 +210,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         function rowInd = getMetaTableRows(obj, rowInd)
             
+            % Todo: Determine if this method is useful in 
+            % getSelectedEntries/setSelectedEntries?
             dataInd = get(obj.HTable.JTable.Model, 'Indexes');
             
             if ~isempty(dataInd)
@@ -208,7 +224,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
         
         function IND = getSelectedEntries(obj)
-            
+        %getSelectedEntries Get selected entries based on the MetaTable
+        %
+        %   Get selected entry from original metatable taking column
+        %   sorting and filtering into account.
+        
             IND = obj.HTable.SelectedRows;
             
             dataInd = get(obj.HTable.JTable.Model, 'Indexes');
@@ -220,18 +240,33 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 IND = IND; 
             end
             
+            % Get currently visible row and column indices.
+            visibleRowInd = obj.getCurrentRowSelection();
+            
+            % Get row and column indices for original data (unfiltered, unsorted, allcolumns)
+            IND = visibleRowInd(IND);
         end
-        
+       
         function setSelectedEntries(obj, IND)
         %setSelectedEntries Set row selection
         
-            dataInd = obj.HTable.RowSortIndex;
-            selectedRows = find(ismember(dataInd, IND));
-
-            if isempty(selectedRows)
-                selectedRows = IND;
+            % Get currently visible row indices.
+            visibleRowInd = obj.getCurrentRowSelection();
+            
+            % Get row indices based on the underlying table model (taking sorting into account)
+            dataInd = get(obj.HTable.JTable.Model, 'Indexes') + 1;
+            if isempty(dataInd)
+                dataInd = 1:numel(visibleRowInd);
             end
             
+            % Reorder the visible row indices according to possible sort
+            % order
+            visibleRowInd = visibleRowInd(dataInd);
+            
+            % Find the rownumber corresponding to the given entries.
+            selectedRows = find(ismember(visibleRowInd, IND));
+
+            % Set the row selection
             obj.HTable.SelectedRows = selectedRows;
             
         end
@@ -374,7 +409,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function updateColumnLayout(obj) %protected
         %updateColumnLayout Update the columnlayout based on user settings
         
-        
             if isempty(obj.ColumnModel); return; end
             if isempty(obj.MetaTable); return; end
             
@@ -385,7 +419,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.HTable.ColumnName = columnLabels;
 
             obj.updateColumnEditable()
-            
             
             % Set column widths
             newColumnWidths = obj.ColumnModel.getColumnWidths();
@@ -481,7 +514,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.HTable.ColumnEditable = allowEdit;
             
         end
-        
         
         function updateTableView(obj)
 
