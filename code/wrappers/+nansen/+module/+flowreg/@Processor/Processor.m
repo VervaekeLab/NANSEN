@@ -32,6 +32,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         OptionsManager = nansen.OptionsManager('nansen.module.flowreg.Processor')
     end
     
+    properties (Constant) % From motion correction
+        ImviewerPluginName = 'FlowRegistration'
+    end
+    
     properties (Constant, Access = protected)
         %DependentPaths = nansen.module.flowreg.getDependentPaths()
     end

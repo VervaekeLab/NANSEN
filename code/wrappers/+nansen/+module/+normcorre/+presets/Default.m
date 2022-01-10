@@ -1,8 +1,8 @@
 classdef Default < nansen.module.normcorre.Options
 
     properties (Constant)
-        Name = 'Nonrigid (Default)'
-        Description = 'Default options for nonrigid correction'
+        Name = 'Nonrigid (4x4)'
+        Description = 'The original preset options for nonrigid correction'
     end
     
     methods (Static)
