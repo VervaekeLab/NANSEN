@@ -27,6 +27,7 @@ classdef isResizable < uim.handle
         PickableParts = 'all'; % When visible... Is set to none when invisible.
         ImrectCallbacks = [];
         rectDestroyedListener = event.listener.empty
+        IsConstructed = false;
     end
     
     properties (Hidden, Transient, Access = public)    
@@ -104,11 +105,12 @@ classdef isResizable < uim.handle
             %uistack(imrectGroup, 'down')
             
             obj.interactiveRectangle = hRect;
-            
          end
         
         
         function hideInteractiveRectangle(obj)
+            if isempty(obj.interactiveRectangle); return; end
+            
             imrectGroup = findobj(obj.interactiveRectangle, ...
                 'Type', 'hggroup', 'Tag', 'imrect');
             set(imrectGroup, 'Visible', 'off');
@@ -120,7 +122,7 @@ classdef isResizable < uim.handle
         
         
         function showInteractiveRectangle(obj)
-            
+            if isempty(obj.interactiveRectangle); return; end
                     
             if obj.isResizeable
                 imrectGroup = findobj(obj.interactiveRectangle, ...

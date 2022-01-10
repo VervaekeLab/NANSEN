@@ -249,7 +249,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
             
             set(app.Figure, 'DefaultAxesCreateFcn', @app.onAxesCreated)
 
-
         end
         
         function onAxesCreated(app, src, evt)
@@ -264,6 +263,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
             
             if removeAxToolbar
                 disableDefaultInteractivity(src)
+                src.Interactions = [];
                 src.Toolbar = [];
             end
             

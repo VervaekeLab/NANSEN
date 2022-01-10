@@ -137,18 +137,24 @@ classdef messageBox < uim.mixin.isResizable
             pos = obj.hParent.Position;
             obj.hParent.Units = origParentUnits;
             
-            if isa(obj.hParent, 'matlab.ui.Figure')
+            if isa(obj.hParent, 'matlab.ui.Figure') || isa(obj.hParent, 'matlab.ui.container.Panel')
                 pos(1:2)=0;
             end
 
             % Make sure axes does not exceed parent container.
             axW = min(pos(3), obj.MinSize(1));
             axH = min(pos(4), obj.MinSize(2));
-
+            
             axesLocation = [pos(1)+ (pos(3) - axW)/2, pos(2) + (pos(4) - axH)/2];
             obj.hAxes.Position = [axesLocation, axW, axH ];
             obj.hAxes.Visible = 'off';
-            hold(obj.hAxes, 'on') 
+            hold(obj.hAxes, 'on')
+            
+            if isa(obj.hParent, 'matlab.ui.container.Panel')
+                obj.hAxes.Position = [0,0,obj.hParent.Position(3:4)];
+            end
+            
+
             
             % Configure isResizable behavior. This will make the messagebox
             % resizeable.
@@ -158,13 +164,14 @@ classdef messageBox < uim.mixin.isResizable
             obj.hAxes.Units = axUnits;
                         
             obj.Parent = obj.hParent;
-            obj.createInteractiveRectangle()
-            obj.hideInteractiveRectangle
-
-            hFunc = makeConstrainToRectFcn('imrect', obj.Parent.XLim, obj.Parent.YLim);
-            obj.setPositionConstraintFcn(hFunc)
-            obj.isResizeable = false; % Turn of resizeability. (Messagebox can only be moved).
-            
+            if isa(obj.hParent, 'matlab.graphics.axis.Axes')
+                obj.createInteractiveRectangle()
+                obj.hideInteractiveRectangle
+                
+                hFunc = makeConstrainToRectFcn('imrect', obj.Parent.XLim, obj.Parent.YLim);
+                obj.setPositionConstraintFcn(hFunc)
+                obj.isResizeable = false; % Turn of resizeability. (Messagebox can only be moved).
+            end
             
         end % \createAxes
     
@@ -558,6 +565,12 @@ classdef messageBox < uim.mixin.isResizable
             end
             obj.showInteractiveRectangle()
             
+            if isa(obj.hParent, 'matlab.ui.container.Panel')
+                obj.hParent.Visible = 'on';
+            end
+            
+            
+            
             % Make sure close-button background is will capture
             % mouseclicks/mouseovers.
 % %             obj.xButtonBg.HitTest = 'on';
@@ -610,6 +623,10 @@ classdef messageBox < uim.mixin.isResizable
 
             if obj.isWaitbarActive && ~isempty(obj.hWaitbar)
                 obj.waitbar(1, '', 'close')
+            end
+            
+            if isa(obj.hParent, 'matlab.ui.container.Panel')
+                obj.hParent.Visible = 'off';
             end
             
             %drawnow
