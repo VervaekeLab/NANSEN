@@ -105,7 +105,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     
     properties % Options manager / preset selection
         OptionsManager = []
-        PresetSelection = ''
+        CurrentOptionsSet = ''
     end
     
     properties % Callback properties. Need to clean 
@@ -123,7 +123,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         hControls
         
         wasCanceled = false;
-        currentPresetName = '' % Name of currently selected preset.
+        currentOptionsName = '' % Name of currently selected options set.
     end
     
     properties (Access = private) % Internal properties. Need to clean
@@ -140,7 +140,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         TabButtonGroup      
         
         headerTitle
-        PresetControls
         
         header
         sidebar
@@ -165,7 +164,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         headerSubtitle
         sidePanelToggleButton
-        presetDropdown
+        
+        % Move to options manager ui class.
+        OptionsManagerControls
+        OptionsSelectionDropdown
     end 
     
     properties (Access = protected, Dependent, Hidden = true )
@@ -224,12 +226,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Create components for first panel..
             obj.addComponents(1)
+            obj.updateHeaderTitle()
 
             if exist('applify.uicontrolSchemer', 'class')==8
                 obj.styleControls(1)
                 
                 if obj.showFooter
-                    h = applify.uicontrolSchemer(obj.PresetControls);
+                    h = applify.uicontrolSchemer(obj.OptionsManagerControls);
                     el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
                     drawnow
                 end
@@ -405,9 +408,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Update header title
             if ~strcmp(obj.TabMode, 'dropdown')
                 if obj.showPresetInHeader
-                    obj.headerTitle.String = sprintf('Current Preset:\n%s', 'Default');
+                    obj.headerTitle.String = sprintf('Current Options:\n%s', 'Default');
+                elseif obj.showSidePanel && obj.numTabs > 1 && strcmp(obj.TabMode, 'sidebar')
+                    obj.headerTitle.String = sprintf('Edit %s parameters', obj.Name{pageNum});
                 else
-                    obj.headerTitle.String = sprintf('Edit %s', obj.Title);
+                    obj.headerTitle.String = sprintf('Edit parameters for %s', obj.Title);
                 end
             end
             
@@ -772,7 +777,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Create a textbox with the property name
             textbox = text(obj.footer.hAxes, 0.03, 0.5, '');
             textbox.VerticalAlignment = 'middle';
-            textbox.String = 'Presets:';
+            textbox.String = 'Options:';
             textbox.Color = obj.Theme.FigureFgColor*0.8;
             textbox.FontName = obj.FontName;
             textbox.FontSize = obj.FontSize;
@@ -780,12 +785,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if obj.numTabs > 1
                 X = [80, 300, 420];
                 W = [180, 100, 100];
+                fullWidth = obj.Figure.Position(3) - 100; % 100 = 80+20
+                [X, W] = uim.utility.layout.subdividePosition(80, fullWidth, [1, 100, 100], 20);
             else
                 X = [80, 220, 340];
                 W = [120, 100, 100];
             end
             
-            % Todo: Save to property...
             hDropdown = uicontrol(obj.footer.hPanel, 'style', 'popupmenu');
             hDropdown.String = {'Custom'};
             hDropdown.Value = 1;
@@ -793,24 +799,26 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hDropdown.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hDropdown.FontName = obj.FontName;
             hDropdown.FontSize = obj.FontSize;
-            hDropdown.Callback = @obj.onPresetChanged;
+            hDropdown.Callback = @obj.onOptionsSetChanged;
             
-            obj.refreshPresetDropdown(hDropdown)
-            obj.presetDropdown = hDropdown;
+            obj.refreshOptionsDropdown(hDropdown)
+            obj.OptionsSelectionDropdown = hDropdown;
             
-            if ~isempty(obj.PresetSelection)
-                obj.setPresetSelection(obj.PresetSelection)
+            if ~isempty(obj.CurrentOptionsSet)
+                obj.changeOptionsSelectionDropdownValue(obj.CurrentOptionsSet)
             end
             
-            obj.currentPresetName = obj.getCurrentPresetSelection(hDropdown);
+            obj.currentOptionsName = obj.getCurrentOptionsSetSelection(hDropdown);
             
             hButton1 = uicontrol(obj.footer.hPanel, 'style', 'pushbutton');
-            hButton1.String = 'Save Preset';
+            hButton1.String = 'Save Options';
             hButton1.Position = [X(2), 12, W(2), 22];
             hButton1.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hButton1.FontName = obj.FontName;
             hButton1.FontSize = obj.FontSize;
-            hButton1.Callback = @(s,e,h) obj.savePreset(hDropdown);
+            hButton1.Callback = @(s,e) obj.saveOptionsSet();
+            hButton1.Enable = 'off';
+            
             
             hButton2 = uicontrol(obj.footer.hPanel, 'style', 'pushbutton');
             hButton2.String = 'Make Default';
@@ -818,10 +826,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hButton2.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hButton2.FontName = obj.FontName;
             hButton2.FontSize = obj.FontSize;
-            hButton2.Callback = @(s,e,h) obj.makePresetDefault(hDropdown);
+            hButton2.Callback = @(s,e,h) obj.makeOptionsSetDefault(hDropdown);
 
-            obj.PresetControls = [hDropdown, hButton1, hButton2];
+            obj.OptionsManagerControls = [hDropdown, hButton1, hButton2];
             
+            obj.setButtonEnableState('Make Default')
             
         end
         
@@ -1951,7 +1960,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
                 
                 if ~isInternal && ~isempty(obj.OptionsManager)
-                    obj.changePresetToModified()
+                    obj.changeOptionsToModified()
                 end
                 
                 % Todo: Enable save button
@@ -2071,29 +2080,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         
-% % % % Methods for presets (Todo: make into separate class)
-        
-        function setPresetDropdownValueToName(obj, newName)
-            
-            hDropDown = obj.presetDropdown;
-            
-            if any( strcmp(newName, hDropDown.String) )
-                hDropDown.Value = find( strcmp(newName, hDropDown.String) );
-            else
-                hDropDown.String = cat(1, hDropDown.String, {newName} );
-                hDropDown.Value = numel(hDropDown.String);
-            end
-            
-            obj.currentPresetName = newName;
-            
-        end
+% % % % Methods for options sets (Todo: make into separate class)
 
-        function onPresetChanged(obj, src, evt)
+        function onOptionsSetChanged(obj, src, evt)
             
             % Todo: Skip if current name is chosen...
             
-            oldName = obj.currentPresetName;
-            newName = obj.getCurrentPresetSelection(src);
+            oldName = obj.currentOptionsName;
+            newName = obj.getCurrentOptionsSetSelection(src);
             
             if strcmp(oldName, newName); return; end
             
@@ -2106,8 +2100,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     opts = obj.dataEdit{1};
                 end
                 
-                obj.OptionsManager.storeModifiedOptions(opts, oldName)
+                obj.OptionsManager.appendModifiedOptions(opts, oldName)
             end
+            
+            obj.setButtonEnableState('Make Default')
+            obj.setButtonEnableState('Save Options')
             
             
             newOpts = obj.OptionsManager.getOptions(newName);
@@ -2119,18 +2116,224 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % % %                 newOpts = {newOpts};
 % % %             end
             
-            obj.updateFromPreset(newOpts)
-            %obj.refreshPresetDropdown(src)
+            obj.replaceEditedStruct(newOpts)
+            %obj.refreshOptionsDropdown(src)
             
-            obj.currentPresetName = newName;
+            obj.currentOptionsName = newName;
         end
         
-        function updateFromPreset(obj, newOpts)
-                 
+        function changeOptionsSelectionDropdownValue(obj, newName)
+            
+            hDropdown = obj.OptionsSelectionDropdown;
+            
+            % Todo: Need to test this properly???
+            
+            optionNames = obj.OptionsManager.getAllOptionNames();
+            
+            isMatch = strcmp( optionNames, newName );
+            
+            matchedInd = find(isMatch);
+            
+            %matchedName = hDropdown.String{matchedInd(1)};
+            
+            hDropdown.Value = matchedInd;
+            
+        end
+        
+        function name = getCurrentOptionsSetSelection(obj, hDropdown)
+            
+            if nargin < 2
+                hDropdown = obj.OptionsSelectionDropdown;
+            end
+            
+            if isempty(hDropdown); name = ''; return; end % Control not created yet.
+            
+            name = hDropdown.String{hDropdown.Value};
+            
+            % Remove preset flag...
+            name = strrep(name, '[', '');
+            name = strrep(name, ']', '');
+            
+            % Remove default flag...
+            name = strrep(name, ' (Default)', '');
+        end
+        
+        function saveOptionsSet(obj)
+            
+            % Get current options
+            opts = obj.getEditedStruct();
+            currentName = obj.getCurrentOptionsSetSelection;
+            
+            % Todo: get info about whether preset was saved and which name
+            givenName = obj.OptionsManager.saveCustomOptions(opts);
+            
+            % Update list of presets.
+            if ~isempty(givenName)
+                
+                % If current preset is modified, update name
+                if contains(currentName, 'Modified')
+                    currentInd = obj.OptionsSelectionDropdown.Value;
+                    
+                    %names = obj.OptionsSelectionDropdown.String;
+                    %names{currentInd} = givenName;
+                    %obj.OptionsSelectionDropdown.String = names;
+                    
+                    obj.OptionsSelectionDropdown.String{currentInd} = givenName;
+                    %obj.OptionsSelectionDropdown.Value = currentInd;
+                    obj.OptionsManager.removeModifiedOptions(currentName)
+
+                % Else, make a new entry in the list
+                else
+                    % Todo: Can I remove this?
+                    %names = cat(1, obj.OptionsSelectionDropdown.String, {givenName} ];
+                    obj.OptionsSelectionDropdown.String{end+1} = givenName;
+                    obj.OptionsSelectionDropdown.Value = numel(obj.OptionsSelectionDropdown.String);
+                end
+            end
+            
+            obj.setButtonEnableState('Save Options')
+            obj.setButtonEnableState('Make Default')
+
+            %obj.refreshOptionsDropdown(hDropdown) % not necessary, name is
+            %updated in this function, no other names are affected.
+
+        end
+        
+        function S = getEditedStruct(obj)
+        
+            % Get current options
+            S = obj.dataEdit;
+            
+            % Todo: make method:
+            if isa(S, 'cell') && numel(S) > 1
+                S = cell2struct(S, obj.Name);
+            else
+                S = S{1};
+            end
+        end
+        
+        function makeOptionsSetDefault(obj, hDropdown)
+        %makeOptionsSetDefault Make current preset the default  
+            name = obj.getCurrentOptionsSetSelection(hDropdown);
+            obj.OptionsManager.setDefault(name);
+            
+            %obj.updateDefaultTag()
+            obj.refreshOptionsDropdown(hDropdown)
+            obj.setButtonEnableState('Make Default')
+
+        end
+        
+        function refreshOptionsDropdown(obj, hDropdown)
+        %refreshOptionsDropdown Refresh items in dropdown menu 
+                   
+            if nargin < 2
+                hDropdown = obj.OptionsSelectionDropdown;
+            end
+        
+            presetNames = obj.OptionsManager.PresetOptionNames;
+            presetNames_ = obj.OptionsManager.formatPresetNames(presetNames);
+            customNames = obj.OptionsManager.CustomOptionNames;
+            
+            names = [presetNames, customNames];
+            
+            defaultName = obj.OptionsManager.getPreferredOptionsName();
+            isDefault = strcmp(names, defaultName);
+            
+            names = [presetNames_, customNames];
+            names(isDefault) = obj.OptionsManager.formatDefaultName(names(isDefault));
+            
+            editedNames = obj.OptionsManager.EditedOptionNames;
+            editedNames_ = obj.OptionsManager.formatEditedNames(editedNames);
+            
+            hDropdown.String = [names, editedNames_];
+            
+            obj.setButtonEnableState('Make Default')
+            
+            % Todo: Make sure value stays the same (points to same item)
+            
+        end
+        
+        function setButtonEnableState(obj, buttonName)
+        %setButtonEnableState Set enable state based on current selection
+        
+        
+            hDropdown = obj.OptionsSelectionDropdown;
+            if isempty(hDropdown); return; end % Control not created yet.
+            currentName = obj.getCurrentOptionsSetSelection;
+
+            switch buttonName
+                case 'Make Default'
+                    
+                    hButton = obj.OptionsManagerControls(3);
+                    defaultName = obj.OptionsManager.getPreferredOptionsName();
+                    
+                    if strcmp(currentName, defaultName)
+                        newState = 'off';
+                    elseif contains(currentName, 'Modified')
+                        newState = 'off';
+                    else
+                        newState = 'on';
+                    end
+                    
+                case 'Save Options'
+                   
+                    hButton = obj.OptionsManagerControls(2);
+
+                    if contains(currentName, 'Modified')
+                        newState = 'on';
+                    else
+                        newState = 'off';
+                    end
+            end
+            
+            if ~strcmp( hButton.Enable, newState )
+                hButton.Enable = newState;
+            end
+        end
+        
+        function changeOptionsToModified(obj)
+            
+            % Flag current options as modified if they are not flagged as
+            % this from before. If they are flagged, add the modified set
+            % to options manager and make it the current selection in the
+            % dropdown
+            
+            % Question: Is there anything else here that must be done?
+            hDropdown = obj.OptionsSelectionDropdown;
+            name = obj.getCurrentOptionsSetSelection(hDropdown);
+            opts = obj.getEditedStruct();
+
+            if contains(name, 'Modified')
+                % The current options set is already tagged as modified.
+                obj.OptionsManager.appendModifiedOptions(opts, name)
+                return
+            else
+                % Create a new modified options set and make it the current
+                % one
+                newName = sprintf('%s (Modified)', name);
+                obj.OptionsManager.appendModifiedOptions(opts, newName)
+                obj.refreshOptionsDropdown()
+                hDropdown.Value = numel(hDropdown.String);
+            end
+            
+            obj.currentOptionsName = newName;
+            
+            obj.setButtonEnableState('Make Default')
+            obj.setButtonEnableState('Save Options')
+        end
+        
+        
+% % % % Method for updating all the parameter values of an options set.
+        
+        function replaceEditedStruct(obj, newOpts)
+            % Todo: Rename     
+            
             % If original data was a struct of structs, need to convert 
             % input to cell before continuing
             if obj.ConvertOutputToStruct
                 newOpts = struct2cell(newOpts);
+            else
+                newOpts = {newOpts};
             end
             
             numPages = numel(obj.dataEdit);
@@ -2195,127 +2398,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
         end
         
-        function setPresetSelection(obj, newName)
-            
-            hDropdown = obj.presetDropdown;
-            
-            % Todo: Need to test this properly???
-            
-            optionNames = obj.OptionsManager.listAllOptionNames();
-            
-            isMatch = strcmp( optionNames, newName );
-            
-            matchedInd = find(isMatch);
-            
-            %matchedName = hDropdown.String{matchedInd(1)};
-            
-            hDropdown.Value = matchedInd;
-            
-        end
-        
-        function name = getCurrentPresetSelection(obj, hDropdown)
-            
-            if nargin < 2
-                hDropdown = obj.presetDropdown;
-            end
-            
-            name = hDropdown.String{hDropdown.Value};
-            
-            name = strrep(name, '[', '');
-            name = strrep(name, ']', '');
-        end
-        
-        function savePreset(obj, hDropdown)
-            
-            % Get current options
-            opts = obj.dataEdit;
-            
-            % Todo: make method:
-            if isa(opts, 'cell') && numel(opts) > 1
-                opts = cell2struct(opts, obj.Name);
-            else
-                opts = opts{1};
-            end
-
-            currentName = obj.getCurrentPresetSelection;
-            
-            % Todo: get info about whether preset was saved and which name
-            givenName = obj.OptionsManager.saveCustomOptions(opts);
-            
-            % Update list of presets.
-            if ~isempty(givenName)
-                
-                % If current preset is modified, update name
-                if contains(currentName, 'Modified')
-                    currentInd = obj.presetDropdown.Value;
-                    
-                    %names = obj.presetDropdown.String;
-                    %names{currentInd} = givenName;
-                    %obj.presetDropdown.String = names;
-                    
-                    obj.presetDropdown.String{currentInd} = givenName;
-                    %obj.presetDropdown.Value = currentInd;
-                    obj.OptionsManager.removeModifiedOptions(currentName)
-                    
-                % Else, make a new entry in the list
-                else
-                    %names = cat(1, obj.presetDropdown.String, {givenName} ];
-                    obj.presetDropdown.String{end+1} = givenName;
-                    obj.presetDropdown.Value = numel(obj.presetDropdown.String);
-                end
-            end
-
-            
-            %obj.refreshPresetDropdown(hDropdown)
-
-        end
-        
-        function makePresetDefault(obj, hDropdown)
-        %makePresetDefault Make current preset the default  
-            name = obj.getCurrentPresetSelection(hDropdown);
-            obj.OptionsManager.setDefault(name);
-        end
-        
-        function refreshPresetDropdown(obj, hDropdown)
-        %makePresetDefault Make current preset the default  
-            
-            presetNames = obj.OptionsManager.PresetOptionNames;
-            presetNames = cellfun(@(name) sprintf('[%s]',name), presetNames, 'uni', 0);
-            customNames = obj.OptionsManager.CustomOptionNames;
-            
-            names = [presetNames, customNames];
-            
-            if isempty(names)
-                names = {'Original'}; %?
-            end
-            
-            hDropdown.String = names;
-            
-            % Todo: Make sure value stays the same (points to same item)
-            
-        end
-        
-        function changePresetToModified(obj)
-            
-            % Question: Is there anything else here that must be done?
-            hDropDown = obj.presetDropdown;
-            name = obj.getCurrentPresetSelection(hDropDown);
-            
-            if contains(name, 'Modified')
-                return
-            else
-                newName = sprintf('%s (Modified)', name);
-                obj.setPresetDropdownValueToName(newName)
-            end
-            
-            %todo: add hDropDown as property. 
-            obj.currentPresetName = newName;
-        end
-        
-
         
 % % % % User interaction callbacks
-
 
         function onDropdownSelected(obj, src, evt)
             obj.changeTab(src.Value)
@@ -2402,7 +2486,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.updateScrollbar(panelNum)
 
         end
-        
 
         function disablePage(obj, panelNum)
             obj.main.hPanel(panelNum).Enable = 'off';
@@ -2586,8 +2669,8 @@ end
 % %         obj.showFooter = true;
 % %     end
 % % 
-% %     if any(contains(varargin(1:2:end), 'PresetSelection'))
-% %         ind = find(contains(varargin(1:2:end), 'PresetSelection'));
-% %         obj.PresetSelection = varargin{ind*2};
+% %     if any(contains(varargin(1:2:end), 'CurrentOptionsSet'))
+% %         ind = find(contains(varargin(1:2:end), 'CurrentOptionsSet'));
+% %         obj.CurrentOptionsSet = varargin{ind*2};
 % %     end
 % % end 
