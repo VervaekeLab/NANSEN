@@ -298,6 +298,9 @@ methods % Structors
     end
     
     function quitImviewer(obj, ~, ~)
+        
+        if ~isvalid(obj); return; end
+        
         if obj.DeleteImageStackOnQuit
             delete(obj.ImageStack)
         end
@@ -1940,8 +1943,6 @@ methods % App update
         
     end
     
-    
-    
     function refreshImageDisplay(obj)
         obj.updateImage()
         if strcmp(obj.Visible, 'on')
@@ -2012,6 +2013,22 @@ methods % App update
             updateInfoText(obj)
         end
         
+    end
+    
+    function hPlugin = openPlugin(obj, pluginName, pluginOptions)
+        
+        if nargin < 3 || isempty(pluginOptions)
+            pluginOptions = struct.empty;
+        end
+        
+        pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
+        pluginFcn = str2func(pluginFcnName);
+        
+        hPlugin = pluginFcn(obj, pluginOptions);
+
+        if ~nargout
+            clear(hPlugin)
+        end
     end
     
 end
@@ -2407,7 +2424,7 @@ methods % Event/widget callbacks
         end
         
         if ~isempty( obj.hSettingsEditor )
-             obj.hSettingsEditor.updateFromPreset(obj.settings)
+             obj.hSettingsEditor.replaceEditedStruct(obj.settings)
         end
         
         %drawnow;
@@ -2480,7 +2497,7 @@ methods % Event/widget callbacks
         end
         
         if ~isempty( obj.hSettingsEditor )
-             obj.hSettingsEditor.updateFromPreset(obj.settings)
+             obj.hSettingsEditor.replaceEditedStruct(obj.settings)
         end
                 
     end
