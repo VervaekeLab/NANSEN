@@ -822,7 +822,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
-        function onMousePressed(obj, src, evt)
+        function onMousePressed(app, src, evt)
         end
        
         function onKeyPressed(app, src, evt)
@@ -1171,7 +1171,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
             
+            % Need to keep selected entries before refreshing table. 
+            selectedEntries = app.UiMetaTableViewer.getSelectedEntries();                    
+
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+            % Make sure selection is preserved.
+            app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
             
             if numSessions > 5
                 delete(h)
@@ -1398,24 +1404,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         %onSettingsChanged Callback for change of fields in settings
-        function onSettingsChanged(obj, name, value)    
+        function onSettingsChanged(app, name, value)    
             
             
             switch name
                 
                 case 'ShowIgnoredEntries'
-                    obj.settings.MetadataTable.(name) = value;
+                    app.settings.MetadataTable.(name) = value;
                     
-                    selectedEntries = obj.UiMetaTableViewer.getSelectedEntries();
-                    obj.UiMetaTableViewer.ShowIgnoredEntries = value;
+                    selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
+                    app.UiMetaTableViewer.ShowIgnoredEntries = value;
                     
                     % Make sure selection is preserved.
-                    obj.UiMetaTableViewer.setSelectedEntries(selectedEntries);
+                    app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
                     
                     
                 case 'AllowTableEdits'
-                    obj.settings.MetadataTable.(name) = value;
-                    obj.UiMetaTableViewer.AllowTableEdits = value;
+                    app.settings.MetadataTable.(name) = value;
+                    app.UiMetaTableViewer.AllowTableEdits = value;
 
             end
             
