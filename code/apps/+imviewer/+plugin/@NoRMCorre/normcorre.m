@@ -54,7 +54,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 %obj.loadSettings()
                 
                 if nargin < 2 || isempty(optsStruct)
-                    [obj.settings, obj.settingsName] = nansen.OptionsManager('nansen.adapter.normcorre').getOptions;
+                    [obj.settings, obj.settingsName] = nansen.OptionsManager('nansen.module.normcorre.Processor').getOptions;
                 else
                     obj.settings = optsStruct;
                 end

@@ -1,8 +1,8 @@
 classdef Default < nansen.module.flowreg.Options
 
     properties (Constant)
-        Name = 'Flowreg (Default)'
-        Description = 'Default options for nonrigid correction with flowreg'
+        Name = 'Flowreg Preset'
+        Description = 'Default preset options for nonrigid correction with flowreg'
     end
     
     methods (Static)

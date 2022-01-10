@@ -110,11 +110,16 @@ classdef VariableEditorTable < applify.apptable
             obj.centerComponent(hRow.FileTypeSelect, y)
             
             % Todo: Get this more interactively...
-            hRow.FileTypeSelect.Items = {'.mat', '.tif', '.raw'};
-            hRow.FileTypeSelect.Value = '.mat';
+            hRow.FileTypeSelect.Items = obj.DEFAULT_FILETYPES;
+            hRow.FileTypeSelect.Value =  obj.DEFAULT_FILETYPES{1};
             
             if ~isempty(rowData.FileType)
+                if ~contains(rowData.FileType, hRow.FileTypeSelect.Items)
+                    hRow.FileTypeSelect.Items{end+1} = rowData.FileType;
+                end
+
                 hRow.FileTypeSelect.Value = rowData.FileType;
+
             end
             
            % Create FileAdapter Dropdown
@@ -155,8 +160,10 @@ classdef VariableEditorTable < applify.apptable
             end
             
             if isempty(listOfFileExtension)
-                listOfFileExtension = {'.mat', '.tif', '.raw'};
+                listOfFileExtension = obj.DEFAULT_FILETYPES;
             end
+            
+            listOfFileExtension = unique(listOfFileExtension);
             
             hRow.FileTypeSelect.Items = listOfFileExtension;
             % Todo: List files....

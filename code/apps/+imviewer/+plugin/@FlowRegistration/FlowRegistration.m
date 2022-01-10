@@ -61,7 +61,7 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
                 %obj.loadSettings()
                 
                 if nargin < 2 || isempty(optsStruct)
-                    obj.settings = nansen.OptionsManager('nansen.adapter.flowreg').getOptions;
+                    obj.settings = nansen.OptionsManager('nansen.module.flowreg.Processor').getOptions;
                 else
                     obj.settings = optsStruct;
                 end
