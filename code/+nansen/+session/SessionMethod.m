@@ -73,6 +73,7 @@ classdef SessionMethod < nansen.DataMethod
     properties 
         SessionObjects          % Array of session objects
         %Options                 % Todo: Keep only Options or Parameters
+        ExternalFcn % remove this...???
         Parameters
     end
     

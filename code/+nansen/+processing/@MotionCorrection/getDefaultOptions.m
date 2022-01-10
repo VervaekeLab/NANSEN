@@ -9,7 +9,7 @@ function S = getDefaultOptions()
     S.Preprocessing.NumFlybackLines = 0;
     S.Preprocessing.BidirectionalCorrection = 'None';
     S.Preprocessing.BidirectionalCorrection_ = {'None', 'Constant', 'Time Dependent'};
-    S.General.correctDrift = false;
+    %S.General.correctDrift = false;
     
     
     S.Preview.firstFrame = 1;

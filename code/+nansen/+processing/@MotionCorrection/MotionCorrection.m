@@ -49,6 +49,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     %   [ ] Need to load image stats. Also, nice to update imagestats if
     %   they are not available...
 
+    properties (Abstract, Constant)
+        ImviewerPluginName
+    end
 
     properties (Access = protected) % Data to keep during processing.
         ToolboxOptions      % Options for specific toolbox that is used for image registration
@@ -357,20 +360,21 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function tf = preview(obj) % -> imageStackProcessor
             
             %CLASSNAME = class(obj);
-            CLASSNAME = obj.getImviewerPluginName();
-            pluginFcn = str2func(strjoin({'imviewer', 'plugin', CLASSNAME}, '.'));
+            CLASSNAME = obj.ImviewerPluginName;
            
             rawStack = openRawTwoPhotonStack(obj, true);
+            rawStack.DynamicCacheEnabled = 'on';
             
             hImviewer = imviewer(rawStack);
             
-            h = pluginFcn(hImviewer, obj.Parameters);
+            h = hImviewer.openPlugin(CLASSNAME, obj.Parameters);
+            % Will continue when the plugin is closed.
             
             obj.Parameters = h.settings;
-            
+            tf = ~h.wasAborted;
+
+            delete(h)
             hImviewer.quit()
-            
-            tf = true;
             
         end
         
@@ -419,8 +423,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %   INPUT:
         %       quickOpen : Flag for opening without calculating image
         %       stats
-
-
+        
             if nargin < 2
                 skipPrecomputeStats = false; 
             end
@@ -432,11 +435,12 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             filePath = obj.SessionObjects.getDataFilePath(DATANAME);
             
             % Initialize file reference for raw 2p-images
-            rawStack = imviewer.stack.open(filePath);
+            rawStack = nansen.stack.ImageStack(filePath);
+            return
             
             S = obj.getDefaultOptions();
             
-            numFrames = rawStack.numFrames;
+            numFrames = rawStack.NumTimepoints;
             imageStats = obj.getImageStats(numFrames);
             
             % Todo: Can this be improved or made into a separate method?

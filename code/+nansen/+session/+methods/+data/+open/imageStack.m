@@ -41,11 +41,18 @@ function varargout = imageStack(sessionObj, varargin)
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
 % Implementation of the method : Add you code here:
         
-    filePath = sessionObj.getDataFilePath('TwoPhotonSeries_Original');
+    filePath = sessionObj.getDataFilePath(params.VariableName);
     
     if ~params.UseVirtualStack
         imageStack = nansen.stack.ImageStack(filePath);
-        imData = imageStack.getFrameSet(params.FirstImage:params.LastImage);
+        
+        if params.LastImage > imageStack.NumTimepoints
+            frameIndices = params.FirstImage:imageStack.NumTimepoints;
+        else
+            frameIndices = params.FirstImage:params.LastImage;
+        end
+        
+        imData = imageStack.getFrameSet(frameIndices);
         imviewer(imData)
         
     else
@@ -56,8 +63,23 @@ end
 
 
 function S = getDefaultParameters()
+    
+    global dataFilePathModel
+    if isempty(dataFilePathModel)
+        dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
+    end
+    
+    fileAdapters = {dataFilePathModel.VariableList.FileAdapter};
+    isImageStack = contains(fileAdapters, 'ImageStack');
+    
+    varNames = {dataFilePathModel.VariableList(isImageStack).VariableName};
+    
     S = struct();
+    S.VariableName = varNames{1};
+    S.VariableName_ = varNames;
+    
     S.UseVirtualStack = true;
     S.FirstImage = 1;
     S.LastImage = inf;
+    
 end
