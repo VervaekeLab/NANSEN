@@ -11,7 +11,7 @@ function createNewSessionMethod(app)
     S.TemplateType = 'Function';
     S.TemplateType_ = {'Function', 'SessionMethod Class'};
     
-    menuNames = app.SessionMethodsMenu.getTopMenuNames();
+    menuNames = app.SessionTaskMenu.getTopMenuNames();
     S.MenuLocation = menuNames{1};
     S.MenuLocation_ = menuNames;
     
