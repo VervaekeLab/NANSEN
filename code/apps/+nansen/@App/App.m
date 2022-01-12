@@ -288,33 +288,33 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
 
             % Create a "Manage" menu
-            m = uimenu(app.Figure, 'Text', 'Manage', 'Enable', 'off');
+            m = uimenu(app.Figure, 'Text', 'Manage');
             
-            mitem = uimenu(m, 'Text', 'Create New Metatable...');
+            mitem = uimenu(m, 'Text', 'Create New Metatable...', 'Enable', 'off');
             mitem.MenuSelectedFcn = @app.menuCallback_CreateDb;
             
-            mitem = uimenu(m, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Database');
+            mitem = uimenu(m, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Database', 'Enable', 'off');
             %app.updateRelatedInventoryLists(mitem)
 
             
             % % % Create menu items for METATABLE loading and saving % % %
             
-            mitem = uimenu(m, 'Text','Load Metatable...');
+            mitem = uimenu(m, 'Text','Load Metatable...', 'Enable', 'off');
             mitem.MenuSelectedFcn = @app.menuCallback_LoadDb;
-            mitem = uimenu(m, 'Text','Refresh Metatable');
+            mitem = uimenu(m, 'Text','Refresh Metatable', 'Enable', 'off');
             mitem.MenuSelectedFcn = @(src, event) app.reloadExperimentInventory;
-            mitem = uimenu(m, 'Text','Save Metatable');
+            mitem = uimenu(m, 'Text','Save Metatable', 'Enable', 'off');
             mitem.MenuSelectedFcn = @app.saveExperimentInventory;
-            mitem = uimenu(m, 'Text','Save Metatable As');
+            mitem = uimenu(m, 'Text','Save Metatable As', 'Enable', 'off');
             mitem.MenuSelectedFcn = @app.saveExperimentInventory;
             
             mitem = uimenu(m, 'Text','Autodetect sessions', 'Separator', 'on');
             mitem.Callback = @(src, event) app.menuCallback_DetectSessions;
 
-            mitem = uimenu(m, 'Text','Import from Excel', 'Separator', 'on', 'Enable', 'on');
-            mitem.MenuSelectedFcn = @app.menuCallback_ImportTable;
-            mitem = uimenu(m, 'Text','Export to Excel');
-            mitem.MenuSelectedFcn = @app.menuCallback_ExportToTable;
+% %             mitem = uimenu(m, 'Text','Import from Excel', 'Separator', 'on', 'Enable', 'on');
+% %             mitem.MenuSelectedFcn = @app.menuCallback_ImportTable;
+% %             mitem = uimenu(m, 'Text','Export to Excel');
+% %             mitem.MenuSelectedFcn = @app.menuCallback_ExportToTable;
             
             
 
@@ -1393,14 +1393,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function menuCallback_DetectSessions(app, src, evtData)
             
-            sessionObjects = nansen.manage.detectNewSessions(app.MetaTable, 'Rawdata');
+            newSessionObjects = nansen.manage.detectNewSessions(app.MetaTable, 'Rawdata');
+            
+            if isempty(newSessionObjects)
+                msgbox('No sessions were detected')
+                return
+            end
             
             % Initialize a MetaTable using the given session schema and the
             % detected session folders.
-            app.MetaTable.addEntries(sessionObjects);
+            
+            % Find all that are not part of existing metatable
+            app.MetaTable.addEntries(newSessionObjects)
             app.MetaTable.save()
             
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+            msgbox(sprintf('%d sessions were successfully added', numel(newSessionObjects)))
+
         end
         
         %onSettingsChanged Callback for change of fields in settings
@@ -1706,6 +1716,44 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
             
+        function onUpdateSessionListMenuClicked(app, src, evt)
+            
+            import nansen.dataio.session.listSessionFolders
+            import nansen.dataio.session.matchSessionFolders
+    
+            %sessionSchema = @nansen.metadata.schema.vlab.TwoPhotonSession;
+            
+            % % Use the folder structure to detect session folders.
+            sessionFolders = listSessionFolders(dataLocationModel, 'all');
+            sessionFolders = matchSessionFolders(dataLocationModel, sessionFolders);
+    
+            if isempty(sessionFolders)
+                return
+            end
+
+            % Create a list of session metadata objects
+            numSessions = numel(sessionFolders);
+            sessionArray = cell(numSessions, 1);
+            for i = 1:numSessions
+                sessionArray{i} = sessionSchema(sessionFolders(i));
+            end
+
+            sessionArray = cat(1, sessionArray{:});
+            
+            foundSessionIds = {sessionArray.sessionID};
+            currentSessionIds = app.MetaTable{:, 'sessionID'};
+            
+            [~, iA] = setdiff( foundSessionIds, currentSessionIds, 'stable' );
+            
+            newSessionObjects = sessionArray(iA);
+            
+            % Find all that are not part of existing metatable
+            app.MetaTable.addEntries(newSessionObjects)
+            
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+
+        end
+        
         function onCreateSessionMethodMenuClicked(app, src, evt)
 
             nansen.session.methods.template.createNewSessionMethod(app);
