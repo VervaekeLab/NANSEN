@@ -1225,34 +1225,37 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         end
         
-        function checkIfMetaTableComplete(app)
+        function checkIfMetaTableComplete(app, metaTable)
         %checkIfMetaTableComplete Check if user-defined variables are
         %missing from the table.
         
         % Todo: Add to metatable class?
-            
+        
             tableVarNames = app.MetaTable.entries.Properties.VariableNames;
             
             variableAttributes = nansen.metadata.utility.getMetaTableVariableAttributes('session');
             referenceVarNames = {variableAttributes.Name};
             customVarNames = referenceVarNames([variableAttributes.IsCustom]);
-            
-            
-            % Check if any functions are present the tablevar folder, but
-            % the corresponding variable is missing from the table.
-            missingVarNames = setdiff(customVarNames, tableVarNames);
-            
-            for iVarName = 1:numel(missingVarNames)
-                thisName = missingVarNames{iVarName};
-                varFunction = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
-                fcnResult = varFunction();
-                if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
-                    defaultValue = fcnResult.DEFAULT_VALUE;
-                else
-                    defaultValue = fcnResult;
-                end
-                app.MetaTable.addTableVariable(thisName, defaultValue)
-            end
+        
+            app.MetaTable = addMissingVarsToMetaTable(app, app.MetaTable, 'session');
+        
+
+
+% % %             % Check if any functions are present the tablevar folder, but
+% % %             % the corresponding variable is missing from the table.
+% % %             missingVarNames = setdiff(customVarNames, tableVarNames);
+% % %             
+% % %             for iVarName = 1:numel(missingVarNames)
+% % %                 thisName = missingVarNames{iVarName};
+% % %                 varFunction = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
+% % %                 fcnResult = varFunction();
+% % %                 if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
+% % %                     defaultValue = fcnResult.DEFAULT_VALUE;
+% % %                 else
+% % %                     defaultValue = fcnResult;
+% % %                 end
+% % %                 app.MetaTable.addTableVariable(thisName, defaultValue)
+% % %             end
             
             % Also, check if any functions were removed from the tablevar
             % folder while the corresponding variable is still present in
@@ -1308,6 +1311,38 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Display a warning to the user if any variables will be
                 % removed. If user does not want to removed those variables,
                 % create a dummy function for that table var.
+
+        end
+        
+        function metaTable = addMissingVarsToMetaTable(app, metaTable, metaTableType)
+            
+            
+            if nargin < 3
+                metaTableType = 'session';
+            end
+            
+            tableVarNames = metaTable.entries.Properties.VariableNames;
+            
+            variableAttributes = nansen.metadata.utility.getMetaTableVariableAttributes( metaTableType );
+            referenceVarNames = {variableAttributes.Name};
+            customVarNames = referenceVarNames([variableAttributes.IsCustom]);
+            
+            
+            % Check if any functions are present the tablevar folder, but
+            % the corresponding variable is missing from the table.
+            missingVarNames = setdiff(customVarNames, tableVarNames);
+            
+            for iVarName = 1:numel(missingVarNames)
+                thisName = missingVarNames{iVarName};
+                varFunction = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
+                fcnResult = varFunction();
+                if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
+                    defaultValue = fcnResult.DEFAULT_VALUE;
+                else
+                    defaultValue = fcnResult;
+                end
+                metaTable.addTableVariable(thisName, defaultValue)
+            end
 
         end
         
@@ -1403,8 +1438,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Initialize a MetaTable using the given session schema and the
             % detected session folders.
             
+            tmpMetaTable = nansen.metadata.MetaTable.new(newSessionObjects);
+            tmpMetaTable = app.addMissingVarsToMetaTable(tmpMetaTable, 'session');
+
+            
             % Find all that are not part of existing metatable
-            app.MetaTable.addEntries(newSessionObjects)
+            app.MetaTable.appendTable(tmpMetaTable.entries)
             app.MetaTable.save()
             
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
