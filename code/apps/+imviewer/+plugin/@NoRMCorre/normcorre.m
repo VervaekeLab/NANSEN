@@ -97,8 +97,8 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             
             
             % Make sure we dont grab more than is available.
-            firstFrame = min(firstFrame, obj.imviewerRef.imageStack.numFrames);
-            lastFrame = min(lastFrame, obj.imviewerRef.imageStack.numFrames);
+            firstFrame = min(firstFrame, obj.imviewerRef.ImageStack.NumTimepoints);
+            lastFrame = min(lastFrame, obj.imviewerRef.ImageStack.NumTimepoints);
             
             if lastFrame-firstFrame < 2
                 errMsg = 'Error: Need at least two frames to run motion correction';
@@ -108,7 +108,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 return
             end
             
-            Y = obj.imviewerRef.imageStack.imageData(:, :, firstFrame:lastFrame);
+            Y = obj.imviewerRef.ImageStack.getFrameSet(firstFrame:lastFrame);
             
             obj.imviewerRef.displayMessage('Loading Data...')
             
@@ -124,7 +124,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             
             stackSize = size(Y);
             
-            import nansen.adapter.normcorre.*
+            import nansen.module.normcorre.*
             ncOptions = Options.convert(obj.settings, stackSize);
             
             
@@ -146,19 +146,19 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             obj.imviewerRef.clearMessage;
             
             
-            if obj.settings.Preview.openResultInNewWindow
+            if obj.settings.Preview.showResults
                 h = imviewer(M);
-                h.stackname = sprintf('%s - %s', obj.imviewerRef.stackname, 'NoRMCorre test correction');                
+                h.stackname = sprintf('%s - %s', obj.imviewerRef.Name, 'NoRMCorre test correction');                
             else
-                filePath = obj.imviewerRef.imageStack.filePath;
-                delete(obj.imviewerRef.imageStack)
-                
-                obj.imviewerRef.imageStack = imviewer.ImageStack(M);
-                obj.imviewerRef.imageStack.filePath = filePath;
-                obj.imviewerRef.updateImageDev();
-                obj.imviewerRef.updateImageDisplay();
-                
-                obj.mItemPlotResults.Enable = 'on';
+% %                 filePath = obj.imviewerRef.ImageStack.filePath;
+% %                 delete(obj.imviewerRef.ImageStack)
+% %                 
+% %                 obj.imviewerRef.ImageStack = imviewer.ImageStack(M);
+% %                 obj.imviewerRef.ImageStack.filePath = filePath;
+% %                 obj.imviewerRef.updateImage();
+% %                 obj.imviewerRef.updateImageDisplay();
+% %                 
+% %                 obj.mItemPlotResults.Enable = 'on';
                 
             end
             
@@ -167,7 +167,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 saveDir = obj.settings.Export.PreviewSaveFolder;
                 if ~exist(saveDir, 'dir'); mkdir(saveDir); end
                 
-                [~, fileName, ~] = fileparts(obj.imviewerRef.imageStack.filePath);
+                [~, fileName, ~] = fileparts(obj.imviewerRef.ImageStack.filePath);
                 
                 fileNameShifts = sprintf(fileName, '_nc_shifts.mat');
                 fileNameOpts = sprintf(fileName, '_nc_opts.mat');

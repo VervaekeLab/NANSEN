@@ -74,6 +74,8 @@ function S = getDefaultParameters()
     
     varNames = {dataFilePathModel.VariableList(isImageStack).VariableName};
     
+    if isempty(varNames); varNames = {'N/A'}; end
+    
     S = struct();
     S.VariableName = varNames{1};
     S.VariableName_ = varNames;

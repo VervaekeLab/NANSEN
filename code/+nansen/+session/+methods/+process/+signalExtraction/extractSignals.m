@@ -29,7 +29,6 @@ classdef extractSignals < nansen.session.SessionMethod
             
         end
         
-        
     end
     
     methods

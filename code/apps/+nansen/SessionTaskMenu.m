@@ -252,13 +252,14 @@ classdef SessionTaskMenu < handle
                                         
                     % Get the full function name (including package names)
                     functionName = obj.getFunctionStringName(L(i).folder, fileName);
+                    fcnConfig = obj.getTaskAttributes(functionName);
 
                     
                     % Create menu items with function handle as callback
                     if ~isempty(meta.class.fromName(functionName))
                         
                         % Get attributes for session method/function.
-                        fcnConfig = obj.getTaskAttributes(functionName);
+                        %fcnConfig = obj.getTaskAttributes(functionName);
                         options = fcnConfig.OptionsManager.AllOptionNames;
                         iSubMenu = uimenu(hParent, 'Text', menuName);
                         
@@ -282,7 +283,7 @@ classdef SessionTaskMenu < handle
                     else
                         iMitem = uimenu(hParent, 'Text', menuName);
                         obj.createMenuCallback(iMitem, functionName)
-                        obj.registerMenuObject(iMitem, functionName)
+                        obj.registerMenuObject(iMitem, fcnConfig)
                         
                     end
                     

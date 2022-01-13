@@ -463,6 +463,9 @@ classdef MetaTable < handle
         %   variable to the table and initializes all column values to the
         %   initValue.
         
+        % Todo: Make method for adding multiple variable ine one go, i.e
+        % allow variableName and initValue to be cell arrays.
+        
             obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
         
 % %             numTableRows = size(obj.entries, 1);
@@ -960,6 +963,8 @@ classdef MetaTable < handle
         %   variable to the table and initializes all column values to the
         %   initValue.
         
+            % This is kind of a more general table utility function..
+            
             numTableRows = size(T, 1);
             columnValues = repmat(initValue, numTableRows, 1);
             

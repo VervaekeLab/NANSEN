@@ -1229,7 +1229,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %checkIfMetaTableComplete Check if user-defined variables are
         %missing from the table.
         
-        % Todo: Add to metatable class?
+        % Todo: Add to metatable class? Eller muligens BaseSchema??? Kan
+        % man legge inn dynamiske konstante egenskaper?
         
             tableVarNames = app.MetaTable.entries.Properties.VariableNames;
             
@@ -1315,7 +1316,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function metaTable = addMissingVarsToMetaTable(app, metaTable, metaTableType)
-            
+        %addMissingVarsToMetaTable    
+        
+            % Todo: Lag metatable metode.
             
             if nargin < 3
                 metaTableType = 'session';
@@ -1526,6 +1529,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             catch ME
                 throwAsCaller(ME)
+                rethrow(ME)
             end
             
             
