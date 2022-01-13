@@ -760,7 +760,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 metaObjects = eval(expression);
             else
                 metaObjects = schema(entries);
+                addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
             end
+            
+        end
+        
+        function onMetaObjectPropertyChanged(app, src, evt)
+            
+            % Todo: generalize from session
+            % Todo: make method for getting table entry from sessionID
+            sessionID = src.sessionID;
+            metaTableEntryIdx = find(strcmp(app.MetaTable.members, sessionID));
+            app.MetaTable.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
             
         end
         

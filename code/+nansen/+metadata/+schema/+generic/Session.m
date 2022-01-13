@@ -51,6 +51,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         InternalVariables = {'Ignore', 'DataLocation', 'Notebook'}
     end
     
+    events
+        PropertyChanged
+    end
     
     methods % Assign metadata
             
@@ -436,8 +439,16 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                         folderName = sprintf('session-%s', obj.sessionID);
                     case 'Date'
                         folderName = obj.Date;
+                        if isa(folderName, 'datetime') % Todo: Should be method...
+                            folderName.Format = 'yyyy_MM_dd';
+                            folderName = char(folderName);
+                        end
                     case 'Time'
                         folderName = obj.Time;
+                        if isa(folderName, 'datetime') % Todo: Should be method...
+                            folderName.Format = 'HH_mm_ss';
+                            folderName = char(folderName);
+                        end
                     otherwise
                         folderName = S.SubfolderStructure(i).Name;
                         
@@ -455,6 +466,11 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             end
             
             obj.DataLocation.(dataLocationName) = folderPath;
+            
+            eventData = uiw.event.EventData('Property', 'DataLocation', ...
+                'NewValue', obj.DataLocation);
+            obj.notify('PropertyChanged', eventData)
+            
             
             if ~nargout
                 clear folderPath
