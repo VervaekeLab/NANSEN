@@ -148,9 +148,9 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             
             if obj.settings.Preview.showResults
                 h = imviewer(M);
-                h.stackname = sprintf('%s - %s', obj.imviewerRef.Name, 'NoRMCorre test correction');                
+                h.stackname = sprintf('%s - %s', obj.imviewerRef.stackname, 'NoRMCorre test correction');                
             else
-% %                 filePath = obj.imviewerRef.ImageStack.filePath;
+% %                 filePath = obj.imviewerRef.ImageStack.FileName;
 % %                 delete(obj.imviewerRef.ImageStack)
 % %                 
 % %                 obj.imviewerRef.ImageStack = imviewer.ImageStack(M);
