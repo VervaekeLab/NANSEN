@@ -70,7 +70,12 @@ classdef VariableEditorTable < applify.apptable
             
             hRow.DataLocSelect.Items = {obj.DataLocationModel.Data.Name}; % Todo: Where to get this from?
             if ~isempty(rowData.DataLocation)
-                hRow.DataLocSelect.Value = rowData.DataLocation;
+                if contains(rowData.DataLocation, hRow.DataLocSelect.Items)
+                    hRow.DataLocSelect.Value = rowData.DataLocation;
+                else
+                    hRow.DataLocSelect.Items{end+1} = rowData.DataLocation;
+                    hRow.DataLocSelect.Value = rowData.DataLocation;
+                end
             end
             
             % Create Image for viewing folder
