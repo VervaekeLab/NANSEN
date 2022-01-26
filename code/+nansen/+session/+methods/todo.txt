@@ -1,0 +1,6 @@
+Change this to use name spaces. 
+
+There will be some default methods in a namespace belonging to the 
+nansen package, but users can create their own namespaces anywhere,
+either in _userdata or in their local matlab path, and it will also 
+be added to the nansen app's menu bar

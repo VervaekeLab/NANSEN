@@ -463,10 +463,15 @@ classdef MetaTable < handle
         %   variable to the table and initializes all column values to the
         %   initValue.
         
-            numTableRows = size(obj.entries, 1);
-            columnValues = repmat(initValue, numTableRows, 1);
-            
-            obj.entries{:, variableName} = columnValues;
+        % Todo: Make method for adding multiple variable ine one go, i.e
+        % allow variableName and initValue to be cell arrays.
+        
+            obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
+        
+% %             numTableRows = size(obj.entries, 1);
+% %             columnValues = repmat(initValue, numTableRows, 1);
+% %             
+% %             obj.entries{:, variableName} = columnValues;
 
         end
 
@@ -474,6 +479,32 @@ classdef MetaTable < handle
             obj.entries(:, variableName) = [];
         end
 
+        function appendTable(obj, newTableRows)
+        %appendTable append a metatable to the current metatable 
+        
+            % Todo: Add validations to make sure there are not duplicate
+            % entries
+            % Todo: Extract separate methods for the code which is
+            % duplicated in addEntries.
+        
+            % Todo; what if the id is not the 1st variable.
+            schemaIdName = newTableRows.Properties.VariableNames{1};
+            
+            obj.entries = [obj.entries; newTableRows];
+            obj.MetaTableMembers = obj.entries.(schemaIdName);
+            
+            % Synch entries from master, e.g. if some entries were added
+            % that are already in master.
+            if ~obj.IsMaster %&& ~isempty(obj.filepath)
+                obj.synchFromMaster()
+            end
+            
+            obj.sort()
+            
+            obj.IsModified = true;
+            
+        end
+        
         % Add entry/entries to MetaTable table
         function addEntries(obj, newEntries)
         %addEntries Add entries to the MetaTable
@@ -512,7 +543,6 @@ classdef MetaTable < handle
             
             % Skip entries that are already present in the MetaTable.
             newEntries(iA, :) = [];
-            
             
             % Add new entries to the MetaTable.
             if isempty(obj.entries)
@@ -925,6 +955,21 @@ classdef MetaTable < handle
             
             S = table2struct( MT(isClassMatch & isDefault, :) );
             tf = ~isempty(S);
+            
+        end
+        
+        function T = addTableVariableStatic(T, variableName, initValue)
+        %   addTableVariable(obj, variableName, initValue) adds a new
+        %   variable to the table and initializes all column values to the
+        %   initValue.
+        
+            % This is kind of a more general table utility function..
+            
+            numTableRows = size(T, 1);
+            columnValues = repmat(initValue, numTableRows, 1);
+            
+            T{:, variableName} = columnValues;
+
             
         end
         

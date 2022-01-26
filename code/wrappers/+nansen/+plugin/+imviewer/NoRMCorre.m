@@ -302,7 +302,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             optManager = nansen.OptionsManager('nansen.adapter.normcorre');
             obj.settings = tools.editStruct(obj.settings, nan, titleStr, ...
                 'OptionsManager', optManager, 'Callback', callbacks, ...
-                'PresetSelection',  obj.settingsName);
+                'CurrentOptionsSet',  obj.settingsName);
    
                     
             %obj.settings = cell2struct(sCellOut, names);

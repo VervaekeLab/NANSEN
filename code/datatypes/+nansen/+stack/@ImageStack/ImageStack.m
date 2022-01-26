@@ -305,7 +305,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 % Assign image data to temp variable.
                 if obj.IsVirtual
                     try
-                        imArray = obj.Data.getCachedFrames();
+                        if obj.Data.HasCachedData
+                            imArray = obj.Data.getCachedFrames();
+                        else
+                            numFrames = min([obj.NumTimepoints, 500]);
+                            imArray = obj.getFrameSet(1:numFrames);
+                        end
                     catch
                         imArray = obj.Data(indexingSubs{:});
                     end
@@ -542,12 +547,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %getFullProjection Get stack projection image from the full stack
         
             % No need to calculate again if projection already exists
-% %             if (isfield(obj.Projections, projectionName) && ~obj.IsVirtual) || ...
-% %                 (isfield(obj.Projections, projectionName) && obj.IsVirtual && ~obj.isDirty.(projectionName))
-% %             
-% %                 projectionImage = obj.Projections.(projectionName);
-% %                 return 
-% %             end
+            if (isfield(obj.Projections, projectionName) && ~obj.IsVirtual) || ...
+                (isfield(obj.Projections, projectionName) && obj.IsVirtual && ~obj.isDirty.(projectionName))
+            
+                projectionImage = obj.Projections.(projectionName);
+                return 
+            end
             
             global fprintf % Use highjacked fprintf if available
             if isempty(fprintf); fprintf = str2func('fprintf'); end
@@ -1142,7 +1147,20 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         function onCachedDataChanged(obj, src, evt)
             %error('not implemented')
             
-            disp('a')
+            persistent counter
+            if isempty(counter); counter = 0; end
+            
+            counter = counter + 1;
+            if counter >= 100
+                fieldNames = fieldnames(obj.isDirty);
+                for i = 1:numel(fieldNames)
+                    obj.isDirty.(fieldNames{i}) = true;
+                end
+                counter = mod(counter, 100);
+            end
+            % Todo: Set projection images to dirty. Only do this every once
+            % in a while...
+            %disp('Cache changed...')
         end
         
     % - Methods for getting dimension lengths
@@ -1242,7 +1260,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             switch obj.DynamicCacheEnabled
                 case 'on'
-                    fprintf('This happened')
                     obj.CacheChangedListener = listener(obj.Data, ...
                         'DynamicCacheChanged', @obj.onCachedDataChanged);
                 case 'off'

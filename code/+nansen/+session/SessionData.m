@@ -68,7 +68,7 @@ classdef SessionData < dynamicprops
     methods
         function updateDataVariables(obj)
             
-            tic
+            
             varNames = {obj.DataFilePathModel.VariableList.VariableName};
             
             for i = 1:numel(varNames)
@@ -85,7 +85,7 @@ classdef SessionData < dynamicprops
                     % need to do something...
                 end
             end
-            toc
+            
         end
 
     end

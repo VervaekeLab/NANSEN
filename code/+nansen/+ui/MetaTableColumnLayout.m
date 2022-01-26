@@ -64,8 +64,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     %   ColumnVisible determines if column is part of list to display
     %   
     
-        
-    
     
     
     properties(Constant, Hidden = true)
@@ -76,13 +74,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         debug = false
     end
     
-    
     properties (SetAccess = private) %?
         % Question: Is this the MetaTable object or the metatable table???
         MetaTable   % The MetaTable to use for retrieving column layouts.
         MetaTableUi
     end
-    
     
     properties (SetAccess = private)
         
@@ -122,21 +118,14 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 
             obj.addColumnOrderToSettings() % temporary
             
-            % Todo: Make this into a method. Also, need to call this
-            % whenever a table variable was edited in sessionbrowser/nansen
-            for i = 1:numel(obj.settings)
-                variableName = obj.settings(i).VariableName;
-                try
-                    tf = obj.checkIfColumnIsEditable(variableName);
-                catch
-                    tf = false;
-                end
-                obj.settings_(i).IsEditable = tf;
-            end
-            
+            % The editable property depends on the metatable and the
+            % associated project-dependent variables and should be updated
+            % on each instance creation.
+            obj.updateColumnEditableState()
+
             obj.MetaTableUi = hViewer;
             
-            % Todo: Add listener on metatable property set
+            % Add listener on metatable property set
             l = addlistener(hViewer, 'MetaTable', 'PostSet', @(s,e) obj.onMetaTableChanged);
             obj.MetaTableChangedListener = l;
             
@@ -170,80 +159,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         
     end
     
-    methods (Access = private) % Create gui for editing settings
-        
-        function IND = getIndicesToShowInLayoutEditor(obj)
-        %getIndicesToShowInLayoutEditor For indexing the settings struct 
-        
-            % Indices of those variables in settings that are present in
-            % current metatable.
-            indA = obj.MetaTableIndicesAll;
-            
-            % Indices of those varibles that are not displayable
-            indB = find( [obj.settings.SkipColumn] );
-            
-            % Indices of variables in current metatable that are displayable
-            IND = setdiff(indA, indB, 'stable'); % I.e keep those in A that are not in B
-        end
-        
-        function T = getTableDataForUiEditor(obj)
-            
-            % Get column layout settings as a table.
-            T = struct2table(obj.settings);
-        
-            % Get indices of variables in current metatable that are
-            % displayable:
-            IND = obj.getIndicesToShowInLayoutEditor();
-            
-            % Get subset of table to display in column layout editor.
-            T = T(IND, [1,2,3,5,7]); % 4th + 6th column is not editable.
-        
-        end
-        
-        function openEditorGui(obj, T)
-            
-            % Create figure
-            tmpF = figure('Visible', 'off');
-            tmpF.NumberTitle = 'off';
-            tmpF.Name = 'Edit Column Layout';
-            tmpF.MenuBar = 'none';
-            tmpF.Resize = 'off';
-            
-            % Create table
-            tmpTable = uitable('Parent', tmpF);
-            tmpTable.FontSize = 12;
-            tmpTable.FontName = 'Avenir New';
-            tmpTable.ColumnWidth = {150, 150, 100, 100};
-            tmpTable.Data = table2cell(T);
-            tmpTable.ColumnName = T.Properties.VariableNames;
-            tmpTable.ColumnEditable = [false true true true];
-            tmpTable.Position = tmpTable.Extent;
-            tmpTable.CellEditCallback = @obj.onSettingsChanged;
-            
-            obj.UIEditorFigure = tmpF;
-            obj.UIEditorTable = tmpTable;
-            
-            % Set figure position same as figure extent and make visible
-            tmpF.Position(3:4) = tmpTable.Extent(3:4);
-            tmpF.Visible = 'on';
-
-            % Todo: Make sure figure is not taller than the screen size.
-            
-            % Wait for figure...
-            uiwait(tmpF)
-        end
-
-        function updateUiTableEditor(obj)
-            
-            if ~isempty(obj.UIEditorTable)
-                T = getTableDataForUiEditor(obj);
-                obj.UIEditorTable.Data = table2cell(T);
-            end
-        end
-        
-    end
-    
     methods
+        
+      % % Overide methods from superclass UserSettings
         
         function editSettings(obj)
         %editSettings Override superclass method.
@@ -288,8 +206,25 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 saveSettings(obj)
             end
             
-        end
+        end % Why not protected?
         
+        function updateColumnEditableState(obj)
+        %updateColumnEditableState Update the state of column editable for all variables    
+            
+            %  Also, need to call this
+            % whenever a table variable was edited in sessionbrowser/nansen
+            % and when new tables are loaded.
+            for i = 1:numel(obj.settings)
+                variableName = obj.settings(i).VariableName;
+                try
+                    tf = obj.checkIfColumnIsEditable(variableName);
+                catch
+                    tf = false;
+                end
+                obj.settings_(i).IsEditable = tf;
+            end
+            
+        end
         
         function colIndices = getColumnIndices(obj)
         %getColumnIndices Get column indices for current metadata table..    
@@ -319,8 +254,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             %IND = intersect(colIndices, obj.SettingsIndices, )
         end % Table
-        
-        
         
         function currentIndices = getColumnIndicesSettings(obj)
                 
@@ -459,7 +392,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 
         end
         
-        
         function setNewColumnOrder(obj, newColumnArrangement)
         %setNewColumnOrder 
         %
@@ -517,7 +449,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
         end
         
-        
         function updateJavaColumnModel(obj)
             
             if isempty(obj.JColumnModel)
@@ -547,6 +478,80 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             end
             
         end
+        
+    end
+    
+    methods (Access = private) % Create gui for editing settings
+        
+        function IND = getIndicesToShowInLayoutEditor(obj)
+        %getIndicesToShowInLayoutEditor For indexing the settings struct 
+        
+            % Indices of those variables in settings that are present in
+            % current metatable.
+            indA = obj.MetaTableIndicesAll;
+            
+            % Indices of those varibles that are not displayable
+            indB = find( [obj.settings.SkipColumn] );
+            
+            % Indices of variables in current metatable that are displayable
+            IND = setdiff(indA, indB, 'stable'); % I.e keep those in A that are not in B
+        end
+        
+        function T = getTableDataForUiEditor(obj)
+            
+            % Get column layout settings as a table.
+            T = struct2table(obj.settings);
+        
+            % Get indices of variables in current metatable that are
+            % displayable:
+            IND = obj.getIndicesToShowInLayoutEditor();
+            
+            % Get subset of table to display in column layout editor.
+            T = T(IND, [1,2,3,5,7]); % 4th + 6th column is not editable.
+        
+        end
+        
+        function openEditorGui(obj, T)
+            
+            % Create figure
+            tmpF = figure('Visible', 'off');
+            tmpF.NumberTitle = 'off';
+            tmpF.Name = 'Edit Column Layout';
+            tmpF.MenuBar = 'none';
+            tmpF.Resize = 'off';
+            
+            % Create table
+            tmpTable = uitable('Parent', tmpF);
+            tmpTable.FontSize = 12;
+            tmpTable.FontName = 'Avenir New';
+            tmpTable.ColumnWidth = {150, 150, 100, 100};
+            tmpTable.Data = table2cell(T);
+            tmpTable.ColumnName = T.Properties.VariableNames;
+            tmpTable.ColumnEditable = [false true true true];
+            tmpTable.Position = tmpTable.Extent;
+            tmpTable.CellEditCallback = @obj.onSettingsChanged;
+            
+            obj.UIEditorFigure = tmpF;
+            obj.UIEditorTable = tmpTable;
+            
+            % Set figure position same as figure extent and make visible
+            tmpF.Position(3:4) = tmpTable.Extent(3:4);
+            tmpF.Visible = 'on';
+
+            % Todo: Make sure figure is not taller than the screen size.
+            
+            % Wait for figure...
+            uiwait(tmpF)
+        end
+
+        function updateUiTableEditor(obj)
+            
+            if ~isempty(obj.UIEditorTable)
+                T = getTableDataForUiEditor(obj);
+                obj.UIEditorTable.Data = table2cell(T);
+            end
+        end
+        
     end
     
     methods % Set/get

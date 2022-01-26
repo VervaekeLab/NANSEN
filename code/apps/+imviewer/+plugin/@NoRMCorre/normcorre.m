@@ -3,9 +3,10 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
     % Todo: migrate plugin to new instance if results open in new window
     
     % Todo: Start from file/session/imviewer
-    %   [] Add fileref property
-    %   [] Add session ref property (or combine with previous)
-    %   [] Implement options based on OptionsManager & normcorre options.
+    %   [ ] Add fileref property
+    %   [ ] Subclass from imviewer plugin class.
+    %   [ ] Add session ref property (or combine with previous)
+    %   [ ] Implement options based on OptionsManager & normcorre options.
     %   [ ] Improve implementation of options! Right now its not very
     %       clear how data is flowing...
     
@@ -18,6 +19,8 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
         imviewerRef
         shifts
         opts
+        
+        wasAborted
         
         settings
         settingsName
@@ -51,7 +54,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 %obj.loadSettings()
                 
                 if nargin < 2 || isempty(optsStruct)
-                    [obj.settings, obj.settingsName] = nansen.OptionsManager('nansen.adapter.normcorre').getOptions;
+                    [obj.settings, obj.settingsName] = nansen.OptionsManager('nansen.module.normcorre.Processor').getOptions;
                 else
                     obj.settings = optsStruct;
                 end
@@ -94,8 +97,8 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             
             
             % Make sure we dont grab more than is available.
-            firstFrame = min(firstFrame, obj.imviewerRef.imageStack.numFrames);
-            lastFrame = min(lastFrame, obj.imviewerRef.imageStack.numFrames);
+            firstFrame = min(firstFrame, obj.imviewerRef.ImageStack.NumTimepoints);
+            lastFrame = min(lastFrame, obj.imviewerRef.ImageStack.NumTimepoints);
             
             if lastFrame-firstFrame < 2
                 errMsg = 'Error: Need at least two frames to run motion correction';
@@ -105,7 +108,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 return
             end
             
-            Y = obj.imviewerRef.imageStack.imageData(:, :, firstFrame:lastFrame);
+            Y = obj.imviewerRef.ImageStack.getFrameSet(firstFrame:lastFrame);
             
             obj.imviewerRef.displayMessage('Loading Data...')
             
@@ -121,7 +124,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             
             stackSize = size(Y);
             
-            import nansen.adapter.normcorre.*
+            import nansen.module.normcorre.*
             ncOptions = Options.convert(obj.settings, stackSize);
             
             
@@ -143,19 +146,19 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             obj.imviewerRef.clearMessage;
             
             
-            if obj.settings.Preview.openResultInNewWindow
+            if obj.settings.Preview.showResults
                 h = imviewer(M);
                 h.stackname = sprintf('%s - %s', obj.imviewerRef.stackname, 'NoRMCorre test correction');                
             else
-                filePath = obj.imviewerRef.imageStack.filePath;
-                delete(obj.imviewerRef.imageStack)
-                
-                obj.imviewerRef.imageStack = imviewer.ImageStack(M);
-                obj.imviewerRef.imageStack.filePath = filePath;
-                obj.imviewerRef.updateImageDev();
-                obj.imviewerRef.updateImageDisplay();
-                
-                obj.mItemPlotResults.Enable = 'on';
+% %                 filePath = obj.imviewerRef.ImageStack.FileName;
+% %                 delete(obj.imviewerRef.ImageStack)
+% %                 
+% %                 obj.imviewerRef.ImageStack = imviewer.ImageStack(M);
+% %                 obj.imviewerRef.ImageStack.filePath = filePath;
+% %                 obj.imviewerRef.updateImage();
+% %                 obj.imviewerRef.updateImageDisplay();
+% %                 
+% %                 obj.mItemPlotResults.Enable = 'on';
                 
             end
             
@@ -164,7 +167,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 saveDir = obj.settings.Export.PreviewSaveFolder;
                 if ~exist(saveDir, 'dir'); mkdir(saveDir); end
                 
-                [~, fileName, ~] = fileparts(obj.imviewerRef.imageStack.filePath);
+                [~, fileName, ~] = fileparts(obj.imviewerRef.ImageStack.filePath);
                 
                 fileNameShifts = sprintf(fileName, '_nc_shifts.mat');
                 fileNameOpts = sprintf(fileName, '_nc_opts.mat');
@@ -193,8 +196,8 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             xLim = [1,obj.imviewerRef.imWidth];
             yLim = [1,obj.imviewerRef.imHeight];
             
-            numRows = obj.settings.Patches.numRows;
-            numCols = obj.settings.Patches.numCols;
+            numRows = obj.settings.Configuration.numRows;
+            numCols = obj.settings.Configuration.numCols;
 
             xPoints = linspace(xLim(1),xLim(2), numCols+1);
             yPoints = linspace(yLim(1),yLim(2), numRows+1);
@@ -220,8 +223,8 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             
             
             xDataVert = cat(1, xDataVert, xDataVert);
-            xDataVert(1:2, :) = xDataVert(1:2, :) - obj.settings.Patches.patchOverlap(2)/2;
-            xDataVert(3:4, :) = xDataVert(3:4, :) + obj.settings.Patches.patchOverlap(2)/2;
+            xDataVert(1:2, :) = xDataVert(1:2, :) - obj.settings.Configuration.patchOverlap(2)/2;
+            xDataVert(3:4, :) = xDataVert(3:4, :) + obj.settings.Configuration.patchOverlap(2)/2;
             yDataVert = cat(1, yDataVert, flipud(yDataVert));
             
             h2 = patch(obj.imviewerRef.Axes, xDataVert, yDataVert, 'w');
@@ -229,8 +232,8 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             
             xDataHorz = cat(1, xDataHorz, flipud(xDataHorz));
             yDataHorz = cat(1, yDataHorz, yDataHorz);
-            yDataHorz(1:2, :) = yDataHorz(1:2, :) - obj.settings.Patches.patchOverlap(1)/2;
-            yDataHorz(3:4, :) = yDataHorz(3:4, :) + obj.settings.Patches.patchOverlap(1)/2;
+            yDataHorz(1:2, :) = yDataHorz(1:2, :) - obj.settings.Configuration.patchOverlap(1)/2;
+            yDataHorz(3:4, :) = yDataHorz(3:4, :) + obj.settings.Configuration.patchOverlap(1)/2;
             
             h3 = patch(obj.imviewerRef.Axes, xDataHorz, yDataHorz, 'w');
             set(h3, 'FaceAlpha', 0.15, 'HitTest', 'off')
@@ -299,14 +302,29 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
 %             sCellOut = tools.editStruct(sCell, nan, titleStr, ...
 %                         'Name', names, 'Callback', callbacks);
             
-            optManager = nansen.OptionsManager('nansen.adapter.normcorre');
-            obj.settings = tools.editStruct(obj.settings, nan, titleStr, ...
+            optManager = nansen.OptionsManager('nansen.module.normcorre.Processor', obj.settings);
+          
+            
+            
+% %             obj.settings = tools.editStruct(obj.settings, nan, titleStr, ...
+% %                 'OptionsManager', optManager, 'Callback', callbacks, ...
+% %                 'CurrentOptionsSet',  obj.settingsName);
+               
+            sEditor = structeditor(obj.settings, 'Title', titleStr, ...
                 'OptionsManager', optManager, 'Callback', callbacks, ...
-                'PresetSelection',  obj.settingsName);
-   
+                'CurrentOptionsSet',  obj.settingsName);
+                    
+            sEditor.waitfor()
+
+            if ~sEditor.wasCanceled
+                obj.settings = sEditor.dataEdit;
+            end
+            
+            obj.wasAborted = sEditor.wasCanceled;
+            delete(sEditor)
                     
             %obj.settings = cell2struct(sCellOut, names);
-            %obj.saveSettings()
+            %obj).saveSettings()
             
             delete(obj.hGridLines)
             delete(obj.hGridOverlaps)
@@ -317,16 +335,16 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
     methods (Access = protected)
         function onSettingsChanged(obj, name, value)
             
-            patchesFields = fieldnames(obj.settings.Patches);
+            patchesFields = fieldnames(obj.settings.Configuration);
             templateFields = fieldnames(obj.settings.Template);
             
             switch name
                 case {'numRows', 'numCols', 'patchOverlap'}
-                    obj.settings.Patches.(name) = value;
+                    obj.settings.Configuration.(name) = value;
                     obj.plotGrid()
                     
                 case patchesFields
-                    obj.settings.Patches.(name) = value;
+                    obj.settings.Configuration.(name) = value;
                     
                 case templateFields
                     obj.settings.Template.(name) = value;

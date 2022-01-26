@@ -22,6 +22,7 @@ classdef ProjectManagerApp < nansen.config.project.ProjectManagerUI % applify.Mo
             uim.utility.centerFigureOnScreen(hFigure)
 
             obj@nansen.config.project.ProjectManagerUI(hFigure);
+            hFigure.Name = obj.AppName;
 
             if ~nargout; clear obj; end
             

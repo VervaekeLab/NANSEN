@@ -12,9 +12,7 @@ classdef Rigid < nansen.module.normcorre.Options
             
             S = getOptions@nansen.module.normcorre.Options();
 
-            % Rigid alignment can not utilize patching.
-            S.Patches = struct.empty;
-            
+            % Todo: Make sure gridsize can not be changed for rigid...
             S.Configuration.numRows         = 1;                    % Size of non-overlapping portion of each patch in the grid (y-direction)
             S.Configuration.numCols         = 1;                    % Size of non-overlapping portion of each patch in the grid (x-direction)
             S.Configuration.patchOverlap    = [32,32,16];           % Size of overlapping region in each direction before upsampling

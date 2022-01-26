@@ -137,7 +137,7 @@ classdef HasOptions < handle
         
     end
     
-    methods (Static, Sealed, Access = protected)
+    methods (Static, Sealed)%, Access = protected)
         
         function options = getSuperClassOptions(className)
         %getSuperClassOptions Get default options from all superclasses   

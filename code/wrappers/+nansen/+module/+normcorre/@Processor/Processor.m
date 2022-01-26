@@ -27,6 +27,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         OptionsManager = nansen.OptionsManager('nansen.module.normcorre.Processor')
     end
     
+    properties (Constant) % From motion correction
+        ImviewerPluginName = 'NoRMCorre'
+    end
+    
 
     
 % % %     properties (Constant, Access = protected)
@@ -233,6 +237,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         options = getDefaultOptions()
         
         pathList = getDependentPaths()
+        
+        function name = getImviewerPluginName()
+            name = 'NoRMCorre';
+        end
     
     end
 

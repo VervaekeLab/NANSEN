@@ -23,6 +23,11 @@ classdef Options < nansen.module.abstract.OptionsAdapter
         
         function S = getOptions()
             S = nansen.module.normcorre.Options.getDefaults();
+                
+            className = 'nansen.module.normcorre.Processor';
+            superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
+            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
+            
         end
         
         function options = convert(S, imageSize)

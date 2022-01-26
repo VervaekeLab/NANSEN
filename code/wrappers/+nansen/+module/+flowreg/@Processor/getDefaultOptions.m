@@ -8,6 +8,7 @@ function options = getDefaultOptions()
     options = S.Options;
     
     className = mfilename('class');
+    className = 'nansen.module.flowreg.Processor';
     superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
     options = nansen.mixin.HasOptions.combineOptions(options, superOptions{:});
 

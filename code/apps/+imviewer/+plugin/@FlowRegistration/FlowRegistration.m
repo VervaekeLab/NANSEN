@@ -17,13 +17,16 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
     
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false        % Ignore settings file
-        DEFAULT_SETTINGS = imviewer.plugin.NoRMCorre.getNormCorreDefaultSettings()
+        DEFAULT_SETTINGS = struct.empty;
     end
     
     properties
         imviewerRef
         shifts
         opts
+        
+        wasAborted
+
         
         settings
         settingsName
@@ -58,7 +61,7 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
                 %obj.loadSettings()
                 
                 if nargin < 2 || isempty(optsStruct)
-                    obj.settings = nansen.OptionsManager('nansen.adapter.flowreg').getOptions;
+                    obj.settings = nansen.OptionsManager('nansen.module.flowreg.Processor').getOptions;
                 else
                     obj.settings = optsStruct;
                 end
@@ -66,7 +69,6 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
             end
             
 
-            %obj.plotGrid()
             obj.initializeGaussianFilter()
             obj.editSettings()
             
@@ -94,8 +96,8 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
             %Todo:
 
             % Get images
-            firstFrame = obj.settings.firstFrame;
-            lastFrame = (firstFrame-1) + obj.settings.numFrames;
+            firstFrame = obj.settings.Preview.firstFrame;
+            lastFrame = (firstFrame-1) + obj.settings.Preview.numFrames;
             
             obj.imviewerRef.displayMessage('Loading Data...')
             Y = obj.imviewerRef.imageStack.imageData(:, :, firstFrame:lastFrame);
@@ -142,7 +144,7 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
             obj.imviewerRef.clearMessage;
             
             
-            if obj.settings.openResultInNewWindow
+            if obj.settings.Preview.openResultInNewWindow
                 imviewer(M)
                 
             else
@@ -151,7 +153,7 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
                 
                 obj.imviewerRef.imageStack = imviewer.ImageStack(M);
                 obj.imviewerRef.imageStack.filePath = filePath;
-                obj.imviewerRef.updateImageDev();
+                obj.imviewerRef.updateImage();
                 obj.imviewerRef.updateImageDisplay();
                 
                 obj.mItemPlotResults.Enable = 'on';
@@ -177,8 +179,8 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
         
         function initializeGaussianFilter(obj)
             obj.imviewerRef.imageDisplayMode.filter = 'gauss3d';
-            obj.imviewerRef.imageDisplayMode.filterParam = struct('sigma', obj.settings.sigmaX);
-            obj.imviewerRef.updateImageDev();        
+            obj.imviewerRef.imageDisplayMode.filterParam = struct('sigma', obj.settings.General.sigmaX);
+            obj.imviewerRef.updateImage();        
             obj.imviewerRef.updateImageDisplay();
             
         end
@@ -186,7 +188,7 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
         function resetGaussianFilter(obj)
             obj.imviewerRef.imageDisplayMode.filter = 'none';
             obj.imviewerRef.imageDisplayMode.filterParam = [];
-            obj.imviewerRef.updateImageDev();        
+            obj.imviewerRef.updateImage();        
             obj.imviewerRef.updateImageDisplay();
             
         end
@@ -217,21 +219,28 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
 
             callbacks = @obj.onSettingsChanged;
             titleStr = 'Flow Registration Parameters';
-%             
-%             
-%             sCellOut = tools.editStruct(sCell, nan, titleStr, ...
-%                         'Name', names, 'Callback', callbacks);
             
-            optManager = nansen.OptionsManager('nansen.adapter.flowreg');
-            obj.settings = tools.editStruct(obj.settings, nan, titleStr, ...
+            optManager = nansen.OptionsManager('nansen.module.flowreg.Processor', obj.settings);
+            % Super stupid, but need to get name of options from
+            % optionsmanager in order to set the correct options selection
+            % in the structeditor
+            obj.settingsName = optManager.OptionsName;
+            
+            sEditor = structeditor(obj.settings, 'Title', titleStr, ...
                 'OptionsManager', optManager, 'Callback', callbacks, ...
+                'CurrentOptionsSet',  obj.settingsName, ...
                 'ValueChangedFcn', @obj.onValueChanged);
-   
-                    
-            %obj.settings = cell2struct(sCellOut, names);
-            %obj.saveSettings()
+            sEditor.waitfor()
+
+            if ~sEditor.wasCanceled
+                obj.settings = sEditor.dataEdit;
+            end
+            
+            obj.wasAborted = sEditor.wasCanceled;
+            delete(sEditor)
             
             obj.resetGaussianFilter()
+
             
         end
         
@@ -328,26 +337,26 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
             switch name
                 
                 case 'symmetricKernel'
-                    obj.settings.symmetricKernel = value;
+                    obj.settings.General.symmetricKernel = value;
                     
-%                 case {'sigmaX', 'sigmaY'}
-% 
-%                     if obj.settings.symmetricKernel
-%                         obj.settings.sigmaX = value;
-%                         obj.settings.sigmaY = value;
-%                     else
-%                         obj.settings.(name) = value;
-%                     end
-%                     
-%                     obj.settings.sigma = [obj.settings.sigmaY, obj.settings.sigmaX, obj.settings.sigmaZ];
-%                     obj.imviewerRef.imageDisplayMode.filterParam = struct('sigma', obj.settings.sigma);
-%                     obj.imviewerRef.updateImageDev();        
-%                     obj.imviewerRef.updateImageDisplay();
+% %                 case {'sigmaX', 'sigmaY'}
+% % 
+% %                     if obj.settings.General.symmetricKernel
+% %                         obj.settings.General.sigmaX = value;
+% %                         obj.settings.General.sigmaY = value;
+% %                     else
+% %                         obj.settings.General.(name) = value;
+% %                     end
+% %                     
+% %                     obj.settings.Model.sigma = [obj.settings.General.sigmaY, obj.settings.General.sigmaX, obj.settings.General.sigmaZ];
+% %                     obj.imviewerRef.imageDisplayMode.filterParam = struct('sigma', obj.settings.Model.sigma);
+% %                     obj.imviewerRef.updateImage();        
+% %                     obj.imviewerRef.updateImageDisplay();
                 
                 case 'sigmaZ'
-                    obj.settings.sigma = [obj.settings.sigmaX, obj.settings.sigmaY, obj.settings.sigmaZ];
-                    obj.imviewerRef.imageDisplayMode.filterParam = struct('sigma', obj.settings.sigma);
-                    obj.imviewerRef.updateImageDev();        
+                    obj.settings.sigma = [obj.settings.General.sigmaX, obj.settings.General.sigmaY, obj.settings.General.sigmaZ];
+                    obj.imviewerRef.imageDisplayMode.filterParam = struct('sigma', obj.settings.Model.sigma);
+                    obj.imviewerRef.updateImage();        
                     obj.imviewerRef.updateImageDisplay();
                     
                          
@@ -365,9 +374,9 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
                                 
                 case {'sigmaX', 'sigmaY'}
 
-                    if obj.settings.symmetricKernel
-                        obj.settings.sigmaX = evt.NewValue;
-                        obj.settings.sigmaY = evt.NewValue;
+                    if obj.settings.General.symmetricKernel
+                        obj.settings.General.sigmaX = evt.NewValue;
+                        obj.settings.General.sigmaY = evt.NewValue;
                         
                         switch evt.Name
                             case 'sigmaX'
@@ -377,12 +386,12 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
                         end
 
                     else
-                        obj.settings.(evt.Name) = evt.NewValue;
+                        obj.settings.General.(evt.Name) = evt.NewValue;
                     end
                     
-                    obj.settings.sigma = [obj.settings.sigmaY, obj.settings.sigmaX, obj.settings.sigmaZ];
-                    obj.imviewerRef.imageDisplayMode.filterParam = struct('sigma', obj.settings.sigma);
-                    obj.imviewerRef.updateImageDev();        
+                    obj.settings.Model.sigma = [obj.settings.General.sigmaY, obj.settings.General.sigmaX, obj.settings.General.sigmaZ];
+                    obj.imviewerRef.imageDisplayMode.filterParam = struct('sigma', obj.settings.Model.sigma);
+                    obj.imviewerRef.updateImage();        
                     obj.imviewerRef.updateImageDisplay();
             
             end

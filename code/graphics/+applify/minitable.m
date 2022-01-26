@@ -1,4 +1,4 @@
-classdef minitable < handle
+classdef minitable < handle & matlab.mixin.Heterogeneous
 %minitable Interface for plotting ui components in a table like layout.
     
     

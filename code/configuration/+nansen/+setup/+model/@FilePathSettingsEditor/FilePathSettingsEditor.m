@@ -29,7 +29,7 @@ classdef FilePathSettingsEditor < handle
                 'FileNameExpression', '', ...
                 'DataLocation', '', ...
                 'FileType', '', ...
-                'FileAdapter', [], ...
+                'FileAdapter', '', ...
                 'Subfolder', '');
             
         end
@@ -40,6 +40,7 @@ classdef FilePathSettingsEditor < handle
             S.VariableName = varName;
             S.DataLocation = 'Processed';
             S.FileType = '.mat';
+            S.FileAdapter = 'Default';
             
         end
     end
@@ -51,6 +52,8 @@ classdef FilePathSettingsEditor < handle
             obj.dataFilePath = obj.getFilePath();
              
             obj.load()
+            
+            obj.updateDefaultValues()
              
         end
         
@@ -96,6 +99,8 @@ classdef FilePathSettingsEditor < handle
         end
         
         function addEntry(obj, entry)
+            
+            entry = obj.validateEntry(entry);
             
             varNames = {obj.VariableList.VariableName};
             
@@ -150,6 +155,17 @@ classdef FilePathSettingsEditor < handle
             % Todo: Assert that input struct is the right format
             obj.VariableList = S;
         end
+        
+        function updateDefaultValues(obj)
+            
+            for i = 1:numel(obj.VariableList)
+                if isempty( obj.VariableList(i).FileAdapter )
+                    obj.VariableList(i).FileAdapter = 'Default';
+                end
+            end
+            
+        end
+        
     end
     
     methods (Access = private)
@@ -181,6 +197,7 @@ classdef FilePathSettingsEditor < handle
     end
     
     methods (Static)
+        
         function pathString = getFilePath()
         %getFilePath Get filepath for loading/saving filepath settings   
             fileName = 'FilePathSettings';
@@ -189,6 +206,15 @@ classdef FilePathSettingsEditor < handle
             catch
                 pathString = '';
             end
+        end
+        
+        function entry = validateEntry(entry)
+            
+            if isempty(entry.FileAdapter)
+                % Todo: Have defaults for different filetypes...
+                entry.FileAdapter = 'Default';
+            end
+            
         end
     end
     

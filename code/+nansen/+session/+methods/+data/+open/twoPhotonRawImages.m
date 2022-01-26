@@ -60,4 +60,5 @@ function S = getDefaultParameters()
     S.UseVirtualStack = true;
     S.FirstImage = 1;
     S.LastImage = inf;
+
 end

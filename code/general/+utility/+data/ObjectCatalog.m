@@ -44,7 +44,6 @@ classdef ObjectCatalog < handle
             if ~isempty(obj.FilePath) && isfile(obj.FilePath)
                 obj.load()
             end
-
             
         end
         

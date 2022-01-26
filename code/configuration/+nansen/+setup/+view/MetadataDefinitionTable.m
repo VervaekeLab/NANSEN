@@ -147,6 +147,9 @@ classdef MetadataDefinitionTable < applify.apptable
             for i = 1:obj.NumRows
                 hComp = obj.RowControls(i).StrfindInputEditbox;
                 obj.onStringInputValueChanged(hComp)
+                
+                % Set stringformat from datalocation model.
+                obj.StringFormat{i} = obj.DataLocations.Data(1).MetaDataDef(i).StringFormat;
             end
             
         end

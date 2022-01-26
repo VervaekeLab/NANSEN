@@ -11,12 +11,12 @@ classdef ProjectManager < handle
 %       and only call the fprintf on those messages whenever those methods
 %       are called without outputs. something like (status, tf] = method()
 %       This way the UI can catch info, warning, errors.
+%   [ ] Make a Project class
 %
 %   [ ] IMPORTANT: Need to rename internal paths if an already existing
 %       project is added. Need to rename metatable etc...?
 %       % Only rootpath???
 %   [ ] Add method for renaming project.
-
 
 
     properties
@@ -93,7 +93,8 @@ classdef ProjectManager < handle
         end
         
         function createProject(obj, name, description, pathStr)
-            
+        %createProject Method for creating a new project entry
+        
             % Add project to project manager.
             projectInfo = obj.createProjectInfo(name, description, pathStr);
             obj.addProject(name, description, pathStr);
@@ -117,6 +118,26 @@ classdef ProjectManager < handle
 
         end
         
+        function addExistingProject(obj, filePath)
+            
+            S = load(filePath, 'ProjectConfiguration');
+            projectConfig = S.ProjectConfiguration;
+            
+            % Update filepath of project configuration to match the path
+            % of the folder where the project file is located now
+            projectConfig.Path = fileparts( filePath );
+            
+            % Update metatable catalog filepaths
+            metaTableDir = fullfile(projectConfig.Path, 'Metadata Tables');
+            MT = nansen.metadata.MetaTableCatalog(fullfile(metaTableDir, 'metatable_catalog.mat'));
+            MT.updatePath( fullfile(projectConfig.Path, 'Metadata Tables') )
+            MT.save()
+            
+            % Todo: Update datalocation filepaths (if they are not detected)...
+            
+            
+            obj.addProject(projectConfig)
+        end
         
         function disp(obj)
         %disp Override display function to show table of projects.

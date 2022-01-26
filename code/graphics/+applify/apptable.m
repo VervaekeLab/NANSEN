@@ -34,7 +34,6 @@ classdef apptable < applify.minitable
     
     
     properties (Access = protected, Hidden) % Internal graphical properties
-        
         TableHeaderSpacer % An empty image placed in top of table panel to create some padding in the top of a scrollpanel.
         ImageGraphicPaths struct = struct()
     end

@@ -5,6 +5,11 @@ classdef AppWithPlugin < uim.handle
         Plugins applify.mixin.AppPlugin
     end
     
+    methods
+        function openPlugin(~)
+            % Subclass whould override
+        end
+    end
     
     methods
         

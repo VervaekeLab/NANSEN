@@ -401,6 +401,9 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
         function size = get.Size(obj)
             size = obj.PixelSize;
         end
+        function set.Size(obj, newSize)
+            obj.PixelSize = newSize;
+        end
         
         function set.Parent(obj, newValue)
         %set.Parent Validate value and assign to Parent property   

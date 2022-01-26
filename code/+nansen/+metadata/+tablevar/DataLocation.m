@@ -74,8 +74,8 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
             end
             
             for i = 1:numel(dataLocationModel.Data)
-                thisLoc = dataLocationModel.Data(i).Name;
-                pathString = sessionObj.detectSessionFolder(thisLoc, dataLocationModel);
+                thisLoc = dataLocationModel.Data(i);
+                pathString = sessionObj.detectSessionFolder(thisLoc);
                 if ~isempty(pathString)
                     value.(thisLoc) = pathString; 
                 end

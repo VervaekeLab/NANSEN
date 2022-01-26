@@ -1,5 +1,5 @@
-classdef SessionMethodsMenu < handle
-%SessionMethodsMenu Class for displaying session methods in a uimenu
+classdef SessionTaskMenu < handle
+%SessionTaskMenu Class for displaying session methods in a uimenu
 %
 %   A session method should be coded according to descriptions in the 
 %   SessionMethod class (or function template). These functions are then
@@ -20,7 +20,7 @@ classdef SessionMethodsMenu < handle
 %   ways of running methods (see nansen.App for example...)
 
 
-% Purpose: Create a folder called sessionMethods with different 
+% Purpose: Create a folder called SessionTasks with different 
 % packages, all with functions that can be called with sessionIDs.
 % These functions will be organized in the menu according the the
 % packages within the root folder.
@@ -29,13 +29,15 @@ classdef SessionMethodsMenu < handle
     %   Where/how to implement the keyword trick...
 
     % TODO
-    %   [ ] Make it possible to get session methods from different
+    %   [ ] Make it possible to get session tasks from different
     %   directories. I.e also directories outside of the nansen repo.
     %   [ ] Add (and save) menu shortcuts (accelerators)
-    %   [ ] Method for updating methods in list
+    %   [ ] Method for updating tasks in list
+    %   [ ] Can the menus be created more efficiently, with regards to
+    %       getting task attributes
     
     properties (Constant, Hidden)
-        ValidModes = {'Default', 'Preview', 'TaskQueue'}
+        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit'}
     end
     
     properties
@@ -44,7 +46,7 @@ classdef SessionMethodsMenu < handle
     
     properties (SetAccess = private)
         ParentApp = []
-        SessionMethods = struct('Name', {}, 'Attributes', {})
+        SessionTasks = struct('Name', {}, 'Attributes', {})
     end
     
     properties (Access = private)
@@ -68,7 +70,7 @@ classdef SessionMethodsMenu < handle
     
     methods
         
-        function obj = SessionMethodsMenu(appHandle)
+        function obj = SessionTaskMenu(appHandle)
             
             obj.ParentApp = appHandle;
             
@@ -77,9 +79,9 @@ classdef SessionMethodsMenu < handle
             
             obj.assignDefaultMethodsPath()
             obj.assignProjectMethodsPath()
-            
+            tic
             obj.createMenuFromDirectory(hFig);
-            
+            toc
         end
 
     end
@@ -106,7 +108,7 @@ classdef SessionMethodsMenu < handle
             obj.hMenuDirs = matlab.ui.container.Menu.empty;
             obj.hMenuItems = matlab.ui.container.Menu.empty;
             
-            obj.SessionMethods = struct('Name', {}, 'Attributes', {});
+            obj.SessionTasks = struct('Name', {}, 'Attributes', {});
 
             
             obj.assignProjectMethodsPath() % Should make this happen only if project is changed... Not urgent
@@ -250,20 +252,20 @@ classdef SessionMethodsMenu < handle
                                         
                     % Get the full function name (including package names)
                     functionName = obj.getFunctionStringName(L(i).folder, fileName);
+                    fcnConfig = obj.getTaskAttributes(functionName);
 
                     
                     % Create menu items with function handle as callback
                     if ~isempty(meta.class.fromName(functionName))
                         
                         % Get attributes for session method/function.
-                        fcnConfig = obj.getMethodAttributes(functionName);
+                        %fcnConfig = obj.getTaskAttributes(functionName);
                         options = fcnConfig.OptionsManager.AllOptionNames;
-                          
                         iSubMenu = uimenu(hParent, 'Text', menuName);
                         
                         if isempty(options)
                             obj.createMenuCallback(iSubMenu, functionName)
-                            obj.registerMenuObject(iSubMenu, functionName)
+                            obj.registerMenuObject(iSubMenu, fcnConfig)
                         
                         else
                             
@@ -274,111 +276,14 @@ classdef SessionMethodsMenu < handle
                                 iMitem = uimenu(iSubMenu, 'Text', menuName);
                                 
                                 obj.createMenuCallback(iMitem, functionName, options{j})   
-                                obj.registerMenuObject(iMitem, functionName)
+                                obj.registerMenuObject(iMitem, fcnConfig)
                             end
                         end
                         
                     else
                         iMitem = uimenu(hParent, 'Text', menuName);
                         obj.createMenuCallback(iMitem, functionName)
-                        obj.registerMenuObject(iMitem, functionName)
-                        
-                    end
-                    
-                end
-                
-            end
-
-        end
-        
-        function createMenuFromDirectory2(obj, hParent, dirPath)
-        %createMenuFromDirectory Create menu items from a directory tree
-        %
-        % Go recursively through a directory tree of matlab packages 
-        % and create a menu item for each matlab function which is found 
-        % inside. The menu item is configured to trigger an event when it
-        % is selected.
-        % 
-        % See also SessionMethod (todo: update reference)
-
-        
-        % Requires: utility.string.varname2label
-        
-            if nargin < 3
-                dirPath = obj.listPackageHierarchy();
-            elseif isfolder(dirPath)
-                L = dir(fullfile(dirPath, '*.m'));
-                if isempty(L); return; end
-                L = L(~strncmp({L.name}, '.', 1));
-                dirPath = fullfile({L.folder}, {L.name});
-            end
-           
-            if ~isa(dirPath, 'cell')
-                dirPath = {dirPath};
-            end
-            
-            
-            % Loop through contents of directory
-            for i = 1:numel(dirPath)
-                
-                thisPath = dirPath{i};
-                
-                [~, menuName, ext] = fileparts(thisPath);
-                menuName = strrep(menuName, '+', '');
-                menuName = utility.string.varname2label(menuName);
-
-                % For folders, add submenu
-                if isfolder(thisPath)
-                    
-                    % Check if menu already exist.
-                    iMenu = findobj(hParent, 'Type', 'uimenu', '-and', 'Text', menuName);
-                    if isempty(iMenu)
-                        iMenu = uimenu(hParent, 'Text', menuName);
-                    end
-                    
-                    % Recursively add subdirectory as a submenu
-                    obj.createMenuFromDirectory(iMenu, thisPath)
-                   
-                % For m-files, add submenu item with callback
-                else
-                    
-                    if ~strcmp(ext, '.m') % Skip files that are not .m
-                        continue
-                    end
-                    
-                    % Get the full function name (including package names)
-                    functionName = utility.path.abspath2funcname(thisPath);
-                    
-                    % Create menu items with function handle as callback
-                    if ~isempty(meta.class.fromName(functionName))
-                        
-                        % Get attributes for session method/function.
-                        fcnConfig = obj.getMethodAttributes(functionName);
-                        options = fcnConfig.OptionsManager.listAllOptionNames();
-                          
-                        iSubMenu = uimenu(hParent, 'Text', menuName);
-                        
-                        if isempty(options)
-                            obj.createMenuCallback(iSubMenu, functionName)
-                            obj.registerMenuObject(iSubMenu, functionName)
-                        
-                        else
-                            
-                            % Create menu item for each function option
-                            for j = 1:numel(options)
-                                menuName = utility.string.varname2label(options{j});
-                                menuName = options{j};
-                                iMitem = uimenu(iSubMenu, 'Text', menuName);
-                                
-                                obj.createMenuCallback(iMitem, functionName, options{j})   
-                                obj.registerMenuObject(iMitem, functionName)
-                            end
-                        end
-                        
-                    else
-                        iMitem = uimenu(hParent, 'Text', menuName);
-                        obj.createMenuCallback(iMitem, functionName)
-                        obj.registerMenuObject(iMitem, functionName)
+                        obj.registerMenuObject(iMitem, fcnConfig)
                         
                     end
                     
@@ -411,7 +316,7 @@ classdef SessionMethodsMenu < handle
 
         end
         
-        function registerMenuObject(obj, hMenuItem, functionName)
+        function registerMenuObject(obj, hMenuItem, taskAttributes)
         %registerMenuObject Register the menuobject in class properties
         
             numItems = numel(obj.hMenuItems) + 1;
@@ -419,9 +324,8 @@ classdef SessionMethodsMenu < handle
             % Add handle to menu item to property.
             obj.hMenuItems(numItems) = hMenuItem;
 
-            obj.SessionMethods(numItems).Name = hMenuItem.Text;
-            obj.SessionMethods(numItems).Attributes = ...
-                obj.getMethodAttributes(functionName);
+            obj.SessionTasks(numItems).Name = hMenuItem.Text;
+            obj.SessionTasks(numItems).Attributes = taskAttributes;
 
         end
            
@@ -432,12 +336,14 @@ classdef SessionMethodsMenu < handle
         
             % Go through all menu items
             for i = 1:numel(obj.hMenuItems)
+                
                 h = obj.hMenuItems(i);
-                attr = obj.SessionMethods(i).Attributes;
+                attr = obj.SessionTasks(i).Attributes;
 
                 % Reset text
                 h.Text = strrep(h.Text, '...', '');
                 h.Text = strrep(h.Text, ' (q)', '');
+                h.Text = strrep(h.Text, ' (e)', '');
                 h.Enable = 'on';
 
                 % Append token to text
@@ -457,6 +363,9 @@ classdef SessionMethodsMenu < handle
                             end
                         end
                         
+                    case 'Edit'
+                        h.Text = [h.Text, ' (e)'];
+
                  end
             end
            
@@ -488,7 +397,7 @@ classdef SessionMethodsMenu < handle
         %getFunctionStringName Get full function name (including packages)
         %
         %   Example: 
-        %       dirPath = '.../sessionMethods/+data/+open'
+        %       dirPath = '.../SessionTasks/+data/+open'
         %       fileName = 'twoPhotonRawImages.m'
         %       funcStrName = obj.getFunctionStringName(dirPath, fileName)
         %       
@@ -511,14 +420,12 @@ classdef SessionMethodsMenu < handle
             
         end
         
-        function mConfig = getMethodAttributes(functionName)
+        function mConfig = getTaskAttributes(functionName)
                                 
             hfun = str2func(functionName);
             
-            
             mc = meta.class.fromName(functionName);
             if ~isempty(mc)
-                
                 allPropertyNames = {mc.PropertyList.Name};
                 mConfig = struct;
                 propertyNames = {'BatchMode', 'IsManual', 'IsQueueable', 'OptionsManager'};
@@ -527,14 +434,17 @@ classdef SessionMethodsMenu < handle
                     isMatch = strcmp(allPropertyNames, propertyNames{i});
                     mConfig.(thisName) = mc.PropertyList(isMatch).DefaultValue;
                 end
+            else
+                mConfig = hfun(); % Call with no input should give configs
+                mConfig.OptionsManager = nansen.OptionsManager(functionName);
                 
             end
             
-            try
-                mConfig = hfun(); % Call with no input should give configs
-            catch % Get defaults it there are no config:
-                mConfig = nansen.session.SessionMethod.setAttributes();
-            end
+% %             try
+% %                 mConfig = hfun(); % Call with no input should give configs
+% %             catch % Get defaults it there are no config:
+% %                 mConfig = nansen.session.SessionMethod.setAttributes();
+% %             end
         end
         
     end
@@ -544,8 +454,8 @@ end
 
 
 
-% % %         function S = getMethodAttributes(className)
-% % %         %getMethodAttributes Get attributes for session method
+% % %         function S = getTaskAttributes(className)
+% % %         %getTaskAttributes Get attributes for session method
 % % %         %
 % % %         %   the SessionMethod superclass has some abstract and constant
 % % %         %   properties that provide "attributes" for a session method. Get
