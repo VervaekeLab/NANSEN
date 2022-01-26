@@ -189,6 +189,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function refreshTable(obj, newTable, flushTable)
         %refreshTable Method for refreshing the table
         
+            % TODO: Make sure the selection is maintained.
+        
             if nargin >= 2 %&& ~isempty(newTable)
                 obj.MetaTable = newTable;
             end
@@ -197,14 +199,23 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 flushTable = false;
             end
             
+            % Todo: Save selection
+            %selectedEntries = obj.getSelectedEntries();
+
             if flushTable % Empty table, gives smoother update in some cases
                 obj.HTable.Data = {};
             end
+            
+
             
             drawnow
             obj.updateColumnLayout()
             obj.DataFilterMap = []; % reset data filter map
             obj.updateTableView()
+            
+            % Todo: Restore selection
+            %obj.setSelectedEntries(selectedEntries);
+
             
         end
         

@@ -273,8 +273,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % % % % % % Create menu items for CONFIGURATION % % % % % % 
             
-            mitem = uimenu(m, 'Text','Configure', 'Separator', 'on', 'Enable', 'off');
-            mitem.MenuSelectedFcn = [];
+            mitem = uimenu(m, 'Text','Configure', 'Separator', 'on', 'Enable', 'on');
+            uimenu( mitem, 'Text', 'Configure Datalocation', 'MenuSelectedFcn', @(s,e)nansen.config.dloc.DataLocationModelApp);
+            uimenu( mitem, 'Text', 'Configure Variables', 'MenuSelectedFcn', [], 'Enable', 'off');
+            
+            %mitem.MenuSelectedFcn = [];
             
             mitem = uimenu(m, 'Text','Preferences');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;

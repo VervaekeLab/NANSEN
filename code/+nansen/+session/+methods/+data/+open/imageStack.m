@@ -69,6 +69,9 @@ function S = getDefaultParameters()
         dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
     end
     
+    % Todo: This is project dependent, can not be part of nansen package
+    % session methods.
+    
     fileAdapters = {dataFilePathModel.VariableList.FileAdapter};
     isImageStack = contains(fileAdapters, 'ImageStack');
     

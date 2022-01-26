@@ -77,18 +77,11 @@ classdef ProjectManagerUI < handle
             
             try
                 filePath = fullfile(folder, fileName);
-                S = load(filePath, 'ProjectConfiguration');
+                obj.ProjectManager.addExistingProject(filePath)
             catch ME
                 throw(ME)
             end
-            
-            projectInfo = S.ProjectConfiguration;
-            
-            % Todo: Make sure the path of the project corresponds with the
-            % folder...
-            
-            obj.ProjectManager.addProject(projectInfo)
-            
+
             obj.updateProjectTableData()
         end
         
@@ -604,7 +597,12 @@ classdef ProjectManagerUI < handle
         end
         
         function onContextMenuItemClicked(obj, src, ~)
-                        
+            
+            if isempty(obj.SelectedRow)
+                msg = 'No project is selected. Please select a project and try again.';
+                obj.uialert(msg, 'No project is selected', 'error')
+            end
+            
             switch src.Text
                 case 'Set current project'
                     obj.changeProject(obj.SelectedRow)

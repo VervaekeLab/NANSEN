@@ -121,6 +121,14 @@ classdef MetaTableCatalog < uim.handle
             
         end
         
+        function updatePath(obj, newFilepath)
+        %updatePath Update path for all entries in the catalog.
+        
+            for i = 1:size(obj.Table, 1)
+                obj.Table{i, 'SavePath'} = {newFilepath};
+            end
+            
+        end
     end
     
     

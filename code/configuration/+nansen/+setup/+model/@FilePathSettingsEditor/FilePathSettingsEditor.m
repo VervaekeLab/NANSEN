@@ -29,7 +29,7 @@ classdef FilePathSettingsEditor < handle
                 'FileNameExpression', '', ...
                 'DataLocation', '', ...
                 'FileType', '', ...
-                'FileAdapter', [], ...
+                'FileAdapter', '', ...
                 'Subfolder', '');
             
         end
@@ -40,6 +40,7 @@ classdef FilePathSettingsEditor < handle
             S.VariableName = varName;
             S.DataLocation = 'Processed';
             S.FileType = '.mat';
+            S.FileAdapter = 'Default';
             
         end
     end
@@ -51,6 +52,8 @@ classdef FilePathSettingsEditor < handle
             obj.dataFilePath = obj.getFilePath();
              
             obj.load()
+            
+            obj.updateDefaultValues()
              
         end
         
@@ -152,6 +155,17 @@ classdef FilePathSettingsEditor < handle
             % Todo: Assert that input struct is the right format
             obj.VariableList = S;
         end
+        
+        function updateDefaultValues(obj)
+            
+            for i = 1:numel(obj.VariableList)
+                if isempty( obj.VariableList(i).FileAdapter )
+                    obj.VariableList(i).FileAdapter = 'Default';
+                end
+            end
+            
+        end
+        
     end
     
     methods (Access = private)
