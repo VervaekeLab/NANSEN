@@ -906,6 +906,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 edgeCoords = edgeCoords - min(edgeCoords);
 
                 % Shift coordinates to be centered on xPos and yPos.
+% %                 if ~exist('range', 'file')
+% %                     range = @(x) max(x) - min(x);
+% %                 end
+                
                 edgeCoords = [xPos(i), yPos] + edgeCoords - range(edgeCoords)/2;
 
                 hBtn(i) = patch(edgeCoords(:,1), edgeCoords(:,2), 'w');
@@ -1456,6 +1460,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             textbox.Tag = name;
             textbox.Color = obj.Theme.FigureFgColor;
             textbox.FontName = obj.FontName;
+            textbox.FontUnits = 'pixels';
             textbox.FontSize = obj.FontSize;
             textbox.VerticalAlignment = 'bottom';
             
@@ -1585,6 +1590,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     'ForegroundColor', obj.Theme.FigureFgColor*0.8, ...
                     'HorizontalAlignment', 'left', ...
                     'FontName', obj.FontName, ...
+                    'FontUnits', 'pixels', ...
                     'FontSize', obj.FontSize, ...
                     'Tag', name, ...
                     'Callback', @obj.editCallback_propertyValueChange, ...
@@ -1594,7 +1600,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     inputbox.ForegroundColor = obj.Theme.FigureFgColor*0.8;
                     inputbox.HorizontalAlignment = 'left';
                     inputbox.FontName = obj.FontName;
+                    inputbox.FontUnits = 'pixels'; % set before size
                     inputbox.FontSize = obj.FontSize;
+
                     %inputbox.HitTest = 'off';
                     %inputbox.HandleVisibility = 'off';
                     inputbox.Tag = name;
@@ -1602,6 +1610,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
                 
             else
+                %inputbox.FontUnits = 'pixels';
             	inputbox.FontSize = obj.FontSize-2;
                 inputbox.Tag = name;
                 inputbox.Callback = @obj.editCallback_propertyValueChange;

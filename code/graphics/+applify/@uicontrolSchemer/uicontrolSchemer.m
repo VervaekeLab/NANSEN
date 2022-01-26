@@ -314,6 +314,7 @@ classdef uicontrolSchemer < handle
                     hS.textBox.ForegroundColor = hControl.ForegroundColor;
                     hS.textBox.HorizontalAlignment = 'left';
                     hS.textBox.FontName = hControl.FontName;
+                    hS.textBox.FontUnits = 'pixels';
                     hS.textBox.FontSize = hControl.FontSize;
                     hS.textBox.String = hControl.String{hControl.Value};
 
@@ -340,6 +341,7 @@ classdef uicontrolSchemer < handle
                     hS.button = uicontrol(hControl.Parent, 'style', 'pushbutton');
                     hS.button.Position = hControl.Position;
                     hS.button.ForegroundColor = hControl.ForegroundColor;
+                    hS.button.FontUnits = 'pixels';
                     hS.button.FontName = hControl.FontName;
                     hS.button.FontSize = hControl.FontSize;
                     

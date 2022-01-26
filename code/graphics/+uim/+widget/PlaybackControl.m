@@ -578,7 +578,10 @@ classdef PlaybackControl < uim.mixin.assignProperties
             switch barName
                 
                 case 'ActiveRangeBar'
-                    l = obj.getSliderXposition( abs(range(obj.ActiveRange)) );
+                    
+                    barRange = max(obj.ActiveRange) - min(obj.ActiveRange);
+                    
+                    l = obj.getSliderXposition( barRange );
                     dx = obj.getSliderXposition( min(obj.ActiveRange) - 1 );
                 case 'SliderBar'
                     l = obj.getSliderXposition( obj.Maximum - obj.Minimum );
