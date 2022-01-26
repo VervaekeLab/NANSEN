@@ -14,6 +14,10 @@ function S = getOptions(varargin)
 % %     S.BatchSize = 2000;
 % %     
 % %     S.TemporalDownsampling = 10;
+
+    S.MorphologicalStructure = 'Soma';
+    S.MorphologicalStructure_ = {'Soma', 'Axonal Bouton'};
+
     
     S.MorphologicalSearch = true;
     S.MorphologicalFeatures = 'ring';

@@ -875,10 +875,8 @@ classdef App < mclassifier.manualClassifier
 
         end
 
-        
-        
-        function saveClassification(obj)
-        end
+%         function saveClassification(obj)
+%         end
         
     end
     

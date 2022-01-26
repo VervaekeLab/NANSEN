@@ -1199,6 +1199,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
+        function copySessionIdToClipboard(app)
+            
+            sessionObj = app.getSelectedMetaObjects();
+            
+            sessionID = {sessionObj.sessionID};
+            sessionID = cellfun(@(sid) sprintf('''%s''', sid), sessionID, 'uni', 0);
+            sessionIDStr = strjoin(sessionID, ', ');
+            sessionIDStr = 
+            clipboard('copy', sessionIDStr)
+
+        end
+        
         function removeTableVariable(app, src, evt)
         %removeTableVariable Remove variable from the session table
             

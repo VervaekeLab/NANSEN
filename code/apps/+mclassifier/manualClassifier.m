@@ -1406,11 +1406,10 @@ methods
 
     
     % Methods for saving results.
-    function saveClassification(obj, ~, ~)
-             
+    function saveClassification(obj, ~, ~, varargin)
         
         % Determine where to save classification
-        if ~isempty(obj.roiFilePath)
+        if ~isempty(obj.dataFilePath)
             answer = questdlg('Save classification to file that was loaded? (Existing variables will be replaced)', 'Choose How to Save Classification', 'Yes', 'Pick Another File', 'Append _classified', 'Yes');
             switch lower(answer)
                 case 'yes'
@@ -1427,7 +1426,7 @@ methods
                 otherwise
                     return
             end
-            initPath = obj.roiFilePath;
+            initPath = obj.dataFilePath;
         else
             pickFile = true;
             initPath = '';

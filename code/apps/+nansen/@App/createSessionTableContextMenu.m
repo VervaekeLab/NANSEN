@@ -47,6 +47,10 @@ function hMenu = createSessionTableContextMenu(app, hMenu)
         hSubmenuItem.Callback = @app.updateTableVariable;
     end
     
+    c = c + 1;
+    hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy SessionID(s)', 'Separator', 'on');
+    hMenuItem(c).Callback = @(s, e) app.copySessionIdToClipboard;
+
     
     %m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
     %m4 = uimenu(hContextMenu, 'Text', 'Edit Session Notes', 'Callback', @app.editSessionNotes, 'Enable', 'on');

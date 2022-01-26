@@ -845,8 +845,15 @@ classdef RoiManager < applify.mixin.AppPlugin
                 
                 case 'quicky'
                     
-                    %foundRois = obj.runInternalAutosegmentation(Y, methodOptions);
-                    [foundRois, im, stat] = roimanager.autosegment.autosegmentSoma(Y, mean(Y, 3));
+                    switch methodOptions.MorphologicalStructure
+                        %foundRois = obj.runInternalAutosegmentation(Y, methodOptions);
+
+                        case 'Soma'
+                            [foundRois, im, stat] = roimanager.autosegment.autosegmentSoma(Y, mean(Y, 3));
+                        case 'Axonal Bouton'
+                            [foundRois, im, stat] = roimanager.autosegment.autosegmentAxon(Y, methodOptions);
+                    end       
+                    
 
                 case 'suite2p'
                     opts = suite2p.Options.convert(methodOptions);

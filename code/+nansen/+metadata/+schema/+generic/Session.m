@@ -319,6 +319,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             expression = S.FileNameExpression;
             fileType = S.FileType;
             
+            if ~strncmp(fileType, '.', 1)
+                fileType = ['.', fileType];
+            end
+                
             if contains(expression, fileType)
                 expression = ['*', expression];
             else

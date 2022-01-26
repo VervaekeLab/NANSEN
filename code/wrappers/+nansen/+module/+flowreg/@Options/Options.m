@@ -19,6 +19,11 @@ classdef Options < nansen.module.abstract.OptionsAdapter
         
         function S = getOptions()
             S = nansen.module.flowreg.Options.getDefaults();
+            
+            % Temp fix???
+            className = 'nansen.module.flowreg.Processor';
+            superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
+            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
         end
         
         

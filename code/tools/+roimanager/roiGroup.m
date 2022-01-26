@@ -205,15 +205,23 @@ classdef roiGroup < handle
                     obj.roiArray = horzcat(obj.roiArray, newRois);
                 case 'insert'
                     obj.roiArray = utility.insertIntoArray(obj.roiArray, newRois, roiInd, 2);
+                case 'replace'
+                    assert(numel(obj.roiArray)==numel(newRois), 'The number of rois must be the same as the number which is replaced')
+                    obj.roiArray = newRois;
+                    
             end
             
             obj.roiClassification = getappdata(obj.roiArray, 'roiClassification');
             obj.roiImages = getappdata(obj.roiArray, 'roiImages');
             obj.roiStats = getappdata(obj.roiArray, 'roiStats');
             
+            if strcmp(mode, 'replace')
+                return %Todo, make sure this is not misused. I.e what if rois that are replaced are different...
+            end
+            
             % Update roicount. This should happen before plot, update listbox 
             % and modify signal array:
-            obj.roiCount = obj.roiCount + nRois;
+            obj.roiCount = numel(obj.roiArray); %obj.roiCount + nRois;
             
             % Notify that rois have changed
             eventData = roimanager.eventdata.RoiGroupChanged(newRois, roiInd, mode);

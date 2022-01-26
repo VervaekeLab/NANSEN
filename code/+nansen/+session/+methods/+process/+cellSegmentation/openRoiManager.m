@@ -35,8 +35,18 @@ function varargout = openRoimanager(sessionObj, varargin)
 
     imageStack = sessionData.TwoPhotonSeries_Corrected;
 
-    nansen.roimanager(imageStack)
-
+    hRoimanager = nansen.roimanager(imageStack);
+    
+    try
+        roiArray = sessionData.RoiArray;
+        if isempty(roiArray)
+            return
+        end
+        
+        hRoimanager.roiDisplay.roiGroup.addRois(roiArray, [], 'initialize')
+    catch 
+        return
+    end
 end
 
 
