@@ -430,7 +430,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             loadPath = obj.getRoiPath(initPath, 'load');
             if isempty(loadPath); return; end
             
-            obj.loadRois(initPath)
+            obj.loadRois(loadPath)
             
         end
         
