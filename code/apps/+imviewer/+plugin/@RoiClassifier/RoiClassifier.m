@@ -78,6 +78,8 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                     
                     imviewerApp.clearMessage();
                     
+                    hasRoiData = roiGroup.validateForClassification();
+
                 end
 
                 
@@ -102,6 +104,14 @@ classdef RoiClassifier < applify.mixin.AppPlugin
             
         end
         
+    end
+    
+    methods
+        
+        function setFilePath(obj, filePath) 
+            obj.ClassifierApp.dataFilePath = filePath;
+        end
+
     end
     
     methods (Access = protected)

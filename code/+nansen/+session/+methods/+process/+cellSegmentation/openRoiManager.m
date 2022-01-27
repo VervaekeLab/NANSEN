@@ -38,13 +38,15 @@ function varargout = openRoimanager(sessionObj, varargin)
     hRoimanager = nansen.roimanager(imageStack);
     
     try
-        roiArray = sessionData.RoiArray;
-        if isempty(roiArray)
+        roiFilePath = sessionObj.getDataFilePath('RoiArray');
+        
+        if ~isfile(roiFilePath)
             return
+        else
+            hRoimanager.loadRois(roiFilePath)
         end
         
-        hRoimanager.roiDisplay.roiGroup.addRois(roiArray, [], 'initialize')
-    catch 
+    catch
         return
     end
 end

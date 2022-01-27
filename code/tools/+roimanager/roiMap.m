@@ -1234,6 +1234,8 @@ classdef roiMap < handle
             
             roiIndices = evtData.roiIndices;
             
+            if iscolumn(roiIndices); roiIndices = roiIndices'; end
+            
             if true %strcmp(obj.settings.colorRoiBy, 'Validation')
                 
                 % Only recolor rois that are not selected.

@@ -366,11 +366,11 @@ classdef RoiManager < applify.mixin.AppPlugin
             hMenu.Callback = [];
             
             mItem = uimenu(hMenu, 'Text', 'Load Rois');
-            mItem.Callback = @(s, e) obj.loadRois();
+            mItem.Callback = @(s, e) obj.importRois();
 %             mitem.Accelerator = 'l';
 
 %             mitem = uimenu(m, 'Text', 'Load Rois...');
-%             mitem.Callback = @(s, e, pstr) obj.loadRois('');
+%             mitem.Callback = @(s, e, pstr) obj.importRois('');
             
             mItem = uimenu(hMenu, 'Text', 'Save Rois');
             mItem.Callback = @(s, e) obj.saveRois();
@@ -422,13 +422,21 @@ classdef RoiManager < applify.mixin.AppPlugin
     end
     
     methods % User methods.
-
-        function loadRois(obj, initPath)
+        
+        
+        function importRois(obj, initPath)
             
             if nargin < 2; initPath = ''; end
             loadPath = obj.getRoiPath(initPath, 'load');
             if isempty(loadPath); return; end
-
+            
+            obj.loadRois(initPath)
+            
+        end
+        
+        
+        function loadRois(obj, loadPath)
+            
             obj.PrimaryApp.displayMessage('Loading Rois...')
             C = onCleanup(@(s,e) obj.PrimaryApp.clearMessage);
             
@@ -442,7 +450,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                     field = fieldnames(S);
                 end
                 
-                fieldMatch = contains(field, {'roiArray', 'roi_arr'});
+                fieldMatch = contains(field, {'roiArray', 'roi_arr', 'RoiArray'});
                 if isempty(fieldMatch)
                     error('Did not find roi array in selected file')
                 else
@@ -508,6 +516,8 @@ classdef RoiManager < applify.mixin.AppPlugin
             obj.roiDisplay.roiGroup.addRois(roi_arr, [], addMode)
             
         end
+        
+
         
         function mode = getModeForAddingRois(obj)
         %getModeForAddingRois Ask user for how to add rois    
@@ -970,7 +980,9 @@ classdef RoiManager < applify.mixin.AppPlugin
         
         function openManualRoiClassifier(obj)
             % todo....
-            imviewer.plugin.RoiClassifier(obj.StackViewer)
+            hClassifier = imviewer.plugin.RoiClassifier(obj.StackViewer);
+            hClassifier.setFilePath(obj.roiFilePath);
+            
         end % /function openManualRoiClassifier
         
         function extractSignals(obj)

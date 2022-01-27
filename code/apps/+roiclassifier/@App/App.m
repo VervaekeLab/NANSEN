@@ -413,7 +413,7 @@ classdef App < mclassifier.manualClassifier
                 roiStats(obj.itemClassification==2) = [];
             end
 
-            roiClassification(obj.roiClassification==2) = [];
+            roiClassification(obj.itemClassification==2) = [];
 
             savePath = strrep(savePath, '.mat', '_clean.mat');
             save(savePath, 'roiArray', 'roiImages', 'roiStats', 'roiClassification')

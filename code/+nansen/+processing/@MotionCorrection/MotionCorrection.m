@@ -229,7 +229,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %   many motion correction methods.
         
             % Update image stats
-            % Todo: Only do this is output should be recast?
+            % Todo: Only do this if output should be recast?
             % Todo: Do this using the stack.methods.computeImageStats class
             obj.updateImageStats(Y);
             

@@ -1486,7 +1486,11 @@ methods
             titleStr = 'Save Classification File';
             
             [filename, folderPath] = uiputfile(fileSpec, titleStr, initPath);
-                                    
+                              
+            if filename == 0
+                return
+            end
+            
             savePath = fullfile(folderPath, filename);
             
         end
