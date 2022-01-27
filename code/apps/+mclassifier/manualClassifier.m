@@ -1408,24 +1408,71 @@ methods
     % Methods for saving results.
     function saveClassification(obj, ~, ~, varargin)
         
+        
+        % Get path for saving data to file.
+        if isempty(varargin)
+            savePath = obj.getSavePath();
+        else
+            error('Not implemented yet')
+        end
+        
+        if isempty(savePath); return; end
+        
+        % Save these variables:
+        varNames = {'itemSpecs', 'itemImages', 'itemStats', 'itemClassification'};
+        
+        S = struct;
+        for i = 1:numel(varNames)
+            S.(varNames{i}) = obj.(varNames{i});
+        end
+        S.classificationLabels = obj.classificationLabels;
+        
+        if exist(savePath, 'file')
+            save(savePath, '-struct', 'S', '-append')
+        else
+            save(savePath, '-struct', 'S')
+        end
+        
+        
+        % Save clean version:
+        keep = obj.itemClassification ~= 2;
+        for i = 1:numel(varNames)
+            S.(varNames{i}) = S.(varNames{i})(keep);
+        end
+        
+        savePath = strrep(savePath, '.mat', '_clean.mat');
+        save(savePath, '-struct', 'S')
+        
+        fprintf('Saved classification results to %s\n', savePath)
+        
+    end
+    
+    
+    function savePath = getSavePath(obj)
+    %getSavePath Interactive user dialog to let user choose where to save
+    
+        savePath = '';
+        
         % Determine where to save classification
         if ~isempty(obj.dataFilePath)
             answer = questdlg('Save classification to file that was loaded? (Existing variables will be replaced)', 'Choose How to Save Classification', 'Yes', 'Pick Another File', 'Append _classified', 'Yes');
+            
             switch lower(answer)
                 case 'yes'
                     pickFile = false;
-                    savePath = obj.roiFilePath;
+                    savePath = obj.dataFilePath;
 
                 case 'pick another file'
                     pickFile = true;
                     
                 case 'append _classified'
                     pickFile = false;
-                    savePath = strrep(obj.roiFilePath, '.mat', '_classified.mat');
+                    savePath = strrep(obj.dataFilePath, '.mat', '_classified.mat');
                     
                 otherwise
                     return
             end
+            
             initPath = obj.dataFilePath;
         else
             pickFile = true;
@@ -1434,60 +1481,17 @@ methods
         
         % Pick filepath interactively or get from obj.
         if pickFile
-            [roiFilenm, savePath] = uiputfile(...
-                                        {'*.mat', 'Mat Files (*.mat)'; ...
-                                        '*', 'All Files (*.*)'}, ...
-                                        'Save Roi File', initPath);
-            savePath = fullfile(savePath, roiFilenm);
+            
+            fileSpec = {'*.mat', 'Mat Files (*.mat)'; '*', 'All Files (*.*)'};
+            titleStr = 'Save Classification File';
+            
+            [filename, folderPath] = uiputfile(fileSpec, titleStr, initPath);
+                                    
+            savePath = fullfile(folderPath, filename);
+            
         end
-        
-        
-        % Tag rois with classification
-        roiCls = obj.itemClassification;
-        uniqueClasses = unique(roiCls);
-        labels = obj.classificationLabels; %Todo
-        
-        for i = uniqueClasses
-            if i == 0
-                continue
-            elseif i == 3
-                obj.roiArray(roiCls==i) = obj.roiArray(roiCls==i).addTag('imported');
-            end
-        end
-        
-        roiArray = obj.roiArray;
-        itemClassification = obj.itemClassification;
-        roiImages = obj.itemImages;
-        itemStats = obj.itemStats;
-        
-        if exist(savePath, 'file')
-            save(savePath, 'roiArray', 'roiImages', 'itemStats', 'itemClassification', '-append')
-        else
-            save(savePath, 'roiArray', 'roiImages', 'itemStats', 'itemClassification')
-        end
-        
-        
-        % Save clean version:
-        roiArray(obj.itemClassification==2) = []; %#ok<*NASGU>
-        
-        if ~isempty(roiImages)
-            roiImages(obj.itemClassification==2) = [];
-        end
-        
-        if ~isempty(itemStats)
-            itemStats(obj.itemClassification==2) = [];
-        end
-        
-        itemClassification(obj.itemClassification==2) = [];
-        
-        savePath = strrep(savePath, '.mat', '_clean.mat');
-        save(savePath, 'roiArray', 'roiImages', 'itemStats', 'itemClassification')
-        
-        fprintf('Saved classification results to %s\n', savePath)
-        
+
     end
-   
-    
 
 
 end

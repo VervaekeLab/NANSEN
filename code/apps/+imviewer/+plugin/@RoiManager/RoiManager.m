@@ -528,15 +528,25 @@ classdef RoiManager < applify.mixin.AppPlugin
             savePath = obj.getRoiPath(initPath, 'save');
             if isempty(savePath); return; end
             
-            roiArray = obj.roiDisplay.roiGroup.roiArray;
-            save(savePath, 'roiArray')
+            S = struct;
+            S.roiArray = obj.roiDisplay.roiGroup.roiArray;
+            
+            % Add extra variables if present...
+            varNames = {'roiImages', 'roiStats', 'roiClassification'};
+            
+            for i = 1:numel(varNames)
+                if ~isempty(obj.(varNames{i}))
+                    S.(varNames{i}) = obj.(varNames{i});
+                end
+            end
+
+            save(savePath, '-struct', 'S')
+            
             saveMsg = sprintf('Rois Saved to %s', savePath);
             obj.PrimaryApp.displayMessage(saveMsg, 2)
                         
             obj.roiFilePath = savePath;
             
-            
-
         end
         
         function [initPath, fileName] = getInitPath(obj)

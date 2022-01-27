@@ -1206,7 +1206,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             sessionID = {sessionObj.sessionID};
             sessionID = cellfun(@(sid) sprintf('''%s''', sid), sessionID, 'uni', 0);
             sessionIDStr = strjoin(sessionID, ', ');
-            sessionIDStr = 
             clipboard('copy', sessionIDStr)
 
         end

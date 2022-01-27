@@ -209,7 +209,6 @@ classdef App < mclassifier.manualClassifier
             
         end
         
-        
         function onMousePressed(obj)
         end
         
@@ -230,7 +229,6 @@ classdef App < mclassifier.manualClassifier
             
             
         end
-        
         
         function mouseClickInRoi(obj, src, event, tileNum)
         %mouseClickInRoi Callback for user input (mouseclicks) on a roi
@@ -253,12 +251,10 @@ classdef App < mclassifier.manualClassifier
             end
 
         end
-
         
         function onMousePressedInRoi(obj)
         end
         
-    
         function growRois(obj)
             
             % Get selected rois
@@ -273,7 +269,6 @@ classdef App < mclassifier.manualClassifier
             
         end
         
-        
         function shrinkRois(obj)
                         
             % Get selected rois
@@ -287,7 +282,6 @@ classdef App < mclassifier.manualClassifier
             obj.roiGroup.modifyRois(newRois, obj.selectedItem)
             
         end
-        
         
         % % % Handling of user input for moving a roi within a tile.
         function startMove(obj, object, event, tileNum)
@@ -304,7 +298,6 @@ classdef App < mclassifier.manualClassifier
             object.UserData.Shift = [0,0];
 
         end
-
 
         function moveRoi(obj, h, ~)
 
@@ -380,6 +373,57 @@ classdef App < mclassifier.manualClassifier
     end
     
     methods
+        
+        % Methods for saving results.
+        function saveClassification(obj, ~, ~, varargin)
+        % saveClassification
+
+            % Get path for saving data to file.
+            if isempty(varargin)
+                savePath = obj.getSavePath();
+            else
+                error('Not implemented yet')
+            end
+
+            if isempty(savePath); return; end
+
+            % Todo: Save classification labels.
+            labels = obj.classificationLabels;
+
+            roiArray = obj.itemSpecs;
+            roiClassification = obj.itemClassification;
+            roiImages = obj.itemImages;
+            roiStats = obj.itemStats;
+
+            if exist(savePath, 'file')
+                save(savePath, 'roiArray', 'roiImages', 'roiStats', 'roiClassification', '-append')
+            else
+                save(savePath, 'roiArray', 'roiImages', 'roiStats', 'roiClassification')
+            end
+
+
+            % Save clean version:
+            roiArray(obj.itemClassification==2) = []; %#ok<*NASGU>
+
+            if ~isempty(roiImages)
+                roiImages(obj.itemClassification==2) = [];
+            end
+
+            if ~isempty(roiStats)
+                roiStats(obj.itemClassification==2) = [];
+            end
+
+            roiClassification(obj.roiClassification==2) = [];
+
+            savePath = strrep(savePath, '.mat', '_clean.mat');
+            save(savePath, 'roiArray', 'roiImages', 'roiStats', 'roiClassification')
+
+            fprintf('Saved classification results to %s\n', savePath)
+
+        end
+
+
+        
         
         function tf = isPointValid(obj, x, y)
             
@@ -500,8 +544,6 @@ classdef App < mclassifier.manualClassifier
 
          end
         
-        
-        
         function changeSelectedItem(obj, mode, tileNum) % Override super
         %changeSelectedItem Method for changing selection of roi in a tile
         %
@@ -554,7 +596,6 @@ classdef App < mclassifier.manualClassifier
             obj.setRoiPixelIndices()
         end
         
-        
         function changeFrame(obj, currentImage)
             % Todo: update tile images when imviewer frame is changed.
             
@@ -581,10 +622,7 @@ classdef App < mclassifier.manualClassifier
             
             
         end
-        
-        
-        
-        
+
     end
         
     methods (Access = protected) % Other event and callback handlers
