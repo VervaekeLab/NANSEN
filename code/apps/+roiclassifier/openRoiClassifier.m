@@ -11,10 +11,11 @@ function hClassifier = openRoiClassifier(varargin)
 
 
     roiData = struct.empty;
-
+    roiGroup = [];
+    
     vararginType = cellfun(@(c) class(c), varargin, 'uni', 0);
         
-    if strcmp( vararginType{1}, 'struct' )
+    if isa( varargin{1}, 'struct' )
         
         dataFields = fieldnames(varargin{1});
         
@@ -22,13 +23,13 @@ function hClassifier = openRoiClassifier(varargin)
             roiData = varargin{1};
         end
        
-    elseif isa(vararginType{1}, 'roiArray')
+    elseif isa(varargin{1}, 'RoI')
         
-        if isa(vararginType{2}, 'nansen.stack.ImageStack') 
+        if isa(varargin{2}, 'nansen.stack.ImageStack') 
             roiData = roiclassifier.prepareRoiData(varargin{1:2});
         end
         
-    elseif isa(vararginType{1}, 'roiGroup')
+    elseif isa(varargin{1}, 'roimanager.roiGroup')
         roiGroup = varargin{1};
     end
     
