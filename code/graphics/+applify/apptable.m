@@ -1,4 +1,4 @@
-classdef apptable < applify.minitable
+classdef apptable < applify.UiControlTable
 % A row based table for placing in an app using uifigure
 %
 %
@@ -43,7 +43,7 @@ classdef apptable < applify.minitable
         
         function obj = apptable(varargin)
         %apptable Constructor                
-            obj@applify.minitable(varargin{:})
+            obj@applify.UiControlTable(varargin{:})
             
             delete(obj.TempAxes)
             
@@ -75,7 +75,7 @@ classdef apptable < applify.minitable
             % Subclasses may override this method.
         end
         
-        function createTableRowComponents(obj)      	% defined in applify.minitable
+        function createTableRowComponents(obj)      	% defined in applify.UiControlTable
         
         end
         
@@ -370,11 +370,11 @@ classdef apptable < applify.minitable
         %addRow Add a row to the table.
             
             if nargin < 2
-                addRow@applify.minitable(obj)
+                addRow@applify.UiControlTable(obj)
             elseif nargin < 3
-                addRow@applify.minitable(obj, rowNumber)
+                addRow@applify.UiControlTable(obj, rowNumber)
             else
-                addRow@applify.minitable(obj, rowNumber, rowData)
+                addRow@applify.UiControlTable(obj, rowNumber, rowData)
             end
             
             obj.updateTablePanelMargin()
@@ -383,7 +383,7 @@ classdef apptable < applify.minitable
         
         function removeRow(obj, rowNumber)
             
-            removeRow@applify.minitable(obj, rowNumber)
+            removeRow@applify.UiControlTable(obj, rowNumber)
         
             obj.updateTablePanelMargin()
 

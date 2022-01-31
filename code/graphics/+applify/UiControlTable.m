@@ -1,5 +1,5 @@
-classdef minitable < handle & matlab.mixin.Heterogeneous
-%minitable Interface for plotting ui components in a table like layout.
+classdef UiControlTable < handle & matlab.mixin.Heterogeneous
+%UiControlTable Interface for plotting ui components in a table like layout.
     
     
     properties % Table info/data
@@ -8,7 +8,6 @@ classdef minitable < handle & matlab.mixin.Heterogeneous
         Data 
         SelectedRows = []
     end
-    
     
     properties % Table layout
         TableMargin = 20;   % Space in pixels around the table within the parent container.
@@ -24,7 +23,6 @@ classdef minitable < handle & matlab.mixin.Heterogeneous
         
     end
     
-    
     properties % Table style / appearance
         BackgroundColor = [1, 1, 1]
         TableBorderColor = [0.1, 0.1, 0.1];
@@ -35,12 +33,10 @@ classdef minitable < handle & matlab.mixin.Heterogeneous
         FontName = 'helvetica';
     end
     
-    
     properties % Graphical properties
         Parent
         Position
     end
-    
     
     properties (Access = protected, Hidden) % Internal layout properties
         
@@ -53,12 +49,10 @@ classdef minitable < handle & matlab.mixin.Heterogeneous
         
     end
     
-    
     properties (Dependent)
         NumRows
         NumColumns
     end
-    
     
     properties (Access = protected, Hidden) % Internal graphical properties
         
@@ -71,7 +65,6 @@ classdef minitable < handle & matlab.mixin.Heterogeneous
         RowControls
                 
     end
-    
     
     properties (Access = protected, Hidden) % Internal listeners
         ParentDestroyedListener
@@ -104,11 +97,10 @@ classdef minitable < handle & matlab.mixin.Heterogeneous
         
     end
     
-    
     methods % Structors
         
-        function obj = minitable(varargin)
-        %minitable minitable constructor class      
+        function obj = UiControlTable(varargin)
+        %UiControlTable UiControlTable constructor class      
         
         % Todo: 
         %   [ ] Accept table and/or struct array as data?
@@ -555,6 +547,26 @@ classdef minitable < handle & matlab.mixin.Heterogeneous
                 obj.SelectedRows = setdiff(obj.SelectedRows, iRow, 'stable');
             end
 
+        end
+        
+        function position = getToolbarPosition(obj)
+        %getToolbarPosition Get position of toolbar above main panel.
+        
+            HEIGHT = 30;
+            MARGINS = [3,3];
+            
+            referencePosition = obj.Parent.Position;
+            
+            % Toolbar is aligned to reference panel in x and above in y
+            location = referencePosition(1:2) + [0, referencePosition(4)];
+            
+            % Add offset based on margin size
+            location = location + MARGINS;
+            
+            size = [referencePosition(3) - 2*MARGINS(1), HEIGHT];
+            
+            position = [location, size];
+            
         end
         
 %         function pathStr = getTableRowBackground(obj, varargin)

@@ -274,8 +274,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % % % % % Create menu items for CONFIGURATION % % % % % % 
             
             mitem = uimenu(m, 'Text','Configure', 'Separator', 'on', 'Enable', 'on');
+            % Todo: make methods, and use uiwait...
             uimenu( mitem, 'Text', 'Configure Datalocation', 'MenuSelectedFcn', @(s,e)nansen.config.dloc.DataLocationModelApp);
-            uimenu( mitem, 'Text', 'Configure Variables', 'MenuSelectedFcn', [], 'Enable', 'off');
+            uimenu( mitem, 'Text', 'Configure Variables', 'MenuSelectedFcn', @(s,e)nansen.config.varmodel.VariableModelApp);
             
             %mitem.MenuSelectedFcn = [];
             
@@ -1776,10 +1777,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uim.utility.layout.centerObjectInRectangle(hFigure, app.Figure)
             
             hProjectManager = ProjectManagerUI(hFigure);
-            listener(hProjectManager, 'ProjectChanged', @app.changeProject)
+            listener(hProjectManager, 'ProjectChanged', @app.changeProject);
             hFigure.WindowStyle = 'modal';
             uiwait(hFigure)
-            
+            % Note: Change to addlistener if not using uiwait.
             app.updateProjectList()
             
         end

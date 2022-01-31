@@ -8,9 +8,17 @@ classdef DataLocationModel < utility.data.TabularArchive
     
     % QUESTIONS:
     
+    properties (Constant, Access = protected)
+        ITEM_TYPE = 'Data Location'
+    end
+    
     properties (Dependent, SetAccess = private)
         DataLocationNames
         NumDataLocations
+    end
+    
+    properties (Dependent)
+        DefaultDataLocation
     end
     
     events
@@ -77,6 +85,32 @@ classdef DataLocationModel < utility.data.TabularArchive
             end
             
             obj.load()
+            
+            obj.tempDevFix()
+        end
+        
+        function tempDevFix(obj)
+            
+            if ~isfield(obj.Preferences, 'DefaultDataLocation')
+                if obj.NumDataLocations == 1
+                    obj.DefaultDataLocation = obj.Data(1).Name;
+                else
+                    obj.DefaultDataLocation = obj.Data(2).Name;
+                end
+            end
+            
+            for i = 1:numel(obj.Data)
+                
+                rootPath = obj.Data(i).RootPath;
+                
+                if any(strcmp(rootPath, ''))
+                    rootPath(strcmp(rootPath, '')) = [];
+                end
+                
+                obj.Data(i).RootPath = rootPath;
+            end
+            
+            obj.save()
         end
     end
     
@@ -89,6 +123,24 @@ classdef DataLocationModel < utility.data.TabularArchive
         function dataLocationNames = get.DataLocationNames(obj)
             dataLocationNames = obj.ItemNames;
         end
+        
+        function defaultDataLocation = get.DefaultDataLocation(obj)
+            
+            defaultDataLocation = obj.Preferences.DefaultDataLocation;
+            
+        end
+        
+        function set.DefaultDataLocation(obj, newValue)
+            
+            assert(ischar(newValue), 'Please provide a character vector with the name of a data location')
+            
+            message = sprintf('"%s" can not be a default data location because no data location with this name exists.', newValue);
+            assert(any(strcmp(obj.DataLocationNames, newValue)), message)
+            
+            obj.Preferences.DefaultDataLocation = newValue;
+            
+        end
+        
     end
     
     methods
@@ -138,7 +190,7 @@ classdef DataLocationModel < utility.data.TabularArchive
                 'SubField', 'MetadataDefiniton', 'OldData', oldStruct, ...
                 'NewData', newStruct);
             
-            obj.notify('ModelChanged', evtData)
+%             obj.notify('DataLocationModified', evtData)
             
         end
         
@@ -211,7 +263,15 @@ classdef DataLocationModel < utility.data.TabularArchive
         end
         
         function modifyDataLocation(obj, dataLocationName, field, value)
-            
+        %modifyDataLocation Change data field of DataLocation
+        %
+        %   modifyDataLocation(obj, dataLocationName, field, value)
+        %   modifies a field of the Data property of the model.
+        %   dataLocationName is the name of the data location to modify. If
+        %   the modification is on the name itself, the dataLocationName
+        %   should be the current (old) name.
+        
+        
             [tf, idx] = obj.containsItem(dataLocationName);
             
             if ~any(tf)
@@ -221,7 +281,7 @@ classdef DataLocationModel < utility.data.TabularArchive
             obj.Data(idx).(field) = value;
             
             if strcmp(field, 'Name') % Special case if name is change
-                obj.assignItemNames()
+                obj.onDataLocationRenamed(dataLocationName, value)
                 dataLocationName = value;
             end
                         
@@ -301,7 +361,21 @@ classdef DataLocationModel < utility.data.TabularArchive
         
     end
     
+    methods (Access = ?nansen.config.dloc.DataLocationModelApp)
+        
+        function restore(obj, data)
+            obj.Data = data;
+            obj.save()
+        end
+        
+    end
+    
     methods (Access = protected)
+        
+        function item = validateItem(obj, item)
+            % Todo...
+            item = item;
+        end
         
         function S = getMetavariableStruct(obj, varName)
         %getMetavariableStruct Get metadata struct for given variable
@@ -379,9 +453,23 @@ classdef DataLocationModel < utility.data.TabularArchive
                 1:(numUnnamed+1), 'uni', 0);
             
             % Find candidate which is not in use...
-            candidates = setdiff(candidates, unnamedNames);
+            candidates = setdiff(candidates, unnamedNames, 'stable');
             
             name = candidates{1};
+            
+        end
+    end
+    
+    methods (Access = private)
+        function onDataLocationRenamed(obj, oldName, newName)
+                           
+            obj.assignItemNames()
+            
+            % Update value default data location if this was the one that
+            % was renamed..
+            if strcmp(obj.DefaultDataLocation, oldName)
+                obj.DefaultDataLocation = newName;
+            end
             
         end
     end

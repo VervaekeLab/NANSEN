@@ -33,13 +33,14 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataType, vararg
     
     for i = ind
 
-        rootPath = dataLocationModel.Data(i).RootPath{1};
-
+        %rootPath = dataLocationModel.Data(i).RootPath{1};
+        rootPath = dataLocationModel.Data(i).RootPath;
+        
         S = dataLocationModel.Data(i).SubfolderStructure;
 
-        if ~isfolder(rootPath)
-            error('Root directory does not exist')
-        end
+%         if ~isfolder(rootPath)
+%             error('Root directory does not exist')
+%         end
         
         if isequal(rootPath, 'HDD')
             %Todo: Find all mounted volumes and loop through.

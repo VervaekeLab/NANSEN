@@ -8,11 +8,12 @@ classdef TabularArchive < handle
 %   of each item has to be specified in the subclass definition
 %
 %   Abstract Properties:
-%       
+%       ITEM_TYPE
+%
 %   Abstract Methods:
 %       getEmptyItem()
 %       getDefaultItem()
-%
+%       validateItem()
 %
 %   Key features:
 %       Should be singleton-ish
@@ -20,19 +21,17 @@ classdef TabularArchive < handle
 %       Access and modify entries by name...
 
 
+% Note, this could have been implemented better with more objectification,
+% but that unfortunately did not happen:(
+
 % Name suggestions:
 %   StructArchive
 %   StructCatalog
 
-%   ObjectArchive
-%   ObjectArray
-
-
-% Entry or item???
 
 % Todo:
 %       Inherit from singletonish
-%       addpref and removeprev methods
+%       addpref and removepref methods
 
 % Questions:
 %     - Should data be a struct or a table?
@@ -40,6 +39,9 @@ classdef TabularArchive < handle
 %           SetAccess public or protected??? 
 %     - Why struct and not table?
 
+    properties (Abstract, Constant, Access = protected)
+        ITEM_TYPE
+    end
 
     properties (SetAccess = protected)
         Data struct % Todo: Rename ?
@@ -58,6 +60,7 @@ classdef TabularArchive < handle
     properties (Access = protected) % Might be better id this is dependent... (no need to explicity update)
         ItemNames       % Name of all items in archive
     end
+    
     
     events % Tentative...
         ItemAdded
@@ -88,7 +91,11 @@ classdef TabularArchive < handle
         pathStr = getDefaultFilePath()
         
     end
-
+    
+    methods (Abstract, Access =  protected)
+        item = validateItem(obj, item)
+    end
+    
     
     methods % Constructor
         
@@ -124,17 +131,21 @@ classdef TabularArchive < handle
         
         function refreshFilePath(obj)
             obj.FilePath = obj.getDefaultFilePath();
-        end
+        end % resetFilePath
         
         function reloadDefault(obj)
             obj.FilePath = obj.getDefaultFilePath();
             obj.load()
         end
+        
+        function refresh(obj)
+            obj.reloadDefault()
+        end
 
         function load(obj)
         %load Load data from file
         
-            if ~exist(obj.FilePath, 'file')
+            if ~isfile(obj.FilePath)
                 S.Data =  obj.getEmptyItem();
                 S.Preferences = struct();
             else
@@ -142,7 +153,6 @@ classdef TabularArchive < handle
             end
             
             obj.fromStruct(S);
-            
             
             obj.assignItemNames() 
             
@@ -165,11 +175,27 @@ classdef TabularArchive < handle
     methods % Methods for manipulating entries
                 
         function insertItem(obj, newItem)
-            obj.Data(end+1) = newItem;
+            
+            % Make sure item has necessary fields...
+            newItem = obj.validateItem(newItem);
+            
+            insertIdx = numel(obj.Data) + 1;
+            
+            % Make sure not to insert item with name that already exist...
+            newItemName = obj.getItemName(newItem);
+            if obj.contains(newItemName)
+                message = sprintf('A %s with the name "%s" already exists', ...
+                    obj.ITEM_TYPE, newItemName);
+                error(message); %#ok<SPERR>
+            end
+            
+            % Todo: Should newItem replace old item if an item with the
+            % name already exists? Or make separate replace method?
+
+            obj.Data(insertIdx) = newItem;
             
             obj.assignItemNames()
             obj.save()
-            
             
         end
         
@@ -183,7 +209,7 @@ classdef TabularArchive < handle
             tf = obj.containsItem(itemName);
             
             if ~any(tf)
-                error('Item "%s" was not found in table', itemName)
+                error('%s "%s" was not found in table', obj.ITEM_TYPE, itemName)
             end
             
             obj.Data(tf) = [];
@@ -201,23 +227,6 @@ classdef TabularArchive < handle
     
     methods
         
-%         function disp(obj)
-%         %disp Override disp method to show table of objects in Catalog
-%         
-%         % Todo: Format this better. Show properties as well?
-%         
-%             titleTxt = sprintf(['<a href = "matlab: helpPopup %s">', ...
-%                 '%s</a> with available items:'], class(obj), class(obj) );
-%             
-%             T = struct2table(obj.Data, 'AsArray', true);
-%             fprintf('%s\n\n', titleTxt)
-%             disp(T)
-%             fprintf('\nFile location: %s\n\n', obj.FilePath)
-% 
-%         end
-%         
-
-        
         function initializeWithDefault(obj)
             obj.Data = obj.getDefaultItem();
         end
@@ -226,17 +235,31 @@ classdef TabularArchive < handle
             obj.initializeWithDefault()
         end
 
-        function S = getItem(obj, itemName)
+        function [S, idx] = getItem(obj, itemName)
                     
             if isnumeric(itemName) % Assume index was given instead of name
-                itemIndex = itemName;
-                itemName = obj.ItemNames(itemIndex);
+                idx = itemName;
+            else
+                idx = find(strcmp(obj.ItemNames, itemName));
             end
             
-            ind = find(strcmp({obj.Data.Name}, itemName));
-            S = obj.Data(ind);
+            S = obj.Data(idx);
+            
+            if nargout == 1
+                clear idx
+            end
+            
         end
         
+        function name = getItemName(obj, item)
+            
+            fieldNames = fieldnames(obj.Data);
+            idName = fieldNames{1};
+            
+            name = item.(idName);
+            
+        end
+
         function [Lia, Locb] = ismember(obj, itemName)
         %ismember 
             

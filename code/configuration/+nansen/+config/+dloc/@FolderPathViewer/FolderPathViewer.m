@@ -1,7 +1,13 @@
 classdef FolderPathViewer < applify.HasTheme
 %FolderPathViewer Show a list of folderpaths in a table
 %
-%   
+% See also nansen.config.dloc.FolderOrganizationUI   
+
+%   Todo: 
+%       [ ] Add a refresh button
+%       [ ] Add togglebutton for table view and list view
+%       [ ] Develop table view. Number, FolderA, FolderB etc, relative path, absolute path
+%
 
     properties (Constant, Hidden = true)
         DEFAULT_THEME = nansen.theme.getThemeColors('deepblue')
@@ -55,6 +61,9 @@ classdef FolderPathViewer < applify.HasTheme
             validationMsg = 'Value must be on or off';
             newValue = validatestring(newValue, {'on', 'off'}, validationMsg);
             obj.Figure.Visible = newValue;
+            if strcmp(newValue, 'on')
+                obj.placeFigure()
+            end
         end
         function value = get.Visible(obj)
             if ~isempty(obj.Figure) && isvalid(obj.Figure)
@@ -134,13 +143,18 @@ classdef FolderPathViewer < applify.HasTheme
             if isempty(obj.ReferenceFigure); return; end
             
             % Calculate position for placement of new figure
-            screenSize = get(0, 'ScreenSize');
-            % Todo: Get size of current monitor...
+                        
+            % Get size of current monitor...
+            screenSize = uim.utility.getCurrentScreenSize(obj.ReferenceFigure);
             
+            % ... and place figure to the right of the reference figure
             referencePosition = obj.ReferenceFigure.Position;
             newFigPosition = referencePosition;
             newFigPosition(1) = sum( referencePosition([1,3]) ) + 10;                  % Why 10??? % Todo (UI4)
             newFigPosition(3) = screenSize(3) - referencePosition(3) - 30;             % Why 30??? % Todo (UI4)
+                      
+            newFigPosition(4) = min([600, obj.Figure.Position(4)]);
+            newFigPosition(2) = screenSize(2) + screenSize(4)/2 - newFigPosition(4)/2;
             
             obj.Figure.Position = newFigPosition;
         end

@@ -1,4 +1,4 @@
-classdef apptable1 < applify.minitable
+classdef apptable1 < applify.UiControlTable
 % A row based table for placing in an app using uifigure
 %   
 %   Work in progress. Adapting the apptable to version using uim-controls    
@@ -40,7 +40,7 @@ classdef apptable1 < applify.minitable
         function obj = apptable1(varargin)
         %apptable Constructor                
             
-            obj@applify.minitable(varargin{:})
+            obj@applify.UiControlTable(varargin{:})
                         
 
         end
@@ -57,7 +57,7 @@ classdef apptable1 < applify.minitable
             % Subclasses may override this method.
         end
         
-        function createTableRowComponents(obj) % defined in applify.minitable
+        function createTableRowComponents(obj) % defined in applify.UiControlTable
         
         end
         

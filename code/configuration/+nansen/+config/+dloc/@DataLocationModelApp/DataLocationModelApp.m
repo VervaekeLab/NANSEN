@@ -1,4 +1,4 @@
-classdef DataLocationModelApp < handle % applify.ModularApp & 
+classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 %DataLocationModelApp Create an app for the data location model
 %
 
@@ -17,10 +17,6 @@ classdef DataLocationModelApp < handle % applify.ModularApp &
 %       are updated accordingly
     
     
-    properties (Constant, Hidden)
-        DEFAULT_THEME = nansen.theme.getThemeColors('light'); 
-    end
-    
     properties (Constant)
         AppName = 'Configure Data Locations'
     end
@@ -34,18 +30,17 @@ classdef DataLocationModelApp < handle % applify.ModularApp &
     
     properties
         DataLocationModel
-        UIModule
     end
     
+    properties (Access = private)
+        DataBackup
+    end
     
     properties (Access = private)
-       Figure
        TabGroup matlab.ui.container.TabGroup
        TabList matlab.ui.container.Tab
        
-       ControlPanels matlab.ui.container.Panel
-       LoadingPanel matlab.ui.container.Panel
-       LoadingImage
+       %ControlPanels matlab.ui.container.Panel
     end
     
     properties (Access = private)
@@ -57,6 +52,12 @@ classdef DataLocationModelApp < handle % applify.ModularApp &
         
         function obj = DataLocationModelApp(varargin)
             
+            
+            % Todo: Should be possible to give as input...
+            obj.DataLocationModel = nansen.config.dloc.DataLocationModel;
+            obj.DataBackup = obj.DataLocationModel.Data;
+            
+            
             if isempty(varargin)
                 
                 obj.createFigure()
@@ -67,22 +68,21 @@ classdef DataLocationModelApp < handle % applify.ModularApp &
 
                 setLayout(obj)
                 obj.Figure.Visible = 'on';
+                
+                uim.utility.centerFigureOnScreen(obj.Figure)
+            
+                obj.createControlPanels()
+                obj.applyTheme()
+                
+                obj.UIModule{3} = [];
+                obj.createUIModules(1)
+                
             else
+                
+                
                 
             end
             
-            uim.utility.centerFigureOnScreen(obj.Figure)
-            
-            obj.createControlPanels()
-            obj.applyTheme()
-            
-            % Todo: Should be possible to give as input...
-            obj.DataLocationModel = nansen.config.dloc.DataLocationModel;
-            
-            
-            obj.createUIModules(1)
-            
-            obj.LoadingPanel.Visible = 'off';
             
             if ~nargout; clear obj; end
             
@@ -90,23 +90,62 @@ classdef DataLocationModelApp < handle % applify.ModularApp &
             % Create tabs
             %obj.isConstructed = true;
         end
-
+        
     end
 
-    methods (Access = private)
+    methods (Access = protected)
         
-        function createFigure(obj)
+        function onFigureClosed(obj, src, evt)
             
-            % Create figure
-            obj.Figure = uifigure('Visible', 'off');
-            obj.Figure.Position(3:4) = [699, 229]; 
-            obj.Figure.Resize = 'off';
-            uim.utility.centerFigureOnScreen(obj.Figure)
+            % Check if any modules have made changes to the model
+            isDirty = false(1,3);
+            for i = 1:numel(obj.UIModule)
+                if ~isempty(obj.UIModule{i})
+                    isDirty(i) = obj.UIModule{i}.IsDirty;
+                end
+            end
             
-            % Set figure name.
-            obj.Figure.Name = obj.AppName;
+            % Ask user if changes should be saved
+            if any(isDirty)
+                
+                message = 'Save changes to Data Locations?';
+                title = 'Confirm Save';
 
+                selection = uiconfirm(src, message, title, 'Options', ...
+                    {'Yes', 'No', 'Cancel'}, 'DefaultOption', 1, ...
+                    'CancelOption', 3);
+                
+                switch selection
+                    
+                    case 'Yes'
+                        for i = 2:3
+                            if ~isempty(obj.UIModule{i})
+                                obj.UIModule{i}.updateDataLocationModel()
+                            end
+                        end
+                        obj.DataLocationModel.save()
+                        
+                    case 'No'
+                        obj.DataLocationModel.restore(obj.DataBackup)
+                    otherwise
+                        return
+                end
+
+            end
+            
+            delete(obj.Figure)
+
+% %             for i = 1:3
+% %                 if ~isempty(obj.UIModule{i})
+% %                     delete(obj.UIModule{i})
+% %                 end
+% %             end
+            
         end
+        
+    end
+    
+    methods (Access = private)
         
         function createTabGroup(obj)
             
@@ -139,6 +178,9 @@ classdef DataLocationModelApp < handle % applify.ModularApp &
         
         function setLayout(obj)
             % Make sure inner position is : [699,229]
+            
+            % Todo: Make this part of abstract method... Adjust size if a
+            % tabgroup is added....
             
             targetPosition = [699, 229] + [0, 40] + [40, 40];
             
@@ -195,11 +237,16 @@ classdef DataLocationModelApp < handle % applify.ModularApp &
 
             % Create components for the DataLocationModel configuration
             args = {'Parent', obj.ControlPanels(i)};
+            
+            if obj.IsStandalone 
+                args = [args, 'RootPathComponentType', 'uidropdown'];
+            end
+            
             obj.UIModule{i} = nansen.config.dloc.DataLocationModelUI(h, args{:});
             
             % Todo: This should happen on construciton of UiModule
             obj.UIModule{i}.createAddNewDataLocationButton(obj.TabList(i))
-            
+            obj.UIModule{i}.createDefaultDataLocationSelector(obj.TabList(i))
         end
         
         function createFolderOrganizationUI(obj)
@@ -229,58 +276,34 @@ classdef DataLocationModelApp < handle % applify.ModularApp &
             
         end
         
-        function createLoadingPanel(obj)
-            
-            obj.LoadingPanel = uipanel(obj.Figure);
-            
-            
-            % Create LoadingImage
-            uiImage = uiimage(obj.LoadingPanel);
-            uiImage.Position = [326 146 140 142];
-            uiImage.ImageSource = 'loading.gif';
-            
-            uim.utility.layout.centerObjectInRectangle(uiImage, obj.LoadingPanel)
-            
-            obj.LoadingImage = uiImage;
-        end
-        
-        function showLoadingPanel(obj)
-            
-        end
-        
-        function hideLoadingPanel(obj)
-            
-        end
     end
     
     methods (Access = private) % Callbacks
 
         function onTabSelectionChanged(obj, src, evt)
-            
+        %onTabSelectionChanged Take care of tab change
+        
             currentTitle = obj.TabGroup.SelectedTab.Title;
             pageNum = find(strcmp(obj.PageTitles, currentTitle));
 
             if ~obj.IsPageCreated(pageNum)
                 obj.createUIModules(pageNum)
             end
-               
+            
+            % Clean up old tab
             switch evt.OldValue.Title
-                
                 case 'Folder Organization'
-                    if obj.UIModule{2}.IsDirty
+                    if isvalid(obj.UIModule{2}) && obj.UIModule{2}.IsDirty
                         obj.UIModule{2}.updateDataLocationModel()
                     end
             end
             
+            % Prepare new tab
             switch obj.TabGroup.SelectedTab.Title
                 
                 case 'Folder Organization'
-                    dataLocInd = 1; %Todo...
-                    obj.UIModule{2}.DataLocation = obj.DataLocationModel.Data(dataLocInd);
                     
                 case 'Metadata Initialization'
-                    obj.UIModule{3}.DataLocations = obj.DataLocationModel;
-                    obj.UIModule{3}.onModelSet()
                 
             end
             
@@ -305,20 +328,6 @@ classdef DataLocationModelApp < handle % applify.ModularApp &
        
     end
     
-    methods (Static)
-   
-        function hPanel = createControlPanel(hParent)
-            
-            % Todo: Superclass...
-            
-            panelPosition = [ 20, 20, 699, 229];
-            
-            hPanel = uipanel(hParent);
-            hPanel.Position = panelPosition;
-            
-        end 
-        
-    end
     
 
 end

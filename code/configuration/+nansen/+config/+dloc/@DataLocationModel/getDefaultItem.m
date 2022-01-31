@@ -1,4 +1,4 @@
-function S = getDefaultItem()
+function [S, P] = getDefaultItem()
 %getDefaultItem Return a list of default datalocation items
 
 % Name              : Name of data location
@@ -35,5 +35,8 @@ function S = getDefaultItem()
 
     S(i).SubfolderStructure(1).Type = 'Animal';
     S(i).SubfolderStructure(2).Type = 'Session';
+    
+    
+    P.DefaultDataLocation = 'Processed';
     
 end

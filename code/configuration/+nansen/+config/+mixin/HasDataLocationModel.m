@@ -9,9 +9,9 @@ classdef HasDataLocationModel < handle
     end
     
     properties (Access = private)
-        DataLocationAddedListener
-        DataLocationModifiedListener
-        DataLocationRemovedListener
+        DataLocationAddedListener event.listener
+        DataLocationModifiedListener event.listener
+        DataLocationRemovedListener event.listener
     end
     
     methods
@@ -59,9 +59,9 @@ classdef HasDataLocationModel < handle
                 delete(obj.DataLocationRemovedListener)
             end
             
-            obj.DataLocationAddedListener = [];
-            obj.DataLocationModifiedListener = [];
-            obj.DataLocationRemovedListener = [];
+            obj.DataLocationAddedListener = event.listener.empty;
+            obj.DataLocationModifiedListener = event.listener.empty;
+            obj.DataLocationRemovedListener = event.listener.empty;
             
         end
         

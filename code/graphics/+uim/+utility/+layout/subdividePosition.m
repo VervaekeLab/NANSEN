@@ -71,5 +71,9 @@ function [pos, siz] = subdividePosition(posInit, lengthInit, sizeSpecs, spacing,
     end
     
     pos = pos + posInit;
+   
+    if nargout == 1
+        clear siz
+    end
     
 end

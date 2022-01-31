@@ -6,20 +6,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %    [ ] Do the centering when getting the cell locations.
 %    [ ] Set fontsize/bg color and other properties in batch.
 %
-%    [ ] Include "data model" as property and update values whenever new values
-%        are entered.
+%    [ ] Update DL Model whenever new values are entered.
     
 
     properties
-        
         IsDirty = false;
-        
-        % Need Datalocations handle, make a default?
-        DataLocations = struct('Name', {'Rawdata', 'Processed', '', ''}, ...
-            'RootPath', {{'HDD', ''}, {'HDD', ''}, {'', ''}, {'', ''}}, ...
-            'Backup', {[], [], [], []});
-        
         IsAdvancedView = true
+        %DataLocationIndex = 1; Todo: select which dloc to use...
     end
     
     properties (Access = protected)
@@ -41,7 +34,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             varargin = [varargin, {'Data', dataLocationModel.Data(1).MetaDataDef}];
 
             obj@applify.apptable(varargin{:})
-                        
+           
+            obj.onModelSet()
         end
         
     end
@@ -63,8 +57,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         
             hRow = struct();
             
-            rootPath =  mfilename('fullpath') ;
-            imgPath = fullfile(rootPath, '_graphics');
+            %rootPath =  mfilename('fullpath') ;
+            %imgPath = fullfile(rootPath, '_graphics');
             
         % % Create VariableName label
             i = 1;
@@ -81,29 +75,29 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             i = 2;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
 
-            hRow.FolderSelector = uidropdown(obj.TablePanel);
-            hRow.FolderSelector.BackgroundColor = [1 1 1];
-            hRow.FolderSelector.Position = [xi y wi h];
-            hRow.FolderSelector.FontName = obj.FontName;
-            hRow.FolderSelector.ValueChangedFcn = @obj.onFolderSelectionChanged;
-            obj.centerComponent(hRow.FolderSelector, y)
+            hRow.FolderNameSelector = uidropdown(obj.TablePanel);
+            hRow.FolderNameSelector.BackgroundColor = [1 1 1];
+            hRow.FolderNameSelector.Position = [xi y wi h];
+            hRow.FolderNameSelector.FontName = obj.FontName;
+            hRow.FolderNameSelector.ValueChangedFcn = @obj.onFolderNameSelectionChanged;
+            obj.centerComponent(hRow.FolderNameSelector, y)
 
             % Todo: Get folders from DataLocation.
-            hRow.FolderSelector.Items = {'Select foldername...'};
-            hRow.FolderSelector.Value = 'Select foldername...';
+            hRow.FolderNameSelector.Items = {'Select foldername...'};
+            hRow.FolderNameSelector.Value = 'Select foldername...';
             
         % % Create Togglebutton group for selecting string detection mode
             i = 3;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
 
             % Insert dialog button 
-            hRow.ColumnLabelHelpButton = uibutton(obj.TablePanel);
-            hRow.ColumnLabelHelpButton.Position = [xi, y, wi, h];
-            hRow.ColumnLabelHelpButton.Text = 'Select Substring...';
-            hRow.ColumnLabelHelpButton.ButtonPushedFcn = @obj.onSelectLetterClicked;
-            obj.centerComponent(hRow.ColumnLabelHelpButton, y)
+            hRow.SelectSubstringButton = uibutton(obj.TablePanel);
+            hRow.SelectSubstringButton.Position = [xi, y, wi, h];
+            hRow.SelectSubstringButton.Text = 'Select Substring...';
+            hRow.SelectSubstringButton.ButtonPushedFcn = @obj.onSelectSubstringButtonPushed;
+            obj.centerComponent(hRow.SelectSubstringButton, y)
             
-            
+            % Create button group
             hRow.ButtonGroupStrfindMode = uibuttongroup(obj.TablePanel);
             hRow.ButtonGroupStrfindMode.BorderType = 'none';
             hRow.ButtonGroupStrfindMode.BackgroundColor = [1 1 1];
@@ -151,86 +145,55 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         
     end
     
-    methods % Methods for updating
+    methods (Access = private) %Callbacks for userinteraction with controls
         
-        function onModelSet(obj)
-        %onModelSet Callback for when DatalocationModel is set/reset
-        %
-        %   % Update control values based on the DataLocationModel
+        function onFolderNameSelectionChanged(obj, src, ~)
+        % Add value to tooltip of control
         
-            % Update Items and Value of subfolder dropdown
-            obj.setFolderSelectionItems(obj.DataLocationModel)
-            
-            % Update value in string detection input
-            
-            % Update results
-            for i = 1:obj.NumRows
-                hComp = obj.RowControls(i).StrfindInputEditbox;
-                obj.onStringInputValueChanged(hComp)
-                
-                % Set stringformat from datalocation model.
-                obj.StringFormat{i} = obj.DataLocationModel.Data(1).MetaDataDef(i).StringFormat;
-            end
-            
-        end
-        
-        function onFolderSelectionChanged(obj, src, ~)
             src.Tooltip = src.Value;
         end
+
+        function onSelectSubstringButtonPushed(obj, src, evt)
+        % Open a dialog window for selecting letter positions.
         
-        function onSelectLetterClicked(obj, src, evt)
-        %
-        %   
-        %   Open a dialog window for selecting letter positions.
-        
+            % Get foldername for the row which user pushed button from
             rowNumber = obj.getComponentRowNumber(src);
             hRow = obj.RowControls(rowNumber);
-            folderName = hRow.FolderSelector.Value;
+            folderName = hRow.FolderNameSelector.Value;
            
+            % Create a dialog where the user can select a substring from 
+            % the foldername
             hFig = ancestor(src, 'figure');
-         
             IND = uim.dialog.createStringSelectorDialog(folderName, hFig.Position);
             
+            % Return if user canceled...
             if isempty(IND)
                 pause(0.1)
-                figure(hFig)
+                figure(hFig) % Bring uifigure back to focus
                 return
-            else
+            else % ...Or update data and controls
                 
+                % Update values in editboxes
                 substring = folderName(IND);
-                %hRow.StrfindInputEditbox.Value = num2str(IND);
                 hRow.StrfindInputEditbox.Value = obj.simplifyInd(IND);
                 
                 hRow.StrfindResultEditbox.Value = substring;
                 hRow.StrfindResultEditbox.Tooltip = substring;
-            
-                
-                % Get datetime values for date & time variables.
-                if strcmp(hRow.VariableName.Text, 'Experiment Date')
-                    dlgTitle = 'Enter Date Format';
-                    msg = sprintf('Please enter date format, i.e yyyy-MM-dd\n');
-                    datetimeFormat = 'MMM-dd-yyyy';
-                elseif strcmp(hRow.VariableName.Text, 'Experiment Time')
-                    dlgTitle = 'Enter Time Format';
-                    msg = sprintf('Please enter time format, i.e HH-mm-ss\n');
-                    datetimeFormat = 'HH:mm:ss';
-                end
-                
+
+                % If the variable is date or time, try to convert to
+                % datetime value:
                 if obj.isDateTimeVariable(hRow.VariableName.Text)
                     
                     shortName = strrep(hRow.VariableName.Text, 'Experiment', '');
+   
+                    [dtInFormat, dtOutFormat] = obj.getDateTimeFormat(hRow.VariableName.Text);
                     
-                    msg = strjoin({msg, '(See doc datetime for full list of examples).'});
-                    str = inputdlg(msg, dlgTitle);
-                    
-                    if ~isempty(str) && ~isempty(str{1})
-                        str = str{1};
-                    
+                    if ~isempty(dtInFormat)
                         try
-                            datetimeValue = datetime(substring, 'InputFormat', str);
-                            datetimeValue.Format = datetimeFormat;
+                            datetimeValue = datetime(substring, 'InputFormat', dtInFormat);
+                            datetimeValue.Format = dtOutFormat;
                             hRow.StrfindResultEditbox.Value = char(datetimeValue);  
-                            obj.StringFormat{rowNumber} = str;
+                            obj.StringFormat{rowNumber} = dtInFormat;
                         catch ME
                             uialert(hFig, ME.message, sprintf('%s Format Error', shortName))
                         end
@@ -245,11 +208,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             obj.IsDirty = true;
             
-            % Bring uifigure back into focus
-            figure(hFig)
+            figure(hFig) % Bring uifigure back into focus
             
         end
-        
+
         function onStringInputValueChanged(obj, src, event)
             
             M = obj.DataLocationModel.Data(1).MetaDataDef;
@@ -261,7 +223,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             strPattern = obj.getStrSearchPattern(rowNumber, mode);
             
-            folderName = hRow.FolderSelector.Value;
+            folderName = hRow.FolderNameSelector.Value;
 
             try
                 switch lower(mode)
@@ -298,7 +260,58 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             obj.IsDirty = true;
         end
+
+    end
+    
+    methods (Access = private)
         
+
+    end
+    
+    
+    methods % Methods for updating
+        
+        function updateDataLocationModel(obj)
+        %updateDataLocationModel Update DLModel with changes from UI    
+            S = obj.getMetaDataDefinitionStruct();
+            obj.DataLocationModel.updateMetaDataDefinitions(S)
+        end
+        
+        function S = getMetaDataDefinitionStruct(obj)
+        %getMetaDataDefinitionStruct Get struct of values from UI controls
+        
+            S = obj.DataLocationModel.getDefaultMetadataStructure();
+                        
+            for i = 1:obj.NumRows
+                S(i).StringDetectMode = obj.getStrSearchMode(i);
+                S(i).StringDetectInput = obj.getStrSearchPattern(i);
+                S(i).SubfolderLevel = obj.getSubfolderLevel(i);
+                S(i).StringFormat = obj.StringFormat{i};
+            end
+
+        end
+        
+        function onModelSet(obj)
+        %onModelSet Callback for when DatalocationModel is set/reset
+        %
+        %   % Update control values based on the DataLocationModel
+        
+            % Update Items and Value of subfolder dropdown
+            obj.setFolderSelectionItems(obj.DataLocationModel)
+            
+            % Update value in string detection input
+            
+            % Update results
+            for i = 1:obj.NumRows
+                hComp = obj.RowControls(i).StrfindInputEditbox;
+                obj.onStringInputValueChanged(hComp)
+                
+                % Set stringformat from datalocation model.
+                obj.StringFormat{i} = obj.DataLocationModel.Data(1).MetaDataDef(i).StringFormat;
+            end
+            
+        end
+
         function setFolderSelectionItems(obj, dataLocModel)
            
             % TODO: Fix error that will occur if several subfolders are
@@ -306,7 +319,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             
             % Get all the folder selector controls
-            h = [obj.RowControls.FolderSelector];
+            h = [obj.RowControls.FolderNameSelector];
             
             % Get the folder choice examples from the data location model
             subFolderStructure = dataLocModel.Data(1).SubfolderStructure;
@@ -357,20 +370,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 set(h(i), 'Value', folderChoices{itemInd+1})
             end
         end
-        
-        function S = getMetaDataDefinitionStruct(obj)
-            
-            S = obj.DataLocationModel.getDefaultMetadataStructure();
-                        
-            for i = 1:obj.NumRows
-                S(i).StringDetectMode = obj.getStrSearchMode(i);
-                S(i).StringDetectInput = obj.getStrSearchPattern(i);
-                S(i).SubfolderLevel = obj.getSubfolderLevel(i);
-                S(i).StringFormat = obj.StringFormat{i};
-            end
 
-        end
-        
     end
     
     methods
@@ -416,7 +416,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         
         function num = getSubfolderLevel(obj, rowNumber)
             
-            hDropdown = obj.RowControls(rowNumber).FolderSelector;
+            hDropdown = obj.RowControls(rowNumber).FolderNameSelector;
             items = hDropdown.Items(2:end); % Exclude first choice.
             num = find(contains(items, hDropdown.Value));
             
@@ -426,9 +426,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
         
     end
-    
-    
-    
+
     methods % Show/hide advanced options.
         
         function createAdvancedOptionsButton(obj, hPanel)
@@ -530,10 +528,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
             
             hRow = obj.RowControls(rowNum);
-            hRow.FolderSelector.Position(3) = hRow.FolderSelector.Position(3) + xOffset;
-            hRow.ColumnLabelHelpButton.Position(1) = hRow.ColumnLabelHelpButton.Position(1) + xOffset;
+            hRow.FolderNameSelector.Position(3) = hRow.FolderNameSelector.Position(3) + xOffset;
+            hRow.SelectSubstringButton.Position(1) = hRow.SelectSubstringButton.Position(1) + xOffset;
 
-            hRow.ColumnLabelHelpButton.Visible = visibility_;
+            hRow.SelectSubstringButton.Visible = visibility_;
             hRow.ButtonGroupStrfindMode.Visible = visibility;
             hRow.StrfindInputEditbox.Visible = visibility;
             
@@ -553,6 +551,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             switch evt.DataField
                 case 'SubfolderStructure'
+                    % Todo: Should this be more specific? i.e does not need
+                    % to invoke this method know when filters change...
                     obj.onModelSet()
                     
                 otherwise
@@ -566,10 +566,35 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
     end
         
     
-    methods (Static)
+    methods (Static, Access = private)
         
-        function tf = isDateTimeVariable(varName)
-            tf = contains(varName, {'Date', 'Time'});
+        function tf = isDateTimeVariable(variableName)
+            tf = contains(variableName, {'Date', 'Time'});
+        end
+        
+        function [inFormat, outFormat] = getDateTimeFormat(variableName)
+        %getDateTimeFormat Get datetime input and output format
+        
+            % Get datetime values for date & time variables.
+            if strcmp(variableName, 'Experiment Date')
+                dlgTitle = 'Enter Date Format';
+                msg = sprintf('Please enter date format, i.e yyyy-MM-dd\n');
+                outFormat = 'MMM-dd-yyyy';
+            elseif strcmp(variableName, 'Experiment Time')
+                dlgTitle = 'Enter Time Format';
+                msg = sprintf('Please enter time format, i.e HH-mm-ss\n');
+                outFormat = 'HH:mm:ss';
+            end
+               
+            msg = strjoin({msg, '(See doc datetime for full list of examples).'});
+            answer = inputdlg(msg, dlgTitle);
+            
+            if ~isempty(answer) && ~isempty(answer{1})
+            	inFormat = answer{1};
+            else
+                inFormat = '';
+            end
+            
         end
         
         function IND = simplifyInd(IND)
