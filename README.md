@@ -3,6 +3,7 @@
 A collection of apps and modules for processing, analysis and visualization 
 of two-photon imaging data for the systems neuroscience community.
 
+<img src="https://github.com/ehennestad/ehennestad.github.io/blob/main/images/app_overview.png?raw=true" alt="Imviewer instance" width="100%"/>
 
 ## Installation
 Currently, the only actions that are needed is:
@@ -42,4 +43,12 @@ App for viewing and interacting with videos & image stacks
 App for registering cranial implants, injection spots and imaging field of views (and RoIs) on an atlas of the dorsal surface of the cortex.
 
 <img src="https://ehennestad.github.io/images/fovmanager.png" alt="Imviewer instance" width="500"/>
+
+## Plugins
+Example of toolbox plugins that are included in NANSEN
+
+<img src="https://github.com/ehennestad/ehennestad.github.io/blob/main/images/plugin_examples.png?raw=true" alt="Imviewer instance" width="100%"/>
+
+\* Awaiting publication
+
 
