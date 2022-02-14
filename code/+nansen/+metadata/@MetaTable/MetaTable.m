@@ -285,7 +285,7 @@ classdef MetaTable < handle
 
             % Link to master MetaTable if this is a dummy
             if isempty(obj.MetaTableKey) && obj.IsMaster
-                obj.MetaTableKey = uuidgen;
+                obj.MetaTableKey = nansen.util.getuuid();
             elseif isempty(obj.MetaTableKey) && ~obj.IsMaster
                 obj.linkToMaster()
             else
@@ -425,7 +425,8 @@ classdef MetaTable < handle
             % Convert table to struct for the formatting of values.
             % Can't change the datatype of the table columns otherwise...?
             tempStruct = table2struct(T);
-                
+            
+            %Todo: Do this column by column instead..
             numRows = numel(tempStruct);
             for iRow = 1:numRows % Go through all rows
                 
