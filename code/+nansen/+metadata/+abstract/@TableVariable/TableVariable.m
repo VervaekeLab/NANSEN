@@ -7,36 +7,40 @@ classdef TableVariable
 %   be displayed as a tooltip (getCellDisplayString, getCellTooltipString
 %   respectively).
 %
-%   
+%   Note: Subclasses should work on vectors of objects, and return cell
+%   arrays of formatted strings with one cell for each object.
 
+%   Todo: 
+%       [ ] Static update function. Think more about this. All table
+%           variables should have an update function, but should it be static,
+%           and how to implement that in a way where it is optional for the
+%           subclass to implement it or not?
 
     properties (Constant, Abstract)
         IS_EDITABLE
         DEFAULT_VALUE
     end
-
     
     properties
         Value
     end
     
-    
-% %     methods (Abstract)
-% %         str = getCellDisplayString(obj)
-% %         str = getCellTooltipString(obj)
-% %     end
+%     events % Need to inherit from handle if this is implemented:
+%         ValueChanged
+%     end
     
     
-    methods
+    methods % Constructor
         function obj = TableVariable(S)
             
-            if nargin < 1
+            if nargin < 1 || isempty(S)
+                obj.Value = struct.empty;
                 return
             end
 
-            if iscell(S) 
-                S = S{1};
-                obj.Value = S;
+            if iscell(S)                
+                numObjects = numel(S);
+                [obj(1:numObjects).Value] = deal( S{:} );
                 
             elseif isa(S, 'nansen.metadata.abstract.BaseSchema')
                 varName = obj.getVariableName;
@@ -55,18 +59,31 @@ classdef TableVariable
             
         end
     end
-    
-    
-    
-    methods % Subclasses can override
+
+    methods % Subclasses can override (Methods for cell display & interaction)
         
         function str = getCellDisplayString(obj)
-        %getCellDisplayString Format the progress struct into a progressbar
-            str = '';
+        %getCellDisplayString Get formatted string to display in table cell
+            if numel(obj) > 1
+                str = repmat({''}, 1, numel(obj));
+            elseif numel(obj) == 1
+                str = '';
+            end
+            
+        end
+
+        function str = getCellTooltipString(obj)
+        %getCellTooltipString Get string to display in tooltip on mouseover    
+            if numel(obj) > 1
+                str = repmat({''}, 1, numel(obj));
+            elseif numel(obj) == 1
+                str = '';
+            end
+            
         end
         
-        function str = getCellTooltipString(obj)
-            str = '';
+        function [] = onCellDoubleClick(obj, metaObj, varargin)
+            % Do nothing. Subclass may override
         end
         
     end
@@ -81,6 +98,11 @@ classdef TableVariable
             varName = classNameSplit{end};
         end
         
+    end
+    
+    methods (Static)
+        % Subclasses can implement update....How to formalize this???
+        % Subclasses should be allowed not to have the update method...
     end
     
 end
