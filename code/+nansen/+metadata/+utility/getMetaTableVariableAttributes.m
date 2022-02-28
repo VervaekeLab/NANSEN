@@ -25,10 +25,11 @@ function S = getMetaTableVariableAttributes(tableClassName)
         case 'session'
             % Todo: This is temporary. Retrieve project template
             className = 'nansen.metadata.schema.vlab.TwoPhotonSession';
-
+            %className = 'nansen.metadata.type.Session'; <- Todo: use this instead
             mc = meta.class.fromName(className);
             isStatic = [mc.PropertyList.Constant];
-            varNamesSchema = {mc.PropertyList(~isStatic).Name};
+            isTransient = [mc.PropertyList.Transient];
+            varNamesSchema = {mc.PropertyList(~isStatic & ~isTransient).Name};
             varNamesCustom = getCustomTableVariableNames();
 
         otherwise
@@ -45,7 +46,7 @@ function S = getMetaTableVariableAttributes(tableClassName)
         S(iVar).IsEditable = false; % Default assumption
         S(iVar).HasFunction = false; % Default assumption
         
-        
+        % Note: Custom variables takes precedence!
         % Check the custom variable definition for attribute values
         if contains(S(iVar).Name, varNamesCustom)
             varFunction = getCustomTableVariableFcn(S(iVar).Name);
@@ -60,23 +61,24 @@ function S = getMetaTableVariableAttributes(tableClassName)
                 
                 if ismethod(fcnResult, 'update')
                 	S(iVar).HasFunction = true;
+                    S(iVar).FunctionName = func2str(varFunction);
                 end
                 
             else
                 S(iVar).HasFunction = true;
+                S(iVar).FunctionName = func2str(varFunction);
             end
-        else
+        else % Fall back, and test for preset variable function
             functionName = ['nansen.metadata.tablevar.', S(iVar).Name];
             mc = meta.class.fromName(functionName);
             if ~isempty(mc)
                 if any( strcmp({mc.MethodList.Name}, 'update') )
                     S(iVar).HasFunction = true;
+                    S(iVar).FunctionName = sprintf('%s.update', functionName);
                 end
             end
         end
-         
     end
     
 end
-        
         
