@@ -8,7 +8,9 @@ classdef HDF5 < nansen.stack.data.VirtualArray
     %      stored in different datasets
     %  [ ] Implement finding datasets which are within groups...
     %  [ ] Subclass (?) for datasets within the NWB format...
+    %  [ ] Check nwb-datapipe for inspiration how to use low level h5 functions 
 
+    
 properties
     DatasetName = ''
 end
@@ -55,7 +57,7 @@ methods (Access = protected) % Implementation of abstract methods
         
         [~, ~, ext] = fileparts(filePath);
         
-        assert(strcmp(ext, '.h5'), 'File must be a .h5 file')
+        assert(strcmp(ext, '.h5') || strcmp(ext, '.nwb') , 'File must be a .h5 file')
 
         obj.FilePath = filePath;
         
