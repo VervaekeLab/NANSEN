@@ -91,7 +91,7 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
             % Resize components
             obj.Figure.Position(3:4) = obj.Figure.Position(3:4) + deltaSize;
             obj.LoadingPanel.Position(3:4) = obj.Figure.Position(3:4);
-            uim.utility.layout.centerObjectInRectangle(obj.LoadingImage, obj.LoadingPanel)
+            obj.updateLoadPanelComponentPositions()
 
         end
 
@@ -99,7 +99,7 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
             obj.ControlPanels = obj.createControlPanel( obj.Figure );
         end 
         
-        function createUIModules(obj, moduleNumber)
+        function createUIModules(obj, ~)
             
             obj.LoadingPanel.Visible = 'on';
             
@@ -117,7 +117,6 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
                 'VariableModel', variableModel, 'Data', variableModel.Data};
             
             obj.UIModule{1} = nansen.config.varmodel.VariableModelUI(obj.ControlPanels(1), args{:});
-            obj.UIModule{1}.createToolbar(obj.ControlPanels(1))
 
             obj.LoadingPanel.Visible = 'off';
 

@@ -51,20 +51,38 @@ classdef VariableModelUI < applify.apptable
 
         function assignDefaultTablePropertyValues(obj)
 
-            obj.ColumnNames = {'Data variable name', 'Data location', ...
+            obj.ColumnNames = {'', 'Data variable name', 'Data location', ...
                  'Filename expression', 'File type', 'File adapter'};
             obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
-            obj.ColumnWidths = [160, 105, 145, 70, 75];
+            obj.ColumnWidths = [12, 150, 105, 135, 70, 75];
             obj.RowSpacing = 15;   
-            obj.ColumnSpacing = 25;
+            obj.ColumnSpacing = 20;
         end
         
         function hRow = createTableRowComponents(obj, rowData, rowNum)
         
             hRow = struct();
             
-        % % Create VariableName edit field
+            % % Create button for removing current row.
             i = 1;
+            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
+
+            hRow.RemoveImage = uibutton(obj.TablePanel);
+            hRow.RemoveImage.Position = [xi-4 y wi+10 h]; % Quick fix of pos...
+            hRow.RemoveImage.Text = '-';
+            hRow.RemoveImage.Text = '';
+            hRow.RemoveImage.Icon = 'minus.png';
+            hRow.RemoveImage.Tooltip = 'Remove Variable';
+
+            hRow.RemoveImage.ButtonPushedFcn = @obj.onRemoveVariableButtonPushed;
+            obj.centerComponent(hRow.RemoveImage, y)
+            
+            if rowData.IsDefaultVariable
+                hRow.RemoveImage.Visible = 'off';
+            end
+            
+        % % Create VariableName edit field
+            i = 2;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
             
             if rowData.IsDefaultVariable
@@ -82,7 +100,7 @@ classdef VariableModelUI < applify.apptable
 
             
          % % Create DataLocation Dropdown
-            i = 2;
+            i = 3;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
 
             hRow.DataLocSelect = uidropdown(obj.TablePanel);
@@ -113,7 +131,7 @@ classdef VariableModelUI < applify.apptable
             
             
         % % Create Filename Expression edit field
-            i = 3;
+            i = 4;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
 
             hRow.FileNameExpr = uieditfield(obj.TablePanel, 'text');
@@ -176,6 +194,16 @@ classdef VariableModelUI < applify.apptable
             
         end
         
+        function createToolbarComponents(obj, hPanel)
+        %createToolbarComponents Create "toolbar" components above table.    
+            if nargin < 2; hPanel = obj.Parent.Parent; end
+                        
+            obj.createAddNewDataLocationButton(hPanel)
+            
+            obj.createShowVariablesToggleButton(hPanel)
+            
+        end
+        
     end
     
     methods (Access = protected)
@@ -231,15 +259,28 @@ classdef VariableModelUI < applify.apptable
         
         function onAddNewVariableButtonPushed(obj, src, event)
             numRows = obj.NumRows;
-            rowData = obj.VariableModel.getEmptyItem;
+            rowData = obj.VariableModel.getBlankItem;
+            % Fuck, this is ugly
+            if ~isfield(rowData, 'Uuid')
+                rowData.Uuid = nansen.util.getuuid();
+            end
             obj.addRow(numRows+1, rowData)
             obj.IsDirty = true;
+        end
+        
+        function onRemoveVariableButtonPushed(obj, src, ~)
+            
+            rowNumber = obj.getComponentRowNumber(src);
+            obj.VariableModel.removeItem(rowNumber)
+            obj.removeRow(rowNumber)
+            
+            
         end
         
         function onShowVariablesToggleButtonValueChanged(obj, src, event)
             if strcmp(src.Text, 'Show all variables...')
                 obj.showPresetVariables()
-                src.Text = 'Show default variables...';
+                src.Text = 'Show preset variables...';
                 obj.UIButton_AddVariable.Enable = 'on';
             else
                 obj.hidePresetVariables()
@@ -251,15 +292,6 @@ classdef VariableModelUI < applify.apptable
     end
     
     methods
-        
-        function createToolbar(obj, hPanel)
-            
-            
-            obj.createAddNewDataLocationButton(hPanel)
-            
-            obj.createShowVariablesToggleButton(hPanel)
-            
-        end
         
         function createAddNewDataLocationButton(obj, hPanel)
             
@@ -297,7 +329,7 @@ classdef VariableModelUI < applify.apptable
             obj.UIButton_ToggleVariableVisibility = uibutton(hPanel);
             obj.UIButton_ToggleVariableVisibility.Position(1:2) = toolbarPosition(1:2);
             obj.UIButton_ToggleVariableVisibility.Position(3:4) = obj.ButtonSizeLarge;
-            obj.UIButton_ToggleVariableVisibility.Text = 'Show default variables...';
+            obj.UIButton_ToggleVariableVisibility.Text = 'Show preset variables...';
             obj.UIButton_ToggleVariableVisibility.ButtonPushedFcn = @obj.onShowVariablesToggleButtonValueChanged;
 
         end
@@ -305,9 +337,11 @@ classdef VariableModelUI < applify.apptable
         
         
         function showPresetVariables(obj)
-            
             rowComponentNames = fieldnames(obj.RowControls);
-            for i = 2:numel(obj.RowControls)
+            
+            % Todo:
+            idx = find(~[obj.Data.IsDefaultVariable]);
+            for i = idx %2:numel(obj.RowControls)
                 for j = 1:numel(rowComponentNames)
                     obj.RowControls(i).(rowComponentNames{j}).Visible = 'on';
                 end
@@ -317,7 +351,8 @@ classdef VariableModelUI < applify.apptable
         
         function hidePresetVariables(obj)
             rowComponentNames = fieldnames(obj.RowControls);
-            for i = 2:numel(obj.RowControls)
+            idx = find(~[obj.Data.IsDefaultVariable]);
+            for i = idx %2:numel(obj.RowControls)
                 for j = 1:numel(rowComponentNames)
                     obj.RowControls(i).(rowComponentNames{j}).Visible = 'off';
                 end

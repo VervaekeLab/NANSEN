@@ -1,7 +1,7 @@
 function variableList = getVariableList()
 
     % Initialize struct array with default fields.
-    variableList = nansen.config.varmodel.VariableModel.getEmptyItem();
+    variableList = nansen.config.varmodel.VariableModel.getBlankItem();
 
     % Original (raw) two photon recording
     variableList(1).VariableName = 'TwoPhotonSeries_Original';

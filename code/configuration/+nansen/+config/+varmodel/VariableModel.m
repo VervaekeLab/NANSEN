@@ -7,13 +7,15 @@ classdef VariableModel < utility.data.TabularArchive
     
     %   [ ] Flag for whether model data has changed....
     
+    %  *[ ] Variables must be sorted, so that default/preset are listed
+    %       first.
     
     properties (Constant)
 %         FileTypes
 %         DataAdapters
     end
     
-    properties (Constant, Access = protected)
+    properties (Constant, Hidden)
         ITEM_TYPE = 'Variable'
     end
     
@@ -29,7 +31,7 @@ classdef VariableModel < utility.data.TabularArchive
     
     methods (Static) % Get empty and default item
         
-        function S = getEmptyItem()
+        function S = getBlankItem()
             
             S = struct(...
                 'VariableName', '', ...
@@ -43,7 +45,8 @@ classdef VariableModel < utility.data.TabularArchive
         end
         
         function S = getDefaultItem(varName)
-            S = nansen.setup.model.FilePathSettingsEditor.getEmptyItem;
+            % Todo. remove?
+            S = nansen.config.varmodel.VariableModel.getBlankItem;
 
             S.VariableName = varName;
             S.DataLocation = 'Processed';
@@ -57,14 +60,9 @@ classdef VariableModel < utility.data.TabularArchive
     methods % Constructor
         
         function obj = VariableModel(varargin)
-            
+
+            % Superclass constructor. Loads given (or default) archive 
             obj@utility.data.TabularArchive(varargin{:})
-            
-            if isempty(obj.FilePath)
-                obj.FilePath = obj.getDefaultFilePath();
-            end
-                         
-            obj.load()
             
             obj.updateDefaultValues() %  This should be temporary, to account for changes made during development
              
@@ -85,6 +83,25 @@ classdef VariableModel < utility.data.TabularArchive
     end
     
     methods
+        
+        function [S, isExistingEntry] = getVariableStructure(obj, varName)
+            
+            S = obj.getItem(varName);
+            
+            isExistingEntry = ~isempty(S);
+            
+            % Create a default variable structure
+            if ~isExistingEntry
+                S = obj.getBlankItem();
+                
+                S.VariableName = varName;
+                S.DataLocation = '';
+                S.FileType = '.mat';
+                S.FileAdapter = 'Default';                
+            end
+               
+            
+        end
         
         function setGlobal(obj)
             global dataFilePathModel
@@ -180,4 +197,24 @@ classdef VariableModel < utility.data.TabularArchive
 
     end
     
+    methods (Static)
+        
+        function C = listFileAdapters()
+            % Todo: Make external function for gathering this from the
+            % path. All fileadapters should inherit from a common superclass.
+           
+            C = {'Default', 'ImageStack'};
+            
+        end
+        
+        function className = getFileAdapterFunctionName(fileAdapterName)
+            % Todo: This step should not be necessary...
+            switch fileAdapterName
+                case 'ImageStack'
+                    className = 'nansen.stack.ImageStack';
+            end
+            
+        end
+        
+    end
 end
