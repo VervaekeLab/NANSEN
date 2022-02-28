@@ -32,7 +32,6 @@ classdef apptable < applify.UiControlTable
         TempText % Text used for determining extent of text labels.
     end
     
-    
     properties (Access = protected, Hidden) % Internal graphical properties
         TableHeaderSpacer % An empty image placed in top of table panel to create some padding in the top of a scrollpanel.
         ImageGraphicPaths struct = struct()
@@ -75,7 +74,7 @@ classdef apptable < applify.UiControlTable
             % Subclasses may override this method.
         end
         
-        function createTableRowComponents(obj)      	% defined in applify.UiControlTable
+        function createTableRowComponents(obj) % defined in applify.UiControlTable
         
         end
         

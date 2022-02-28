@@ -1,5 +1,7 @@
 function [pos, siz] = subdividePosition(posInit, lengthInit, sizeSpecs, spacing, alignment)
 %subdividePosition Get divided positions for multiple components along dim
+%
+%   [pos, siz] = subdividePosition(posInit, lengthInit, sizeSpecs, spacing, alignment)
 
     if nargin < 5; alignment = 'left'; end  % 'left', 'center', 'right'
     if nargin < 4; spacing = 10; end

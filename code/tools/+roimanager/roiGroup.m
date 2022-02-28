@@ -9,7 +9,7 @@ classdef roiGroup < handle
 %   Er det i orden at roi thumbnail bilder og stats lagres her...?
 %   Det er UserData... Skal jeg lage en userdata egenskap?
 %
-%   For: Da følger disse dataene roien. Fleksibilitet
+%   For: Da fï¿½lger disse dataene roien. Fleksibilitet
 %   Mot: Ikke elegant? Rotete
 
 
@@ -88,7 +88,7 @@ classdef roiGroup < handle
            
             % Todo: verify that images, stats and classification is same
             % length as roi array.
-        
+            
             fields = fieldnames(S);
             
             for i = 1:numel(fields)
@@ -211,9 +211,11 @@ classdef roiGroup < handle
                     
             end
             
+            try
             obj.roiClassification = getappdata(obj.roiArray, 'roiClassification');
             obj.roiImages = getappdata(obj.roiArray, 'roiImages');
             obj.roiStats = getappdata(obj.roiArray, 'roiStats');
+            end
             
             if strcmp(mode, 'replace')
                 return %Todo, make sure this is not misused. I.e what if rois that are replaced are different...

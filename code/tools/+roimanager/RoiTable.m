@@ -103,10 +103,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             
             roiTable = struct2table(S, 'AsArray', true);
             
-            % Add column in beginning for showing ids.
+            % Create column for adding ids and prepend to table.
             numRois = numel(roiArray);
-            
-            C = cell(repmat({''}, numRois, 1));
+
+            C = cell(repmat({''}, numRois, 1)); % Init to empty strings
             T = cell2table(C, 'VariableNames',{'ID'});
         
             roiTable = [T, roiTable];
@@ -168,6 +168,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
                     newTable(evtData.roiIndices,:) = [];  
             end
             
+            % Update the values of the roi ids / roi labels
             if obj.roiGroup.roiCount ~= 0
             
                 tags = {obj.roiGroup.roiArray.tag};

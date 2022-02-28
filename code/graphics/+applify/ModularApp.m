@@ -460,7 +460,8 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
         function onThemeChanged(obj)
             
             S = obj.Theme;
-
+            if ~obj.isConstructed; return; end
+            
             %obj.setFigureWindowBackgroundColor(S.FigureBgColor)
 
             if strcmp(obj.mode, 'standalone')

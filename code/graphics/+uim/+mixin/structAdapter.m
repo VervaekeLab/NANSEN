@@ -17,7 +17,7 @@ classdef structAdapter < uim.handle & matlab.mixin.SetGet
 %   also convert an object to a struct, or vice versa. This class ignores
 %   all transient properties.
 %
-%   Dependencies: parsenvpairs
+%   Dependencies: utility.parsenvpairs
 
 %   Todo:
 %       1) implement fromStruct method...
@@ -87,11 +87,6 @@ classdef structAdapter < uim.handle & matlab.mixin.SetGet
                 end
             end
             
-% %             for i = 1:numel(S)
-% %                 if isfield(S(i), 'Children') && ~isempty(S(i).Children) && isa(S(i).Children, 'clib.structAdapter')
-% %                     S(i).Children = S(i).Children.toStruct();
-% %                 end
-% %             end
             
         end
         

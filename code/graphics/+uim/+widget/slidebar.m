@@ -534,7 +534,7 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         
         function set.BarColor(obj, newColor)
             if ~isempty(obj.hBar)
-                obj.hBar.Color = newColor;
+                obj.hBar.FaceColor = newColor;
             end
         end
         

@@ -7,7 +7,8 @@ classdef extractSignals < nansen.session.SessionMethod
         BatchMode = 'serial'
         IsManual = false
         IsQueueable = true
-        OptionsManager = nansen.OptionsManager(mfilename('class')) % todo...
+        OptionsManager nansen.manage.OptionsManager = ...
+            nansen.OptionsManager(mfilename('class')) % todo...
     end
     
     

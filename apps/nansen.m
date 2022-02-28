@@ -3,5 +3,9 @@ function hApp = nansen(varargin)
 %   Detailed explanation goes here
 
     hApp = nansen.App(varargin{:});
+            
+    if nargout == 0
+        clear hApp
+    end
 
 end

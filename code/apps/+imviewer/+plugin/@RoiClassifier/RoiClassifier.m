@@ -56,7 +56,10 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                     roiArray = roiGroup.roiArray;
 
                     % % Get image stack and rois. Cancel if there are no rois
-                    imageData = imviewerApp.ImageStack.getFrameSet('all');
+                    
+                    
+                    frameIdx = 1:min([5000, imviewerApp.ImageStack.NumTimepoints]);
+                    imageData = imviewerApp.ImageStack.getFrameSet(frameIdx);
                     
                     imviewerApp.displayMessage('Please wait. Creating thumbnail images of rois and calculating statistics. This might take a minute')
 

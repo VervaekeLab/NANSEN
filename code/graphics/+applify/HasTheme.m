@@ -41,6 +41,11 @@ classdef HasTheme < uim.handle
     methods
         function set.Theme(obj, newTheme)
             
+            if ischar(newTheme)
+                newTheme = nansen.theme.getThemeColors(newTheme);
+                %Todo: validate
+            end
+            
             obj.Theme_ = newTheme;
             obj.onThemeChanged();
             

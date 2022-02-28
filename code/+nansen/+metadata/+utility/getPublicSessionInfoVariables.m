@@ -1,8 +1,10 @@
 function varNames = getPublicSessionInfoVariables(metaTable)
 %getPublicSessionInfoVariables Get public session info variables
 %
-%   This function returns only those variables in a session metatable that
-%   are public, meaning either user-defined or editable by the user
+%   varNames = getPublicSessionInfoVariables(metaTable) returns only those 
+%   variables in a session metatable that are public, meaning either 
+%   user-defined or editable by the user
+%
 
     % Todo: remove this? use getMetaTableVariableAttributes instead
 
