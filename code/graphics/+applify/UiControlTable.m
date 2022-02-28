@@ -1,6 +1,8 @@
 classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 %UiControlTable Interface for plotting ui components in a table like layout.
     
+%   Todo: many (most) sublasses have an advanced options view. Should make
+%   that behavior part of this superclass.
     
     properties % Table info/data
         ColumnNames cell = {}
@@ -13,6 +15,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         TableMargin = 20;   % Space in pixels around the table within the parent container.
         TablePadding = 5;   % Space in pixels between table outline and table components.
         
+        ShowToolbar = true
         ShowColumnHeader = true
         ShowColumnHeaderHelp = true
         ColumnHeaderHelpFcn = []
@@ -20,7 +23,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         ColumnWidths
         RowSpacing = 15;
         ColumnSpacing = 15;
-        
     end
     
     properties % Table style / appearance
@@ -63,14 +65,15 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         ColumnLabelHelpButton  cell  % matlab.ui.control.Image (ditto)
         ColumnHeaderBorder
         RowControls
-                
+        
+        TableComponentCellArray
     end
     
     properties (Access = protected, Hidden) % Internal listeners
         ParentDestroyedListener
+        ParentResizedListener
         IsConstructed = false
     end
-    
     
     
     methods (Abstract, Access = protected)
@@ -141,7 +144,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             
             if ~obj.NumRows == 0
                 obj.RowLocations = obj.calculateRowPositions();
-            end   
+            end
             
             if obj.ShowColumnHeader && ~isempty(obj.ColumnNames)
                 obj.createHeader()
@@ -149,7 +152,16 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             
             obj.createTable()
             
+            if obj.ShowToolbar
+                hPanel = obj.Parent.Parent;
+                obj.createToolbarComponents(hPanel)
+            end
+            
             obj.IsConstructed = true;
+            
+            % These are not activated...
+            %addlistener(ancestor(obj.Parent, 'figure'), 'SizeChanged', @obj.onParentResized)
+            %addlistener(obj.Parent, 'SizeChanged', @obj.onParentResized)
     
         end
         
@@ -160,6 +172,15 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
     end
     
     methods % Set/get methods
+        
+        
+        function set.ShowToolbar(obj, newValue)
+            
+            assert(islogical(newValue), 'Value must be logical')
+            obj.ShowToolbar = newValue;
+            obj.onShowToolbarPropertySet()
+            
+        end
         
         function set.Data(obj, newData)
             
@@ -407,6 +428,10 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         %updateRowPositions Update positions of existing rows
         %
         %   Used when table is resized or if rows are added or removed.
+            
+            if isempty(obj.RowControls)
+                return
+            end
         
             % Update positions of existing rows
             rowFields = fieldnames(obj.RowControls);
@@ -464,6 +489,15 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                 
             end
         
+        end
+        
+        function resetTable(obj)
+        %resetTable Remove all rows.
+        
+            for i = obj.NumRows:-1:1
+                obj.removeRow(i)
+            end
+            
         end
         
         function createTableRow(obj, rowData, rowNumber)
@@ -553,7 +587,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         %getToolbarPosition Get position of toolbar above main panel.
         
             HEIGHT = 30;
-            MARGINS = [3,3];
+            MARGINS = [3,4];
             
             referencePosition = obj.Parent.Position;
             
@@ -569,6 +603,18 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             
         end
         
+        function createToolbarComponents(obj, ~)
+            % Subclass should override if it implements a toolbar
+        end
+        
+        function showToolbar(obj)
+            % Subclass should override if it implements a toolbar
+        end
+        
+        function hideToolbar(obj)
+            % Subclass should override if it implements a toolbar
+        end
+            
 %         function pathStr = getTableRowBackground(obj, varargin)
 %         %getTableRowBorder Get path to image containing a table row border    
 %             
@@ -651,6 +697,43 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             
         end
         
+        function onParentResized(obj, src, evt)
+            % Todo: Recall how to do this with uifigures...
+            obj.autoAssignPosition()
+            obj.configureLayout()
+
+            
+            if ~obj.NumColumns == 0
+                obj.ColumnLocations = obj.calculateColumnPositions();
+            end
+            
+            if ~obj.NumRows == 0
+                obj.RowLocations = obj.calculateRowPositions();
+            end
+            
+            % Update positions:
+            for i = 1:obj.NumRows
+                for j = 1:obj.NumColumns
+                    [x, y, w, h] = obj.getCellPosition(i, j);
+                    obj.TableComponentCellArray{i,j}.Position = [x,y,w,h];
+                    obj.centerComponent(obj.TableComponentCellArray{i,j}, y)
+                end
+            end
+            
+            
+        end
+        
+        function onShowToolbarPropertySet(obj)
+            
+            if ~obj.IsConstructed; return; end
+            
+            if obj.ShowToolbar
+                obj.showToolbar()
+            else
+                obj.hideToolbar()
+            end
+        
+        end
     end
     
     methods % Table utility functions
@@ -695,9 +778,12 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             
             % Important: Make space for new row in the RowComponents
             % property before calling the method to create the new row.
-            tempStruct(2) = obj.RowControls(1);
-            obj.RowControls(end+1) = tempStruct(1); 
-            obj.RowControls = obj.RowControls(newInd);
+            
+            if ~isempty(obj.RowControls)
+                tempStruct(2) = obj.RowControls(1);
+                obj.RowControls(end+1) = tempStruct(1); 
+                obj.RowControls = obj.RowControls(newInd);
+            end
             
             % Create the new row in the specified row index position
             rowData = obj.getRowData(rowNumber);
