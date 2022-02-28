@@ -45,9 +45,7 @@ classdef uicontrolSchemer < handle
         
         cornerRadius = 5
         checkboxSize = [14, 14] % Pixels (14,14)
-        
-        
-        
+
     end
     
     
@@ -86,8 +84,14 @@ classdef uicontrolSchemer < handle
             
             findjavacomps = @applify.uicontrolSchemer.findJavaComponents;
             javaHandles = findjavacomps(hUIControls, obj.hPanel);
-               
-
+            
+            %javahandles = findjobj(hUIControls(end));
+            if any(cellfun(@isempty, javaHandles))
+                for i = find( cellfun(@isempty, javaHandles) )
+                    javaHandles{i} = findjobj(hUIControls(i)) ; 
+                end
+            end
+            
             if isempty(javaHandles) || numel(javaHandles) ~= numel(hUIControls)
                 return %Abort
             end
@@ -204,6 +208,9 @@ classdef uicontrolSchemer < handle
             bgColor = hControl(1).Parent.BackgroundColor;
             javacolor = @javax.swing.plaf.ColorUIResource;
             
+            if isequal(bgColor, [0.94,0.94,0.94])
+                bgColor = [1,1,1];
+            end
             
             % Remove Default Border
             switch hControl.Style
@@ -211,7 +218,7 @@ classdef uicontrolSchemer < handle
                 case 'text'
 %                     hControl.BackgroundColor = bgColor;
                     set(jControl, 'Opaque', 0)
-                    
+
                 case {'edit'}
 
                     % Set background color.
@@ -222,6 +229,11 @@ classdef uicontrolSchemer < handle
                     jColor = javacolor(bgColor(1), bgColor(2), bgColor(3));
                     newBorder = javax.swing.BorderFactory.createLineBorder(jColor, 1);
                     jControl.setBorder(newBorder)
+                    set(jControl, 'border', []);
+
+                    if hControl.Max-hControl.Min > 1
+                        obj.removeVerticalScrollbar(jControl)
+                    end
                     
                 case {'pushbutton', 'togglebutton'}
                     %hControl.BackgroundColor = [40   40   40]/255;
@@ -242,6 +254,8 @@ classdef uicontrolSchemer < handle
                     % Need to do this before removing icon. Maybe updating
                     % hControl properties resets the icon???
                     hControl.Position(3) = hControl.Position(4);
+                    hControl.BackgroundColor = bgColor;
+
                     drawnow;
                     
                     % Create Icon which is the same color as background
@@ -269,11 +283,21 @@ classdef uicontrolSchemer < handle
                     set(jControl, 'Opaque', 0)
                     set(jControl, 'Border', []);
 
+                case 'listbox'
+                    set(jControl, 'Border', []);
+                    obj.removeVerticalScrollbar(jControl)
+                    
                 otherwise
                     %fprintf('Not implemented yet\n')
                 
             end
             
+        end
+        
+        function removeVerticalScrollbar(~, jControl)
+            vScrollbar = get(jControl, 'VerticalScrollBar');
+            set(vScrollbar, 'PreferredSize', java.awt.Dimension(0,100))
+            vScrollbar.updateUI()
         end
         
         function removeJButtonStyling(obj, jControl)
@@ -316,10 +340,11 @@ classdef uicontrolSchemer < handle
                     hS.textBox.FontName = hControl.FontName;
                     hS.textBox.FontUnits = 'pixels';
                     hS.textBox.FontSize = hControl.FontSize;
-                    hS.textBox.String = hControl.String{hControl.Value};
-
+                    hS.textBox.String = 'hello world'; 
+                    % Need to add some real text, in case the value is an 
+                    % empty char, because the extent property is used below
                     
-                    bgColor = hS.textBox.Parent.BackgroundColor;
+                    bgColor = hControl.BackgroundColor;
                     javacolor = @javax.swing.plaf.ColorUIResource;
                     hS.textBox.BackgroundColor = bgColor;
 
@@ -335,6 +360,10 @@ classdef uicontrolSchemer < handle
                     textboxPadding = [3, 25];
                     hS.textBox.Position(1) = hS.textBox.Position(1)+textboxPadding(1);
                     hS.textBox.Position(3) = hS.textBox.Position(3)-textboxPadding(2);
+                    
+                    % Set the actual value of the textbox string
+                    hS.textBox.String = hControl.String{hControl.Value};
+
                     
                     
                     % Create a new button to replace the original hControl
@@ -455,12 +484,18 @@ classdef uicontrolSchemer < handle
             
             % Plot & configure patch which will be visible border 
             hS.hBorder = patch(obj.hAxes, edgeCoords(:,1), edgeCoords(:,2), 'w');
-            hS.hBorder.FaceColor = obj.borderColor;
+            hS.hBorder.FaceColor = hControl.BackgroundColor;
             hS.hBorder.EdgeColor = obj.borderColor * 0.5;
             hS.hBorder.LineWidth = 1;
-            hS.hBorder.FaceAlpha = 0;
+            hS.hBorder.FaceAlpha = 1;
             hS.hBorder.HitTest = 'off';
             hS.hBorder.PickableParts = 'none';
+            
+% %             %Temp adhoc fix for default figures....
+% %             if isequal( hControl.BackgroundColor, [0.94,0.94,0.94] )
+% %                 set(hS.hBorder, 'FaceColor', 'w', 'FaceAlpha', 1)
+% %             end
+            
             
             
             % Create a slightly bigger box
@@ -576,6 +611,13 @@ classdef uicontrolSchemer < handle
                 set(jControl, 'StateChangedCallback', @(s, e, hc, h) obj.onValueChangedCheckbox(hControl, hS))
             end
             
+            if contains(hControl.Style, 'listbox') || (contains(hControl.Style, 'edit') && hControl.Max-hControl.Min > 1)
+                % These components are placed in a scrollpane, so need
+                % to get the actual component within the scrollpane 
+                jTmp = jControl.getComponent(0).getComponent(0);
+                set(jTmp, 'FocusGainedCallback', @(s, e, hc, h) obj.gainFocus(hControl, hS) )
+                set(jTmp, 'FocusLostCallback', @(s, e, hc, h) obj.loseFocus(hControl, hS) )
+            end
             
             set(jControl, 'MouseClickedCallback', @(s, e, hc, h) obj.clicked(hControl, hS) )
             set(jControl, 'FocusGainedCallback', @(s, e, hc, h) obj.gainFocus(hControl, hS) )
@@ -589,7 +631,7 @@ classdef uicontrolSchemer < handle
             if ~isvalid(hControl); return; end
             
             switch hControl.Style
-                case {'checkbox', 'edit', 'popupmenu'}
+                case {'checkbox', 'edit', 'popupmenu', 'listbox'}
                     hS.hAmbience.Visible = 'on';
                     hS.hBorder.EdgeColor = obj.highlightColor;
                     
