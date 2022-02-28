@@ -29,6 +29,13 @@ classdef Date < nansen.metadata.abstract.TableVariable
                 str = 'N/A';
             end
         end
+        
+    end
+    
+    methods (Static)
+        function value = update(sessionObject)
+            value = sessionObject.assignDateInfo();
+        end
     end
     
 end
