@@ -390,7 +390,7 @@ classdef MetaTable < handle
             
         end
         
-        function T = getFormattedTableData(obj, columnIndices)
+        function T = getFormattedTableData(obj, columnIndices, rowIndices)
         %formatTableData Format cells of columns with special data types.
         %
         % Some columns might have special data types, and this function
@@ -400,25 +400,32 @@ classdef MetaTable < handle
             if nargin < 2 % Get all columns
                 columnIndices = 1:size(obj.entries, 2);
             end
+            if nargin < 3 % Get all rows
+                rowIndices = 1:size(obj.entries, 1);
+            end
         
             % Todo: implement better way for detecting variables that have
             % their own display functions...
             
             % Check if any of the columns contain structs
-            row = table2cell( obj.entries(1, columnIndices) );
-            isStruct = cellfun(@(c) isstruct(c), row);
+            firstRowData = table2cell( obj.entries(1, columnIndices) );
+            isStruct = cellfun(@(c) isstruct(c), firstRowData);
             
-            T = obj.entries(:, columnIndices);
+            T = obj.entries(rowIndices, columnIndices);
+            
+            % Todo: This should not depend on if type is struct
             if ~any(isStruct);    return;    end
 
-            % Todo: This should not depend on if type is struct
-            % Todo: Make method to get typdef private and public typedef
-            % functions.
+            % Todo: Make method to get private and public typedef functions.
             columnNumbers = find(isStruct);
             columnNames = T.Properties.VariableNames(columnNumbers);
             
-            columnNames = ['Time', columnNames];
-            
+            if any(strcmp(T.Properties.VariableNames, 'Time'))
+                columnNames = ['Time', columnNames];
+            end
+               
+            % Note: Right now, this brute forces a formatting function
+            % handle from the internal package for tablevars.
             tmpfun = @(name) sprintf('nansen.metadata.tablevar.%s', name);
             typeDef = cellfun(@(name) str2func(tmpfun(name)), columnNames, 'uni', 0);
             
@@ -426,20 +433,27 @@ classdef MetaTable < handle
             % Can't change the datatype of the table columns otherwise...?
             tempStruct = table2struct(T);
             
-            %Todo: Do this column by column instead..
+            % Format data column by column
             numRows = numel(tempStruct);
-            for iRow = 1:numRows % Go through all rows
+            numCols = numel(columnNames);
+            
+            for jColumn = 1:numCols % Go through columns
                 
-                for jColumn = 1:numel(columnNames) % Go through columns
-                    thisColumnName = columnNames{jColumn};
-                    thisValue = tempStruct(iRow).(thisColumnName);
+                thisColumnName = columnNames{jColumn};
+                thisValue = { tempStruct.(thisColumnName) };
                     
+                try % Since we dont know if the function exists, use try/catch
                     tmpObj = typeDef{jColumn}( thisValue );
                     str = tmpObj.getCellDisplayString();
-                    
-                    % Todo: have a backup if there is no typeDef for column
-                    tempStruct(iRow).(thisColumnName) = str;
+                catch
+                    % Todo: have a better backup if there is no typeDef for column
+                    % i.e a general struct viewer...
+                    str = repmat({''}, numRows, 1);
                 end
+                
+                % Add formatted character vectors for all meta items for
+                % current column:
+                [tempStruct(:).(thisColumnName)] = deal( str{:} );
                 
             end
             
@@ -537,7 +551,15 @@ classdef MetaTable < handle
             
             % Check that entry/entries are not already present in the
             % Metatable.
-            iA = contains(newEntryIds, obj.MetaTableMembers);
+            if iscell(newEntryIds) && ischar(newEntryIds{1})
+                iA = contains(newEntryIds, obj.MetaTableMembers);
+            elseif isnumeric(newEntryIds)
+                if isempty(obj.MetaTableMembers)
+                    obj.MetaTableMembers = [];
+                end
+                iA = ismember(newEntryIds, obj.MetaTableMembers);
+            end
+            
             newEntryIds(iA) = [];
             
             if isempty(newEntryIds); return; end
@@ -577,6 +599,17 @@ classdef MetaTable < handle
         function editEntries(obj, rowInd, varName, newValue)
         %editEntries Edit entries given some parameters.
             obj.entries{rowInd, varName} = newValue;
+        end
+        
+        function replaceDataColumn(obj, columnName, columnValues)
+        %replaceDataColumn Replace all values of a data column.
+        
+            % Convert to struct in order to assign values that does not
+            % match type or size of current values
+            tempS = table2struct(obj.entries);
+            [tempS(:).(columnName)] = deal( columnValues{:} );
+            obj.entries = struct2table(tempS, 'AsArray', true);
+            
         end
         
         % Remove entry/entries from MetaTable
@@ -892,6 +925,9 @@ classdef MetaTable < handle
                 
             % If entries are provided, add them to MetaTable:
             elseif isa(varargin{1}, 'nansen.metadata.abstract.BaseSchema')
+                metaTable.addEntries(varargin{1})
+                
+            elseif isa(varargin{1}, 'table')
                 metaTable.addEntries(varargin{1})
             
             % If keyword is provided, use this:
