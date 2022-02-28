@@ -14,11 +14,12 @@ function [S, P] = getDefaultItem()
 % SubfolderStructure.IgnoreList : List of strings to ignore...
 
     i = 1;
-    S(i) = nansen.setup.model.DataLocations.getEmptyItem();
+    S(i) = nansen.config.dloc.DataLocationModel.getBlankItem();
     S(i).Name = 'Rawdata';
-    S(i).RootPath = {'', ''};
-    S(i).ExamplePath = '';
-    S(i).DataSubfolders = {};
+    S(i).Type = nansen.config.dloc.DataLocationType('recorded');
+    %S(i).RootPath = {'', ''};
+    %S(i).ExamplePath = '';
+    %S(i).DataSubfolders = {};
     
     %S(i).SubfolderStructure = struct('Name', {}, 'Type', {}, 'Expression', {}, 'IgnoreList', {});
     S(i).SubfolderStructure(1).Name = '';
@@ -27,11 +28,12 @@ function [S, P] = getDefaultItem()
     S(i).SubfolderStructure(1).IgnoreList = {};
     
     i = i + 1;
-    S(i) = nansen.setup.model.DataLocations.getEmptyItem();
+    S(i) = nansen.config.dloc.DataLocationModel.getBlankItem();
     S(i).Name = 'Processed';
-    S(i).RootPath = {'', ''};
-    S(i).ExamplePath = '';
-    S(i).DataSubfolders = {};
+    S(i).Type = nansen.config.dloc.DataLocationType('processed');
+    %S(i).RootPath = {'', ''};
+    %S(i).ExamplePath = '';
+    %S(i).DataSubfolders = {};
 
     S(i).SubfolderStructure(1).Type = 'Animal';
     S(i).SubfolderStructure(2).Type = 'Session';
