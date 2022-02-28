@@ -20,7 +20,7 @@ if ~ischar(varname); varname = inputname(1); end
 % varname = strrep(varname, '.', '-');
 
 % Insert spaces
-if isunderscore(varname)
+if issnakecase(varname)
 
     label = strrep(varname, '_', ' ');
     
@@ -36,7 +36,7 @@ elseif iscamelcase(varname)
     capLetterStrInd = regexp(varname, '[A-Z, 1-9]');
 
     for i = fliplr(capLetterStrInd)
-        if i ~= 1
+        if i ~= 1 %Skip space before first letter if PascalCase
             varname = insertBefore(varname, i , ' ');
         end
     end
@@ -72,8 +72,8 @@ function isCamelCase = iscamelcase(varname)
 end
 
 
-function isUnderscore = isunderscore(varname)
-    isUnderscore = contains(varname, '_');
+function isSnakeCase = issnakecase(varname)
+    isSnakeCase = contains(varname, '_');
 end
 
 
