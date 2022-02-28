@@ -1,5 +1,12 @@
 classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDataLocationModel
 % Class interface for editing metadata specifications in a uifigure
+%
+%
+
+% Note: The data in this ui will only depend on the first datalocation. It
+% might be an idea to let the user select which data location to use for
+% detecting session information, but for simplicity the first data location
+% is used.
 
 % Todo: Simplify component creation. 
 %    [ ] Get cell locations as array with one entry for each column of a row.
@@ -7,20 +14,27 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %    [ ] Set fontsize/bg color and other properties in batch.
 %
 %    [ ] Update DL Model whenever new values are entered.
-    
+%
+%    [ ] Fix error that will occur if several subfolders are
+%        given the same subfolder type?
+
 
     properties
         IsDirty = false;
         IsAdvancedView = true
-        %DataLocationIndex = 1; Todo: select which dloc to use...
+    end
+    
+    properties (SetAccess = private) % Todo: make this public when support for changing it is added.
+        DataLocationIndex = 1; %Todo: Select which dloc to use...
     end
     
     properties (Access = protected)
-        StringFormat = cell(1, 4);
+        StringFormat = cell(1, 4); % Store stringformat for each session metadata item. Relevant for date and time.
+        % Todo: This should be incorporated better, saving directly to the model.
     end
     
-    properties % Toolbar
-        AdvancedOptionsButton 
+    properties (Access = private) % Toolbar
+        AdvancedOptionsButton
     end
     
     
@@ -40,7 +54,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         
     end
     
-
     methods (Access = protected) % Methods for creation
         
         function assignDefaultTablePropertyValues(obj)
@@ -142,6 +155,14 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hRow.StrfindResultEditbox.FontName = obj.FontName;
             obj.centerComponent(hRow.StrfindResultEditbox, y)
         end
+       
+        function createToolbarComponents(obj, hPanel)
+        %createToolbarComponents Create "toolbar" components above table.    
+            if nargin < 2; hPanel = obj.Parent.Parent; end
+           
+            obj.createAdvancedOptionsButton(hPanel)
+
+        end
         
     end
     
@@ -213,8 +234,11 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
 
         function onStringInputValueChanged(obj, src, event)
-            
-            M = obj.DataLocationModel.Data(1).MetaDataDef;
+        %onStringInputValueChanged Updates result editfield when the string
+        % input/selection indices are modified.
+        
+            thisDataLocation = obj.DataLocationModel.Data(obj.DataLocationIndex);
+            M = thisDataLocation.MetaDataDef;
             
             rowNumber = obj.getComponentRowNumber(src);
             mode = obj.getStrSearchMode(rowNumber);
@@ -242,7 +266,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             % Convert date/time value if date/time format is available
             if obj.isDateTimeVariable(M(rowNumber).VariableName)
                 
-                examplePath = obj.DataLocationModel.Data(1).ExamplePath;
+                
+                examplePath = thisDataLocation.ExamplePath;
                 
                 switch M(rowNumber).VariableName
                     case 'Experiment Time'
@@ -263,13 +288,17 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
     end
     
-    methods (Access = private)
-        
-
-    end
-    
-    
     methods % Methods for updating
+        
+        function setActive(obj)
+        %setActive Execute actions needed for ui activation
+        % Use if UI is part of an app with tabs, and the tab is selected
+        end
+        
+        function setInactive(obj)
+        %setInactive Execute actions needed for ui inactivation
+        % Use if UI is part of an app with tabs, and the tab is unselected
+        end
         
         function updateDataLocationModel(obj)
         %updateDataLocationModel Update DLModel with changes from UI    
@@ -281,7 +310,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %getMetaDataDefinitionStruct Get struct of values from UI controls
         
             S = obj.DataLocationModel.getDefaultMetadataStructure();
-                        
+               
+            % Retrieve values from controls and add to struct
             for i = 1:obj.NumRows
                 S(i).StringDetectMode = obj.getStrSearchMode(i);
                 S(i).StringDetectInput = obj.getStrSearchPattern(i);
@@ -295,9 +325,12 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %onModelSet Callback for when DatalocationModel is set/reset
         %
         %   % Update control values based on the DataLocationModel
-        
+            
+            dlIdx = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            
             % Update Items and Value of subfolder dropdown
-            obj.setFolderSelectionItems(obj.DataLocationModel)
+            obj.setFolderSelectionItems()
             
             % Update value in string detection input
             
@@ -307,25 +340,28 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 obj.onStringInputValueChanged(hComp)
                 
                 % Set stringformat from datalocation model.
-                obj.StringFormat{i} = obj.DataLocationModel.Data(1).MetaDataDef(i).StringFormat;
+                obj.StringFormat{i} = thisDataLocation.MetaDataDef(i).StringFormat;
             end
             
         end
 
-        function setFolderSelectionItems(obj, dataLocModel)
-           
+        function setFolderSelectionItems(obj)
+        %setFolderSelectionItems Add model's folder names to each dropdown
+        
             % TODO: Fix error that will occur if several subfolders are
             % given the same subfolder type?
             
+            dlIdx = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
             
             % Get all the folder selector controls
             h = [obj.RowControls.FolderNameSelector];
             
             % Get the folder choice examples from the data location model
-            subFolderStructure = dataLocModel.Data(1).SubfolderStructure;
+            subFolderStructure = thisDataLocation.SubfolderStructure;
             folderChoices = ['Select foldername...', {subFolderStructure.Name}];
             
-            M = dataLocModel.Data(1).MetaDataDef;
+            M = thisDataLocation.MetaDataDef;
             
             %oldValues = arrayfun(@(i) find(strcmp(h(i).Items, h(i).Value)), 1:numel(h));
             
@@ -418,7 +454,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             hDropdown = obj.RowControls(rowNumber).FolderNameSelector;
             items = hDropdown.Items(2:end); % Exclude first choice.
-            num = find(contains(items, hDropdown.Value));
+            num = find(strcmp(items, hDropdown.Value));
             
             % Note: important to exclude first entry. If no folder was
             % explicitly selected, the value of num should be empty.
@@ -430,17 +466,14 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
     methods % Show/hide advanced options.
         
         function createAdvancedOptionsButton(obj, hPanel)
+        %createAdvancedOptionsButton Create button to toggle advanced options                
             
-            % Assumes obj.Parent has same parent as hPanel given as input
-            
-            tablePanelPosition = obj.Parent.Position;
             buttonSize = [160, 22];
             
-            % Determine where to place button:
-            SPACING = [3,3];
-            
-            location = tablePanelPosition(1:2) + tablePanelPosition(3:4) - [1,0] .* buttonSize + [-1, 1] .* SPACING;
-            
+            toolbarPosition = obj.getToolbarPosition();
+            location(1) = sum(toolbarPosition([1,3])) - buttonSize(1);
+            location(2) = toolbarPosition(2);
+
             obj.AdvancedOptionsButton = uibutton(hPanel, 'push');
             obj.AdvancedOptionsButton.ButtonPushedFcn = @obj.onShowAdvancedOptionsButtonPushed;
             obj.AdvancedOptionsButton.Position = [location buttonSize];
@@ -449,7 +482,11 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
         
         function onShowAdvancedOptionsButtonPushed(obj, src, ~)
-           
+        %onShowAdvancedOptionsButtonPushed Button pushed callback
+        %
+        %   Toggle the view for advanced options and update the button
+        %   label according to button state
+        
             switch src.Text
                 case 'Show Advanced Options...'
                     obj.showAdvancedOptions()
@@ -458,6 +495,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                     obj.hideAdvancedOptions()
                     obj.AdvancedOptionsButton.Text = 'Show Advanced Options...';
             end 
+            
         end
         
         function showAdvancedOptions(obj)
@@ -551,9 +589,17 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             switch evt.DataField
                 case 'SubfolderStructure'
+                    
                     % Todo: Should this be more specific? i.e does not need
                     % to invoke this method know when filters change...
-                    obj.onModelSet()
+                    
+                    [~, idx] = obj.DataLocationModel.containsItem(evt.DataLocationName);
+                    
+                    % Currently, only the first data location requires an
+                    % update of this ui.
+                    if idx == obj.DataLocationIndex
+                        obj.onModelSet()
+                    end
                     
                 otherwise
                     % No change is necessary

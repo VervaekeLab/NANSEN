@@ -1,4 +1,4 @@
-classdef ConfigurationApp < handle
+classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
 %ConfigurationApp App for user configurations
 %
 %   Super class for configuration apps in the nansen package
@@ -14,6 +14,15 @@ classdef ConfigurationApp < handle
     
     properties
         UIModule cell
+        ControllerApp
+    end
+    
+    properties (Dependent)
+        Visible matlab.lang.OnOffSwitchState
+    end
+    
+    properties (Dependent, SetAccess = private)
+        Valid
     end
     
     properties (Access = protected) % Layout
@@ -21,9 +30,12 @@ classdef ConfigurationApp < handle
         IsStandalone = false
     end
     
+    properties % Testing: Set to public in order to give as input from external...
+        ControlPanels matlab.ui.container.Panel
+    end
+    
     properties (Access = protected) % UI Components
         Figure matlab.ui.Figure
-        ControlPanels matlab.ui.container.Panel
         LoadingPanel matlab.ui.container.Panel
         LoadingImage
     end
@@ -33,8 +45,45 @@ classdef ConfigurationApp < handle
         % Todo
     end
     
+    methods
+        
+        function transferOwnership(app, controllerApp)
+        %transferOwnership Transfer ownership of app to another app   
+            
+        % App (figure) deletion is now controlled by another app. If figure
+        % window is closed, the figure is not deleted, just made invisible
+        
+            app.Figure.CloseRequestFcn = @(s,e) app.hideApp;
+            addlistener(controllerApp, 'ObjectBeingDestroyed', @(s,e) app.delete);
+            
+        end
+        
+    end
+    
+    methods % Set/Get methods
+        function set.Visible(app, visibleState)
+            app.Figure.Visible = visibleState;
+        end
+        
+        function visibleState = get.Visible(app)
+            visibleState = app.Figure.Visible;
+        end
+        
+        function isValid = get.Valid(app)
+            isValid = isvalid(app) && isvalid(app.Figure);
+        end
+        
+        function set.ControllerApp(app, newValue)
+            app.ControllerApp = newValue;
+            app.transferOwnership(newValue)
+        end
+    end
     
     methods (Access = protected)
+        
+        function hideApp(app)
+            app.Figure.Visible = 'off';
+        end
         
         function onFigureClosed(obj, src, evt)
             delete(obj.Figure)
@@ -63,21 +112,40 @@ classdef ConfigurationApp < handle
             uiImage.Position(3:4) = [140 140];
             uiImage.ImageSource = 'loading.gif';
             
-            % Todo (Does not work as I expected...):
-            addlistener(obj.LoadingPanel, 'SizeChanged', @obj.onLoadingPanelPositionChanged);
+            uiText = uilabel(obj.LoadingPanel);
+            uiText.Text = 'Composing, just a moment please...';
+            uiText.Position(3:4) = [200, 22];
+            uiText.HorizontalAlignment = 'center';
             
-            parentPosition = getpixelposition(obj.LoadingPanel);
-            uim.utility.layout.centerObjectInRectangle(uiImage, parentPosition)
+            % Todo (Does not work as I expected, i.e not at all...):
+            %addlistener(obj.LoadingPanel, 'SizeChanged', @obj.onLoadingPanelPositionChanged);
+            %addlistener(obj.LoadingPanel, 'LocationChanged', @obj.onLoadingPanelPositionChanged);
             
             obj.LoadingImage = uiImage;
+            obj.LoadingImage.UserData.Caption = uiText;
+            obj.LoadingPanel.Visible = 'off';
+            
+            % Use callback to make sure components are positioned correctly in panel:
+            obj.onLoadingPanelPositionChanged()
+            
         end
         
         function onLoadingPanelPositionChanged(obj)
-            
+            obj.updateLoadPanelComponentPositions()
+        end
+        
+        function updateLoadPanelComponentPositions(obj)
+        %updateLoadPanelComponentPositions Update position of components
             parentPosition = getpixelposition(obj.LoadingPanel);
             uim.utility.layout.centerObjectInRectangle(obj.LoadingImage, parentPosition)
             
+            % Set position of loading caption
+            refPos = obj.LoadingImage.Position;
+            currentPos = obj.LoadingImage.UserData.Caption.Position;
+            obj.LoadingImage.UserData.Caption.Position(1:2) = ...
+                [refPos(1) + (refPos(3)-currentPos(3))/2, refPos(2) ];
         end
+        
     end
 
     methods (Access = protected)

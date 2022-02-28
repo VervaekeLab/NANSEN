@@ -18,7 +18,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         RootPathComponentType = 'uieditfield' % 'uieditfield' | 'uidropdown'
     end
 
-    properties % Toolbar button...
+    properties (Access = private) % Toolbar button...
         UIButton_AddDataLocation
         SelectDataLocationDropDownLabel
         SelectDataLocationDropDown
@@ -37,24 +37,29 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             
             varargin = [varargin, {'Data', dataLocationModel.Data}];
             obj@applify.apptable(varargin{:})
+            
         end
     end
     
     methods (Access = protected) % Implementation of superclass methods
         
         function assignDefaultTablePropertyValues(obj)
-            
+        %assignDefaultTablePropertyValues UIControlTable method
+        %
+        %   Specify layout of table columns and rows.
+        
             %obj.ColumnNames = {'Data location type', 'Data location root folder', 'Set backup'};
             %obj.ColumnWidths = [130, 365, 125];
-            obj.ColumnNames = {'', 'Data location type', 'Data location root directory', 'Permission'};
-            obj.ColumnWidths = [22, 130, 370, 80, 125];
+            obj.ColumnNames = {'', 'Data location name', 'Data type', 'Data location root directory'};
+            obj.ColumnWidths = [22, 130, 100, 350, 80];
             obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
             obj.RowSpacing = 20;
 
         end
         
         function hRow = createTableRowComponents(obj, rowData, rowNum)
-        
+        %createTableRowComponents UIControlTable method
+            
             hRow = struct(); % Initialize struct to hold row components
             
         % % Create button for removing current row.
@@ -73,9 +78,10 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             if rowNum == 1; hRow.RemoveImage.Visible = 'off'; end
             obj.centerComponent(hRow.RemoveImage, y)
             
+            obj.TableComponentCellArray{rowNum, i} = hRow.RemoveImage;
             
-        % % Create first column: Edit field for data location type 
-            i = 2;
+        % % Create first column: Edit field for data location name 
+            i = i+1;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
             
             hRow.DataLocationName = uieditfield(obj.TablePanel, 'text');
@@ -85,6 +91,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             hRow.DataLocationName.Editable = false;
 
             obj.centerComponent(hRow.DataLocationName, y)
+            obj.TableComponentCellArray{rowNum, i} = hRow.DataLocationName;
 
             hRow.DataLocationName.Value = rowData.Name;
             hRow.DataLocationName.ValueChangedFcn = ...
@@ -106,8 +113,28 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             end
             
             
-        % % Create second column: Edit component for data location rootpath
-            i = 3;
+        % % Create second column: Edit field for data location type 
+            i = i+1;
+            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
+            
+            hRow.DataLocationType = uidropdown(obj.TablePanel);
+            hRow.DataLocationType.FontName = 'Segoe UI';
+            hRow.DataLocationType.Position = [xi y wi h];
+            hRow.DataLocationType.BackgroundColor = [1, 1, 1];
+            hRow.DataLocationType.Editable = false;
+            
+            [~, hRow.DataLocationType.Items] = enumeration('nansen.config.dloc.DataLocationType');
+            hRow.DataLocationType.Value = char(rowData.Type);  
+            
+            obj.centerComponent(hRow.DataLocationType, y)
+            obj.TableComponentCellArray{rowNum, i} = hRow.DataLocationType;
+
+            hRow.DataLocationType.ValueChangedFcn = ...
+                @obj.onDataLocationTypeChanged;
+            
+            
+        % % Create third column: Edit component for data location rootpath
+            i = i+1;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
             dx = obj.ButtonSizeLarge(1);
             
@@ -115,22 +142,26 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             hRow.RootPathEditField.FontName = 'Segoe UI';
             hRow.RootPathEditField.BackgroundColor = [1 1 1];
             hRow.RootPathEditField.Position = [xi y wi-dx-10 h];
-            obj.centerComponent(hRow.RootPathEditField, y)
             
+            obj.centerComponent(hRow.RootPathEditField, y)
+            obj.TableComponentCellArray{rowNum, i} = hRow.RootPathEditField;
+           
             hRow.RootPathEditField.ValueChangedFcn = ...
                 @obj.onRootPathEditComponentValueChanged;
             
-            % Todo: Make separate method for updating value? Because
-            % tooltip should be update too...
+            % Set value of the component for datalocation root path:
             obj.setRootPathEditComponentValue(hRow, rowData)
             
             
             % Create buttons accompanying the rootpath edit component.
             [h, hComponents] = obj.createRootPathButtons();
             
-            h.BackgroundColor = [1 1 1];
+            %h.BackgroundColor = [1 1 1];
             h.Position(1:2) = [xi+wi-dx y];
+
             obj.centerComponent(h, y)
+            obj.TableComponentCellArray{rowNum, i} = h;
+
             
             % Add components to the struct of row components.
             uicontrolNames = fieldnames(hComponents);
@@ -138,68 +169,19 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 hRow.(uicontrolNames{i}) = hComponents.(uicontrolNames{i});
             end
 
-            % % Create third column: Edit field for data location type 
-            i = 4;
-            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
-            hRow.DLPermissionSelector = uibuttongroup(obj.TablePanel);
-            hRow.DLPermissionSelector.BorderType = 'none';
-            %hRow.DLPermissionSelector.FontName = 'Segoe UI';
-            hRow.DLPermissionSelector.Position = [xi y wi h];
-            %hRow.DLPermissionSelector.BackgroundColor = [0.94,0.94,0.94];
-            %hRow.DLPermissionSelector.Editable = false;
-            obj.centerComponent(hRow.DLPermissionSelector, y)
-            %hRow.DLPermissionSelector.Items = {'Read', 'Read/Write'};
-
-            % Create ReadButton
-            ReadButton = uitogglebutton(hRow.DLPermissionSelector);
-            ReadButton.Text = 'Read';
-            ReadButton.Position = [1 1 40 22];
-            ReadButton.Value = true;
-
-            % Create WriteButton
-            WriteButton = uitogglebutton(hRow.DLPermissionSelector);
-            WriteButton.Text = 'Write';
-            WriteButton.Position = [40 1 40 22];
-            
-            
-            % Note: This last component might be implemented in the future
-            
-            % % Create fourth column, buttongroup with buttons for primary and
-          % secondary data locations.
-            i = 5;
-            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
-            
-            hRow.DL_ButtonGroup_Backup = uibuttongroup(obj.TablePanel);
-            hRow.DL_ButtonGroup_Backup.BorderType = 'none';
-            hRow.DL_ButtonGroup_Backup.BackgroundColor = [1 1 1];
-            hRow.DL_ButtonGroup_Backup.FontName = 'Avenir Next Condensed';
-            hRow.DL_ButtonGroup_Backup.Position = [xi y, wi h];
-            obj.centerComponent(hRow.DL_ButtonGroup_Backup, y)
-            
-            % TODO: Enable this
-            hRow.DL_ButtonGroup_Backup.Enable = 'off';
-            hRow.DL_ButtonGroup_Backup.Visible = 'off';
-            
-            % Create PrimaryButton
-            browseButton = uitogglebutton(hRow.DL_ButtonGroup_Backup);
-            browseButton.Text = 'Primary';
-            browseButton.Position = [1 1 55 22];
-            browseButton.Value = true;
-
-            % Create SecondaryButton
-            secondaryButton = uitogglebutton(hRow.DL_ButtonGroup_Backup);
-            secondaryButton.Text = 'Secondary';
-            secondaryButton.Position = [55 1 70 22];
-            
-            % Add callback for when button selection is changed
-            hRow.DL_ButtonGroup_Backup.SelectionChangedFcn = ...
-                @obj.onDataLocationOrderChanged;
-            
         end
         
+        function createToolbarComponents(obj, hPanel)
+        %createToolbarComponents Create "toolbar" components above table.    
+            if nargin < 2; hPanel = obj.Parent.Parent; end
+                        
+            obj.createAddNewDataLocationButton(hPanel)
+            
+            obj.createDefaultDataLocationSelector(hPanel)
+        end
     end
     
-    methods (Access = private) % Creation of custom row components
+    methods (Access = private) % Creation of custom components
         
         function h = createRootPathEditComponent(obj)
         %createRootPathEditComponent Create control for editing root path
@@ -316,23 +298,14 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             
         end
         
-    end
-    
-    methods % Public methods
-        
         function createAddNewDataLocationButton(obj, hPanel)
-            
-            % Todo: implement as toolbar...
-            
-            % Assumes obj.Parent has same parent as hPanel given as input
-            
-            tablePanelPosition = obj.Parent.Position;
+        %createAddNewDataLocationButton Button for adding new data locations
+        
             buttonSize = obj.ButtonSizeSmall;
-            
-            % Determine where to place button:
-            SPACING = [3,3];
-            
-            location = tablePanelPosition(1:2) + tablePanelPosition(3:4) - [1,0] .* buttonSize + [-1, 1] .* SPACING;
+
+            toolbarPosition = obj.getToolbarPosition();
+            location(1) = sum(toolbarPosition([1,3])) - buttonSize(1);
+            location(2) = toolbarPosition(2);
 
             obj.UIButton_AddDataLocation = uibutton(hPanel, 'push');
             obj.UIButton_AddDataLocation.ButtonPushedFcn = @(s, e) obj.onAddDataLocationButtonPushed;
@@ -373,40 +346,117 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.updateDefaultDataLocationSelector()
         end
         
+    end
+    
+    methods % Public methods
+        
+        function [tf, msg] = isTableCompleted(obj)
+            
+            tf = false; % null hypothesis
+            msg = '';
+            
+            if obj.isPathMissing()
+                [~, rowNum] = obj.isPathMissing();
+                dlNames = obj.DataLocationModel.DataLocationNames(rowNum);
+                if numel(rowNum) == 1
+                    msg = sprintf('Please enter a root path for the following datalocation: %s', strjoin(dlNames, ', '));
+                else
+                    msg = sprintf('Please enter a root path for the following datalocations: %s', strjoin(dlNames, ', '));
+                end
+            else
+                tf = true;
+            end
+
+        end
+        
         function isMissing = isTypeMissing(obj)
             isMissing = ~obj.isRowCompleted('DataLocationName');
         end
         
-        function isMissing = isPathMissing(obj)
-            isMissing = ~obj.isRowCompleted('RootPathEditField');
+        function [isMissing, rowNum] = isPathMissing(obj)
+        %isPathMissing Check if rootpath is missing from any of the rows.
+            
+            isMissingRow = ~obj.isRowCompleted('RootPathEditField');
+            isMissing = any(isMissingRow);
+            
+            if nargout == 2
+                rowNum = find(isMissingRow);
+            end
+
         end
         
         function isCompleted = isRowCompleted(obj, rowControlName)
         %isTableCompleted Check if data is entered to all required fields    
-            
-            isCompleted = true;
+                        
+            isCompleted = true(1, obj.NumRows); % null hypothesis
             
             for i = 1:numel(obj.RowControls)
-                
                 if isempty(obj.RowControls(i).(rowControlName).Value)
-                    isCompleted = false;
-                    return
+                    isCompleted(i) = false;
                 end
-               
             end
+            
         end
-        
+
         function markClean(obj)
             obj.IsDirty = false;
         end
         
+        
+        function setActive(obj)
+        %setActive Execute actions needed for ui activation
+        % Use if UI is part of an app with tabs, and the tab is selected        
+        end
+        
+        function setInactive(obj)
+        %setInactive Execute actions needed for ui inactivation
+        % Use if UI is part of an app with tabs, and the tab is unselected
+        
+            for i = 1:obj.DataLocationModel.NumDataLocations
+                
+                try
+                    obj.DataLocationModel.validateRootPath(i)
+                catch ME
+                    message = ME.message;
+                    message = [message, '. ', 'Create folder now?'];
+                    hFig = ancestor(obj.Parent, 'figure');
+                    selection = uiconfirm(hFig, message, 'Create Folder?', 'Options', {'Ok', 'Skip'});
+                    
+                    switch selection
+                        case 'OK'
+                            try
+                                obj.DataLocationModel.createRootPath(i)
+                            catch ME
+                                uialert(obj.Figure, ME.message, ME.identifier)
+                                return
+                            end
+                        otherwise
+                            return
+                    end
+                end
+            end
+            
+        end
+        
     end
-    
+
     methods (Access = private) % Callbacks for uicomponent interactions
         
         function onDefaultDataLocationSelectionChanged(obj, src, evt)
-            obj.DataLocationModel.DefaultDataLocation = src.Value;
-            obj.IsDirty = true;
+            try
+                obj.DataLocationModel.DefaultDataLocation = src.Value;
+                obj.IsDirty = true;
+                
+                if contains('None', src.Items)
+                    src.Items = setdiff(src.Items, 'None', 'stable');
+                end
+                
+            catch ME
+                hFig = ancestor(src, 'figure');
+                uialert(hFig, ME.message, 'Aborted')
+                src.Value = evt.PreviousValue;
+            end
+            
         end
         
         function onEditDataLocationNameIconClicked(obj, src, evt)
@@ -473,34 +523,89 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
 
         end
         
+        function onDataLocationTypeChanged(obj, src, evt)
+            
+            newValue = evt.Value;
+            rowIdx = obj.getComponentRowNumber(src);
+
+            % Update the data location model.
+            dataLocationItem = obj.DataLocationModel.getItem(rowIdx);
+            
+                        
+            % Make sure we are not removing the default data location.
+            if strcmp(dataLocationItem.Name, obj.DataLocationModel.DefaultDataLocation)
+                hFig = ancestor(src, 'figure');
+                message = 'Can not change data type for this data location because it is the default data location.';
+                uialert(hFig, message, 'Aborted')
+                
+                src.Value = evt.PreviousValue;
+                return
+            end
+
+            % Update datalocation model
+            obj.DataLocationModel.modifyDataLocation(dataLocationItem.Name, ...
+                'Type', newValue);
+            
+            obj.IsDirty = true;
+        end
+        
         function onRootPathEditComponentValueChanged(obj, src, evt)
         %onRootPathEditFieldValueChanged Editfield value change
         %
         %   Note: This is a callback for the rootpath editfield component,
         %   so the datalocation rootpath which is edited is the first one.
          
+            rowIdx = obj.getComponentRowNumber(src);
+        
             switch obj.RootPathComponentType
 
                 case 'uieditfield'
                     rootPathIdx = 1;
-                    % 
+                    if isempty(obj.Data(rowIdx).RootPath)
+                        thisKey = nansen.util.getuuid();
+                    else
+                        thisKey = obj.Data(rowIdx).RootPath(rootPathIdx).Key;
+                    end
+                    
                 case 'uidropdown'
                     src.Tooltip = src.Value;
                     if ~evt.Edited; return; end
                     if strcmp(evt.Value, evt.PreviousValue); return; end
-                    src.Items = strrep(src.Items, evt.PreviousValue, evt.Value);
+                    
+                    % Todo: Abort if rootpath that were in list was
+                    % selected...
+                    
+                    % If aborting:
+                    %src.Items = strrep(src.Items, evt.Value, evt.PreviousValue);
+                    
                     rootPathIdx = find(strcmp(src.Items, evt.Value));
+                    
+                    % Note: This is necessary when the dropdown value is manually
+                    % edited.
+                    if isempty(rootPathIdx)
+                        rootPathIdx = find(strcmp(src.Items, evt.PreviousValue));
+                    end
+                    
+                    
+                    if isempty(src.UserData.Keys) % Need to initialize a key
+                        thisKey = nansen.util.getuuid();
+                        src.UserData.Keys = {thisKey};
+                    else
+                        thisKey = src.UserData.Keys{rootPathIdx};
+                    end
             end
+
+            newPath = src.Value;
 
             % Placeholder...
             %[rootPathType, idx] = obj.getCurrentRootPathType(i);
 
-            newPath = src.Value;
-            rowIdx = obj.getComponentRowNumber(src);
-
             % Get modified value for rootpath list (cell array)
             modifiedRootPath = obj.Data(rowIdx).RootPath;
-            modifiedRootPath{rootPathIdx} = newPath;
+            
+            % Update key, value pair in modified root...
+            modifiedRootPath(rootPathIdx).Key = thisKey;
+            modifiedRootPath(rootPathIdx).Value = newPath;
 
             % Update the data location model.
             dataLocationItem = obj.DataLocationModel.getItem(rowIdx);
@@ -510,10 +615,12 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.IsDirty = true;
 
             % Automatically fill out 2nd datalocation rootdir if it is empty.
-            if rowIdx == 1 && isempty( obj.Data(2).RootPath{1} )
+            if rowIdx == 1 && isempty( obj.Data(2).RootPath )
 
                 parentDir = fileparts(newPath);
-                rootPath = fullfile(parentDir, obj.Data(2).Name);
+                
+                rootPath.Key = nansen.util.getuuid();
+                rootPath.Value = fullfile(parentDir, obj.Data(2).Name);
 
                 obj.DataLocationModel.modifyDataLocation(obj.Data(2).Name, ...
                     'RootPath', rootPath)
@@ -586,6 +693,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 hDropdown.Value = newValueStr;
             else
                 hDropdown.Items{end+1} = 'Add path here...';
+                hDropdown.UserData.Keys{end+1} = nansen.util.getuuid();
                 hDropdown.Value = hDropdown.Items{end};
             end
                         
@@ -617,16 +725,27 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 return
             else
                 hDropdown.Items(idx(end)) = [];
+                hDropdown.UserData.Keys(idx(end)) = [];
                 hDropdown.Value = hDropdown.Items{min([idx(end), numel(hDropdown.Items)])};
                 hDropdown.Tooltip = hDropdown.Value;
             end
             
             % Get the modified rootpath...
-            modifiedRootPath = hDropdown.Items;
-            modifiedRootPath = setdiff(modifiedRootPath, 'Add path here...', 'stable');
+            dropdownItems = hDropdown.Items;
+            dropdownKeys = hDropdown.UserData.Keys;
+            
+            idx = find(strcmp(dropdownItems, 'Add path here...'));
+            if ~isempty(idx)
+                dropdownItems(idx) = [];
+                dropdownKeys(idx) = [];
+            end
+           
+            n = numel(dropdownItems);
+            [modifiedRootPath(1:n).Key] = deal( dropdownKeys{:} );
+            [modifiedRootPath(1:n).Value] = deal( dropdownItems{:} );
             
             if isempty(modifiedRootPath)
-                modifiedRootPath = {''};
+                modifiedRootPath = struct('Key', {}, 'Value', {});
             end
             
             % Update the data location model.
@@ -640,7 +759,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
 
         function onAddDataLocationButtonPushed(obj)
             
-            newItem = obj.DataLocationModel.getEmptyItem;
+            newItem = obj.DataLocationModel.getBlankItem;
             obj.DataLocationModel.addDataLocation(newItem)
             
             obj.IsDirty = true;
@@ -655,43 +774,36 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             end
             
             dataLocationName = obj.RowControls(i).DataLocationName.Value;
+            
+            % Make sure we are not removing the default data location.
+            if strcmp(dataLocationName, obj.DataLocationModel.DefaultDataLocation)
+                hFig = ancestor(src, 'figure');
+                message = 'Can not remove the default data location';
+                uialert(hFig, message, 'Aborted')
+                return
+            end
+            
             obj.DataLocationModel.removeDataLocation(dataLocationName)
             
             obj.IsDirty = true;
         end
         
-        function onDataLocationOrderChanged(obj, src, ~)
-        %onDataLocationOrderChanged Callback for togglebutton selection
-        %
-        %   This feature might be implemented. The idea is to have multiple
-        %   types of root directories for a data location, i.e a primary
-        %   and a secondary, where the secondary can be a backup directory
-        %   type.
-        
-            i = obj.getComponentRowNumber(src);
-            
-            switch src.SelectedObject.Text
-                case 'Primary'
-                    j = 1;
-                case 'Secondary'
-                    j = 2;
-            end
-            
-            % Todo...
-            
-            % Update value field of rootpath edit field
-            % hRootPath = obj.RowControls(i).RootPathEditField;
-            % hRootPath.Value = obj.Data(i).RootPath{j};
-            
-        end
-        
     end
-    
         
     methods (Access = private) % Methods to update component values when model has changed.
         
         function updateDefaultDataLocationSelector(obj)
             obj.SelectDataLocationDropDown.Items = {obj.Data.Name};
+            
+            defaultName = obj.DataLocationModel.DefaultDataLocation;
+            
+            if isempty(defaultName)
+                obj.SelectDataLocationDropDown.Items = ['None', ...  
+                    obj.SelectDataLocationDropDown.Items ];
+                obj.SelectDataLocationDropDown.Value = 'None';
+                return;
+            end
+            
             obj.SelectDataLocationDropDown.Value = obj.DataLocationModel.DefaultDataLocation;
         end
         
@@ -740,18 +852,24 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             hEditComponent = hRow.RootPathEditField;
             currentRootPath = hEditComponent.Value;
             
+            rootPathItems = {rowData.RootPath.Value};
+            if isempty(rootPathItems)
+                rootPathItems = {''};
+            end
+            
             switch obj.RootPathComponentType
                 
                 case 'uieditfield'
                     rootPathIdx = 1;
                 case 'uidropdown'
-                    hEditComponent.Items = rowData.RootPath;
+                    hEditComponent.Items = rootPathItems;
+                    hEditComponent.UserData.Keys = {rowData.RootPath.Key};
                     rootPathIdx = find(strcmp(hEditComponent.Items, hEditComponent.Value));
             end
             
-            if ~strcmp(currentRootPath, rowData.RootPath{rootPathIdx(1)})
-                hEditComponent.Value = rowData.RootPath{rootPathIdx(1)};
-                hEditComponent.Tooltip = rowData.RootPath{rootPathIdx(1)};
+            if ~strcmp(currentRootPath, rootPathItems{rootPathIdx(1)})
+                hEditComponent.Value = rootPathItems{rootPathIdx(1)};
+                hEditComponent.Tooltip = rootPathItems{rootPathIdx(1)};
             end
 
         end
@@ -825,7 +943,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         %   superclass and is triggered by the DataLocationModified event 
         %   on the DataLocationModel 
         
-            [~, rowIdx] = obj.DataLocationModel.ismember(evt.DataLocationName);
+            [~, rowIdx] = obj.DataLocationModel.containsItem(evt.DataLocationName);
         
             switch evt.DataField
                 
@@ -833,6 +951,9 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                     obj.updateDataLocationName(rowIdx, evt.NewValue)
                     obj.updateDefaultDataLocationSelector()
 
+                case 'Type'
+                    
+                    
                 case 'RootPath'
                     obj.updateDataLocationRoot(rowIdx, evt.NewValue)
                     
@@ -844,4 +965,26 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         end
         
     end
+    
+    methods (Access = protected) % Override superclass methods (UIControlTable)
+        
+        function showToolbar(obj)
+            
+            if isempty(obj.UIButton_AddDataLocation)
+                obj.createToolbarComponents()
+            end
+            
+            obj.UIButton_AddDataLocation.Visible = 'on';
+            obj.SelectDataLocationDropDownLabel.Visible = 'on';
+            obj.SelectDataLocationDropDown.Visible = 'on';
+        end
+        
+        function hideToolbar(obj)
+            obj.UIButton_AddDataLocation.Visible = 'off';
+            obj.SelectDataLocationDropDownLabel.Visible = 'off';
+            obj.SelectDataLocationDropDown.Visible = 'off';
+        end
+        
+    end
+    
 end
