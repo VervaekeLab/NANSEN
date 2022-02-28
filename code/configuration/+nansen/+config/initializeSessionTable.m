@@ -1,12 +1,14 @@
-function initializeSessionTable(dataLocationModel, sessionSchema)
+function initializeSessionTable(dataLocationModel, sessionSchema, uiWaitbar)
 
+    if nargin < 3; uiWaitbar = struct(); end  % create dummy waitbar
 
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
     
     %sessionSchema = @nansen.metadata.schema.vlab.TwoPhotonSession;
-
-
+    
+    uiWaitbar.Message = 'Locating session folders...';
+    
     % % Use the folder structure to detect session folders.
     sessionFolders = listSessionFolders(dataLocationModel, 'all');
     sessionFolders = matchSessionFolders(dataLocationModel, sessionFolders);
@@ -18,16 +20,18 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
         throwAsCaller(MException(errorID, errorMsg))
     end
 
+    uiWaitbar.Message = 'Creating session objects...';
     
     % Create a list of session metadata objects
     numSessions = numel(sessionFolders);
     sessionArray = cell(numSessions, 1);
     for i = 1:numSessions
-        sessionArray{i} = sessionSchema(sessionFolders(i));
+        sessionArray{i} = sessionSchema(sessionFolders(i), 'DataLocationModel', dataLocationModel);
     end
     
     sessionArray = cat(1, sessionArray{:});
     
+    uiWaitbar.Message = 'Creating session table...';
 
     
     % Initialize a MetaTable using the given session schema and the
@@ -40,7 +44,8 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
     S.SavePath = nansen.config.project.ProjectManager.getProjectSubPath('MetaTable');
     S.IsDefault = true;
     S.IsMaster = true;
-
+    
+    
     % Save the metatable in the current project
     try
         metaTable.archive(S);
@@ -51,7 +56,8 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
 % %                 uialert(app.NansenSetupUIFigure, ME.message, title) 
     end
     
-    
+    uiWaitbar.Message = 'Implementing project specifications...';
+
     % Get user defined (project) variables...
     varNames = nansen.metadata.utility.getCustomTableVariableNames();
     
@@ -76,5 +82,8 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
     
     metaTable.save()
    
+    uiWaitbar.Message = 'Metatable created!'; %#ok<STRNU>
+    
+    
     
 end
