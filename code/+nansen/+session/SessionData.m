@@ -10,6 +10,11 @@ classdef SessionData < dynamicprops
 % short, protected properties would not be protected in this case.
 
 
+% Todo: 
+%   [v] Should hold the session object and call methods from the session
+%       object, instead of running a copy of those methods....
+%   [ ] Remove all methods that are duplicates from the session class.
+
     properties
         sessionID
     end
@@ -23,6 +28,7 @@ classdef SessionData < dynamicprops
     end
     
     properties (Access = private)
+        SessionObject
         DataLocationModel
         DataFilePathModel
     end
@@ -36,17 +42,13 @@ classdef SessionData < dynamicprops
     methods
         
         function obj = SessionData(sessionObj)
+                        
+            dataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
             
-            global dataLocationModel dataFilePathModel % Todo: Make sure these are not empty
-            
-            if isempty(dataLocationModel)
-                dataLocationModel = nansen.setup.model.DataLocations();
-                dataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
-            end
-            
-            obj.DataLocationModel = dataLocationModel;
+            obj.SessionObject = sessionObj;
+            obj.DataLocationModel = sessionObj.DataLocationModel;
             obj.DataFilePathModel = dataFilePathModel;
-
+            
             
             % inherit properties for sessionObj. Todo: Avoid duplication...       
             obj.sessionID = sessionObj.sessionID;
@@ -57,7 +59,7 @@ classdef SessionData < dynamicprops
 
             
             % Initialize the property value here (because Map is handle)
-            obj.FileList = containers.Map;
+            obj.FileList = containers.Map; % Todo: Use java.HashTable or similar instead?
             
         end
         
@@ -68,12 +70,11 @@ classdef SessionData < dynamicprops
     methods
         function updateDataVariables(obj)
             
-            
             varNames = {obj.DataFilePathModel.VariableList.VariableName};
             
             for i = 1:numel(varNames)
                 try
-                    filePath = obj.getDataFilePath(varNames{i});
+                    filePath = obj.SessionObject.getDataFilePath(varNames{i});
 
                     if isfile(filePath)
                         if ~isprop(obj, varNames{i})
@@ -308,13 +309,15 @@ classdef SessionData < dynamicprops
             %       trials or are just split into multiple parts...
             
             
+            pathStr = obj.SessionObject.getDataFilePath(varName, varargin{:});
+            return
+            
             % Get the model for data file paths.
             global dataFilePathModel
             if isempty(dataFilePathModel)
                 dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
             end
 
-            
             % Check if mode is given as input:
             [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
             parameters = struct(varargin{:});
@@ -470,86 +473,17 @@ classdef SessionData < dynamicprops
             
         end
         
-        function folderPath = getSessionFolder(obj, dataLocationType)
+        
+        
+        function folderPath = getSessionFolder(obj, dataLocationName)
         % Get session folder for session given a dataLocationType
         
             % Todo: implement secondary roots (ie cloud directories)
             
-            global dataLocationModel
-            if isempty(dataLocationModel)
-                dataLocationModel = nansen.setup.model.DataLocations();
-            end
-            
-            if isfield(obj.DataLocation, dataLocationType)
-                folderPath = obj.DataLocation.(dataLocationType);
-            else
-                dataLocTypes = {dataLocationModel.Data.Name};
-                    
-                if ~any( strcmp(dataLocTypes, dataLocationType) )
-                    error(['Data location type ("%s") is not valid. Please use one of the following:\n', ...
-                           '%s'], dataLocationType, strjoin(dataLocTypes, ', ') )
-                else
-                    folderPath = obj.createSessionFolder(dataLocationType);
-                end
-                
-            end
-            
-            if ~isfolder(folderPath)
-                error('Session folder not found')
-            end
-            
+            folderPath = obj.SessionObject.getSessionFolder(dataLocationName);
+           
         end
-        
-        function folderPath = createSessionFolder(obj, dataLocationName)
-            
-            % Get data location model. Question: Better way to do this?
-            global dataLocationModel
-            if isempty(dataLocationModel)
-                dataLocationModel = nansen.setup.model.DataLocations();
-            end
-            
-            S = dataLocationModel.getDataLocation(dataLocationName);
-            
-            rootPath = S.RootPath{1};
-            
-            folderPath = rootPath;
-            
-            for i = 1:numel(S.SubfolderStructure)
-                
-                switch S.SubfolderStructure(i).Type
-                    
-                    case 'Animal'
-                        folderName = sprintf('subject-%s', obj.subjectID);
-                    case 'Session'
-                        folderName = sprintf('session-%s', obj.sessionID);
-                    case 'Date'
-                        folderName = obj.Date;
-                    case 'Time'
-                        folderName = obj.Time;
-                    otherwise
-                        folderName = S.SubfolderStructure(i).Name;
-                        
-                        if isempty(folderName)
-                            error('Can not create session folder because foldername is not specified')
-                        end
-                end
-                
-                folderPath = fullfile(folderPath, folderName);
-                
-            end
-            
-            if ~isfolder(folderPath)
-                mkdir(folderPath)
-            end
-            
-            obj.DataLocation.(dataLocationName) = folderPath;
-            
-            if ~nargout
-                clear folderPath
-            end
 
-        end
-        
     end
    
     methods (Static)
