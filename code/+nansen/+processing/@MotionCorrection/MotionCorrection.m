@@ -9,8 +9,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 %   - nansen.stack.ImageStackProcessor : Process ImageStack in subparts
 %
 %   Known subclasses:
-%   - nansen.modules.normcorre.Processor : Implements the normcorre toolbox
-%   - nansen.modules.flowreg.Processor : Implements the flowregistration toolbox
+%   - nansen.wrappers.normcorre.Processor : Implements the normcorre toolbox
+%   - nansen.wrappers.flowreg.Processor : Implements the flowregistration toolbox
 %
 %  obj = obj@nansen.processing.MotionCorrection(dataLocation) creates the
 %  object based on a given dataLocation. The dataLocation can be:
@@ -245,7 +245,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % getRawStack / getframes method of rawstack?
             
             % Todo, implement options selection
-            [Y, bidirBatchSize, colShifts] = nansen.module.normcorre.utility.correctLineOffsets(Y, 100);
+            [Y, bidirBatchSize, colShifts] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
             
             
             %frameInd = obj.CurrentFrameIndices;

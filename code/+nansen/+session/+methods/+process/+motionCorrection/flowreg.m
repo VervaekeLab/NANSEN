@@ -1,4 +1,4 @@
-classdef flowreg < nansen.session.SessionMethod & nansen.module.flowreg.Processor
+classdef flowreg < nansen.session.SessionMethod & nansen.wrapper.flowreg.Processor
 %normcorre Summary of this function goes here
 %   Detailed explanation goes here
     
@@ -12,7 +12,7 @@ classdef flowreg < nansen.session.SessionMethod & nansen.module.flowreg.Processo
         function obj = flowreg(varargin)
             
             % Dont want this to be in charge, use session task instead.
-            obj@nansen.module.flowreg.Processor()
+            obj@nansen.wrapper.flowreg.Processor()
             
             % Call the SessionTask constructor last to make sure the
             % session's data I/O model is used.

@@ -1,4 +1,4 @@
-classdef Options < nansen.adapter.OptionsAdapter
+classdef Options < nansen.wrapper.OptionsAdapter
     
     properties (Constant)
         ToolboxName = 'EXTRACT'
@@ -39,7 +39,7 @@ classdef Options < nansen.adapter.OptionsAdapter
                 % Rename fields from cellfind substruct
                 if strcmp(fieldsTopLevel{i}, 'CellFind')
                     nameMap = nansen.twophoton.autosegmentation.extract.Options.getOptionsConversionMap;
-                    sTmp = nansen.adapter.OptionsAdapter.rename(S, nameMap);
+                    sTmp = nansen.wrapper.OptionsAdapter.rename(S, nameMap);
                     configNames = fieldnames(sTmp);
                         
                     for j = 1:numel(configNames)

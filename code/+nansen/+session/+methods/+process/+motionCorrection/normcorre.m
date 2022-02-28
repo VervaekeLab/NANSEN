@@ -1,4 +1,4 @@
-classdef normcorre < nansen.session.SessionMethod & nansen.module.normcorre.Processor
+classdef normcorre < nansen.session.SessionMethod & nansen.wrapper.normcorre.Processor
 %normcorre Summary of this function goes here
 %   Detailed explanation goes here
     
@@ -11,7 +11,7 @@ classdef normcorre < nansen.session.SessionMethod & nansen.module.normcorre.Proc
         function obj = normcorre(varargin)
             
             % Dont want this to be in charge, use session task instead.
-            obj@nansen.module.normcorre.Processor()
+            obj@nansen.wrapper.normcorre.Processor()
             
             % Call the SessionTask constructor last to make sure the
             % session's data I/O model is used.
@@ -21,7 +21,10 @@ classdef normcorre < nansen.session.SessionMethod & nansen.module.normcorre.Proc
             
             % Todo: ParseVararginForOptions Move to session method???
             obj.checkArgsForOptions(varargin{:});
-                        
+            
+            obj.SessionObjects.validateVariable('TwoPhotonSeries_Original')
+            
+            
             sessionData = nansen.session.SessionData( varargin{1} );
             sessionData.updateDataVariables()
             

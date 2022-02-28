@@ -419,7 +419,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                     S = quickr.getOptions();
 
                 case 'extract'
-                    S = nansen.module.extract.Options.getDefaults();
+                    S = nansen.wrapper.extract.Options.getDefaults();
 
                 case 'suite2p'
                     S = nansen.twophoton.autosegmentation.suite2p.Options.getDefaultOptions;

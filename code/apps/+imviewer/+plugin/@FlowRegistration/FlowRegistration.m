@@ -61,7 +61,7 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
                 %obj.loadSettings()
                 
                 if nargin < 2 || isempty(optsStruct)
-                    obj.settings = nansen.OptionsManager('nansen.module.flowreg.Processor').getOptions;
+                    obj.settings = nansen.OptionsManager('nansen.wrapper.flowreg.Processor').getOptions;
                 else
                     obj.settings = optsStruct;
                 end
@@ -100,7 +100,7 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
             lastFrame = (firstFrame-1) + obj.settings.Preview.numFrames;
             
             obj.imviewerRef.displayMessage('Loading Data...')
-            Y = obj.imviewerRef.imageStack.imageData(:, :, firstFrame:lastFrame);
+            Y = obj.imviewerRef.ImageStack.getFrameSet(firstFrame:lastFrame);
             
             
             imClass = class(Y);
@@ -115,7 +115,7 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
             
             stackSize = size(Y);
             
-            import nansen.adapter.flowreg.*
+            import nansen.wrapper.flowreg.*
             options = Options.convert(obj.settings);
             
             
@@ -151,8 +151,8 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
                 filePath = obj.imviewerRef.imageStack.filePath;
                 delete(obj.imviewerRef.imageStack)
                 
-                obj.imviewerRef.imageStack = imviewer.ImageStack(M);
-                obj.imviewerRef.imageStack.filePath = filePath;
+                obj.imviewerRef.ImageStack = nansen.stack.ImageStack(M);
+                obj.imviewerRef.ImageStack.filePath = filePath;
                 obj.imviewerRef.updateImage();
                 obj.imviewerRef.updateImageDisplay();
                 
@@ -220,7 +220,7 @@ classdef FlowRegistration < uim.handle % & applify.mixin.UserSettings
             callbacks = @obj.onSettingsChanged;
             titleStr = 'Flow Registration Parameters';
             
-            optManager = nansen.OptionsManager('nansen.module.flowreg.Processor', obj.settings);
+            optManager = nansen.OptionsManager('nansen.wrapper.flowreg.Processor', obj.settings);
             % Super stupid, but need to get name of options from
             % optionsmanager in order to set the correct options selection
             % in the structeditor

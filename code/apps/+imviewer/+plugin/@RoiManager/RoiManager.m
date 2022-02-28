@@ -114,6 +114,7 @@ classdef RoiManager < applify.mixin.AppPlugin
     end
     
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} ) % Callbacks
+        
         function wasCaptured = onKeyPress(obj, src, event)
             wasCaptured = true; %Guilty until proven innocent c-^_^-?
             
@@ -499,6 +500,11 @@ classdef RoiManager < applify.mixin.AppPlugin
                 addMode = 'initialize';
             end
             
+            
+            % Todo: Check that the imagesize of rois match the imagesize of
+            % the laded images, and take appropriate action if not!
+            
+            
             % If rois should be replaced, remove current rois. Also remove
             % overlapping rois if that is requested.
             switch addMode
@@ -837,7 +843,7 @@ classdef RoiManager < applify.mixin.AppPlugin
         % and adds detected rois to gui
 
             import nansen.twophoton.autosegmentation.*
-            import nansen.module.*
+            import nansen.wrapper.*
             global fprintf
             fprintf = @(varargin) obj.PrimaryApp.updateMessage(varargin{:});
 
@@ -880,7 +886,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                     tic; foundRois = suite2p.run(Y, opts); toc
 
                 case 'extract'
-                    opts = nansen.module.extract.Options.convert(methodOptions);
+                    opts = nansen.wrapper.extract.Options.convert(methodOptions);
                     tic; [foundRois, im, stat] = extract.run(Y, opts); toc
                     
                 case 'cnmf'

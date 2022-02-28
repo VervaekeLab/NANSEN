@@ -181,7 +181,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 
         function [roiArray, cnmfResults] = segmentImageData(obj, Y)
             
-            import nansen.adapter.cnmf.*
+            import nansen.wrapper.cnmf.*
             [roiArray, cnmfResults] = run(Y, obj.ToolboxOptions);
         
         end
