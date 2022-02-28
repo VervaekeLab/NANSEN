@@ -21,15 +21,16 @@ if nargin < 3 || isempty(bLims)
 end
 
 
-if cropAmount ~= 0
-    imSize = size(imArray);
-    imArray = stack.reshape.imcropcenter(imArray, imSize(1:2)-cropAmount);
-end
-
-
-
 if nargin < 2 || isempty(bLims)
-    sorted = sort(imArray(:));
+    
+    if cropAmount ~= 0
+        imSize = size(imArray);
+        imArrayCropped = stack.reshape.imcropcenter(imArray, imSize(1:2)-cropAmount);
+        sorted = sort(imArrayCropped(:));
+    else
+        sorted = sort(imArray(:));
+    end
+    
     sorted(isnan(sorted)) = []; % Throw away black pixels. Usually present due to aligning...
 
     nSamples = numel(sorted);
