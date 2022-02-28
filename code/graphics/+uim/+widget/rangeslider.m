@@ -2,6 +2,10 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
     
     % todo: add orientation vertical
     
+    % Todo: 
+    %   [ ] updateSize and updateLocation should happen automatically when
+    %   position is set.
+    
     properties (Dependent)
         Min = 0                 % Minimum slider value
         Max = 1                 % Maximum slider value
@@ -30,8 +34,11 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         
         ShowLabel = true;
 
-        Callback = []
+        ValueChangingFcn = []
         
+        CallbackRefreshRate = inf % allowed number of updates per second. Useful for applications that do heavy computations.
+        Callback = []
+       
     end
     
     properties (Access = private, Transient = true)
@@ -96,10 +103,10 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             obj.updateLocation('auto')
             
             obj.onVisibleChanged()
-
+        
+            obj.hBackground.Tag = 'Range Slider Background';
             
         end
-        
         
         function delete(obj)
             delete(obj.hTrack)
@@ -145,7 +152,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 obj.hTrack.HitTest = 'on';
                 obj.hTrack.PickableParts = 'visible';
                 obj.hTrack.Color = obj.TrackColor;
-                obj.hTrack.Tag = 'Slider Track';
+                obj.hTrack.Tag = 'Range Slider Track';
             
                 obj.hBackground.ButtonDownFcn = @(src, event) obj.onSliderMoved(src);
                 obj.hTrack.ButtonDownFcn = @(src, event) obj.onSliderMoved(src);
@@ -154,7 +161,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             end
             
         end
-        
+
         function plotTicks(obj)
            
             x1 = obj.Position(1)+obj.Padding(1);
@@ -241,7 +248,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         end
         
     end
-    
     
     methods (Access = private) % Internal updating
         
@@ -365,10 +371,8 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         
     end
     
-    
     methods % Slider Interaction Callbaks
 
-        
         function onSliderKnobPressed(obj, src, ~)
             
             obj.IsKnobPressed = true;
@@ -469,6 +473,11 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 obj.hText.Visible = 'off';
             end
             
+            if ~isempty(obj.Callback)
+                evtData = struct('Low', obj.Low, 'High', obj.High);
+                obj.Callback(obj, evtData)
+            end
+            
         end
         
         function updateLocation(obj, mode)
@@ -527,13 +536,25 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         end
         
         function onValueChanged(obj, src, event)
+            
+            persistent ticAtLastUpdate
+            if isempty(ticAtLastUpdate); ticAtLastUpdate = tic; end
+            
             if obj.IsConstructed
                 obj.plotKnobs()
+
+                if ~isempty(obj.ValueChangingFcn)
+                    evtData = struct('Low', obj.Low, 'High', obj.High);
+                    obj.ValueChangingFcn(obj, evtData)
+                end
                 
-                if ~isempty(obj.Callback)
+                if ~isempty(obj.Callback) && toc(ticAtLastUpdate) > 1/obj.CallbackRefreshRate
                     evtData = struct('Low', obj.Low, 'High', obj.High);
                     obj.Callback(obj, evtData)
+                    ticAtLastUpdate = tic;
                 end
+                
+                
                 
             end
 
@@ -553,7 +574,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         end
         
     end
-    
     
     methods
         
@@ -629,7 +649,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         function stepSize = get.StepSize(obj)
             stepSize = (obj.Max-obj.Min) / obj.NumTicks;
         end
-        
         
         
     end
