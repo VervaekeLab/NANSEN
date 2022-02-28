@@ -13,10 +13,15 @@ classdef MetaTableColumnFilter < handle
         
     end
     
+    properties (SetAccess = immutable)
+        PopupLocation = 'header'; %'sidebar'
+    end
+    
     properties (SetAccess = private) %?
         % Question: Is this the MetaTable object or the metatable table???
         MetaTable   % The MetaTable to use for retrieving column layouts.
         MetaTableUi
+        TableParent
     end
     
     properties (Access = private, Hidden)
@@ -64,47 +69,92 @@ classdef MetaTableColumnFilter < handle
             
         end
         
-        function openFilterControl(obj, columnIdx)
-            
+        function openFilterControl(obj, columnIdx, point)
+        %openFilterControl Open control for filtering table rows
+        
             if ~isempty(obj.hColumnFilterPopups{columnIdx})
                 if obj.isColumnFilterDirty(columnIdx)
                     obj.refreshFilterControls(columnIdx)
                     obj.isColumnFilterDirty(columnIdx) = false;
                 end
+                if strcmp(obj.PopupLocation, 'header')
+                    pos = obj.getDropdownPosition(columnIdx, point);
+                    obj.hColumnFilterPopups{columnIdx}.Position(1:2) = pos(1:2);
+                end
                 obj.hColumnFilterPopups{columnIdx}.Visible = 'on';
             else
-                obj.initializeColumnFilterControl(columnIdx);
+                obj.initializeColumnFilterControl(columnIdx, point);
             end
         end
         
-        
-        function initializeColumnFilterControl(obj, columnIdx)
+        function initializeColumnFilterControl(obj, columnIdx, point)
+        %initializeColumnFilterControl Create filter dropdown for column
             
+            h = [];
+        
             % Need table column data.
             columnData = obj.MetaTable(:, columnIdx);
                         
             switch class(columnData{1})
+                
+                case 'logical'
+                    items = {'Show All', 'True', 'False'};
+                    h = obj.createMultiSelectionDropdown(items, columnIdx, point);
+                    obj.columnFilterType{columnIdx} = 'multiSelection-logical';
+                    
                 case 'char'
                     
                     uniqueColumnData = unique(columnData);
+                    filterChoices = cat(1, 'Show All', uniqueColumnData);
 
-                    if numel(uniqueColumnData) < numel(columnData)
+                    if numel(uniqueColumnData) < numel(columnData)*0.95
                         
-                        filterChoices = cat(1, 'Show All', uniqueColumnData);
-                        
-                        obj.createListboxSelector(filterChoices, columnIdx)
+                        switch obj.PopupLocation
+                            case 'sidepanel'
+                                obj.createListboxSelector(filterChoices, columnIdx)
+                            case 'header'
+                                h = obj.createMultiSelectionDropdown(filterChoices, columnIdx, point);
+                        end
                         obj.columnFilterType{columnIdx} = 'multiSelection';
 
                     else % Todo: Create a auto-search input dlg.
                         
+                        h = obj.createAutocompleteWidget(filterChoices, columnIdx, point);
+                        obj.columnFilterType{columnIdx} = 'autocomplete';
+
                     end
                     
-                case 'double'
-                   
+                case {'uint8', 'uint16', 'single', 'double'}
+                    
+                    columnData = cell2mat(columnData);
+                    [minValue, maxValue] = bounds(columnData);
 
-            
+                    h = obj.createRangeSelector([minValue, maxValue], columnIdx, point);
+                    obj.columnFilterType{columnIdx} = 'numericRangeSelector';
+                    
+                case 'uint32'
+                    
+                    h = obj.createAutocompleteWidget(columnData, columnIdx, point);
+                    obj.columnFilterType{columnIdx} = 'autocomplete';
+                    h.PromptText = 'Search for id...';
+
+
+                case 'datetime'
+                    
+                    h = obj.createDateIntervalSelector(columnIdx, point);            
+                    obj.columnFilterType{columnIdx} = 'dateIntervalSelector';
+                    
             end
             
+            if ~isempty(h)
+                obj.hColumnFilterPopups{columnIdx} = h;
+            end
+            
+        end
+        
+        function initializeColumnFilterDropdownControl(obj, columnIdx)
+            
+
         end
         
         function refreshFilterControls(obj, columnIdx)
@@ -115,11 +165,13 @@ classdef MetaTableColumnFilter < handle
             switch obj.columnFilterType{columnIdx}
                 case 'multiSelection'
                     uniqueColumnData = unique(columnData);
-
-                    if numel(uniqueColumnData) < numel(columnData)
-                        filterChoices = cat(1, 'Show All', uniqueColumnData);
+                    filterChoices = cat(1, 'Show All', uniqueColumnData);
+                    
+                    if numel(uniqueColumnData) < numel(columnData)*0.95
                         obj.hColumnFilterPopups{columnIdx}.String = filterChoices;
                         obj.hColumnFilterPopups{columnIdx}.Value = 1;
+                    else
+                        
                     end
             end
         end
@@ -130,6 +182,9 @@ classdef MetaTableColumnFilter < handle
         
         % Todo: Update the row subset selection and then call the
         % updateTableView method
+        
+        % Todo: make widgets specifications (which widget to use) part of
+        % the table variable class specification
         
             %colInd = obj.getCurrentColumnSelection();
             T = obj.MetaTable;
@@ -143,12 +198,29 @@ classdef MetaTableColumnFilter < handle
             
             % Get column data for current columns
             columnData = T(:, columnIdx);            
-            
+            h = obj.hColumnFilterPopups{columnIdx};
+
             switch obj.columnFilterType{columnIdx}
                 
+                case 'multiSelection-logical'
+                    currentSelection = h.String{h.Value};
+                    columnData = cat(1, columnData{:});
+                    switch currentSelection
+                        case 'Show All'
+                            obj.isColumnFilterActive(columnIdx) = false;
+                            obj.MetaTableUi.DataFilterMap(:, columnIdx) = true;
+                        case 'True'
+                            obj.isColumnFilterActive(columnIdx) = false;
+                            obj.MetaTableUi.DataFilterMap(:, columnIdx) = columnData;
+                            
+                        case 'False'
+                            obj.isColumnFilterActive(columnIdx) = false;
+                            obj.MetaTableUi.DataFilterMap(:, columnIdx) = ~columnData;
+                            
+                    end
+                    
                 case 'multiSelection'
                     
-                    h = obj.hColumnFilterPopups{columnIdx};
                     currentSelection = h.String(h.Value);
                     
                     if strcmp(currentSelection{1}, 'Show All')
@@ -158,17 +230,39 @@ classdef MetaTableColumnFilter < handle
                         %obj.hColumnLabels(columnIdx).Color = ones(1,3)*0.8;
                     else
                         obj.isColumnFilterActive(columnIdx) = true;
-                        TF = contains(columnData, currentSelection);
+                        TF = ismember(columnData, currentSelection);
+                        % TODO: Use ismember instead??
                         obj.MetaTableUi.DataFilterMap(:, columnIdx) = TF;
                         %obj.hColumnLabels(columnIdx).Color = obj.tableSettings.columnSpecialColor;
                         %obj.hColumnLabels(columnIdx).FontWeight = 'bold';
                     end
                     
-                case 'searchField'
+                case {'searchField', 'autocomplete'}
+                    currentSelection = h.SelectedItems;
+                    if isempty(currentSelection) || all(strcmp(currentSelection, 'Show All')) 
+                        obj.isColumnFilterActive(columnIdx) = false;
+                        obj.MetaTableUi.DataFilterMap(:, columnIdx) = true;
+                    else
+                        obj.isColumnFilterActive(columnIdx) = true;
+                        TF = ismember(columnData, currentSelection);
+                        obj.MetaTableUi.DataFilterMap(:, columnIdx) = TF;
+                    end
                     
                 case 'dateIntervalSelector'
+                         
+                    dateInterval = h.SelectedDateInterval;
+                    columnData = cat(1, columnData{:});
+                    
+                    dateInterval.TimeZone = columnData(1).TimeZone;
+
+                    TF = columnData > dateInterval(1) & columnData < dateInterval(2);
+                    obj.MetaTableUi.DataFilterMap(:, columnIdx) = TF;
                     
                 case 'numericRangeSelector'
+                    
+                    columnData = cell2mat(columnData);
+                    TF = columnData > h.Low & columnData < h.High;
+                    obj.MetaTableUi.DataFilterMap(:, columnIdx) = TF;
                     
             end
             
@@ -192,6 +286,26 @@ classdef MetaTableColumnFilter < handle
         function resetFilters(obj)
             obj.MetaTableUi.DataFilterMap = [];
             obj.isColumnFilterDirty(:) = true;
+            obj.MetaTableUi.updateTableView()
+        end
+        
+        function hideFilters(obj)
+            
+            h = gco; % Duct tape and superglue ftw.
+            if ~isempty(h)
+                if contains(h.Tag, 'Range Slider') || contains( h.Tag, 'Range Selector')
+                    return
+                end
+            end
+            
+            for i = 1:numel(obj.hColumnFilterPopups)
+                if ~isempty(obj.hColumnFilterPopups{i})
+                    if strcmp(obj.hColumnFilterPopups{i}.Visible, 'on')
+                        obj.hColumnFilterPopups{i}.Visible = 'off';
+                    end
+                end
+            end
+            
         end
         
     end
@@ -225,6 +339,98 @@ classdef MetaTableColumnFilter < handle
             
         end
         
+        function h = createMultiSelectionDropdown(obj, items, columnIdx, point)
+        %createMultiSelectionDropdown    
+            
+            hParent = obj.MetaTableUi.Parent;
+            position = obj.getDropdownPosition(columnIdx, point);
+
+            bgColor = ones(1,3) * 0.94;
+            fgColor = ones(1,3) * 0.1;
+            
+            h = uics.multiSelectionDropDown('Parent', hParent, ...
+                'Location', position(1:2), 'String', items, 'BackgroundColor', ...
+                bgColor, 'ForegroundColor', fgColor);
+            h.String = items;
+            
+            h.Position(2) = position(2) + position(4) - h.Position(4);
+            h.Position(3) = max([75, position(3) * 1.25]);
+            
+            h.Callback = @(s,e,i) obj.onColumnFilterUpdated(s,e,columnIdx);
+            h.giveFocus()
+
+            %obj.columnFilterType{columnIdx} = 'multiSelectionDropdown';
+            
+        end
+        
+        function h = createAutocompleteWidget(obj, items, columnIdx, point)
+            
+            hParent = obj.MetaTableUi.Parent;
+            position = obj.getDropdownPosition(columnIdx, point);
+            position(4) = 30;
+            h = uics.searchAutoCompleteInputDlg(hParent, items, 'HideOnFocusLost', true);
+            h.PromptText = 'Enter text...';
+            h.Position = position;
+            h.Position(2) = h.Position(2)-10;
+            
+            if h.Position(3) < 200; h.Position(3) = 200; end
+            
+            h.Callback = @(s,e,i) obj.onColumnFilterUpdated(s,e,columnIdx);
+
+        end
+        
+        function h = createRangeSelector(obj, dataRange, columnIdx, point)
+            
+            hParent = obj.MetaTableUi.Parent;
+            position = obj.getDropdownPosition(columnIdx, point);
+            position(4) = 30;
+            
+            h = uics.rangeSelector(hParent, 'Minimum', dataRange(1), ...
+                'Maximum', dataRange(2), 'CallbackRefreshRate', 0.5 );
+            h.Position = position;
+            h.Position(3) = max([position(3), 200]);
+            h.Position(2) = position(2) - 10;
+
+            h.Callback = @(s,e,i) obj.onColumnFilterUpdated(s,e,columnIdx);
+        
+        end
+        
+        function h = createDateIntervalSelector(obj, columnIdx, point)
+            
+            hParent = obj.MetaTableUi.Parent;
+            position = obj.getDropdownPosition(columnIdx, point);
+            position(2) = position(2) - 210; %230 is height of date panel...
+            h = uics.DateRangeSelector('Parent', hParent);
+            h.Position(1:2) = position(1:2);
+            h.Callback = @(s,e,i) obj.onColumnFilterUpdated(s,e,columnIdx);
+            
+        end
+        
+        function position = getDropdownPosition(obj, columnIdx, headerColumnPoint)
+        %getDropdownPosition Get position to show dropdown control    
+            
+            hParent = obj.MetaTableUi.Parent;
+            parentPosition = getpixelposition(hParent, 1);
+            colWidth = obj.MetaTableUi.ColumnModel.getColumnWidths();
+            
+            dataColIndices = obj.MetaTableUi.ColumnModel.getColumnIndices();
+            tableColumnIdx = find( ismember(dataColIndices, columnIdx) );
+            
+            colWidth = colWidth(tableColumnIdx);
+            
+            if ~isempty(obj.hColumnFilterPopups{columnIdx})
+                h = obj.hColumnFilterPopups{columnIdx};
+                height = h.Position(4);
+            else
+                height = 20;
+            end
+            
+            position(1) = headerColumnPoint(1) - colWidth/2;
+            position(2) = headerColumnPoint(2) - height - parentPosition(2) - 10;
+            position(3) = colWidth;
+            position(4) = height;
+            
+        end
     end
     
     
