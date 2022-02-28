@@ -8,7 +8,7 @@ classdef DataLocationModel < utility.data.TabularArchive
     
     % QUESTIONS:
     
-    properties (Constant, Access = protected)
+    properties (Constant, Hidden)
         ITEM_TYPE = 'Data Location'
     end
     
@@ -18,7 +18,13 @@ classdef DataLocationModel < utility.data.TabularArchive
     end
     
     properties (Dependent)
+        IsDirty % Todo: Dependent on whether data bakcup is different than data
         DefaultDataLocation
+    end
+    
+    properties (Access = private)
+        DataBackup % Todo: assign this on construction and when model is marked as clean(?)
+        RootPathListOriginal % Original rootpaths. Will be replaced with root-paths of local computer on load.
     end
     
     events
@@ -28,7 +34,9 @@ classdef DataLocationModel < utility.data.TabularArchive
     end
     
     methods (Static) % Methods in separate files
-        S = getEmptyItem()
+        %S = getEmptyItem()
+        
+        S = getBlankItem()
         
         S = getDefaultItem()
     end
@@ -78,39 +86,74 @@ classdef DataLocationModel < utility.data.TabularArchive
     methods % Constructor 
         function obj = DataLocationModel(varargin)
             
+            % Superclass constructor. Loads given (or default) archive 
             obj@utility.data.TabularArchive(varargin{:})
-            
-            if isempty(obj.FilePath)
-                obj.FilePath = obj.getDefaultFilePath();
-            end
-            
-            obj.load()
             
             obj.tempDevFix()
         end
         
         function tempDevFix(obj)
             
+            dirty = false;
+            
+            % Add default data location to preferences
+            % Todo: Add uuid, not name
             if ~isfield(obj.Preferences, 'DefaultDataLocation')
                 if obj.NumDataLocations == 1
                     obj.DefaultDataLocation = obj.Data(1).Name;
-                else
+                elseif obj.NumDataLocations > 1
+                    obj.Data(2).Type = nansen.config.dloc.DataLocationType('PROCESSED');
                     obj.DefaultDataLocation = obj.Data(2).Name;
                 end
+                
+                dirty = true;
             end
             
+            % Rootpath field changed from cell array with 2 cells to root
+            % array with 1 to many cells ( remove empty cell(s) ) 
             for i = 1:numel(obj.Data)
                 
                 rootPath = obj.Data(i).RootPath;
                 
                 if any(strcmp(rootPath, ''))
                     rootPath(strcmp(rootPath, '')) = [];
+                    dirty = true;
                 end
                 
                 obj.Data(i).RootPath = rootPath;
             end
             
-            obj.save()
+            % Add 'Type' as a table variable on the third column
+            if ~isfield(obj.Data, 'Type')
+                fieldNamesOld = fieldnames(obj.Data);
+                for i = 1:numel(obj.Data)
+                    obj.Data(i).Type = 'recorded';
+                end
+                
+                obj.Data = orderfields(obj.Data, ...
+                    [fieldNamesOld(1:2); 'Type'; fieldNamesOld(3:end)]);
+                dirty = true;
+            end
+            
+            fieldNames = fieldnames(obj.Data);
+            if ~strcmp(fieldNames{3}, 'Type')
+                fieldNamesNew = setdiff(fieldNames, 'Type', 'stable');
+                
+                obj.Data = orderfields(obj.Data, ...
+                    [fieldNamesNew(1:2); 'Type'; fieldNamesNew(3:end)]);
+                
+                dirty = true;
+            end
+            
+            if ~isfield(obj.Preferences, 'SourceID')
+                obj.Preferences.SourceID = utility.system.getComputerName(true);
+                dirty = true;
+            end
+            
+            if dirty
+                obj.save()
+            end
+            
         end
     end
     
@@ -126,7 +169,10 @@ classdef DataLocationModel < utility.data.TabularArchive
         
         function defaultDataLocation = get.DefaultDataLocation(obj)
             
-            defaultDataLocation = obj.Preferences.DefaultDataLocation;
+            if isempty(obj.Data); defaultDataLocation = ''; return; end
+            
+            dataLocationUuid = obj.Preferences.DefaultDataLocation;
+            defaultDataLocation = obj.getNameFromUuid(dataLocationUuid);
             
         end
         
@@ -134,12 +180,35 @@ classdef DataLocationModel < utility.data.TabularArchive
             
             assert(ischar(newValue), 'Please provide a character vector with the name of a data location')
             
+            % Check if data location with given name exists...
             message = sprintf('"%s" can not be a default data location because no data location with this name exists.', newValue);
             assert(any(strcmp(obj.DataLocationNames, newValue)), message)
             
-            obj.Preferences.DefaultDataLocation = newValue;
+            % Check if data location is allowed to be a default data location.
+            dataLocationItem = obj.getDataLocation(newValue);
+            message = sprintf('"%s" can not be a default data location because the data location is of type "%s".', newValue, dataLocationItem.Type.Name);
+            assert(dataLocationItem.Type.AllowAsDefault, message)
+            
+            dataLocationUuid = dataLocationItem.Uuid;
+            
+            obj.Preferences.DefaultDataLocation = dataLocationUuid;
             
         end
+        
+    end
+    
+    methods % Modify save/load to include local settings...
+        
+% %         function load(obj)
+% %             
+% %             load@utility.data.TabularArchive(obj)
+% %             
+% %         end
+% %         
+% %         function save(obj)
+% %             
+% %         end
+% %         
         
     end
     
@@ -151,19 +220,23 @@ classdef DataLocationModel < utility.data.TabularArchive
         end
         
         function validateRootPath(obj, dataLocIdx)
-            
+        %validateRootPath Check if root path exists
+        
             % Todo: Loop through all entries in cell array (if many are present) 
-            
+
             thisDataLoc = obj.Data(dataLocIdx);
-            if ~isfolder(thisDataLoc.RootPath{1})
+            if ~isfolder(thisDataLoc.RootPath(1).Value)
                 thisName = obj.Data(dataLocIdx).Name;
                 error('Root path for DataLocation "%s" does not exist', thisName)
             end
             
         end
         
-        function createRootPath(obj, dataLocIdx)
-            thisRootPath = obj.Data(dataLocIdx).RootPath{1};
+        function createRootPath(obj, dataLocIdx, rootIdx)
+            
+            if nargin < 3; rootIdx = 1; end
+            thisRootPath = obj.Data(dataLocIdx).RootPath(rootIdx).Value;
+            
             if ~isfolder(thisRootPath)
                 mkdir(thisRootPath)
                 fprintf('Created root directory for DataLocation %s', obj.Data(dataLocIdx).Name)
@@ -215,7 +288,11 @@ classdef DataLocationModel < utility.data.TabularArchive
             
             % Update example path
             subFolderNames = {newStruct.Name};
-            obj.Data(idx).ExamplePath = fullfile(obj.Data(idx).RootPath{1}, subFolderNames{:});
+            
+            if ~isempty(obj.Data(idx).RootPath)
+                obj.Data(idx).ExamplePath = ...
+                    fullfile(obj.Data(idx).RootPath(1).Value, subFolderNames{:});
+            end
             
 % %             % Trigger ModelChanged event 
 % %             evtData = uiw.event.EventData('DataLocationIndex', idx, ...
@@ -237,7 +314,7 @@ classdef DataLocationModel < utility.data.TabularArchive
                 newDataLocation.Name = obj.getNewName();
             end
             
-            obj.insertItem(newDataLocation)
+            newDataLocation = obj.insertItem(newDataLocation);
             
             % Trigger DataLocationAdded event 
             evtData = uiw.event.EventData(...
@@ -254,6 +331,9 @@ classdef DataLocationModel < utility.data.TabularArchive
             [~, idx] = obj.containsItem(dataLocationName);
             
             obj.removeItem(dataLocationName)
+            
+            % Todo: Unset default data location if this was the default
+            % data location
             
             % Trigger ModelChanged event 
             evtData = uiw.event.EventData(...
@@ -278,13 +358,22 @@ classdef DataLocationModel < utility.data.TabularArchive
                 error('DataLocation with name "%s" does not exist', dataLocationName)
             end
             
+            % Make sure data location type is one of the type enumeration
+            % members:
+            if strcmp(field, 'Type') && ischar(value)
+                value = nansen.config.dloc.DataLocationType(value);
+                % Todo: Make sure default datalocation is still allowed type: 
+            end
+            
             obj.Data(idx).(field) = value;
             
             if strcmp(field, 'Name') % Special case if name is change
                 obj.onDataLocationRenamed(dataLocationName, value)
                 dataLocationName = value;
             end
-                        
+            
+
+            
             % Trigger DataLocationModified event 
             evtData = uiw.event.EventData(...
                 'DataLocationName', dataLocationName, ...
@@ -309,7 +398,9 @@ classdef DataLocationModel < utility.data.TabularArchive
     end
     
     methods % Methods for getting data descriptions from filepaths
-        
+    % Todo: all these methods should be outsourced. THis is more like a 
+    % table variable domain..
+    
         function substring = getSubjectID(obj, pathStr)
             % Todo: Specify index as well....
             
@@ -361,6 +452,44 @@ classdef DataLocationModel < utility.data.TabularArchive
         
     end
     
+    methods % Utility methods
+        
+        function dlStruct = expandDataLocationInfo(obj, dlStruct)
+        %expandDataLocation Expand information of data location structure
+        %
+        %   dlStruct = dlm_obj.expandDataLocationInfo(dlStruct) add the
+        %   following fields to a data location structure:
+        %       Name : Name of datalocation
+        %       Type : Datalocation type
+        %       RootPath : Key,Value pair of local rootpath.
+        
+            for iDl = 1:numel(dlStruct) %obj.NumDataLocations
+
+                dlUuid = dlStruct(iDl).Uuid;
+                
+                thisDlItem = obj.getItem(dlUuid);
+
+                % Add name and type fields
+                fields = {'Name', 'Type'};
+                for k = 1:numel(fields)
+                    dlStruct(iDl).(fields{k}) = thisDlItem.(fields{k});
+                end
+
+                % Add rootpath field
+                rootUid = dlStruct(iDl).RootUid;
+                rootIdx = find( strcmp( {thisDlItem.RootPath.Key}, rootUid ));
+
+                if ~isempty(rootIdx)
+                    dlStruct(iDl).RootPath = thisDlItem.RootPath(rootIdx).Value;
+                end
+            end
+        end
+        
+        function dlStruct = reduceDataLocationInfo(obj, dlStruct)
+            
+        end
+    end
+    
     methods (Access = ?nansen.config.dloc.DataLocationModelApp)
         
         function restore(obj, data)
@@ -374,7 +503,7 @@ classdef DataLocationModel < utility.data.TabularArchive
         
         function item = validateItem(obj, item)
             % Todo...
-            item = item;
+            item = validateItem@utility.data.TabularArchive(obj, item);
         end
         
         function S = getMetavariableStruct(obj, varName)
@@ -460,6 +589,144 @@ classdef DataLocationModel < utility.data.TabularArchive
         end
     end
     
+    methods (Access = protected) % Override superclass methods
+        
+        function S = cleanStructOnSave(obj, S)
+        %cleanStructOnSave DataLocationModel specific changes when saving
+
+            for i = 1:numel(S.Data)
+                S.Data(i).Type = S.Data(i).Type.Name;
+            end
+            
+            % Export local paths and restore original paths.
+            S = obj.exportLocalRootPaths(S);
+
+        end
+        
+        function S = modifyStructOnLoad(obj, S)
+        %modifyStructOnLoad DataLocationModel specific changes when loading
+        %
+
+            % Create type object instance.
+            for i = 1:numel(S.Data)
+                if ~isfield(S.Data(i), 'Type') || isempty(S.Data(i).Type)
+                    S.Data(i).Type = nansen.config.dloc.DataLocationType('recorded');
+                else
+                    S.Data(i).Type = nansen.config.dloc.DataLocationType(S.Data(i).Type);
+                end
+            end
+            
+            if ~isfield(S.Preferences, 'SourceID')
+                S.Preferences.SourceID = utility.system.getComputerName(true);
+            end
+            
+            S = obj.updateRootPathDataType(S); % Todo_ temp: remove before release
+            
+            % Get local root paths...
+            S = obj.importLocalRootPaths(S);
+            
+        end
+        
+        
+        function filePath = getLocalRootPathSettingsFile(obj)
+            
+            import nansen.config.project.ProjectManager
+            dirPath = ProjectManager.getProjectPath('current', 'local');
+            
+            fileName = 'datalocation_local_rootpath_settings.mat';
+            filePath = fullfile(dirPath, fileName);
+            
+        end
+        
+        
+        function S = importLocalRootPaths(obj, S)
+            
+            % Load local settings for datalocation model root paths and 
+            % replace those that are in the struct S with the local ones.
+            
+            % Keep the originals stored in the RootPathListOriginal
+            % property.
+
+            filePath = obj.getLocalRootPathSettingsFile();
+            
+            %obj.RootPathListOriginal = struct;
+            n = numel(S.Data);
+            [obj.RootPathListOriginal(1:n).Uuid] = S.Data.Uuid;
+            [obj.RootPathListOriginal(1:n).RootPath] = S.Data.RootPath;
+            
+            % Todo: Can not just replace, what if root paths were
+            % created somewhere else since last session. Loop through those
+            % data locations and rootkeys that values exist for...
+            
+            computerID = utility.system.getComputerName(true);
+            isSource = isequal(S.Preferences.SourceID, computerID);
+            
+            if isfile(filePath) && ~isSource
+                S_ = load(filePath);
+                reference = S_.RootPathListLocal;
+                S.Data = obj.updateRootPathFromReference(S.Data, reference);
+            end
+            
+        end
+        
+        function S = exportLocalRootPaths(obj, S)
+            
+            % Save the local root paths and restore the originals in the
+            % datalocation model.
+
+            % Restore original root path list
+            computerID = utility.system.getComputerName(true);
+            if ~isequal(S.Preferences.SourceID, computerID)
+                
+                % 1) Save current root path list to local file
+                n = numel(S.Data);
+                [S_.RootPathListLocal(1:n).Uuid] = S.Data.Uuid;
+                [S_.RootPathListLocal(1:n).RootPath] = S.Data.RootPath;
+
+                filePath = obj.getLocalRootPathSettingsFile();
+                save(filePath, '-struct', 'S_')
+
+                % 2) Restore originals 
+                reference = obj.RootPathListOriginal; % struct array
+                S.Data = obj.updateRootPathFromReference(S.Data, reference);
+
+            end
+        end
+        
+        function target = updateRootPathFromReference(obj, target, source)
+        %updateRootPathFromReference Update rootpath struct from reference
+        
+            for iDloc = 1:numel(source)
+
+                thisUuid = source(iDloc).Uuid;
+                targetIdx = find(strcmp( {target.Uuid}, thisUuid));
+
+                if ~isempty(targetIdx) % Original rootpath list must exist
+
+                    iSource = source(iDloc);
+                    iTarget = target(targetIdx);
+                    
+                    referenceKeys = {iSource.RootPath.Key};
+
+                    for jKey = 1:numel(referenceKeys)
+
+                        thisKey = iSource.RootPath(jKey).Key;
+                        keyIdx = find(strcmp( {iTarget.RootPath.Key}, thisKey ));
+                        
+                        if isempty(keyIdx)
+                            continue; 
+                        else
+                            iTarget.RootPath(keyIdx).Value = iSource.RootPath(jKey).Value;
+                        end
+
+                    end
+                    
+                    target(targetIdx) = iTarget;
+                end
+            end
+        end
+    end
+    
     methods (Access = private)
         function onDataLocationRenamed(obj, oldName, newName)
                            
@@ -487,6 +754,50 @@ classdef DataLocationModel < utility.data.TabularArchive
                 pathString = nansen.config.project.ProjectManager.getFilePath(fileName);
             catch
                 pathString = '';
+            end
+        end
+        
+        
+        function S = updateRootPathDataType(S) % TEMP: Todo: remove
+        %updateRootPathDataType 
+            
+            % Todo: Should we make struct array instead, with key value
+            % fields and use universal unique ids????
+        
+            % Update root data type from cell array to struct.
+            if numel(S.Data) > 0
+                if isa(S.Data(1).RootPath, 'cell')
+                    for i = 1:numel(S.Data)
+                        
+                        sNew = struct();
+                        for j = 1:numel(S.Data(i).RootPath)
+                            sNew(j).Key = nansen.util.getuuid();
+                            sNew(j).Value = S.Data(i).RootPath{j};
+                        end
+                        
+                        S.Data(i).RootPath = sNew;
+                    end
+                    
+                elseif isa(S.Data(1).RootPath, 'struct') && ~isfield(S.Data(1).RootPath, 'Key')
+                    for i = 1:numel(S.Data)
+                        rootKeys = fieldnames(S.Data(i).RootPath);
+                        rootPaths = struct2cell( S.Data(i).RootPath );
+                        S.Data(i).RootPath = struct;
+                        n = numel(rootKeys);
+                        [S.Data(i).RootPath(1:n).Key] = rootKeys;
+                        [S.Data(i).RootPath(1:n).Value] = rootPaths;
+                    end
+                elseif isa(S.Data(1).RootPath, 'struct') && isempty(S.Data(1).RootPath)
+                    return
+                    
+                elseif isa(S.Data(1).RootPath, 'struct') && isfield(S.Data(1).RootPath, 'Key') && isa(S.Data(1).RootPath(1).Key, 'cell')
+                    for i = 1:numel(S.Data)
+                        S.Data(i).RootPath(1).Key = nansen.util.getuuid();
+                        S.Data(i).RootPath(1).Value = S.Data(i).RootPath(1).Value{1};
+                    end
+                    
+                    
+                end
             end
         end
         
