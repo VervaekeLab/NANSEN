@@ -78,6 +78,17 @@ classdef ImageStackData < uim.mixin.assignProperties
                 else
                     varargout{1} = stackSize(dim);
                 end
+                
+            % Make sure the number of dimensions requested matches the
+            % number of outputs requested
+            elseif nargin >= 2 && nargout > 1
+                msg = 'Incorrect number of output arguments. Number of output arguments must equal the number of input dimension arguments.';
+                assert(numel(dim) == nargout, msg)
+                
+                varargout = cell(1, nargout);
+                for i = 1:numel(dim)
+                    varargout{i} = stackSize(dim(i));
+                end
                     
             % Return length of each dimension separately
             elseif nargin == 1 && nargout > 1
