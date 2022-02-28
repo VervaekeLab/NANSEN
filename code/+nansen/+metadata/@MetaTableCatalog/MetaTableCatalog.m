@@ -129,6 +129,29 @@ classdef MetaTableCatalog < uim.handle
             end
             
         end
+        
+        function metaTable = getMasterTable(obj, metaTableType)
+            
+            
+            isMatch = obj.Table.IsMaster &&  contains( lower(obj.Table.MetaTableClass), metaTableType);
+            idx = find(isMatch);
+            
+            if numel(idx) > 1
+                warning('More than one master table is present. Selected first match.')
+                idx = idx(1);
+            elseif numel(idx) == 1
+                % Continue
+            else
+                error('No master metatable of this type exists.')
+            end
+            
+            mtItem = obj.Table(idx, :);
+
+            metatableFilepath = fullfile(mtItem.SavePath{1}, mtItem.FileName{1});
+            metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
+            
+        end
+        
     end
     
     
@@ -160,7 +183,6 @@ classdef MetaTableCatalog < uim.handle
             if isa(pathStr, 'cell')
                 pathStr = pathStr{1};
             end
-            
             
         end
         
