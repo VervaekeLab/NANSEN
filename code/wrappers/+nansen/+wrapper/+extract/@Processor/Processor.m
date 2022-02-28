@@ -1,8 +1,8 @@
 classdef Processor < nansen.processing.RoiSegmentation & ...
-                        nansen.module.abstract.ToolboxWrapper
-%nansen.module.extract.Processor Wrapper for running EXTRACT on nansen
+                        nansen.wrapper.abstract.ToolboxWrapper
+%nansen.wrapper.extract.Processor Wrapper for running EXTRACT on nansen
 %
-%   h = nansen.module.extract.Processor(imageStackReference)
+%   h = nansen.wrapper.extract.Processor(imageStackReference)
 %
 %   This class provides functionality for running EXTRACT within
 %   the nansen package.
@@ -24,9 +24,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     methods % Constructor 
         
         function obj = Processor(varargin)
-        %nansen.module.extract.Processor Construct normcorre processor
+        %nansen.wrapper.extract.Processor Construct normcorre processor
         %
-        %   h = nansen.module.extract.Processor(imageStackReference)
+        %   h = nansen.wrapper.extract.Processor(imageStackReference)
             
             obj@nansen.processing.RoiSegmentation(varargin{:})
         
@@ -71,7 +71,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             % validate/assert that arg is good
             %stackSize = varargin{1};
             
-            import nansen.module.extract.Options
+            import nansen.wrapper.extract.Options
             opts = Options.convert(obj.Options);%, stackSize);
             
             optionsVarname = 'extractOptions';
@@ -129,7 +129,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             % Get temporal segments
             
-            tExtracor = nansen.module.extract.ProcessorT(...
+            tExtracor = nansen.wrapper.extract.ProcessorT(...
                 obj.OriginalStack, obj.Options, obj.MergedResults);
             tExtracor.Options.Run.numFramesPerPart = 2000;
             tExtracor.runMethod()

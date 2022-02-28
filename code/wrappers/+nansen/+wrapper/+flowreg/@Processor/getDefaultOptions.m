@@ -4,11 +4,11 @@ function options = getDefaultOptions()
     % Todo: This is the same as for normcorre, except for the sub-package
     % name. Can this be generalized further??
 
-    S = nansen.module.flowreg.presets.Default;
+    S = nansen.wrapper.flowreg.presets.Default;
     options = S.Options;
     
-    className = mfilename('class');
-    className = 'nansen.module.flowreg.Processor';
+    %className = mfilename('class');
+    className = 'nansen.wrapper.flowreg.Processor';
     superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
     options = nansen.mixin.HasOptions.combineOptions(options, superOptions{:});
 

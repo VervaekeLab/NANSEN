@@ -1,7 +1,7 @@
 function M = getAdapter()
-%nansen.module.flowreg.Options.getAdapter
+%nansen.wrapper.flowreg.Options.getAdapter
 %
-%    M = nansen.module.flowreg.Options.getAdapter() returns a struct (M) 
+%    M = nansen.wrapper.flowreg.Options.getAdapter() returns a struct (M) 
 %       where each field of M corresponds to a field from the options, and 
 %       the value is the name of that parameter from the original toolbox 
 %       options. 

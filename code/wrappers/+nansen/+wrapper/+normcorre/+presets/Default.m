@@ -1,4 +1,4 @@
-classdef Default < nansen.module.normcorre.Options
+classdef Default < nansen.wrapper.normcorre.Options
 
     properties (Constant)
         Name = 'Nonrigid (4x4)'
@@ -8,7 +8,7 @@ classdef Default < nansen.module.normcorre.Options
     methods (Static)
         
         function S = getOptions()
-            S = getOptions@nansen.module.normcorre.Options();
+            S = getOptions@nansen.wrapper.normcorre.Options();
         end
         
     end

@@ -1,4 +1,4 @@
-classdef Options < nansen.module.abstract.OptionsAdapter
+classdef Options < nansen.wrapper.abstract.OptionsAdapter
 
     
     properties (Constant)
@@ -18,10 +18,10 @@ classdef Options < nansen.module.abstract.OptionsAdapter
     methods (Static)
         
         function S = getOptions()
-            S = nansen.module.flowreg.Options.getDefaults();
+            S = nansen.wrapper.flowreg.Options.getDefaults();
             
             % Temp fix???
-            className = 'nansen.module.flowreg.Processor';
+            className = 'nansen.wrapper.flowreg.Processor';
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
             S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
         end
@@ -34,10 +34,10 @@ classdef Options < nansen.module.abstract.OptionsAdapter
         %   will convert to a struct which is used in the flowregistration
         %   pipeline.
         
-            import nansen.module.flowreg.*
+            import nansen.wrapper.flowreg.*
 
-            nameMap = nansen.module.flowreg.Options.getAdapter();
-            nvPairs = nansen.module.abstract.OptionsAdapter.rename(S, nameMap, 'nvPairs');
+            nameMap = nansen.wrapper.flowreg.Options.getAdapter();
+            nvPairs = nansen.wrapper.abstract.OptionsAdapter.rename(S, nameMap, 'nvPairs');
             
             
             %nvPairs = Options.getToolboxNvPairs(S);

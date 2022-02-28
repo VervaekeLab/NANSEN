@@ -1,5 +1,5 @@
-classdef Options < nansen.module.abstract.OptionsAdapter
-%nansen.module.normcorre.Options Options adapter for normcorre method
+classdef Options < nansen.wrapper.abstract.OptionsAdapter
+%nansen.wrapper.normcorre.Options Options adapter for normcorre method
 %
 %   Implements default options which can be edited in structeditor and 
 %   a conversion map so that options can be converted to the format 
@@ -22,9 +22,9 @@ classdef Options < nansen.module.abstract.OptionsAdapter
     methods (Static)
         
         function S = getOptions()
-            S = nansen.module.normcorre.Options.getDefaults();
+            S = nansen.wrapper.normcorre.Options.getDefaults();
                 
-            className = 'nansen.module.normcorre.Processor';
+            className = 'nansen.wrapper.normcorre.Processor';
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
             S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
             
@@ -47,8 +47,8 @@ classdef Options < nansen.module.abstract.OptionsAdapter
                 d3 = 1;
             end
         
-            nameMap = nansen.module.normcorre.Options.getAdapter();
-            nvPairs = nansen.module.abstract.OptionsAdapter.rename(S, nameMap, 'nvPairs');
+            nameMap = nansen.wrapper.normcorre.Options.getAdapter();
+            nvPairs = nansen.wrapper.abstract.OptionsAdapter.rename(S, nameMap, 'nvPairs');
             
             
             if isfield(S, 'Configuration') && isfield(S.Configuration, 'numRows')

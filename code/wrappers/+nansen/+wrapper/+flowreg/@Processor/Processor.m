@@ -1,8 +1,8 @@
 classdef Processor < nansen.processing.MotionCorrection & ...
-                        nansen.module.abstract.ToolboxWrapper
-%nansen.adapter.flowreg.Processor Wrapper for running flowregistration on nansen
+                        nansen.wrapper.abstract.ToolboxWrapper
+%nansen.wrapper.flowreg.Processor Wrapper for running flowregistration on nansen
 %
-%   h = nansen.adapter.flowreg.Processor(imageStackReference)
+%   h = nansen.wrapper.flowreg.Processor(imageStackReference)
 %
 %   This class provides functionality for running flowreg within
 %   the nansen package.
@@ -29,7 +29,8 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         MethodName = 'Motion Correction (FlowRegistration)'
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
-        OptionsManager = nansen.OptionsManager('nansen.module.flowreg.Processor')
+        OptionsManager nansen.manage.OptionsManager = ...
+            nansen.OptionsManager('nansen.wrapper.flowreg.Processor')
     end
     
     properties (Constant) % From motion correction
@@ -37,7 +38,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     end
     
     properties (Constant, Access = protected)
-        %DependentPaths = nansen.module.flowreg.getDependentPaths()
+        %DependentPaths = nansen.wrapper.flowreg.getDependentPaths()
     end
     
     properties (Access = private)
@@ -49,9 +50,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     methods % Constructor 
         
         function obj = Processor(varargin)
-        %nansen.module.flowreg.Processor Construct flowreg processor
+        %nansen.wrapper.flowreg.Processor Construct flowreg processor
         %
-        %   h = nansen.module.flowreg.Processor(imageStackReference)
+        %   h = nansen.wrapper.flowreg.Processor(imageStackReference)
             
             obj@nansen.processing.MotionCorrection(varargin{:})
         
@@ -89,7 +90,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
             % Get the flowregistration options struct based on the parameter
             % selection and the size of the image stack to be corrected.
-            import nansen.module.flowreg.Options
+            import nansen.wrapper.flowreg.Options
             opts = Options.convert(obj.Options);
             
             optionsVarname = 'flowregOptions';
@@ -144,7 +145,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         
         function updateCorrectionStats(obj, IND)
             
-            import nansen.module.flowreg.utility.*
+            import nansen.wrapper.flowreg.utility.*
             
             if nargin < 2
                 IND = obj.CurrentFrameIndices;
@@ -189,7 +190,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                       
             % Todo: get frames based on options.frameNumForInitialTemplate
             
-            import nansen.module.flowreg.utility.*
+            import nansen.wrapper.flowreg.utility.*
             
             options = obj.ToolboxOptions;
             
@@ -237,7 +238,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         
         function initializeParameters(obj, imArray)
             
-            import nansen.module.flowreg.utility.*
+            import nansen.wrapper.flowreg.utility.*
 
             options = obj.ToolboxOptions;
             initTemplate = obj.CurrentRefImage; 
@@ -275,7 +276,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         
         function M = registerImageData(obj, Y)
             
-            import nansen.module.flowreg.utility.*
+            import nansen.wrapper.flowreg.utility.*
 
             options = obj.ToolboxOptions;
             template = obj.CurrentRefImage;

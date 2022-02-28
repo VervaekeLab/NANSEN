@@ -1,4 +1,4 @@
-classdef Options < nansen.module.abstract.OptionsAdapter
+classdef Options < nansen.wrapper.abstract.OptionsAdapter
     
     properties (Constant)
         ToolboxName = 'EXTRACT'
@@ -17,7 +17,7 @@ classdef Options < nansen.module.abstract.OptionsAdapter
     methods (Static)
         
         function S = getOptions()
-            S = nansen.module.extract.Options.getDefaults();
+            S = nansen.wrapper.extract.Options.getDefaults();
         end
         
         function SOut = convert(S)
@@ -27,7 +27,7 @@ classdef Options < nansen.module.abstract.OptionsAdapter
             % CellFind. 
             
             if nargin < 1
-                S = nansen.module.extract.Options.getDefaults();
+                S = nansen.wrapper.extract.Options.getDefaults();
             end
             
             SOut = struct();
@@ -39,8 +39,8 @@ classdef Options < nansen.module.abstract.OptionsAdapter
                 % Rename fields from cellfind substruct
                 if strcmp(fieldsTopLevel{i}, 'CellFind')
                     
-                    nameMap = nansen.module.extract.Options.getAdapter();
-                    sTmp = nansen.module.abstract.OptionsAdapter.rename(S, nameMap);
+                    nameMap = nansen.wrapper.extract.Options.getAdapter();
+                    sTmp = nansen.wrapper.abstract.OptionsAdapter.rename(S, nameMap);
                     configNames = fieldnames(sTmp);
                         
                     for j = 1:numel(configNames)

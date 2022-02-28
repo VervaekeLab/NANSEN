@@ -51,7 +51,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 %obj.loadSettings()
                 
                 if nargin < 2 || isempty(optsStruct)
-                    [obj.settings, obj.settingsName] = nansen.OptionsManager('nansen.adapter.normcorre').getOptions;
+                    [obj.settings, obj.settingsName] = nansen.OptionsManager('nansen.wrapper.normcorre').getOptions;
                 else
                     obj.settings = optsStruct;
                 end
@@ -121,7 +121,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             
             stackSize = size(Y);
             
-            import nansen.adapter.normcorre.*
+            import nansen.wrapper.normcorre.*
             ncOptions = Options.convert(obj.settings, stackSize);
             
             
@@ -299,7 +299,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
 %             sCellOut = tools.editStruct(sCell, nan, titleStr, ...
 %                         'Name', names, 'Callback', callbacks);
             
-            optManager = nansen.OptionsManager('nansen.adapter.normcorre');
+            optManager = nansen.OptionsManager('nansen.wrapper.normcorre');
             obj.settings = tools.editStruct(obj.settings, nan, titleStr, ...
                 'OptionsManager', optManager, 'Callback', callbacks, ...
                 'CurrentOptionsSet',  obj.settingsName);

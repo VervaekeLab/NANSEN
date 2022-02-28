@@ -1,4 +1,4 @@
-classdef Default < nansen.module.flowreg.Options
+classdef Default < nansen.wrapper.flowreg.Options
 
     properties (Constant)
         Name = 'Flowreg Preset'
@@ -7,9 +7,9 @@ classdef Default < nansen.module.flowreg.Options
     
     methods (Static)
         
-%         function S = getOptions()
-%             S = getOptions@nansen.module.flowreg.Options();
-%         end
+        function S = getOptions()
+            S = getOptions@nansen.wrapper.flowreg.Options();
+        end
         
     end
     

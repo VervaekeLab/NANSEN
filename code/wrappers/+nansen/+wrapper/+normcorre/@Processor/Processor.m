@@ -1,8 +1,8 @@
 classdef Processor < nansen.processing.MotionCorrection & ...
-                        nansen.module.abstract.ToolboxWrapper
-%nansen.module.normcorre.Processor Wrapper for running normcorre on nansen
+                        nansen.wrapper.abstract.ToolboxWrapper
+%nansen.wrapper.normcorre.Processor Wrapper for running normcorre on nansen
 %
-%   h = nansen.module.normcorre.Processor(imageStackReference)
+%   h = nansen.wrapper.normcorre.Processor(imageStackReference)
 %
 %   This class provides functionality for running normcorre within
 %   the nansen package.
@@ -24,7 +24,8 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         MethodName = 'Motion Correction (NoRMCorre)'
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
-        OptionsManager = nansen.OptionsManager('nansen.module.normcorre.Processor')
+        OptionsManager nansen.manage.OptionsManager = ...
+            nansen.OptionsManager('nansen.wrapper.normcorre.Processor')
     end
     
     properties (Constant) % From motion correction
@@ -34,16 +35,16 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
     
 % % %     properties (Constant, Access = protected)
-% % %         DependentPaths = nansen.module.normcorre.getDependentPaths()
+% % %         DependentPaths = nansen.wrapper.normcorre.getDependentPaths()
 % % %     end
     
     
     methods % Constructor 
         
         function obj = Processor(varargin)
-        %nansen.module.normcorre.Processor Construct normcorre processor
+        %nansen.wrapper.normcorre.Processor Construct normcorre processor
         %
-        %   h = nansen.module.normcorre.Processor(imageStackReference)
+        %   h = nansen.wrapper.normcorre.Processor(imageStackReference)
             
             obj@nansen.processing.MotionCorrection(varargin{:})
             
@@ -105,7 +106,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % validate/assert that arg is good
             stackSize = varargin{1};
             
-            import nansen.module.normcorre.Options
+            import nansen.wrapper.normcorre.Options
             opts = Options.convert(obj.Options, stackSize);
             
             optionsVarname = 'normcorreOptions';
@@ -185,7 +186,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             % Todo: Select number of frames (and iterations) to use based
             % on options...
-            M = nansen.module.normcorre.utility.rigid(imArray);
+            M = nansen.wrapper.normcorre.utility.rigid(imArray);
             
             % Todo: Find correct dimension to average...?
             template = mean(M, 3);

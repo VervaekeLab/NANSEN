@@ -1,4 +1,4 @@
-classdef Rigid < nansen.module.normcorre.Options
+classdef Rigid < nansen.wrapper.normcorre.Options
 %Rigid Preconfigured options for rigid motion correction using normcorre
 
     properties (Constant)
@@ -10,7 +10,7 @@ classdef Rigid < nansen.module.normcorre.Options
         
         function S = getOptions()
             
-            S = getOptions@nansen.module.normcorre.Options();
+            S = getOptions@nansen.wrapper.normcorre.Options();
 
             % Todo: Make sure gridsize can not be changed for rigid...
             S.Configuration.numRows         = 1;                    % Size of non-overlapping portion of each patch in the grid (y-direction)
