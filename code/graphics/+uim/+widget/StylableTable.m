@@ -22,6 +22,7 @@ classdef StylableTable < uiw.widget.Table
         UseDefaultHeader = true
         
         HeaderPressedCallback = []
+        HeaderReleasedCallback = []
     end
     
     properties %(Access = protected, Dependent)
@@ -133,6 +134,10 @@ classdef StylableTable < uiw.widget.Table
         
         function xOffset = getHorizontalScrollOffset(obj)
             xOffset = get(obj.JHScroller, 'Value');
+        end
+        
+        function yOffset = getVerticalScrollOffset(obj)
+            yOffset = get(obj.JVScroller, 'Value');
         end
         
         function showHorizontalScroller(obj)
@@ -390,6 +395,10 @@ classdef StylableTable < uiw.widget.Table
                 end
                 
                 obj.WasMouseDraggedInHeader = false;
+            else
+                if ~isempty(obj.HeaderReleasedCallback)
+                    obj.HeaderReleasedCallback(src, evt)
+                end
             end
         end
 
