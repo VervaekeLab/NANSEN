@@ -1116,7 +1116,7 @@ methods % App initialization & creation
         
         if obj.imHeight==0 || obj.imWidth == 0; return; end
         if obj.nFrames == 1; return; end
-        
+        return
         
         % Only proceed if this widget is not initialized/present.
         if ~isfield(obj.uiwidgets, 'thumbnailSelector') || ...
@@ -2735,49 +2735,10 @@ methods % Misc, most can be outsourced
     
     function manualLinkProp(obj)
         
-        % Find all open figures that has a viewer object.
-        openFigures = findall(0, 'Type', 'Figure');
+        % Todo: Modify this:
+        viewerNames = {'StackViewer', 'imviewer', 'Signal Viewer', 'Roi Classifier'};
         
-        isMatch = contains({openFigures.Name}, {'StackViewer', 'Signal Viewer', 'Roi Classifier'});
-        
-        % Dont include self.
-        isMatch = isMatch & ~ismember(openFigures, obj.Figure)';
-
-        if any(isMatch)
-            tf = true;
-        else
-            tf = false;
-        end
-        
-        if ~tf
-            obj.uiwidgets.msgBox.displayMessage('There are no open viewers to connect to', 2); 
-            return
-        end
-    
-        
-        figInd = find(isMatch);
-
-        % Select figure window from selection dialog
-        if sum(isMatch) >= 1
-
-            figNames = {openFigures(figInd).Name};
-%             figNumbers = [openFigures(figInd).Number];
-%             figNumbers = arrayfun(@(n) sprintf('%d:', n), figNumbers, 'uni', 0); 
-%             figNames = strcat(figNumbers ,figNames);
-
-            % Open a listbox selection to figure
-            [selectedInd, tf] = listdlg(...
-                'PromptString', 'Select figure:', ...
-                'SelectionMode', 'single', ...
-                'ListString', figNames );
-
-            if ~tf; return; end
-
-            figInd = figInd(selectedInd);
-
-        end
-        
-        hApp = getappdata(openFigures(figInd), 'ViewerObject');
+        hApp = obj.uiSelectViewer(viewerNames, obj.Figure);
         obj.linkprop(hApp, 'currentFrameNo')
         
     end
@@ -4486,7 +4447,8 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 try
                     wasCaptured = obj.plugins(i).pluginHandle.onKeyPress([], event);
                     if wasCaptured; return; end
-                catch
+                catch ME
+                    fprintf( [ME.message, '\n'] )
                     % something went wrong, but thats fine?
                 end
             end
@@ -5179,10 +5141,69 @@ methods (Static)
         
     end
     
-%     function tf = isvalid(h)
-%         tf = isvalid(h.Figure);
-%     end
+    function hApp = uiSelectViewer(viewerNames, hFigure)
+        
+        % Todo: make this method of superclass??
+        % INPUTS:
+        %   viewerNames : list (cell array) of app names to look for
+        %   hFigure : figure handle of figure to ignore (optional)
+        %   
+        %   
+        % Supported names: {'StackViewer', 'Signal Viewer', 'Roi Classifier'}
+        
+        if nargin < 1
+            viewerNames = {'StackViewer', 'imviewer'};
+        end
+        if nargin < 2
+            hFigure = [];
+        end
+        
+        % Find all open figures that has a viewer object.
+        openFigures = findall(0, 'Type', 'Figure');
+        
+        isMatch = contains({openFigures.Name}, viewerNames);
+        
+        % Dont include self.
+        isMatch = isMatch & ~ismember(openFigures, hFigure)';
 
+        if any(isMatch)
+            tf = true;
+        else
+            tf = false;
+        end
+      
+        if ~tf
+            msgbox('There are no open viewers to connect to', 'Aborting'); 
+            return
+        end
+    
+        
+        figInd = find(isMatch);
+
+        % Select figure window from selection dialog
+        if sum(isMatch) > 1
+
+            figNames = {openFigures(figInd).Name};
+%             figNumbers = [openFigures(figInd).Number];
+%             figNumbers = arrayfun(@(n) sprintf('%d:', n), figNumbers, 'uni', 0); 
+%             figNames = strcat(figNumbers ,figNames);
+
+            % Open a listbox selection to figure
+            [selectedInd, tf] = listdlg(...
+                'PromptString', 'Select figure:', ...
+                'SelectionMode', 'single', ...
+                'ListString', figNames );
+
+            if ~tf; return; end
+
+            figInd = figInd(selectedInd);
+
+        end
+        
+        hApp = getappdata(openFigures(figInd), 'ViewerObject');
+    
+    end
+    
 end
 
 end

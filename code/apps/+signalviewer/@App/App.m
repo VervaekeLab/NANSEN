@@ -780,7 +780,8 @@ classdef App < applify.ModularApp
                 end
 
                 tsArray = cellfun(@(v) timeseries(v), data);
-
+            elseif isa(data, 'timeseries')
+                tsArray = data;
             elseif isrow(data) 
                 tsArray = timeseries(data');
             elseif iscolumn(data)
@@ -1919,6 +1920,71 @@ classdef App < applify.ModularApp
             pathStr = fullfile(rootDir, 'resources', 'icons');
 
         end
+        
+        
+        function hApp = uiSelectViewer(viewerNames, hFigure)
+        
+            % Todo: make this method of superclass??
+            % INPUTS:
+            %   viewerNames : list (cell array) of app names to look for
+            %   hFigure : figure handle of figure to ignore (optional)
+            %   
+            %   
+            % Supported names: {'StackViewer', 'Signal Viewer', 'Roi Classifier'}
+
+            if nargin < 1
+                viewerNames = {'Signal Viewer'};
+            end
+            if nargin < 2
+                hFigure = [];
+            end
+            
+            hApp = [];
+            
+            % Find all open figures that has a viewer object.
+            openFigures = findall(0, 'Type', 'Figure');
+
+            isMatch = contains({openFigures.Name}, viewerNames);
+
+            % Dont include self.
+            isMatch = isMatch & ~ismember(openFigures, hFigure)';
+
+            if any(isMatch)
+                tf = true;
+            else
+                tf = false;
+            end
+            
+            if ~tf
+                return
+            end
+
+            figInd = find(isMatch);
+
+            % Select figure window from selection dialog
+            if sum(isMatch) > 1
+
+                figNames = {openFigures(figInd).Name};
+    %             figNumbers = [openFigures(figInd).Number];
+    %             figNumbers = arrayfun(@(n) sprintf('%d:', n), figNumbers, 'uni', 0); 
+    %             figNames = strcat(figNumbers ,figNames);
+
+                % Open a listbox selection to figure
+                [selectedInd, tf] = listdlg(...
+                    'PromptString', 'Select figure:', ...
+                    'SelectionMode', 'single', ...
+                    'ListString', figNames );
+
+                if ~tf; return; end
+
+                figInd = figInd(selectedInd);
+
+            end
+
+            hApp = getappdata(openFigures(figInd), 'ViewerObject');
+
+        end
+    
         
     end
 
