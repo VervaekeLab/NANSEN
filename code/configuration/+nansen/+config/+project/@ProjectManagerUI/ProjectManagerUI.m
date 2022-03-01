@@ -173,7 +173,6 @@ classdef ProjectManagerUI < handle
             hLabel = uilabel(obj.TabList(1));
             hLabel.FontName = 'Segoe UI';
             hLabel.FontWeight = 'bold';
-            hLabel.Tooltip = {'(a-z, A-Z, 1-9, _)'};
             hLabel.Position = [51 163 158 22];
             hLabel.Text = 'Enter a short project name';
             
@@ -182,8 +181,13 @@ classdef ProjectManagerUI < handle
             hEditField.ValueChangingFcn = @obj.ProjectLabelEditFieldValueChanging;
             hEditField.FontName = 'Segoe UI';
             hEditField.FontWeight = 'bold';
-            hEditField.Tooltip = {'(a-z, A-Z, 1-9, _)'};
             hEditField.Position = [49 141 169 22];
+            
+            % Set tooltips (no tooltip prop in older versions of matlab)
+            try
+                hLabel.Tooltip = {'(a-z, A-Z, 1-9, _)'};
+                hEditField.Tooltip = {'(a-z, A-Z, 1-9, _)'};
+            end
             
             obj.UILabels.ProjectShortNameInput = hLabel;
             obj.UIControls.ProjectShortNameInput = hEditField;
@@ -245,17 +249,25 @@ classdef ProjectManagerUI < handle
             
             T = [tableColumn, T];
             
-            obj.UIControls.ProjectTable.Data = T;
+            try
+                obj.UIControls.ProjectTable.Data = T;
+                
+            catch
+                obj.UIControls.ProjectTable.Data = table2cell(T);
+                obj.UIControls.ProjectTable.ColumnName = T.Properties.VariableNames;
+            end
             
-            obj.setRowStyle('Current Project', find(isCurrent))
-            
-            
-            s = uistyle('FontWeight', 'bold');
-            addStyle(obj.UIControls.ProjectTable, s, 'row', find(isCurrent));
-            
-            
-            if isempty(obj.UIControls.ProjectTable.UIContextMenu)
-                obj.createTableContextMenu()
+            try % Only available in newer matlab versions...
+                obj.setRowStyle('Current Project', find(isCurrent))
+
+                s = uistyle('FontWeight', 'bold');
+                addStyle(obj.UIControls.ProjectTable, s, 'row', find(isCurrent));
+
+                if isempty(obj.UIControls.ProjectTable.UIContextMenu)
+                    obj.createTableContextMenu()
+                end
+            catch
+                warning('Some features of the project table are not created properly. Matlab 2018b or newer is required.')
             end
             
             if isempty(obj.UIControls.ProjectTable.CellSelectionCallback)
@@ -323,13 +335,22 @@ classdef ProjectManagerUI < handle
             % Todo: What if something failed
             obj.uialert(msg, 'Changed Project', 'success')
             
-            obj.setRowStyle('Current Project', rowIdx)
+            try % Note: Does not work in older versions of matlab
+                obj.setRowStyle('Current Project', rowIdx)
+                obj.UIControls.ProjectTable.Data(:, 'Current') = {false};
+                obj.UIControls.ProjectTable.Data(rowIdx, 'Current') = {true};
+            catch
+                obj.UIControls.ProjectTable.Data(:, 1) = {false};
+                obj.UIControls.ProjectTable.Data(rowIdx, 1) = {true};                
+            end
             
-            obj.UIControls.ProjectTable.Data(:, 'Current') = {false};
-            obj.UIControls.ProjectTable.Data(rowIdx, 'Current') = {true};
+            
 
-            obj.notify('ProjectChanged', event.EventData)
             
+            obj.notify('ProjectChanged', event.EventData)
+
+            
+
         end
         
         function deleteProject(obj, rowIdx)
@@ -401,9 +422,14 @@ classdef ProjectManagerUI < handle
         function name = getNameFromRowIndex(obj, rowIndex)
         %getNameFromRowIndex Get name of project from row index    
             
-            name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 2};    % Name colum index = 2
-            if iscell(name)
-                name = name{1};
+            try
+                name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 2};    % Name colum index = 2
+                if iscell(name)
+                    name = name{1};
+                end
+                
+            catch % DisplayData not available in older versions of matlab.
+                name = obj.UIControls.ProjectTable.Data{rowIndex, 2};
             end
             
         end
@@ -581,7 +607,7 @@ classdef ProjectManagerUI < handle
         
         function onTableCellEdited(obj, src, evt)
             
-            if evt.Indices(2) == 2
+            if evt.Indices(2) == 3
                 return % Todo: Save project data...
             end
             

@@ -10,6 +10,8 @@ classdef MetaTableCatalog < uim.handle
 %   Q:
 %       a) Should it subclass from StorableCatalog?
 %
+%   Todo:
+%       [ ] Subclass from StorableCatalog.
     
     properties %(SetAccess = private)
         FilePath    % Filepath where the catalog is stored locally
