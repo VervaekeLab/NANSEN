@@ -417,8 +417,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             % Check if any parts can be skipped
             partsToSkip = [];
             for iPart = partsToProcess
-
-                IND = frameInd{iPart};
                 
                 % Checks if shifts already exist for this part
                 isPartFinished = obj.checkIfPartIsFinished(iPart);

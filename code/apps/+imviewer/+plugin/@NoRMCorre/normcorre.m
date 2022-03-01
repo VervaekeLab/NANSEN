@@ -182,11 +182,13 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
         
         function runAlign(obj)
             
-            pathStr = obj.imviewerRef.filePath;
+            pathStr = obj.imviewerRef.ImageStack.FileName;
             
             hSession = nansen.metadata.schema.dummy.TwoPhotonSession( pathStr );
 
-            process.imageRegistration.normcorre(hSession, obj.settings);
+            %%hSession = nansen.metadata.type.Session( pathStr );
+            
+            ophys.twophoton.process.motionCorrection.normcorre(hSession, obj.settings);
             
         end
         
@@ -328,6 +330,12 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             
             delete(obj.hGridLines)
             delete(obj.hGridOverlaps)
+            
+            drawnow
+            
+            if ~obj.wasAborted
+                obj.runAlign;
+            end
         end
         
     end

@@ -76,7 +76,9 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
             Y = [];
         end
         
-        function tf = checkIfPartIsFinished(obj, frameIndices)
+        function tf = checkIfPartIsFinished(obj, partNumber)
+        %checkIfPartIsFinished Check if specified part is completed        
+            frameIndices = obj.FrameIndPerPart{partNumber};
             tf = all( ~isnan(obj.ImageStats.meanValue(frameIndices) ) );
         end
         

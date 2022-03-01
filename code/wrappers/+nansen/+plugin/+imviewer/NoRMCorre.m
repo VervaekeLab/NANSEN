@@ -179,11 +179,13 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
         
         function runAlign(obj)
             
-            pathStr = obj.imviewerRef.filePath;
+            pathStr = obj.imviewerRef.ImageStack.FileName;
             
+            % Todo... Create session from path. 
+            % create variable and link to path/session/datalocation
             hSession = nansen.metadata.schema.dummy.TwoPhotonSession( pathStr );
-
-            process.imageRegistration.normcorre(hSession, obj.settings);
+            
+            ophys.twophoton.process.motionCorrection.normcorre(hSession, obj.settings);
             
         end
         
@@ -300,16 +302,19 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
 %                         'Name', names, 'Callback', callbacks);
             
             optManager = nansen.OptionsManager('nansen.wrapper.normcorre');
-            obj.settings = tools.editStruct(obj.settings, nan, titleStr, ...
+            [obj.settings, wasAborted] = tools.editStruct(obj.settings, nan, titleStr, ...
                 'OptionsManager', optManager, 'Callback', callbacks, ...
                 'CurrentOptionsSet',  obj.settingsName);
    
-                    
             %obj.settings = cell2struct(sCellOut, names);
             %obj.saveSettings()
-            
+          
             delete(obj.hGridLines)
             delete(obj.hGridOverlaps)
+            
+            if ~wasAborted
+                obj.runAlign() 
+            end
         end
         
     end
