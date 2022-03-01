@@ -898,7 +898,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onProjectChanged(app, varargin)
             app.TableIsUpdating = true;
-                        
+            
+            % Todo: Remove. TEMP:
+            h = nansen.metadata.MetaTableCatalog();
+            
             app.UiMetaTableViewer.resetTable()
             app.UiMetaTableViewer.refreshTable(table.empty, true)
             

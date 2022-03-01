@@ -11,7 +11,7 @@ classdef MetaTableCatalog < uim.handle
 %       a) Should it subclass from StorableCatalog?
 %
     
-    properties (SetAccess = private)
+    properties %(SetAccess = private)
         FilePath    % Filepath where the catalog is stored locally
         Table       % Catalog represented with a table
     end
@@ -29,6 +29,22 @@ classdef MetaTableCatalog < uim.handle
             end
             
             obj.load();
+            obj.fixMetatable()
+        end
+        
+        function fixMetatable(obj)
+            % Todo: Remove this
+            obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
+            obj.save()
+            
+            for i = 1:size(obj.Table,1)
+                fileValues = obj.Table{i, {'SavePath', 'FileName'}};
+                filePath = fullfile(fileValues{:});
+                
+                S = load(filePath);
+                S.MetaTableClass = 'nansen.metadata.type.Session';
+                save(filePath, '-struct', 'S')
+            end
         end
         
         function disp(obj)
