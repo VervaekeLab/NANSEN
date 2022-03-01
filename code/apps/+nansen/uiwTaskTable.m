@@ -8,8 +8,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
 
 
 
-        
-    
     % TODO:
     %  1 Same right click functionality as in info table. E.g. right click
     %    should select new cell and rightclick when many cells are selected
@@ -17,18 +15,30 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
     %  2 Select the whole row.
     
     
+% Resizing. 
+%
+%   Some tradeoffs with table resizing: 
+%   - if columnresizepolicy is off, columns does not stretch when 
+%     table is resized, but they can be made larger than table...
+%   - if columnresizepolizy is on, columns stretches, but can not be made
+%     larger than table...
+    
 
     properties
         
         TableMode = 'queue' % Or 'history'
         ColumnNames
-
+        ColumnEditable
+        
 %     end
 %     
 %     properties (Access = private)
         Parent
         Table
         jTable
+    end
+    
+    properties (Dependent)
         Position
     end
     
@@ -40,7 +50,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
    
    
    
-    methods
+    methods % Structors
         
         function obj = uiwTaskTable(varargin)
             
@@ -48,10 +58,19 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             
             obj.create()
             
+            obj.createListeners()
             
         end
-       
-
+        
+        
+        function delete(obj)
+            
+        end
+        
+    end
+    
+    methods % Public
+        
         function addTask(obj, tableRow, insertAt)
             
             if isempty(obj.Table.Data)
@@ -67,7 +86,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             
         end
        
-        
         function clearTable(obj)
             obj.Table.Data = {}; % Reset Data.
         end
@@ -75,8 +93,19 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         function selectedRows = get.selectedRows(obj)
             selectedRows = obj.Table.SelectedRows;
         end
+        
     end
     
+    methods %Set/get
+        
+        function set.Position(obj, pos)
+            obj.Table.Position = pos;
+        end
+        function pos = get.Position(obj)
+            pos = obj.Table.Position;
+        end
+        
+    end
     
     methods (Access = private)
         
@@ -94,33 +123,27 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                 'FontName', 'avenir next', ...
                 'SelectionMode', 'discontiguous', ...
                 'Sortable', false, ...
-                'Units','normalized', ...
-                'Position',[0 0.0 1 1], ...
                 'ColumnResizePolicy', 'off', ...
+                'Units','pixels', ...
+                'Position',[0 0.0 1 1], ...
                 'MouseClickedCallback', @obj.tableMousePress, ...
                 'MouseMotionFcn', @obj.onMouseOver);
             
-            % Set position
-            if isempty( obj.Position )
-                obj.Table.Units = 'pixel';
-                pixelpos = getpixelposition(obj.Parent);
-                obj.Table.Position = [1 0 pixelpos(3:4)];
-                obj.Table.Units = 'normalized';
-            else
-                obj.Table.Units = 'pixel';
-                obj.Table.Position = obj.Position;
-                obj.Table.Units = 'normalized';
-                pixelpos = obj.Position;
-                pixelpos(3) = pixelpos(3)-3;
-            end
+            %   'ColumnResizePolicy', 'on', ...
+
             
             obj.Table.ColumnName = obj.ColumnNames;
+            obj.updateTablePosition()
             
             numColumns = numel(obj.ColumnNames);
             
-
-            obj.Table.ColumnEditable = logical([0,0,0,0,0,1]);
-            obj.Table.ColumnFormat = {'char', 'char', 'char', 'char', 'popup', 'char'};
+            if ~isempty(obj.ColumnEditable)
+                obj.Table.ColumnEditable = obj.ColumnEditable;
+            else % Use defaults...
+                obj.Table.ColumnEditable = logical([0,0,0,0,0,1]);
+                obj.Table.ColumnFormat = {'char', 'char', 'char', 'char', 'popup', 'char'};
+            end
+                        
             % Change appearance
             %obj.Table.FontName = 'Avenir New';
             %obj.Table.FontSize = 10;
@@ -148,12 +171,18 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             %width = javaRect.getWidth();
             
             % Set columnwidths
-            width = pixelpos(3);
+            tablePixelPos = getpixelposition(obj.Table);
+            width = tablePixelPos(3);
             obj.Table.ColumnPreferredWidth = arrayfun(@(i) round(width/numColumns), 1:numColumns, 'uni', 1 ); 
 
             obj.Table.Data = {}; % Reset Data.
         end
         
+        function createListeners(obj)
+            
+            addlistener(obj.Parent, 'ObjectBeingDestroyed', @(s,e) obj.delete);
+            addlistener(obj.Parent, 'SizeChanged', @(s,e) obj.onSizeChanged);
+        end
         
         function tableMousePress(obj, ~, event)
         %tableMousePress Callback for mousepress in table.
@@ -197,8 +226,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             
         end
         
-        
-
          % Cell selection callback: UITableSessionList 
         function onCellSelection(obj, src, event)
             
@@ -285,6 +312,22 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             
         end
         
+        function onSizeChanged(obj, src, event)
+            
+            obj.updateTablePosition()
+            
+        end
+        
+        function updateTablePosition(obj)
+                        
+            MARGINS = [10, 10];
+            parentPos = getpixelposition(obj.Parent);
+                    
+
+            newTablePosition = [MARGINS, parentPos(3:4) - MARGINS*2];
+            obj.Table.Position = newTablePosition;
+            
+        end
         
     end % /methods (Access = private)
     

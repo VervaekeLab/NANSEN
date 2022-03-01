@@ -13,6 +13,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     
 % - - - - - - - - - - - - - - - TODO - - - - - - - - - - - - - - - - -
     %  *[ ] Update table without emptying data! Use add column/remove
+    %   [ ] jTable.setPreserveSelectionsAfterSorting(true); Is this useful
+    %       here???
+    %   [ ] Save table settings to project folder
+
     %       column from the java column model when hiding/showing columns
     %   [ ] Outsource everything column related to column model
     %   [ ] Create table with all columns and store the tablecolumn objects in the column model if rows are hidden? 
@@ -27,10 +31,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     %       might contain data which is not renderable in the uitable, i.e
     %       structs. If table data is changed, and data is put back into
     %       the table version of the MetaTable, the set.MetaTable methods
-    %       creates a downstream bug because is sets it and consequently
+    %       creates a downstream bug because it sets it, and consequently
     %       the MetaTableCell property without getting formatted data from
     %       the metatable class. For now, I keep as it is, because the only
-    %       column I edit is the ignore column, and the MEtaTable property
+    %       column I edit is the ignore column, and the MetaTable property
     %       is not used anywhere. But this can be a BIG PROBLEM if things
     %       change some time.
     
@@ -49,6 +53,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         SelectedEntries         % Selected rows from full table, irrespective of sorting and filtering.
         CellEditCallback
         KeyPressCallback
+        
+        MouseDoubleClickedFcn = [] % This should be internalized, but for now it is assigned from session browser/nansen
         
         DeleteColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
         UpdateColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
@@ -80,9 +86,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         DataFilterMap = []
         ColumnWidthChangedListener
         ColumnsRearrangedListener
+        
+        ColumnPressedTimer
     end
     
     properties (Access = private)
+        lastMousePressTic
         isConstructed = false;
     end
     
@@ -186,12 +195,49 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.ColumnModel.updateColumnEditableState()
         end
         
+        function resetTable(obj)
+            obj.MetaTable = table.empty;
+        end
+        
+        function updateCells(obj, rowIdx, colIdx, newData)
+        %updateCells Update subset of cells...
+        
+            obj.MetaTableCell(rowIdx, colIdx) = newData;
+            
+            % Todo: Need to find the corresponding cell in the viewable
+            % table...
+            
+            % Get based on user selection of which columns to display
+            colIdxVisible = obj.getCurrentColumnSelection();
+            
+            % Get based on filter states
+            rowIdxVisible = obj.getCurrentRowSelection();
+            
+            % Get the row taking the table sorting into account:
+            %dataInd = get(obj.HTable.JTable.Model, 'Indexes');
+
+            if ~isempty(obj.HTable.RowSortIndex)
+                rowIdxVisible = rowIdxVisible(obj.HTable.RowSortIndex);
+            end
+            
+            [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
+            [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
+            obj.HTable.setCell(uiTableRowIdx, uiTableColIdx, newData)
+            
+            %obj.HTable.Data(uiTableRowIdx, uiTableColIdx) = newData;
+            drawnow
+            
+        end
+        
         function refreshTable(obj, newTable, flushTable)
         %refreshTable Method for refreshing the table
         
             % TODO: Make sure the selection is maintained.
         
-            if nargin >= 2 %&& ~isempty(newTable)
+            % Note: when line below is commented out, tables refresh better
+            % when changing projects.
+            
+            if nargin >= 2 && ~isempty(newTable) % Note: This was commented out, but I dont remember why!
                 obj.MetaTable = newTable;
             end
             
@@ -206,8 +252,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.HTable.Data = {};
             end
             
-
-            
             drawnow
             obj.updateColumnLayout()
             obj.DataFilterMap = []; % reset data filter map
@@ -219,17 +263,32 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
         
-        function rowInd = getMetaTableRows(obj, rowInd)
+        function replaceTable(obj, newTable)
+            obj.MetaTable = newTable;
+            obj.updateTableView()
+        end
+        
+        function rowInd = getMetaTableRows(obj, rowIndDisplay)
             
             % Todo: Determine if this method is useful in 
             % getSelectedEntries/setSelectedEntries?
             dataInd = get(obj.HTable.JTable.Model, 'Indexes');
             
             if ~isempty(dataInd)
-                rowInd = dataInd(rowInd)+1; % +1 because java indices start at 0
-                rowInd = transpose( double( sort(rowInd) ) ); % return as row vector
+                rowInd = dataInd(rowIndDisplay)+1; % +1 because java indices start at 0
             else
-                rowInd = rowInd; 
+                rowInd = rowIndDisplay; 
+            end
+      
+            % Get currently visible row and column indices.
+            visibleRowInd = obj.getCurrentRowSelection();
+            
+            % Get row and column indices for original data (unfiltered, unsorted, allcolumns)
+            rowInd = visibleRowInd(rowInd);
+            
+            % Make sure output is a column vector
+            if iscolumn(rowInd)
+                rowInd = transpose(rowInd);
             end
             
         end
@@ -331,6 +390,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         'Units','normalized', ...
                         'Position',[0 0.0 1 1], ...
                         'HeaderPressedCallback', @obj.onMousePressedInHeader, ...
+                        'HeaderReleasedCallback', @obj.onMouseReleasedFromHeader, ...
                         'MouseClickedCallback', @obj.onMousePressedInTable, ...
                         'Visible', 'off', ...
                         'BackgroundColor', [1,1,0.5]);
@@ -383,8 +443,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Sort Z-A');
             hTmp.Tag = 'Sort Descend';
             
-            hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Filter...');
-            hTmp.Tag = 'Filter';
+% %             hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Filter...');
+% %             hTmp.Tag = 'Filter';
+% %             hTmp.Separator = 'on';
+            
+            hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Reset Filters');
+            hTmp.Tag = 'Reset Filters';
             hTmp.Separator = 'on';
             
             hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Hide this column');
@@ -518,6 +582,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             columnNames = obj.ColumnModel.getColumnNames();
             if obj.AllowTableEdits
                 allowEdit( contains(lower(columnNames), 'ignore') ) = true;
+                allowEdit( contains(lower(columnNames), 'description') ) = true;
             else
                 allowEdit(:) = false;
             end
@@ -535,13 +600,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             % Todo: Get based on filter states
             rows = obj.getCurrentRowSelection(); 
-
+            
             % Table data should already be formatted
             obj.HTable.Data = obj.MetaTableCell(rows, columns);
             obj.HTable.Visible = 'on';
             drawnow
         end
-     
+        
+        
         function changeColumnNames(obj, newNames)
             obj.HTable.ColumnName = newNames;
         end % Todo: make dependent property and set method (?)
@@ -612,7 +678,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 
                     % Negate values of the ignore flag in the filter map
                     obj.DataFilterMap(:, isIgnoreColumn) = ~isIgnored;
-                    
                 end
             end
             
@@ -631,11 +696,56 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
  
     methods (Access = private) % Mouse / user event callbacks
         
+        function onHeaderPressTimerRunOut(obj, src, evt)
+            
+            stop(obj.ColumnPressedTimer)
+            delete(obj.ColumnPressedTimer)
+            obj.ColumnPressedTimer = [];
+            
+            clickPosX = get(evt, 'X');
+            clickPosY = get(evt, 'Y');
+            obj.openColumnFilter(clickPosX, clickPosY)
+            
+        end
+        
+        
+        
+        function onMouseReleasedFromHeader(obj, src, evt)
+                        
+            if ~isempty(obj.ColumnPressedTimer)
+                stop(obj.ColumnPressedTimer)
+                delete(obj.ColumnPressedTimer)
+                obj.ColumnPressedTimer = [];
+                
+                % Mouse was released before 1 second passed.
+                obj.HTable.JTable.getModel().setSortable(1)
+                
+            end
+                
+            
+        end
+        
         function onMousePressedInHeader(obj, src, evt)
             
             buttonNum = get(evt, 'Button');
+            obj.lastMousePressTic = tic;
+
+            % Need to call this to make sure filterdropdowns disappear if
+            % mouse is pressed in column header...
+            obj.ColumnFilter.hideFilters();
             
-            if buttonNum == 3 %rightclick
+            if buttonNum == 1 && get(evt, 'ClickCount') == 1
+                
+                if isempty(obj.ColumnPressedTimer)
+                    obj.ColumnPressedTimer = timer();
+                    obj.ColumnPressedTimer.Period = 1;
+                    obj.ColumnPressedTimer.StartDelay = 0.25;
+                    obj.ColumnPressedTimer.TimerFcn = @(s,e) obj.onHeaderPressTimerRunOut(s, evt);
+                    start(obj.ColumnPressedTimer)
+                    obj.HTable.JTable.getModel().setSortable(0)
+                end
+                
+            elseif buttonNum == 3 %rightclick
                 
                 % These are coords in table
                 clickPosX = get(evt, 'X');
@@ -645,7 +755,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 
                 obj.openColumnContextMenu(clickPosX, clickPosY);
             end
-            
+
         end
         
         function onMousePressedInTable(obj, src, evt)
@@ -658,12 +768,29 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Return if instance is not valid.
             if ~exist('obj', 'var') || ~isvalid(obj); return; end
 
+            obj.ColumnFilter.hideFilters()
 
             if strcmp(evt.SelectionType, 'normal')
                 % Do nothing.
+                % Get row where mouse press ocurred.
+                row = evt.Cell(1); col = evt.Cell(2);
+                if row == 0 || col == 0
+                    obj.HTable.SelectedRows = [];
+                    
+                    % Make sure editable cell is not in focus, because that
+                    % shit is ugly...
+                    colIdx = find( ~obj.HTable.ColumnEditable, 1, 'first');
+                    selectionModel = obj.HTable.JTable.getColumnModel.getSelectionModel;
+                    set(selectionModel, 'LeadSelectionIndex', colIdx-1)
+                end
+                
                     
             elseif strcmp(evt.SelectionType, 'open')
             
+                if ~isempty(obj.MouseDoubleClickedFcn)
+                    obj.MouseDoubleClickedFcn(src, evt)
+                end
+                
                 % Todo:
                 % Double click action should depend on which column click
                 % happens over.
@@ -688,16 +815,24 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
                     
             elseif evt.Button == 3 || strcmp(evt.SelectionType, 'alt')
+                
+                if ismac && evt.Button == 1 && evt.MetaOn
+                    return % Command click on mac should not count as right click
+                end
 
                 
-                    
                 % Get row where mouse press ocurred.
-                row = evt.Cell(1);
+                row = evt.Cell(1); col = evt.Cell(2);
                 
                 % Select row where mouse is pressed if it is not already
                 % selected
-                if ~ismember(row, obj.HTable.SelectedRows)
-                    obj.HTable.SelectedRows = row;
+                if ~ismember(row, obj.HTable.SelectedRows) 
+                    if row > 0 && col > 0
+                        obj.HTable.SelectedRows = row;
+                    else
+                        obj.HTable.SelectedRows = [];
+                        return
+                    end
                 end
                 
                 % Get scroll positions in table
@@ -738,7 +873,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Get row and column indices for original data (unfiltered, unsorted, allcolumns)
             tableRowInd = rowInd(evtData.Indices(1));
             
-            evtColIdx = obj.ColumnModel.getColumnIdx( evtData.Indices(2) );
+            evtColIdx = obj.ColumnModel.getColumnIdx( evtData.Indices(2) ); % 2 is for columns
             tableColInd = colInd(evtColIdx);
             
             
@@ -769,16 +904,30 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.ColumnModel.setNewColumnOrder(newColumnArrangement)
         end
         
+        function columnIdx = getColumnAtPoint(obj, x, y)
+        %getColumnAtPoint Returns the column index at point (x,y)
+        %    
+        %   Conversion from java to matlab:
+            
+            mPos = java.awt.Point(x, y);
+            columnIdx = obj.HTable.JTable.columnAtPoint(mPos) + 1; 
+            % Note, java indexing starts at 0, so added 1.
+            
+        end
+        
+        function [x, y] = figurePoint2tablePoint(obj, x, y)
+            
+            
+            
+        end
+
         function openColumnContextMenu(obj, x, y)
             
             if isempty(obj.ColumnContextMenu)
                 obj.createColumnContextMenu()
             end
             
-            mPos = java.awt.Point(x,y);
-            
-            % Todo: select appearance of context menu based on column type.
-            colNumber = obj.HTable.JTable.columnAtPoint(mPos) + 1; % Note, java indexing starts at 0.
+            colNumber = obj.getColumnAtPoint(x, y);
             columnType = obj.HTable.ColumnFormat{colNumber};
             
             [~, varNames] = obj.ColumnModel.getColumnNames();
@@ -791,7 +940,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 error('Variable attributes does not exist. This is unexpected.')
             end
             
-            
+            % Select appearance of context menu based on column type:
             for i = 1:numel(obj.ColumnContextMenu.Children)
                 hTmp = obj.ColumnContextMenu.Children(i);
                 
@@ -820,12 +969,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         
                     case 'Filter'
                         hTmp.Callback = @(s,e,iCol) obj.filterColumn(colNumber);
+                    case 'Reset Filters'
+                        hTmp.Callback = @(s,e,iCol) obj.resetColumnFilters();
                         
                     case 'Hide Column'
                         hTmp.Callback = @(s,e,iCol) obj.hideColumn(colNumber);
                         
                     case 'Update Column'
-                        if varAttr.IsCustom && varAttr.HasFunction
+                        if varAttr.HasFunction % (Does it have to be custom?)% varAttr.IsCustom && varAttr.HasFunction
                             hTmp.Enable = 'on';
                             if ~isempty(obj.UpdateColumnFcn) 
                                 % Children are reversed from creation
@@ -899,8 +1050,34 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         	obj.ColumnModel.hideColumn(columnNumber);
         end
         
-        function filterColumn(obj, columnNumber)
+        function openColumnFilter(obj, x, y)
+        %openColumnFilter Open column filter as dropdown below column header             
+            tableColumnIdx = obj.getColumnAtPoint(x, y);
             
+            colIndices = obj.ColumnModel.getColumnIndices();
+            dataColumnIndex = colIndices(tableColumnIdx);
+            
+            % Todo: Create methods (this is same for column context menu...)
+            % Get position where to open filter popup
+            xOff = obj.HTable.getHorizontalScrollOffset();
+
+            tablePosition = getpixelposition(obj.HTable);
+            y = tablePosition(4);
+            
+            % Set position and make menu visible.
+            popupPosition = [x+20-xOff,y+25];
+                        
+            obj.ColumnFilter.openFilterControl(dataColumnIndex, popupPosition)     
+
+        end
+        
+        function resetColumnFilters(obj)
+            obj.ColumnFilter.resetFilters()
+        end
+        
+        function filterColumn(obj, columnNumber)
+        %filterColumn Open column filter in sidepanel
+        
             colIndices = obj.ColumnModel.getColumnIndices();
             dataColumnIndex = colIndices(columnNumber);
             

@@ -4,6 +4,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     
 % Todo: 
 %   [ ] Separate between recently finished tasks and the complete log
+%   [ ] Dont accept job that already exists when using submitJob. 
+%        - compare at sessionID, taskName and optionsName.
 
 
 %% PROPERTIES
@@ -116,7 +118,9 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         %    
         
             % Todo: Remove numOut, because It should always be 0?
-        
+            % Todo: Dont accept job that already exists. compare at
+            % sessionID, taskName and optionsName
+            
             % Create a struct for the items and a table row for the table
             newTask.name = name;
             newTask.method = func;
@@ -228,11 +232,13 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
            
             drawnow % Need to add this for tables to be positioned properly        
             obj.queueTable = nansen.uiwTaskTable('Parent', obj.queueTab, ...
-                'ColumnNames', obj.queueTableVars);
+                'ColumnNames', obj.queueTableVars, ...
+                'ColumnEditable', [false, false, false, false, false, true] );
 
             
             obj.historyTable = nansen.TaskTable('Parent', obj.historyTab, ...
-                'ColumnNames', obj.historyTableVars);
+                'ColumnNames', obj.historyTableVars, ...
+                'ColumnEditable', [false, false, false, false, false, true] );
 
             
 % % %             obj.processingTable = nansen.uiwTaskTable('Parent', obj.queueTab, ...

@@ -79,9 +79,10 @@ classdef SessionTaskMenu < handle
             
             obj.assignDefaultMethodsPath()
             obj.assignProjectMethodsPath()
-            tic
+            
+            % Todo: Improve performance!
             obj.createMenuFromDirectory(hFig);
-            toc
+            
         end
 
     end
@@ -203,6 +204,9 @@ classdef SessionTaskMenu < handle
         
             if nargin < 3
                 dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
+                init = true;
+            else
+                init = false;
             end
         
             % List contents of directory given in inputs
@@ -215,6 +219,15 @@ classdef SessionTaskMenu < handle
             
             L = L(~strncmp({L.name}, '.', 1));
             
+            if init % Sort menus 
+                
+                % Sort names to come in a specified order...
+                menuOrder = {'+data', '+process', '+analyze', '+plot'};
+                [~, ~, ic] = intersect(menuOrder, {L.name}, 'stable');
+                mySortIdx = unique( [ic', 1:numel(L)], 'stable');
+                L = L(mySortIdx);
+                
+            end
             
             % Loop through contents of directory
             for i = 1:numel(L)
@@ -244,7 +257,7 @@ classdef SessionTaskMenu < handle
                 else
                     [~, fileName, ext] = fileparts(L(i).name);
                     
-                    if ~strcmp(ext, '.m') % Skip files that are not .m
+                    if ~strcmp(ext, '.m') &&  ~strcmp(ext, '.mlx')  % Skip files that are not .m
                         continue
                     end
                     
