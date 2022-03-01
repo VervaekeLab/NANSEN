@@ -83,6 +83,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     properties % Configurations of appearance and layout of app
         
         Title = '' % Title description.
+        Prompt = ''
+        
         showPresetInHeader = false;
         
         LabelPosition = 'Left' % 'Left' | 'Over'
@@ -101,6 +103,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         IsModal logical = false;
         ReferencePosition = []; % If struct editor is opened as a dialog window from another app, open on correct screen
+        
+        AdjustFigureSize = false;
     end
     
     properties % Options manager / preset selection
@@ -381,7 +385,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 if isempty(obj.Title)
                     obj.Figure.Name = obj.AppName;
                 else
-                    obj.Figure.Name = sprintf('%s (%s)', obj.AppName, obj.Title);
+                    obj.Figure.Name = sprintf('%s', obj.Title);
+                    %obj.Figure.Name = sprintf('%s (%s)', obj.AppName, obj.Title);
                 end
                 
             else
@@ -408,14 +413,25 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Update header title
             if ~strcmp(obj.TabMode, 'dropdown')
                 if obj.showPresetInHeader
-                    obj.headerTitle.String = sprintf('Current Options:\n%s', 'Default');
+                    headerMessage = sprintf('Current Options:\n%s', 'Default');
                 elseif obj.showSidePanel && obj.numTabs > 1 && strcmp(obj.TabMode, 'sidebar')
-                    obj.headerTitle.String = sprintf('Edit %s parameters', obj.Name{pageNum});
+                    headerMessage = sprintf('Edit %s parameters', obj.Name{pageNum});
                 else
-                    obj.headerTitle.String = sprintf('Edit parameters for %s', obj.Title);
+                    headerMessage = sprintf('Edit parameters for %s', obj.Title);
                 end
+            else
+                headerMessage = '';
             end
             
+            
+            % Override automatic messages if prompt is given.
+            if ~isempty(obj.Prompt)
+                headerMessage = obj.Prompt;
+            end
+            
+            obj.headerTitle.String = headerMessage;
+
+            % Set header subtitle:
             if obj.showSidePanel && contains(obj.TabMode, 'popup')
                 obj.headerSubtitle.String = obj.Name{pageNum};
 %                 if obj.headerSubtitle.Extent(1) < 1 ??
@@ -424,7 +440,17 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %                     
 %                 end
             end
+
+        end
+        
+        function adjustFigureSizeToComponents(obj)
             
+            if obj.virtualHeight < obj.visibleHeight
+                h = obj.virtualHeight;
+                obj.Figure.Position(4) = h + sum(obj.Margins([2,4])) + 20;
+                uim.utility.centerFigureOnScreen(obj.Figure)
+            end
+                        
         end
         
         function resizePanel(obj, src, evt)
@@ -439,6 +465,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             panelPixelSize = getpixelposition(obj.Panel);
             panelWidth = panelPixelSize(3);
             panelHeight = panelPixelSize(4);            
+            
+            obj.pleaseWaitTxt.Position = obj.pleaseWaitTxt.Extent;
+            obj.pleaseWaitTxt.Units = 'pixels';
+            obj.pleaseWaitTxt.Position(3:4) = [200, 20];
+            obj.pleaseWaitTxt.Units = 'normalized';
+            obj.pleaseWaitTxt.Position(1:2) = 0.5 - obj.pleaseWaitTxt.Position(3:4)/2;
             
             % Note: The control panel is configured as a scrollpanel, so just
             % need to update the visibleHeight property, and should not
@@ -476,6 +508,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if obj.showFooter
                 setpixelposition(obj.footer.hPanel, footerPos);
             end
+            
+
+            
             
             drawnow limitrate
             
@@ -529,10 +564,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function onThemeChanged(obj)
 
             % Todo: Apply changes to toolbars and widgets as well!
-
+            if ~obj.isConstructed; return; end
+            
             S = obj.Theme;
             onThemeChanged@applify.ModularApp(obj)
-                    
+             
             obj.setFigureWindowBackgroundColor( S.FigureBgColor )
 
             allPanels = [obj.header.hPanel, obj.sidebar.hPanel, obj.main.hPanel];
@@ -542,6 +578,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 bgColor = min( [1,1,1 ; obj.Theme.FigureBgColor+0.01] );
                 set(obj.uiPanel.Tab, 'BackgroundColor', bgColor)
             end
+            
+            
             
         end
         
@@ -632,11 +670,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.pleaseWaitTxt.ForegroundColor = obj.Theme.FigureFgColor;
             obj.pleaseWaitTxt.BackgroundColor = obj.Theme.FigureBgColor;
             obj.pleaseWaitTxt.FontSize = 10;
-            obj.pleaseWaitTxt.Position = obj.pleaseWaitTxt.Extent;
-            obj.pleaseWaitTxt.Units = 'normalized';
-            obj.pleaseWaitTxt.Position(2) = 0.5;
-            obj.pleaseWaitTxt.Position(1) = 0.5 - obj.pleaseWaitTxt.Position(3)/2;
-            
             
             obj.resizePanel()
 
@@ -1275,9 +1308,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             X_POSITION = 20;
             
-            if strcmp(obj.LabelPosition, 'Over')
+            if strcmpi(obj.LabelPosition, 'Over')
                 rowSpacing = obj.RowSpacing + obj.FontSize;
-            elseif strcmp(obj.LabelPosition, 'Left')
+            elseif strcmpi(obj.LabelPosition, 'Left')
                 rowSpacing = obj.RowSpacing;
             end
             
@@ -1378,8 +1411,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                     otherwise
                         val = eval(strcat('S', '.', currentProperty));
-                        obj.newInputField(contentPanel, y, currentProperty, val, config)
-                        y = y + obj.RowHeight + rowSpacing;
+                        yCorrTmp = obj.newInputField(contentPanel, y, currentProperty, val, config);
+                        %yCorr = yCorr + yCorrTmp;
+                        y = y + obj.RowHeight + rowSpacing + yCorrTmp;
                 end
             end
 
@@ -1395,6 +1429,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.moveElementsToTop()
 
             obj.isTabCreated(panelNum) = true;
+            
+            if obj.AdjustFigureSize
+                obj.adjustFigureSizeToComponents()
+            end
             
         end
         
@@ -1432,7 +1470,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         % Note inputbox belongs to guiPanel
-        function newInputField(obj, guiAxes, y, name, val, config)
+        function hcorr = newInputField(obj, guiAxes, y, name, val, config)
         % Add input field for editing of property value
         %       y       : y position in panel
         %       name    : name of property. Used for text field and Tag
@@ -1441,14 +1479,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             guiPanel = guiAxes.Parent;
             
             
-            if strcmp(obj.LabelPosition, 'Over')
+            if strcmpi(obj.LabelPosition, 'Over')
                 xMargin = [18, 25]; % Old: 65
                 x = xMargin(1);
                 xSpacing = 7;
                 yTxt = y + obj.RowHeight-5;
                 textAlignment = 'left';
             
-            elseif strcmp(obj.LabelPosition, 'Left')
+            elseif strcmpi(obj.LabelPosition, 'Left')
                 xMargin = [20, 50]; % Old: 65
                 x = guiAxes.Position(3)/2-10;
                 %x = guiAxes.Position(3) - 60;
@@ -1462,21 +1500,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             xcorr = 0;
             hcorr = 0;
             
-            % Create a textbox with the property name
-            textbox = text(guiAxes, x, yTxt, name);
-            textbox.String = [utility.string.varname2label(name), ':'];
-            textbox.HorizontalAlignment = textAlignment;
-            textbox.Tag = name;
-            textbox.Color = obj.Theme.FigureFgColor;
-            textbox.FontName = obj.FontName;
-            textbox.FontUnits = 'pixels';
-            textbox.FontSize = obj.FontSize;
-            textbox.VerticalAlignment = 'bottom';
-            
-            buttonTypes = {'button', 'pushbutton', 'togglebutton'};
-            if isa(config, 'struct') && any( strcmp(config.type, buttonTypes) )
-                delete(textbox)
-            end
             
             % Create input field for editing of propertyvalues
 
@@ -1497,7 +1520,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     case 'char'
                         inputbox = uicontrol(guiPanel, 'style', 'edit');
                         inputbox.String = val;
-
+                        
                     case 'struct'
                         % Not implemented
                         % skip for now
@@ -1575,14 +1598,21 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                                 config.args{:} );
                             ycorr = obj.RowSpacing;
                             xcorr = -3;
-                             
+                            
+                        case 'multilinechar'
+                            inputbox = uicontrol(guiPanel, 'style', 'edit', 'Max', 2);
+                            inputbox.String = val;
+                            
+                            ycorr = -obj.RowSpacing.*4;
+                            hcorr = obj.RowSpacing.*4;
+   
                     end
                 end
             end
             
             
             % Configure properties/appearance of uicontrol
-            pos = [x+xSpacing+xcorr, y+ycorr, guiAxes.XLim(2) - x - xMargin(2) - xSpacing, height+hcorr];
+            pos = [x+xSpacing+xcorr, y, guiAxes.XLim(2) - x - xMargin(2) - xSpacing, height+hcorr];
             
             if numel(inputbox) == 1
                 inputbox.Position = pos;
@@ -1625,6 +1655,24 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 inputbox.Callback = @obj.editCallback_propertyValueChange;
 
             end
+            
+            
+            % Create a textbox with the property name
+            textbox = text(guiAxes, x, yTxt-ycorr, name);
+            textbox.String = [utility.string.varname2label(name), ':'];
+            textbox.HorizontalAlignment = textAlignment;
+            textbox.Tag = name;
+            textbox.Color = obj.Theme.FigureFgColor;
+            textbox.FontName = obj.FontName;
+            textbox.FontUnits = 'pixels';
+            textbox.FontSize = obj.FontSize;
+            textbox.VerticalAlignment = 'bottom';
+            
+            buttonTypes = {'button', 'pushbutton', 'togglebutton'};
+            if isa(config, 'struct') && any( strcmp(config.type, buttonTypes) )
+                delete(textbox)
+            end
+            
             
             
             % Add control to a struct of controls using same fieldnames as
@@ -1889,7 +1937,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 case 'togglebutton'
                     val = src.Value;
                     isInternal = true; % Quick fix...Dont change to custom if button is pushed!
-                    
+                case 'autocomplete'
+                    val = src.Value;
             end
             
 
@@ -2018,6 +2067,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         else
                             
                             inputfield = findobj(guiFig, 'Tag', propertyName, 'Style', 'edit');
+                            if isempty(inputfield)
+                                inputfield = obj.hControls.(propertyName);
+                            end
                             inputfield.String = pathString;
                             inputfield.TooltipString = inputfield.String;
                             
