@@ -1,4 +1,4 @@
-classdef DataLocationModel < utility.data.TabularArchive
+classdef DataLocationModel < utility.data.StorableCatalog
 %DataLocationModel Interface for detecting path of data/session folders
     
 
@@ -87,7 +87,7 @@ classdef DataLocationModel < utility.data.TabularArchive
         function obj = DataLocationModel(varargin)
             
             % Superclass constructor. Loads given (or default) archive 
-            obj@utility.data.TabularArchive(varargin{:})
+            obj@utility.data.StorableCatalog(varargin{:})
             
             obj.tempDevFix()
         end
@@ -201,7 +201,7 @@ classdef DataLocationModel < utility.data.TabularArchive
         
 % %         function load(obj)
 % %             
-% %             load@utility.data.TabularArchive(obj)
+% %             load@utility.data.StorableCatalog(obj)
 % %             
 % %         end
 % %         
@@ -503,7 +503,7 @@ classdef DataLocationModel < utility.data.TabularArchive
         
         function item = validateItem(obj, item)
             % Todo...
-            item = validateItem@utility.data.TabularArchive(obj, item);
+            item = validateItem@utility.data.StorableCatalog(obj, item);
         end
         
         function S = getMetavariableStruct(obj, varName)

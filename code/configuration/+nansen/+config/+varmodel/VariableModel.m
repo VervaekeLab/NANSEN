@@ -1,4 +1,4 @@
-classdef VariableModel < utility.data.TabularArchive
+classdef VariableModel < utility.data.StorableCatalog
     
     % Todo: 
     %   [x] Add IsEditable? I.e is it possible to change the filename
@@ -62,7 +62,7 @@ classdef VariableModel < utility.data.TabularArchive
         function obj = VariableModel(varargin)
 
             % Superclass constructor. Loads given (or default) archive 
-            obj@utility.data.TabularArchive(varargin{:})
+            obj@utility.data.StorableCatalog(varargin{:})
             
             obj.updateDefaultValues() %  This should be temporary, to account for changes made during development
              
@@ -111,7 +111,7 @@ classdef VariableModel < utility.data.TabularArchive
         function load(obj)
         %load Load list (csv or xml) with required/supported variables
             obj.tempFixVariableNameInFile()
-            load@utility.data.TabularArchive(obj)
+            load@utility.data.StorableCatalog(obj)
         end
         
         function view(obj)

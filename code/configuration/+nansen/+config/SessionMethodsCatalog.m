@@ -1,4 +1,4 @@
-classdef SessionMethodsCatalog < utility.data.TabularArchive
+classdef SessionMethodsCatalog < utility.data.StorableCatalog
 %SessionMethodsCatalog Catalog for session methods
 %
 %   smCatalog = nansen.config.SessionMethodsCatalog
@@ -40,10 +40,10 @@ classdef SessionMethodsCatalog < utility.data.TabularArchive
         function obj = SessionMethodsCatalog(varargin)
             
             % Superclass constructor. Loads given (or default) archive 
-            obj@utility.data.TabularArchive(varargin{:})
+            obj@utility.data.StorableCatalog(varargin{:})
             
             if ~nargout
-                utility.data.TabularArchiveApp(obj)
+                utility.data.StorableCatalogApp(obj)
                 clear obj
             end
         end
@@ -126,7 +126,7 @@ classdef SessionMethodsCatalog < utility.data.TabularArchive
     methods (Access = protected)
         
         function item = validateItem(obj, item)
-            item = validateItem@utility.data.TabularArchive(obj, item);
+            item = validateItem@utility.data.StorableCatalog(obj, item);
             
             if isfield(obj.Data, 'OptionsAlternatives')
                 if ~isfield(item, 'OptionsAlternatives')

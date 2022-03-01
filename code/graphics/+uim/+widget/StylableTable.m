@@ -132,6 +132,30 @@ classdef StylableTable < uiw.widget.Table
     
     methods
         
+        function figurePoint = tablepoint2figurepoint(obj, tablePosition)
+                  
+            % Todo: Need to know if position is java position or not... in
+            % which case the y position needs to be reversed.
+            
+            % Get scroll positions in table
+            xScroll = obj.getHorizontalScrollOffset();
+            yScroll = obj.getVerticalScrollOffset();
+
+            % Correct the coordinates based on the scroll offsets
+            clickPosX = tablePosition(1) - xScroll;
+            clickPosY = tablePosition(2) - yScroll;
+            
+            % Convert from table-based to figure-based coordinates.
+            tablePosition = getpixelposition(obj, true);
+            tableLocationX = tablePosition(1) + 1; % +1 because ad hoc...
+            tableHeight = tablePosition(4);
+            
+            clickPosX = tableLocationX + clickPosX; % Add offset for table position.
+            clickPosY = tableHeight - clickPosY; % Need to reverse y-position because java-based positions are opposite (i.e upside-down) compared to matlab positions.
+            figurePoint = [clickPosX, clickPosY];
+            
+        end
+        
         function xOffset = getHorizontalScrollOffset(obj)
             xOffset = get(obj.JHScroller, 'Value');
         end

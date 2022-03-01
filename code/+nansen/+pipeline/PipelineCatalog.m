@@ -1,4 +1,4 @@
-classdef PipelineCatalog < utility.data.TabularArchive
+classdef PipelineCatalog < utility.data.StorableCatalog
 %DataLocationModel Interface for detecting path of data/session folders
     
 
@@ -72,10 +72,10 @@ classdef PipelineCatalog < utility.data.TabularArchive
         function obj = PipelineCatalog(varargin)
            
             % Superclass constructor. Loads given (or default) archive 
-            obj@utility.data.TabularArchive(varargin{:})
+            obj@utility.data.StorableCatalog(varargin{:})
 
             if ~nargout
-                utility.data.TabularArchiveApp(obj)
+                utility.data.StorableCatalogApp(obj)
                 clear obj
             end
             
@@ -257,7 +257,7 @@ classdef PipelineCatalog < utility.data.TabularArchive
     methods (Access = protected)
         
         function item = validateItem(obj, item)
-            item = validateItem@utility.data.TabularArchive(obj, item);
+            item = validateItem@utility.data.StorableCatalog(obj, item);
             
         end
         

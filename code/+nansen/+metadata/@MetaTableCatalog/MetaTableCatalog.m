@@ -8,7 +8,7 @@ classdef MetaTableCatalog < uim.handle
 %   See also MetaTable
 
 %   Q:
-%       a) Should it subclass from ObjectCatalog?
+%       a) Should it subclass from StorableCatalog?
 %
     
     properties (SetAccess = private)
