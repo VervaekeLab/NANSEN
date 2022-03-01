@@ -7,6 +7,7 @@ function S = getMetaTableVariableAttributes(tableClassName)
 %
 %   Note: This function works on the current project
 
+
     % Todo:
     %   Add default value?
     %   Add list values for variables with list?
@@ -15,17 +16,20 @@ function S = getMetaTableVariableAttributes(tableClassName)
     import nansen.metadata.utility.getCustomTableVariableNames
     import nansen.metadata.utility.getCustomTableVariableFcn
 
+    if nargin < 1
+        tableClassName = 'Session';
+    end
+    
     
     % Initialize output
     S = struct('Name', {}, 'IsCustom', {}, 'IsEditable', {}, 'HasFunction', {});
 
     
     % Get variables that are predefined in the given tableClass
-    switch tableClassName
+    switch lower( tableClassName )
         case 'session'
             % Todo: This is temporary. Retrieve project template
-            className = 'nansen.metadata.schema.vlab.TwoPhotonSession';
-            %className = 'nansen.metadata.type.Session'; <- Todo: use this instead
+            className = 'nansen.metadata.type.Session';
             mc = meta.class.fromName(className);
             isStatic = [mc.PropertyList.Constant];
             isTransient = [mc.PropertyList.Transient];

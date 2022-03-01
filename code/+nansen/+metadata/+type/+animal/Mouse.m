@@ -1,4 +1,4 @@
-classdef Mouse < meta.base.Animal
+classdef Mouse < nansen.metadata.type.Animal
     
     
     properties
