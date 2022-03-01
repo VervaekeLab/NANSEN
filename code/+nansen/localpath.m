@@ -39,10 +39,18 @@ function pathStr = localpath(pathKeyword, projectName)
         
       % % Folders
         
-        case 'nansen_root'
+        case {'nansen_root', 'root'}
             % Get folder for nansen root.
             thisPath = fileparts( mfilename( 'fullpath' ) );
             folderPath = utility.path.getAncestorDir(thisPath, 1);
+            
+        case 'integrations'
+            rootPath = fullfile(nansen.localpath('root'));
+            folderPath = fullfile(rootPath, 'code', 'integrations');
+            
+        case 'sessionmethods'
+            rootPath = fullfile(nansen.localpath('integrations'));
+            folderPath = fullfile(rootPath, 'sessionmethods');
             
         case 'subfolder_list'
             initPath = fullfile(nansen.localpath('nansen_root'), 'code');
@@ -94,6 +102,12 @@ function pathStr = localpath(pathKeyword, projectName)
         case 'MetaTableCatalog'
             folderPath = fullfile(projectRootDir, 'Metadata Tables');
             fileName = 'metatable_catalog.mat';
+            
+        case 'ProjectConfiguration'
+            folderPath = fullfile(projectRootDir, 'Configurations');
+        
+        case {'ProjectCustomOptions', 'project_custom_options'}
+            folderPath = fullfile(projectRootDir, 'Configurations', 'custom_options');
             
         case 'FilePathSettings'
             folderPath = fullfile(projectRootDir, 'Configurations');
