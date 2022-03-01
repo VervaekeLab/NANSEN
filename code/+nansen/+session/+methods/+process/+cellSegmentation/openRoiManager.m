@@ -1,4 +1,4 @@
-function varargout = openRoimanager(sessionObj, varargin)
+function varargout = openRoiManager(sessionObj, varargin)
 %openRoimanager Open roimanager for corrected two-photon images
 %
 
@@ -33,6 +33,10 @@ function varargout = openRoimanager(sessionObj, varargin)
     sessionData = nansen.session.SessionData( sessionObj );
     sessionData.updateDataVariables()
 
+    if ~isprop(sessionData, 'TwoPhotonSeries_Corrected')
+        error('Did not find "TwoPhotonSeries_Corrected" for session.')
+    end
+    
     imageStack = sessionData.TwoPhotonSeries_Corrected;
 
     hRoimanager = nansen.roimanager(imageStack);

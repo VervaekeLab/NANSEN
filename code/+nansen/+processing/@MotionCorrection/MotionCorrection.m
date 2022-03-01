@@ -141,7 +141,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             dataTypeOut = obj.Options.Export.OutputDataType;
             recastOutput = ~strcmp(dataTypeIn, dataTypeOut);
             
-            if recastOutput % Todo: Calculate imagestats.
+            if recastOutput % Calculate imagestats if needed (for recasting).
                 stack.methods.computeImageStats(obj.SourceStack, ...
                     'DataIoModel', obj.DataIoModel)
             end
@@ -428,8 +428,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 skipPrecomputeStats = false; 
             end
             
-            % Todo: Make as method of TwoPhotonSession class.
-            
+            %Todo: Should this be a method of a TwoPhotonSession class?
             % Get filepath for raw 2p-images
             DATANAME = 'TwoPhotonSeries_Original';
             filePath = obj.SessionObjects.getDataFilePath(DATANAME);

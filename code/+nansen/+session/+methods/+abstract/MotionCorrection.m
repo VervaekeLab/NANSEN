@@ -157,13 +157,13 @@ classdef MotionCorrection < nansen.session.SessionMethod
         %       quickOpen : Flag for opening without calculating image
         %       stats
 
-
+        
+        
             if nargin < 2
                 skipPrecomputeStats = false; 
             end
             
-            % Todo: Make as method of TwoPhotonSession class.
-            
+            %Todo: Should this be a method of a TwoPhotonSession class?
             % Get filepath for raw 2p-images
             DATANAME = 'TwoPhotonSeries_Original';
             filePath = obj.SessionObjects.getDataFilePath(DATANAME);

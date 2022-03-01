@@ -79,7 +79,7 @@ classdef SessionMethod < nansen.DataMethod
     
     
     properties (Constant, Access = protected)
-        VALID_SESSION_CLASS = 'nansen.metadata.schema.generic.Session'
+        VALID_SESSION_CLASS = 'nansen.metadata.type.Session'
     end
     
 % - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - -
@@ -278,8 +278,6 @@ classdef SessionMethod < nansen.DataMethod
         end
         
         function attributes = getAttributesFromClass(className)
-                       
-            
             
             hfun = str2func(functionName);
             functionName

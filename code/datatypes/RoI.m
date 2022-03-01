@@ -101,7 +101,7 @@ methods
         obj = setCoordinates(obj, coordinates);
         
         % Create a unique ID for the roi.
-        obj.uid = uuidgen('java');
+        obj.uid = nansen.util.getuuid();
         
         % Set image size
         obj.imagesize = imSize;
@@ -944,9 +944,15 @@ methods
             end
         end
         
-        % Make sure we got data  for each field....
+        % Make sure we got data for each field....
         data = cat(1, data{:});
 
+% %         C = cell(numel(data), 4);
+% %         
+% %         for i = 1:numel(data)
+% %             f = fieldnames(data{i});
+% %             C(i, 1:numel(f)) = f;
+% %         end
     end
     
     function pixelIdxList = getPixelIdxList(obj)
