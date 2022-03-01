@@ -106,8 +106,8 @@ classdef DataLocationEditor < applify.apptable
             
             % Todo: Make separate method for updating value? Because
             % tooltip should be update too...
-            hRow.RootPathEditField.Value = rowData.RootPath{1};
-            hRow.RootPathEditField.Tooltip = rowData.RootPath{1};
+            hRow.RootPathEditField.Value = rowData.RootPath(1).Value;
+            hRow.RootPathEditField.Tooltip = rowData.RootPath(1).Value;
             
             % Add value changed callback function
             hRow.RootPathEditField.ValueChangedFcn = ...

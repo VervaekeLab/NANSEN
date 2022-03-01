@@ -328,7 +328,11 @@ classdef FolderOrganizationEditor < applify.apptable
             if nargin < 2 % Remove last row if no input is given.
                 i = obj.NumRows;
             else
-                i = obj.getComponentRowNumber(src);
+                if isnumeric(src)
+                    i = src;
+                else
+                    i = obj.getComponentRowNumber(src);
+                end
             end
             
             removeRow@applify.apptable(obj, i)
@@ -343,14 +347,6 @@ classdef FolderOrganizationEditor < applify.apptable
             obj.notify('FilterChanged', evtData)
         end
         
-        function resetTable(obj)
-        %resetTable Remove all rows except for the first one.
-        
-            for i = 1:obj.NumRows
-                obj.removeRow()
-            end
-            
-        end
         
         function subfolderChanged(obj, src, ~)
             

@@ -81,7 +81,11 @@ classdef FilePathSettingsEditor < handle
             % Load list
             if isfile(obj.dataFilePath)
                 S = load(obj.dataFilePath);
-                variableList = S.VariableList;
+                if isfield(S, 'VariableList')
+                    variableList = S.VariableList;
+                else
+                    variableList = S.Data;
+                end
             else
                 variableList = obj.initializeVariableList(); % init to empty struct
             end
@@ -101,6 +105,7 @@ classdef FilePathSettingsEditor < handle
         function addEntry(obj, entry)
             
             entry = obj.validateEntry(entry);
+            entry.Uuid = nansen.util.getuuid();
             
             varNames = {obj.VariableList.VariableName};
             
