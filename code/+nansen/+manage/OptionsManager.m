@@ -845,6 +845,8 @@ classdef OptionsManager < handle
                         definingClass = mc.PropertyList(matchedIdx).DefiningClass;
                         if strcmp(definingClass.Name, obj.FunctionName)
                             return
+                        elseif mc.PropertyList(matchedIdx).Abstract
+                            return
                         elseif any(strcmp(superClassNames, definingClass.Name))
                             tf = true;
                         end
