@@ -54,6 +54,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         
         setData(obj, data, subs)
         
+        data = getLinearizedData(obj)
     end
     
     methods (Sealed) % Override size, class, ndims, subsref & subsasgn
@@ -76,6 +77,17 @@ classdef ImageStackData < uim.mixin.assignProperties
                     varargout{1} = stackSize;
                 else
                     varargout{1} = stackSize(dim);
+                end
+                
+            % Make sure the number of dimensions requested matches the
+            % number of outputs requested
+            elseif nargin >= 2 && nargout > 1
+                msg = 'Incorrect number of output arguments. Number of output arguments must equal the number of input dimension arguments.';
+                assert(numel(dim) == nargout, msg)
+                
+                varargout = cell(1, nargout);
+                for i = 1:numel(dim)
+                    varargout{i} = stackSize(dim(i));
                 end
                     
             % Return length of each dimension separately
@@ -118,7 +130,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                             varargout{1} = builtin('subsref', obj, s);
                         catch ME
                             switch ME.identifier
-                                case 'MATLAB:TooManyOutputs'
+                                case {'MATLAB:TooManyOutputs', 'MATLAB:maxlhs'}
                                     try
                                         builtin('subsref', obj, s)
                                     catch ME
@@ -137,7 +149,8 @@ classdef ImageStackData < uim.mixin.assignProperties
                     numRequestedDim = numel(s.subs);
                     
                     if isequal(s.subs, {':'})
-                        error('Linear indexing is not implemented yet')
+                        varargout{1} = obj.getLinearizedData();
+                        return
                     elseif numRequestedDim == ndims(obj)
                         subs = obj.rearrangeSubs(s.subs);
                     else

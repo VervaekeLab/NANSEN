@@ -11,5 +11,6 @@ function S = getDefaultSettings()
     S.SignalExtraction = nansen.twophoton.roisignals.extract.getDefaultParameters();
     S.DffOptions = nansen.twophoton.roisignals.computeDff();
     S.Autosegmentation = nansen.twophoton.roimasks.autosegmentationOptions();
+    S.RoiCuration = roimanager.getCurationOptions();
     
 end

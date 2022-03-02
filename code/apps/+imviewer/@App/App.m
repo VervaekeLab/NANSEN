@@ -135,6 +135,7 @@ properties (Access = private) % Private components (todo: clean up)
 
     dndObj
     hDropbox
+    hDropbox2
     hThumbnail 
 
 
@@ -197,6 +198,7 @@ properties (Access = private, Hidden = true) % Internal states/settings
     isShiftDown = false;
     isControlDown = false;
     isImageToolbarPinned = false;
+    isThumbnailSelectorPinned = false; % Todo: move to class...
     autoAdjustLimits = false;
 
     limitsListener
@@ -296,6 +298,9 @@ methods % Structors
     end
     
     function quitImviewer(obj, ~, ~)
+        
+        if ~isvalid(obj); return; end
+        
         if obj.DeleteImageStackOnQuit
             delete(obj.ImageStack)
         end
@@ -485,10 +490,13 @@ methods % App initialization & creation
 % % %          start(t)
                  
         obj.clearMessage()
-        obj.addLandingPage()  
-
+        obj.addLandingPage()
+        
+        % This should happen after all components are created...
+        uicc.bringTooltipToFront()
+        
         obj.Panel.SizeChangedFcn = @obj.resizePanel;
-
+        
         
         drawnow
         obj.setFigureWindowBackgroundColor() %BG of java window. Set
@@ -844,9 +852,24 @@ methods % App initialization & creation
     
         % todo: Add a browse button..
 
+
+        uicc = getappdata(obj.Figure, 'UIComponentCanvas');
+% % 
+% %         axesXLim = uicc.Axes.XLim;
+% %         axesYLim = uicc.Axes.YLim;
+        
         axesXLim = [1,512];
         axesYLim = [1,512];
-
+        
+        
+% %         hBox = uim.decorator.box(uicc, 'Size', [250, 60], 'SizeMode', 'manual', ...
+% %             'Location', 'center', 'HorizontalAlignment', 'center', ...
+% %             'VerticalAlignment', 'middle');
+% %         hBox.BorderWidth = 1;
+% %         hBox.BorderColor = 'w';
+% %         hBox.CornerRadius = 10;
+        
+        
         rectSize = [250, 60]; cornerRadius = 10;
         [X, Y] = uim.shape.rectangle( rectSize, cornerRadius );
         
@@ -858,6 +881,7 @@ methods % App initialization & creation
         h2.HorizontalAlignment = 'center';
         h2.VerticalAlignment = 'middle';
         h2.Color = obj.Theme.FigureFgColor;
+        hBox.BorderColor = obj.Theme.FigureFgColor;
         h2.FontSize = 20;
         
         % Important...lol
@@ -868,6 +892,14 @@ methods % App initialization & creation
         
         obj.hDropbox = [h, h2];
         
+        
+% %         hButton = uim.control.Button_(obj.Panel, 'Text', 'Load Images...', ...
+% %             'Size', [100, 25], 'SizeMode', 'manual', ...
+% %             'Location', 'center', 'HorizontalAlignment', 'center', ...
+% %             'VerticalAlignment', 'middle', 'Margin', [0,-75,0,0], ...
+% %             'HorizontalTextAlignment', 'center');
+% %         
+% %         obj.hDropbox2 = hButton;
     end
 
     function addDragAndDropFunctionality(obj)
@@ -895,15 +927,38 @@ methods % App initialization & creation
     
     function fileDropFcn(obj, ~, evt)
 
-        obj.resetImageDisplay()
-        
         switch evt.DropType
             case 'file'
-                obj.displayMessage('Loading File')
-                for n = 1%:numel(evt.Data)
-                    obj.ImageStack = nansen.stack.ImageStack(evt.Data{1});
-                end
-
+                
+                [~, ~, ext] = fileparts(evt.Data{1});
+                
+                switch ext
+                    case '.mat'
+                        S = whos('-file', evt.Data{1});
+                        if ~isempty(S) && contains(S.name, 'roiArray')
+                            S = load(evt.Data{1});
+                            numColors = size(obj.Axes.ColorOrder, 1);
+                            color = obj.Axes.ColorOrder(randi(numColors), :);
+                            h = imviewer.plot.plotRoiArray(obj.Axes, S.roiArray);
+                            set(h, 'Color', color);
+                        elseif ~isempty(S) && contains(S.name, 'roi_arr')
+                            S = load(evt.Data{1});
+                            numColors = size(obj.Axes.ColorOrder, 1);
+                            color = obj.Axes.ColorOrder(randi(numColors), :);
+                            h = imviewer.plot.plotRoiArray(obj.Axes, S.roi_arr);
+                            set(h, 'Color', color);
+                        end
+                            
+                    otherwise % assume image file...
+                        
+                        obj.resetImageDisplay()
+                        
+                        obj.displayMessage('Loading File')
+                        for n = 1%:numel(evt.Data)
+                            obj.ImageStack = nansen.stack.ImageStack(evt.Data{1});
+                        end
+                end      
+                
             case 'string'
                 
             case 'image'
@@ -1055,11 +1110,13 @@ methods % App initialization & creation
         % todo: error handling in case the imviewer gui is closed while the
         % thumbnails are being created.
         
+        % todo: move code to widget class
+        
         if nargin < 2; showMessage = false; end
         
         if obj.imHeight==0 || obj.imWidth == 0; return; end
         if obj.nFrames == 1; return; end
-        
+        return
         
         % Only proceed if this widget is not initialized/present.
         if ~isfield(obj.uiwidgets, 'thumbnailSelector') || ...
@@ -1179,36 +1236,13 @@ methods % App initialization & creation
             % Center vertically:
             tmpAx.Position(2) = imAxPos(2) + (imAxPos(4)-tmpAx.Position(4))/2;
             
-            
             obj.uiwidgets.thumbnailSelector.createScrollBar()
             
             
-            toolbarPosition = [tmpAx.Position(1)+5, tmpAx.Position(2)-32, ...
+            toolbarPosition = [tmpAx.Position(1)-5, tmpAx.Position(2)-32, ...
                            tmpAx.Position(3), 30 ];
-        
-            %uicc = getappdata(obj.Figure, 'UIComponentCanvas');
-            uicc = getappdata(obj.Panel, 'UIComponentCanvas');
-
-            % Create toolbar for changing thumbnail selector mode
-            % i.e projection, binning or filtering.
-
-            hToolbar = uim.widget.toolbar(uicc, 'Position', toolbarPosition, 'Margin', [0,0,0,0],'ComponentAlignment', 'center', 'BackgroundAlpha', 0.5);
-            hToolbar.Position = toolbarPosition;
-            hToolbar.BackgroundMode = 'full';      
-            hToolbar.SizeMode = 'manual';
-            
-            hBtn(1) = hToolbar.addButton('Icon', obj.ICONS.proj2, 'Type', 'togglebutton', 'Tag', 'Projection', 'Tooltip', 'Projection (shift-p)');
-            hBtn(2) = hToolbar.addButton('Icon', obj.ICONS.binning, 'Type', 'togglebutton', 'Tag', 'Binning', 'Tooltip', 'Binning (shift-b)');
-            hBtn(3) = hToolbar.addButton('Icon', obj.ICONS.filter2, 'Type', 'togglebutton', 'Tag', 'Filter', 'Tooltip', 'Filter (shift-f)');
-            
-            obj.uiwidgets.thumbnailSelector.toggleButtons = hBtn;
-            
-            for i = 1:numel(hBtn)
-                hBtn(i).ButtonDownFcn = @(s,e,h) obj.uiwidgets.thumbnailSelector.changeThumbnailClass(hBtn(i).Tag);
-            end
-            
-            hToolbar.Visible = 'off';
-            obj.uiwidgets.thumbNailToggler = hToolbar;
+                       
+            obj.createThumbnailSelectorToolbar(toolbarPosition)
             
             if showMessage
                 obj.clearMessage()
@@ -1234,6 +1268,44 @@ methods % App initialization & creation
 
     end
 
+    function createThumbnailSelectorToolbar(obj, toolbarPosition)
+
+        %uicc = getappdata(obj.Figure, 'UIComponentCanvas');
+        uicc = getappdata(obj.Panel, 'UIComponentCanvas');
+
+        % Create toolbar for changing thumbnail selector mode
+        % i.e projection, binning or filtering.
+        
+        toolbarConfig = {'Margin', [0,0,0,0], 'Padding', [3,3,3,3], ...
+            'ComponentAlignment', 'left', 'BackgroundAlpha', 0.5, ...
+            'Position', toolbarPosition, 'Spacing', 3};
+        
+        hToolbar = uim.widget.toolbar_(obj.Panel, toolbarConfig{:});
+        %hToolbar = uim.widget.toolbar(uicc, 'Position', toolbarPosition, 'Margin', [0,0,0,0],'ComponentAlignment', 'center', 'BackgroundAlpha', 0.5);
+        hToolbar.Position = toolbarPosition;
+        hToolbar.BackgroundMode = 'wrap';      
+        hToolbar.SizeMode = 'manual';
+
+        hBtn(1) = hToolbar.addButton('Icon', obj.ICONS.pin3, 'Padding', [5,5,5,5], 'Mode', 'togglebutton', 'Tag', 'pinThumbnails', 'Tooltip', 'Pin Thumbnail', 'MechanicalAction', 'Switch when pressed', 'Callback', @obj.togglePinThumbnailSelector, 'IconAlignment', 'center');
+
+        hBtn(2) = hToolbar.addButton('Icon', obj.ICONS.proj2, 'Mode', 'togglebutton', 'Tag', 'Projection', 'Tooltip', 'Projection (shift-p)');
+        hBtn(3) = hToolbar.addButton('Icon', obj.ICONS.binning, 'Mode', 'togglebutton', 'Tag', 'Binning', 'Tooltip', 'Binning (shift-b)');
+        hBtn(4) = hToolbar.addButton('Icon', obj.ICONS.filter2, 'Mode', 'togglebutton', 'Tag', 'Filter', 'Tooltip', 'Filter (shift-f)');
+
+        obj.uiwidgets.thumbnailSelector.toggleButtons = hBtn;
+
+        for i = 2:numel(hBtn)
+            %hBtn(i).ButtonDownFcn = @(s,e,h) obj.uiwidgets.thumbnailSelector.changeThumbnailClass(hBtn(i).Tag);
+            hBtn(i).Callback = @(s,e,h) obj.uiwidgets.thumbnailSelector.changeThumbnailClass(hBtn(i).Tag);
+        end
+
+        hToolbar.Visible = 'off';
+        obj.uiwidgets.thumbNailToggler = hToolbar;
+
+
+
+    end
+    
     function addImageToolbar(obj)
     %ADDIMAGETOOLBAR Add toolbar with image tools to the image display
     
@@ -1780,6 +1852,9 @@ methods % App update
                 lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^16;
             case 'int16'
                 lowhigh_in = (obj.settings.ImageDisplay.imageBrightnessLimits+2^15) /2^16;
+            case {'single', 'double'}
+                cLim = obj.settings.ImageDisplay.imageBrightnessLimits;
+                lowhigh_in = (cLim - min(cLim)) ./ range(obj.settings.ImageDisplay.brightnessSliderLimits);
         end
 
         %im = imadjust(im, lowhigh_in);
@@ -1799,7 +1874,7 @@ methods % App update
         % Adjust the image color and brightness if image is truecolor
         if (size(im, 3) > 1 || obj.ImageStack.NumChannels > 1) && strcmp(obj.ImageStack.ColorModel, 'Grayscale')
             im = mean(im, 3);
-        elseif size(im, 3) > 1 || obj.ImageStack.NumChannels > 1
+        elseif size(im, 3) > 1 && obj.ImageStack.NumChannels > 1
             im = obj.setChColors(im);
             im = adjustMultichannelImage(obj, im);
         end
@@ -1867,8 +1942,6 @@ methods % App update
         end
         
     end
-    
-    
     
     function refreshImageDisplay(obj)
         obj.updateImage()
@@ -1940,6 +2013,22 @@ methods % App update
             updateInfoText(obj)
         end
         
+    end
+    
+    function hPlugin = openPlugin(obj, pluginName, pluginOptions)
+        
+        if nargin < 3 || isempty(pluginOptions)
+            pluginOptions = struct.empty;
+        end
+        
+        pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
+        pluginFcn = str2func(pluginFcnName);
+        
+        hPlugin = pluginFcn(obj, pluginOptions);
+
+        if ~nargout
+            clear(hPlugin)
+        end
     end
     
 end
@@ -2035,7 +2124,7 @@ methods % Event/widget callbacks
         switch action
             case 'mousescroll'
                 i = event.VerticalScrollCount;
-                if obj.nFrames / obj.settings.Interaction.scrollFactor < obj.settings.Interaction.scrollFactor
+                if obj.nFrames / obj.settings.Interaction.scrollFactor < 100% obj.settings.Interaction.scrollFactor
                     scrollFactor = 1;
                 else
                     scrollFactor = obj.settings.Interaction.scrollFactor;
@@ -2110,6 +2199,11 @@ methods % Event/widget callbacks
         
         obj.textStrings.CurrentFrame = sprintf('%d/%d', obj.currentFrameNo, obj.nFrames);
 
+        if ~strcmpi(obj.imageDisplayMode.projection, 'none')
+            obj.imageDisplayMode.projection = 'none';
+        end
+        
+        
         if ~isempty(obj.imObj)% && i~=0
             
             obj.updateImage()
@@ -2122,6 +2216,10 @@ methods % Event/widget callbacks
             end
         end
 
+    end
+    
+    function onNumFramesChanged(obj)
+        obj.uiwidgets.playback.Maximum = obj.nFrames;
     end
     
     function changeChannel(obj, channelNum, mode)
@@ -2196,6 +2294,12 @@ methods % Event/widget callbacks
     
     function onPlaneChanged(obj) %#ok<MANU>
     end
+    
+    function set.nFrames(obj, newValue)
+        obj.nFrames = newValue;
+        obj.onNumFramesChanged()
+    end
+        
     
     
     function onDisplayLimitsChanged(obj)
@@ -2290,9 +2394,11 @@ methods % Event/widget callbacks
 %                 obj.updateImageDisplay();
 %         end
         
-        if obj.settings.ImageDisplay.imageBrightnessLimits(2) <= 1
-            newCLim = newCLim/100;
-        end
+%         if obj.settings.ImageDisplay.imageBrightnessLimits(2) <= 1
+%             newCLim = newCLim/100;
+%         end
+        
+        
         
         % Prevent setting upper limit lower than lower limit.
         if newCLim(2) <= newCLim(1)
@@ -2318,7 +2424,7 @@ methods % Event/widget callbacks
         end
         
         if ~isempty( obj.hSettingsEditor )
-             obj.hSettingsEditor.updateFromPreset(obj.settings)
+             obj.hSettingsEditor.replaceEditedStruct(obj.settings)
         end
         
         %drawnow;
@@ -2391,7 +2497,7 @@ methods % Event/widget callbacks
         end
         
         if ~isempty( obj.hSettingsEditor )
-             obj.hSettingsEditor.updateFromPreset(obj.settings)
+             obj.hSettingsEditor.replaceEditedStruct(obj.settings)
         end
                 
     end
@@ -2629,49 +2735,10 @@ methods % Misc, most can be outsourced
     
     function manualLinkProp(obj)
         
-        % Find all open figures that has a viewer object.
-        openFigures = findall(0, 'Type', 'Figure');
+        % Todo: Modify this:
+        viewerNames = {'StackViewer', 'imviewer', 'Signal Viewer', 'Roi Classifier'};
         
-        isMatch = contains({openFigures.Name}, {'StackViewer', 'Signal Viewer', 'Roi Classifier'});
-        
-        % Dont include self.
-        isMatch = isMatch & ~ismember(openFigures, obj.Figure)';
-
-        if any(isMatch)
-            tf = true;
-        else
-            tf = false;
-        end
-        
-        if ~tf
-            obj.uiwidgets.msgBox.displayMessage('There are no open viewers to connect to', 2); 
-            return
-        end
-    
-        
-        figInd = find(isMatch);
-
-        % Select figure window from selection dialog
-        if sum(isMatch) >= 1
-
-            figNames = {openFigures(figInd).Name};
-%             figNumbers = [openFigures(figInd).Number];
-%             figNumbers = arrayfun(@(n) sprintf('%d:', n), figNumbers, 'uni', 0); 
-%             figNames = strcat(figNumbers ,figNames);
-
-            % Open a listbox selection to figure
-            [selectedInd, tf] = listdlg(...
-                'PromptString', 'Select figure:', ...
-                'SelectionMode', 'single', ...
-                'ListString', figNames );
-
-            if ~tf; return; end
-
-            figInd = figInd(selectedInd);
-
-        end
-        
-        hApp = getappdata(openFigures(figInd), 'ViewerObject');
+        hApp = obj.uiSelectViewer(viewerNames, obj.Figure);
         obj.linkprop(hApp, 'currentFrameNo')
         
     end
@@ -2821,6 +2888,7 @@ methods % Misc, most can be outsourced
         if src.Value
             obj.autoAdjustLimits = true;
             P = prctile(double(obj.image(:)), [0.05, 99.95]);
+            if all(isnan(P)); return; end
             obj.brightnessSlider.Low = P(1);
             obj.brightnessSlider.High = P(2);
             %obj.changeBrightness(P)
@@ -2893,6 +2961,10 @@ methods % Misc, most can be outsourced
         
         obj.isImageToolbarPinned = ~obj.isImageToolbarPinned;
         
+    end
+    
+    function togglePinThumbnailSelector(obj, ~, ~)
+        obj.isThumbnailSelectorPinned = ~obj.isThumbnailSelectorPinned;
     end
     
     function switchHeaderVisibility(obj)
@@ -3382,9 +3454,14 @@ methods % Misc, most can be outsourced
             tmpAx.Position(3:4) = [w, h];
             tmpAx.Position(2) = imAxPos(2) + (imAxPos(4)-tmpAx.Position(4))/2;
             
-            obj.uiwidgets.thumbNailToggler.Position = [tmpAx.Position(1)+5, tmpAx.Position(2)-32, ...
+            obj.uiwidgets.thumbNailToggler.Position = [tmpAx.Position(1), tmpAx.Position(2)-32, ...
                            tmpAx.Position(3), 30 ];
             
+            if obj.isThumbnailSelectorPinned
+                obj.uiwidgets.thumbnailSelector.Visible = 'on';
+                obj.uiwidgets.thumbNailToggler.Visible = 'on';
+            end
+                       
         end
         
         if isfield(obj.uiwidgets, 'msgBox')
@@ -4280,18 +4357,18 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             
             if contains(obj.uiwidgets.Toolbar.Location, 'north')
                 isTouch = isTop(1) & ~isOutside;
-                isGo = ~any(isTop);
+                isUntouch = ~any(isTop);
             elseif contains(obj.uiwidgets.Toolbar.Location, 'south')
                 isTouch = isBottom(1) & ~isOutside;   
-                isGo = ~any(isBottom);
+                isUntouch = ~any(isBottom);
             else
                 isTouch = false;
-                isGo = false;
+                isUntouch = false;
             end
             
             if isTouch && strcmp(obj.uiwidgets.Toolbar.Visible, 'off')
                 obj.uiwidgets.Toolbar.Visible = 'on';
-            elseif isGo && strcmp(obj.uiwidgets.Toolbar.Visible, 'on')
+            elseif isUntouch && strcmp(obj.uiwidgets.Toolbar.Visible, 'on')
                 if ~obj.isImageToolbarPinned
                     obj.uiwidgets.Toolbar.Visible = 'off';
                 end
@@ -4315,14 +4392,21 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         if isfield(obj.uiwidgets, 'thumbnailSelector') && ~isempty(obj.uiwidgets.thumbnailSelector)
             isVisible = strcmp(obj.uiwidgets.thumbnailSelector.Visible, 'on');
-            if isLeft(1) && ~isVisible
+            
+            isTouch = isLeft(1);
+            isUntouch = ~any(isLeft);
+            
+            if isTouch && ~isVisible
                 obj.uiwidgets.thumbnailSelector.Visible = 'on';
                 obj.uiwidgets.thumbNailToggler.Visible = 'on';
-            elseif ~any(isLeft) && isVisible
+            elseif isUntouch && isVisible
                 if x > obj.uiwidgets.thumbnailSelector.Position(3) + 35 || ...
                     y < obj.uiwidgets.thumbnailSelector.Position(1)
-                    obj.uiwidgets.thumbnailSelector.Visible = 'off';
-                    obj.uiwidgets.thumbNailToggler.Visible = 'off';
+                    
+                    if ~obj.isThumbnailSelectorPinned
+                        obj.uiwidgets.thumbnailSelector.Visible = 'off';
+                        obj.uiwidgets.thumbNailToggler.Visible = 'off';
+                    end
                 end
             end
         elseif ~isfield(obj.uiwidgets, 'thumbnailSelector') % Create widget on demand
@@ -4363,7 +4447,8 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 try
                     wasCaptured = obj.plugins(i).pluginHandle.onKeyPress([], event);
                     if wasCaptured; return; end
-                catch
+                catch ME
+                    fprintf( [ME.message, '\n'] )
                     % something went wrong, but thats fine?
                 end
             end
@@ -4571,7 +4656,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 % Todo: Assign selection from imageStack.imageData...
                 % assignin('base', 'imviewerData')
                 
-            case {'+', 'slash'} %, '0'}
+            case {'+', 'slash', '0'}
                 if ispc && strcmp(event.Key, '0')
                     obj.imageZoom('in');
                 elseif ~ispc && strcmp(event.Key, '0')
@@ -5056,10 +5141,69 @@ methods (Static)
         
     end
     
-%     function tf = isvalid(h)
-%         tf = isvalid(h.Figure);
-%     end
+    function hApp = uiSelectViewer(viewerNames, hFigure)
+        
+        % Todo: make this method of superclass??
+        % INPUTS:
+        %   viewerNames : list (cell array) of app names to look for
+        %   hFigure : figure handle of figure to ignore (optional)
+        %   
+        %   
+        % Supported names: {'StackViewer', 'Signal Viewer', 'Roi Classifier'}
+        
+        if nargin < 1
+            viewerNames = {'StackViewer', 'imviewer'};
+        end
+        if nargin < 2
+            hFigure = [];
+        end
+        
+        % Find all open figures that has a viewer object.
+        openFigures = findall(0, 'Type', 'Figure');
+        
+        isMatch = contains({openFigures.Name}, viewerNames);
+        
+        % Dont include self.
+        isMatch = isMatch & ~ismember(openFigures, hFigure)';
 
+        if any(isMatch)
+            tf = true;
+        else
+            tf = false;
+        end
+      
+        if ~tf
+            msgbox('There are no open viewers to connect to', 'Aborting'); 
+            return
+        end
+    
+        
+        figInd = find(isMatch);
+
+        % Select figure window from selection dialog
+        if sum(isMatch) > 1
+
+            figNames = {openFigures(figInd).Name};
+%             figNumbers = [openFigures(figInd).Number];
+%             figNumbers = arrayfun(@(n) sprintf('%d:', n), figNumbers, 'uni', 0); 
+%             figNames = strcat(figNumbers ,figNames);
+
+            % Open a listbox selection to figure
+            [selectedInd, tf] = listdlg(...
+                'PromptString', 'Select figure:', ...
+                'SelectionMode', 'single', ...
+                'ListString', figNames );
+
+            if ~tf; return; end
+
+            figInd = figInd(selectedInd);
+
+        end
+        
+        hApp = getappdata(openFigures(figInd), 'ViewerObject');
+    
+    end
+    
 end
 
 end

@@ -10,10 +10,13 @@ function [P, V] = roiDisplayParameters()
     P.showLabels                = false;                % Flag for displaying roi labels
     P.showOutlines              = true;                 % Flag for displaying roi outlines
     P.maskRoiInterior           = false;                % Flag for masking the interior of a roi (replace pixels with their average projections)
-    P.showByClassification      = 'Show All';
-        
-    P.showByClassification_     = {'Show All', 'Show Accepted', 'Show Rejected', 'Show Unclassified'};
+    
+    P.showByClassification      = 'Show All';        
+    P.showByClassification_     = {'Show All', 'Show Unclassified', 'Show Accepted', 'Show Rejected', 'Show Unresolved'};
 
+    P.roiColorScheme            = 'None';
+    P.roiColorScheme_           = {'None', 'Category', 'Classification'};
+    
     P.setCurrentRoiGroup        = 'Group 1';
     P.setCurrentRoiGroup_       = {'Group 1'};
        

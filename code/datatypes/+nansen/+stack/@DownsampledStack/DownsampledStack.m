@@ -1,5 +1,5 @@
 classdef DownsampledStack < nansen.stack.ImageStack
-%DownsampledStack Class for creating a downsampled ImageStack
+%DownsampledStack Class for creating a temporally downsampled ImageStack
 %
 %   imageStack = DownsampledStack(imageData, n) creates an
 %   ImageStack for the process of downsampling another ImageStack. 
@@ -248,7 +248,10 @@ classdef DownsampledStack < nansen.stack.ImageStack
             % Preallocate image array (virtual/in-memory) for output
             if params.CreateVirtualOutput
                 nvPairs = {'IsTransient', params.UseTransientVirtualStack};
-                imArray = virtualStack(params.FilePath, newStackSize, ...
+%                 imArray = virtualStack(params.FilePath, newStackSize, ...
+%                     newStackType, nvPairs{:});
+                
+                imArray = nansen.stack.open(params.FilePath, newStackSize, ...
                     newStackType, nvPairs{:});
                 
             else

@@ -1,9 +1,16 @@
 classdef HighResolutionImage < nansen.stack.ImageStack
-    
-    properties
-        DataXLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
-        DataYLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
-    end
+%HighResolutionImage Pyramidal multiresolution interface to hires image
+%
+%   This derivation of ImageStack provides methods to retrieve spatially 
+%   downsampled versions of a high resolution image at different
+%   magnifications and crops. This is necessary when viewing an image in
+%   the imviewer, in order to have a smooth experience. Displaying the full
+%   image at the original resolution leads to performance issues.
+
+% %     properties
+% %         DataXLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
+% %         DataYLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
+% %     end
     
     properties (Access = private)
         DownSamplingFactors = 1; % A list of factors that were used for creating downsampled versions

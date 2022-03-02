@@ -93,7 +93,7 @@ methods
         obj = setCoordinates(obj, coordinates);
         
         % Create a unique ID for the roi.
-        obj.uid = uuidgen('java');
+        obj.uid = nansen.util.getuuid();
         
         % Set image size
         obj.imagesize = imSize;

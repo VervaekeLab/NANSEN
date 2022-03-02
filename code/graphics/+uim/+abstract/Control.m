@@ -16,6 +16,9 @@ classdef Control < uim.abstract.Component
         ContextMenu = []
     end
     
+    properties (Hidden)
+        TooltipYOffset = 15;
+    end
     
     properties (Hidden, Access = protected, Transient)
         TooltipPosition = [0, 0]
@@ -114,7 +117,7 @@ classdef Control < uim.abstract.Component
             centerX = mean(obj.hBackground.XData);
             centerY = mean(obj.hBackground.YData);
 
-            obj.TooltipPosition = [centerX, centerY - 0.5*obj.Size(2)-15];
+            obj.TooltipPosition = [centerX, centerY - 0.5*obj.Size(2)-obj.TooltipYOffset];
         end
         
         function changeAppearance(obj)

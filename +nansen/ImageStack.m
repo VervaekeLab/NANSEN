@@ -1,5 +1,5 @@
 function hImageStack = ImageStack(datareference, varargin)
-%ImageStack Create an ImageStack object
+%IMAGESTACK Create an ImageStack object
 %
 %   imageStack = ImageStack(data) returns an ImageStack object 
 %       based on the data variable. The data variable must be an 

@@ -1,28 +1,70 @@
-function pathStr = localpath(pathKeyword, project)
+function pathStr = localpath(pathKeyword, projectName)
 % Get (absolute) local paths for files & folders used in the nansen package
 %
 %   pathStr = localpath(pathKeyword)
+%
+%   See also nansen.config.addlocalpath (TODO)
+%
+%   This function provides absolute local paths for directory or filepaths
+%   of folders or files that are used within the nansen package.
 
-    if nargin < 2 || strcmp(project, 'current') % Should it be called current?
-        projectRootDir = getpref('Nansen', 'CurrentProjectPath');
+
+%   Use global variable to keep preference variables while matlab session
+%   is running. Getting values using getprefs is quite slow, so this is a
+%   "work around"
+
+    global nansenPreferences
+    if isempty(nansenPreferences)
+        nansenPreferences = struct('localPath', containers.Map);
+    elseif ~isfield(nansenPreferences, 'localPath')
+        nansenPreferences.localPath = containers.Map;
+    end
+    
+    if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')
+        if isKey(nansenPreferences.localPath, pathKeyword)
+            pathStr = nansenPreferences.localPath(pathKeyword);
+            return
+        end
+    end
+
+    
+    if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')% Should it be called current?
+        projectRootDir = nansen.config.project.ProjectManager.getProjectPath();
     else
-        error('Not implemented yet')
+        projectRootDir = nansen.config.project.ProjectManager.getProjectPath(projectName);
     end
 
     % Determine path folder (and filename if relevant) based input keyword
     switch pathKeyword
         
-        
       % % Folders
         
-        case 'nansen_root'
+        case {'nansen_root', 'root'}
             % Get folder for nansen root.
             thisPath = fileparts( mfilename( 'fullpath' ) );
             folderPath = utility.path.getAncestorDir(thisPath, 1);
             
+        case 'integrations'
+            rootPath = fullfile(nansen.localpath('root'));
+            folderPath = fullfile(rootPath, 'code', 'integrations');
+            
+        case 'sessionmethods'
+            rootPath = fullfile(nansen.localpath('integrations'));
+            folderPath = fullfile(rootPath, 'sessionmethods');
+            
+        case 'subfolder_list'
+            initPath = fullfile(nansen.localpath('nansen_root'), 'code');
+            folderPath = strsplit(genpath(initPath), ':');
+            folderPath = folderPath(1:end-1);
+
         case {'_user_data', 'user_data', '_userdata', 'userdata'} % Todo...
             initPath = nansen.localpath('nansen_root');
             folderPath = fullfile(initPath, '_userdata');
+            
+        case {'current_project_dir', 'project'}
+            rootDir = fullfile(nansen.localpath('user_data'));
+            defaultProjectDir = fullfile(rootDir, 'projects', 'default');
+            folderPath = getpref('Nansen', 'CurrentProjectPath', defaultProjectDir); %todo: add default
             
         case 'project_settings'
             initPath = nansen.localpath('nansen_root');
@@ -36,12 +78,18 @@ function pathStr = localpath(pathKeyword, project)
             initPath = nansen.localpath('nansen_root');
             folderPath = fullfile(initPath, '_userdata', 'settings');
             
-        case 'current_project_folder'
+        case {'current_project_folder', 'Current Project'}
             folderPath = getpref('Nansen', 'CurrentProjectPath');
             
         case {'MetaTable', 'metatable_folder'}
             folderPath = fullfile(projectRootDir, 'Metadata Tables');
             
+        case 'Custom Metatable Variable'
+            folderPath = fullfile(projectRootDir, 'Metadata Tables', '+tablevar');
+            
+        case 'Data Variable Template Folder'
+            initPath = nansen.localpath('nansen_root');
+            folderPath = fullfile(initPath, 'templates', 'datavariables');
             
       % % Files
       
@@ -58,6 +106,12 @@ function pathStr = localpath(pathKeyword, project)
             folderPath = fullfile(projectRootDir, 'Metadata Tables');
             fileName = 'metatable_catalog.mat';
             
+        case 'ProjectConfiguration'
+            folderPath = fullfile(projectRootDir, 'Configurations');
+        
+        case {'ProjectCustomOptions', 'project_custom_options'}
+            folderPath = fullfile(projectRootDir, 'Configurations', 'custom_options');
+            
         case 'FilePathSettings'
             folderPath = fullfile(projectRootDir, 'Configurations');
             fileName = 'filepath_settings.mat';
@@ -69,21 +123,35 @@ function pathStr = localpath(pathKeyword, project)
         otherwise
             % open dialog and save to preferences or get from preferences
             % if it exists there...
+    
+            % Check if preferences has a localpath field and if user defined local
+            % paths are present there. Checking prefs is slow, so this is
+            % the last resort (previously it was the first)
             
-            error('No localpath found for "%s"', pathKeyword)
+            if ispref('nansen_localpath', pathKeyword)
+                pathStr = getpref('nansen_localpath', pathKeyword);
+                nansenPreferences.localPath(pathKeyword) = pathStr;
+                return
+            else
+                error('No localpath found for "%s"', pathKeyword)
+            end
             
     end
     
     
     % Make folder if it does not exist
-    if ~exist(folderPath, 'dir');  mkdir(folderPath);    end
-
+    if ischar( folderPath )
+        if ~exist(folderPath, 'dir');  mkdir(folderPath);  end
+    end
+    
     % Prepare output, either file- or folderpath
     if exist('fileName', 'var')
         pathStr = fullfile(folderPath, fileName);
     else
         pathStr = folderPath;
     end
-            
     
+    nansenPreferences.localPath(pathKeyword) = pathStr;
+
 end
+

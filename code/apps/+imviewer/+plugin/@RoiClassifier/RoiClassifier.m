@@ -1,13 +1,13 @@
-classdef RoiClassifier < uim.applify.AppPlugin
+classdef RoiClassifier < applify.mixin.AppPlugin
     
     
     properties (Constant, Hidden = true) % Inherited from applify.mixin.UserSettings via AppPlugin
         USE_DEFAULT_SETTINGS = false
-        DEFAULT_SETTINGS = imviewer.plugin.RoiManager.getDefaultSettings()
+        DEFAULT_SETTINGS = imviewer.plugin.RoiClassifier.getDefaultSettings() % Todo... This is classifier settings.I guess these should be settings relevant for connecting the two apps...
     end
     
     properties (Constant) % Inherited from uim.applify.AppPlugin
-        Name = 'Roimanager'
+        Name = 'Roiclassifier'
     end
     
     
@@ -20,39 +20,77 @@ classdef RoiClassifier < uim.applify.AppPlugin
         ClassifierApp
     end
     
-    
+    methods (Static)
+        S = getDefaultSettings()
+    end
     
     methods
         
         function obj = RoiClassifier(imviewerApp)
         %openRoiClassifier Open roiClassifier on request from imviewer
 
-            obj@uim.applify.AppPlugin(imviewerApp)
-            
+            obj@applify.mixin.AppPlugin(imviewerApp)
             
             % Find roimanager handle
             success=false;
-            if any( contains({imviewerApp.plugins.pluginName}, 'flufinder') )
-                IND = contains({imviewerApp.plugins.pluginName}, 'flufinder');
+            
+            if any( contains({imviewerApp.Plugins.Name}, 'Roimanager') )
+                IND = contains({imviewerApp.Plugins.Name}, 'Roimanager');
 
-                h = imviewerApp.plugins(IND).pluginHandle;
+                h = imviewerApp.Plugins(IND);
 
+                
+                % Todo: move to on plugin activated???
                 % Get roi group
                 roiGroup = h.roiGroup;
 
                 %TODO: Make sure roigroup has images and stat, otherwise generate
                 % it
+                
+                hasRoiData = roiGroup.validateForClassification();
 
-                tf = roiGroup.validateForClassification();
-                if isempty(roiGroup.roiImages) || isempty(roiGroup.roiStats)
+                if ~hasRoiData
+
                     % get roi images/stats
-                    error('Images and stats are missing')
+                    
+                    roiArray = roiGroup.roiArray;
+
+                    % % Get image stack and rois. Cancel if there are no rois
+                    
+                    
+                    frameIdx = 1:min([5000, imviewerApp.ImageStack.NumTimepoints]);
+                    imageData = imviewerApp.ImageStack.getFrameSet(frameIdx);
+                    
+                    imviewerApp.displayMessage('Please wait. Creating thumbnail images of rois and calculating statistics. This might take a minute')
+
+                    imageTypes = {'enhancedAverage', 'peakDff', 'correlation', 'enhancedCorrelation'};
+                    [roiImages, roiStats] = roimanager.gatherRoiData(imageData, ...
+                        roiArray, 'ImageTypes', imageTypes);
+
+
+                    roiArray = roiArray.setappdata('roiImages', roiImages);
+                    roiArray = roiArray.setappdata('roiStats', roiStats);
+                    roiArray = roiArray.setappdata('roiClassification', zeros(1, numel(roiArray)));
+                    
+                    roiGroup.addRois(roiArray, [], 'replace')
+                    
+                    % Todo: set to appdata of roiarray...
+% %                     roiGroup.roiImages = roiImages;
+% %                     roiGroup.roiStats = roiStats;
+% %                     roiGroup.roiClassification = zeros(1, roiGroup.roiCount);
+                    
+                    imviewerApp.clearMessage();
+                    
+                    hasRoiData = roiGroup.validateForClassification();
+
                 end
 
-
-                if roiGroup.roiCount > 0
+                
+                if roiGroup.roiCount > 0 && hasRoiData
                     % Initialize roi classifier
-                    roiclassifier.roiClassifier(h.roiGroup, 'tileUnits', 'scaled')
+                    hClsf = roiclassifier.App(roiGroup, 'tileUnits', 'scaled');
+                    obj.ClassifierApp = hClsf;
+                    
                     success = true;
                 end
 
@@ -71,9 +109,32 @@ classdef RoiClassifier < uim.applify.AppPlugin
         
     end
     
-    
-    methods 
+    methods
         
+        function setFilePath(obj, filePath) 
+            obj.ClassifierApp.dataFilePath = filePath;
+        end
+
+    end
+    
+    methods (Access = protected)
+        
+        function onSettingsChanged(obj, name, value)
+            
+        end
+        
+        function onPluginActivated(obj)
+            % fprintf('roiclassifier plugin activated...')
+            
+        end
+        
+    end
+    
+    
+    methods (Static)       
+        function icon = getPluginIcon()
+            
+        end
     end
 
 end

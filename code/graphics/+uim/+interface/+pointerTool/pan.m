@@ -8,6 +8,9 @@ classdef pan < uim.interface.abstractPointer
     properties
         xLimOrig
         yLimOrig
+        
+        constrainX = true;
+        constrainY = true;
                 
         previousPoint (1,2) double = [nan, nan]
         isButtonDown (1,1) logical = false
@@ -99,10 +102,14 @@ classdef pan < uim.interface.abstractPointer
             if xlim(1) > obj.xLimOrig(1) && xlim(2) < obj.xLimOrig(2)
                 set(obj.hAxes, 'XLim', xlim);
 %                 plotZoomRegion(obj, xlim, obj.hAxes.YLim)
+            elseif ~obj.constrainX
+                set(obj.hAxes, 'XLim', xlim);
 
             end
             
             if ylim(1) > obj.yLimOrig(1) && ylim(2) < obj.yLimOrig(2)
+                set(obj.hAxes, 'YLim', ylim);
+            elseif ~obj.constrainY
                 set(obj.hAxes, 'YLim', ylim);
 %                 plotZoomRegion(obj, obj.hAxes.XLim, ylim)
             end

@@ -313,10 +313,12 @@ classdef ThumbnailSelector < handle
         function updateTabButtonStates(hButtons, newState)
         %updateTabButtonStates Update states of a radiobutton-like group
             
+        % todo: Move to toolbar. Or radiobuttongroup class...
+        
             evtDataOn = uim.event.ToggleEvent(1);
             evtDataOff = uim.event.ToggleEvent(0);
             
-            for i = 1:numel(hButtons)
+            for i = 2:numel(hButtons)
                 if strcmp(hButtons(i).Tag, newState)
                     hButtons(i).toggleState([], evtDataOn)
                 else

@@ -489,17 +489,6 @@ classdef Button_ < uim.abstract.Control
             
         end
         
-        function toggleState(obj, ~, event)
-        %toggleState Toggle the state (value) of the button.
-        
-        % Todo: make sure mechanical action is switch type...
-
-            if obj.Value ~= event.Value
-                obj.Value = event.Value;
-                obj.changeAppearance()
-            end
-            
-        end
     end
     
     methods (Access = protected)
@@ -522,8 +511,12 @@ classdef Button_ < uim.abstract.Control
                 end
                 
             end
-        end
+       end
          
+       function onSizeChanged(obj, oldPosition, newPosition)
+           onSizeChanged@uim.abstract.Control(obj, oldPosition, newPosition);
+           obj.updateTextLocation()
+       end
     end
     
     methods % Public
@@ -544,10 +537,23 @@ classdef Button_ < uim.abstract.Control
             end
             
             if ~isempty(obj.hButtonText) && isa(obj.hButtonText, 'matlab.graphics.primitive.Text')
-                obj.hButtonText.Position(1:2) = obj.hButtonText.Position(1:2)+shift(1:2);
+                obj.updateTextLocation()
+                %obj.hButtonText.Position(1:2) = obj.hButtonText.Position(1:2)+shift(1:2);
             end
             
             obj.setTooltipPosition()
+            
+        end
+        
+        function toggleState(obj, ~, event)
+        %toggleState Toggle the state (value) of the button.
+        
+        % Todo: make sure mechanical action is switch type...
+
+            if obj.Value ~= event.Value
+                obj.Value = event.Value;
+                obj.changeAppearance()
+            end
             
         end
     end

@@ -1,2 +1,6 @@
 % +nansen Namespace for functions that are part of NANSEN
-% Version 0.0.1 09-oct-2021
+%
+%   ImageStack     - Create an ImageStack object
+%   OptionsManager - Interface for managing options for functions/methods
+%   roimanager     - Open roimanager dashboard
+

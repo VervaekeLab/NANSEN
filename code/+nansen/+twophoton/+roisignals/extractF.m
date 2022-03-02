@@ -63,7 +63,7 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
     
     % Validate the input image data. If ImageStack, all is good, if 
     % numeric, an ImageStack object is returned, otherwise throws error.
-    imageStack = imviewer.ImageStack.validate(imageData);
+    imageStack = nansen.stack.ImageStack.validate(imageData);
     
     validateInputDimensions(imageStack, roiArray) % Local function
     
@@ -79,18 +79,19 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
     
     % Allocate array for collecting extracted signals
     numSubRegions = params.numNeuropilSlices .* params.createNeuropilMask + 1; % Add 1 for the main roi
-    signalArraySize = [ imageStack.numFrames, numSubRegions, numRois ];
+    signalArraySize = [ imageStack.NumTimepoints, numSubRegions, numRois ];
     signalArray = zeros(signalArraySize, params.signalDataType);
     
     % Determine block size for signal extraction.
     if numRois < 100
-        if imageStack.isVirtual
-            blockSize = imageStack.getBatchSize(class(imageStack.imageData));
+        if imageStack.IsVirtual
+            %blockSize = imageStack.getBatchSize(class(imageStack.imageData));
+            blockSize = imageStack.chooseChunkLength(imageStack.DataType);
         else
-            blockSize = imageStack.numFrames;
+            blockSize = imageStack.NumTimepoints;
         end
     else
-        blockSize = imageStack.getBatchSize('double');
+        blockSize = imageStack.chooseChunkLength('double');
     end
     
     % Get indices for different parts/blocks
@@ -126,7 +127,7 @@ function validateInputDimensions(imageStack, roiArray)
 
     msg = 'Dimensions of ImageStack and RoiArray are not matching';
     
-    imageSize = [imageStack.imageHeight, imageStack.imageWidth];
+    imageSize = [imageStack.ImageHeight, imageStack.ImageWidth];
     roiSize = roiArray(1).imagesize;
     
     assert( isequal(roiSize, imageSize), msg);
@@ -143,7 +144,7 @@ function params = updateParameters(params, imageStack, roiArray)
 
     % Create the imageMask if it is empty
     if isempty(params.imageMask) 
-        imageSize = [imageStack.imageHeight, imageStack.imageWidth];
+        imageSize = [imageStack.ImageHeight, imageStack.ImageWidth];
         params.imageMask = true(imageSize);
     end
     

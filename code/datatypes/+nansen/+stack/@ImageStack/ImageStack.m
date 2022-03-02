@@ -122,7 +122,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         FileName char = ''      % Filename (absolute path for file) if data is a virtual array
         MetaData struct         % Metadata
         UserData struct         % Userdata 
-        
+
+        DataXLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
+        DataYLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
+
         CurrentChannel = 1      % Sets the current channel(s). getFrames picks data from current channels
         CurrentPlane  = 1       % Sets the current plane(s). getFrames picks data from current planes
         
@@ -167,7 +170,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     end
 
     properties (Access = private)
-        CacheChangedListener
+        CacheChangedListener event.listener
         isDirty struct % Temp flag for whether buffer was updated... Should be moved to virtualStack...
     end
     
@@ -287,10 +290,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %       data = imageStack.getFrameSet(1:10, 1:3) will return an 
         %       array of size h x w x numPlanes x 3 x 10
         
+        
             indexingSubs = obj.getDataIndexingStructure(frameInd);
-                  
+            
+            doCropImage = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(1:2)));
+            
             % Case 1: All frames (along last dimension) are requested.
-            if ischar(frameInd) && strcmp(frameInd, 'all')
+            % Should return all available frames (i.e cached frames for virtual...)
+            if (ischar(frameInd) && strcmp(frameInd, 'all'))
                 
                 % Todo: Should return cached frames if number of frames
                 % will not fit in memory??
@@ -298,8 +305,17 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 % Assign image data to temp variable.
                 if obj.IsVirtual
                     try
-                        imArray = obj.Data.getCachedFrames();
+                        if obj.Data.HasCachedData
+                            imArray = obj.Data.getCachedFrames();
+                        else
+                            numFrames = min([obj.NumTimepoints, 500]);
+                            imArray = obj.getFrameSet(1:numFrames);
+                        end
                     catch
+                        imArray = obj.Data(indexingSubs{:});
+                    end
+                    
+                    if isempty(imArray) % If cache is empty, get images directly from Data
                         imArray = obj.Data(indexingSubs{:});
                     end
 
@@ -307,7 +323,28 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     imArray = obj.Data.DataArray;
                 end
                 
-            % Case 2: Subset of frames are requested.
+                % Only apply subindexing if necessary
+                if doCropImage
+                    indexingSubs(3:end) = {':'};
+                    imArray = imArray(indexingSubs{:});
+                end
+                
+            % Case 2: All frames (along last dimension) are requested.
+            % Should return all
+            elseif (isnumeric(frameInd) && numel(frameInd) == obj.NumFrames)
+                if obj.IsVirtual
+                    imArray = obj.Data(indexingSubs{:});
+                else
+                    imArray = obj.Data.DataArray;
+                
+                    % Only apply subindexing if necessary
+                    if doCropImage
+                        indexingSubs(3:end) = {':'};
+                        imArray = imArray(indexingSubs{:});
+                    end
+                end
+            
+            % Case 3: Subset of frames are requested.
             else
                 imArray = obj.Data(indexingSubs{:});
             end
@@ -364,7 +401,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function insertImage(obj, newImage, insertInd, dim)
             
-            error('Down for maintentance...')
+            %error('Down for maintentance...')
             
             if obj.IsVirtual
                 error('Can not insert image into virtual data stack')
@@ -374,36 +411,32 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 dim = 'T';
             end
             
-            if all( size(newImage, 1,2) < obj.Size(1,2) )
-                newImage = stack.reshape.imexpand(newImage, obj.Size(1,2));
-            elseif all( size(newImage, 1,2) < obj.Size(1,2) )
-                newImage = stack.reshape.imcropcenter(newImage, obj.Size(1,2));
+            newImageSize = size(newImage, 1,2);
+            currentImageSize = size(obj.Data, [1,2] );
+            
+            if all( newImageSize < currentImageSize )
+                newImage = stack.reshape.imexpand(newImage, currentImageSize);
+            elseif all( newImageSize < currentImageSize )
+                newImage = stack.reshape.imcropcenter(newImage, currentImageSize);
+            else
+                % Expand along longest dimension and crop along shortest. 
+                % Todo: Test this
+                expandSize = max([newImageSize; currentImageSize]);
+                cropSize = min([newImageSize; currentImageSize]);
+                newImage = stack.reshape.imexpand(newImage, expandSize);
+                newImage = stack.reshape.imcropcenter(newImage, cropSize);
             end
             
             % Todo: Make sure image which is inserted has same number of
             % channels and planes as Data
             
-            isSizeEqual = isequal( size(newImage, 1, 2), obj.Size(1,2));
-            assert(isSizeEqual, 'Image Dimensions do not match')
+            isSizeEqual = isequal( size(newImage, 1, 2), currentImageSize);
+            assert(isSizeEqual, 'Image dimensions do not match')
             
-            dim = strfind(obj.DataDimensionOrder, dim);
-            
-            subs = obj.getFullDataIndexingStructure();
-            %subs{dim} = insertInd;
             
             % Todo: Adapt according to dimensions....
-            if insertInd == 1
-                obj.Data = cat(dim, newImage, ...
-                    obj.Data(subs{:}));
-            else
-                % Todo: Use insert into array function... Todo:
-                [subsPre, subsPost] = deal(subs);
-                subsPre{dim} = 1:insertInd(1)-1;
-                subsPost{dim} = insertInd(1):subsPost{dim}(end);
-
-                obj.Data = cat(dim, obj.Data(subsPre{:}), ...
-                    newImage, obj.Data(subsPost{:}) );
-            end
+            obj.Data.insertImageData(newImage, insertInd)
+            
 
             % Todo: are all "dependent" properties updated?
             
@@ -490,6 +523,18 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             % Todo: Should this be commented out or not??
             
+            % Todo: Make this more efficient. Ie. should tag ini-file if
+            % data is already downsampled
+            
+            randFrameIdx = randperm(downsampledStack.NumTimepoints, 100);
+            
+            data = downsampledStack.getFrameSet(sort(randFrameIdx));
+            
+            if all( mean(mean(data,2),1) ~= 0 )
+                return % Data is already downsampled...
+            end
+            
+            
             % Loop through blocks and downsample frames
             for iPart = 1:numChunks
                 imData = obj.getFrameSet( IND{iPart} );
@@ -546,10 +591,19 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % Set dimension to calculate projection image over.
             
             if nargin < 4 || isempty(dim)
-                dim = ndims(tmpStack);
+                % Dim should be minimum 3, but would be 2 for single frame
+                dim = max([3, ndims(tmpStack)]);
             else
                 error('Not implemented yet')
             end
+            
+            % Special case if the imagedata is a single rgb frame, need to
+            % find max along 4th dimensions..
+            if dim == 3 && numel(obj.CurrentChannel) > 1 
+                dim = 4;
+            end
+            
+            
             
             % Calculate the projection image
             switch lower(projectionName)
@@ -654,7 +708,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 dim = 'T';
             end
             
-            availMemoryBytes = system.getAvailableMemory();
+            availMemoryBytes = utility.system.getAvailableMemory();
 
             % Adjust available memory according to the memory load
             availMemoryBytes = availMemoryBytes * pctMemoryLoad;
@@ -754,6 +808,18 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     length = obj.ImageHeight;
             end
             
+        end
+
+        function tf = isDummyStack(obj)
+        %isDummyStack Check is stack is dummy, i.e contains only nan values
+            
+            tf = false;
+        
+            if isa(obj.Data, 'nansen.stack.data.MatlabArray')
+                data = obj.getFrameSet('all');
+                tf = all( isnan( data(:) ) );
+            end
+        
         end
 
     end
@@ -858,6 +924,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function set.DynamicCacheEnabled(obj, newValue)
             obj.Data.UseDynamicCache = newValue;
+            obj.onDynamicCacheEnabledChanged()
         end
         
         function state = get.DynamicCacheEnabled(obj)
@@ -880,7 +947,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function numFrames = get.NumFrames(obj)
-            numFrames = obj.NumChannels * obj.NumPlanes * obj.NumTimepoints;
+            %numFrames = obj.NumChannels * obj.NumPlanes * obj.NumTimepoints;
+            
+            numFrames = numel(obj.CurrentChannel) .* numel(obj.CurrentPlane) * obj.NumTimepoints;
+            
         end
         
         function frameSize = get.FrameSize(obj)
@@ -889,6 +959,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function clim = get.DataTypeIntensityLimits(obj)
             clim = obj.getDataTypeIntensityLimits(obj.DataType);
+            if strcmp(obj.DataType, 'single') ||  strcmp(obj.DataType, 'double')
+                clim(1) = min([clim(1), obj.DataIntensityLimits]);
+                clim(2) = max([clim(2), obj.DataIntensityLimits]);
+            end
+            
         end
         
     end
@@ -959,7 +1034,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             for i = 1:numDims
                 
-                thisDim = obj.DataDimensionOrder(i);
+                thisDim = obj.Data.DataDimensionArrangement(i);
                 
                 switch thisDim
                     case 'C'
@@ -987,22 +1062,40 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         else
                             subs{i} = 1:obj.NumTimepoints;
                         end
-
-                    case {'X', 'Y'}
-                        %pass
+                        
+                        % Make sure requested frame indices are in range.
+                        subs{i} = intersect(1:obj.NumTimepoints, subs{i});
+                        % Todo: Generalize and do this for all dimensions
+                    
+                    case 'X'
+                        if ~all(obj.DataXLim==0)
+                            subs{i} = obj.DataXLim(1):obj.DataXLim(2);
+                        end
+                        
+                    case 'Y'
+                        if ~all(obj.DataYLim==0)
+                            subs{i} = obj.DataYLim(1):obj.DataYLim(2);
+                        end
                 end
             end
             
+            
+%             % Special case for 2d images.a
+%             if numDims == 2 && frameInd == 1
+%                 subs{end+1} = frameInd;
+%             end
+            
         end
-
+        
+        
         function subs = getFullDataIndexingStructure(obj)
             
-            numDims = numel(obj.DataDimensionOrder);
+            numDims = numel(obj.Data.DataDimensionArrangement);
             
             % Initialize list of subs
             subs = cell(1, numDims);
             for i = 1:numDims
-                thisDim = obj.DataDimensionOrder(i);
+                thisDim = obj.Data.DataDimensionArrangement(i);
                 subs{i} = 1:obj.getDimensionLength(thisDim); 
             end
             
@@ -1053,6 +1146,21 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function onCachedDataChanged(obj, src, evt)
             %error('not implemented')
+            
+            persistent counter
+            if isempty(counter); counter = 0; end
+            
+            counter = counter + 1;
+            if counter >= 100
+                fieldNames = fieldnames(obj.isDirty);
+                for i = 1:numel(fieldNames)
+                    obj.isDirty.(fieldNames{i}) = true;
+                end
+                counter = mod(counter, 100);
+            end
+            % Todo: Set projection images to dirty. Only do this every once
+            % in a while...
+            %disp('Cache changed...')
         end
         
     % - Methods for getting dimension lengths
@@ -1084,8 +1192,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if isa(obj.Data, 'nansen.stack.data.VirtualArray')
                 obj.IsVirtual = true;
 
-                obj.CacheChangedListener = listener(obj.Data, ...
-                    'DynamicCacheChanged', @obj.onCachedDataChanged);
+                % Update cache dependent properties.
+                obj.onDynamicCacheEnabledChanged()
                 
                 obj.FileName = obj.Data.FilePath;
                 [~, obj.Name] = fileparts(obj.Data.FilePath);
@@ -1148,6 +1256,21 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 % %             end
         end
         
+        function onDynamicCacheEnabledChanged(obj)
+            
+            switch obj.DynamicCacheEnabled
+                case 'on'
+                    obj.CacheChangedListener = listener(obj.Data, ...
+                        'DynamicCacheChanged', @obj.onCachedDataChanged);
+                case 'off'
+                    if ~isempty(obj.CacheChangedListener)
+                        delete(obj.CacheChangedListener)
+                        obj.CacheChangedListener = [];
+                    end
+            end
+            
+        end
+        
     end
     
     methods (Static)
@@ -1159,21 +1282,21 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         % ImageStack object. If the variable is numeric and has 3 or more
         % dimension, it is returned as an ImageStack.
             
-            % If image data is numeric, place it in an ImageStack object.
+            % If image data is numeric, place it in an ImageStack object.                
             if isa(imageData, 'numeric')
-                message = 'Image data must have at least 3 dimensions';
-                assert( ndims(imageData) >= 3, message ) %#ok<ISMAT>
+                message = 'Image data must have at least 2 dimensions';
+                assert( ndims(imageData) >= 2, message ) %#ok<ISMAT>
                 imageStack = nansen.stack.ImageStack(imageData);
                 
             elseif isa(imageData, 'nansen.stack.data.abstract.ImageStackData')
                 imageStack = nansen.stack.ImageStack(imageData);
                 
-            elseif isa(imageData, 'imviewer.ImageStack')
+            elseif isa(imageData, 'nansen.stack.ImageStack')
                 imageStack = imageData;
                 
             else
-                message = 'Image data must be a numeric array or an ImageStack object';
-                error(message)
+                errorId = 'NANSEN:Stack:InvalidImageStack';
+                throw(nansen.stack.getException(errorId))
             end
             
         end
@@ -1197,7 +1320,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function limits = getDataTypeIntensityLimits(dataType)
             
-            switch dataType
+            switch dataType                    
                 case 'uint8'
                     limits = [0, 2^8-1];
                 case 'uint16'
@@ -1210,7 +1333,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     limits = [-2^15, 2^15-1];
                 case 'int32'
                     limits = [-2^31, 2^31-1];
-                case {'single', 'double'}
+                case {'single', 'double', 'logical'}
                     limits = [0, 1];
             end
             

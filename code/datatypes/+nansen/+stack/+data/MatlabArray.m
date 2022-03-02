@@ -32,7 +32,7 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
             stackSize = size(obj.DataArray);
             nDim = max([3, numel(stackSize)]);
             
-            subs = repmat({':'}, 1, nDim);
+            subs = arrayfun(@(l) 1:l, stackSize, 'uni', 0);
             
             msg = 'Image can not be inserted into this stack because sizes does not match';
             assert( isequal(stackSize(1:nDim-1), size(imageData)), msg)
@@ -44,10 +44,10 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
                 
                 % Todo: Use insert into array function... Todo:
                 [subsPre, subsPost] = deal(subs);
-                subsPre{dim} = 1:insertInd(1)-1;
-                subsPost{dim} = insertInd(1):subsPost{dim}(end);
+                subsPre{nDim} = 1:insertInd(1)-1;
+                subsPost{nDim} = insertInd(1):subsPost{nDim}(end);
 
-                obj.DataArray = cat(dim, obj.DataArray(subsPre{:}), ...
+                obj.DataArray = cat(nDim, obj.DataArray(subsPre{:}), ...
                     imageData, obj.DataArray(subsPost{:}) );
             end
             
@@ -98,6 +98,26 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
             end
         end
         
+        function data = getLinearizedData(obj)
+            data = obj.DataArray(:);
+        end
+        
     end
+    
+    methods % Implementation of matlab functions
+        
+        function varargout = max(obj, varargin)
+            
+            if nargout == 0
+                max(obj.DataArray, varargin{:})
+            else
+                varargout = cell(1, nargout);
+                [varargout{:}] = max(obj.DataArray, varargin{:});
+            end
+        end
+        
+        
+    end
+        
     
 end

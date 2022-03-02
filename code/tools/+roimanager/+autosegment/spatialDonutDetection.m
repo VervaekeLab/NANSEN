@@ -4,11 +4,11 @@ function [roisOut, statOut] = spatialDonutDetection(im, rois, varargin)
 
 % "import" local package using module (current folder)
 rootPath = fileparts(mfilename('fullpath'));
-autosegment = tools.path2module(rootPath);
+%autosegment = tools.path2module(rootPath);
 
 % Also get the roimanager as a local package (1 folder up)
 rootPath = fileparts(fileparts(mfilename('fullpath')));
-roitools = tools.path2module(rootPath);
+%roitools = tools.path2module(rootPath);
     
 
 
@@ -24,7 +24,7 @@ im = im ./ max(im(:));
 im(im<0)=0;
 im(im>1)=1;
 
-window = autosegment.createRingshapedKernel(im, varargin{:});
+window = roimanager.autosegment.createRingshapedKernel(im, varargin{:});
 % window = createRingshapedKernel(im, 'InnerRadius', 4, 'OuterRadius', 6);
 
 windowSmall = stack.reshape.imcropcenter(window, [19,19]);
@@ -121,7 +121,7 @@ imdata = imdata(:, :, keep2);
 centerCoords = centerCoords(keep2, :);
 
 
-[masks, s] = roitools.findRoiMaskFromImage(imdata, centerCoords, size(im));
+[masks, s] = roimanager.binarize.findRoiMaskFromImage(imdata, centerCoords, size(im));
 
 if showResults
     nIms = size(imdata,3);

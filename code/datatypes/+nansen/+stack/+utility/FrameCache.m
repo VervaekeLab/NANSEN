@@ -116,7 +116,7 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         
         function subs = getCacheSubs(obj, frameIndices)
                 
-            subs = cell(1, ndims(obj.Data));
+            subs = cell(1, max([3, ndims(obj.Data)]));
             subs(1:end-1) = {':'};
             subs{end} = frameIndices;
 

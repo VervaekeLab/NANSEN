@@ -9,11 +9,11 @@ function [roiArray, roiImages, roiStats] = autosegmentSoma(imArray, avgIm, varar
     
     % "import" local package using module (current folder)
     rootPath = fileparts(mfilename('fullpath'));
-    autosegment = tools.path2module(rootPath);
+    %autosegment = tools.path2module(rootPath);
     
     % Also get the roimanager as a local package (1 folder up)
     rootPath = fileparts(fileparts(mfilename('fullpath')));
-    roitools = tools.path2module(rootPath);
+    %roitools = tools.path2module(rootPath);
     
     % Calculate average projection here if not given
     if nargin < 2; avgIm = mean(imArray, 3); end
@@ -34,29 +34,29 @@ function [roiArray, roiImages, roiStats] = autosegmentSoma(imArray, avgIm, varar
     
     % Binarize stack
     fprintf(sprintf('Binarizing images...\n'))
-    BW = autosegment.binarizeStack(imArray, []);
+    BW = roimanager.autosegment.binarizeStack(imArray, []);
     
     
     % Search for candidates based on activity in the binary stack
     param = [];
-    S = autosegment.getAllComponents(BW, param);
-    roiArrayT = autosegment.findUniqueRoisFromComponents(stackSize(1:2), S);
-    roiArrayT = roitools.mergeOverlappingRois(roiArrayT);
+    S = roimanager.autosegment.getAllComponents(BW, param);
+    roiArrayT = roimanager.autosegment.findUniqueRoisFromComponents(stackSize(1:2), S);
+    roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
     
 
     if opt.RingConvolutionSearch
         % Search for ring shaped candidates (spatial footprint only)
         fprintf('Searching for ring-shaped cells...\n')
         param = struct('InnerRadius', 4, 'OuterRadius', 6, 'BoxSize', [21,21]);
-        roiArrayS = autosegment.spatialDonutDetection(single(avgIm), [], param);
+        roiArrayS = roimanager.autosegment.spatialDonutDetection(single(avgIm), [], param);
         
         if ~isempty(roiArrayS)
-            roiArrayS = roitools.mergeOverlappingRois(roiArrayS);
-            roiArrayS = roitools.removeRoisOnBoundary(roiArrayS);
+            roiArrayS = roimanager.utilities.mergeOverlappingRois(roiArrayS);
+            roiArrayS = roimanager.utilities.removeRoisOnBoundary(roiArrayS);
 
 
             % Remove candidates that are overlapping...
-            [~, iB] = roitools.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
+            [~, iB] = roimanager.utilities.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
             roiArrayT(iB) = [];
 
 
@@ -67,18 +67,18 @@ function [roiArray, roiImages, roiStats] = autosegmentSoma(imArray, avgIm, varar
             % Todo: Use temporally downsampled stack for extracting signals
             % and roi images for improving estimates
             signalOpts = struct('createNeuropilMask', true);
-            signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArrayT, signalOpts);
-            dffS = nansen.twophoton.roisignals.computeDff(signalArray);
+            signalArrayS = nansen.twophoton.roisignals.extractF(imArray, roiArrayS, signalOpts);
+            dffS = nansen.twophoton.roisignals.computeDff(signalArrayS);
             
             % Add roi images to rois. Use to improve roi boundary estimate
-            donutImageStack = roitools.extractRoiImages(imArray, roiArrayS, dffS);
+            donutImageStack = roimanager.autosegment.extractRoiImages(imArray, roiArrayS, dffS');
             roiArrayS = roiArrayS.addImage(donutImageStack);
         end
     end
     
     
     % Remove candidates very close to edge of the image
-    roiArrayT = roitools.removeRoisOnBoundary(roiArrayT);
+    roiArrayT = roimanager.utilities.removeRoisOnBoundary(roiArrayT);
     
     
     
@@ -91,26 +91,26 @@ function [roiArray, roiImages, roiStats] = autosegmentSoma(imArray, avgIm, varar
 
     % Remove rois that dont have a signal. Due to being covered by other
     % rois. Todo. Find a better solution...
-    discard = isnan(sum(dffT, 2));
+    discard = isnan(sum(dffT, 1));
     roiArrayT(discard) = [];
-    dffT(discard, :) = [];
+    dffT(:, discard) = [];
 
 
     %%% Improve roi estimate for active cells.
     fprintf('Improving estimates for temporally active cells...\n')
-    imdata = autosegment.extractRoiImages(imArray, roiArrayT, dffT, 'ImageType', 'correlation');
+    imdata = roimanager.autosegment.extractRoiImages(imArray, roiArrayT, dffT', 'ImageType', 'correlation');
     roiArrayT = roiArrayT.addImage(imdata);
-    [roiArrayT, ~] = roitools.improveMaskEstimate2(roiArrayT);
+    [roiArrayT1, ~] = roimanager.binarize.improveMaskEstimate2(roiArrayT);
     
     
 
     % Merge overlapping rois in the activity based roi Array.
-    roiArrayT = roitools.mergeOverlappingRois(roiArrayT);
+    roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
     
     
     % Do a final check for overlapping rois...
     if opt.RingConvolutionSearch && ~isempty(roiArrayS)
-        [iA, iB] = roitools.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
+        [iA, iB] = roimanager.utilities.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
         roiArrayT(iB) = [];
     end
 
@@ -136,6 +136,9 @@ function [roiArray, roiImages, roiStats] = autosegmentSoma(imArray, avgIm, varar
     
     
     % Create roi image data stuct with different images for each roi.
+    
+    % Todo: This shoudl not be part of this function.......
+    %[roiImageData, roiStats] = roimanager.gatherRoiData(imArray, roiArray, varargin)
     if nargout >= 2
         
         fprintf('Creating Roi Images...\n')
@@ -146,9 +149,9 @@ function [roiArray, roiImages, roiStats] = autosegmentSoma(imArray, avgIm, varar
         signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArray, signalOpts);
         dff = nansen.twophoton.roisignals.computeDff(signalArray);
         
-        roiImA = autosegment.extractRoiImages(imArray, roiArray, dff);
-        roiImB = autosegment.extractRoiImages(imArray, roiArray, dff, 'ImageType', 'peak dff');
-        roiImC = autosegment.extractRoiImages(imArray, roiArray, dff, 'ImageType', 'correlation');
+        roiImA = roimanager.autosegment.extractRoiImages(imArray, roiArray, dff');
+        roiImB = roimanager.autosegment.extractRoiImages(imArray, roiArray, dff', 'ImageType', 'peak dff');
+        roiImC = roimanager.autosegment.extractRoiImages(imArray, roiArray, dff', 'ImageType', 'correlation');
 %         roiImD = extractRoiImages(imArray, roiArray, dff, 'ImageType', 'enhanced correlation');
         
         roiArray = roiArray.addImage(roiImA);
@@ -171,7 +174,7 @@ function [roiArray, roiImages, roiStats] = autosegmentSoma(imArray, avgIm, varar
     
     if nargout >= 3
         fprintf('Calculating Roi Stats...\n')
-        roiStats = autosegment.calculateRoiStats(roiArray, roiImages, dff, ringW, diskW);
+        roiStats = roimanager.autosegment.calculateRoiStats(roiArray, roiImages, dff, ringW, diskW);
     end
     
     

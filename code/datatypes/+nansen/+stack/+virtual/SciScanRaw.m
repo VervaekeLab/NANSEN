@@ -31,6 +31,25 @@ methods % Structors
     
 end
 
+methods (Hidden)
+        
+    function data = readDataPerformanceTest(obj, subs)
+        
+        persistent T i
+        if isempty(T); T = zeros(1,1000); i=1; end; t0 = tic;
+        
+        data = obj.MemMap.Data.ImageArray(subs{:});
+        data = swapbytes(data); % SciScan data is saved with bigendian?
+        
+        T(i) = toc(t0); i = i+1;
+        if mod(i, 1000)==0
+            figure; plot(T); i = 1; disp(mean(T))
+        end
+        
+    end
+    
+end
+
 methods % Implementation of VirtualArray abstract methods
     
     function data = readData(obj, subs)
@@ -43,7 +62,7 @@ methods % Implementation of VirtualArray abstract methods
     end
        
     function writeFrames(obj, frameIndex, data)
-        error('Not implemented yet')
+        error('Writing to a raw image data file is not supported')
     end
     
 end
@@ -290,6 +309,8 @@ methods (Static)
                 iniFilePath = pathStr;
                 rawFilePath = fullfile(folderPath, [fileName, '.raw']);
             end
+        else
+            isValid = false; return
         end
         
         isValid = isfile(rawFilePath) & isfile(iniFilePath);

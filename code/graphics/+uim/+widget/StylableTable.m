@@ -22,6 +22,7 @@ classdef StylableTable < uiw.widget.Table
         UseDefaultHeader = true
         
         HeaderPressedCallback = []
+        HeaderReleasedCallback = []
     end
     
     properties %(Access = protected, Dependent)
@@ -42,10 +43,12 @@ classdef StylableTable < uiw.widget.Table
         % changed via the user interface by mouse drag actions.
         WasMouseDraggedInHeader = false;
         OldColumnWidth = []
+        OldColumnOrder = {}
     end
     
     events
         ColumnWidthChanged % Event listener for if column width changes (if user drags column headers to resize)
+        ColumnsRearranged % Event listener for if columns are rearranged (if user drags column headers to rearrange)
     end
     
     
@@ -86,7 +89,7 @@ classdef StylableTable < uiw.widget.Table
         
     end
     
-    methods (Access = protected) % Internal creation
+    methods (Access = protected) % Internal (creation)
         
         function retrieveJavaHandles(obj)
         %retrieveJavaHandles Retrieve java handles that will be modified
@@ -127,11 +130,38 @@ classdef StylableTable < uiw.widget.Table
         end
     end
     
-    
     methods
+        
+        function figurePoint = tablepoint2figurepoint(obj, tablePosition)
+                  
+            % Todo: Need to know if position is java position or not... in
+            % which case the y position needs to be reversed.
+            
+            % Get scroll positions in table
+            xScroll = obj.getHorizontalScrollOffset();
+            yScroll = obj.getVerticalScrollOffset();
+
+            % Correct the coordinates based on the scroll offsets
+            clickPosX = tablePosition(1) - xScroll;
+            clickPosY = tablePosition(2) - yScroll;
+            
+            % Convert from table-based to figure-based coordinates.
+            tablePosition = getpixelposition(obj, true);
+            tableLocationX = tablePosition(1) + 1; % +1 because ad hoc...
+            tableHeight = tablePosition(4);
+            
+            clickPosX = tableLocationX + clickPosX; % Add offset for table position.
+            clickPosY = tableHeight - clickPosY; % Need to reverse y-position because java-based positions are opposite (i.e upside-down) compared to matlab positions.
+            figurePoint = [clickPosX, clickPosY];
+            
+        end
         
         function xOffset = getHorizontalScrollOffset(obj)
             xOffset = get(obj.JHScroller, 'Value');
+        end
+        
+        function yOffset = getVerticalScrollOffset(obj)
+            yOffset = get(obj.JVScroller, 'Value');
         end
         
         function showHorizontalScroller(obj)
@@ -156,10 +186,26 @@ classdef StylableTable < uiw.widget.Table
             obj.JVScroller.updateUI()
         end
         
+        function columnNames = getColumnOrder(obj)
+
+            % Todo: Move to columnlayout class...
+            
+            jTableHeader = obj.JTable.getTableHeader();
+            jColumnModel = jTableHeader.getColumnModel();
+            numColumns = jColumnModel.getColumnCount;
+            
+            columnNames = cell(1, numColumns);
+
+            for i = 1:numColumns
+                columnNames{i} = jColumnModel.getColumn(i-1).getHeaderValue;
+            end
+            
+        end
+        
     end
     
-    
-    methods
+    methods % Set / get methods
+        
         function set.Theme(obj, newTheme)
             obj.Theme = newTheme;
             obj.updateTheme()
@@ -208,10 +254,10 @@ classdef StylableTable < uiw.widget.Table
         function jTable = get.JTable(obj)
             jTable = obj.JControl;
         end
+        
     end
     
-    
-    methods (Access = protected) % Internal updating
+    methods (Access = protected) % Internal (updating)
         
         function updateTheme(obj)
             if ~obj.IsConstructed; return; end
@@ -351,20 +397,35 @@ classdef StylableTable < uiw.widget.Table
             if ~obj.WasMouseDraggedInHeader
                 obj.WasMouseDraggedInHeader = true;
                 obj.OldColumnWidth = obj.ColumnWidth;
+                obj.OldColumnOrder = obj.getColumnOrder();
             end
         end
         
         function onMouseReleasedFromHeader(obj, src, evt)
         %onMouseReleasedFromHeader Used to test if column widths are changed
+            
             if obj.WasMouseDraggedInHeader
-                if any(obj.ColumnWidth ~= obj.OldColumnWidth)
+
+                % Need to check if columns are rearranged before checking if
+                % columns are resized. If columns of different sizes are
+                % rearranged, it will appear as columns have been resized.
+                currentColumnOrder = obj.getColumnOrder();
+                if ~isequal(obj.OldColumnOrder, currentColumnOrder) % (1)
+                    obj.notify('ColumnsRearranged', event.EventData)
+                
+                elseif any(obj.ColumnWidth ~= obj.OldColumnWidth)   % (2)
                     obj.updateColumnHeaderWidth()
                     obj.notify('ColumnWidthChanged', event.EventData)
                 end
+                
                 obj.WasMouseDraggedInHeader = false;
+            else
+                if ~isempty(obj.HeaderReleasedCallback)
+                    obj.HeaderReleasedCallback(src, evt)
+                end
             end
         end
-        
+
     end
     
 end

@@ -46,6 +46,7 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
     try
 
         sEditor = structeditor(sIn, varargin{:});
+        sEditor.IsModal = true;
         sEditor.waitfor()
 
         if sEditor.wasCanceled

@@ -82,11 +82,17 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 obj.FileAccessMode = 'create';
                 % TODO: ASSIGN size properties, but leave actual file
                 % empty, so that it can be written to later by appending
-                % data. 
+                % data.                
             end
             
             % Parse potential name-value pairs and assign to properties
             obj.parseInputs(nvPairs{:})
+            
+            % Make sure transient is turned off if existing stack was
+            % opened
+            if obj.IsTransient && strcmp(obj.FileAccessMode, 'open')
+                obj.IsTransient = false;
+            end
             
             obj.assignFilePath(filePath);
             obj.getFileInfo()
@@ -157,7 +163,11 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function writeData(obj, subs, data)
-            error('Not implemented yet')
+            
+            frameInd = subs{end};
+            obj.writeFrames(data, frameInd);
+
+            %error('Not implemented yet')
         end
     end
     
@@ -180,9 +190,14 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 %data = obj.readFrames(subs);
             end
             
+            if ~all( size(data, [1,2]) == cellfun(@numel, subs(1:2) ) )
+                subs(3:end) = {':'}; % Only subindex along x-y dimension here.
+                data = data(subs{1:ndims(data)});
+            end
+                
         end
         
-        function data = setData(obj, subs, data)
+        function setData(obj, subs, data)
             
             % Are any of these frames found in the cache?
             if obj.HasCachedData
@@ -191,6 +206,10 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 obj.writeData(subs, data);
             end
             
+        end
+        
+        function data = getLinearizedData(obj)
+            error('Linear indexing is not implemented for virtual data yet')
         end
         
     end
@@ -360,7 +379,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     end
     
     methods (Static)
-        function createFile(dataSize, dataType)
+        function createFile(filePath, dataSize, dataType)
             % Subclass can override
             error('No method is defined for creating new files for %s', 'N/A')
             %Todo: get name of caller...

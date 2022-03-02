@@ -9,6 +9,9 @@ classdef autoDetect < uim.interface.abstractPointer
     
     
     properties 
+        xLimOrig
+        yLimOrig
+        
         hObjectMap
         hImageStack
         hImage
@@ -40,6 +43,9 @@ classdef autoDetect < uim.interface.abstractPointer
         function obj = autoDetect(hAxes)
             obj.hAxes = hAxes;
             obj.hFigure = ancestor(hAxes, 'figure');
+                       
+            obj.xLimOrig = obj.hAxes.XLim;
+            obj.yLimOrig = obj.hAxes.YLim;
             
             obj.hImage = findobj(obj.hAxes, 'type', 'image');
 
@@ -87,7 +93,7 @@ classdef autoDetect < uim.interface.abstractPointer
         function setPointerSymbol(obj)
             %obj.hFigure.Pointer = 'cross';
             switch obj.mode
-                case 1
+                case {1, 5}
                     pdata = NaN(16,16);
                     pdata(7:10, 7:10) = 2;
                     pdata(8:9, 8:9) = 1;
@@ -97,6 +103,11 @@ classdef autoDetect < uim.interface.abstractPointer
                     pdata(8:9, 6:11) = 2;
                     isWhite = imdilate(pdata==2, ones(3,3)) & ~(pdata==2);
                     pdata(isWhite)=1;
+            end
+            
+            switch obj.mode
+                case {2,5}
+                    pdata(1:2,1:2) = 2;
             end
             
             obj.hFigure.Pointer = 'custom';
@@ -191,7 +202,7 @@ classdef autoDetect < uim.interface.abstractPointer
                         obj.updateRoi()
                     end
                     
-                case {'1', '2', '3', '4'}
+                case {'1', '2', '3', '4', '5'}
                     obj.mode = str2double(event.Key);
                     obj.setPointerSymbol()
                     if obj.mode == 4
@@ -273,6 +284,7 @@ classdef autoDetect < uim.interface.abstractPointer
             r(2) = obj.extendedRadius;
             
             newRoi = obj.hObjectMap.autodetectRoi(x, y, r, obj.mode, false);
+            
             obj.plotTempRoi(newRoi)
         end
         
@@ -402,12 +414,11 @@ classdef autoDetect < uim.interface.abstractPointer
             % Todo: Have these sizes as internal property?
 % %             axLimOrig = [1,obj.hObjectMap.displayApp.imWidth; ...
 % %                 1,obj.hObjectMap.displayApp.imHeight];
-% %             ps = 10 / axLimOrig(2) * range(hAx.XLim); 
+% %             ps = 10 / axLimOrig(2a) * range(hAx.XLim); 
             
             
-            imSize = size(obj.hImage.CData);
-            axLimOrig = [1, imSize(2); 1, imSize(1)];
-            
+            %imSize = size(obj.hImage.CData);
+            axLimOrig = [obj.xLimOrig; obj.yLimOrig];
             
             if nargin < 2 && ~obj.isPointerInsideAxes()
                 y0 = mean(hAx.YLim);
@@ -452,25 +463,27 @@ classdef autoDetect < uim.interface.abstractPointer
         end
         
         
-        function plotTempRoi(obj, roiMask)
+        function plotTempRoi(obj, hRoi)
             
-            if isempty(roiMask)
+            if isempty(hRoi)
                 B = {[nan, nan]};
             else
-                B = bwboundaries(roiMask);
+                %B = bwboundaries(hRoi);
+                B = hRoi.Boundary{1};
             end
-            % Standardize output B, so that boundary property is a cell of two
-            % column vectors, where the first is y-coordinates and the seconds
-            % is x-coordinates. Should ideally be an nx2 matrix of x and y.
-            if numel(B) > 1
-                B = cellfun(@(b) vertcat(b, nan(1,2)), B, 'uni', 0);
-                B = vertcat(B{:});
-                B(end, :) = []; % Just remove the last nans...
-            elseif isempty(B)
-                B = [nan, nan];
-            else
-                B = B{1};
-            end
+            
+% %             % Standardize output B, so that boundary property is a cell of two
+% %             % column vectors, where the first is y-coordinates and the seconds
+% %             % is x-coordinates. Should ideally be an nx2 matrix of x and y.
+% %             if numel(B) > 1
+% %                 B = cellfun(@(b) vertcat(b, nan(1,2)), B, 'uni', 0);
+% %                 B = vertcat(B{:});
+% %                 B(end, :) = []; % Just remove the last nans...
+% %             elseif isempty(B)
+% %                 B = [nan, nan];
+% %             else
+% %                 B = B{1};
+% %             end
             
             X = B(:, 2);
             Y = B(:, 1);

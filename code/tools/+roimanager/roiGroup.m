@@ -1,36 +1,45 @@
 classdef roiGroup < handle
 %roiGroup Class that stores rois and broadcasts events whenever rois are
 % added, removed or modified.
+%
+%   This class is used to give shared access to rois across multiple apps 
+%   and uses events to let other apps know of changes to the rois.
 
 
-% hvor i helvete skal image, stats og clsf lagres?
-% det er userdata... Skal jeg lage en userdata egenskap?
+%   Er det i orden at roi thumbnail bilder og stats lagres her...?
+%   Det er UserData... Skal jeg lage en userdata egenskap?
+%
+%   For: Da fï¿½lger disse dataene roien. Fleksibilitet
+%   Mot: Ikke elegant? Rotete
 
-% For: Da følger disse dataene roien. Fleksibilitet
-% Mot: Ikke elegant? Rotete
 
-
-    properties % 
-        AncestorApp = [] % Used for storing undo/redo commands.
+    properties
+        ParentApp = [] % Used for storing undo/redo commands.
         FovImageSize = []
+    end
+    
+    properties
+        Description
     end
     
     properties (SetAccess = private)
         roiArray RoI
+        roiCount = 0
+
+        % % Should these be private? Dependent?
         roiClassification
         roiImages struct % Struct array
         roiStats  struct % Struct array
-        roiCount = 0
     end
     
     properties 
-        isActive = true     % Active (true/false) indicates whether rois should be kept in memory as an object or a struct array.
+        isActive = true                 % Active (true/false) indicates whether rois should be kept in memory as an object or a struct array.
     end
     
     events
         roisChanged                     % Triggered when rois are changed
         classificationChanged           % Triggered when roi classifications are changed
-        roiSelectionChanged
+        roiSelectionChanged             % Triggered when roi selection is changed...
     end
     
     
@@ -50,6 +59,7 @@ classdef roiGroup < handle
                 elseif isa(varargin{1}, 'RoI')
                     obj.addRois(varargin{1})
                     obj.assignAppdata()
+                    
                 elseif isa(varargin{1}, 'struct') && isfield(varargin{1}, 'roiArray')
                     obj.populateFromStruct(varargin{1})
                     
@@ -58,7 +68,7 @@ classdef roiGroup < handle
                     obj.addRois(roiArray)
                     obj.assignAppdata()
                 else
-
+                    
                 end
                 
             end
@@ -78,7 +88,7 @@ classdef roiGroup < handle
            
             % Todo: verify that images, stats and classification is same
             % length as roi array.
-        
+            
             fields = fieldnames(S);
             
             for i = 1:numel(fields)
@@ -112,7 +122,7 @@ classdef roiGroup < handle
             
                 D = obj.roiArray.getappdata(fields{i});
                 
-                if ~isempty(D)
+                if numel(D) == obj.roiCount
                     obj.(fields{i}) = D;
                     tf(i) = true;
                 end
@@ -130,16 +140,16 @@ classdef roiGroup < handle
         end
         
         function undo(obj)
-            if ~isempty(obj.AncestorApp) && ~isempty(obj.AncestorApp.Figure)
+            if ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 obj.changeRoiSelection('all', 'unselect') % Note: unselect all rois before executing undo!
-                uiundo(obj.AncestorApp.Figure, 'execUndo')
+                uiundo(obj.ParentApp.Figure, 'execUndo')
             end
         end
         
         function redo(obj)
-            if ~isempty(obj.AncestorApp) && ~isempty(obj.AncestorApp.Figure)
+            if ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 obj.changeRoiSelection('all', 'unselect') % Note: unselect all rois before executing redo!
-                uiundo(obj.AncestorApp.Figure, 'execRedo')
+                uiundo(obj.ParentApp.Figure, 'execRedo')
             end
         end
         
@@ -178,6 +188,14 @@ classdef roiGroup < handle
                     newRois = roimanager.utilities.roiarray2struct(newRois);
                 end
             end
+            
+            
+            % Make sure classification is part of userdata
+            for i = 1:numel(newRois)
+                if isempty(getappdata(newRois(i), 'roiClassification'))
+                    newRois(i) = setappdata(newRois(i), 'roiClassification', 0);
+                end
+            end
 
             % Add rois, either by appending or by inserting into array.
             switch mode
@@ -187,15 +205,25 @@ classdef roiGroup < handle
                     obj.roiArray = horzcat(obj.roiArray, newRois);
                 case 'insert'
                     obj.roiArray = utility.insertIntoArray(obj.roiArray, newRois, roiInd, 2);
+                case 'replace'
+                    assert(numel(obj.roiArray)==numel(newRois), 'The number of rois must be the same as the number which is replaced')
+                    obj.roiArray = newRois;
+                    
             end
             
+            try
             obj.roiClassification = getappdata(obj.roiArray, 'roiClassification');
             obj.roiImages = getappdata(obj.roiArray, 'roiImages');
             obj.roiStats = getappdata(obj.roiArray, 'roiStats');
+            end
+            
+            if strcmp(mode, 'replace')
+                return %Todo, make sure this is not misused. I.e what if rois that are replaced are different...
+            end
             
             % Update roicount. This should happen before plot, update listbox 
             % and modify signal array:
-            obj.roiCount = obj.roiCount + nRois;
+            obj.roiCount = numel(obj.roiArray); %obj.roiCount + nRois;
             
             % Notify that rois have changed
             eventData = roimanager.eventdata.RoiGroupChanged(newRois, roiInd, mode);
@@ -207,14 +235,14 @@ classdef roiGroup < handle
             obj.updateRoiRelations(newRois, 'added')
             
             % Register the action with the undo manager
-            if ~isUndoRedo && ~isempty(obj.AncestorApp) && ~isempty(obj.AncestorApp.Figure)
+            if ~isUndoRedo && ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 cmd.Name            = 'Add Rois';
                 cmd.Function        = @obj.addRois;       % Redo action
                 cmd.Varargin        = {newRois, roiInd, mode, true};
                 cmd.InverseFunction = @obj.removeRois;    % Undo action
                 cmd.InverseVarargin = {roiInd, true};
 
-                uiundo(obj.AncestorApp.Figure, 'function', cmd);
+                uiundo(obj.ParentApp.Figure, 'function', cmd);
             end
             
         end
@@ -228,16 +256,17 @@ classdef roiGroup < handle
             
             if iscolumn(roiInd); roiInd = transpose(roiInd); end
             
-
             cnt = 1;
             for i = roiInd
                 % Todo: Clean up this mess!
                 obj.roiArray(i) = obj.roiArray(i).reshape('Mask', modifiedRois(cnt).mask);
                 obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiImages', getappdata(modifiedRois(cnt), 'roiImages') );
                 obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiStats', getappdata(modifiedRois(cnt), 'roiStats') );
+                
                 im = getappdata(obj.roiArray(i), 'roiImages');
-                obj.roiArray(i).enhancedImage = im.enhancedAverage;
-
+                if ~isempty(im)
+                    obj.roiArray(i).enhancedImage = im.enhancedAverage;
+                end
                 cnt = cnt+1;
             end
             
@@ -248,14 +277,14 @@ classdef roiGroup < handle
             obj.notify('roisChanged', eventData)
             
             % Register the action with the undo manager
-            if ~isUndoRedo && ~isempty(obj.AncestorApp.Figure)
+            if ~isUndoRedo && ~isempty(obj.ParentApp.Figure)
                 cmd.Name            = 'Modify Rois';
                 cmd.Function        = @obj.modifyRois;      % Redo action
                 cmd.Varargin        = {modifiedRois, roiInd, true};
                 cmd.InverseFunction = @obj.modifyRois;         % Undo action
                 cmd.InverseVarargin = {origRois, roiInd, true};
 
-                uiundo(obj.AncestorApp.Figure, 'function', cmd);
+                uiundo(obj.ParentApp.Figure, 'function', cmd);
             end
 
         end
@@ -297,14 +326,14 @@ classdef roiGroup < handle
             obj.updateRoiRelations(removedRois, 'removed')
             
             % Register the action with the undo manager
-            if ~isUndoRedo && ~isempty(obj.AncestorApp.Figure)
+            if ~isUndoRedo && ~isempty(obj.ParentApp.Figure)
                 cmd.Name            = 'Remove Rois';
                 cmd.Function        = @obj.removeRois;      % Redo action
                 cmd.Varargin        = {roiInd, true};
                 cmd.InverseFunction = @obj.addRois;         % Undo action
                 cmd.InverseVarargin = {removedRois, roiInd, 'insert', true};
 
-                uiundo(obj.AncestorApp.Figure, 'function', cmd);
+                uiundo(obj.ParentApp.Figure, 'function', cmd);
             else
                 % Remove selection of all rois if this was a undo/redo
                 obj.changeRoiSelection('all', 'unselect') % Note: unselect all rois before executing undo!

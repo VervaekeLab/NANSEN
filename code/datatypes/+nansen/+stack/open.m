@@ -63,7 +63,7 @@ function virtualData = open(pathStr, varargin)
             %obj = imviewer.ImageStack(virtualData);
 
         case '.h5'
-
+            virtualData = nansen.stack.virtual.HDF5(pathStr, '', varargin{:}, nvPairs{:});
             
         case {'.jpg', '.png', '.bmp'}
 %             tic

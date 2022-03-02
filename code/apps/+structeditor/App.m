@@ -34,10 +34,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       [x] Fix Scroller... Does it need its own panel???
 %       [ ] Scrollerposition does not reset to top when changing tabs... 
 %      *[ ] Implement dependable fields...
+%       [ ] Implement validation of inputs. Each field should have a
+%           validation function to thest that the entered value is valid.
+%       [ ] Implement transient fields
 %           Q: 1) How are these updated? Is there any way of making that
 %           simple, or not? True/false, enable/diable... 
 %              2) Make data models?
-%      *[ ] Make a struct with the same fields as the input struct
+%      *[x] Make a struct with the same fields as the input struct
 %           containing the controls. Will be much easier to find things 
 %           back and update things when needed.
 %       [ ] Fix onMouseMotion bug (if closing a docked structeditor??)
@@ -80,6 +83,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     properties % Configurations of appearance and layout of app
         
         Title = '' % Title description.
+        Prompt = ''
+        
         showPresetInHeader = false;
         
         LabelPosition = 'Left' % 'Left' | 'Over'
@@ -96,17 +101,22 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         ColSpacing = 10;
         Margins = [160, 45, 15, 45] % Layout. Space for header/footer + sidepanels
 
+        IsModal logical = false;
+        ReferencePosition = []; % If struct editor is opened as a dialog window from another app, open on correct screen
         
+        AdjustFigureSize = false;
     end
     
     properties % Options manager / preset selection
         OptionsManager = []
-        PresetSelection = ''
+        CurrentOptionsSet = ''
     end
     
     properties % Callback properties. Need to clean 
         Callback     
         TestFunc % Why is there a second one????
+        
+        ValidationFcn % todo
         ValueChangedFcn
     end
 
@@ -117,7 +127,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         hControls
         
         wasCanceled = false;
-        currentPresetName = '' % Name of currently selected preset.
+        currentOptionsName = '' % Name of currently selected options set.
     end
     
     properties (Access = private) % Internal properties. Need to clean
@@ -134,7 +144,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         TabButtonGroup      
         
         headerTitle
-        PresetControls
         
         header
         sidebar
@@ -159,7 +168,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         headerSubtitle
         sidePanelToggleButton
-        presetDropdown
+        
+        % Move to options manager ui class.
+        OptionsManagerControls
+        OptionsSelectionDropdown
     end 
     
     properties (Access = protected, Dependent, Hidden = true )
@@ -171,7 +183,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     
     properties (Access = private, Hidden = true)
         ConvertOutputToStruct = false % Convert output to struct. Struct of struct is converted to cell, need to convert back before outputting
-    
         Debug = false
     end
     
@@ -200,7 +211,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             [S, varargin] = structeditor.validateStruct(varargin{:});
             % Above function fails if S is invalid. varargin has S removed
             
-            
             obj.assignPVPairs(varargin{:});
             obj.parseStruct(S)
             
@@ -220,12 +230,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Create components for first panel..
             obj.addComponents(1)
+            obj.updateHeaderTitle()
 
             if exist('applify.uicontrolSchemer', 'class')==8
                 obj.styleControls(1)
                 
                 if obj.showFooter
-                    h = applify.uicontrolSchemer(obj.PresetControls);
+                    h = applify.uicontrolSchemer(obj.OptionsManagerControls);
                     el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
                     drawnow
                 end
@@ -238,7 +249,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Make them look good.
             if ~isempty(hUic)
                 h = applify.uicontrolSchemer(hUic);
-                el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
+                %el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
             end
             
             
@@ -302,6 +313,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             tf = obj.numTabs > 1 && contains(obj.TabMode, 'sidebar');
         end
         
+        function set.IsModal(obj, value)
+            obj.IsModal = value;
+            obj.onModalChanged()
+        end
+        
+    end
+    
+    methods
+        
     end
     
     methods (Access = protected) % Window / panel configurations
@@ -324,6 +344,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     obj.Figure.Position(3) = obj.Figure.Position(3) + 100;
                 end
                 
+            end
+            
+            if ~isempty(obj.ReferencePosition)
+                uim.utility.layout.centerObjectInRectangle(obj.Figure, obj.ReferencePosition)
             end
             
             obj.setDefaultFigureCallbacks()
@@ -361,7 +385,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 if isempty(obj.Title)
                     obj.Figure.Name = obj.AppName;
                 else
-                    obj.Figure.Name = sprintf('%s (%s)', obj.AppName, obj.Title);
+                    obj.Figure.Name = sprintf('%s', obj.Title);
+                    %obj.Figure.Name = sprintf('%s (%s)', obj.AppName, obj.Title);
                 end
                 
             else
@@ -388,12 +413,25 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Update header title
             if ~strcmp(obj.TabMode, 'dropdown')
                 if obj.showPresetInHeader
-                    obj.headerTitle.String = sprintf('Current Preset:\n%s', 'Default');
+                    headerMessage = sprintf('Current Options:\n%s', 'Default');
+                elseif obj.showSidePanel && obj.numTabs > 1 && strcmp(obj.TabMode, 'sidebar')
+                    headerMessage = sprintf('Edit %s parameters', obj.Name{pageNum});
                 else
-                    obj.headerTitle.String = sprintf('Edit %s', obj.Title);
+                    headerMessage = sprintf('Edit parameters for %s', obj.Title);
                 end
+            else
+                headerMessage = '';
             end
             
+            
+            % Override automatic messages if prompt is given.
+            if ~isempty(obj.Prompt)
+                headerMessage = obj.Prompt;
+            end
+            
+            obj.headerTitle.String = headerMessage;
+
+            % Set header subtitle:
             if obj.showSidePanel && contains(obj.TabMode, 'popup')
                 obj.headerSubtitle.String = obj.Name{pageNum};
 %                 if obj.headerSubtitle.Extent(1) < 1 ??
@@ -402,7 +440,17 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %                     
 %                 end
             end
+
+        end
+        
+        function adjustFigureSizeToComponents(obj)
             
+            if obj.virtualHeight < obj.visibleHeight
+                h = obj.virtualHeight;
+                obj.Figure.Position(4) = h + sum(obj.Margins([2,4])) + 20;
+                uim.utility.centerFigureOnScreen(obj.Figure)
+            end
+                        
         end
         
         function resizePanel(obj, src, evt)
@@ -417,6 +465,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             panelPixelSize = getpixelposition(obj.Panel);
             panelWidth = panelPixelSize(3);
             panelHeight = panelPixelSize(4);            
+            
+            obj.pleaseWaitTxt.Position = obj.pleaseWaitTxt.Extent;
+            obj.pleaseWaitTxt.Units = 'pixels';
+            obj.pleaseWaitTxt.Position(3:4) = [200, 20];
+            obj.pleaseWaitTxt.Units = 'normalized';
+            obj.pleaseWaitTxt.Position(1:2) = 0.5 - obj.pleaseWaitTxt.Position(3:4)/2;
             
             % Note: The control panel is configured as a scrollpanel, so just
             % need to update the visibleHeight property, and should not
@@ -454,6 +508,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if obj.showFooter
                 setpixelposition(obj.footer.hPanel, footerPos);
             end
+            
+
+            
             
             drawnow limitrate
             
@@ -507,10 +564,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function onThemeChanged(obj)
 
             % Todo: Apply changes to toolbars and widgets as well!
-
+            if ~obj.isConstructed; return; end
+            
             S = obj.Theme;
             onThemeChanged@applify.ModularApp(obj)
-                    
+             
             obj.setFigureWindowBackgroundColor( S.FigureBgColor )
 
             allPanels = [obj.header.hPanel, obj.sidebar.hPanel, obj.main.hPanel];
@@ -520,6 +578,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 bgColor = min( [1,1,1 ; obj.Theme.FigureBgColor+0.01] );
                 set(obj.uiPanel.Tab, 'BackgroundColor', bgColor)
             end
+            
+            
             
         end
         
@@ -610,11 +670,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.pleaseWaitTxt.ForegroundColor = obj.Theme.FigureFgColor;
             obj.pleaseWaitTxt.BackgroundColor = obj.Theme.FigureBgColor;
             obj.pleaseWaitTxt.FontSize = 10;
-            obj.pleaseWaitTxt.Position = obj.pleaseWaitTxt.Extent;
-            obj.pleaseWaitTxt.Units = 'normalized';
-            obj.pleaseWaitTxt.Position(2) = 0.5;
-            obj.pleaseWaitTxt.Position(1) = 0.5 - obj.pleaseWaitTxt.Position(3)/2;
-            
             
             obj.resizePanel()
 
@@ -755,7 +810,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Create a textbox with the property name
             textbox = text(obj.footer.hAxes, 0.03, 0.5, '');
             textbox.VerticalAlignment = 'middle';
-            textbox.String = 'Presets:';
+            textbox.String = 'Options:';
             textbox.Color = obj.Theme.FigureFgColor*0.8;
             textbox.FontName = obj.FontName;
             textbox.FontSize = obj.FontSize;
@@ -763,12 +818,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if obj.numTabs > 1
                 X = [80, 300, 420];
                 W = [180, 100, 100];
+                fullWidth = obj.Figure.Position(3) - 100; % 100 = 80+20
+                [X, W] = uim.utility.layout.subdividePosition(80, fullWidth, [1, 100, 100], 20);
             else
                 X = [80, 220, 340];
                 W = [120, 100, 100];
             end
             
-            % Todo: Save to property...
             hDropdown = uicontrol(obj.footer.hPanel, 'style', 'popupmenu');
             hDropdown.String = {'Custom'};
             hDropdown.Value = 1;
@@ -776,24 +832,26 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hDropdown.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hDropdown.FontName = obj.FontName;
             hDropdown.FontSize = obj.FontSize;
-            hDropdown.Callback = @obj.onPresetChanged;
+            hDropdown.Callback = @obj.onOptionsSetChanged;
             
-            obj.refreshPresetDropdown(hDropdown)
-            obj.presetDropdown = hDropdown;
+            obj.refreshOptionsDropdown(hDropdown)
+            obj.OptionsSelectionDropdown = hDropdown;
             
-            if ~isempty(obj.PresetSelection)
-                obj.setPresetSelection(obj.PresetSelection)
+            if ~isempty(obj.CurrentOptionsSet)
+                obj.changeOptionsSelectionDropdownValue(obj.CurrentOptionsSet)
             end
             
-            obj.currentPresetName = obj.getCurrentPresetSelection(hDropdown);
+            obj.currentOptionsName = obj.getCurrentOptionsSetSelection(hDropdown);
             
             hButton1 = uicontrol(obj.footer.hPanel, 'style', 'pushbutton');
-            hButton1.String = 'Save Preset';
+            hButton1.String = 'Save Options';
             hButton1.Position = [X(2), 12, W(2), 22];
             hButton1.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hButton1.FontName = obj.FontName;
             hButton1.FontSize = obj.FontSize;
-            hButton1.Callback = @(s,e,h) obj.savePreset(hDropdown);
+            hButton1.Callback = @(s,e) obj.saveOptionsSet();
+            hButton1.Enable = 'off';
+            
             
             hButton2 = uicontrol(obj.footer.hPanel, 'style', 'pushbutton');
             hButton2.String = 'Make Default';
@@ -801,10 +859,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hButton2.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hButton2.FontName = obj.FontName;
             hButton2.FontSize = obj.FontSize;
-            hButton2.Callback = @(s,e,h) obj.makePresetDefault(hDropdown);
+            hButton2.Callback = @(s,e,h) obj.makeOptionsSetDefault(hDropdown);
 
-            obj.PresetControls = [hDropdown, hButton1, hButton2];
+            obj.OptionsManagerControls = [hDropdown, hButton1, hButton2];
             
+            obj.setButtonEnableState('Make Default')
             
         end
         
@@ -889,6 +948,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 edgeCoords = edgeCoords - min(edgeCoords);
 
                 % Shift coordinates to be centered on xPos and yPos.
+% %                 if ~exist('range', 'file')
+% %                     range = @(x) max(x) - min(x);
+% %                 end
+                
                 edgeCoords = [xPos(i), yPos] + edgeCoords - range(edgeCoords)/2;
 
                 hBtn(i) = patch(edgeCoords(:,1), edgeCoords(:,2), 'w');
@@ -981,10 +1044,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             
             % Adjust margins/sidebar to fit with tabbuttons
-            deltaWidth = width - obj.Margins(1);
-            obj.Margins(1) = width;
-            obj.Figure.Position(3) = obj.Figure.Position(3) + deltaWidth;
-            
+            if strcmp(obj.TabMode, 'sidebar') && strcmp(obj.mode, 'standalone')
+                deltaWidth = width - obj.Margins(1);
+                obj.Margins(1) = width;
+                obj.Figure.Position(3) = obj.Figure.Position(3) + deltaWidth;
+            end
             
             panelPos = getpixelposition(obj.uiPanel.Tab);
             linePos([1,3]) = floor([panelPos(3), panelPos(3)]);
@@ -1061,6 +1125,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.moveElementsToTop()
             end
 
+        end
+        
+        function onModalChanged(obj)
+            if obj.IsModal
+                obj.Figure.WindowStyle = 'modal';
+            else
+                obj.Figure.WindowStyle = 'normal';
+            end
         end
         
         function updateScrollbar(obj, panelNum)
@@ -1236,9 +1308,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             X_POSITION = 20;
             
-            if strcmp(obj.LabelPosition, 'Over')
+            if strcmpi(obj.LabelPosition, 'Over')
                 rowSpacing = obj.RowSpacing + obj.FontSize;
-            elseif strcmp(obj.LabelPosition, 'Left')
+            elseif strcmpi(obj.LabelPosition, 'Left')
                 rowSpacing = obj.RowSpacing;
             end
             
@@ -1339,8 +1411,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                     otherwise
                         val = eval(strcat('S', '.', currentProperty));
-                        obj.newInputField(contentPanel, y, currentProperty, val, config)
-                        y = y + obj.RowHeight + rowSpacing;
+                        yCorrTmp = obj.newInputField(contentPanel, y, currentProperty, val, config);
+                        %yCorr = yCorr + yCorrTmp;
+                        y = y + obj.RowHeight + rowSpacing + yCorrTmp;
                 end
             end
 
@@ -1356,6 +1429,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.moveElementsToTop()
 
             obj.isTabCreated(panelNum) = true;
+            
+            if obj.AdjustFigureSize
+                obj.adjustFigureSizeToComponents()
+            end
             
         end
         
@@ -1393,7 +1470,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         % Note inputbox belongs to guiPanel
-        function newInputField(obj, guiAxes, y, name, val, config)
+        function hcorr = newInputField(obj, guiAxes, y, name, val, config)
         % Add input field for editing of property value
         %       y       : y position in panel
         %       name    : name of property. Used for text field and Tag
@@ -1402,14 +1479,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             guiPanel = guiAxes.Parent;
             
             
-            if strcmp(obj.LabelPosition, 'Over')
+            if strcmpi(obj.LabelPosition, 'Over')
                 xMargin = [18, 25]; % Old: 65
                 x = xMargin(1);
                 xSpacing = 7;
                 yTxt = y + obj.RowHeight-5;
                 textAlignment = 'left';
             
-            elseif strcmp(obj.LabelPosition, 'Left')
+            elseif strcmpi(obj.LabelPosition, 'Left')
                 xMargin = [20, 50]; % Old: 65
                 x = guiAxes.Position(3)/2-10;
                 %x = guiAxes.Position(3) - 60;
@@ -1423,20 +1500,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             xcorr = 0;
             hcorr = 0;
             
-            % Create a textbox with the property name
-            textbox = text(guiAxes, x, yTxt, name);
-            textbox.String = [utility.string.varname2label(name), ':'];
-            textbox.HorizontalAlignment = textAlignment;
-            textbox.Tag = name;
-            textbox.Color = obj.Theme.FigureFgColor;
-            textbox.FontName = obj.FontName;
-            textbox.FontSize = obj.FontSize;
-            textbox.VerticalAlignment = 'bottom';
-            
-            buttonTypes = {'button', 'pushbutton', 'togglebutton'};
-            if isa(config, 'struct') && any( strcmp(config.type, buttonTypes) )
-                delete(textbox)
-            end
             
             % Create input field for editing of propertyvalues
 
@@ -1457,7 +1520,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     case 'char'
                         inputbox = uicontrol(guiPanel, 'style', 'edit');
                         inputbox.String = val;
-
+                        
                     case 'struct'
                         % Not implemented
                         % skip for now
@@ -1525,8 +1588,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % % %                             inputbox = uim.control.Button_(guiPanel, ...
 % % %                                 'mode', 'pushbutton', config.args{:}, ...
 % % %                                 'HorizontalTextAlignment', 'center');
-                            
-                            ycorr = obj.RowSpacing;
+                            if strcmp(obj.LabelPosition, 'Over')
+                                ycorr = obj.RowSpacing;
+                            end
                             xcorr = -3;
                             
                         case 'togglebutton'
@@ -1534,14 +1598,21 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                                 config.args{:} );
                             ycorr = obj.RowSpacing;
                             xcorr = -3;
-                             
+                            
+                        case 'multilinechar'
+                            inputbox = uicontrol(guiPanel, 'style', 'edit', 'Max', 2);
+                            inputbox.String = val;
+                            
+                            ycorr = -obj.RowSpacing.*4;
+                            hcorr = obj.RowSpacing.*4;
+   
                     end
                 end
             end
             
             
             % Configure properties/appearance of uicontrol
-            pos = [x+xSpacing+xcorr, y+ycorr, guiAxes.XLim(2) - x - xMargin(2) - xSpacing, height+hcorr];
+            pos = [x+xSpacing+xcorr, y, guiAxes.XLim(2) - x - xMargin(2) - xSpacing, height+hcorr];
             
             if numel(inputbox) == 1
                 inputbox.Position = pos;
@@ -1558,6 +1629,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     'ForegroundColor', obj.Theme.FigureFgColor*0.8, ...
                     'HorizontalAlignment', 'left', ...
                     'FontName', obj.FontName, ...
+                    'FontUnits', 'pixels', ...
                     'FontSize', obj.FontSize, ...
                     'Tag', name, ...
                     'Callback', @obj.editCallback_propertyValueChange, ...
@@ -1567,7 +1639,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     inputbox.ForegroundColor = obj.Theme.FigureFgColor*0.8;
                     inputbox.HorizontalAlignment = 'left';
                     inputbox.FontName = obj.FontName;
+                    inputbox.FontUnits = 'pixels'; % set before size
                     inputbox.FontSize = obj.FontSize;
+
                     %inputbox.HitTest = 'off';
                     %inputbox.HandleVisibility = 'off';
                     inputbox.Tag = name;
@@ -1575,11 +1649,30 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
                 
             else
+                %inputbox.FontUnits = 'pixels';
             	inputbox.FontSize = obj.FontSize-2;
                 inputbox.Tag = name;
                 inputbox.Callback = @obj.editCallback_propertyValueChange;
 
             end
+            
+            
+            % Create a textbox with the property name
+            textbox = text(guiAxes, x, yTxt-ycorr, name);
+            textbox.String = [utility.string.varname2label(name), ':'];
+            textbox.HorizontalAlignment = textAlignment;
+            textbox.Tag = name;
+            textbox.Color = obj.Theme.FigureFgColor;
+            textbox.FontName = obj.FontName;
+            textbox.FontUnits = 'pixels';
+            textbox.FontSize = obj.FontSize;
+            textbox.VerticalAlignment = 'bottom';
+            
+            buttonTypes = {'button', 'pushbutton', 'togglebutton'};
+            if isa(config, 'struct') && any( strcmp(config.type, buttonTypes) )
+                delete(textbox)
+            end
+            
             
             
             % Add control to a struct of controls using same fieldnames as
@@ -1735,7 +1828,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Make them look good.
             if ~isempty(hUic)
                 h = applify.uicontrolSchemer(hUic);
-                el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
+                el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(h));
                 
             end
             %drawnow
@@ -1844,7 +1937,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 case 'togglebutton'
                     val = src.Value;
                     isInternal = true; % Quick fix...Dont change to custom if button is pushed!
-                    
+                case 'autocomplete'
+                    val = src.Value;
             end
             
 
@@ -1924,8 +2018,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
                 
                 if ~isInternal && ~isempty(obj.OptionsManager)
-                    obj.changePresetToModified()
+                    obj.changeOptionsToModified()
                 end
+                
+                % Todo: Enable save button
+                
+                
             end
 
         end
@@ -1969,6 +2067,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         else
                             
                             inputfield = findobj(guiFig, 'Tag', propertyName, 'Style', 'edit');
+                            if isempty(inputfield)
+                                inputfield = obj.hControls.(propertyName);
+                            end
                             inputfield.String = pathString;
                             inputfield.TooltipString = inputfield.String;
                             
@@ -2040,29 +2141,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         
-% % % % Methods for presets (Todo: make into separate class)
-        
-        function setPresetDropdownValueToName(obj, newName)
-            
-            hDropDown = obj.presetDropdown;
-            
-            if any( strcmp(newName, hDropDown.String) )
-                hDropDown.Value = find( strcmp(newName, hDropDown.String) );
-            else
-                hDropDown.String = cat(1, hDropDown.String, {newName} );
-                hDropDown.Value = numel(hDropDown.String);
-            end
-            
-            obj.currentPresetName = newName;
-            
-        end
+% % % % Methods for options sets (Todo: make into separate class)
 
-        function onPresetChanged(obj, src, evt)
+        function onOptionsSetChanged(obj, src, evt)
             
             % Todo: Skip if current name is chosen...
             
-            oldName = obj.currentPresetName;
-            newName = obj.getCurrentPresetSelection(src);
+            oldName = obj.currentOptionsName;
+            newName = obj.getCurrentOptionsSetSelection(src);
             
             if strcmp(oldName, newName); return; end
             
@@ -2075,31 +2161,240 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     opts = obj.dataEdit{1};
                 end
                 
-                obj.OptionsManager.storeModifiedOptions(opts, oldName)
+                obj.OptionsManager.appendModifiedOptions(opts, oldName)
             end
+            
+            obj.setButtonEnableState('Make Default')
+            obj.setButtonEnableState('Save Options')
             
             
             newOpts = obj.OptionsManager.getOptions(newName);
             
-            % Todo: turn this into a method.
-            if numel(obj.dataEdit) > 1
-                newOpts = struct2cell(newOpts);
-            else
-                newOpts = {newOpts};
-            end
+% % %             % Todo: turn this into a method.
+% % %             if numel(obj.dataEdit) > 1
+% % %                 newOpts = struct2cell(newOpts);
+% % %             else
+% % %                 newOpts = {newOpts};
+% % %             end
             
-            obj.updateFromPreset(newOpts)
-            %obj.refreshPresetDropdown(src)
+            obj.replaceEditedStruct(newOpts)
+            %obj.refreshOptionsDropdown(src)
             
-            obj.currentPresetName = newName;
+            obj.currentOptionsName = newName;
         end
         
-        function updateFromPreset(obj, newOpts)
-                 
+        function changeOptionsSelectionDropdownValue(obj, newName)
+            
+            hDropdown = obj.OptionsSelectionDropdown;
+            
+            % Todo: Need to test this properly???
+            
+            optionNames = obj.OptionsManager.getAllOptionNames();
+            
+            isMatch = strcmp( optionNames, newName );
+            
+            matchedInd = find(isMatch);
+            
+            %matchedName = hDropdown.String{matchedInd(1)};
+            
+            hDropdown.Value = matchedInd;
+            
+        end
+        
+        function name = getCurrentOptionsSetSelection(obj, hDropdown)
+            
+            if nargin < 2
+                hDropdown = obj.OptionsSelectionDropdown;
+            end
+            
+            if isempty(hDropdown); name = ''; return; end % Control not created yet.
+            
+            name = hDropdown.String{hDropdown.Value};
+            
+            % Remove preset flag...
+            name = strrep(name, '[', '');
+            name = strrep(name, ']', '');
+            
+            % Remove default flag...
+            name = strrep(name, ' (Default)', '');
+        end
+        
+        function saveOptionsSet(obj)
+            
+            % Get current options
+            opts = obj.getEditedStruct();
+            currentName = obj.getCurrentOptionsSetSelection;
+            
+            % Todo: get info about whether preset was saved and which name
+            givenName = obj.OptionsManager.saveCustomOptions(opts);
+            
+            % Update list of presets.
+            if ~isempty(givenName)
+                
+                % If current preset is modified, update name
+                if contains(currentName, 'Modified')
+                    currentInd = obj.OptionsSelectionDropdown.Value;
+                    
+                    %names = obj.OptionsSelectionDropdown.String;
+                    %names{currentInd} = givenName;
+                    %obj.OptionsSelectionDropdown.String = names;
+                    
+                    obj.OptionsSelectionDropdown.String{currentInd} = givenName;
+                    %obj.OptionsSelectionDropdown.Value = currentInd;
+                    obj.OptionsManager.removeModifiedOptions(currentName)
+
+                % Else, make a new entry in the list
+                else
+                    % Todo: Can I remove this?
+                    %names = cat(1, obj.OptionsSelectionDropdown.String, {givenName} ];
+                    obj.OptionsSelectionDropdown.String{end+1} = givenName;
+                    obj.OptionsSelectionDropdown.Value = numel(obj.OptionsSelectionDropdown.String);
+                end
+            end
+            
+            obj.setButtonEnableState('Save Options')
+            obj.setButtonEnableState('Make Default')
+
+            %obj.refreshOptionsDropdown(hDropdown) % not necessary, name is
+            %updated in this function, no other names are affected.
+
+        end
+        
+        function S = getEditedStruct(obj)
+        
+            % Get current options
+            S = obj.dataEdit;
+            
+            % Todo: make method:
+            if isa(S, 'cell') && numel(S) > 1
+                S = cell2struct(S, obj.Name);
+            else
+                S = S{1};
+            end
+        end
+        
+        function makeOptionsSetDefault(obj, hDropdown)
+        %makeOptionsSetDefault Make current preset the default  
+            name = obj.getCurrentOptionsSetSelection(hDropdown);
+            obj.OptionsManager.setDefault(name);
+            
+            %obj.updateDefaultTag()
+            obj.refreshOptionsDropdown(hDropdown)
+            obj.setButtonEnableState('Make Default')
+
+        end
+        
+        function refreshOptionsDropdown(obj, hDropdown)
+        %refreshOptionsDropdown Refresh items in dropdown menu 
+                   
+            if nargin < 2
+                hDropdown = obj.OptionsSelectionDropdown;
+            end
+        
+            presetNames = obj.OptionsManager.PresetOptionNames;
+            presetNames_ = obj.OptionsManager.formatPresetNames(presetNames);
+            customNames = obj.OptionsManager.CustomOptionNames;
+            
+            names = [presetNames, customNames];
+            
+            defaultName = obj.OptionsManager.getPreferredOptionsName();
+            isDefault = strcmp(names, defaultName);
+            
+            names = [presetNames_, customNames];
+            names(isDefault) = obj.OptionsManager.formatDefaultName(names(isDefault));
+            
+            editedNames = obj.OptionsManager.EditedOptionNames;
+            editedNames_ = obj.OptionsManager.formatEditedNames(editedNames);
+            
+            hDropdown.String = [names, editedNames_];
+            
+            obj.setButtonEnableState('Make Default')
+            
+            % Todo: Make sure value stays the same (points to same item)
+            
+        end
+        
+        function setButtonEnableState(obj, buttonName)
+        %setButtonEnableState Set enable state based on current selection
+        
+        
+            hDropdown = obj.OptionsSelectionDropdown;
+            if isempty(hDropdown); return; end % Control not created yet.
+            currentName = obj.getCurrentOptionsSetSelection;
+
+            switch buttonName
+                case 'Make Default'
+                    
+                    hButton = obj.OptionsManagerControls(3);
+                    defaultName = obj.OptionsManager.getPreferredOptionsName();
+                    
+                    if strcmp(currentName, defaultName)
+                        newState = 'off';
+                    elseif contains(currentName, 'Modified')
+                        newState = 'off';
+                    else
+                        newState = 'on';
+                    end
+                    
+                case 'Save Options'
+                   
+                    hButton = obj.OptionsManagerControls(2);
+
+                    if contains(currentName, 'Modified')
+                        newState = 'on';
+                    else
+                        newState = 'off';
+                    end
+            end
+            
+            if ~strcmp( hButton.Enable, newState )
+                hButton.Enable = newState;
+            end
+        end
+        
+        function changeOptionsToModified(obj)
+            
+            % Flag current options as modified if they are not flagged as
+            % this from before. If they are flagged, add the modified set
+            % to options manager and make it the current selection in the
+            % dropdown
+            
+            % Question: Is there anything else here that must be done?
+            hDropdown = obj.OptionsSelectionDropdown;
+            name = obj.getCurrentOptionsSetSelection(hDropdown);
+            opts = obj.getEditedStruct();
+
+            if contains(name, 'Modified')
+                % The current options set is already tagged as modified.
+                obj.OptionsManager.appendModifiedOptions(opts, name)
+                return
+            else
+                % Create a new modified options set and make it the current
+                % one
+                newName = sprintf('%s (Modified)', name);
+                obj.OptionsManager.appendModifiedOptions(opts, newName)
+                obj.refreshOptionsDropdown()
+                hDropdown.Value = numel(hDropdown.String);
+            end
+            
+            obj.currentOptionsName = newName;
+            
+            obj.setButtonEnableState('Make Default')
+            obj.setButtonEnableState('Save Options')
+        end
+        
+        
+% % % % Method for updating all the parameter values of an options set.
+        
+        function replaceEditedStruct(obj, newOpts)
+            % Todo: Rename     
+            
             % If original data was a struct of structs, need to convert 
             % input to cell before continuing
             if obj.ConvertOutputToStruct
                 newOpts = struct2cell(newOpts);
+            else
+                newOpts = {newOpts};
             end
             
             numPages = numel(obj.dataEdit);
@@ -2164,127 +2459,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
         end
         
-        function setPresetSelection(obj, newName)
-            
-            hDropdown = obj.presetDropdown;
-            
-            % Todo: Need to test this properly???
-            
-            optionNames = obj.OptionsManager.listAllOptionNames();
-            
-            isMatch = strcmp( optionNames, newName );
-            
-            matchedInd = find(isMatch);
-            
-            %matchedName = hDropdown.String{matchedInd(1)};
-            
-            hDropdown.Value = matchedInd;
-            
-        end
-        
-        function name = getCurrentPresetSelection(obj, hDropdown)
-            
-            if nargin < 2
-                hDropdown = obj.presetDropdown;
-            end
-            
-            name = hDropdown.String{hDropdown.Value};
-            
-            name = strrep(name, '[', '');
-            name = strrep(name, ']', '');
-        end
-        
-        function savePreset(obj, hDropdown)
-            
-            % Get current options
-            opts = obj.dataEdit;
-            
-            % Todo: make method:
-            if isa(opts, 'cell') && numel(opts) > 1
-                opts = cell2struct(opts, obj.Name);
-            else
-                opts = opts{1};
-            end
-
-            currentName = obj.getCurrentPresetSelection;
-            
-            % Todo: get info about whether preset was saved and which name
-            givenName = obj.OptionsManager.saveCustomOptions(opts);
-            
-            % Update list of presets.
-            if ~isempty(givenName)
-                
-                % If current preset is modified, update name
-                if contains(currentName, 'Modified')
-                    currentInd = obj.presetDropdown.Value;
-                    
-                    %names = obj.presetDropdown.String;
-                    %names{currentInd} = givenName;
-                    %obj.presetDropdown.String = names;
-                    
-                    obj.presetDropdown.String{currentInd} = givenName;
-                    %obj.presetDropdown.Value = currentInd;
-                    obj.OptionsManager.removeModifiedOptions(currentName)
-                    
-                % Else, make a new entry in the list
-                else
-                    %names = cat(1, obj.presetDropdown.String, {givenName} ];
-                    obj.presetDropdown.String{end+1} = givenName;
-                    obj.presetDropdown.Value = numel(obj.presetDropdown.String);
-                end
-            end
-
-            
-            %obj.refreshPresetDropdown(hDropdown)
-
-        end
-        
-        function makePresetDefault(obj, hDropdown)
-        %makePresetDefault Make current preset the default  
-            name = obj.getCurrentPresetSelection(hDropdown);
-            obj.OptionsManager.setDefault(name);
-        end
-        
-        function refreshPresetDropdown(obj, hDropdown)
-        %makePresetDefault Make current preset the default  
-            
-            presetNames = obj.OptionsManager.PresetOptionNames;
-            presetNames = cellfun(@(name) sprintf('[%s]',name), presetNames, 'uni', 0);
-            customNames = obj.OptionsManager.CustomOptionNames;
-            
-            names = [presetNames, customNames];
-            
-            if isempty(names)
-                names = {'Original'}; %?
-            end
-            
-            hDropdown.String = names;
-            
-            % Todo: Make sure value stays the same (points to same item)
-            
-        end
-        
-        function changePresetToModified(obj)
-            
-            % Question: Is there anything else here that must be done?
-            hDropDown = obj.presetDropdown;
-            name = obj.getCurrentPresetSelection(hDropDown);
-            
-            if contains(name, 'Modified')
-                return
-            else
-                newName = sprintf('%s (Modified)', name);
-                obj.setPresetDropdownValueToName(newName)
-            end
-            
-            %todo: add hDropDown as property. 
-            obj.currentPresetName = newName;
-        end
-        
-
         
 % % % % User interaction callbacks
-
 
         function onDropdownSelected(obj, src, evt)
             obj.changeTab(src.Value)
@@ -2371,7 +2547,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.updateScrollbar(panelNum)
 
         end
-        
 
         function disablePage(obj, panelNum)
             obj.main.hPanel(panelNum).Enable = 'off';
@@ -2555,8 +2730,8 @@ end
 % %         obj.showFooter = true;
 % %     end
 % % 
-% %     if any(contains(varargin(1:2:end), 'PresetSelection'))
-% %         ind = find(contains(varargin(1:2:end), 'PresetSelection'));
-% %         obj.PresetSelection = varargin{ind*2};
+% %     if any(contains(varargin(1:2:end), 'CurrentOptionsSet'))
+% %         ind = find(contains(varargin(1:2:end), 'CurrentOptionsSet'));
+% %         obj.CurrentOptionsSet = varargin{ind*2};
 % %     end
 % % end 

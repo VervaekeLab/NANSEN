@@ -107,7 +107,7 @@ methods (Access = protected) % Implementation of abstract methods
         end
         
         % Add length of sampling dimension.
-        if numTimepoints > 1
+        if numTimepoints >= 1
             obj.DataSize = [obj.DataSize, numTimepoints];
             obj.DataDimensionArrangement(end+1) = 'T';
         end
@@ -147,7 +147,13 @@ end
 methods % Implementation of abstract methods
     
     function data = readData(obj, subs)
-        frameInd = subs{end};
+        
+        % Special case for single frame image
+        if ndims(obj) == 2
+            frameInd = 1;
+        else
+            frameInd = subs{end};
+        end
         data = obj.readFrames(frameInd);
     end
 
@@ -193,32 +199,39 @@ methods % Implementation of abstract methods
         
     end
     
-    function writeFrames(obj, frameIndex, data)
-        error('Not implemented yet')
+    function writeFrames(obj, data, frameIndices)
+        %error('Not implemented yet')
+        obj.writeFrameSet(data, frameIndices)
     end
     
     
     
-    function writeFrameSet(obj, data, frameInd, subs)
+    function writeFrameSet(obj, data, frameIndices, subs)
         
         % Todo: combine with getFrameSet???
         % Todo: Test thoroughly
         
-        if nargin < 4
-            subs = obj.frameind2subs(frameInd);
-        end
+% %         if nargin < 4
+% %             subs = obj.frameind2subs(frameInd);
+% %             insertSub = repmat({':'}, 1, ndims(obj));
+% %         end
+% %         
+% %         % Todo: Make assertion that data has the same size as the stack
+% %         % (width and height, numchannels) 
+% %         
+% %         % Todo: Resolve which is the subs containing number of samples.
+% %         sampleDim = strfind(obj.DimensionOrder, 'T'); % todo, store in property.
+% %         frameIndices = subs{sampleDim};
+
         
-        % Todo: Make assertion that data has the same size as the stack
-        % (width and height, numchannels) 
-        
-        % Todo: Resolve which is the subs containing number of samples.
-        sampleDim = strfind(obj.DimensionOrder, 'T'); % todo, store in property.
-        frameIndices = subs{sampleDim};
-        
+        % Preallocate data
+        insertSub = repmat({':'}, 1, numel(obj.DataSize));
+
         % Loop through frames and load into data.
         for i = 1:numel( frameIndices )
 
             frameNum = frameIndices(i);
+            insertSub{end} = i;
 
             fileNum = obj.frameIndexInfo.fileNum(frameNum);
             frameInFile = obj.frameIndexInfo.frameInFile(frameNum);
@@ -226,11 +239,7 @@ methods % Implementation of abstract methods
             obj.tiffObj(fileNum).setDirectory(frameInFile);
             
             % Todo: include planes as well
-            if obj.NumChannels > 1 && numel(obj.CurrentChannel) > 1
-                obj.tiffObj(fileNum).write(data(:, :, :, i));
-            else
-                obj.tiffObj(fileNum).write(data(:,:,i));
-            end
+            obj.tiffObj(fileNum).write(data(insertSub{:}));
 
         end
         
@@ -364,7 +373,7 @@ methods (Static)
     function initializeFile(filePath, arraySize, arrayClass)
         
         imArray = zeros( arraySize, arrayClass);
-        mat2stack( imArray, filePath )
+        stack.utility.mat2tiffstack( imArray, filePath )
         
         return
                

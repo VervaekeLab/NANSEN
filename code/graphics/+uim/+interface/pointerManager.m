@@ -11,6 +11,9 @@ classdef pointerManager < handle
 %   Also: Migrate other things from a settings file/preferences...
 %   Need to capture the figure's scroll callback.
 %   [ ] use listeners instead of attaching mouse function to figur handle
+
+
+
     properties
         
         hFigure % Axes or figure
@@ -29,7 +32,12 @@ classdef pointerManager < handle
         
         
         defaultFigureCallbacks;
+    end
         
+    properties (Access = protected)
+        isMouseButtonDown (1,1) logical = false
+        PreviousMousePoint (1,2) double = [nan, nan]
+        PreviousMouseClickPoint   % Point where mouse was last clicked
     end
     
     

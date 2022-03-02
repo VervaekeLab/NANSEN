@@ -8,10 +8,12 @@ classdef MetaTableCatalog < uim.handle
 %   See also MetaTable
 
 %   Q:
-%       a) Should it subclass from ObjectCatalog?
+%       a) Should it subclass from StorableCatalog?
 %
+%   Todo:
+%       [ ] Subclass from StorableCatalog.
     
-    properties (SetAccess = private)
+    properties %(SetAccess = private)
         FilePath    % Filepath where the catalog is stored locally
         Table       % Catalog represented with a table
     end
@@ -19,10 +21,37 @@ classdef MetaTableCatalog < uim.handle
     
     methods
         
-        function obj = MetaTableCatalog()
+        function obj = MetaTableCatalog(filePath)
         % Construct an instance of the metatable catalog
-            obj.FilePath = obj.getFilePath();
-            obj.Table = obj.quickload();
+        
+            if nargin < 1
+                obj.FilePath = obj.getFilePath();
+            else
+                obj.FilePath = filePath;
+            end
+            
+            obj.load();
+            obj.fixMetatable()
+        end
+        
+        function fixMetatable(obj)
+            % Todo: Remove this
+            
+            if size(obj.Table, 1) >= 1
+                obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
+                obj.save()
+            end
+            
+            for i = 1:size(obj.Table,1)
+                fileValues = obj.Table{i, {'SavePath', 'FileName'}};
+                filePath = fullfile(fileValues{:});
+                
+                S = load(filePath);
+                if strcmp(S.MetaTableClass, 'nansen.metadata.schema.vlab.TwoPhotonSession')
+                    S.MetaTableClass = 'nansen.metadata.type.Session';
+                end
+                save(filePath, '-struct', 'S')
+            end
         end
         
         function disp(obj)
@@ -36,6 +65,19 @@ classdef MetaTableCatalog < uim.handle
         
         function delete(obj)
            % Todo: Check for unsaved changes. 
+        end
+        
+        function load(obj)
+            % Todo: Call the static load method?
+            filePath = obj.FilePath;
+            
+            if exist(filePath, 'file')
+                S = load(filePath);
+                obj.Table = S.metaTableCatalog;
+            else
+                obj.Table = [];
+            end
+
         end
         
         function save(obj)
@@ -102,6 +144,37 @@ classdef MetaTableCatalog < uim.handle
             
         end
         
+        function updatePath(obj, newFilepath)
+        %updatePath Update path for all entries in the catalog.
+        
+            for i = 1:size(obj.Table, 1)
+                obj.Table{i, 'SavePath'} = {newFilepath};
+            end
+            
+        end
+        
+        function metaTable = getMasterTable(obj, metaTableType)
+            
+            
+            isMatch = obj.Table.IsMaster &&  contains( lower(obj.Table.MetaTableClass), metaTableType);
+            idx = find(isMatch);
+            
+            if numel(idx) > 1
+                warning('More than one master table is present. Selected first match.')
+                idx = idx(1);
+            elseif numel(idx) == 1
+                % Continue
+            else
+                error('No master metatable of this type exists.')
+            end
+            
+            mtItem = obj.Table(idx, :);
+
+            metatableFilepath = fullfile(mtItem.SavePath{1}, mtItem.FileName{1});
+            metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
+            
+        end
+        
     end
     
     
@@ -111,12 +184,12 @@ classdef MetaTableCatalog < uim.handle
         %getFilePath Get filepath where the MetaTableCatalog is located
         
             projectRootDir = getpref('Nansen', 'CurrentProjectPath');
-            saveDir = fullfile(projectRootDir, 'Metadata Tables');
+            metaTableDir = fullfile(projectRootDir, 'Metadata Tables');
             
-            if ~exist(saveDir, 'dir');  mkdir(saveDir);    end
+            if ~exist(metaTableDir, 'dir');  mkdir(metaTableDir);    end
             
             % Get path string from project settings 
-            pathString = fullfile(saveDir, 'metatable_catalog.mat');
+            pathString = fullfile(metaTableDir, 'metatable_catalog.mat');
             
 % %             % Alternatively:
 % %             token = 'MetaTableCatalog'
@@ -134,14 +207,13 @@ classdef MetaTableCatalog < uim.handle
                 pathStr = pathStr{1};
             end
             
-            
         end
         
         function MT = quickload()
         %QUICKLOAD Static method for loading catalog without constructing class    
             
             filePath = nansen.metadata.MetaTableCatalog.getFilePath();
-
+            
             if exist(filePath, 'file')
                 S = load(filePath);
                 MT = S.metaTableCatalog;

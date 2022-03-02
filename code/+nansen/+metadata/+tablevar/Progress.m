@@ -6,19 +6,19 @@ classdef Progress < nansen.metadata.abstract.TableVariable
 %
 %   See also nansen.metadata.abstract.TableVariable
     
-    properties
-        % Struct of fields with logical values. Each field represents a
-        % step in the pipeline, and the value indicates whether that step
-        % is performed or not.
-        Value struct
+    properties (Constant)
+        IS_EDITABLE = false
+        DEFAULT_VALUE = struct.empty
     end
     
-    
     methods
+        
         function obj = Progress(S)
+            if nargin < 1; S = struct.empty; end
             obj@nansen.metadata.abstract.TableVariable(S);
+            assert( all( arrayfun(@isstruct, [obj.Value])), 'Value must be a struct')
         end
-
+        
         function progressBarString = getCellDisplayString(obj)
         %getCellDisplayString Format the progress struct into a progressbar
         
@@ -28,7 +28,7 @@ classdef Progress < nansen.metadata.abstract.TableVariable
             
             % Only assign the colors for the colorbar once
             persistent hexColorDark hexColorLight
-                        
+            
             if isempty(hexColorDark) || isempty(hexColorLight)
                 [hexColorLight, hexColorDark] = obj.getProgressBarColors();
             end
@@ -36,29 +36,41 @@ classdef Progress < nansen.metadata.abstract.TableVariable
             % obj.Value is a struct of logicals. Convert to array and 
             % calculate mean to get the percentwise progress.
             
-            % Convert structure to cell and then to an array.
-            isDone = cell2mat( struct2cell(obj.Value) );
-            pctProgress = mean(isDone);
+            progressBarString = cell(1, numel(obj));
             
-            % TODO: Should be variable based on available space...
-            nLines = 48;
+            for i = 1:numel(obj)
             
-            if isnan(pctProgress)
-                pctProgress = 0;
-            end
+                % Convert structure to cell and then to an array.
+                if isstruct(obj(i).Value) && isfield(obj(i).Value, 'IsFinished')
+                    isDone = [ obj(i).Value.IsFinished ] ;
+                    mode = 'Standard';
+                else
+                    isDone = cell2mat( struct2cell(obj(i).Value) );
+                    mode = 'Unassigned';
+                    progressBarString{i} = 'N/A'; continue
+                end
+                pctProgress = mean(isDone);
             
-            % Create vertical bars for pctProgress and pctRemaining
-            n1 = ceil(nLines * pctProgress);
-            n2 = nLines - n1;
+                % TODO: Should be variable based on available space...
+                nLines = 48;
 
-            str1 = repmat('|', 1, n1);
-            str2 = repmat('|', 1, n2);
+                if isnan(pctProgress)
+                    pctProgress = 0;
+                end
             
-            % Use HTML to format string of vertical bars in different colors.
-            progressBarString = sprintf(['<HTML>', ...
-                '<FONT color="%s" size="-2"><b>%s</Font>', ...
-                '<FONT color="%s" size="-2"><b>%s</Font>', ...
-                '</HTML>'], hexColorDark, str1, hexColorLight, str2);
+                % Create vertical bars for pctProgress and pctRemaining
+                n1 = ceil(nLines * pctProgress);
+                n2 = nLines - n1;
+
+                str1 = repmat('|', 1, n1);
+                str2 = repmat('|', 1, n2);
+
+                % Use HTML to format string of vertical bars in different colors.
+                progressBarString{i} = sprintf(['<HTML>', ...
+                    '<FONT color="%s" size="-2"><b>%s</Font>', ...
+                    '<FONT color="%s" size="-2"><b>%s</Font>', ...
+                    '</HTML>'], hexColorDark.(mode), str1, hexColorLight.(mode), str2);
+            end
             
         end
         
@@ -83,6 +95,10 @@ classdef Progress < nansen.metadata.abstract.TableVariable
             if isempty(progressStruct)
                 progressTooltipString = '';
             else
+                
+                % Create a struct for the struct array...
+                progressStruct = obj.taskList2TaskStatus(obj.Value);
+                
                 % Format struct into a multiline string:
                 structStr = evalc('disp(progressStruct)');
                 
@@ -108,9 +124,62 @@ classdef Progress < nansen.metadata.abstract.TableVariable
             
         end
              
+        function onCellDoubleClick(obj, metaObj, varargin)
+            
+            if ~isempty(obj.Value)
+                obj.openPipelineViewerUI(metaObj, varargin{:});
+            end
+            
+        end
+    end
+    
+    methods (Access = private)
+       
+        function hApp = openPipelineViewerUI(obj, metaObj, varargin)
+              
+            hApp = obj.getPipelineViewerApp();
+            hApp.Visible = 'on';
+            
+            hApp.openPipeline(obj.Value, metaObj);
+            
+        end
+        
     end
     
     methods (Static)
+        
+        function hApp = getPipelineViewerApp()
+            
+            global PipelineViewer
+            
+            if isempty(PipelineViewer) || ~isvalid(PipelineViewer)
+                PipelineViewer = nansen.pipeline.PipelineViewerApp();
+                PipelineViewer.setClosePolicy('hide')
+            end
+            
+            hApp = PipelineViewer;
+            
+        end
+        
+        function taskStatus = taskList2TaskStatus(taskList)
+            
+            taskStatus = struct;
+            
+            for i = 1:numel(taskList)
+               
+                fcnName = taskList(i).TaskName;
+                if taskList(i).IsFinished
+                    status = 'finished';
+                else
+                    status = 'unfinished';
+                end
+                
+                taskStatus.(fcnName) = status;
+                
+            end
+            
+            
+        end
         
         function [colorLight, colorDark] = getProgressBarColors()
         %getProgressBarColors Get colors for colorbar        
@@ -147,14 +216,24 @@ classdef Progress < nansen.metadata.abstract.TableVariable
 % 
 %                 hsv(2) = hsv(2)/2;
 %                 hsv(3) = min([hsv(3)*1.4, 1]);
+                
+                rgbC = ones(1,3) .* 0.75;
+                rgbD = ones(1,3) .* 0.75;
 
-                colorDark = uim.utility.rgb2hex( hsv2rgb(hsvA) );
-                colorLight = uim.utility.rgb2hex( hsv2rgb(hsvB) );
+
+                [colorDark, colorLight] = deal(struct);
+            
+    
+                colorDark.Standard = uim.utility.rgb2hex( hsv2rgb(hsvA) );
+                colorLight.Standard = uim.utility.rgb2hex( hsv2rgb(hsvB) );
+                
+                colorDark.Unassigned = uim.utility.rgb2hex( rgbC );
+                colorLight.Unassigned = uim.utility.rgb2hex( rgbD );
+                
             end
             
         end
         
     end
-    
     
 end

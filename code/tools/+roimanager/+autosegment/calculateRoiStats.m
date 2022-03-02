@@ -30,9 +30,10 @@ for i = 1:nRois
     corrIntensityPil = mean(mean(roiImageData(i).correlation(~smallMask)./255));
     peakIntensityRoi = mean(mean(roiImageData(i).peakDff(smallMask)));
     peakIntensityPil = mean(mean(roiImageData(i).peakDff(~smallMask)));
+    
     roiStat(i).spatialCorrelationDff = (corrIntensityRoi-corrIntensityPil+1)./(corrIntensityPil+1);
     roiStat(i).spatialPeakDff = (peakIntensityRoi-peakIntensityPil+1)./(peakIntensityPil+1);
-    roiStat(i).temporalPeakDff = max(dff(i, :));
+    roiStat(i).temporalPeakDff = max(dff(:, i));
     
 end
 

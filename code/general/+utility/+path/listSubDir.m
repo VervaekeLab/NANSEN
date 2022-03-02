@@ -14,7 +14,7 @@ function [absPath, dirName] = listSubDir(rootPath, expression, ignoreList, nRecu
     if nargin < 2; expression = ''; end
     if nargin < 3; ignoreList = {}; end
     if nargin < 4; nRecurse = 0; end
-    if nRecurse ~= 0; error('Not implemented yet'); end
+    %if nRecurse ~= 0; error('Not implemented yet'); end
 
     [absPath, dirName] = deal(cell(1, 0));
 
@@ -47,13 +47,18 @@ function [absPath, dirName] = listSubDir(rootPath, expression, ignoreList, nRecu
         
         keep = keep & isMatch;
         
-        if nRecurse > 0 % Todo:
-            [absPathRec, dirNameI] = utility.path.listSubDir({listing(keep).name}, expression, ignoreList, nRecurse-1);
-        end
-
-        % Assign output arguments
         dirName = {listing(keep).name};
         absPath = fullfile(rootPath, dirName);
+        
+        if nRecurse > 0 && sum(keep) > 0 % Todo:
+            [absPathRec, dirNameRec] = utility.path.listSubDir(absPath, expression, ignoreList, nRecurse-1);
+            if ~isempty(absPathRec)
+                absPath = cat(2, absPath, absPathRec);
+                dirName = cat(2, dirName, dirNameRec);
+            end
+
+        end
+
     end
 
 end

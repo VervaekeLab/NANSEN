@@ -24,7 +24,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
     
     % Get the roimanager as a local package (2 folders up)
     rootPath = fileparts(fileparts(fileparts(mfilename('fullpath'))));
-    roitools = tools.path2module(rootPath);
+    %roitools = tools.path2module(rootPath);
     
     def = struct('debug', false, 'filterByArea', false, 'numCandidateAbort', 1, 'nRoisToFind', 1000, 'roiClass', 'soma');
     opt = utility.parsenvpairs(def, [], varargin);
@@ -75,6 +75,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
     [N,E] = histcounts(allPixelIndices, uniquePixelList);
     componentImage(E(1:end-1)) = N;
     
+    %imviewer(componentImage) % Todo: return this as part of summart
     
     mask = false(imageSize);
     
@@ -157,7 +158,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
         imSmall = currentComponentImage(yInd, xInd);
         
         % Find roi mask from this image:
-        maskSmall = roitools.getRoiMaskFromImage(imSmall, opt.roiClass);
+        maskSmall = roimanager.binarize.getRoiMaskFromImage(imSmall, opt.roiClass);
         
         mask(yInd, xInd) = maskSmall;
 
@@ -182,7 +183,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
         mask(yInd, xInd) = 0;
         
         if ~isempty(roisOut) && ~isempty(newRoi)
-            [iA, iB] = roitools.findOverlappingRois(roisOut, newRoi, 0.75);
+            [iA, iB] = roimanager.utilities.findOverlappingRois(roisOut, newRoi, 0.75);
             newRoi(iB) = [];
         end
 

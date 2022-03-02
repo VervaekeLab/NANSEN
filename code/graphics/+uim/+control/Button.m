@@ -82,11 +82,15 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
                 obj.Parent = varargin{1};
                 obj.Canvas = varargin{1};
                 varargin = varargin(2:end);
+            elseif isa(varargin{1}, 'matlab.graphics.axis.Axes')
+                obj.Parent = varargin{1};
+                obj.Canvas = struct('Axes', obj.Parent);   
+                varargin = varargin(2:end);
             end
                 
-            if isa(obj.Canvas, 'matlab.graphics.axis.Axes')
-                obj.Canvas = struct('Axes', obj.Canvas);
-            end
+% %             if isa(obj.Canvas, 'matlab.graphics.axis.Axes')
+% %                 obj.Canvas = struct('Axes', obj.Canvas);
+% %             end
             
             % Concatenate so that varargin comes last. This way, if the
             % property is supplied as input, that one will be the one which
