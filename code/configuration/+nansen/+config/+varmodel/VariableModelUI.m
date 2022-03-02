@@ -1,15 +1,13 @@
 classdef VariableModelUI < applify.apptable
 % Class interface for editing variable name and file settings in a uifigure
 
-% Todo: Simplify component creation. 
-%     [ ] Get cell locations as array with one entry for each column of a row.
-%     [ ] Do the centering when getting the cell locations.
-%     [ ] Set fontsize/bg color and other properties in batch.
-
 %     Table specific:
-%     [x] Dynamic update of file type choices based on what is entered in
+%     [v] Dynamic update of file type choices based on what is entered in
 %        the filename expression field.
-%     [ ] Remove button for rows...
+%     [v] Remove button for rows...
+%     [v] Update datalocation name if it is changed... 
+%     [ ] Update datalocation items if datalocation is added
+%     [ ] Make sure correct number of rows are visible...
 
     properties (Constant)
         DEFAULT_FILETYPES = {'.mat', '.tif', '.raw'}
@@ -109,15 +107,9 @@ classdef VariableModelUI < applify.apptable
             hRow.DataLocSelect.Position = [xi y wi-25 h];
             obj.centerComponent(hRow.DataLocSelect, y)
             
-            hRow.DataLocSelect.Items = {obj.DataLocationModel.Data.Name}; % Todo: Where to get this from?
-            if ~isempty(rowData.DataLocation)
-                if contains(rowData.DataLocation, hRow.DataLocSelect.Items)
-                    hRow.DataLocSelect.Value = rowData.DataLocation;
-                else
-                    hRow.DataLocSelect.Items{end+1} = rowData.DataLocation;
-                    hRow.DataLocSelect.Value = rowData.DataLocation;
-                end
-            end
+            % Fill in values (and items..)
+            obj.setDataLocationSelectionDropdownValues(hRow, rowData)
+
             
             % Create Image for viewing folder
 %             i = i+1;
@@ -204,6 +196,11 @@ classdef VariableModelUI < applify.apptable
             
         end
         
+        function toolbarComponents = getToolbarComponents(obj)
+            toolbarComponents = [...
+                obj.UIButton_AddVariable, ...
+                obj.UIButton_ToggleVariableVisibility ];
+        end
     end
     
     methods (Access = protected)
@@ -289,6 +286,21 @@ classdef VariableModelUI < applify.apptable
             end            
         end
         
+        function onVariableModelSet(obj)
+            
+            addlistener(obj.VariableModel, 'DataLocationNameChanged', ...
+                @obj.onDataLocationNameChanged);
+            
+        end
+        
+        function onDataLocationNameChanged(obj, src, evt)
+        %onDataLocationNameChanged Callback for VariableModel event    
+            for i = 1:numel(obj.Data)
+                obj.Data(i).DataLocation = obj.VariableModel.Data(i).DataLocation;
+                hRow = obj.RowControls(i);
+                obj.setDataLocationSelectionDropdownValues(hRow, obj.Data(i))
+            end
+        end
     end
     
     methods
@@ -334,7 +346,11 @@ classdef VariableModelUI < applify.apptable
 
         end
         
-        
+        function togglePresetVariableVisibility(obj)
+            % Todo: Make method so that this can be toggled
+            % programmatically. 
+            % See: onShowVariablesToggleButtonValueChanged
+        end
         
         function showPresetVariables(obj)
             rowComponentNames = fieldnames(obj.RowControls);
@@ -364,6 +380,25 @@ classdef VariableModelUI < applify.apptable
             obj.DataLocationModel = newModel;
             obj.updateDataLocationDropdownItems();
 
+        end
+        
+        function set.VariableModel(obj, newModel)
+            obj.VariableModel = newModel;
+            obj.onVariableModelSet();
+        end
+        
+        function setDataLocationSelectionDropdownValues(obj, hRow, rowData)
+            
+            hRow.DataLocSelect.Items = {obj.DataLocationModel.Data.Name}; % Todo: Where to get this from?
+            if ~isempty(rowData.DataLocation)
+                if contains(rowData.DataLocation, hRow.DataLocSelect.Items)
+                    hRow.DataLocSelect.Value = rowData.DataLocation;
+                else
+                    hRow.DataLocSelect.Items{end+1} = rowData.DataLocation;
+                    hRow.DataLocSelect.Value = rowData.DataLocation;
+                end
+            end
+           
         end
         
         function updateDataLocationDropdownItems(obj)
@@ -404,8 +439,6 @@ classdef VariableModelUI < applify.apptable
                 S(j).FileAdapter = hRow.FileAdapterSelect.Value;
             end
             
-
-
         end
         
     end

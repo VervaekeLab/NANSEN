@@ -39,6 +39,10 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj@applify.apptable(varargin{:})
             
         end
+        
+        function delete(obj)
+            delete@applify.apptable(obj)
+        end
     end
     
     methods (Access = protected) % Implementation of superclass methods
@@ -178,6 +182,13 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.createAddNewDataLocationButton(hPanel)
             
             obj.createDefaultDataLocationSelector(hPanel)
+        end
+        
+        function toolbarComponents = getToolbarComponents(obj)
+            toolbarComponents = [...
+                obj.UIButton_AddDataLocation, ...
+                obj.SelectDataLocationDropDownLabel, ...
+                obj.SelectDataLocationDropDown ];
         end
     end
     
@@ -418,12 +429,12 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                     obj.DataLocationModel.validateRootPath(i)
                 catch ME
                     message = ME.message;
-                    message = [message, '. ', 'Create folder now?'];
+                    message = [message, '. ', 'Create folder now?']; %#ok<AGROW>
                     hFig = ancestor(obj.Parent, 'figure');
                     selection = uiconfirm(hFig, message, 'Create Folder?', 'Options', {'Ok', 'Skip'});
                     
                     switch selection
-                        case 'OK'
+                        case {'OK', 'Ok'}
                             try
                                 obj.DataLocationModel.createRootPath(i)
                             catch ME

@@ -114,11 +114,9 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         end
         
         function delete(obj)
-            delete(obj.Figure)
             
             % Todo: Need to create a policy or uidialog for whether changes
             % should be saved or not...
-            
         end
     end
     

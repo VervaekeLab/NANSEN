@@ -113,7 +113,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             % Todo: Should I accept old and new dataLocation structure?
             
             obj.DataLocation = dataLocationStruct;
-            obj.autoAssignPropertiesOnConstruction(obj)
+            obj.autoAssignPropertiesOnConstruction()
 
         end
         
@@ -139,7 +139,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                 obj.assignTimeInfo(pathStr)
             end
             
-            obj.assignPipeline()
+            % Todo: Either remove this, or make it more efficient
+            % obj.assignPipeline()
             
         end
         
@@ -198,6 +199,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             % Todo: Add call to user defined function.
             % If this returns empty, check pipeline definitions...
            
+            % This should either be persistent or global, because when
+            % creating many session objects, this is a bottleneck. Not
+            % foolproof to use persistent/global though....
             pmc = nansen.pipeline.PipelineCatalog();
            
             if nargin < 2
@@ -321,7 +325,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         % Override superclass method
             
             S = toStruct@nansen.metadata.abstract.BaseSchema(obj);
-            S = rmfield(S, 'DataLocationModel');
+            if isfield(S, 'DataLocationModel')
+                S = rmfield(S, 'DataLocationModel');
+            end
         end
         
     end

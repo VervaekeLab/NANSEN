@@ -164,6 +164,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
         end
         
+        function toolbarComponents = getToolbarComponents(obj)
+            toolbarComponents = obj.AdvancedOptionsButton;
+        end
+        
     end
     
     methods (Access = private) %Callbacks for userinteraction with controls
@@ -365,6 +369,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             %oldValues = arrayfun(@(i) find(strcmp(h(i).Items, h(i).Value)), 1:numel(h));
             
+            folderChoices(cellfun(@isempty, folderChoices)) = deal({''});
             set(h, 'Items', folderChoices)
             
             for i = 1:numel(h)

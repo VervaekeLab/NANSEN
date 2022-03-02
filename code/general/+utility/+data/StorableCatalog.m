@@ -54,7 +54,7 @@ classdef StorableCatalog < handle
 %           - Because more flexibility...
 
     properties (Abstract, Constant, Hidden)
-        ITEM_TYPE
+        ITEM_TYPE           % Name / label for items in catalog
     end
 
     properties (SetAccess = protected) % Change to private...
@@ -109,18 +109,21 @@ classdef StorableCatalog < handle
         
             requiredFields = fieldnames( obj.getBlankItem() );
             itemFields = fieldnames(item);
+
+            assertMessage = 'Item does not match the item type of this catalog';
+            assert(all(ismember(requiredFields, itemFields)), assertMessage)
+            
+        end
+        
+        function item = validateFieldOrder(~, item)
+        %validateFieldOrder Enforce Uuid as the first field of item struct    
+            itemFields = fieldnames(item);
             
             % Make sure uuid is the first field...
             if contains('Uuid', itemFields) && ~strcmp(itemFields{1}, 'Uuid')
                 fieldOrder = ['Uuid'; setdiff(itemFields, 'Uuid', 'stable') ];
                 item = orderfields(item, fieldOrder);
             end
-            
-            assertMessage = 'Item does not match the item type of this catalog';
-            assert(all(ismember(requiredFields, itemFields)), assertMessage)
-            
-            
-            
         end
     end
     
@@ -190,6 +193,10 @@ classdef StorableCatalog < handle
             S.Data = orderfields(S.Data, ['Uuid'; origNames]);
             
             save(obj.FilePath, '-struct', 'S')
+            
+            if ~nargout
+                clear S
+            end
         end
 
         function load(obj)
@@ -231,6 +238,7 @@ classdef StorableCatalog < handle
         function newItem = insertItem(obj, newItem)
             
             newItem.Uuid = nansen.util.getuuid();
+            newItem = obj.validateFieldOrder(newItem);
             
             % Make sure item has necessary fields...
             newItem = obj.validateItem(newItem);
@@ -239,7 +247,7 @@ classdef StorableCatalog < handle
             
             % Make sure not to insert item with name that already exist...
             newItemName = obj.getItemName(newItem);
-            if obj.containsItem(newItemName)
+            if any(obj.containsItem(newItemName))
                 message = sprintf('A %s with the name "%s" already exists', ...
                     obj.ITEM_TYPE, newItemName);
                 error(message); %#ok<SPERR>

@@ -239,7 +239,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             if ~isfolder(thisRootPath)
                 mkdir(thisRootPath)
-                fprintf('Created root directory for DataLocation %s', obj.Data(dataLocIdx).Name)
+                fprintf('Created root directory for DataLocation %s\n', obj.Data(dataLocIdx).Name)
             end
         end
         
@@ -384,7 +384,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
         end
         
+        function dataLocationItem = getDefaultDataLocation(obj)
+        %getDefaultDataLocation Get the default datalocation item
+            dataLocationName = obj.DefaultDataLocation;
+            dataLocationItem = obj.getDataLocation(dataLocationName);
+        end
+        
         function S = getDataLocation(obj, dataLocationName)
+        %getDataLocation Get datalocation item by name
             S = obj.getItem(dataLocationName);
         end
         

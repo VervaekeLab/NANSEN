@@ -92,26 +92,35 @@ classdef ProjectManager < handle
             
         end
         
-        function createProject(obj, name, description, pathStr)
+        function createProject(obj, name, description, projectRootDir)
         %createProject Method for creating a new project entry
         
             % Add project to project manager.
-            projectInfo = obj.createProjectInfo(name, description, pathStr);
-            obj.addProject(name, description, pathStr);
+            projectInfo = obj.createProjectInfo(name, description, projectRootDir);
+            obj.addProject(name, description, projectRootDir);
 
             % Make folder to save project related setting and metadata to
-            if ~exist(pathStr, 'dir');    mkdir(pathStr);   end
+            if ~exist(projectRootDir, 'dir');    mkdir(projectRootDir);   end
             
             fileName = 'nansen_project_configuration.mat';
             
             % Save project info to file.
             S.ProjectConfiguration = projectInfo;
-            save(fullfile(pathStr, fileName), '-struct', 'S')
+            save(fullfile(projectRootDir, fileName), '-struct', 'S')
 
-            % Todo
-            % Initialize a metatable Catalog and to project config
-            % Initialize a datalocation Catalog and to project config
-            % Initialize a variablemap Catalog and to project config
+            % Todo:
+            % (Initialize a metatable Catalog and add to project config)
+
+            % Initialize a datalocation catalog (and add to project config)
+            modelFilePath = obj.getProjectSubPath('DataLocationSettings', projectRootDir);
+            nansen.config.initializeDataLocationModel(modelFilePath)
+            
+            % Initialize a variablemap Catalog (and add to project config)
+            % Todo: Move this to a separate method. Should depend on user
+            % selection of experimental modules. (Which will happen after
+            % project is created.)
+            modelFilePath = obj.getProjectSubPath('FilePathSettings', projectRootDir);
+            nansen.config.initializeDataVariableModel(modelFilePath, 'ophys.twophoton')
 
             % Set as current project
             obj.changeProject(name)
@@ -143,10 +152,13 @@ classdef ProjectManager < handle
         %disp Override display function to show table of projects.
             titleTxt = sprintf(['<a href = "matlab: helpPopup %s">', ...
                 'ProjectManager</a> with available projects:'],class(obj));
-            
-            T = struct2table(obj.Catalog, 'AsArray', true);
-            fprintf('%s\n\n', titleTxt)
-            disp(T)
+            if isempty(obj.Catalog)
+                disp('NO AVAILABLE PROJECTS')
+            else
+                T = struct2table(obj.Catalog, 'AsArray', true);
+                fprintf('%s\n\n', titleTxt)
+                disp(T)
+            end
         end
         
         function loadCatalog(obj)
@@ -383,7 +395,7 @@ classdef ProjectManager < handle
             
         end
         
-        function pathStr = getProjectSubPath(keyword)
+        function pathStr = getProjectSubPath(keyword, projectRootDir)
         %getProjectSubPath Get a filepath within given current project
         %
         %   pathStr = getProjectSubPath(keyword) returns the pathStr for a
@@ -397,7 +409,9 @@ classdef ProjectManager < handle
         %       MetaTableCatalog
         %       MetaTable
 
-            projectRootDir = getpref('Nansen', 'CurrentProjectPath', '');
+            if nargin < 2
+            	projectRootDir = getpref('Nansen', 'CurrentProjectPath', '');
+            end
             
             % Abort if project root directory is empty (non-existent)
             if isempty(projectRootDir)
@@ -416,7 +430,7 @@ classdef ProjectManager < handle
                 case 'FilePathSettings'
                     saveDir = fullfile(projectRootDir, 'Configurations');
                     fileName = 'filepath_settings.mat';
-                case 'DataLocationSettings'
+                case {'DataLocationSettings', 'DataLocationCatalog'}
                     saveDir = fullfile(projectRootDir, 'Configurations');
                     fileName = 'datalocation_settings.mat';
                 case 'PipelineAssignmentModel'
@@ -424,7 +438,8 @@ classdef ProjectManager < handle
                     fileName = 'pipeline_settings.mat';  
                 case {'figures', 'MultiPartFigures'}
                     saveDir = fullfile(projectRootDir, 'Multipart Figures');
-                    
+                otherwise
+                    error('Unknown file label: %s', keyword)
             end
             
             % Make folder if it does not exist

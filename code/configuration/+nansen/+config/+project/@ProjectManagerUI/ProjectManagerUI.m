@@ -343,14 +343,9 @@ classdef ProjectManagerUI < handle
                 obj.UIControls.ProjectTable.Data(:, 1) = {false};
                 obj.UIControls.ProjectTable.Data(rowIdx, 1) = {true};                
             end
-            
-            
 
-            
             obj.notify('ProjectChanged', event.EventData)
-
             
-
         end
         
         function deleteProject(obj, rowIdx)
@@ -525,7 +520,7 @@ classdef ProjectManagerUI < handle
                 catch ME
                     title = 'Project Creation Failed';
                     obj.uialert(ME.message, title)
-                    return
+                    rethrow(ME)
                 end
                 
                 obj.notify('ProjectChanged', event.EventData)

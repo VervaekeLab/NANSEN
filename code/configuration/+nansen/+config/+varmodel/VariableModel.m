@@ -25,7 +25,12 @@ classdef VariableModel < utility.data.StorableCatalog
     end
     
     properties (Access = private)
+        DataLocationNameChangedListener
         %DataLocationModel % Todo: needed?
+    end
+    
+    events
+        DataLocationNameChanged
     end
     
     
@@ -36,12 +41,12 @@ classdef VariableModel < utility.data.StorableCatalog
             S = struct(...
                 'VariableName', '', ...
                 'IsDefaultVariable', false, ... 
-                'DataLocation', '', ...
+                'DataLocation', '', ...     % todo: rename DataLocationName
+                'DataLocationUuid', '', ...
                 'Subfolder', '', ...
                 'FileNameExpression', '', ...
                 'FileType', '', ...
                 'FileAdapter', ''   );
-            
         end
         
         function S = getDefaultItem(varName)
@@ -83,6 +88,14 @@ classdef VariableModel < utility.data.StorableCatalog
     end
     
     methods
+        
+        function addDataLocationModel(obj, dataLocationModel)
+            
+            el = listener(dataLocationModel, 'DataLocationModified', ...
+                @obj.onDataLocationModelModified);
+            obj.DataLocationNameChangedListener = el;
+            
+        end
         
         function [S, isExistingEntry] = getVariableStructure(obj, varName)
             
@@ -135,7 +148,7 @@ classdef VariableModel < utility.data.StorableCatalog
         
     end
     
-    methods (Hidden, Access = ?nansen.config.varmodel.VariableModelApp)
+    methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?NansenSetupApp2})
         function setVariableList(obj, S)
             obj.Data = S;
         end
@@ -144,12 +157,11 @@ classdef VariableModel < utility.data.StorableCatalog
     methods (Access = protected)
         
         function item = validateItem(obj, item)
-            
+            item = validateItem@utility.data.StorableCatalog(obj, item);
             if isempty(item.FileAdapter)
                 % Todo: Have defaults for different filetypes...
                 item.FileAdapter = 'Default';
             end
-            
         end
         
     end
@@ -181,6 +193,42 @@ classdef VariableModel < utility.data.StorableCatalog
             variableList = twophoton.getVariableList();
 
         end
+        
+        function onDataLocationModelModified(obj, src, evt)
+            
+            if strcmp(evt.DataField, 'Name')
+                newName = evt.NewValue;
+                dataLocationItem = src.getDataLocation(newName);
+                
+                obj.updateVariableDataLocation(dataLocationItem)
+            end
+        end
+        
+        function updateVariableDataLocation(obj, dataLocationItem)
+        %updateVariableDataLocation Update datalocation name for variables
+        %
+        %   This method is used to make sure the datalocation name is
+        %   up-to-date with the name of the data location model
+            
+            isDirty = false;
+        
+            dlUuid = dataLocationItem.Uuid;
+            dlName = dataLocationItem.Name;
+            
+            for i = 1:numel(obj.Data)
+                if strcmp( obj.Data(i).DataLocationUuid, dlUuid )
+                    obj.Data(i).DataLocation = dlName;
+                    isDirty = true;
+                end
+            end
+            
+            if isDirty
+                evtData = event.EventData;
+                obj.notify('DataLocationNameChanged', evtData);
+            end
+            
+        end
+        
     end
     
     methods (Static)

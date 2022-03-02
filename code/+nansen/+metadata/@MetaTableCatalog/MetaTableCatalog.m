@@ -36,15 +36,20 @@ classdef MetaTableCatalog < uim.handle
         
         function fixMetatable(obj)
             % Todo: Remove this
-            obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
-            obj.save()
+            
+            if size(obj.Table, 1) >= 1
+                obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
+                obj.save()
+            end
             
             for i = 1:size(obj.Table,1)
                 fileValues = obj.Table{i, {'SavePath', 'FileName'}};
                 filePath = fullfile(fileValues{:});
                 
                 S = load(filePath);
-                S.MetaTableClass = 'nansen.metadata.type.Session';
+                if strcmp(S.MetaTableClass, 'nansen.metadata.schema.vlab.TwoPhotonSession')
+                    S.MetaTableClass = 'nansen.metadata.type.Session';
+                end
                 save(filePath, '-struct', 'S')
             end
         end

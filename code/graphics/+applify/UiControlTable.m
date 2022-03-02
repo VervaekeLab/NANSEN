@@ -1,9 +1,16 @@
 classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 %UiControlTable Interface for plotting ui components in a table like layout.
     
-%   Todo: many (most) sublasses have an advanced options view. Should make
-%   that behavior part of this superclass.
+%   Todo: 
+%     [v] many (most) sublasses have an advanced options view. Should make
+%         that behavior part of this superclass.
     
+%     [ ] Get cell locations as array with one entry for each column of a
+%         row. (see getCellPosition)
+%     [ ] Do the centering when getting the cell locations.
+%     [ ] Set fontsize/bg color and other properties in batch.
+
+
     properties % Table info/data
         ColumnNames cell = {}
         ColumnFormat cell = {}
@@ -167,6 +174,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         
         function delete(obj)
             obj.deleteRowControls()
+            obj.deleteToolbarComponents()
         end
 
     end
@@ -359,6 +367,19 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                     delete(obj.RowControls(i).(fields{j}))
                 end
             end
+        end
+        
+        function deleteToolbarComponents(obj)
+            hComponents = obj.getToolbarComponents;
+                        
+            isdeletable = @(x) ~isempty(x) && isvalid(x);
+
+            for i = 1:numel(hComponents)
+                if isdeletable( hComponents(i) )
+                    delete( hComponents(i) )
+                end
+            end
+            
         end
         
         function deleteHeader(obj)
@@ -605,6 +626,11 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         
         function createToolbarComponents(obj, ~)
             % Subclass should override if it implements a toolbar
+        end
+        
+        function toolbarComponents = getToolbarComponents(obj)
+            % Subclass should override if it implements a toolbar
+            toolbarComponents = [];
         end
         
         function showToolbar(obj)

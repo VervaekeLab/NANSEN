@@ -16,6 +16,6 @@ function S = subject_session()
     S.SubfolderStructure(2).Type = 'Session';
 
   % % No metadata specification
-    S.MetaDataDef =  DataLocationModel.getDefaultMetadataStructure;
+    S.MetaDataDef = DataLocationModel.getDefaultMetadataStructure;
 end
 

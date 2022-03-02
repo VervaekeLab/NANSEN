@@ -43,6 +43,28 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
     
     methods % Constructor
         % Todo
+        
+        function delete(app)
+            
+            isdeletable = @(x) ~isempty(x) && isvalid(x);
+            
+            for i = 1:numel(app.UIModule)
+                if isdeletable( app.UIModule{i} )
+                    delete( app.UIModule{i} )
+                end
+            end
+            
+            if isdeletable(app.LoadingPanel)
+                delete( app.LoadingPanel )
+            end
+            
+            if app.IsStandalone
+                if isdeletable(app.Figure)
+                    delete( app.Figure )
+                end
+            end
+            
+        end
     end
     
     methods

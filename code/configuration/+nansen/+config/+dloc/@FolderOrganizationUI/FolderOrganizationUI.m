@@ -338,6 +338,17 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
         end
         
+        function toolbarComponents = getToolbarComponents(obj)
+            toolbarComponents = [...
+                obj.SelectDatalocationDropDownLabel, ...
+                obj.SelectDataLocationDropDown, ...
+                obj.SelectTemplateLabel, ...
+                obj.SelectTemplateDropdown, ...
+                obj.InfoButton, ...
+                obj.PreviewButton, ...
+                obj.ShowFilterOptionsButton ];
+        end
+        
     end
     
     methods % Public
@@ -839,6 +850,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             dataLoc = obj.CurrentDataLocation;
             
+            % Get the selected template:
             isMatched = strcmp({obj.FolderOrganizationTemplates.Name}, event.Value);
             if ~any( isMatched ); return; end
             
