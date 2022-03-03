@@ -708,7 +708,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                 thisDataLocName = obj.DataLocation(i).Name;
                 
                 oldRootDir = obj.DataLocation(i).RootPath;
-                newRootDir = rootdirStruct.(thisDataLocName);
+                newRootDir = rootdirStruct.(thisDataLocName).RootPath;
                 if ~strcmp( oldRootDir, newRootDir )
                     thisModel = obj.DataLocationModel.getItem(i);
                     
@@ -717,6 +717,13 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                     obj.DataLocation(i).RootUid = thisModel.RootPath(rootIdx).Key;
                     obj.DataLocation(i).RootPath = newRootDir;
                     
+                    wasModified = true;
+                end
+                
+                oldSubfolder = obj.DataLocation(i).Subfolders;
+                newSubfolder = rootdirStruct.(thisDataLocName).Subfolder;
+                if ~strcmp( oldSubfolder, newSubfolder )
+                    obj.DataLocation(i).Subfolders = newSubfolder;
                     wasModified = true;
                 end
             end

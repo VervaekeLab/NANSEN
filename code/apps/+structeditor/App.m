@@ -86,6 +86,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         Prompt = ''
         
         showPresetInHeader = false;
+        CustomFigureSize = [];
         
         LabelPosition = 'Left' % 'Left' | 'Over'
         
@@ -339,6 +340,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function customizeFigure(obj)
             
+            pos = obj.initializeFigurePosition();
+            obj.Figure.Position = pos;
+            
             if strcmp(obj.mode, 'standalone')
                 if obj.showSidePanel && ~contains(obj.TabMode, 'popup') % make space for panel with tab buttons.
                     obj.Figure.Position(3) = obj.Figure.Position(3) + 100;
@@ -368,8 +372,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         % Use for when restoring figure size from maximized
             
             % Todo: get from settings/preferences
-            width = 470;
-            height = 470;
+            
+            if ~isempty(obj.CustomFigureSize)
+                width = obj.CustomFigureSize(1);
+                height = obj.CustomFigureSize(2);
+            else
+                width = 470;
+                height = 470;
+            end
+            
         
             screenSize = get(0, 'ScreenSize');
             figLocation = [100, screenSize(4) - 100 - height];
@@ -445,8 +456,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function adjustFigureSizeToComponents(obj)
             
-            if obj.virtualHeight < obj.visibleHeight
-                h = obj.virtualHeight;
+            if obj.virtualHeight(obj.currentPanel) < obj.visibleHeight
+                h = obj.virtualHeight(obj.currentPanel);
                 obj.Figure.Position(4) = h + sum(obj.Margins([2,4])) + 20;
                 uim.utility.centerFigureOnScreen(obj.Figure)
             end
@@ -628,14 +639,16 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             if obj.Debug
                 obj.main.constructionCurtain.Visible='off';
+                obj.Panel.Visible = 'on';
             end
             
             % Create sidebar panel for scroller
             obj.sidebar.hPanel = uipanel(obj.Panel);
-            
+            %obj.sidebar.hPanel.Units = 'pixels';
             % Create panel for tab buttons if struct is multipaged:
             if obj.showSidePanel
                 obj.uiPanel.Tab = uipanel(obj.Panel);
+                %obj.uiPanel.Tab.Units = 'pixels';
             end
             
 
@@ -1180,6 +1193,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     obj.Callback = arrayfun(@(i) obj.Callback, 1:obj.numTabs, 'uni', 0);
                 end
                 
+                if numel(obj.TestFunc)==1
+                    obj.TestFunc = arrayfun(@(i) obj.TestFunc, 1:obj.numTabs, 'uni', 0);
+                end
+                
                 if numel(obj.ValueChangedFcn)==1
                     obj.ValueChangedFcn = arrayfun(@(i) obj.ValueChangedFcn, 1:obj.numTabs, 'uni', 0);
                 end
@@ -1480,7 +1497,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             
             if strcmpi(obj.LabelPosition, 'Over')
-                xMargin = [18, 25]; % Old: 65
+                xMargin = [18, 40]; % Old: 65
                 x = xMargin(1);
                 xSpacing = 7;
                 yTxt = y + obj.RowHeight-5;
@@ -1503,7 +1520,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Create input field for editing of propertyvalues
 
-            if isempty(config) || isa(config, 'char') % Create control based on class of value
+            if isempty(config) || isa(config, 'char') || isa(config, 'function_handle')% Create control based on class of value
                 
                 switch class(val)
                     case 'logical'
@@ -1605,7 +1622,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             
                             ycorr = -obj.RowSpacing.*4;
                             hcorr = obj.RowSpacing.*4;
-   
+
+                            
                     end
                 end
             end
@@ -1686,13 +1704,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if ~isempty(config) && isa(config, 'char')
                 
                 inputbox.Position(3) = inputbox.Position(3);
-                xPos = sum(inputbox.Position([1,3]) + 6 );
                 
                 hButton = uicontrol(guiPanel, 'style', 'pushbutton');
                 hButton.String = '...';
                 hButton.Units = 'pixel';
                 hButton.ForegroundColor = inputbox.ForegroundColor;
                 
+                xPos = sum(inputbox.Position([1,3]) + 6 );
                 if strcmp(obj.mode, 'standalone')
                     hButton.Position = [xPos, y+1, 22,  22]; %Slightly smaller..
                 elseif strcmp(obj.mode, 'docked')
@@ -1705,6 +1723,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                 hButton.Tag = name;
                 inputbox.TooltipString = inputbox.String;
+                
+            elseif ~isempty(config) && isa(config, 'function_handle')
+                
+                hButton = obj.createEllipsisButton(guiPanel, name, inputbox, y);
+                hButton.Callback = @(s,e) config();
+                hButton.ButtonDownFcn = @(s,e) config();
 
             elseif contains(lower(name), {'path', 'drive', 'dir'})  && isa(val, 'char') % Todo: remove this and use the uigetdir or uigetfile flags instead!!
                 
@@ -1722,6 +1746,28 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 hButton.Tag = name;
                 hButton.ButtonDownFcn = @obj.buttonCallback_openBrowser;
                 inputbox.TooltipString = inputbox.String;
+            end
+            
+        end
+        
+        function hButton = createEllipsisButton(obj, hPanel, name, linkedComponent, y)
+        %createEllipsisButton Create ellipsis button next to component
+            
+            % Create button
+            hButton = uicontrol(hPanel, 'style', 'pushbutton');
+            hButton.String = '...';
+            hButton.Units = 'pixel';
+            hButton.ForegroundColor = linkedComponent.ForegroundColor;
+            hButton.Tag = name;
+
+            % Set position
+            xPos = sum(linkedComponent.Position([1,3]) + 6 );
+            if strcmp(obj.mode, 'standalone')
+                hButton.Position = [xPos, y+1, 22,  22]; %Slightly smaller..
+            elseif strcmp(obj.mode, 'docked')
+                sz = linkedComponent.Position(4);
+                xPos = sum(linkedComponent.Position([1,3]))+2;
+                hButton.Position = [xPos, y, sz, sz]; %Slightly smaller..
             end
             
         end

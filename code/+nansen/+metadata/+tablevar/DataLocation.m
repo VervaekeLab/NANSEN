@@ -153,8 +153,63 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
                                 
             end
         end
-       
+        
         function onCellDoubleClick(obj, metaObj)
+            
+            if ~isempty(obj.Value)
+                
+                S = struct();
+                for i = 1:metaObj.DataLocationModel.NumDataLocations
+                    thisDataLoc = metaObj.DataLocationModel.Data(i);
+                    
+                    fieldName = thisDataLoc.Name;
+                                        
+                    rootPath = metaObj.getDataLocationRootDir(fieldName);
+                    allRootPaths = {thisDataLoc.RootPath.Value};
+                    
+                    if isempty(rootPath)
+                        rootPath = '';
+                    end
+                    
+                    if ~any(strcmp(rootPath, allRootPaths))
+                        allRootPaths = [{rootPath}, allRootPaths];
+                    end
+                    
+                    S.(fieldName).RootPath = rootPath;
+                    S.(fieldName).RootPath_ = allRootPaths;
+                       
+                    S.(fieldName).Subfolder = obj.Value(i).Subfolders;
+                    
+                    %structeditor is not advanced enough for this yet.. 
+                    % todo for the future
+                    %S.(fieldName).Subfolder_ = @(x)uigetdir(rootPath);
+                    
+                end
+                
+                h = structeditor.App(S, 'AdjustFigureSize', true, ...
+                    'Title', 'Edit Data Location Rootpaths', ...
+                    'LabelPosition', 'over', ...
+                    'CustomFigureSize', [700, 300], ...
+                    'Prompt', 'Select datalocation root directories'); %, ...
+                    %'ValueChangedFcn', @obj.onDataLocationChanged );
+                h.Title = sprintf('Edit Data Locations for %s', metaObj.sessionID);
+
+                h.waitfor()
+                
+                if h.wasCanceled
+                    return
+                else
+                    sNew = h.dataEdit;
+                    if ~isequal(sNew, S)
+                        metaObj.updateRootDir(sNew)
+                    end
+                end
+                
+            end
+            
+        end
+        
+        function onCellDoubleClick2(obj, metaObj)
             
             if ~isempty(obj.Value)
                 
@@ -201,6 +256,22 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
             
         end
         
+    end
+    
+    methods (Access = ?structeditor.App)
+        function onDataLocationChanged(obj, src, evt)
+            
+            switch evt.Name
+                case 'Subfolder'
+                    rootDirValue = evt.UIControls.RootPath.String{evt.UIControls.RootPath.Value};
+                    newSubfolder = strrep(evt.UIControls.String, rootDirValue, '');
+                    evt.UIControls.Subfolder.String = newSubfolder;
+                    obj.Value(evt.PageNumber).Subfolders = newSubfolder;
+                case 'RootPath'
+                    % Todo: change the function handle for uigetdir...
+                    %S.(fieldName).Subfolder_
+            end            
+        end
     end
     
     methods (Static)

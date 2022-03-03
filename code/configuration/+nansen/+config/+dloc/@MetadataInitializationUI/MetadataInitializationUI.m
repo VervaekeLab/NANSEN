@@ -190,7 +190,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             % the foldername
             hFig = ancestor(src, 'figure');
             IND = uim.dialog.createStringSelectorDialog(folderName, hFig.Position);
-            
+
             % Return if user canceled...
             if isempty(IND)
                 pause(0.1)
@@ -211,7 +211,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                     
                     shortName = strrep(hRow.VariableName.Text, 'Experiment', '');
    
-                    [dtInFormat, dtOutFormat] = obj.getDateTimeFormat(hRow.VariableName.Text);
+                    [dtInFormat, dtOutFormat] = obj.getDateTimeFormat(hRow.VariableName.Text, substring);
                     
                     if ~isempty(dtInFormat)
                         try
@@ -626,17 +626,17 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             tf = contains(variableName, {'Date', 'Time'});
         end
         
-        function [inFormat, outFormat] = getDateTimeFormat(variableName)
+        function [inFormat, outFormat] = getDateTimeFormat(variableName, strValue)
         %getDateTimeFormat Get datetime input and output format
         
             % Get datetime values for date & time variables.
             if strcmp(variableName, 'Experiment Date')
                 dlgTitle = 'Enter Date Format';
-                msg = sprintf('Please enter date format, i.e yyyy-MM-dd\n');
+                msg = sprintf('Please enter date format for value (%s), i.e yyyy-MM-dd\n', strValue);
                 outFormat = 'MMM-dd-yyyy';
             elseif strcmp(variableName, 'Experiment Time')
                 dlgTitle = 'Enter Time Format';
-                msg = sprintf('Please enter time format, i.e HH-mm-ss\n');
+                msg = sprintf('Please enter time format for value (%s), i.e HH-mm-ss\n', strValue);
                 outFormat = 'HH:mm:ss';
             end
                

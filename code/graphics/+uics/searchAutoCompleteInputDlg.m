@@ -8,10 +8,13 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         Callback
         
         PromptText = 'Search for item'
+        SelectedItems
         
         Style           % uicontrol compatible
         Tag             % uicontrol compatible
         TooltipString
+        
+        HideOnFocusLost = false
     end
     
     properties (Dependent)
@@ -22,13 +25,15 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         BackgroundColor
         Units
         Position
+        
+        Visible
     end
     
     properties (Access = private)
         hBorder
     end
     
-    properties
+    properties %(Access = private)
         
         uiPanel
         
@@ -49,44 +54,73 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         Position_ = [10,10,150,22]
         Units_ = 'pixels'
     end
-
+    
     
     methods
         
         function obj = searchAutoCompleteInputDlg(varargin)
             
-                if isempty(varargin); return; end
-            
-                % Assume first input is a container/figure...
-                if ~isa(varargin{1}, 'matlab.ui.Figure') && ...
-                        ~isa(varargin{1}, 'matlab.ui.container.Panel')
-                    hParent = obj.createFigure();
-                else
-                    hParent = varargin{1};
-                    varargin = varargin(2:end);
-                end
-                
-                obj.Items_ = varargin{1};
-                varargin = varargin(2:end);
-                
-                obj.Parent = hParent;
-                obj.assignPVPairs(varargin{:})
-                                
-                
-                % Create components
-                warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
-                obj.createDropDownSelector()
-                obj.createSearchInputField()
-                warning('on', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
+            if isempty(varargin); return; end
 
-                obj.IsConstructed = true;
-                obj.onUnitsSet()
-                obj.onPositionSet()
+            % Assume first input is a container/figure...
+            if ~isa(varargin{1}, 'matlab.ui.Figure') && ...
+                    ~isa(varargin{1}, 'matlab.ui.container.Panel') && ...
+                        ~isa(varargin{1}, 'matlab.ui.container.Tab')
+                hParent = obj.createFigure();
+            else
+                hParent = varargin{1};
+                varargin = varargin(2:end);
+            end
+
+            obj.Items_ = varargin{1};
+            varargin = varargin(2:end);
+
+            obj.Parent = hParent;
+            obj.assignPVPairs(varargin{:})
+
+            % Create components
+            warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
+            obj.createDropDownSelector()
+            obj.createSearchInputField()
+            warning('on', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
+
+            obj.IsConstructed = true;
+            obj.onUnitsSet()
+            obj.onPositionSet()
+
+            addlistener(obj.Parent, 'ObjectBeingDestroyed', @(s, e) obj.delete);
+
         end
+        
+        function delete(obj)
+            
+            % Todo: Delete these components.
+%             jSearchField
+%             jComboBox
+%         
+%             hContainerComboBox
+%             hContainerSearchField
+            
+            
+        end
+        
         
     end
     
     methods
+        
+        function set.Visible(obj, newValue)
+            obj.hContainerComboBox.Visible = newValue;
+            obj.hContainerSearchField.Visible = newValue;
+            
+            if obj.HideOnFocusLost && strcmp(newValue, 'on')
+                % Todo: Find out how to give this component focus..
+            end
+            
+        end
+        function visible = get.Visible(obj)
+            visible = obj.hContainerComboBox.Visible;
+        end
         
         % Set/get units
         function set.Units(obj, newUnits)
@@ -223,7 +257,13 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             set(obj.jSearchField, 'KeyPressedCallback', {@obj.updateSearch, 'searchField'});
             set(obj.jSearchField, 'MousePressedCallback', {@obj.updateSearch, 'searchField'});
             
-            set(obj.jSearchField, 'FocusLostCallback', @(h,e)obj.resetScroll);  % hide the popup when another component is selected
+            
+            if obj.HideOnFocusLost
+                set(obj.jSearchField, 'FocusLostCallback', @(h,e) obj.hide);  % hide the popup when another component is selected
+            else
+                set(obj.jSearchField, 'FocusLostCallback', @(h,e) obj.resetScroll);  % hide the popup when another component is selected
+            end
+            
 
             
         end
@@ -241,6 +281,10 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             set(jControl, 'Opaque', 0)
             set(jControl, 'Border', []);
             
+        end
+        
+        function hide(obj)
+            obj.Visible = 'off';
         end
         
     end
@@ -298,7 +342,9 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                         obj.jSearchField.setText(newItem)
                         
                         %obj.Value = newItem;
+                        
                         if ~isempty(obj.Callback)
+                            obj.SelectedItems = newItem;
                             obj.Callback(obj, event)
                         end
                     end
@@ -309,12 +355,20 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                     obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.Items_));
                     obj.jComboBox.showPopup;                    
                     set(obj.jSearchField, 'ScrollOffset', 1)
+                    obj.SelectedItems = obj.Items_;
+                    if ~isempty(obj.Callback)
+                        obj.Callback(obj, event)
+                    end
 
-                % If the cancle button is clicked, reset the dropdown list
+                    % If the cancle button is clicked, reset the dropdown list
                 % of selections, but do not show the dropdown (popup)
                 case 'cancelButton'
                     obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.Items_));
+                    obj.SelectedItems = obj.Items_;
                     
+                    if ~isempty(obj.Callback)
+                        obj.Callback(obj, event)
+                    end
             end
             
             
@@ -374,10 +428,14 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             
             obj.lastSearchText = searchText;
             
+            obj.SelectedItems = newNames;
+            if ~isempty(obj.Callback)
+                obj.Callback(obj, event)
+            end
+            
         end
         
     end
-   
     
     methods (Static)
         

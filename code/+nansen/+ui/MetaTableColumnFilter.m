@@ -253,9 +253,12 @@ classdef MetaTableColumnFilter < handle
                     dateInterval = h.SelectedDateInterval;
                     columnData = cat(1, columnData{:});
                     
-                    dateInterval.TimeZone = columnData(1).TimeZone;
-
-                    TF = columnData > dateInterval(1) & columnData < dateInterval(2);
+                    if isempty(dateInterval)
+                        TF = true(size(columnData, 1), 1);
+                    else
+                        dateInterval.TimeZone = columnData(1).TimeZone;
+                        TF = columnData > dateInterval(1) & columnData < dateInterval(2);
+                    end
                     obj.MetaTableUi.DataFilterMap(:, columnIdx) = TF;
                     
                 case 'numericRangeSelector'

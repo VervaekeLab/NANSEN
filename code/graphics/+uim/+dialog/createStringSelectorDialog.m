@@ -16,7 +16,7 @@ if nargin < 2; refPosition = []; end
 
 %% Create figure
 %f = uifigure() %'WindowStyle', 'modal'); slower
-f = figure('MenuBar', 'none', 'WindowStyle', 'modal');
+f = figure('MenuBar', 'none');
 
 f.Name = 'Select letters from given text';
 f.NumberTitle = 'off';
@@ -71,7 +71,7 @@ for i = 1:numel(inputString)
         'HorizontalTextAlignment', 'center', 'Padding', [0,0,0,0], ...
         'VerticalTextALignment', 'middle', ...
         'Callback', @(src, evt, hTB) onLetterSelected(src, evt, hToolbar) )
-    
+
 end
 
 % % buttonOk = uim.control.Button_(f, 'Position', [200, 20, 100,24], 'Size', [100,26], 'PositionMode', 'manual', 'SizeMode', 'manual', 'Text', 'Ok', 'Style', uim.style.buttonLightMode);
@@ -98,7 +98,7 @@ elseif isa(f, 'matlab.ui.Figure')
     buttonCancel.Callback = @closeStringSelectorDialog;
     
     h = uicontrol(f, 'style', 'text', 'Position', [10,figSize(2)-20,300,18]);
-    h.String = 'Tip: Use shift to select multiple letters';
+    h.String = 'NB: Use shift to select multiple letters';
     h.FontSize = 12;
     h.HorizontalAlignment = 'left';
     
@@ -106,7 +106,7 @@ end
 
 f.UserData.ExitMode = 'Cancel';
 f.UserData.PrevSelectedIndex = [];
-
+f.WindowStyle = 'modal';
 uiwait(f)
 
 

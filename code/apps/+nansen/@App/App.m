@@ -73,7 +73,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     methods % Structors
         function app = App()
-
+            
+            nansen.addpath()
+            
             % Call constructor explicitly to provide the nansen.Preferences
             app@uiw.abstract.AppWindow('Preferences', nansen.Preferences)
             
@@ -84,7 +86,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Add project folder to path. 
             projectPath = nansen.localpath('Current Project');
-            addpath(genpath(projectPath)) % todo. dont brute force this..
+            addpath(genpath(projectPath), '-end') % todo. dont brute force this..
             
             app.DataLocationModel = nansen.DataLocationModel;
             
@@ -288,7 +290,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Change Project');
             app.updateProjectList(mitem)
             
-            mitem = uimenu(m, 'Text','Manage Projects');
+            mitem = uimenu(m, 'Text','Manage Projects...');
             mitem.MenuSelectedFcn = @app.onManageProjectsMenuClicked;
             
 
@@ -297,14 +299,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Configure', 'Separator', 'on', 'Enable', 'on');
             % Todo: make methods, and use uiwait...
             
-            uimenu( mitem, 'Text', 'Configure Datalocations', ...
+            uimenu( mitem, 'Text', 'Datalocations...', ...
                 'MenuSelectedFcn', @(s,e) app.openDataLocationEditor )
 
             
-            uimenu( mitem, 'Text', 'Configure Variables', 'MenuSelectedFcn', @(s,e)nansen.config.varmodel.VariableModelApp);
+            uimenu( mitem, 'Text', 'Variables...', 'MenuSelectedFcn', @(s,e)nansen.config.varmodel.VariableModelApp);
             %mitem.MenuSelectedFcn = [];
             
-            mitem = uimenu(m, 'Text','Preferences');
+            mitem = uimenu(m, 'Text','Preferences...');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;
             
             mitem = uimenu(m, 'Text', 'Refresh Menu', 'Separator', 'on');
@@ -316,7 +318,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % % % % % Create EXIT menu items % % % % % % 
 
             mitem = uimenu(m, 'Text','Close All Figures', 'Separator', 'on');
-            mitem.MenuSelectedFcn = @app.menuCallback_CloseAll;
+            mitem.MenuSelectedFcn = @app.MenuCallback_CloseAll;
             
             mitem = uimenu(m, 'Text', 'Quit');
             mitem.MenuSelectedFcn = @(s, e) app.delete;
@@ -1567,8 +1569,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Todo: Add listeners??
         end
         
-        
-        
         function openDataLocationEditor(app)
         %openDataLocationEditor Open editor app for datalocation model.
                     
@@ -1585,7 +1585,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
-        
         function removeTableVariable(app, src, evt)
         %removeTableVariable Remove variable from the session table
             
@@ -2199,7 +2198,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
     end
     
-    
     methods (Access = protected) % Menu Callbacks
         
         function onNewProjectMenuClicked(app, src, evt)
@@ -2261,6 +2259,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateProjectList()
             
         end
+    
+        function MenuCallback_CloseAll(app, ~, ~)
+            state = get(app.Figure, 'HandleVisibility');
+            set(app.Figure, 'HandleVisibility', 'off')
+            close all
+            set(app.Figure, 'HandleVisibility', state)
+        end
+        
         
         function MenuCallback_CreateMetaTable(app, src, evt)
             

@@ -10,10 +10,6 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
     %   [ ] Improve implementation of options! Right now its not very
     %       clear how data is flowing...
     
-    properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false        % Ignore settings file
-        DEFAULT_SETTINGS = imviewer.plugin.NoRMCorre.getNormCorreDefaultSettings()
-    end
     
     properties
         imviewerRef
