@@ -241,6 +241,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %onStringInputValueChanged Updates result editfield when the string
         % input/selection indices are modified.
         
+            substring = '';
+        
             thisDataLocation = obj.DataLocationModel.Data(obj.DataLocationIndex);
             M = thisDataLocation.MetaDataDef;
             
@@ -302,6 +304,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function setInactive(obj)
         %setInactive Execute actions needed for ui inactivation
         % Use if UI is part of an app with tabs, and the tab is unselected
+            obj.updateDataLocationModel()
         end
         
         function updateDataLocationModel(obj)
@@ -369,7 +372,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             %oldValues = arrayfun(@(i) find(strcmp(h(i).Items, h(i).Value)), 1:numel(h));
             
-            folderChoices(cellfun(@isempty, folderChoices)) = deal({''});
+            folderChoices(cellfun(@isempty, folderChoices)) = deal({'Foldername not found'});
             set(h, 'Items', folderChoices)
             
             for i = 1:numel(h)

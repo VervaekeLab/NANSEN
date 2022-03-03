@@ -530,6 +530,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             if obj.FolderListViewerActive
                 obj.hideFolderListViewer()
             end
+            
+            obj.updateDataLocationModel()
+            
         end
         
         function wasSuccess = addRow(obj, src, ~)

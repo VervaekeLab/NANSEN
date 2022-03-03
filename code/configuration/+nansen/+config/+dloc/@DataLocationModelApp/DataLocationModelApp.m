@@ -399,7 +399,9 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                     end
                     
                 case 'Metadata Initialization'
-                
+                    if isvalid(obj.UIModule{3}) && obj.UIModule{3}.IsDirty
+                        obj.UIModule{3}.updateDataLocationModel()
+                    end                
             end
         end
     end
