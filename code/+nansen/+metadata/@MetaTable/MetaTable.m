@@ -601,10 +601,10 @@ classdef MetaTable < handle
             
             if isa( obj.entries{rowInd, varName}, 'cell')
                 obj.entries{rowInd, varName} = newValue;
-            elseif size(newValue, 1)
-                obj.entries{rowInd, varName} = newValue;
-            else
+            elseif isa(newValue, 'cell')
                 obj.entries{rowInd, varName} = cat(1, newValue{:});
+            else
+                obj.entries{rowInd, varName} = newValue;
             end
             
         end
