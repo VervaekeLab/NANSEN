@@ -406,6 +406,16 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 end
             end
             
+            if isempty(obj.HTable)
+                tf = nansen.setup.isUiwidgetsOnJavapath();
+                if ~tf
+                    error('Failed to create the gui. Try to install to Widgets Toolbox v1.3.330 again')
+                else
+                    error('Nansen:MetaTableViewer:CorruptedJavaPath', ...
+                        'uiwidget jar is on javapath, but table creation failed.')
+                end
+            end
+            
             obj.HTable.CellEditCallback = @obj.onCellValueEdited;
             obj.HTable.JTable.getTableHeader().setReorderingAllowed(true);
             

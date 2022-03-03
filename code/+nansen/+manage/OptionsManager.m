@@ -77,8 +77,9 @@ classdef OptionsManager < handle
 %     user can change which option set to use by default.
 %
 %     Note: The default options are automatically selected when an instance
-%     of options manager is created. If the options are changed, this new
-%     selection wil remain the current one until the object is recreated...
+%     of options manager is created. If an options set is edited, it will
+%     be selected and remain selected until another options set is selected
+%     or a new OptionsManager instance is recreated.
     
 
         
@@ -110,7 +111,7 @@ classdef OptionsManager < handle
     %   [ ] Methods for comparing options with archived options. Should
     %       ignore parameters tagged with transient....
     %
-    %   [ ] Save options sets for project tasks to the project folder?
+    %   [v] Save options sets for project tasks to the project folder?
     
     
 % %     properties (Access = private)
@@ -798,7 +799,7 @@ classdef OptionsManager < handle
             
             % Return as options entry (struct)
             opts = fcnHandle();
-            name = 'Function Preset';
+            name = 'Preset Options';
             
             if obj.FunctionTypeIdx == 1
                 opts = opts.DefaultOptions; % Session task formatting...
@@ -821,7 +822,7 @@ classdef OptionsManager < handle
 
             % Return as options entry (struct)
             opts = fcnHandle();
-            name = 'Class Preset';
+            name = 'Preset Options';
             
             optionsEntry = obj.createOptionsStructForSaving(opts, name, ...
                 sprintf('Default preset options for %s', obj.FunctionName) );
@@ -1024,6 +1025,8 @@ classdef OptionsManager < handle
 
             pathStr = which(obj.FunctionName);
             if contains(pathStr, fullfile('code', 'integrations', 'sessionmethods'))
+                location = 'local';
+            elseif contains(pathStr, '+nansen')
                 location = 'local';
             else
                 location = 'project';

@@ -532,7 +532,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %   Save rms movement of frames    
 
             % Check if imreg stats already exist for this session
-            filePath = obj.getDataFilePath('imregStats', ...
+            filePath = obj.getDataFilePath('imregStats', '-w',...
                 'Subfolder', 'image_registration');
             
             % Load or initialize

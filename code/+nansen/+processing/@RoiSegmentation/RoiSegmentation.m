@@ -219,13 +219,32 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             %TODO:
             
             %CLASSNAME = class(obj);
-            CLASSNAME = obj.getImviewerPluginName();
+            CLASSNAME = obj.ImviewerPluginName();
             
-            rawStack = openRawTwoPhotonStack(obj);
+            %rawStack = openRawTwoPhotonStack(obj);
             
-            hImviewer = imviewer(rawStack);
+            hImviewer = imviewer(obj.SourceStack);
             
-            h = imviewer.plugin.(CLASSNAME)(hImviewer, obj.Parameters);
+            pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};
+            
+            pluginFcn = [];
+            for i = 1:2
+                pluginFcnName = strjoin([pluginPackage(i), CLASSNAME], '.');
+                str = which(pluginFcnName);
+                if ~isempty(str)
+                    pluginFcn = str2func(pluginFcnName);
+                end
+            end
+            
+            if isempty(pluginFcn)
+                error('NANSEN:Roisegmentation:PluginMissing', ...
+                    'Plugin for %s was not found', CLASSNAME)
+            end
+            
+            h = hImviewer.openPlugin(pluginFcn, obj.Parameters);
+            
+            %h = imviewer.plugin.(CLASSNAME)(hImviewer, obj.Parameters);
+            %h = nansen.plugin.imviewer.(CLASSNAME)(hImviewer, obj.Parameters);
             
             obj.Parameters = h.settings;
             

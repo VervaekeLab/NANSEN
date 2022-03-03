@@ -315,7 +315,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             
             if isDirty
             
-                message = sprintf('Save changes to %s?', obj.PipelineStruct.PipelineName);
+                message = sprintf('Save changes to %s pipeline?', obj.PipelineStruct.PipelineName);
                 title = 'Confirm Save';
 
                 answer = questdlg(message, title, 'Yes', 'No', 'Cancel', 'Yes');

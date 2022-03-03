@@ -335,6 +335,9 @@ classdef ProjectManager < handle
                 projectName = getpref('Nansen', 'CurrentProject', '');
             end
             
+            pathStr = '';
+            if isempty(projectName); return; end
+            
             if nargin < 2; location = 'user'; end
             
             catalogPath = nansen.config.project.ProjectManager.getCatalogPath();

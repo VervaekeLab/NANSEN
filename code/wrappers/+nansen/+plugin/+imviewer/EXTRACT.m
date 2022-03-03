@@ -19,6 +19,24 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         
     
     methods
+        
+        function obj = EXTRACT(varargin)
+            % Todo: accept options as second input
+            obj@imviewer.ImviewerPlugin(varargin{1})
+            
+            optsStruct = [];
+            if nargin < 2 || isempty(optsStruct)
+                [obj.settings, ~] = nansen.OptionsManager('nansen.wrapper.extract.Processor').getOptions;
+            else
+                obj.settings = optsStruct;
+            end
+            
+            obj.editSettings()
+                
+            disp('a')
+            
+        end
+        
         function delete(obj)
             delete(obj.hGridLines)
             delete(obj.hCellTemplates)

@@ -541,7 +541,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             if ~isExistingEntry
                 S = utility.parsenvpairs(S, [], parameters);
                 if isempty(S.DataLocation)
-                    S.DataLocation = obj.DataLocationModel.DefaultDataLocation;
+                    dlItem = obj.DataLocationModel.getDefaultDataLocation;
+                    S.DataLocation = dlItem.Name;
+                    S.DataLocationUuid = dlItem.Uuid;
                 end
             end
             

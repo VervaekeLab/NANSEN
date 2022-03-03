@@ -20,7 +20,7 @@ function variableList = getVariableList()
     i = i+1;
     % Roi masks for corrected two photon series
     variableList(i).VariableName = 'RoiMasks';
-    variableList(i).IsDefaultVariable = false;
+    variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
     variableList(i).Subfolder = 'roi_data';
     variableList(i).FileNameExpression = 'roi_masks';
@@ -29,7 +29,7 @@ function variableList = getVariableList()
     i = i+1;
     % Curated roi masks for corrected two photon series
     variableList(i).VariableName = 'RoiMasksCurated';
-    variableList(i).IsDefaultVariable = false;
+    variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
     variableList(i).Subfolder = 'roi_data';
     variableList(i).FileNameExpression = 'roi_masks_curated';
@@ -38,7 +38,7 @@ function variableList = getVariableList()
     i = i+1;
     % Array of roi objects
     variableList(i).VariableName = 'RoiArray';
-    variableList(i).IsDefaultVariable = false;
+    variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
     variableList(i).Subfolder = 'roi_data';
     variableList(i).FileNameExpression = 'roi_array';
@@ -47,7 +47,7 @@ function variableList = getVariableList()
     i = i+1;
     % Curated array of roi objects
     variableList(i).VariableName = 'RoiArrayCurated';
-    variableList(i).IsDefaultVariable = false;
+    variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
     variableList(i).Subfolder = 'roi_data';
     variableList(i).FileNameExpression = 'roi_array_curated';
@@ -56,7 +56,7 @@ function variableList = getVariableList()
     i = i+1;
     % RoiResponseSeries
     variableList(i).VariableName = 'RoiResponseSeries_Original';
-    variableList(i).IsDefaultVariable = false;
+    variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
     variableList(i).Subfolder = 'roi_data';
     variableList(i).FileNameExpression = 'roiresponse_original';
@@ -65,7 +65,7 @@ function variableList = getVariableList()
     i = i+1;
     % RoiResponseSeries Dff
     variableList(i).VariableName = 'RoiResponseSeries_Dff';
-    variableList(i).IsDefaultVariable = false;
+    variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
     variableList(i).Subfolder = 'roi_data';
     variableList(i).FileNameExpression = 'roiresponse_dff';
@@ -74,7 +74,7 @@ function variableList = getVariableList()
     i = i+1;
     % RoiResponseSeries Deconvolved
     variableList(i).VariableName = 'RoiResponseSeries_Deconvolved';
-    variableList(i).IsDefaultVariable = false;
+    variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
     variableList(i).Subfolder = 'roi_data';
     variableList(i).FileNameExpression = 'roiresponse_deconvolved';

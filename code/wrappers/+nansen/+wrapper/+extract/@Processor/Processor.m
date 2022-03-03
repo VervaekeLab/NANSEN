@@ -14,6 +14,12 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         MethodName = 'Autosegmentation (EXTRACT)'
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
+        OptionsManager nansen.manage.OptionsManager = ...
+            nansen.OptionsManager('nansen.wrapper.extract.Processor')
+    end
+    
+    properties (Constant) % From imagestack...
+        ImviewerPluginName = 'EXTRACT'
     end
     
     properties

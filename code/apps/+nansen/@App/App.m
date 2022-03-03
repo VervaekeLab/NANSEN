@@ -282,7 +282,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % % % % % Create PROJECTS menu items  % % % % % % 
             
             mitem = uimenu(m, 'Text','New Project');
-            uimenu( mitem, 'Text', 'Create New...', 'MenuSelectedFcn', @app.onNewProjectMenuClicked);
+            uimenu( mitem, 'Text', 'Create...', 'MenuSelectedFcn', @app.onNewProjectMenuClicked);
             uimenu( mitem, 'Text', 'Add Existing...', 'MenuSelectedFcn', @app.onNewProjectMenuClicked);
             
             mitem = uimenu(m, 'Text','Change Project');
@@ -307,9 +307,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Preferences');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;
             
-            mitem = uimenu(m, 'Text','Refresh Table', 'Separator', 'on');
+            mitem = uimenu(m, 'Text', 'Refresh Menu', 'Separator', 'on');
+            mitem.MenuSelectedFcn = @app.onRefreshSessionMethodMenuClicked;
+            
+            mitem = uimenu(m, 'Text','Refresh Table');
             mitem.MenuSelectedFcn = @(s,e) app.onRefreshTableMenuItemClicked;
-                       
+            
             % % % % % % Create EXIT menu items % % % % % % 
 
             mitem = uimenu(m, 'Text','Close All Figures', 'Separator', 'on');
@@ -322,8 +325,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % % % % Create a "MANAGE" menu
             m = uimenu(app.Figure, 'Text', 'Metatable');
             
-            mitem = uimenu(m, 'Text', 'Create New Metatable...', 'Enable', 'off');
-            mitem.MenuSelectedFcn = @app.menuCallback_CreateDb;
+            mitem = uimenu(m, 'Text', 'New Metatable...', 'Enable', 'off');
+            mitem.MenuSelectedFcn = @app.MenuCallback_CreateMetaTable;
             
             mitem = uimenu(m, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Database', 'Enable', 'off');
             %app.updateRelatedInventoryLists(mitem)
@@ -343,7 +346,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
             % % Section with menu items for creating table variables
 
-            mitem = uimenu(m, 'Text','Add New Variable...', 'Separator', 'on');
+            mitem = uimenu(m, 'Text','New Table Variable...', 'Separator', 'on');
             mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
 
 % %             menuAlternatives = {'Enter values manually...', 'Get values from function...', 'Get values from dropdown...'};
@@ -461,11 +464,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
           % --- Section with menu items for session methods/tasks
-            mitem = uimenu(hMenu, 'Text', 'Create New Session Method');
+            mitem = uimenu(hMenu, 'Text', 'Create Session Method...');
             mitem.MenuSelectedFcn = @app.onCreateSessionMethodMenuClicked;
-
-            mitem = uimenu(hMenu, 'Text', 'Refresh Session Methods');
-            mitem.MenuSelectedFcn = @app.onRefreshSessionMethodMenuClicked;
             
           % --- Section with menu items for creating pipeline
             mitem = uimenu(hMenu, 'Text', 'Create New Pipeline...', 'Enable', 'on', 'Separator', 'on');
@@ -771,6 +771,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
             app.createSessionTableContextMenu()
+            
+        end
+        
+        function initializeBatchProcessor(app, hContainer)
+        %initializeBatchProcessor Initialize batch processor in container.
+        
+            if nargin < 2
+                hTabs = app.hLayout.TabGroup.Children;
+                hContainer = hTabs(strcmp({hTabs.Title}, 'Data Processing'));
+            end
+            
+            h = nansen.TaskProcessor('Parent', hContainer);
+            app.UiProcessor = h;
             
         end
         
@@ -1092,8 +1105,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 case 'Data Processing'
                     
                     if isempty(app.UiProcessor)
-                        h = nansen.TaskProcessor('Parent', evt.NewValue);
-                        app.UiProcessor = h;
+                        app.initializeBatchProcessor(evt.NewValue)
                     end
                     
             end
@@ -2059,7 +2071,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Todo: 
             %   [ ] try/catch
-            %   [ ] if session method/should run a "validation" method
+            %   [ ] if session method - should run a "validation" method
+            
+            if isempty(app.UiProcessor)
+                app.initializeBatchProcessor()
+            end
+            
             
             % Add tasks to the queue
             numTasks = numel(sessionObj);
@@ -2137,7 +2154,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             for i = 1:numel(sessionObjects)
 
-                thisTaskList = nansen.pipeline.getTaskList(...
+                thisTaskList = nansen.pipeline.getPipelineTaskList(...
                     sessionObjects(i).Progress, mode);
                 
                 if isempty(thisTaskList)
@@ -2244,7 +2261,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateProjectList()
             
         end
+        
+        function MenuCallback_CreateMetaTable(app, src, evt)
             
+            
+            
+        end
+        
         function onUpdateSessionListMenuClicked(app, src, evt)
             
 
@@ -2285,12 +2308,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             nansen.pipeline.PipelineAssignmentModelApp
         end
 
-        
         function onCreateSessionMethodMenuClicked(app, src, evt)
-
-            nansen.session.methods.template.createNewSessionMethod(app);
+        %onCreateSessionMethodMenuClicked Menu callback 
+            import nansen.session.methods.template.createNewSessionMethod
+            
+            wasSuccess = createNewSessionMethod(app);
             
             % Update session menu!
+            if wasSuccess
+                app.SessionTaskMenu.refresh()
+            end
             
         end
         

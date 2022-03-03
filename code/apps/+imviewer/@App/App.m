@@ -2021,9 +2021,13 @@ methods % App update
             pluginOptions = struct.empty;
         end
         
-        pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
-        pluginFcn = str2func(pluginFcnName);
-        
+        if ischar(pluginName)
+            pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
+            pluginFcn = str2func(pluginFcnName);
+        elseif isa(pluginName, 'function_handle')
+            pluginFcn = pluginName;
+        end
+            
         hPlugin = pluginFcn(obj, pluginOptions);
 
         if ~nargout
@@ -5202,6 +5206,12 @@ methods (Static)
         
         hApp = getappdata(openFigures(figInd), 'ViewerObject');
     
+    end
+    
+    function installPlugin()
+        % Todo...
+        
+        
     end
     
 end

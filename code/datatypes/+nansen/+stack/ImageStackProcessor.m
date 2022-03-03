@@ -61,9 +61,9 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
 %
 %     [ ] Add logging/progress messaging 
-%       [x] Created print task method.
-%       [ ] Output to log
-%       [ ] Remove previous message when updating message in loop
+%     [x] Created print task method.
+%     [ ] Output to log
+%     [ ] Remove previous message when updating message in loop
 
 
 % - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - 

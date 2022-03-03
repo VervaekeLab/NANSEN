@@ -1,5 +1,5 @@
 function S = getNormCorreDefaultSettings()
-
+fprintf('getting normcorre defaults...\n')
 S = struct();
 
 S.Patches = struct();

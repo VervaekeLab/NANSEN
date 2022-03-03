@@ -138,9 +138,20 @@ classdef VariableModel < utility.data.StorableCatalog
             
             str = 'Not implemented yet';
             
+            hasDataLocationUuid = isfield(obj.Data, 'DataLocationUuid');
+            if ~hasDataLocationUuid
+                dlModel = nansen.config.dloc.DataLocationModel();
+            end
+            
             for i = 1:numel(obj.Data)
                 if isempty( obj.Data(i).FileAdapter ) || strcmp(obj.Data(i).FileAdapter, str)
                     obj.Data(i).FileAdapter = 'Default';
+                end
+                
+                if ~hasDataLocationUuid
+                    dlName = obj.Data(i).DataLocation;
+                    dlItem = dlModel.getDataLocation(dlName);
+                    obj.Data(i).DataLocationUuid = dlItem.Uuid;
                 end
             end
             
