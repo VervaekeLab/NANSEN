@@ -196,11 +196,11 @@ classdef Progress < nansen.metadata.abstract.TableVariable
             end
             
             % Special case...
-            if isequal(rgb, [7, 76, 241])
-                colorDark = '2F76B5'; % 'FFC000'; %(yellow) - '70AD47' %(green);
-                colorLight = 'DFEBF7'; % 'FFF3CC'; %(yellow) - 'C5E0B3' %(green);
-
-            else % Hardocde all of them??? Details matter ffs!
+% %             if isequal(rgb, [7, 76, 241])
+% %                 colorDark = '2F76B5'; % 'FFC000'; %(yellow) - '70AD47' %(green);
+% %                 colorLight = 'DFEBF7'; % 'FFF3CC'; %(yellow) - 'C5E0B3' %(green);
+% % 
+% %             else % Hardocde all of them??? Details matter ffs!
 
                 hsv = rgb2hsv(rgb./255);
 
@@ -230,7 +230,7 @@ classdef Progress < nansen.metadata.abstract.TableVariable
                 colorDark.Unassigned = uim.utility.rgb2hex( rgbC );
                 colorLight.Unassigned = uim.utility.rgb2hex( rgbD );
                 
-            end
+% %             end
             
         end
         
