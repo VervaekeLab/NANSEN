@@ -1701,7 +1701,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % If config is a char, then we should create a button next to
             % the input field.
-            if ~isempty(config) && isa(config, 'char')
+            if ~isempty(config) && isa(config, 'char') && ~strcmp(config, 'transient')        
                 
                 inputbox.Position(3) = inputbox.Position(3);
                 
@@ -1789,6 +1789,18 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         
         function setControlValue(obj, hControl, value)
+            
+            
+            % Special case: (Some controls are split into many controls)
+            if isprop(hControl, 'UserData')
+                if numel(hControl) ~= numel(value)
+                    if ~isempty(hControl.UserData)
+                        idx = hControl.UserData.ControlIdx;
+                        value = value(idx);
+                    end
+                end
+            end
+            
             
             if isa(hControl, 'matlab.ui.control.UIControl')
 
@@ -1966,7 +1978,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 isInternal = false;
             end
         
-            name = src.Tag;
+            name = src(1).Tag;
 
             switch src(1).Style
                 case 'edit'
@@ -1995,7 +2007,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     if isempty(val)
                         val = '[]';
                     else
-                        val = strcat('[', num2str(val), ']');
+                        if numel(src) > 1
+                            val = strjoin({src.String}, ',');
+                            val = strcat('[', num2str(val), ']');
+                        else
+                            val = strcat('[', num2str(val), ']');
+                        end
                     end
 
                 case 'logical'
@@ -2019,15 +2036,22 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Using eval function here because input from controls are in
             % char/string format.
             
-            newVal = eval(val);
             oldVal = eval(['obj.dataEdit{obj.currentPanel}.', name]);
+            %newVal = eval(val);
             
-            
+            try
+                newVal = eval(val);
+            catch
+                obj.setControlValue(src, oldVal)
+                msgbox('Invalid value'); return
+                
+                %error('Invalid value')
+            end
+
             % Adaptation to special case where edit control is split into
             % multiple controls (info about this was added to userdata)
             if isprop(src, 'UserData') && ~isempty(src.UserData)
                 idx = src.UserData.ControlIdx;
-                
                 tmpVal = oldVal;
                 tmpVal(idx) = newVal;
                 newVal = tmpVal;
@@ -2102,6 +2126,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         [fileName, folderPath, ~] = uiputfile({'*', 'All Files (*.*)'}, '', initPath);
                         pathString = fullfile(folderPath, fileName);
                     elseif strcmp(action, 'uigetdir')
+                        fileName = '';
                         pathString = uigetdir(initPath);
                     end
 
@@ -2487,12 +2512,21 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     oldVal = eval( getOldValue(names{j}) );
                     newVal = eval( getNewValue(names{j}) );
                     if ~isequal(oldVal, newVal)
+                        
                         obj.setControlValue(hControl, newVal);
                         if numel(hControl)>1
-                            hControl = hControl( ~ismember(oldVal, newVal) );
+                            
+                            %hControl = hControl(~ismember(oldVal, newVal));
+                            if isnumeric(oldVal)
+                                hControl = hControl( oldVal ~= newVal) ;
+                            else
+                               error('Did not expect values of parameter "%s" to be no numeric', names{j})
+                            end
                         end
-
-                        obj.editCallback_propertyValueChange(hControl, [], true)
+                        
+                        for k = 1:numel(hControl)
+                            obj.editCallback_propertyValueChange(hControl(k), [], true)
+                        end
                     end
                         
                 
@@ -2689,6 +2723,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function waitfor(obj)                               
             uiwait(obj.Figure)
+            %disp('a')
         end
         
         function quit(obj, action)
