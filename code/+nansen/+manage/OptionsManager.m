@@ -333,7 +333,6 @@ classdef OptionsManager < handle
                      
             elseif obj.isModified(optionsName)
                 S = obj.getModifiedOptions(optionsName);
-            
             end
             
             if nargout == 0
@@ -346,8 +345,20 @@ classdef OptionsManager < handle
             
         end
         
-        function setOptions(obj, options, optionsName)
+        function setOptions(obj, optionsName, options)
             % Todo: Create this method
+            
+            optionsName = obj.unformatDefaultName(optionsName);
+            optionsName = obj.unformatPresetName(optionsName);
+            
+            if any(strcmp(obj.AllOptionNames, optionsName))
+                obj.OptionsName = optionsName;
+                obj.Options = obj.getOptions(optionsName);
+            else
+                error('not implemented yet')
+            end
+                
+            
         end
         
     end

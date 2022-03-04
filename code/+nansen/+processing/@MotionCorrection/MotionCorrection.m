@@ -367,7 +367,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             hImviewer = imviewer(rawStack);
             
-            h = hImviewer.openPlugin(CLASSNAME, obj.Parameters);
+            optionsName = obj.OptionsManager.OptionsName;
+            
+            h = hImviewer.openPlugin(CLASSNAME, obj.Parameters, optionsName);
             % Will continue when the plugin is closed.
             
             obj.Parameters = h.settings;

@@ -174,6 +174,9 @@ classdef SessionMethod < nansen.DataMethod
         end
         
         function usePreset(obj, presetName)
+            
+            obj.OptionsManager.setOptions(presetName)
+            
             obj.Parameters = obj.OptionsManager.getOptions(presetName);
         end
         

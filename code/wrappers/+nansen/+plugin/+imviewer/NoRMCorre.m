@@ -37,7 +37,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
     
     methods
         
-        function obj = NoRMCorre(hViewer, optsStruct)
+        function obj = NoRMCorre(hViewer, optsStruct, optsName)
             
             if any( contains({hViewer.plugins.pluginName}, 'normcorre') )
                 IND = contains({hViewer.plugins.pluginName}, 'normcorre');
@@ -54,6 +54,9 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 else
                     obj.settings = optsStruct;
                 end
+                
+                if nargin >=3; obj.settingsName = optsName; end
+                
                 obj.addMenuItem()
             end
             
