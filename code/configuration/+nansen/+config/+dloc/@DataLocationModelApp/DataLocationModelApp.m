@@ -394,14 +394,18 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                 case 'Manage Data Locations'
                 
                 case 'Folder Organization'
-                    if isvalid(obj.UIModule{2}) && obj.UIModule{2}.IsDirty
-                        obj.UIModule{2}.updateDataLocationModel()
+                    if ~isempty(obj.UIModule{2})
+                        if isvalid(obj.UIModule{2}) && obj.UIModule{2}.IsDirty
+                            obj.UIModule{2}.updateDataLocationModel()
+                        end
                     end
                     
                 case 'Metadata Initialization'
-                    if isvalid(obj.UIModule{3}) && obj.UIModule{3}.IsDirty
-                        obj.UIModule{3}.updateDataLocationModel()
-                    end                
+                    if ~isempty(obj.UIModule{3})
+                        if isvalid(obj.UIModule{3}) && obj.UIModule{3}.IsDirty
+                            obj.UIModule{3}.updateDataLocationModel()
+                        end 
+                    end
             end
         end
     end
