@@ -261,6 +261,8 @@ classdef VariableModelUI < applify.apptable
             if ~isfield(rowData, 'Uuid')
                 rowData.Uuid = nansen.util.getuuid();
             end
+            
+            obj.VariableModel.insertItem(rowData)
             obj.addRow(numRows+1, rowData)
             obj.IsDirty = true;
         end
@@ -270,7 +272,6 @@ classdef VariableModelUI < applify.apptable
             rowNumber = obj.getComponentRowNumber(src);
             obj.VariableModel.removeItem(rowNumber)
             obj.removeRow(rowNumber)
-            
             
         end
         
