@@ -18,11 +18,10 @@ classdef Rigid < nansen.wrapper.normcorre.Options
             S.Configuration.patchOverlap    = [32,32,16];           % Size of overlapping region in each direction before upsampling
             S.Configuration.gridUpsampling  = [4 4 1];              % Upsampling factor for smoothing and refinement of motion field
 
-            S.Template.updateTemplate = true;
-            S.Template.initialBatchSize = 100;
-            S.Template.binWidth = 50;
-            S.Template.boundary = 'copy';
-            
+            S.Template.updateTemplate       = true;
+            S.Template.initialBatchSize     = 100;
+            S.Template.binWidth             = 50;
+                        
         end
         
         % Todo: implement this with optionsmanager/structeditor
