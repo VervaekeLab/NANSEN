@@ -133,20 +133,23 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
             
             isInitialization = isempty(app.UITable.DataTable);
             
-            app.UITable.DataTable = app.TaskTableData;
-            %numRows = size(app.TaskTableData, 1);
-            
-            % Update the column formatting properties
-            app.UITable.ColumnFormat = {'logical', 'char', 'char', 'logical', 'date'};
-
-            %colFormatData = {};
-            %app.UITable.ColumnFormatData = colFormatData;
-            
+                        
             if isInitialization
+                app.UITable.ColumnFormat = {'logical', 'char', 'char', 'logical', 'date'};
                 app.UITable.ColumnEditable = [true, false, false, false, false];
                 app.UITable.ColumnPreferredWidth = [70, 100, 100, 70, 100];
                 app.UITable.ColumnMaxWidth = [100, 1000, 1000, 100, 120];
             end
+
+            
+            app.UITable.DataTable = app.TaskTableData;
+            
+            %numRows = size(app.TaskTableData, 1);
+            
+            % Update the column formatting properties
+            %colFormatData = {};
+            %app.UITable.ColumnFormatData = colFormatData;
+
             
         end
         
