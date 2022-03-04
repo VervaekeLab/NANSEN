@@ -632,15 +632,15 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             % Get datetime values for date & time variables.
             if strcmp(variableName, 'Experiment Date')
                 dlgTitle = 'Enter Date Format';
-                msg = sprintf('Please enter date format for value (%s), i.e yyyy-MM-dd\n', strValue);
+                msg = sprintf('Please enter date format for the selected text: "%s". For example: yyyy-MM-dd.', strValue);
                 outFormat = 'MMM-dd-yyyy';
             elseif strcmp(variableName, 'Experiment Time')
                 dlgTitle = 'Enter Time Format';
-                msg = sprintf('Please enter time format for value (%s), i.e HH-mm-ss\n', strValue);
+                msg = sprintf('Please enter time format for the selected text: "%s". For example: HH-mm-ss.', strValue);
                 outFormat = 'HH:mm:ss';
             end
                
-            msg = strjoin({msg, '(See doc datetime for full list of examples).'});
+            msg = strjoin({msg, 'See the MATLAB documentation for "datetime" for a full list of examples (type ''doc datetime'' in MATLAB''s Command Window).'});
             answer = inputdlg(msg, dlgTitle);
             
             if ~isempty(answer) && ~isempty(answer{1})
