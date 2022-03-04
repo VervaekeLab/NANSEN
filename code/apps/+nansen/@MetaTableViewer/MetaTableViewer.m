@@ -707,7 +707,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     methods (Access = private) % Mouse / user event callbacks
         
         function onHeaderPressTimerRunOut(obj, src, evt)
-            
             stop(obj.ColumnPressedTimer)
             delete(obj.ColumnPressedTimer)
             obj.ColumnPressedTimer = [];
@@ -729,7 +728,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 
                 % Mouse was released before 1 second passed.
                 obj.HTable.JTable.getModel().setSortable(1)
-                
             end
                 
             
@@ -743,6 +741,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Need to call this to make sure filterdropdowns disappear if
             % mouse is pressed in column header...
             obj.ColumnFilter.hideFilters();
+            
+            % Check the cursor type of the mouse pointer. If it equals 11,
+            % it corresponds with the special case when the pointer is
+            % clicked on the border between to columns. In this case, abort.
+            if obj.HTable.JTable.getTableHeader().getCursor().getType() == 11
+                return
+            end
+            
             
             if buttonNum == 1 && get(evt, 'ClickCount') == 1
                 
