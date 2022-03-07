@@ -53,7 +53,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     properties
         MetaTablePath = ''
         MetaTable 
-        Modules
+        
+        BatchProcessor
+        BatchProcessorUI
+        
         SessionTasks matlab.ui.container.Menu
         SessionTaskMenu
         SessionContextMenu
@@ -91,7 +94,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.DataLocationModel = nansen.DataLocationModel;
             
             app.loadMetaTable()
-
+            app.BatchProcessor = nansen.TaskProcessor();
+            
           % % Start app construction
             app.switchJavaWarnings('off')
             
@@ -131,7 +135,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             delete(app.UiMetaTableViewer)
-            delete(app.UiProcessor)
+            delete(app.BatchProcessor)
             
             if app.settings.MetadataTable.AllowTableEdits
                 app.saveMetaTable()
@@ -735,10 +739,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.createMetaTableViewer(hTab)
                         
                     case 'File Viewer'
-                        tic
                         h = nansen.FileViewer(hTab);
                         app.UiFileViewer = h;
-                        toc
+                        
                     case 'Data Processing'
 
                 end
@@ -776,16 +779,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
-        function initializeBatchProcessor(app, hContainer)
-        %initializeBatchProcessor Initialize batch processor in container.
+        function initializeBatchProcessorUI(app, hContainer)
+        %initializeBatchProcessorUI Initialize batch processor in container.
         
             if nargin < 2
                 hTabs = app.hLayout.TabGroup.Children;
                 hContainer = hTabs(strcmp({hTabs.Title}, 'Data Processing'));
             end
             
-            h = nansen.TaskProcessor('Parent', hContainer);
-            app.UiProcessor = h;
+            h = nansen.BatchProcessorUI(app.BatchProcessor, hContainer);
+            app.BatchProcessorUI = h;
             
         end
         
@@ -1106,8 +1109,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
                 case 'Data Processing'
                     
-                    if isempty(app.UiProcessor)
-                        app.initializeBatchProcessor(evt.NewValue)
+                    if isempty(app.BatchProcessorUI)
+                        app.initializeBatchProcessorUI(evt.NewValue)
                     end
                     
             end
@@ -1957,7 +1960,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Todo: What if there is a keyword???
             optsName = evt.OptionsSelection;
-            opts = mConfig.OptionsManager.getOptions(optsName);
+            [opts, optsName] = mConfig.OptionsManager.getOptions(optsName);
                 
             switch evt.Mode
                 case 'Default'
@@ -2053,7 +2056,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
                 else
                     fcnName = func2str(sessionMethod);
-                    optManager = nansen.manage.OptionsManager(fcnName, opts);
+                    optManager = nansen.manage.OptionsManager(fcnName, opts, optsName);
                     
                     [~, opts, wasAborted] = optManager.editOptions();
                     
@@ -2072,8 +2075,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %   [ ] try/catch
             %   [ ] if session method - should run a "validation" method
             
-            if isempty(app.UiProcessor)
-                app.initializeBatchProcessor()
+            if isempty(app.BatchProcessor)
+                app.BatchProcessor = nansen.TaskProcessor;
             end
             
             
@@ -2094,7 +2097,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 methodArgs = {sessionObj{i}, opts};
                 
                 % Add task to the queue / submit the job
-                app.UiProcessor.submitJob(taskId,...
+                app.BatchProcessor.submitJob(taskId,...
                                 sessionMethod, 0, methodArgs, optsName )
             end
         end
@@ -2174,7 +2177,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if ~isempty(taskList)
                 h = nansen.pipeline.TaskBatchViewer(taskList, sessionObjects);
                 if strcmp(mode, 'Queuable')
-                    h.BatchProcessor = app.UiProcessor;
+                    h.BatchProcessor = app.BatchProcessor;
                     h.Margins = [15,60,15,15];
                     h.SelectionMode = 'discontiguous';
                 end
