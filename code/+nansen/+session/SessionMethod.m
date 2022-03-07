@@ -257,11 +257,11 @@ classdef SessionMethod < nansen.DataMethod
                 S.BatchMode = 'batch';
             end
             
-            if contains('queueable', varargin)
+            if any( strcmpi('queueable', varargin) )
                 S.IsQueueable = true;
             end
             
-            if contains('unqueueable', varargin)
+            if any( strcmpi('unqueueable', varargin) )
                 S.IsQueueable = false;
             end
             
