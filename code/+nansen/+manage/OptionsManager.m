@@ -816,6 +816,12 @@ classdef OptionsManager < handle
                 opts = opts.DefaultOptions; % Session task formatting...
             end
             
+            if isempty(obj.OptionsName)
+                if isequal(obj.Options, opts)
+                    obj.OptionsName = name;
+                end
+            end
+            
             optionsEntry = obj.createOptionsStructForSaving(opts, name, ...
                 sprintf('Default preset options for %s', obj.FunctionName) );
             
