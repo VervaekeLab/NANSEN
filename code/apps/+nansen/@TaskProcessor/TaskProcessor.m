@@ -14,8 +14,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 %% PROPERTIES
 
     properties % Properties keeping track of tasks and status
-    	Status
-        TaskQueue % A list of tasks present in the queue
+    	Status      % Status of processor (typically busy or idle)
+        TaskQueue   % A list of tasks present in the queue
         TaskHistory % A list of tasks present in the history
     end
     
@@ -118,7 +118,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             newTask.name = name;
             newTask.method = func;
             newTask.methodName = utility.string.varname2label( func2str(func) );
-            newTask.status = 'Created';
+            newTask.status = 'Queued';
             newTask.numOut = numOut;
             newTask.args = args;
             newTask.timeCreated = datestr(now, 'yyyy.mm.dd HH:MM:SS');
@@ -189,8 +189,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end
         
-        function taskItem = getQueuedTask(obj, idx)
-            taskItem = cat(1, obj.TaskQueue(idx) );
+        function taskItem = getQueuedTask(obj, taskIdx)
+            taskItem = cat(1, obj.TaskQueue(taskIdx) );
         end
         
         function setQueuedTask(obj, taskItem, idx)
@@ -199,6 +199,15 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
        
         function taskItem = getArchivedTask(obj, idx)
             taskItem = cat(1, obj.TaskHistory(idx) );
+        end
+        
+        function rearrangeQueuedTasks(obj, taskIdx, mode)
+            
+            % Todo... 
+            % This might be messy, if we need to take the task status into
+            % account. I.e pending tasks should take precedence over queued
+            % (and paused) tasks...
+            
         end
     end
 
@@ -251,11 +260,11 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
             status = obj.runningTask.State;
             
-            switch status
+            switch lower( status )
                 
                 case 'running'
                     % Do nothing
-                    obj.Status = 'running';
+                    obj.Status = 'busy';
                     
                 case 'finished'
                     obj.finishTask()
@@ -271,7 +280,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             task = obj.TaskQueue(1);
 
             switch task.status
-                case 'Queued'
+                case 'Pending' %'Queued'
                     
                     % Assign the job to the cluster
                     p = gcp();
@@ -283,7 +292,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                     eventData = uiw.event.EventData('TaskIdx', 1, 'NewState', 'Running');
                     obj.notify('TaskStateChanged', eventData)
                                         
-                    obj.Status = 'running';
+                    obj.Status = 'busy';
                     
             end
             
@@ -384,19 +393,23 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         
         function setTaskStatus(obj, newStatus, taskIdx)
             
-            if taskIdx == 1 && strcmp(obj.TaskQueue(1).status, 'Running')
+            if any(taskIdx == 1) && strcmp(obj.TaskQueue(1).status, 'Running')
                 msgbox('Task is already running.')
-                error('Task is already running')
+                taskIdx(taskIdx==1) = [];
+            end
+            
+            if isempty(taskIdx)
+                return
             end
             
             switch newStatus
-                case 'Queued'
+                case 'Initialize'
                     
                     statusList = {obj.TaskQueue.status};
                     
                     % Find the last queued task in the list. The newly
                     % queued task should be inserted after this.
-                    ind = find( contains(statusList, 'Queued'), 1, 'last');
+                    ind = find( contains(statusList, 'Pending'), 1, 'last');
                     
                     if isempty(ind) 
                         ind = find( contains(statusList, 'Running'), 1, 'last');
@@ -410,7 +423,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                     obj.TaskQueue(taskIdx) = [];
 
                     for i = 1:numel(selectedTasks)
-                        selectedTasks(i).status = 'Queued';
+                        selectedTasks(i).status = 'Pending';
                     end
                     
                     % Insert newly queued task back into the list
@@ -418,10 +431,10 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                                       selectedTasks, obj.TaskQueue(ind+1:end) ];
                                         
                     
-                case 'pause'
+                case 'Pause'
                     
                     for i = taskIdx
-                        obj.TaskQueue(i).status = 'paused';
+                        obj.TaskQueue(i).status = 'Paused';
                     end
                 
             end

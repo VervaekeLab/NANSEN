@@ -7,16 +7,16 @@ classdef BatchProcessorUI < handle
     end
     
     properties (Dependent)
-        SelectedRowIndices
+        SelectedRowIndices % Selected row indices from the table in current tab
     end
     
     properties (Access = private)
-        UITableQueue
-        UITableHistory
-        
         TabGroup
         UITabTaskQueue
         UITabTaskHistory
+                
+        UITableQueue
+        UITableHistory
     end
     
     properties (Constant, GetAccess = private) % Column names for table views.
@@ -35,14 +35,14 @@ classdef BatchProcessorUI < handle
             obj.createTabGroup()
             obj.createUiTables()
             
+            % Call refresh table to update table contents
             obj.refreshTable('queue')
             obj.refreshTable('history')
             
         end
         
         function delete(obj)
-            
-            
+            delete(obj.TabGroup)
         end
         
     end
@@ -110,12 +110,18 @@ classdef BatchProcessorUI < handle
             hFig = ancestor(obj.ParentContainer, 'figure');
             h = uicontextmenu(hFig);
             
-            mTmp = uimenu(h, 'Text', 'Queue Task(s)');
-            mTmp.Callback = @(s,e,newStatus) obj.onSetTaskStatusMenuItemClicked('Queued');
+            mTmp = uimenu(h, 'Text', 'Start Task(s)');
+            mTmp.Callback = @(s,e,newStatus) obj.onSetTaskStatusMenuItemClicked('Initialize');
             mTmp = uimenu(h, 'Text', 'Pause Task(s)');
-            mTmp.Callback = @(s,e,newStatus) obj.onSetTaskStatusMenuItemClicked('Paused');
-            mTmp = uimenu(h, 'Text', 'Remove Task(s)');
-            mTmp.Callback = @(s,e) obj.onRemoveTaskMenuItemClicked('queue');
+            mTmp.Callback = @(s,e,newStatus) obj.onSetTaskStatusMenuItemClicked('Pause');
+            mTmp = uimenu(h, 'Text', 'Delete Task(s)');
+            mTmp.Callback = @(s,e) obj.onDeleteTaskMenuItemClicked('queue');            
+            mTmp = uimenu(h, 'Text', 'Move Task(s)', 'Separator', 'on', 'Enable', 'off');
+            labels = {'Top', 'Up', 'Down', 'Bottom'};
+            for i = 1:numel(labels)
+                mItem = uimenu(mTmp, 'Text', labels{i});
+                mItem.Callback = @(s,e) obj.onMoveTasksMenuItemClicked(s);
+            end
 
             mTmp = uimenu(h, 'Text', 'Show Full Diary', 'Separator', 'on');
             mTmp.Callback = @(s,e) obj.onShowDiaryMenuItemClicked('queue', 'full');
@@ -142,8 +148,8 @@ classdef BatchProcessorUI < handle
             mTmp = uimenu(h, 'Text', 'Show Warnings', 'Enable', 'off');
             mTmp.Callback = [];
             
-            mTmp = uimenu(h, 'Text', 'Remove Task(s)', 'Separator', 'on');
-            mTmp.Callback = @(s,e,taskType) obj.onRemoveTaskMenuItemClicked('history');
+            mTmp = uimenu(h, 'Text', 'Delete Task(s)', 'Separator', 'on');
+            mTmp.Callback = @(s,e,taskType) obj.onDeleteTaskMenuItemClicked('history');
             
         end
         
@@ -151,36 +157,64 @@ classdef BatchProcessorUI < handle
     
     methods (Access = private) % Methods for gui update
             
-        function refreshTable(obj, tableType)
-        %refreshTable Refresh specified table type
-            
-            if nargin < 2; tableType = 'queue'; end
-        
+        function [hTable, taskList] = getTableRefs(obj, tableType)
+        %getTableRefs Get uitable handle and task list for gien tabletype   
             switch tableType
                 case 'queue'
                     hTable = obj.UITableQueue;
                     taskList = obj.BatchProcessor.TaskQueue;
-                    fields = {'name', 'methodName', 'status', 'timeCreated', 'parameters', 'comments'};
-
                 case 'history'
                     hTable = obj.UITableHistory;
                     taskList = obj.BatchProcessor.TaskHistory;
+            end
+            
+        end
+        
+        function taskTable = getTableData(~, taskList, tableType)
+            
+            if nargin < 3; tableType = 'queue'; end
+            
+            switch tableType
+                case 'queue'
+                    fields = {'name', 'methodName', 'status', 'timeCreated', 'parameters', 'comments'};
+                case 'history'
                     fields = {'name', 'methodName', 'status', 'timeFinished', 'elapsedTime', 'comments'};
             end
+            
+            taskTable = struct2table(taskList, 'AsArray', true);
+            taskTable = taskTable(:, fields);
+            
+        end
         
+        function refreshTable(obj, tableType)
+        %refreshTable Refresh specified table type
+            
+            if nargin < 2; tableType = 'queue'; end
+            [hTable, taskList] = obj.getTableRefs(tableType);
+            
             hTable.clearTable()
-        
+            
             if isempty(taskList); return; end
             
-            tableEntry = struct2table(taskList, 'AsArray', true);
-            tableEntry = tableEntry(:, fields);
-            %tableEntry(:, 'parameters') = {'Edit'}; %todo!!!
+            taskTable = obj.getTableData( taskList, tableType);
             
-            % why??
-            for i = 1:size(tableEntry, 1)
-                hTable.addTask(tableEntry(i, :), 'end')
+            % Why update 1 row at a time?
+            for i = 1:size(taskTable, 1)
+                hTable.addTask(taskTable(i, :), 'end')
             end
             
+        end
+        
+        function refreshRow(obj, rowIdx, tableType)
+                
+            if nargin < 3; tableType = 'queue'; end
+            [~, taskList] = obj.getTableRefs(tableType);
+            
+            taskTable = obj.getTableData( taskList(rowIdx) );
+            
+            numCols = size(taskTable, 2);
+            obj.refreshTableCells(rowIdx, 1:numCols, table2cell(taskTable))
+                
         end
         
         function refreshTableCells(obj, rowIdx, columnIdx, newData)
@@ -216,7 +250,7 @@ classdef BatchProcessorUI < handle
         
             S = evt.Task;
 
-            % Select the following fields fram the task struct for
+            % Select the following fields from the task struct for
             % displaying in the uitable history viewer
             fields = {'name', 'methodName', 'status', 'timeFinished', 'elapsedTime', 'comments'};
             
@@ -266,7 +300,7 @@ classdef BatchProcessorUI < handle
     
     methods (Access = private) % UI Interaction Callback methods
         
-        function onRemoveTaskMenuItemClicked(obj, tableType)
+        function onDeleteTaskMenuItemClicked(obj, tableType)
             
             if nargin < 2; tableType = 'queue'; end
             
@@ -292,17 +326,22 @@ classdef BatchProcessorUI < handle
             obj.BatchProcessor.setTaskStatus(newStatus, rowIdx)
             obj.refreshTable('queue')
             
-            return
-            % When status is set, the order of items might get rearranged,
-            % so need to update all cells along 
-% %             data = {obj.BatchProcessor.TaskQueue(:).status};
-% %             if isrow(data); data = data'; end % Should be column
-% %             
-% %             obj.refreshTableCells(1:numel(data), 3, data) % 3rd column is status...
+            % Todo: make method for rearranging table rows instead of
+            % refreshing
             
         end
 
+        function onMoveTasksMenuItemClicked(obj, src)
+            selectedRows = obj.UITableQueue.SelectedRows;
+            obj.BatchProcessor.rearrangeQueuedTasks(selectedRows, src.Text)
+        end
+        
         function onEditOptionsMenuItemClicked(obj)
+            
+            % Todo:
+            % Give session objects and specified options as inputs to
+            % the options manager / options adapter?
+            
             
             % Loop through selected rows:
             for i = obj.UITableQueue.selectedRows
@@ -336,12 +375,8 @@ classdef BatchProcessorUI < handle
                 % Update task object in the queue.
                 obj.BatchProcessor.setQueuedTask(hTask, i);
                 
-                % Todo:
-                % Give session objects and specified options as inputs to
-                % the options manager / options adapter?
-             
-                obj.refreshTable();
-                
+                obj.refreshRow(i)
+                                
             end
             
         end
