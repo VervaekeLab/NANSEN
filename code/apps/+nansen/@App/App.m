@@ -101,7 +101,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.DataLocationModel = nansen.DataLocationModel;
             
             app.loadMetaTable()
-            app.BatchProcessor = nansen.TaskProcessor();
+            app.initializeBatchProcessor()
+            
             
           % % Start app construction
             app.switchJavaWarnings('off')
@@ -797,6 +798,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
+        function initializeBatchProcessor(app)
+        %initializeBatchProcessor    
+            app.BatchProcessor = nansen.TaskProcessor();
+            addlistener(app.BatchProcessor, 'TaskAdded', @app.onTaskAddedEventTriggered);
+           
+            app.BatchProcessor.updateSessionObjectListeners(app)
+
+        end
+        
         function initializeBatchProcessorUI(app, hContainer)
         %initializeBatchProcessorUI Initialize batch processor in container.
         
@@ -1051,6 +1061,35 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % app.UiMetaTableViewer.replaceTable( app.MetaTable );
         end
         
+        function onTaskAddedEventTriggered(app, src, evt)
+        %onTaskAddedEventTriggered Callback for event when task is added to
+        %batchProcessor task list
+        
+            if strcmp( evt.Table, 'History' )
+                
+                task = evt.Task;
+                
+                sessionObj = task.args{1};
+                fcnName = func2str(task.method);
+                
+                % Return is session object does not have a pipeline.
+                if isempty(sessionObj.Progress); return; end
+                
+                if any(strcmp({sessionObj.Progress.TaskList.FunctionName}, fcnName))
+                    
+                    tf = strcmp({sessionObj.Progress.TaskList.FunctionName}, fcnName);
+                    taskList = sessionObj.Progress.TaskList;
+                    
+                    if strcmp(task.status, 'Completed')
+                        taskList(tf).IsFinished = true;
+                        taskList(tf).DateFinished = datetime('now');
+                        sessionObj.Progress.TaskList = taskList;
+                    end
+                end
+                
+            end
+        
+        end
  
     %%% Methods for side panel
         
@@ -2330,12 +2369,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %onEditPipelinesMenuItemClicked Lets user edit pipeline
             
             pipelineName = src.Text;
+            pipelineModel = nansen.pipeline.PipelineCatalog();
+            pipelineItemOrig = pipelineModel.getItem(pipelineName);
             hEditor = nansen.pipeline.uiEditPipeline(pipelineName);
             
             uiwait(hEditor)
+
+            % Check if any changes were made.
+            pipelineModel = nansen.pipeline.PipelineCatalog();
+            pipelineItemNew = pipelineModel.getItem(pipelineName);
+            if isequal(pipelineItemOrig, pipelineItemNew); return; end
             
             % Get the modified pipeline template.
-            pipelineModel = nansen.pipeline.PipelineCatalog();
             pipelineTemplate = pipelineModel.getPipelineForSession(pipelineName);
             
             % Get all pipeline structs from the metatable and update

@@ -9,17 +9,24 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 %   [ ] Need to save jobs list on a project basis
 %   [ ] need to send session info back to the metatable when a job
 %       finishes.
+%
+%   [ ] Should sessionobject have its own field in a task item? its a bit
+%       weird to pull it out from the argsfield when needed
 
 
 %% PROPERTIES
 
-    properties % Properties keeping track of tasks and status
+    properties
+        TimerPeriod = 10
+    end
+    
+    properties (SetAccess = private) % Properties keeping track of tasks and status
     	Status      % Status of processor (typically busy or idle)
         TaskQueue   % A list of tasks present in the queue
         TaskHistory % A list of tasks present in the history
     end
     
-    properties % Properties for running tasks
+    properties (Access = private) % Properties for running tasks
         Timer % Timer object for regularly checking status
         runningTask % Handle to the task that is currently running
         isRunning = false; % Flag for whether the QueueProcessor is running
@@ -67,7 +74,33 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         
     end
     
+    methods % Set/get methods
+        
+        function set.TimerPeriod(obj, newValue)
+            assert(isnumeric(newValue), 'TimerPeriod must be numeric')
+            obj.TimerPeriod = newValue;
+            obj.onTimerPeriodSet(obj)
+        end
+
+    end
+    
     methods % Public 
+        
+        function updateSessionObjectListeners(obj, hReferenceApp)
+        %updateSessionObjectListeners 
+        
+            metaObjects = {};
+            if numel(obj.TaskQueue) == 0; return; end
+            
+            for i = 1:numel(obj.TaskQueue)
+                metaObjects{i} = obj.TaskQueue(i).args{1};
+            end
+            
+            metaObjects = cat(1, metaObjects{:});
+
+            addlistener(metaObjects, 'PropertyChanged', ...
+                @hReferenceApp.onMetaObjectPropertyChanged);
+        end
         
         function submitJob(obj, name, func, numOut, args, optsName)
         % submitJob Submit a job to the task processor
@@ -191,7 +224,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 
         function createTimer(obj)
                         
-            t = timer('ExecutionMode', 'fixedRate', 'Period', 10);
+            t = timer('ExecutionMode', 'fixedRate', 'Period', obj.TimerPeriod);
             
             t.TimerFcn = @(myTimerObj, thisEvent) obj.checkStatus();
             start(t)
@@ -200,6 +233,16 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end
 
+        function onTimerPeriodSet(obj)
+            
+            if ~isempty(obj.Timer)
+                stop(obj.Timer)
+                pause(0.05)
+                obj.Timer.Period = obj.TimerPeriod;
+                start(obj.Timer)
+            end
+            
+        end
         
         function taskItem = updateTaskWhenFinished(obj, taskItem)
         %updateTaskWhenFinished Update task item from the running task obj
@@ -329,7 +372,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 
             % Start new task
             if obj.isRunning
-               obj.startTask() 
+                obj.startTask() 
             end
             
         end % /function finishTask
