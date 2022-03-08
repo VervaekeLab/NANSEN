@@ -2,7 +2,7 @@ function hApp = nansen(varargin)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
     
-	try
+    try
         hApp = nansen.App(varargin{:});
     catch
         hApp = [];

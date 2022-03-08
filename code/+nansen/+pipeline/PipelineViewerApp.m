@@ -294,7 +294,8 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
         %initQueuableTask Initialize the task on the batch processor
 
             if isempty(app.BatchProcessor)
-                error('Batch Processor is not available')
+                return
+                %error('Batch Processor is not available')
             end
             
             numTasks = numel(taskStructure);
