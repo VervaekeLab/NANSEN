@@ -21,33 +21,12 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     
     properties % Properties for running tasks
         Timer % Timer object for regularly checking status
-        ParPool % Parallell pool object
         runningTask % Handle to the task that is currently running
         isRunning = false; % Flag for whether the QueueProcessor is running
     end
-        
-    properties (Access = private)
-        Parent
-        TabGroup
-        queueTab
-        historyTab
-        queueTable
-        historyTable
-        %processingTable
-    end
-    
-    properties (Access = protected) % Should be part of table class
-        %selectedRows
-        %selectedColumns
-    end
     
     properties (Dependent, Access = private)
-        ActivePool
-    end
-    
-    properties (Constant, GetAccess = private) % Column names for table views. Todo: Move to separate classes?
-        queueTableVars =  {'SessionID', 'Method', 'Status', 'Submitted', 'Parameters', 'Comment'}
-        historyTableVars = {'SessionID', 'Method', 'Status', 'Finished', 'Elapsed Time', 'Comment'}
+        ActivePool % Parallell pool object
     end
     
     
@@ -87,7 +66,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         end
         
     end
-    
     
     methods % Public 
         
@@ -138,9 +116,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % Add item to ui table view
             evtData = uiw.event.EventData('Table', 'Queue', 'Task', newTask);
             obj.notify('TaskAdded', evtData)
-            
-            %obj.addTaskToQueueTable(newTask)
-            
+                        
         end
 
         function loadTaskLists(obj, filePath)
@@ -211,7 +187,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         end
     end
 
-    
     methods (Access = private)
 
         function createTimer(obj)
@@ -225,8 +200,34 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end
 
+        
+        function taskItem = updateTaskWhenFinished(obj, taskItem)
+        %updateTaskWhenFinished Update task item from the running task obj
+        
+            date2str = @(dt) datestr(dt, 'yyyy.mm.dd HH:MM:SS');
+            finishDateStr = date2str(obj.runningTask.FinishDateTime);
+            
+            elapsedDuration = obj.runningTask.FinishDateTime - obj.runningTask.StartDateTime;
+            
+            % Update table status
+            taskItem.timeStarted = obj.runningTask.StartDateTime;
+            taskItem.timeFinished = finishDateStr;
+            taskItem.elapsedTime = datestr(elapsedDuration, 'HH:MM:SS');
+
+            % Add diary and error stack
+            taskItem.Diary = obj.runningTask.Diary;
+            taskItem.ErrorStack = obj.runningTask.Error;
+            
+            % Set status
+            if ~isempty(obj.runningTask.Error)
+                taskItem.status = 'Failed';
+            else
+                taskItem.status = 'Completed';
+            end
+
+        end
+        
     end
-    
     
     methods
         
@@ -301,55 +302,31 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         end % /function startTask
         
         function finishTask(obj)
-        %finishTask
-        
-            % TODO: Get error....
+        %finishTask Method to execute when a task has finished
+             
+            completedTask = obj.TaskQueue(1);
+            completedTask = obj.updateTaskWhenFinished(completedTask);
             
-            % Update table status
-            obj.TaskQueue(1).timeStarted = obj.runningTask.StartDateTime;
-            obj.TaskQueue(1).timeFinished = obj.runningTask.FinishDateTime;
-            obj.TaskQueue(1).elapsedTime = obj.runningTask.FinishDateTime - obj.runningTask.StartDateTime;
-            
-            % Todo: This should be part of the finish task method.
-            obj.TaskQueue(1).timeFinished = datestr(obj.TaskQueue(1).timeFinished, 'yyyy.mm.dd HH:MM:SS');
-            obj.TaskQueue(1).elapsedTime = datestr(obj.TaskQueue(1).elapsedTime, 'HH:MM:SS');
-            
-            
-            diary = obj.runningTask.Diary;
-            error = obj.runningTask.Error;
-            
-            if ~isempty(obj.runningTask.Error)
-                obj.TaskQueue(1).status = 'Failed';
-            else
-                obj.TaskQueue(1).status = 'Completed';
-            end
-
-            
+            obj.TaskQueue(1) = [];
             obj.runningTask = [];
             obj.Status = 'idle';
             
-            % Move task to history list
-            finishedTask = obj.TaskQueue(1);
-            finishedTask.Diary = diary;
-            finishedTask.ErrorStack = error;
-            obj.TaskQueue(1) = [];
-            
             % Add to items of the task queue.
             if isempty(obj.TaskHistory)
-                obj.TaskHistory = finishedTask;
+                obj.TaskHistory = completedTask;
             else
-                obj.TaskHistory = cat(2, finishedTask,  obj.TaskHistory);
+                obj.TaskHistory = cat(2, completedTask,  obj.TaskHistory);
             end
             
-            % Remove task from queue table
+            % Remove task from queue table (trigger event)
             eventData = uiw.event.EventData('Table', 'Queue', 'TaskIdx', 1);
             obj.notify('TaskRemoved', eventData)
             
-            % Add task to history table
-            evtData = uiw.event.EventData('Table', 'History', 'Task', finishedTask);
+            % Add task to history table (trigger event)
+            evtData = uiw.event.EventData('Table', 'History', 'Task', completedTask);
             obj.notify('TaskAdded', evtData)
 
-            
+
             % Start new task
             if obj.isRunning
                obj.startTask() 
@@ -359,37 +336,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         
         
 % % % % Methods related to managing tasks in the Queue and History list
-
-        function addTaskToQueueTable(obj, S)
-            
-            % Select the following fields fram the task struct for
-            % displaying in the uitable queue viewer
-            
-            fields = {'name', 'methodName', 'status', 'timeCreated', 'parameters', 'comments'};
-            tableEntry = struct2table(S, 'AsArray', true);
-            tableEntry = tableEntry(:, fields);
-            
-            % Add the task to the uitable.
-            obj.queueTable.addTask(tableEntry, 'end')
-
-        end
-        
-        function removeTaskFromQueueTable(obj, S)
-            
-        end
-        
-        function addTaskToHistoryTable(obj, S)
-            
-            % Select the following fields fram the task struct for
-            % displaying in the uitable history viewer
-            fields = {'name', 'methodName', 'status', 'timeFinished', 'elapsedTime', 'comments'};
-            
-            tableEntry = struct2table(S, 'AsArray', true);
-            tableEntry = tableEntry(:, fields);
-            
-            obj.historyTable.addTask(tableEntry, 'beginning')
-            
-        end
         
         function setTaskStatus(obj, newStatus, taskIdx)
             
@@ -440,40 +386,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             end
             
         end
-        
-        function onEditOptionsClicked(obj, s, e)
-            
-            % Loop through selected rows:
-            for i = obj.queueTable.selectedRows
-                
-                % Get task object:
-                hTask = obj.TaskQueue(i);
-                
-                optsName = hTask.parameters;
-                optsStruct = hTask.args{2};
-                
-                mConfig = hTask.method();
-                optManager = mConfig.OptionsManager;
-                
-                
-                [optsName, optsStruct] = optManager.editOptions(optsName, optsStruct);
 
-                hTask.parameters = optsName;
-                hTask.args{2} = optsStruct;
-                
-                % Update task object in the queue.
-                obj.TaskQueue(i) = hTask;
-                
-                % Todo:
-                % Give session objects and specified options as inputs to
-                % the options manager / options adapter?
-             
-                obj.refreshTable();
-                
-            end
-            
-        end
-        
         function removeTask(obj, taskIdx, tableType)
         %removeTask Remove task(s) from specified table
         
@@ -492,9 +405,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end
         
-        
     end
-    
     
     methods (Static)
         function pathStr = getDefaultTaskListFilePath()
