@@ -8,8 +8,9 @@ S = struct();
 S.MetadataTable.ShowIgnoredEntries = true;
 S.MetadataTable.AllowTableEdits = true;
 
-S.TaskProcessor.UseTaskProcessor = true;
-S.TaskProcessor.RunTasksOnStartup = true;
+S.TaskProcessor.TimerPeriod = 10;
+S.TaskProcessor.RunTasksWhenQueued = false;
+S.TaskProcessor.RunTasksOnStartup = false;
 
 
 

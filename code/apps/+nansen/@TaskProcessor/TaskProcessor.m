@@ -51,6 +51,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         %TaskProcessor Create a batch processor for tasks.
             
             obj.loadTaskLists()
+            obj.assignPVPairs(varargin{:})
             
             obj.createTimer()
             
@@ -79,7 +80,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         function set.TimerPeriod(obj, newValue)
             assert(isnumeric(newValue), 'TimerPeriod must be numeric')
             obj.TimerPeriod = newValue;
-            obj.onTimerPeriodSet(obj)
+            obj.onTimerPeriodSet()
         end
 
     end

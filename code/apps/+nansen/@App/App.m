@@ -800,7 +800,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function initializeBatchProcessor(app)
         %initializeBatchProcessor    
-            app.BatchProcessor = nansen.TaskProcessor();
+        
+            pvPairs = {'TimerPeriod', app.settings.TaskProcessor.TimerPeriod};
+        
+            app.BatchProcessor = nansen.TaskProcessor(pvPairs{:});
             addlistener(app.BatchProcessor, 'TaskAdded', @app.onTaskAddedEventTriggered);
            
             app.BatchProcessor.updateSessionObjectListeners(app)
@@ -1928,7 +1931,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             switch name
                 
                 case 'ShowIgnoredEntries'
-                    app.settings.MetadataTable.(name) = value;
+                    app.settings_.MetadataTable.(name) = value;
                     
                     selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
                     app.UiMetaTableViewer.ShowIgnoredEntries = value;
@@ -1938,9 +1941,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
                     
                 case 'AllowTableEdits'
-                    app.settings.MetadataTable.(name) = value;
+                    app.settings_.MetadataTable.(name) = value;
                     app.UiMetaTableViewer.AllowTableEdits = value;
-
+                    
+                case 'TimerPeriod'
+                    app.settings_.TaskProcessor.(name) = value;
+                    app.BatchProcessor.TimerPeriod = value;
+                    
             end
             
         end
