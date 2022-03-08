@@ -93,8 +93,6 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
             firstFrame = obj.settings.Preview.firstFrame;            
             lastFrame = (firstFrame-1) + obj.settings.Preview.numFrames;
             
-            
-            
             % Make sure we dont grab more than is available.
             firstFrame = min(firstFrame, obj.imviewerRef.ImageStack.NumTimepoints);
             lastFrame = min(lastFrame, obj.imviewerRef.ImageStack.NumTimepoints);
@@ -107,30 +105,20 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 return
             end
             
-            Y = obj.imviewerRef.ImageStack.getFrameSet(firstFrame:lastFrame);
-            
             obj.imviewerRef.displayMessage('Loading Data...')
-            
-            imClass = class(Y);
 
+            Y = obj.imviewerRef.ImageStack.getFrameSet(firstFrame:lastFrame);
             Y = Y(8:end, :, :);
-            
-            %Y = stack.makeuint8(Y);
-
-            
-            % Get normcorre settings
-            %[d1,d2,d3] = size(Y);
-            
+                      
+            imClass = class(Y);
             stackSize = size(Y);
             
             import nansen.wrapper.normcorre.*
             ncOptions = Options.convert(obj.settings, stackSize);
             
-            
             if ~isa(Y, 'single') || ~isa(Y, 'double') 
                 Y = single(Y);
             end
-            
             
             obj.imviewerRef.displayMessage('Running NoRMCorre...')
             [M, ncShifts, ref] = normcorre_batch(Y, ncOptions);
@@ -149,6 +137,7 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 h = imviewer(M);
                 h.stackname = sprintf('%s - %s', obj.imviewerRef.stackname, 'NoRMCorre test correction');                
             else
+                
 % %                 filePath = obj.imviewerRef.ImageStack.FileName;
 % %                 delete(obj.imviewerRef.ImageStack)
 % %                 
@@ -161,20 +150,21 @@ classdef NoRMCorre < uim.handle % & applify.mixin.UserSettings
                 
             end
             
-            if ~isempty(obj.settings.Export.PreviewSaveFolder)
-                
-                saveDir = obj.settings.Export.PreviewSaveFolder;
-                if ~exist(saveDir, 'dir'); mkdir(saveDir); end
-                
-                [~, fileName, ~] = fileparts(obj.imviewerRef.ImageStack.filePath);
-                
-                fileNameShifts = sprintf(fileName, '_nc_shifts.mat');
-                fileNameOpts = sprintf(fileName, '_nc_opts.mat');
-                
-                save(fullfile(saveDir, fileNameShifts), 'ncShifts')
-                save(fullfile(saveDir, fileNameOpts), 'ncOptions')
-
-            end
+         	% Todo: implement saving of results from test aliging
+            
+% %             if ~isempty(obj.settings.Export.PreviewSaveFolder)
+% %                 
+% %                 saveDir = obj.settings.Export.PreviewSaveFolder;
+% %                 if ~exist(saveDir, 'dir'); mkdir(saveDir); end
+% %                 
+% %                 [~, fileName, ~] = fileparts(obj.imviewerRef.ImageStack.filePath);
+% %                 
+% %                 fileNameShifts = sprintf(fileName, '_nc_shifts.mat');
+% %                 fileNameOpts = sprintf(fileName, '_nc_opts.mat');
+% %                 
+% %                 save(fullfile(saveDir, fileNameShifts), 'ncShifts')
+% %                 save(fullfile(saveDir, fileNameOpts), 'ncOptions')
+% %             end
             
         end
         
