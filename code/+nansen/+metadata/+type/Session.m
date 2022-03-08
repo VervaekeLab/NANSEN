@@ -238,6 +238,27 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             end
         end
         
+        function updatePipeline(obj, pipelineTemplate)
+        %updatePipeline Update pipeline for sessions that use given template
+        %
+        %   Updates the progress property of the session objects that has a
+        %   pipeline based on the pipeline template.
+        
+            pipelineStructArray = [obj.Progress];
+            pipelineUuids = {pipelineStructArray.Uuid};
+            
+            affectedIdx = find(strcmp(pipelineUuids, pipelineTemplate.Uuid));
+            
+            for i = 1:numel(affectedIdx)
+                
+                thisSession = obj(affectedIdx(i));
+                pipelineStruct = thisSession.Progress; 
+                pipelineStruct = nansen.pipeline.updatePipelinesFromPipelineTemplate(pipelineStruct, pipelineTemplate);
+                thisSession.Progress = pipelineStruct;
+            end
+
+        end
+        
         function refreshDataLocations(obj)
             
             obj.fixDataLocations()

@@ -443,6 +443,8 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             
             functionName = obj.AutoCompleteWidget.Value;
             
+            if isempty(functionName); return; end
+            
             % Find in sessionMethodCatalog
             sMethodItem = obj.SessionMethodCatalog.getItem(functionName);
             

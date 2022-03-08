@@ -563,7 +563,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     mSubItem = uimenu(hMenu(i), 'Text', plNames{j});
                     switch hMenu(i).Text
                         case 'Edit Pipeline'
-                            mSubItem.MenuSelectedFcn = @app.onManagePipelinesMenuItemClicked;
+                            mSubItem.MenuSelectedFcn = @app.onEditPipelinesMenuItemClicked;
                         case 'Assign Pipeline'
                             mSubItem.MenuSelectedFcn = @app.onAssignPipelinesMenuItemClicked;
                     end
@@ -2187,7 +2187,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if isempty(taskList)
                     taskList = thisTaskList;
                 else
-                    taskList = cat(2, taskList, thisTaskList);
+                    taskList = cat(1, taskList, thisTaskList);
                 end
                 
             end
@@ -2326,9 +2326,30 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % pipelines.
         end
         
-        function onManagePipelinesMenuItemClicked(app, src, event)
+        function onEditPipelinesMenuItemClicked(app, src, event)
+        %onEditPipelinesMenuItemClicked Lets user edit pipeline
+            
             pipelineName = src.Text;
-            nansen.pipeline.uiEditPipeline(pipelineName)
+            hEditor = nansen.pipeline.uiEditPipeline(pipelineName);
+            
+            uiwait(hEditor)
+            
+            % Get the modified pipeline template.
+            pipelineModel = nansen.pipeline.PipelineCatalog();
+            pipelineTemplate = pipelineModel.getPipelineForSession(pipelineName);
+            
+            % Get all pipeline structs from the metatable and update
+            pipelineStructs = app.MetaTable.entries{:, 'Progress'};
+            
+            pipelineStructs = nansen.pipeline.updatePipelinesFromPipelineTemplate(...
+                pipelineStructs, pipelineTemplate);
+            
+            % Update metatable entries
+            app.MetaTable.editEntries(':', 'Progress', pipelineStructs)
+            
+            % Update uitable
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+
         end
         
         function onConfigPipelineAssignmentMenuItemClicked(app, src, event)

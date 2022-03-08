@@ -205,27 +205,46 @@ classdef PipelineCatalog < utility.data.StorableCatalog
         end
         
         
-        function S = getPipelineForSession(obj, pipelineIdx)
+        function pipelineItem = getPipelineForSession(obj, pipelineIdx)
+        %getPipelineForSession Get a pipeline item for session object.
+        
+            if ischar(pipelineIdx) % assume name was given instead of idx
+                [~, pipelineIdx] = obj.containsItem(pipelineIdx);
+            end
+        
+            pipelineItem = obj.Data(pipelineIdx);
+            pipelineTaskList = pipelineItem.PipelineTasks;
+    
+            % Remove the following fields, as they are not needed for the
+            % session instance of a pipeline.
+            pipelineItem = rmfield(pipelineItem, 'SessionProperties');
+            pipelineItem = rmfield(pipelineItem, 'PipelineTasks');
             
-            S = struct( nansen.pipeline.Task );
+            % Create an extended tasklist for the session object.
+            extendedTaskList = struct( nansen.pipeline.Task );
             
-            pipelineTaskList = obj.Data(pipelineIdx).PipelineTasks;
             if isempty(pipelineTaskList) || isempty(fieldnames(pipelineTaskList))
-                S(1) = []; return
+                extendedTaskList(1) = []; 
+                pipelineItem.TaskList = extendedTaskList;
+                return
             end
             
-            % Should these be more unified?
+            % Should these fieldnames be more unified?
             for i = 1:numel(pipelineTaskList)
-                S(i).TaskName = pipelineTaskList(i).TaskName;
-                S(i).FunctionName = pipelineTaskList(i).TaskFunction;
-                S(i).OptionsName = pipelineTaskList(i).OptionPresetSelection;
+                extendedTaskList(i).TaskName = pipelineTaskList(i).TaskName;
+                extendedTaskList(i).FunctionName = pipelineTaskList(i).TaskFunction;
+                extendedTaskList(i).OptionsName = pipelineTaskList(i).OptionPresetSelection;
                 
-                fcnAttributes = eval( S(i).FunctionName );
-                S(i).IsManual = ~fcnAttributes.IsQueueable;
-                S(i).WasAborted = false;
-                S(i).IsFinished = false;
-                S(i).DateFinished = datetime.empty;
+                fcnAttributes = eval( extendedTaskList(i).FunctionName );
+                extendedTaskList(i).IsManual = ~fcnAttributes.IsQueueable;
+                extendedTaskList(i).WasAborted = false;
+                extendedTaskList(i).IsFinished = false;
+                extendedTaskList(i).DateFinished = datetime.empty;
             end
+            
+            if isrow(extendedTaskList); extendedTaskList = extendedTaskList'; end
+            
+            pipelineItem.TaskList = extendedTaskList;
             
         end
         

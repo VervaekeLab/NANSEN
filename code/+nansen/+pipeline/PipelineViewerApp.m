@@ -168,8 +168,8 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                         app.UITable.Data{rowNumber, 5} = datetime.empty;
                     end
                     
-                    app.PipelineStruct(rowNumber).IsFinished = evt.NewValue;
-                    app.PipelineStruct(rowNumber).DateFinished = app.UITable.Data{rowNumber, 5};
+                    app.PipelineStruct.TaskList(rowNumber).IsFinished = evt.NewValue;
+                    app.PipelineStruct.TaskList(rowNumber).DateFinished = app.UITable.Data{rowNumber, 5};
                 %case 3 % Column showing option presets
 
             end
@@ -231,7 +231,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
         
         function onPipelineSet(app)
             % Set data for table (important to do after creating table...)
-            pipelineTable = struct2table( app.PipelineStruct, 'AsArray', true );
+            pipelineTable = struct2table( [app.PipelineStruct.TaskList], 'AsArray', true );
             
             % Create a reduced table for the viewer
             T = pipelineTable(:, app.ColumnsToDisplay);
@@ -250,7 +250,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 if rowNum == 0; return; end
                 
                 
-                thisTask = app.PipelineStruct(rowNum);
+                thisTask = app.PipelineStruct.TaskList(rowNum);
                 
                 if thisTask.IsManual
                     app.runManualTask(thisTask, rowNum)

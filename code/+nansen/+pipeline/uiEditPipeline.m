@@ -9,7 +9,6 @@ function h = uiEditPipeline(pipelineName)
         if isempty(selection); return; end
         pipelineName = names{selection};
     end
-        
 
     pipelineStruct = pipelineModel.getItem(pipelineName);
     
