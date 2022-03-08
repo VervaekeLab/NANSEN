@@ -30,6 +30,8 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         ColumnNames
         ColumnEditable
         
+        MouseButtonRightPressCallbackFcn = [] % Callback to use for modifying contextmenus based on the rightclick selection
+        
 %     end
 %     
 %     properties (Access = private)
@@ -184,7 +186,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             addlistener(obj.Parent, 'SizeChanged', @(s,e) obj.onSizeChanged);
         end
         
-        function tableMousePress(obj, ~, event)
+        function tableMousePress(obj, src, event)
         %tableMousePress Callback for mousepress in table.
         %
         %   This function is primarily used for 
@@ -199,10 +201,10 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             %mousePos = java.awt.Point(event.getX, event.getY);
             cellNum = event.Cell;
             rowNum = cellNum(1);
-            %i = obj.jTable.rowAtPoint(mousePos);
-            %j = obj.jTable.columnAtPoint(mousePos);
-
-            hFig = ancestor(obj.Parent, 'figure');
+            
+            if rowNum == 0; return; end
+            
+            %hFig = ancestor(obj.Parent, 'figure');
             
             switch event.SelectionType
                 case {'normal', 'extend'}
@@ -214,12 +216,15 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
 %                         return
 %                     end
 
-
                 case {'alt'}
                     % Change selection if new session is selected. Skip if
                     % another column is selected.
                     if ~ismember(rowNum, obj.Table.SelectedRows)
                         obj.Table.SelectedRows = rowNum;
+                    end
+                    
+                    if ~isempty(obj.MouseButtonRightPressCallbackFcn)
+                        obj.MouseButtonRightPressCallbackFcn(src, event)
                     end
 
             end

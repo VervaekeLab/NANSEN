@@ -103,6 +103,10 @@ classdef BatchProcessorUI < handle
             obj.UITableQueue.Table.UIContextMenu = obj.createQueueContextMenu();
             obj.UITableHistory.Table.UIContextMenu = obj.createHistoryContextMenu();
             
+            
+            obj.UITableQueue.MouseButtonRightPressCallbackFcn = ...
+                @obj.onMouseRightClickedInTable;
+            
         end
         
         function h = createQueueContextMenu(obj)
@@ -156,7 +160,22 @@ classdef BatchProcessorUI < handle
     end
     
     methods (Access = private) % Methods for gui update
+        
+        function taskList = getTaskList(obj, tableType, selectedIdx)
             
+            switch lower( tableType )
+                case 'queue'
+                    taskList = obj.BatchProcessor.TaskQueue;
+                case 'history'
+                    taskList = obj.BatchProcessor.TaskHistory;
+            end
+            
+            if nargin >=3 
+                taskList = taskList(selectedIdx);
+            end
+            
+        end
+        
         function [hTable, taskList] = getTableRefs(obj, tableType)
         %getTableRefs Get uitable handle and task list for gien tabletype   
             switch tableType
@@ -296,6 +315,34 @@ classdef BatchProcessorUI < handle
             
         end
         
+        function updateQueueContextMenu(obj, taskList)
+        %updateQueueContextMenu Set enabled state of menu items
+        %
+        %   Work in progress. Change enable state of menu items based on
+        %   the state of task items that are selected.
+        
+            hMenu = obj.UITableQueue.Table.UIContextMenu;
+                        
+            mItem = findobj(hMenu, 'Text', 'Pause Task(s)');
+            if all( strcmp({taskList.status}, 'Paused') )
+                mItem.Enable = 'off';
+            else
+                mItem.Enable = 'on';
+            end
+            
+            mItem = findobj(hMenu, 'Text', 'Show Full Diary');
+            mItem(2) = findobj(hMenu, 'Text','Show Last Diary Entry');
+            
+            mItem2 = findobj(hMenu, 'Text', 'Edit Options');
+            if all( strcmp({taskList.status}, 'Running') )
+                set(mItem, 'Enable', 'on')
+                mItem2.Enable = 'off';
+            else
+                set(mItem, 'Enable', 'off')
+                mItem2.Enable = 'on';
+            end
+            
+        end
     end
     
     methods (Access = private) % UI Interaction Callback methods
@@ -440,6 +487,19 @@ classdef BatchProcessorUI < handle
             addlistener(obj.BatchProcessor, 'TaskStateChanged', ...
                 @obj.onTaskStateChanged);
             
+        end
+        
+        function onMouseRightClickedInTable(obj, src, evt)
+            
+            tableType = obj.TabGroup.SelectedTab.Title;
+            taskList = obj.getTaskList(tableType, obj.SelectedRowIndices);
+
+            switch tableType
+                case 'Queue'
+                    obj.updateQueueContextMenu(taskList)
+                case 'History'
+                    % Todo....
+            end
         end
     end
     
