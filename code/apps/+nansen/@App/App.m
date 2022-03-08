@@ -80,9 +80,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             nansen.addpath()
             
             % Call constructor explicitly to provide the nansen.Preferences
-            app@uiw.abstract.AppWindow('Preferences', nansen.Preferences)
+            app@uiw.abstract.AppWindow('Preferences', nansen.Preferences, 'Visible', 'off')
             
             setappdata(app.Figure, 'AppInstance', app)
+            
+            if app.isOpen()
+                delete(app); clear app;
+                return
+            else
+                app.Figure.Visible = 'on';
+            end
             
             
             %Todo: Should be part of project manager...
@@ -134,8 +141,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 delete(PipelineViewer); PipelineViewer = [];
             end
             
-            delete(app.UiMetaTableViewer)
-            delete(app.BatchProcessor)
+            if isempty(app.MetaTable)
+                return
+            end
+            
+            isdeletable = @(x) ~isempty(x) && isvalid(x);
+            
+            if isdeletable(app.UiMetaTableViewer)
+                delete(app.UiMetaTableViewer)
+            end
+            
+            if isdeletable(app.BatchProcessor)
+                delete(app.BatchProcessor)
+            end
             
             if app.settings.MetadataTable.AllowTableEdits
                 app.saveMetaTable()
@@ -2411,10 +2429,28 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     methods (Static)
         
+    
+        function tf = isOpen()
+        %ISOPEN Check if app figure is open bring to focus if it is.
+        %
+        %   
+        
+            openFigures = findall(0, 'Type', 'Figure');
+            if isempty(openFigures)
+                tf = false;
+            else
+                figMatch = contains({openFigures.Name}, 'Nansen |');
+                if any(figMatch)
+                    figure(openFigures(figMatch))
+                    tf = true;
+                else
+                    tf = false;
+                end
+            end
+        end
+        
         function pathStr = getDefaultMetaTablePath()
-            
             pathStr = nansen.metadata.MetaTableCatalog.getDefaultMetaTablePath();
-            
         end
         
         function switchJavaWarnings(newState)
