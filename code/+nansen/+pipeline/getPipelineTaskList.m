@@ -19,6 +19,10 @@ function taskList = getPipelineTaskList(pipelineStruct, mode)
     idxManual = setdiff(idxManual, idxFinished);
     idxAuto = setdiff(idxAuto, idxFinished);
 
+    % If no tasks of this type exists, assign number of tasks + 1 
+    if isempty(idxManual); idxManual = numel(pipelineStruct)+1; end
+    if isempty(idxAuto); idxAuto = numel(pipelineStruct)+1; end
+
     switch mode
         case 'Queuable'
             selectedIdx = idxAuto(idxAuto < min(idxManual) );
