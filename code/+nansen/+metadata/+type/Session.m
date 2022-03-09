@@ -58,7 +58,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         InternalVariables = {'Ignore', 'DataLocation', 'Notebook'}
     end
     
-    properties (Hidden, Transient) %, SetAccess = immutable) % Todo: Immutable setacces.. Does it have to be set in this, or can it be set in superclasses?
+    properties (Hidden) %(SetAccess = immutable) %(Transient) %,  % Todo: Immutable setacces.. Does it have to be set in this, or can it be set in superclasses?
         DataLocationModel
     end
 
@@ -542,15 +542,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             
             
             % Get the model for data file paths.
-            %global dataFilePathModel
-            %if isempty(dataFilePathModel)
             
             % Todo: Should be part of DataIoModel
-                dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
-                dataFilePathModel = nansen.config.varmodel.VariableModel;
-
-            %end
-
+            %dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
+            dataFilePathModel = nansen.config.varmodel.VariableModel;
             
             % Check if mode is given as input:
             [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
