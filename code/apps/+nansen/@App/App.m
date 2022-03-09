@@ -170,15 +170,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onExit(app, h)
             
             if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
-                if strcmp(app.BatchProcessor.Status, 'busy')
-                    answer = questdlg('Tasks are still running. Are you sure you want to quit?', 'Think Twice', 'Yes', 'No', 'Yes');
-                    switch lower(answer)
-                        case 'yes'
-                            app.BatchProcessor.cancelRunningTask()
-                        case 'no'
-                            return
-                    end
-                end
+                doExit = app.BatchProcessor.promptQuit();
+                if ~doExit; return; end
             end
 
             % Todo: Whis is called twice, because of some weird reason

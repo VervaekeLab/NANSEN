@@ -113,6 +113,32 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     
     methods % Public 
         
+        function tf = promptQuit(obj)
+        %promptQuit Prompt user to quit processor
+        %
+        %   tf = promptQuit(obj) returns true if user wants to quit,
+        %   otherwise false
+        
+            % No need to ask user if processor is idle.
+            if strcmp(obj.Status, 'idle')
+                tf = true; 
+                return
+            end
+            
+            titleStr = 'Quit?';
+            promptStr = 'Tasks are still running. Are you sure you want to quit?';
+            
+            answer = questdlg(promptStr, titleStr, 'Yes', 'No', 'Yes');
+            switch lower(answer)
+                case 'yes'
+                    obj.cancelRunningTask()
+                    tf = true;
+                case 'no'
+                    tf = false;
+            end 
+            
+        end
+        
         function updateSessionObjectListeners(obj, hReferenceApp)
         %updateSessionObjectListeners 
         
