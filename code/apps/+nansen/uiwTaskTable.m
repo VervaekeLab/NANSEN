@@ -32,6 +32,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         
         MouseButtonRightPressCallbackFcn = [] % Callback to use for modifying contextmenus based on the rightclick selection
         
+        UIContextMenu
 %     end
 %     
 %     properties (Access = private)

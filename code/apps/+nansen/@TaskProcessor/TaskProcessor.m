@@ -18,6 +18,13 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 
     properties
         TimerPeriod = 10
+        RunTasksWhenQueued = false
+        RunTasksOnStartup = false
+    end
+    
+    properties (Dependent)
+        NumQueuedTasks
+        NumArchivedTasks
     end
     
     properties (SetAccess = private) % Properties keeping track of tasks and status
@@ -41,6 +48,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         TaskAdded
         TaskRemoved
         TaskStateChanged
+        TaskOrderChanged
     end
     
 %% METHODS
@@ -53,24 +61,34 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             obj.loadTaskLists()
             obj.assignPVPairs(varargin{:})
             
-            obj.createTimer()
             
+            if obj.RunTasksOnStartup
+                obj.setTaskStatus('Initialize', 1:obj.NumQueuedTasks)
+            else
+                obj.setTaskStatus('Queue', 1:obj.NumQueuedTasks)
+            end
+            
+            obj.createTimer()
+
             obj.isRunning = true;
             obj.Status = 'idle';
+            
         end
         
         function delete(obj)
             
             % Make conditional? I.e are there any chance the timer is
-            %already stopped or deleted?
+            % already stopped or deleted?
             
             if ~isempty(obj.Timer)
                 stop(obj.Timer)
                 delete(obj.Timer)
             end
             
+            % Todo: set state to queued?
+            
             obj.saveTaskLists()
-                        
+                    
         end
         
     end
@@ -82,7 +100,15 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             obj.TimerPeriod = newValue;
             obj.onTimerPeriodSet()
         end
-
+        
+        function numTasks = get.NumQueuedTasks(obj)
+            numTasks = numel(obj.TaskQueue);
+        end
+        
+        function numTasks = get.NumArchivedTasks(obj)
+            numTasks = numel(obj.TaskHistory);
+        end
+        
     end
     
     methods % Public 
@@ -103,7 +129,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 @hReferenceApp.onMetaObjectPropertyChanged);
         end
         
-        function submitJob(obj, name, func, numOut, args, optsName)
+        function submitJob(obj, name, func, numOut, args, optsName, comments)
         % submitJob Submit a job to the task processor
         %------------------------------------------------------------------
         %
@@ -126,6 +152,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % Todo: Dont accept job that already exists. compare at
             % sessionID, taskName and optionsName
             
+            if nargin < 7; comments = ''; end
+            
             % Create a struct for the items and a table row for the table
             newTask.name = name;
             newTask.method = func;
@@ -138,8 +166,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             newTask.elapsedTime = ''; 
             newTask.timeFinished = ''; 
             newTask.parameters = optsName;
-            newTask.comments = '';
-            
+            newTask.comments = comments;
+
             % Add to items of the task queue.
             if isempty(obj.TaskQueue)
                 obj.TaskQueue = newTask;
@@ -150,53 +178,20 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % Add item to ui table view
             evtData = uiw.event.EventData('Table', 'Queue', 'Task', newTask);
             obj.notify('TaskAdded', evtData)
-                        
+            
+            
+            if obj.RunTasksWhenQueued
+                obj.setTaskStatus('Initialize', obj.NumQueuedTasks)
+            end
+
         end
 
-        function loadTaskLists(obj, filePath)
-        % loadTaskLists Load a list of tasks from file
-        %------------------------------------------------------------------
-        %
-        % Abstract: Load a list of tasks from file
-        %
-        % Syntax:
-        %           obj.loadListOfTasks()
-        %           loadListOfTasks(obj, filePath)
-        %
-        % Inputs:
-        %           obj - Table object
-        %           filePath - Absolute filepath (optional)
-        %
-        % Outputs:
-        %           none
-        %
-         
-            % Get filepath
-            if nargin < 2
-                filePath = obj.getDefaultTaskListFilePath();
+        function diary = getCurrentDiary(obj)
+            if isempty(obj.runningTask)
+                diary = '';
+            else
+                diary = obj.runningTask.Diary();
             end
-            
-            if isfile(filePath)
-                S = load(filePath, 'taskListQueue', 'taskListHistory');
-                obj.TaskQueue = S.taskListQueue;
-                obj.TaskHistory = S.taskListHistory;
-            end
-            
-        end
-        
-        function saveTaskLists(obj, filePath)
-            
-            % Get filepath
-            if nargin < 2
-                filePath = obj.getDefaultTaskListFilePath();
-            end
-            
-            S = struct();
-            S.taskListQueue = obj.TaskQueue;
-            S.taskListHistory = obj.TaskHistory;
-            
-            save(filePath, '-struct', 'S')
-            
         end
         
         function taskItem = getQueuedTask(obj, taskIdx)
@@ -219,10 +214,68 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % (and paused) tasks...
             
         end
+        
+        function updateTaskComment(obj, taskType, taskIdx, newComment)
+            switch taskType
+                case 'Queue'
+                    obj.TaskQueue(taskIdx).comments = newComment;
+                case 'History'
+                    obj.TaskHistory(taskIdx).comments = newComment;
+            end
+            
+        end
     end
 
     methods (Access = private)
-
+        
+        function loadTaskLists(obj, filePath)
+        % loadTaskLists Load a list of tasks from file
+        %------------------------------------------------------------------
+        %
+        % Abstract: Load a list of tasks from file
+        %
+        % Syntax:
+        %           obj.loadTaskLists()
+        %           loadTaskLists(obj, filePath)
+        %
+        % Inputs:
+        %           obj - TaskProcessor object
+        %           filePath - Absolute filepath (optional)
+        %
+        % Outputs:
+        %           none
+        %
+         
+            % Get filepath
+            if nargin < 2
+                filePath = obj.getDefaultTaskListFilePath();
+            end
+            
+            if isfile(filePath)
+                S = load(filePath, 'taskListQueue', 'taskListHistory');
+                obj.TaskQueue = S.taskListQueue;
+                obj.TaskHistory = S.taskListHistory;
+            end
+            
+        end
+        
+        function saveTaskLists(obj, filePath)
+        % saveTaskLists Save lists of tasks to file
+        %------------------------------------------------------------------  
+            
+            % Get filepath
+            if nargin < 2
+                filePath = obj.getDefaultTaskListFilePath();
+            end
+            
+            S = struct();
+            S.taskListQueue = obj.TaskQueue;
+            S.taskListHistory = obj.TaskHistory;
+            
+            save(filePath, '-struct', 'S')
+            
+        end
+        
         function createTimer(obj)
                         
             t = timer('ExecutionMode', 'fixedRate', 'Period', obj.TimerPeriod);
@@ -271,6 +324,32 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 
         end
         
+        function sortTasksByState(obj)
+            
+            TASK_STATUS_ORDER = {'Running', 'Pending', 'Paused', 'Queued'};
+            
+            currentTaskStatus = {obj.TaskQueue.status};
+            
+            oldTaskOrder = [];
+            newTaskOrder = 1:obj.NumQueuedTasks;
+            
+            for i = 1:numel(TASK_STATUS_ORDER)
+                idx = find(strcmp(currentTaskStatus, TASK_STATUS_ORDER{i}));
+                
+                oldTaskOrder = [oldTaskOrder, idx]; %#ok<AGROW>
+                
+            end
+            
+            assert(numel(oldTaskOrder)==numel(newTaskOrder), ...
+                'Some tasks have a status which is not accounted for. This is a bug, please report.')
+            
+            if ~isequal(newTaskOrder, oldTaskOrder)
+                obj.TaskQueue = obj.TaskQueue(oldTaskOrder);
+                evtData = uiw.event.EventData('IndexOrder', oldTaskOrder);
+                obj.notify('TaskOrderChanged', evtData)
+            end
+            
+        end
     end
     
     methods
@@ -345,11 +424,38 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end % /function startTask
         
-        function finishTask(obj)
+        function cancelRunningTask(obj)
+        %cancelTask Cancel the running task
+            
+            cancel( obj.runningTask )
+            obj.finishTask('cancel')
+
+        end
+        
+        function finishTask(obj, mode)
         %finishTask Method to execute when a task has finished
-             
+        %
+        %    obj.finishTask()
+        %
+        %    obj.finishTask(mode) finishes task according to specified mode
+        %    mode can be '' (default) or 'cancel'
+    
+        
+        % Question: Is is possible that the user stops a task when this
+        % function is running, and the task is put back on the queue and
+        % added to the history simultaneously? Test/debug some time?
+        
+        % Question/todo: add mode for canceling task be retain in queue..?
+        
+        
+            if nargin < 2; mode = ''; end
+                
             completedTask = obj.TaskQueue(1);
             completedTask = obj.updateTaskWhenFinished(completedTask);
+            
+            if strcmpi(mode, 'cancel')
+                completedTask.status = 'Canceled';
+            end
             
             obj.TaskQueue(1) = [];
             obj.runningTask = [];
@@ -370,21 +476,17 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             evtData = uiw.event.EventData('Table', 'History', 'Task', completedTask);
             obj.notify('TaskAdded', evtData)
 
-
             % Start new task
-            if obj.isRunning
+            if obj.isRunning && ~strcmpi(mode, 'cancel')
                 obj.startTask() 
             end
             
         end % /function finishTask
         
-        
 % % % % Methods related to managing tasks in the Queue and History list
-        
-        function setTaskStatus(obj, newStatus, taskIdx)
+        function setTaskStatus(obj, action, taskIdx)
             
-            if any(taskIdx == 1) && strcmp(obj.TaskQueue(1).status, 'Running')
-                msgbox('Task is already running.')
+            if any(taskIdx == 1) && strcmp(obj.TaskQueue(1).status, 'Running') && ~strcmp(action, 'Cancel')
                 taskIdx(taskIdx==1) = [];
             end
             
@@ -392,42 +494,36 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 return
             end
             
-            switch newStatus
-                case 'Initialize'
-                    
-                    statusList = {obj.TaskQueue.status};
-                    
-                    % Find the last queued task in the list. The newly
-                    % queued task should be inserted after this.
-                    ind = find( contains(statusList, 'Pending'), 1, 'last');
-                    
-                    if isempty(ind) 
-                        ind = find( contains(statusList, 'Running'), 1, 'last');
-                        if isempty(ind)
-                            ind = 0;
-                        end
-                    end
-                    
-                    
-                    selectedTasks = obj.TaskQueue(taskIdx);
-                    obj.TaskQueue(taskIdx) = [];
+            switch action
+                case {'Initialize', 'Start'}
+                    newState = 'Pending';
 
-                    for i = 1:numel(selectedTasks)
-                        selectedTasks(i).status = 'Pending';
-                    end
+                case {'Pause', 'Paused'}
+                    newState = 'Paused';
                     
-                    % Insert newly queued task back into the list
-                    obj.TaskQueue = [ obj.TaskQueue(1:ind), ...
-                                      selectedTasks, obj.TaskQueue(ind+1:end) ];
-                                        
+                case {'Queue', 'Queued'}
+                    newState = 'Queued';
                     
-                case 'Pause'
+                case 'Cancel'
+                    assertMessage = 'Can only cancel a running task.';
+                    assert(isequal(taskIdx, 1) && strcmp(obj.TaskQueue(1).status, 'Running'), assertMessage)
                     
-                    for i = taskIdx
-                        obj.TaskQueue(i).status = 'Paused';
-                    end
-                
+                    obj.cancelRunningTask()
+                    return
+
             end
+            
+            [obj.TaskQueue(taskIdx).status] = deal(newState);
+
+            
+            newState = {obj.TaskQueue(taskIdx).status};
+            if isrow(newState); newState = transpose(newState); end
+            eventData = uiw.event.EventData('TaskIdx', taskIdx, 'NewState', newState);
+            obj.notify('TaskStateChanged', eventData)
+            
+            % Rearrange columns according to task states.
+            obj.sortTasksByState()
+            
             
         end
 

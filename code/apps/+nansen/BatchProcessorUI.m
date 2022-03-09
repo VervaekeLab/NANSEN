@@ -34,6 +34,8 @@ classdef BatchProcessorUI < handle
             
             obj.createTabGroup()
             obj.createUiTables()
+                        
+            obj.TabGroup.Visible = 'on';
             
             % Call refresh table to update table contents
             obj.refreshTable('queue')
@@ -72,7 +74,7 @@ classdef BatchProcessorUI < handle
         %createTabGroup Create tabgroup with queue and history tabs.
         
             % Create TabGroup
-            obj.TabGroup = uitabgroup(obj.ParentContainer);
+            obj.TabGroup = uitabgroup(obj.ParentContainer, 'Visible', 'off');
             obj.TabGroup.Units = 'normalized'; 
 
             % Create Queue and History tab
@@ -93,20 +95,35 @@ classdef BatchProcessorUI < handle
                 'Parent', obj.UITabTaskQueue, ...
                 'ColumnNames', obj.QueueTableVars, ...
                 'ColumnEditable', [false, false, false, false, false, true] );
-
             
+            % Todo, save these based on user settings...
+            obj.UITableQueue.Table.ColumnMaxWidth = [200, 500, 100, 200, 200, 500];
+            obj.UITableQueue.Table.ColumnMinWidth = [150, 100, 50, 120, 150, 100];
+            obj.UITableQueue.Table.ColumnPreferredWidth = [170, 200, 75, 135, 200, 200];
+            obj.UITableQueue.Table.CellEditCallback = @obj.onTableCellEdited;
+
             obj.UITableHistory = nansen.uiwTaskTable(...
                 'Parent', obj.UITabTaskHistory, ...
                 'ColumnNames', obj.HistoryTableVars, ...
                 'ColumnEditable', [false, false, false, false, false, true] );
-
-            obj.UITableQueue.Table.UIContextMenu = obj.createQueueContextMenu();
-            obj.UITableHistory.Table.UIContextMenu = obj.createHistoryContextMenu();
             
+            % Todo, save these based on user settings...
+            obj.UITableHistory.Table.ColumnMaxWidth = [200, 500, 100, 200, 200, 500];
+            obj.UITableHistory.Table.ColumnMinWidth = [150, 100, 50, 120, 120, 100];
+            obj.UITableHistory.Table.ColumnPreferredWidth = [170, 200, 75, 135, 135, 200];
+            obj.UITableHistory.Table.CellEditCallback = @obj.onTableCellEdited;
             
+            %obj.UITableQueue.Table.UIContextMenu = obj.createQueueContextMenu();
+            %obj.UITableHistory.Table.UIContextMenu = obj.createHistoryContextMenu();
+            
+            obj.UITableQueue.UIContextMenu = obj.createQueueContextMenu();
+            obj.UITableHistory.UIContextMenu = obj.createHistoryContextMenu();
+           
             obj.UITableQueue.MouseButtonRightPressCallbackFcn = ...
                 @obj.onMouseRightClickedInTable;
-            
+           
+            obj.UITableHistory.MouseButtonRightPressCallbackFcn = ...
+                @obj.onMouseRightClickedInTable;
         end
         
         function h = createQueueContextMenu(obj)
@@ -115,9 +132,9 @@ classdef BatchProcessorUI < handle
             h = uicontextmenu(hFig);
             
             mTmp = uimenu(h, 'Text', 'Start Task(s)');
-            mTmp.Callback = @(s,e,newStatus) obj.onSetTaskStatusMenuItemClicked('Initialize');
+            mTmp.Callback = @(s,e) obj.onSetTaskStatusMenuItemClicked(s);
             mTmp = uimenu(h, 'Text', 'Pause Task(s)');
-            mTmp.Callback = @(s,e,newStatus) obj.onSetTaskStatusMenuItemClicked('Pause');
+            mTmp.Callback = @(s,e) obj.onSetTaskStatusMenuItemClicked(s);
             mTmp = uimenu(h, 'Text', 'Delete Task(s)');
             mTmp.Callback = @(s,e) obj.onDeleteTaskMenuItemClicked('queue');            
             mTmp = uimenu(h, 'Text', 'Move Task(s)', 'Separator', 'on', 'Enable', 'off');
@@ -142,8 +159,8 @@ classdef BatchProcessorUI < handle
             hFig = ancestor(obj.ParentContainer, 'figure');
             h = uicontextmenu(hFig);
             
-            mTmp = uimenu(h, 'Text', 'Resubmit to Queue', 'Enable', 'off'); 
-            mTmp.Callback = [];
+            mTmp = uimenu(h, 'Text', 'Reassign to Queue', 'Enable', 'on'); 
+            mTmp.Callback = @(s, e) obj.onReassignToQueueMenuItemClicked;
                     
             mTmp = uimenu(h, 'Text', 'Show Diary', 'Separator', 'on', 'Enable', 'on'); 
             mTmp.Callback = @(s,e,str) obj.onShowDiaryMenuItemClicked('history');
@@ -176,6 +193,15 @@ classdef BatchProcessorUI < handle
             
         end
         
+        function hTable = getUiTable(obj, tableType)
+            switch lower( tableType )
+                case 'queue'
+                    hTable = obj.UITableQueue;
+                case 'history'
+                    hTable = obj.UITableHistory;
+            end
+        end
+        
         function [hTable, taskList] = getTableRefs(obj, tableType)
         %getTableRefs Get uitable handle and task list for gien tabletype   
             switch tableType
@@ -205,8 +231,17 @@ classdef BatchProcessorUI < handle
             
         end
         
+        function names = getTableVariableNames(obj, tableType)
+            switch lower( tableType )
+                case 'queue'
+                    names = obj.QueueTableVars;
+                case 'history'
+                    names = obj.HistoryTableVars;
+            end            
+        end
+        
         function refreshTable(obj, tableType)
-        %refreshTable Refresh specified table type
+        %refreshTable Refresh table data of specified table type
             
             if nargin < 2; tableType = 'queue'; end
             [hTable, taskList] = obj.getTableRefs(tableType);
@@ -217,15 +252,15 @@ classdef BatchProcessorUI < handle
             
             taskTable = obj.getTableData( taskList, tableType);
             
-            % Why update 1 row at a time?
-            for i = 1:size(taskTable, 1)
-                hTable.addTask(taskTable(i, :), 'end')
-            end
+            hTable.Table.Data = table2cell(taskTable);
+            %hTable.Table.ColumnNames = obj.getTableVariableNames(tableType);
             
+
         end
         
         function refreshRow(obj, rowIdx, tableType)
-                
+        %refreshRow Refresh cells of given row idx for specified table type
+        
             if nargin < 3; tableType = 'queue'; end
             [~, taskList] = obj.getTableRefs(tableType);
             
@@ -315,14 +350,23 @@ classdef BatchProcessorUI < handle
             
         end
         
+        function onTaskOrderChanged(obj, ~, evt)
+            
+            rowIdx = evt.IndexOrder;
+            obj.UITableQueue.Table.Data = obj.UITableQueue.Table.Data(rowIdx, :);
+            
+        end
+        
         function updateQueueContextMenu(obj, taskList)
         %updateQueueContextMenu Set enabled state of menu items
         %
         %   Work in progress. Change enable state of menu items based on
         %   the state of task items that are selected.
         
-            hMenu = obj.UITableQueue.Table.UIContextMenu;
-                        
+            %hMenu = obj.UITableQueue.Table.UIContextMenu;
+            hMenu = obj.UITableQueue.UIContextMenu;
+
+          % % Enable/disable "Pause Task(s)" items
             mItem = findobj(hMenu, 'Text', 'Pause Task(s)');
             if all( strcmp({taskList.status}, 'Paused') )
                 mItem.Enable = 'off';
@@ -330,6 +374,7 @@ classdef BatchProcessorUI < handle
                 mItem.Enable = 'on';
             end
             
+          % % Enable/disable "Show Diary" items
             mItem = findobj(hMenu, 'Text', 'Show Full Diary');
             mItem(2) = findobj(hMenu, 'Text','Show Last Diary Entry');
             
@@ -341,6 +386,19 @@ classdef BatchProcessorUI < handle
                 set(mItem, 'Enable', 'off')
                 mItem2.Enable = 'on';
             end
+            
+          % % Set appropriate text for the "Start Task(s)" item. I.e if the
+          % state of the task is running, change menu text to "Cancel Task"
+            mItem = findobj(hMenu, 'Text', 'Start Task(s)');
+            if isempty(mItem) && any(~strcmp({taskList.status}, 'Running'))
+                mItem = findobj(hMenu, 'Text', 'Abort Task');
+                mItem.Text = 'Start Task(s)';
+            else
+                if ~isempty(mItem) && all( strcmp({taskList.status}, 'Running') )
+                    mItem.Text = 'Abort Task';
+                end
+            end
+            
             
         end
     end
@@ -363,19 +421,37 @@ classdef BatchProcessorUI < handle
             %obj.refreshTable(tableType)
         end
         
-        function onSetTaskStatusMenuItemClicked(obj, newStatus, rowIdx)
+        function onSetTaskStatusMenuItemClicked(obj, menuItem)
         %onSetTaskStatusMenuItemClicked User changed status of one or more tasks
             
-            if nargin < 3
-                rowIdx = obj.UITableQueue.selectedRows;
+            assertMessage = 'This method is a menu item callback, but the source input was not a menu item';
+            assert(isa(menuItem, 'matlab.ui.container.Menu'), assertMessage)
+        
+            switch menuItem.Text
+                case 'Start Task(s)'
+                    newStatus = 'Initialize';
+                case 'Pause Task(s)'
+                    newStatus = 'Pause';
+                case 'Abort Task'
+                    newStatus = 'Cancel';
+            end
+        
+            rowIdx = obj.UITableQueue.selectedRows;
+            
+            if any(rowIdx == 1) 
+                firstTask = obj.BatchProcessor.getQueuedTask(1);
+                if strcmp(firstTask.status, 'Running') && ~strcmp(newStatus, 'Cancel')
+                    msgbox('Task is already running.')
+                    rowIdx(rowIdx==1) = [];
+                end
+            end
+            
+            if isempty(rowIdx)
+                return
             end
 
             obj.BatchProcessor.setTaskStatus(newStatus, rowIdx)
-            obj.refreshTable('queue')
-            
-            % Todo: make method for rearranging table rows instead of
-            % refreshing
-            
+
         end
 
         function onMoveTasksMenuItemClicked(obj, src)
@@ -445,7 +521,7 @@ classdef BatchProcessorUI < handle
                     
                     taskItems = obj.BatchProcessor.getQueuedTask(rowIdx);
                     
-                    diary = obj.BatchProcessor.runningTask.Diary();
+                    diary = obj.BatchProcessor.getCurrentDiary();
                     switch mode
                         case 'last'
                             diary = strsplit(diary, newline);
@@ -472,6 +548,31 @@ classdef BatchProcessorUI < handle
             obj.displayErrors(taskItems)
         end
         
+        function onReassignToQueueMenuItemClicked(obj)
+            
+            taskItems = obj.getTaskList('history', obj.SelectedRowIndices);
+            
+            for i = 1:numel(taskItems)
+                taskArgs = {taskItems(i).name, taskItems(i).method, ...
+                    0, taskItems(i).args, taskItems(i).parameters, ...
+                    taskItems(i).comments} ;
+                obj.BatchProcessor.submitJob( taskArgs{:} )
+            end
+            
+        end
+        
+        function onTableCellEdited(obj, src, evt)
+            
+            taskType = obj.TabGroup.SelectedTab.Title;          
+            taskIdx = evt.Indices(1);
+            
+            if evt.Indices(2) == 6
+                newComment = evt.NewValue;
+                obj.BatchProcessor.updateTaskComment(taskType, taskIdx, newComment)
+            end
+            
+        end
+        
     end
     
     methods (Access = private) % Internal callbacks
@@ -487,20 +588,47 @@ classdef BatchProcessorUI < handle
             addlistener(obj.BatchProcessor, 'TaskStateChanged', ...
                 @obj.onTaskStateChanged);
             
+            addlistener(obj.BatchProcessor, 'TaskOrderChanged', ...
+                @obj.onTaskOrderChanged);
+            
         end
         
         function onMouseRightClickedInTable(obj, src, evt)
+        %onMouseRightClickedInTable Method to run when right click happens in table    
             
             tableType = obj.TabGroup.SelectedTab.Title;
-            taskList = obj.getTaskList(tableType, obj.SelectedRowIndices);
-
+            taskIdx = sort( obj.SelectedRowIndices );
+            taskList = obj.getTaskList(tableType, taskIdx);
+            hTable = obj.getUiTable(tableType);
+            
+            
             switch tableType
                 case 'Queue'
+                    % Special case, if right click happened on first cell
+                    % and the state of the first task is running, only that
+                    % row should be selected (for contextmenu to appear 
+                    % consistent).
+                    
+                    if evt.Cell(1) == 1
+                        if strcmp(taskList(1).status, 'Running')
+                            obj.UITableQueue.Table.SelectedRows = 1;
+                            taskList = taskList(1);
+                        end
+                    end
+                    
                     obj.updateQueueContextMenu(taskList)
+                
                 case 'History'
                     % Todo....
             end
+            
+            % "Manually" open context menu
+            figurePos = hTable.Table.tablepoint2figurepoint(evt.Position);
+            hTable.UIContextMenu.Position(1:2) = figurePos + [0, 40]; % Correct y pos, 40 pixels, no idea why or if it is consistent across systems..
+            hTable.UIContextMenu.Visible = 'on';
+            
         end
+
     end
     
     methods (Static)
