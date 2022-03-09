@@ -24,7 +24,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties (Constant)
-        Pages = {'Overview', 'File Viewer', 'Data Processing', 'Figures'}
+        Pages = {'Overview', 'File Viewer', 'Task Processor', 'Figures'}
     end
     
     properties % Page modules
@@ -169,15 +169,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onExit(app, h)
             
-%             if ~isempty(app.queueProcessorObj)
-%                 if strcmp(app.queueProcessorObj.Status, 'running')
-%                     answer = questdlg('Tasks are still running. Are you sure you want to quit?', 'Think Twice', 'Yes', 'No', 'Yes');
-%                     switch lower(answer)
-%                         case 'no'
-%                             return
-%                     end
-%                 end
-%             end
+            if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                if strcmp(app.BatchProcessor.Status, 'busy')
+                    answer = questdlg('Tasks are still running. Are you sure you want to quit?', 'Think Twice', 'Yes', 'No', 'Yes');
+                    switch lower(answer)
+                        case 'yes'
+                            app.BatchProcessor.cancelRunningTask()
+                        case 'no'
+                            return
+                    end
+                end
+            end
 
             % Todo: Whis is called twice, because of some weird reason
             % in (uiw.abstract.BaseFigure?)
@@ -761,7 +763,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         h = nansen.FileViewer(hTab);
                         app.UiFileViewer = h;
                         
-                    case 'Data Processing'
+                    case 'Task Processor'
 
                 end
             end
@@ -801,8 +803,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function initializeBatchProcessor(app)
         %initializeBatchProcessor    
         
-            pvPairs = {'TimerPeriod', app.settings.TaskProcessor.TimerPeriod};
-        
+            propertyNames = fieldnames(app.settings.TaskProcessor);
+            propertyValues = struct2cell(app.settings.TaskProcessor);
+            pvPairs = [propertyNames'; propertyValues'];
+            
             app.BatchProcessor = nansen.TaskProcessor(pvPairs{:});
             addlistener(app.BatchProcessor, 'TaskAdded', @app.onTaskAddedEventTriggered);
            
@@ -815,7 +819,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
             if nargin < 2
                 hTabs = app.hLayout.TabGroup.Children;
-                hContainer = hTabs(strcmp({hTabs.Title}, 'Data Processing'));
+                hContainer = hTabs(strcmp({hTabs.Title}, 'Task Processor'));
             end
             
             h = nansen.BatchProcessorUI(app.BatchProcessor, hContainer);
@@ -1167,7 +1171,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.UiFileViewer.update(metaObj)
                     end
                     
-                case 'Data Processing'
+                case 'Task Processor'
                     
                     if isempty(app.BatchProcessorUI)
                         app.initializeBatchProcessorUI(evt.NewValue)
@@ -1944,10 +1948,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.settings_.MetadataTable.(name) = value;
                     app.UiMetaTableViewer.AllowTableEdits = value;
                     
-                case 'TimerPeriod'
+                case {'TimerPeriod', 'RunTasksWhenQueued', 'RunTasksOnStartup'}
                     app.settings_.TaskProcessor.(name) = value;
-                    app.BatchProcessor.TimerPeriod = value;
-                    
+                    app.BatchProcessor.(name) = value;
+
             end
             
         end

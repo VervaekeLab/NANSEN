@@ -260,7 +260,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 
                 %disp('double clicked')
             elseif evt.Button == 3 || strcmp(evt.SelectionType, 'alt')
-                disp('right clicked')
+                %disp('right clicked')
                 %app.onMouseRightClickedInTable(src, evt)
             end
             

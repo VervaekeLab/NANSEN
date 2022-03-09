@@ -73,7 +73,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
         
         function createQueueButtons(app)
             
-            buttonSize = [150, 30];
+            buttonSize = [200, 30];
             
             [x, w] = uim.utility.layout.subdividePosition(app.Margins(1), ...
                 app.Figure.Position(3), [buttonSize(1), buttonSize(1)], 20);
@@ -82,7 +82,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             hButton = uicontrol(app.Figure, 'style', 'pushbutton');
             hButton.Position = [x(1), y, w(1), h];
             hButton.Units = 'normalized';
-            hButton.String = 'Add to Batch Processor';
+            hButton.String = 'Add to Task Processor Queue';
             hButton.FontUnits = 'pixels';
             hButton.FontName = 'Avenir Next';
             hButton.FontSize = 12;
