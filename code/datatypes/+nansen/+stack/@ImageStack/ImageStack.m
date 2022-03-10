@@ -74,6 +74,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %
 %   [ ] Add listener for DataCacheChanged and update flags for whether
 %       projections should be updated...
+%   [ ] Add event (or observable property) to allow listeners to detect if
+%       data size changes
+%
 %   [x] Permute output from getFrameSet to correspond with DimensionOrder
 %       Actually, this is done in the imageStackData class...
 %   [ ] Rename DimensionOrder and make it obvious what it refers to and how
@@ -822,6 +825,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         end
 
+        function enablePreprocessing(obj, varargin)
+        %enablePreprocessing Enable preprocessing of data on retrieval
+            obj.Data.enablePreprocessing(varargin{:})
+        end
+        
+        function disablePreprocessing(obj, varargin)
+        %disablePreprocessing Disable preprocessing of data on retrieval
+            obj.Data.disablePreprocessing(varargin{:})
+        end
     end
     
     methods % Set/get methods

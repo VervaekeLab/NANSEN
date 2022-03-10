@@ -171,6 +171,22 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
     end
     
+    methods (Access = protected) % Override methods of superclass
+        function onDataSizeChanged(obj)
+            onDataSizeChanged@nansen.stack.data.abstract.ImageStackData(obj)
+            
+            if obj.UseDynamicCache
+                % Todo: Reset dynamic cache
+                obj.initializeDynamicFrameCache()
+            end
+            
+            if obj.HasStaticCache
+                error('This is not implemented yet. Please report')
+                % Todo: Reset static cache
+            end
+        end
+    end
+    
     methods (Access = protected) % Subclasses can override
         
         function obj = assignFilePath(obj, filePath, ~)

@@ -231,9 +231,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Update image stats
             % Todo: Only do this if output should be recast?
             % Todo: Do this using the stack.methods.computeImageStats class
-            obj.updateImageStats(Y);
-            
-            
+            obj.updateImageStats(Y);            
 
             % Subtract minimum value. Might not be necessary...
             minVal = prctile(obj.ImageStats.prctileL2, 5);

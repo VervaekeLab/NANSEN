@@ -36,7 +36,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         StackSize                       % Length of each dimension according to the stack-centric dimension ordering
     end
     
-    properties (Access = protected)
+    properties (SetAccess = protected)
         DataDimensionOrder              % Numeric vector describing the order of dimensions in the data
         StackDimensionOrder             % Numeric vector describing the order of dimensions in the stack
     end
@@ -256,7 +256,16 @@ classdef ImageStackData < uim.mixin.assignProperties
         
     end
     
-    methods (Access = protected) % Internal updating (change to private?)
+    methods
+        function enablePreprocessing(~)
+            % Subclasses may override
+        end
+        function disablePreprocessing(~)
+            % Subclasses may override
+        end
+    end
+    
+    methods (Access = protected) % Internal updating (change to private?) onDataSizeChanged must be protected...
         
         function setDefaultDataDimensionArrangement(obj)
         %setDefaultDataDimensionArrangement Assign default property value
