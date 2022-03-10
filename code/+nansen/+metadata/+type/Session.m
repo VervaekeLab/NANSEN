@@ -58,8 +58,15 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         InternalVariables = {'Ignore', 'DataLocation', 'Notebook'}
     end
     
-    properties (Hidden) %(SetAccess = immutable) %(Transient) %,  % Todo: Immutable setacces.. Does it have to be set in this, or can it be set in superclasses?
+    properties (Hidden, SetAccess = immutable) %(Transient) 
         DataLocationModel
+        % Note: can not be transient because it does not get passed to a
+        % worker in a parallell pool.
+        % Todo: Immutable setacces.. Will this work? If using
+        % assignPVPairs, the property is not set in  the constructor:/ Need
+        % to adapt constructor, to retrieve datalocationmodel from pvpairs
+        % and assign in constructor
+        
     end
 
     
@@ -143,7 +150,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             % obj.assignPipeline()
             
         end
-        
         
         function assignSubjectID(obj, pathStr)
             % Get specification for how to retrieve subject id from
@@ -257,6 +263,29 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                 thisSession.Progress = pipelineStruct;
             end
 
+        end
+        
+        function updateProgress(obj, fcnName, status)
+            
+            % Return if session object does not have a pipeline.
+            if isempty(obj.Progress); return; end
+            
+            if isa(fcnName, 'function_handle')
+                fcnName = func2str(fcnName);
+            end
+            
+            if any(strcmp({obj.Progress.TaskList.FunctionName}, fcnName))
+
+                tf = strcmp({obj.Progress.TaskList.FunctionName}, fcnName);
+                taskList = obj.Progress.TaskList;
+
+                if strcmp(status, 'Completed')
+                    taskList(tf).IsFinished = true;
+                    taskList(tf).DateFinished = datetime('now');
+                    obj.Progress.TaskList = taskList;
+                end
+            end
+            
         end
         
         function refreshDataLocations(obj)

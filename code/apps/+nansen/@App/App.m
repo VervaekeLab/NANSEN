@@ -554,7 +554,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if ~isempty(hMenu(i).Children)
                     delete(hMenu(i).Children)
                 end
-            
+
                 for j = 1:numel(plNames)
                     mSubItem = uimenu(hMenu(i), 'Text', plNames{j});
                     switch hMenu(i).Text
@@ -564,12 +564,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             mSubItem.MenuSelectedFcn = @app.onAssignPipelinesMenuItemClicked;
                     end
                 end
+                
+                if strcmp(hMenu(i).Text, 'Assign Pipeline')
+                    mSubItem = uimenu(hMenu(i), 'Text', 'No pipeline', 'Separator', 'on', 'Enable', 'off');
+                    mSubItem.MenuSelectedFcn = @app.onEditPipelinesMenuItemClicked;
+                    mSubItem = uimenu(hMenu(i), 'Text', 'Autoassign pipeline', 'Enable', 'off');
+                    mSubItem.MenuSelectedFcn = @app.onEditPipelinesMenuItemClicked;
+                end
 
                 if isempty(plNames)
                     hMenu(i).Enable = 'off';
                 else
                     hMenu(i).Enable = 'on';
                 end
+                
+                
             
             end
             
@@ -1072,19 +1081,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 sessionObj = task.args{1};
                 fcnName = func2str(task.method);
                 
-                % Return is session object does not have a pipeline.
-                if isempty(sessionObj.Progress); return; end
-                
-                if any(strcmp({sessionObj.Progress.TaskList.FunctionName}, fcnName))
-                    
-                    tf = strcmp({sessionObj.Progress.TaskList.FunctionName}, fcnName);
-                    taskList = sessionObj.Progress.TaskList;
-                    
-                    if strcmp(task.status, 'Completed')
-                        taskList(tf).IsFinished = true;
-                        taskList(tf).DateFinished = datetime('now');
-                        sessionObj.Progress.TaskList = taskList;
-                    end
+                if strcmp(task.status, 'Completed')
+                    sessionObj.updateProgress(fcnName, task.status)
                 end
                 
             end
@@ -2070,6 +2068,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Run the task
                 try
                     sessionMethod(sessionObj{i}, opts)
+                    sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+
                 catch ME
                     
                     errorMessage = sprintf('Session method ''%s'' failed for session ''%s''.\n', ...
@@ -2108,6 +2108,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                     if isSuccess
                         sMethod.run()
+                        sessionObj{i}.updateProgress(sessionMethod, 'Completed')
                     end
                     
                     % Update session task menu (in case new options were defined...)
@@ -2123,6 +2124,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
                     if ~wasAborted
                         sessionMethod(sessionObj{i}, opts)
+                        sessionObj{i}.updateProgress(sessionMethod, 'Completed')
                     end
                 end
 
