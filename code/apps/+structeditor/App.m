@@ -339,11 +339,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function customizeFigure(obj)
-            
-            pos = obj.initializeFigurePosition();
-            obj.Figure.Position = pos;
-            
+
             if strcmp(obj.mode, 'standalone')
+                
+                pos = obj.initializeFigurePosition();
+                obj.Figure.Position = pos;
+                
                 if obj.showSidePanel && ~contains(obj.TabMode, 'popup') % make space for panel with tab buttons.
                     obj.Figure.Position(3) = obj.Figure.Position(3) + 100;
                 end
@@ -1746,6 +1747,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 hButton.Tag = name;
                 hButton.ButtonDownFcn = @obj.buttonCallback_openBrowser;
                 inputbox.TooltipString = inputbox.String;
+            end
+            
+            if ~nargout
+                clear hcorr
             end
             
         end
