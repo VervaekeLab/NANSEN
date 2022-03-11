@@ -35,9 +35,7 @@ function S = getOptions(varargin)
     S.PrctileForThresholding = 93;
     
     % Todo: Options that separate axonal from somas...
-    
-    
-    
+
     
 end
 
