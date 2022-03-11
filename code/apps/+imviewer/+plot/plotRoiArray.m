@@ -39,13 +39,17 @@ end
 
 % Plot lines and add text objects for all rois
 hLines = plot(hAxes, roiBoundaryCellArray{:}, 'Color', [0.8, 0.8, 0.8]);
+set(hLines, 'HitTest', 'off', 'PickableParts', 'none')
 
 if showNumbers
     numbers = arrayfun(@(i) num2str(i), 1:nRois, 'uni', 0);
     hText = text(hAxes, centerPosArray(:, 1), centerPosArray(:, 2), numbers', 'Color', [0.8, 0.8, 0.8]);
+    set(hText, 'HitTest', 'off', 'PickableParts', 'none')
 end
 
-if nargout == 1
+if nargout == 0
+    clearvars hLines hText
+elseif nargout == 1
     clearvars hText
 elseif nargout == 2 && ~showNumbers
     hText = [];
