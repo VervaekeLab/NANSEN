@@ -89,6 +89,83 @@ classdef SessionData < dynamicprops
             
         end
 
+        function varNames = getDataType(obj, typeName)
+            
+            % Todo: get from session object.
+            dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
+            
+            fileAdapters = {dataFilePathModel.VariableList.FileAdapter};
+            
+            switch typeName
+                case {'RoiGroup', 'RoiArray'}
+                    varNames = {'roiArrayQuickyAuto', 'roiArrayExtractAuto', 'roiArray'};
+                    
+                otherwise
+                    tf = strcmp(fileAdapters, typeName);
+                    varNames = {dataFilePathModel.VariableList(tf).VariableName};
+            end
+            
+            tf = false(1, numel(varNames));
+            for i = 1:numel(varNames)
+                tf(i) = isprop(obj, varNames{i} );
+            end
+            
+            varNames = varNames(tf);
+        end
+        
+        function varNames = uiSelectVariableName(obj, dataType, selectionMode)
+        %uiSelectVariableName Open dialog to select variable from sdata
+        %------------------------------------------------------------------
+        %
+        %   SYNTAX:
+        %
+        %   varNames = obj.uiSelectVariableName() opens a dialog to select
+        %   on or more variables that are available in SessionData object
+        %
+        %   varNames = obj.uiSelectVariableName(dataType) lets user select
+        %   among variables from the specified dataType
+        %
+        %   varNames = obj.uiSelectVariableName(dataType, selectionMode)
+        %   additionally determines the selection mode. selectionMode can
+        %   be 'multi' (Default) or 'single'.
+        %
+        %   OUTPUT:
+        %       varNames : cell array of variable name(s)
+        
+        
+            if nargin < 2
+                varNames = obj.VariableList;
+            else
+                varNames = obj.getDataType(dataType);
+            end
+            
+            if nargin < 3; selectionMode = 'multi'; end
+            
+            if isempty(varNames)
+                if exist('dataType', 'var')
+                    error('No variable is available for data type "%s"', dataType)
+                else
+                    error('No variable is available')
+                end
+            end
+            
+            if numel(varNames) == 1
+                return
+            end
+            
+            
+            msg = 'Select a data variable:';
+            [indx, tf] = listdlg('ListString', varNames, ...
+                'PromptString', msg, 'SelectionMode', selectionMode);
+            
+            if tf
+                varNames = varNames(indx);
+            else
+                varNames = {};
+            end
+            
+        end
+        
     end
     
     methods (Access = protected)
