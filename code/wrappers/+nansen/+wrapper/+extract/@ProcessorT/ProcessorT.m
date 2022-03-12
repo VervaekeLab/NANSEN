@@ -2,10 +2,16 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
     
     % Rename to ExtractT
     
+    properties (Constant, Hidden)
+        DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_extract')
+    end
+    
     properties (Constant)
-        MethodName = 'Signal Extraction (EXTRACT)'
+        MethodName = 'EXTRACT (Signal Extraction)'
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
+        OptionsManager nansen.manage.OptionsManager = ...
+            nansen.OptionsManager('nansen.wrapper.extract.Processor')
     end
     
     properties %Options
@@ -48,7 +54,7 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
         %onInitialization Initialize variables
         
             filePath = obj.getDataFilePath('extractTemporalWeights_temp', '-w',...
-                'Subfolder', 'image_segmentation');
+                'Subfolder', obj.DATA_SUBFOLDER);
             
             if isfile(filePath)
                 obj.Results = obj.loadData('extractTemporalWeights_temp');
@@ -78,7 +84,7 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
             T = cat(2, obj.Results{:});
             
             % Save temporal profiles
-            obj.saveData('extractTemporalWeights', T, 'Subfolder', 'image_segmentation')
+            obj.saveData('extractTemporalWeights', T, 'Subfolder', obj.DATA_SUBFOLDER)
         end
 
     end
