@@ -95,10 +95,10 @@ for i = 1:nRois
     try
     % Create the image
     switch lower(opt.ImageType)
-        case {'average', 'enhanced average', 'peak dff', 'enhancedaverage', 'peakdff'}
+        case {'average', 'enhanced average', 'peak dff', 'enhancedaverage', 'peakdff', 'enhanced_average'}
             currentRoiIm = mean(imArray(tmpY, tmpX, frameInd), 3);
             currentRoiIm = normalizeimage(currentRoiIm);
-        case {'correlation', 'enhanced correlation', 'enhancedcorrelation'}
+        case {'correlation', 'enhanced correlation', 'enhancedcorrelation', 'enhanced_correlation'}
             [rhoIm, ~] = getPixelCorrelationImage(dff(i, frameInd)', imArray(tmpY, tmpX, frameInd));
             rhoIm(isnan(rhoIm)) = 0;
             currentRoiIm = rhoIm.*255;
