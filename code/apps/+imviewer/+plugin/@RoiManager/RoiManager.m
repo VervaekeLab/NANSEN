@@ -189,41 +189,6 @@ classdef RoiManager < applify.mixin.AppPlugin
             end
         end
         
-        function newGroup = createNewRoiGroup(obj)
-            
-            newGroup = roimanager.roiGroup();
-            newRoiMap = roimanager.roiMap(obj.StackViewer, obj.StackViewer.Axes, newGroup);
-
-            numGroups =  numel(obj.secondaryGroups);
-            
-            if numGroups == 0
-                obj.secondaryGroups = newGroup;
-                obj.secondaryMaps = newRoiMap;
-            else
-                obj.secondaryGroups(end+1) = newGroup;
-                obj.secondaryMaps(end+1) = newRoiMap;
-
-            end
-
-            
-            % Assign the Ancestor App of the roigroup to the app calling
-            % for its creation.
-            newRoiMap.roiGroup.ParentApp = obj.StackViewer;
-            newRoiMap.hRoimanager = obj;
-            
-            colorMap=cbrewer('qual', 'Set1', 8, 'spline');
-            newRoiMap.defaultColor = colorMap(numGroups+1, :);
-
-            % Todo: What if this is not created yet....Need to add to
-            % settings....?
-            % Add group to settings controls...
-            numGroups = numel(obj.secondaryGroups) + 1;
-            % Todo. What if this panel was not opened yet?!?!?
-            obj.AppModules(4).hControls.setCurrentRoiGroup.String{end+1} = sprintf('Group %d', numGroups);
-            obj.AppModules(4).hControls.showRoiGroups.String{end+1} = sprintf('Show Group %d', numGroups);            
-            
-        end
-        
         function changeCurrentRoiGroup(obj, newGroupName)
             
             newGroupNumberStr = strrep(newGroupName, 'Group ', ''); 
@@ -520,6 +485,51 @@ classdef RoiManager < applify.mixin.AppPlugin
             end
                         
             obj.roiDisplay.roiGroup.addRois(roi_arr, [], addMode)
+            
+        end
+        
+        function addRois(obj, roiArray, plotColor)
+            obj.roiDisplay.roiGroup.addRois(roiArray, [], 'append')
+        end
+        
+        function newGroup = createNewRoiGroup(obj)
+            
+            newGroup = roimanager.roiGroup();
+            newRoiMap = roimanager.roiMap(obj.StackViewer, obj.StackViewer.Axes, newGroup);
+
+            numGroups =  numel(obj.secondaryGroups);
+            
+            if numGroups == 0
+                obj.secondaryGroups = newGroup;
+                obj.secondaryMaps = newRoiMap;
+            else
+                obj.secondaryGroups(end+1) = newGroup;
+                obj.secondaryMaps(end+1) = newRoiMap;
+
+            end
+
+            
+            % Assign the Ancestor App of the roigroup to the app calling
+            % for its creation.
+            newRoiMap.roiGroup.ParentApp = obj.StackViewer;
+            newRoiMap.hRoimanager = obj;
+            
+            colorMap=cbrewer('qual', 'Set1', 8, 'spline');
+            newRoiMap.defaultColor = colorMap(numGroups+1, :);
+
+            % Todo: What if this is not created yet....Need to add to
+            % settings....?
+            % Add group to settings controls...
+            numGroups = numel(obj.secondaryGroups) + 1;
+            
+            
+            % Todo. What if this panel was not opened yet?!?!?
+            if ~isprop(obj, 'AppModules') || isempty( obj.AppModules(4) )
+                return
+            end
+            
+            obj.AppModules(4).hControls.setCurrentRoiGroup.String{end+1} = sprintf('Group %d', numGroups);
+            obj.AppModules(4).hControls.showRoiGroups.String{end+1} = sprintf('Show Group %d', numGroups);            
             
         end
         
