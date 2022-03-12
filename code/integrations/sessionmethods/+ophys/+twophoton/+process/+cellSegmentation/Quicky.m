@@ -1,5 +1,5 @@
-classdef EXTRACT < nansen.session.SessionMethod & nansen.wrapper.extract.Processor
-%EXTRACT Summary of this function goes here
+classdef Quicky < nansen.session.SessionMethod & nansen.wrapper.quicky.Processor
+%QUICKY Summary of this function goes here
 %   Detailed explanation goes here
     
     properties (Constant) % SessionMethod attributes
@@ -8,10 +8,10 @@ classdef EXTRACT < nansen.session.SessionMethod & nansen.wrapper.extract.Process
     
     methods
         
-        function obj = EXTRACT(varargin)
+        function obj = Quicky(varargin)
             
             % Dont want this to be in charge, use session task/method instead.
-            obj@nansen.wrapper.extract.Processor()
+            obj@nansen.wrapper.quicky.Processor()
             
             % Call the SessionTask constructor last to make sure the
             % session's data I/O model is used.
@@ -27,7 +27,7 @@ classdef EXTRACT < nansen.session.SessionMethod & nansen.wrapper.extract.Process
             
             obj.openSourceStack(sessionData.TwoPhotonSeries_Corrected)
             
-            if ~nargout % how to generalize this???
+            if ~nargout
                 obj.runMethod()
                 clear obj
             end 

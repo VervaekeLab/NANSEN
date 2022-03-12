@@ -11,10 +11,14 @@ classdef extractSignals < nansen.session.SessionMethod
             nansen.OptionsManager(mfilename('class')) % todo...
     end
     
+    properties 
+        RequiredVariables = {'TwoPhotonSeries_Corrected', 'RoiArray'}
+    end
+    
     
     methods (Static)
         function S = getDefaultOptions()
-            S = struct();
+            S = nansen.twophoton.roisignals.extract.getDefaultParameters();
         end
     end
     
@@ -23,7 +27,7 @@ classdef extractSignals < nansen.session.SessionMethod
         function obj = extractSignals(varargin)
             
             obj@nansen.session.SessionMethod(varargin{:})
-
+            
             if ~nargout
                 obj.runMethod()
             end
@@ -36,23 +40,22 @@ classdef extractSignals < nansen.session.SessionMethod
         
         function runMethod(obj)
             
-            sessionData = nansen.session.SessionData(obj.sessionObjects);
-            sessionData.update()
+            sessionData = nansen.session.SessionData(obj.SessionObjects);
+            sessionData.updateDataVariables()
             
             imageData = sessionData.TwoPhotonSeries_Corrected;
-            roiArray = sessionData.RoiArray; %??
-
-            %todo: Options
+            roiArray = sessionData.RoiArray; 
             
-            [signalArray, P] = extractF(imageData, roiArray, varargin)
+            extractF = @nansen.twophoton.roisignals.extractF;
+            [signalArray, P] = extractF(imageData, roiArray, obj.Parameters);
             
             
             % Todo: Save results...
-            
+            obj.saveData('RoiSignalsMeanF', signalArray, 'Subfolder', 'roisignals')
+            obj.saveData('SignalExtractionOptions', P, 'Subfolder', 'roisignals')
+
         end
         
     end
-
-    
 
 end

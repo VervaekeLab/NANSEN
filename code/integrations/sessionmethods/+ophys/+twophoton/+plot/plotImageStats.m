@@ -24,42 +24,45 @@ function varargout = plotImageStats(sessionObj, varargin)
     
     % % % Implementation of the session method
     S = sessionObj.loadData('imageStats');
+    
+    hViewer = signalviewer.App(timeseries(S.meanValue, 'Name', 'Mean Fluorescence'));
+        
+    hViewer.Axes.YLim = [0, 2^16];
 
+    %f = figure;
+    %ax = axes(f); 
     
-    f = figure;
-    ax = axes(f); 
+    %hold(h.Axes, 'on')
     
-    hold(ax, 'on')
-    
-    plot(ax, S.meanValue)
+    %plot(ax, S.meanValue)
     
     cmap = magma(4);
+    axes(hViewer.Axes)
     
     if params.ShowExtremes
-% %         lowerBound = (S.meanValue - S.minimumValue)';
-% %         upperBound = (S.maximumValue - S.meanValue)';
-% %         h = shadedErrorBar([], S.meanValue, [lowerBound; upperBound], 'lineprops',{'color', cmap(:,1)});
-        
-        lowerBound = (S.minimumValue)';
-        upperBound = (S.maximumValue)';
-        plot(ax, lowerBound, 'r')
-        plot(ax, upperBound, 'r')
+        lowerBound = (S.meanValue - S.minimumValue)';
+        upperBound = (S.maximumValue - S.meanValue)';
+        h = shadedErrorBar([], S.meanValue, [upperBound; lowerBound], 'lineprops',{'color', cmap(:,1)});
+        drawnow
 
+%       hViewer.addTimeseries( timeseries(S.minimumValue, 'Name', 'Minimum Level'))
+%       hViewer.addTimeseries( timeseries(S.maximumValue, 'Name', 'Maximum Level'))
     end
     
     if params.ShowPrctile1
         lowerBound = (S.meanValue - S.prctileL1)';
         upperBound = (S.prctileU1 - S.meanValue)';
-        h = shadedErrorBar([], S.meanValue, [lowerBound; upperBound], 'lineprops',{'color', cmap(:,2)});
+        h = shadedErrorBar([], S.meanValue, [upperBound; lowerBound], 'lineprops',{'color', cmap(:,2)});
+        drawnow
     end
     
     if params.ShowPrctile2
         lowerBound = (S.meanValue - S.prctileL2)';
         upperBound = (S.prctileU2 - S.meanValue)';
-        h = shadedErrorBar([], S.meanValue, [lowerBound; upperBound], 'lineprops',{'color', cmap(:,3)});
+        h = shadedErrorBar([], S.meanValue, [upperBound; lowerBound], 'lineprops',{'color', cmap(:,3)});
+        drawnow
     end
     
-    ax.YLim = [0, 2^16];
 
 end
 
