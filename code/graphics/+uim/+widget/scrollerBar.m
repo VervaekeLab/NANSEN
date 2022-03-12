@@ -458,7 +458,8 @@ classdef scrollerBar < uim.handle
             obj.hScrollbarAxes.Units = obj.Units;
             obj.hScrollbarAxes.Position = obj.Position;
             obj.hScrollbarAxes.Tag = 'Scrollbar Axes';
-
+            obj.hScrollbarAxes.HandleVisibility = 'off';
+            
             % Set axes limits to "normalized" units.
             obj.hScrollbarAxes.Visible = 'off';
             hold(obj.hScrollbarAxes, 'on')
