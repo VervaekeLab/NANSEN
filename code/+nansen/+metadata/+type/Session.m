@@ -484,40 +484,52 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             filePath = obj.getDataFilePath(varName, '-w', varargin{:});
             
             S.(varName) = data;
-            save(filePath, '-struct', 'S')
+
+            varInfo = whos('data');
+            byteSize = varInfo.bytes;
             
+            if byteSize > 2^31
+                save(filePath, '-struct', 'S', '-v7.3')
+            else
+                save(filePath, '-struct', 'S')
+            end
         end
         
         function validateVariable(obj, variableName)
         %validateData Does data variable exists?
                     
             dataFilePathModel = nansen.config.varmodel.VariableModel;
+            
+            if ~isa(variableName, 'cell'); 
+                variableName = {variableName}; 
+            end
+            
+            for i = 1:numel(variableName)
+            
+                [S, ~] = dataFilePathModel.getVariableStructure(variableName{i});
+            
+                % Check if data location folder exists:
+                if ~obj.existSessionFolder( S.DataLocation )
+                    errorID = 'NANSEN:Session:FolderNotFound';
+                    errorMsg = sprintf(['No folder exists in the data location "%s" ', ...
+                        'for session %s'], S.DataLocation, obj.sessionID);
+                    error(errorID, errorMsg) %#ok<SPERR>
 
-            [S, ~] = dataFilePathModel.getVariableStructure(variableName);
-            
-            % Check if data location folder exists:
-            if ~obj.existSessionFolder( S.DataLocation )
-                errorID = 'NANSEN:Session:FolderNotFound';
-                errorMsg = sprintf(['No folder exists in the data location "%s" ', ...
-                    'for session %s'], S.DataLocation, obj.sessionID);
-                error(errorID, errorMsg) %#ok<SPERR>
-                
-% %                 [errorId, errorMsg] = obj.getErrorDetails();
-% %                 error(errorId, errorMsg)
+    % %                 [errorId, errorMsg] = obj.getErrorDetails();
+    % %                 error(errorId, errorMsg)
+                end
+
+                filePath = obj.getDataFilePath(variableName{i});
+
+                if ~isfile(filePath)
+                    errorId = 'NANSEN:Session:RequiredDataMissing';
+                    %errorMsg = obj.getErrorMessage(errorId);
+                    errorMsg = sprintf(['The file containing "%s" does not ', ...
+                        'exist or was not found for session "%s"'], ...
+                        variableName{i}, obj.sessionID);
+                    error(errorId, errorMsg) %#ok<SPERR>
+                end
             end
-            
-            filePath = obj.getDataFilePath(variableName);
-            
-            if ~isfile(filePath)
-                errorId = 'NANSEN:Session:RequiredDataMissing';
-                %errorMsg = obj.getErrorMessage(errorId);
-                errorMsg = sprintf(['The file containing "%s" does not ', ...
-                    'exist or was not found for session "%s"'], ...
-                    variableName, obj.sessionID);
-                error(errorId, errorMsg) %#ok<SPERR>
-            end
-            
-            
         end
         
         function tf = existSessionFolder(obj, dataLocationName)
