@@ -1,19 +1,20 @@
 classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 
     % Todo: 
-    %   [ ] Implement a preprocessing function property, for preprocessing
-    %       images before correction. Could be an alternative to running e.g
-    %       stretch correction in the getframeSet method of the rawstack.
     %   [ ] Multichannel support
     
-        
+    
+    properties (Abstract, Constant, Hidden)
+        DATA_SUBFOLDER  % Name of subfolder(s) where to save results by default
+    end
     
     properties (Access = protected) % Data to keep during processing.
-        ToolboxOptions
+        ToolboxOptions  % Options that are in the format of original toolbox
         OriginalStack   % To store value of imagestaack if stack is downsampled
-        Results
+        Results         % Cell array to store temporary results (from each subpart)
     end
-
+    
+    
     methods (Abstract, Access = protected)
         S = getToolboxSpecificOptions(obj)
         results = segmentPartition(obj, y)    
@@ -31,7 +32,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     methods (Access = protected) % Overide ImageStackProcessor methods % Methods for initialization/completion of algorithm
 
         function onInitialization(obj)
-            % Todo...
+        %onInitialization Runs when data method is initialized
             
             obj.ToolboxOptions = obj.getToolboxSpecificOptions();
             
@@ -44,7 +45,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             
             
             %dsFactor = obj.Options.TemporalDownsamplingFactor;
-            dsFactor = 10;
+            dsFactor = obj.getTemporalDownsamplingFactor();
             
             if dsFactor > 1
                 
@@ -99,13 +100,13 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         
         function Y = postprocessImageData(obj, Y)
              
-            
         end
 
     end
     
     
     methods (Access = protected) % Other utiliy methods for roi segmentation
+        
         function runImageSegmentation(obj)
                         
             % Initialize file reference for raw 2p-images
@@ -188,7 +189,10 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
        
         function appendResults(obj)
             
-            
+        end
+        
+        function dsFactor = getTemporalDownsamplingFactor(obj)
+            dsFactor = obj.Options.TemporalDownsamplingFactor;
         end
         
     end
@@ -218,12 +222,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         function tf = preview(obj)
             %TODO:
             
-            %CLASSNAME = class(obj);
             CLASSNAME = obj.ImviewerPluginName();
-            
-            %rawStack = openRawTwoPhotonStack(obj);
-            
-            hImviewer = imviewer(obj.SourceStack);
             
             pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};
             
@@ -236,22 +235,21 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 end
             end
             
-            if isempty(pluginFcn)
-                error('NANSEN:Roisegmentation:PluginMissing', ...
-                    'Plugin for %s was not found', CLASSNAME)
+            if ~isempty(pluginFcn)
+                hImviewer = imviewer(obj.SourceStack);
+                h = hImviewer.openPlugin(pluginFcn, obj.Parameters);
+%                 error('NANSEN:Roisegmentation:PluginMissing', ...
+%                     'Plugin for %s was not found', CLASSNAME)
+                newParameters = h.settings;
+                hImviewer.quit()
+                tf = true;
+            else
+                [newParameters, wasAborted] = tools.editStruct(obj.Parameters);
+                tf = ~wasAborted;
             end
             
-            h = hImviewer.openPlugin(pluginFcn, obj.Parameters);
-            
-            %h = imviewer.plugin.(CLASSNAME)(hImviewer, obj.Parameters);
-            %h = nansen.plugin.imviewer.(CLASSNAME)(hImviewer, obj.Parameters);
-            
-            obj.Parameters = h.settings;
-            
-            hImviewer.quit()
-            
-            tf = true;
-            
+            obj.Parameters = newParameters;
+
         end
         
         
@@ -262,7 +260,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         function opts = initializeOptions(obj, opts, optionsVarname)
         % Get filepath for saving options file to session folder
             filePath = obj.getDataFilePath(optionsVarname, '-w', ...
-                'Subfolder', 'image_segmentation');
+                'Subfolder', obj.DATA_SUBFOLDER);
             
             % And check whether it already exists on file...
             if isfile(filePath)
@@ -283,16 +281,11 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             else % Save to file if it does not already exist
                 % Save options to session folder
                 obj.saveData(optionsVarname, opts, ...
-                    'Subfolder', 'image_segmentation')
+                    'Subfolder', obj.DATA_SUBFOLDER)
             end
             
         end
         
     end
     
-
-    
-    
-
-
 end
