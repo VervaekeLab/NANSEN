@@ -1997,7 +1997,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             catch ME
                 throwAsCaller(ME)
-                rethrow(ME)
+                %rethrow(ME)
             end
             
             
@@ -2071,13 +2071,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     sessionObj{i}.updateProgress(sessionMethod, 'Completed')
 
                 catch ME
-                    
-                    errorMessage = sprintf('Session method ''%s'' failed for session ''%s''.\n', ...
-                        taskName, sessionObj{i}.sessionID);
-                    errordlg([errorMessage, ME.message])
-                    rethrow(ME)
+                    app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
+                        func2str(sessionMethod))
                 end
-                %pause(2)
                 
             end
             
@@ -2097,37 +2093,47 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             numTasks = numel(sessionObj);
             for i = 1:numTasks
                 
-                sMethod = sessionMethod();
-                
-                % Open the options / method in preview mode
-                if isa(sMethod, 'nansen.session.SessionMethod')
-                    sMethod = sessionMethod(sessionObj{i});
-                    sMethod.usePreset(optsName)
-                    
-                    isSuccess = sMethod.preview();
+                try
+                    sMethod = sessionMethod();
 
-                    if isSuccess
-                        sMethod.run()
-                        sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                    % Open the options / method in preview mode
+                    if isa(sMethod, 'nansen.session.SessionMethod')
+                        sMethod = sessionMethod(sessionObj{i});
+                        sMethod.usePreset(optsName)
+
+                        isSuccess = sMethod.preview();
+
+                        if isSuccess
+                            sMethod.run()
+                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                        end
+
+                        % Update session task menu (in case new options were defined...)
+                        app.SessionTaskMenu.refresh()
+                        % Todo: Only refresh this submenu.
+                        % Todo: Only refresh if options sets were added. 
+
+                    else
+                        fcnName = func2str(sessionMethod);
+                        
+                        if ~isempty(fieldnames(opts))
+                            optManager = nansen.manage.OptionsManager(fcnName, opts, optsName);
+                            [~, opts, wasAborted] = optManager.editOptions();
+                        else
+                            msgbox('This method does not have any parameters')
+                            wasAborted = false;
+                        end
+
+                        if ~wasAborted
+                            sessionMethod(sessionObj{i}, opts)
+                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                        end
                     end
-                    
-                    % Update session task menu (in case new options were defined...)
-                    app.SessionTaskMenu.refresh()
-                    % Todo: Only refresh this submenu.
-                    % Todo: Only refresh if options sets were added. 
-                    
-                else
-                    fcnName = func2str(sessionMethod);
-                    optManager = nansen.manage.OptionsManager(fcnName, opts, optsName);
-                    
-                    [~, opts, wasAborted] = optManager.editOptions();
-                    
-                    if ~wasAborted
-                        sessionMethod(sessionObj{i}, opts)
-                        sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-                    end
+
+                catch ME
+                    app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
+                        func2str(sessionMethod))
                 end
-
             end
 
         end
@@ -2154,6 +2160,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     taskId = sessionObj{i}.sessionID;
                 end
                 
+                % Todo: Make preliminary test to check if method will run,
+                % i.e check required variables
+                
                 % Prepare input args for function (session object and 
                 % options)
                 
@@ -2164,7 +2173,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                                 sessionMethod, 0, methodArgs, optsName )
             end
         end
-        
+
         function createBatchList2(app, mode)
             
             figName = sprintf( 'List of %s Tasks', mode);
@@ -2500,7 +2509,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
    
     
     methods (Static)
-        
     
         function tf = isOpen()
         %ISOPEN Check if app figure is open bring to focus if it is.
@@ -2531,6 +2539,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             warning(newState, 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
         end
         
+        function throwSessionMethodFailedError(ME, sessionObj, methodName)
+            
+            % Todo: Use a messagebox widget to show error message
+            
+            errorMessage = sprintf('Session method ''%s'' failed for session ''%s''.\n', ...
+                methodName, sessionObj.sessionID);
+            errordlg([errorMessage, ME.message])
+            throwAsCaller(ME)
+        end
     end
         
     
