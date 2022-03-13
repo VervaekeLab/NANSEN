@@ -58,7 +58,9 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %   
 %     [ ] Preview mode where images are opened in imviewer
 %
-
+%     [ ] Save intermediate results in processParts. I.e expand so that if
+%     there are additional results (not just processed imagedata), it is
+%     also saved (see e.g. RoiSegmentation)
 %
 %     [ ] Add logging/progress messaging 
 %     [x] Created print task method.
@@ -205,8 +207,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             opts = obj.Options;
             opts.Run.runOnSeparateWorker = false;
             
-            args = {obj.SourceStack, opts};
-            
+            % Todo: should reconcile this, using a dataiomodel
+            %args = {obj.SourceStack, opts};
+            args = {obj.SessionObjects, opts};
+
             batchFcn = str2func( class(obj) );
             
             job = batch(batchFcn, 0, args, ...
@@ -229,8 +233,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
     end
     
-    
-    methods (Access = protected, Sealed)
+    methods (Access = protected, Sealed) % initialize/processParts/finish
                 
         function initialize(obj)
             
@@ -239,10 +242,11 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %                 return;
 %             end
             
-            obj.printTask(sprintf('Initializing method: %s', class(obj)))
 
-            % Todo: Make sure SourceStack is assigned here!
+            % Check if SourceStack has been assigned.
             assert(~isempty(obj.SourceStack), 'SourceStack is not assigned')
+            
+            obj.printTask(sprintf('Initializing method: %s', class(obj)))
             
             % Todo: Check if options exist from before, i.e we are resuming
             % this method on data that was already processed.
@@ -279,13 +283,13 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 return
             end
             
-            obj.printTask(sprintf('Running method: %s', class(obj) ) )
-            obj.printTask(sprintf('ImageStack will be processed in %d parts', numel(partsToProcess)))
+            obj.printSubTask(sprintf('Running method: %s', class(obj) ) )
+            obj.printSubTask(sprintf('ImageStack will be processed in %d parts', numel(partsToProcess)))
 
             % Loop through 
             for iPart = partsToProcess
                 
-                obj.printTask(sprintf('Processing part %d/%d', iPart, obj.NumParts))
+                obj.printSubTask(sprintf('Processing part %d/%d', iPart, obj.NumParts))
 
                 iIndices = IND{iPart};
                 
@@ -391,6 +395,21 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
     end
     
+    methods (Access = protected) % Methods for printing commandline output
+    
+        function printInitializationMessage(obj)
+            % Todo...
+            obj.printTask(sprintf('Initializing method: %s', class(obj)))
+        end
+        
+        function printSubTask(obj, varargin)
+            msg = sprintf(varargin{:});
+            nowstr = datestr(now, 'HH:MM:ss');
+            fprintf('%s (%s): %s\n', nowstr, obj.MethodName, msg)
+        end
+        
+    end
+        
     methods (Access = private)
         
         function partsToProcess = getPartsToProcess(obj, frameInd)
@@ -403,6 +422,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         %   PartsToProcess property. Also if parts are processed from 
         %   before, they will be skipped, unless the RedoProcessedParts
         %   property is set to true
+        
+        % Note: frameInd might be used by subclasses(?)
        
             % Set the parts to process.
             if strcmp(obj.PartsToProcess, 'all')
@@ -438,19 +459,16 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
         end
         
+
     end
     
     
     methods (Static)
-        
         function printTask(varargin)
-            
-            
             msg = sprintf(varargin{:});
-            nowstr = datestr(now, 'HH:MM:ss ');
-            fprintf('%s %s\n', nowstr, msg)
+            nowstr = datestr(now, 'HH:MM:ss');
+            fprintf('%s: %s\n', nowstr, msg)
         end
-        
     end
     
 end 
