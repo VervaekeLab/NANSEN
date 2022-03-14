@@ -1,4 +1,4 @@
-classdef Session < nansen.metadata.abstract.BaseSchema
+classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessionData
 %Session A generic metadata schema for an experimental session.
 %
 %
@@ -21,6 +21,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
 %           datalocation struct. Should session inherit HasDataLocationModel???
 %           This would be quite handy... How would performance be with so
 %           many listeners???
+%       [ ] Create a HasSessionInfo(?) class and make a session class that is not a "metadata" class, which subclasses hasSessionInfo and HasSessionData 
 
 
     % Implement superclass abstract property
@@ -68,21 +69,17 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         % and assign in constructor
         
     end
-    
-    properties
-        Data
-    end
 
-    
     methods % Constructor
         function obj = Session(varargin)
             
             obj@nansen.metadata.abstract.BaseSchema(varargin{:})
-            
+            obj@nansen.session.HasSessionData()
+
             if isempty(varargin)
                 return; 
             end
-            
+
             % Todo: Inherit from assignPVPairs??
             [nvPairs, ~] = utility.getnvpairs(varargin);
             for i = 1:2:numel(nvPairs)
