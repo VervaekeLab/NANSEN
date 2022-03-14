@@ -108,9 +108,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         end
         
         function dsFactor = getTemporalDownsamplingFactor(obj)
-            dsFactor = obj.Options.Downsample.downsample_time_by;
-            dsFactor = 10;
+            % Todo:
+            %dsFactor = obj.Options.Downsample.downsample_time_by;
             %obj.Options.Downsample.downsample_time_by = 1;
+            dsFactor = 10;
         end
         
         function tf = checkIfPartIsFinished(obj, partNumber)
@@ -199,6 +200,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             % Load subset of downsampled image stack
             N = obj.SourceStack.chooseChunkLength();
+            N = min([N, obj.SourceStack.NumTimepoints]);
+            
             imArray = obj.SourceStack.getFrameSet(1:N);
             
             % Load roiArray
@@ -242,7 +245,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             % Save to roi file...
             filePath = obj.getDataFilePath('roiArrayExtractAuto');
             S = struct('roiImages', roiImages, 'roiStats', roiStats);
-            save(filePath, '-struct', 'S', '-append', '-v7.3') 
+            save(filePath, '-struct', 'S', '-append') 
             
             %tic; S = load(filePath); toc
             
