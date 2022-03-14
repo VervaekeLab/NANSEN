@@ -2546,7 +2546,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             errorMessage = sprintf('Session method ''%s'' failed for session ''%s''.\n', ...
                 methodName, sessionObj.sessionID);
             errordlg([errorMessage, ME.message])
-            throwAsCaller(ME)
+            rethrow(ME)
         end
     end
         
