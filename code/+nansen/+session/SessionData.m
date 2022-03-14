@@ -1,4 +1,4 @@
-classdef SessionData < dynamicprops
+classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay
 %SessionData Class that provides access to File Variables in DataLocations 
 % 
 %
@@ -34,12 +34,17 @@ classdef SessionData < dynamicprops
     end
     
     properties (Access = private)
-        VariableList = {};
+        State = 'uninitialized';
+        VariableList struct
         FileList containers.Map
     end
     
+    properties (Access = private, Dependent)
+        VariableNames
+    end
     
-    methods
+    
+    methods (Hidden) % Constructor
         
         function obj = SessionData(sessionObj)
                         
@@ -65,10 +70,31 @@ classdef SessionData < dynamicprops
         
     end
     
-    
-    
     methods
-        function updateDataVariables(obj)
+        
+        function initialize(obj)
+            obj.updateDataVariables()
+        end
+        
+        function update(obj)
+            obj.updateDataVariables()
+        end
+        
+    end
+    
+    methods 
+        function varNames = get.VariableNames(obj)
+            if isempty(obj.VariableList)
+                varNames = {};
+            else
+                varNames = {obj.VariableList.VariableName};
+            end
+        end
+    end
+    
+    methods (Hidden)
+        
+        function obj = updateDataVariables(obj)
             
             varNames = {obj.DataFilePathModel.VariableList.VariableName};
             
@@ -79,6 +105,7 @@ classdef SessionData < dynamicprops
                     if isfile(filePath)
                         if ~isprop(obj, varNames{i})
                             obj.addDataProperty(varNames{i})
+                            obj.appendToVariableList(obj.DataFilePathModel.VariableList(i))
                         end
                     end
                 catch
@@ -86,6 +113,8 @@ classdef SessionData < dynamicprops
                     % need to do something...
                 end
             end
+            
+            obj.State = 'initialized';
             
         end
 
@@ -134,7 +163,7 @@ classdef SessionData < dynamicprops
         
         
             if nargin < 2
-                varNames = obj.VariableList;
+                varNames = obj.VariableNames;
             else
                 varNames = obj.getDataType(dataType);
             end
@@ -173,7 +202,6 @@ classdef SessionData < dynamicprops
         function addDataProperty(obj, variableName)
             pPuplic = obj.addprop(variableName);
             
-            
             % Add a private property that will hold the actual data.
             privateVariableName = strcat(variableName, '_');
             pPrivate = obj.addprop(privateVariableName);
@@ -186,10 +214,17 @@ classdef SessionData < dynamicprops
             
             %pPuplic.SetMethod = @obj.setDataVariable;
             pPuplic.SetAccess = 'private'; %todo: Add set functionality
-            obj.VariableList{end+1} = variableName;
 
         end
-      
+        
+        function appendToVariableList(obj, variableItem)
+            if isempty(obj.VariableList)
+                obj.VariableList = variableItem;
+            else
+                obj.VariableList(end+1) = variableItem;
+            end
+        end
+        
         function value = getDataVariable(obj, varName)
             privateVarName = strcat(varName, '_');
             
@@ -211,12 +246,38 @@ classdef SessionData < dynamicprops
         end
         
         function setDataVariable(obj, varargin)
-            disp('so far so goooood')
+            disp('variables can only be read for now')
         end
         
+        function str = getHeader(obj)
+            str = getHeader@matlab.mixin.CustomDisplay(obj);
+            className = strrep(class(obj), 'nansen.session.', '');
+            str = strrep(str, '>SessionData<', sprintf('>%s<', className));
+            str = strrep(str, 'properties', 'data variables');
+        end
+        
+        function propgrp = getPropertyGroups(obj)
+
+            isDefault = [obj.VariableList.IsDefaultVariable];
+            
+            propNames{1} = {obj.VariableList(isDefault).VariableName};
+            propNames{2} = {obj.VariableList(~isDefault).VariableName};
+            
+            propgrp = [ ...
+                matlab.mixin.util.PropertyGroup(sort(propNames{1}), 'Default Variables:'), ...
+                matlab.mixin.util.PropertyGroup(sort(propNames{2}), 'Custom Variables:') ...
+                ];
+
+        end
     end
     
     methods (Sealed, Hidden)
+        
+        function T = addprop(obj, varargin)
+            T = addprop@dynamicprops(obj, varargin{:});
+            if ~nargout; clear T; end
+        end
+        
         function varargout = subsref(obj, s)
             
             % Preallocate cell array of output.
@@ -297,8 +358,17 @@ classdef SessionData < dynamicprops
             end
                     
         end
-    end
+        
+        function clsName = class(obj)
             
+            clsName = builtin('class', obj);
+            
+            if strcmp(obj.State, 'uninitialized')
+                clsName = sprintf('%s (%s)', clsName, obj.State);
+            end
+            
+        end
+    end
             
     methods (Access = protected) % Load data variables
         

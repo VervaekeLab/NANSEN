@@ -68,6 +68,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         % and assign in constructor
         
     end
+    
+    properties
+        Data
+    end
 
     
     methods % Constructor
@@ -98,8 +102,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             % Need to update data locations based on data location model
             if ~isempty(obj(1).DataLocationModel)
                 obj.refreshDataLocations()
+                obj.Data = nansen.session.SessionData(obj);
             end
-            
             
             % Todo: Should DataSet/DataIoModel/DataCollection be set
             % assigned from default project datalocation if it is not given
@@ -377,6 +381,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             S = toStruct@nansen.metadata.abstract.BaseSchema(obj);
             if isfield(S, 'DataLocationModel')
                 S = rmfield(S, 'DataLocationModel');
+            end
+            if isfield(S, 'data')
+                S = rmfield(S, 'data');
             end
         end
         
