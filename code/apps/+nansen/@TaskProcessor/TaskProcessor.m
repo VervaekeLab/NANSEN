@@ -14,6 +14,9 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 %       weird to pull it out from the argsfield when needed
 
 
+% Note: If changes are made on session class, it will not work to load task
+%       lists that contains sessions!
+
 %% PROPERTIES
 
     properties
@@ -155,6 +158,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 @hReferenceApp.onMetaObjectPropertyChanged);
         end
         
+
         function submitJob(obj, name, func, numOut, args, optsName, comments)
         % submitJob Submit a job to the task processor
         %------------------------------------------------------------------
@@ -180,20 +184,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
             if nargin < 7; comments = ''; end
             
-            % Create a struct for the items and a table row for the table
-            newTask.name = name;
-            newTask.method = func;
-            newTask.methodName = utility.string.varname2label( func2str(func) );
-            newTask.status = 'Queued';
-            newTask.numOut = numOut;
-            newTask.args = args;
-            newTask.timeCreated = datestr(now, 'yyyy.mm.dd HH:MM:SS');
-            newTask.timeStarted = '';
-            newTask.elapsedTime = ''; 
-            newTask.timeFinished = ''; 
-            newTask.parameters = optsName;
-            newTask.comments = comments;
-
+            newTask = obj.createTaskItem(name, func, numOut, args, optsName, comments);
+            
             % Add to items of the task queue.
             if isempty(obj.TaskQueue)
                 obj.TaskQueue = newTask;
@@ -204,7 +196,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % Add item to ui table view
             evtData = uiw.event.EventData('Table', 'Queue', 'Task', newTask);
             obj.notify('TaskAdded', evtData)
-            
             
             if obj.RunTasksWhenQueued
                 obj.setTaskStatus('Initialize', obj.NumQueuedTasks)
@@ -487,27 +478,50 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             obj.runningTask = [];
             obj.Status = 'idle';
             
-            % Add to items of the task queue.
-            if isempty(obj.TaskHistory)
-                obj.TaskHistory = completedTask;
-            else
-                obj.TaskHistory = cat(2, completedTask,  obj.TaskHistory);
-            end
-            
             % Remove task from queue table (trigger event)
             eventData = uiw.event.EventData('Table', 'Queue', 'TaskIdx', 1);
             obj.notify('TaskRemoved', eventData)
             
-            % Add task to history table (trigger event)
-            evtData = uiw.event.EventData('Table', 'History', 'Task', completedTask);
-            obj.notify('TaskAdded', evtData)
-
+            obj.addTaskToHistory(completedTask)
+            
             % Start new task
             if obj.isRunning && ~strcmpi(mode, 'cancel')
                 obj.startTask() 
             end
             
         end % /function finishTask
+        
+        function addTaskToHistory(obj, taskItem)
+        %addTaskToHistory Add task to history and trigger event.
+        
+            % Add to items of the task queue.
+            if isempty(obj.TaskHistory)
+                obj.TaskHistory = taskItem;
+            else
+                obj.TaskHistory = cat(2, taskItem,  obj.TaskHistory);
+            end
+
+            % Add task to history table (trigger event)
+            evtData = uiw.event.EventData('Table', 'History', 'Task', taskItem);
+            obj.notify('TaskAdded', evtData)
+            
+        end
+        
+        function addCommandWindowTaskToHistory(obj, taskItem)
+        %addCommandWindowTaskToHistory Add task item (from command window) 
+            
+            % Todo: Streamline a bit more, and combine with similar parts
+            % from updateTaskWhenFinished.
+            
+            date2str = @(dt) datestr(dt, 'yyyy.mm.dd HH:MM:SS');
+            taskItem.timeFinished = date2str(now);
+        
+            elapsedDuration = datetime(now, 'ConvertFrom', 'datenum') - taskItem.timeStarted;
+            taskItem.elapsedTime = datestr(elapsedDuration, 'HH:MM:SS');
+
+            obj.addTaskToHistory(taskItem)
+            
+        end
         
 % % % % Methods related to managing tasks in the Queue and History list
         function setTaskStatus(obj, action, taskIdx)
@@ -574,6 +588,29 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     end
     
     methods (Static)
+        
+        function newTask = createTaskItem(name, func, numOut, args, optsName, comments)
+            
+            if nargin < 7; comments = ''; end
+            
+            % Create a struct for the items and a table row for the table
+            newTask.name = name;
+            newTask.method = func;
+            newTask.methodName = utility.string.varname2label( func2str(func) );
+            newTask.status = 'Queued';
+            newTask.numOut = numOut;
+            newTask.args = args;
+            newTask.timeCreated = datestr(now, 'yyyy.mm.dd HH:MM:SS');
+            newTask.timeStarted = '';
+            newTask.elapsedTime = ''; 
+            newTask.timeFinished = ''; 
+            newTask.parameters = optsName;
+            newTask.comments = comments;
+            newTask.Diary = '';
+            newTask.ErrorStack = [];
+            
+        end
+        
         function pathStr = getDefaultTaskListFilePath()
         %getTaskListFilePath Get filepath for task lists
         %

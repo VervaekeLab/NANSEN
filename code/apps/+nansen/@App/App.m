@@ -2065,12 +2065,28 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Update the status field
                 app.updateStatusField(i-1, numTasks, sessionMethod)
                 
+                newTask = app.BatchProcessor.createTaskItem(sessionObj{i}.sessionID, ...
+                    sessionMethod, 0, sessionObj(i), 'Default', 'Command window task');
+
+                logfile = fullfile(tempdir, 'temp_logfile');
+                c = onCleanup(@() delete(logfile));
+                diary(logfile)
+                
+                newTask.timeStarted = datetime(now,'ConvertFrom','datenum');
+                
                 % Run the task
                 try
                     sessionMethod(sessionObj{i}, opts)
                     sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-
+                    newTask.status = 'Completed';
+                    diary off
+                    newTask.Diary = fileread(logfile);
+                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
                 catch ME
+                    newTask.status = 'Failed';
+                    newTask.Diary = fileread(logfile);
+                    newTask.ErrorStack = ME;
+                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
                     app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
                         func2str(sessionMethod))
                 end
@@ -2089,6 +2105,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %
             % While still retaining the functionality for session methods
             % implemented through functions??
+            
+            % Todo: Add task to history.
             
             numTasks = numel(sessionObj);
             for i = 1:numTasks
