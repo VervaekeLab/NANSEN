@@ -349,7 +349,17 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         % % % Methods for getting all cached data
 
         function data = getCachedFrames(obj)
-            data = obj.DynamicFrameCache.fetchData();
+            
+            data = [];
+            
+            if obj.HasStaticCache
+                data = obj.StaticFrameCache.fetchData();
+            end
+            
+            if obj.UseDynamicCache
+                data = obj.DynamicFrameCache.fetchData();
+            end
+
         end
         
         function data = getStaticCache(obj)

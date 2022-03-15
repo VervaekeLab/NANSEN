@@ -311,15 +311,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         if obj.Data.HasCachedData
                             imArray = obj.Data.getCachedFrames();
                         else
-                            numFrames = min([obj.NumTimepoints, 500]);
-                            imArray = obj.getFrameSet(1:numFrames);
+                            imArray = [];
                         end
                     catch
-                        imArray = obj.Data(indexingSubs{:});
+                        imArray = [];
                     end
                     
                     if isempty(imArray) % If cache is empty, get images directly from Data
-                        imArray = obj.Data(indexingSubs{:});
+                        numFrames = min([obj.NumTimepoints, 500]);
+                        imArray = obj.getFrameSet(1:numFrames);
                     end
 
                 else
@@ -605,8 +605,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if dim == 3 && numel(obj.CurrentChannel) > 1 
                 dim = 4;
             end
-            
-            
+
             
             % Calculate the projection image
             switch lower(projectionName)
@@ -729,6 +728,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 case 'C'
                     N = N / obj.NumPlanes / obj.NumTimepoints;
             end
+            
             
         end
         
@@ -1277,7 +1277,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 case 'off'
                     if ~isempty(obj.CacheChangedListener)
                         delete(obj.CacheChangedListener)
-                        obj.CacheChangedListener = [];
+                        obj.CacheChangedListener = event.listener.empty;
                     end
             end
             
