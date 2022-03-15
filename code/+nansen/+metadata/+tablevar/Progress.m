@@ -92,17 +92,21 @@ classdef Progress < nansen.metadata.abstract.TableVariable
 % %             end
 
             pipelineStruct = obj.Value;
-            
+            progressTooltipString = '';
+
             if isa(pipelineStruct, 'cell')
                 pipelineStruct = pipelineStruct{1};
             end
             
             if isempty(pipelineStruct)
-                progressTooltipString = '';
+                return
             else
+                if ~isfield(obj.Value, 'TaskList')
+                    return
+                end
                 
-                % Create a struct for the struct array...
-                progressStruct = obj.taskList2TaskStatus(obj.Value.TaskList);
+                % Create a struct for the struct array...   
+                progressStruct = obj.taskList2TaskStatus(obj.Value.TaskList);   %#ok<NASGU>
                 
                 % Format struct into a multiline string:
                 structStr = evalc('disp(progressStruct)');
