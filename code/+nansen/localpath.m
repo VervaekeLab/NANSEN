@@ -121,6 +121,11 @@ function pathStr = localpath(pathKeyword, projectName)
         case 'DataLocationSettings'
             folderPath = fullfile(projectRootDir, 'Configurations');
             fileName = 'datalocation_settings.mat';
+            
+        case 'SessionMatchMaker'
+            [~, projectName] = fileparts(projectRootDir);
+            folderPath = fullfile(projectRootDir, ['+', projectName]);
+            fileName = 'matchFolderListWithSessionID.m';
               
         otherwise
             % open dialog and save to preferences or get from preferences
