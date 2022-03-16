@@ -42,6 +42,7 @@ function virtualData = open(pathStr, varargin)
         case {'.tif', '.tiff'}
             
             imInfo = Tiff(pathStr{1});
+            virtualData = [];
             
             try
                 softwareName = imInfo.getTag('Software');
@@ -49,6 +50,10 @@ function virtualData = open(pathStr, varargin)
                     virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
                 end
             catch
+                % Do nothing.
+            end
+            
+            if isempty(virtualData)
                 if numel(pathStr) > 1
                     virtualData = nansen.stack.virtual.TiffMultiPart(pathStr, varargin{:}, nvPairs{:});
                 else
