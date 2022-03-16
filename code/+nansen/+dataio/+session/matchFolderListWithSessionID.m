@@ -9,7 +9,7 @@ function isMatch = matchFolderListWithSessionID(folderList, sessionID)
         isMatch = contains(folderList, sessionID);
         
     else
-        matchMakerFcn = utility.path.abspath2funcname(filePath);
+        matchMakerFcn = strfunc( utility.path.abspath2funcname(filePath) );
         isMatch = matchMakerFcn(folderList, sessionID);
     end
 
