@@ -355,7 +355,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     
     methods (Static) % Method in external file.
         options = getDefaultOptions()
-        
         pathList = getDependentPaths()
     end
 

@@ -21,7 +21,7 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
 
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
-    ATTRIBUTES = {'serial', 'queueable'};
+    ATTRIBUTES = {'serial', 'unqueueable'};
     
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 

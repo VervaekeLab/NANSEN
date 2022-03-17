@@ -21,7 +21,9 @@ classdef EXTRACT < nansen.session.SessionMethod & nansen.wrapper.extract.Process
             
             % Todo: ParseVararginForOptions Move to session method???
             obj.checkArgsForOptions(varargin{:});
-                        
+
+            obj.SessionObjects.validateVariable('TwoPhotonSeries_Corrected')
+
             sessionData = nansen.session.SessionData( varargin{1} );
             sessionData.updateDataVariables()
             
