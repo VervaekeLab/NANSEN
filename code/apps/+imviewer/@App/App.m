@@ -1118,7 +1118,7 @@ methods % App initialization & creation
         
         if obj.imHeight==0 || obj.imWidth == 0; return; end
         if obj.nFrames == 1; return; end
-        return
+        %return
         
         % Only proceed if this widget is not initialized/present.
         if ~isfield(obj.uiwidgets, 'thumbnailSelector') || ...
@@ -2034,6 +2034,7 @@ methods % App update
             pluginOptions = struct.empty;
         end
         
+        % Require function handle for plugin.
         if ischar(pluginName)
             pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
             pluginFcn = str2func(pluginFcnName);
@@ -2041,6 +2042,7 @@ methods % App update
             pluginFcn = pluginName;
         end
             
+        % Create the plugin
         hPlugin = pluginFcn(obj, pluginOptions, varargin{:});
 
         if ~nargout
@@ -4514,6 +4516,8 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         if ~obj.isMouseInApp; return; end
 
+        % Todo: This only holds the pointermanager. Should make it into an
+        % interface.., not a plugin. 
         if ~isempty(obj.plugins)
             for i = 1:numel(obj.plugins)
                 try
@@ -4525,6 +4529,9 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 end
             end
         end
+        
+        wasCaptured = obj.sendKeyEventToPlugins([], event);
+        if wasCaptured; return; end
         
         
         if contains('shift', event.Modifier)
@@ -5274,6 +5281,20 @@ methods (Static)
         
         hApp = getappdata(openFigures(figInd), 'ViewerObject');
     
+    end
+    
+    
+    function pluginFcn = getPluginFcnFromName(pluginName)
+        pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};
+
+        pluginFcn = [];
+        for i = 1:2
+            pluginFcnName = strjoin([pluginPackage(i), pluginName], '.');
+            str = which(pluginFcnName);
+            if ~isempty(str)
+                pluginFcn = str2func(pluginFcnName);
+            end
+        end
     end
     
     function installPlugin()
