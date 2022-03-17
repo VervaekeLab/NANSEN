@@ -47,12 +47,17 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     %   [ ] Save 25th prctile (or better approximation to baseline) stack 
     %
     %   [ ] Need to load image stats. Also, nice to update imagestats if
-    %   they are not available...
+    %       they are not available...
 
+    
     properties (Abstract, Constant)
         ImviewerPluginName
     end
 
+    properties (Dependent, SetAccess = private)
+        RecastOutput        % Flag for whether to recast output.
+    end
+    
     properties (Access = protected) % Data to keep during processing.
         ToolboxOptions      % Options for specific toolbox that is used for image registration
         ImageStats          % Array of imagestats...
@@ -112,12 +117,40 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
     end
     
+    methods 
+        function recastOutput = get.RecastOutput(obj)
+        %RecastOutput Determine if output needs to be recast.    
+            dataTypeIn = obj.SourceStack.DataType;
+            dataTypeOut = obj.Options.Export.OutputDataType;
+            recastOutput = ~strcmp(dataTypeIn, dataTypeOut);
+        end
+    end
+    
     methods (Access = protected) % Overide ImageStackProcessor methods
+                
+        function runPreInitialization(obj)
+        %onPreInitialization Method that runs before the initialization step    
+            
+            % Determine how many steps are required for the method
+            
+            obj.NumSteps = 1;
+            obj.StepDescription = {obj.MethodName};
+            
+            % 1) Check if stack should be recast before saving.
+            if obj.RecastOutput
+                % Need to compute pixel statistics for source stack..
+                obj.NumSteps = obj.NumSteps + 1;
+                descr = 'Compute pixel statistics';
+                obj.StepDescription = [descr, obj.StepDescription];
+            end
+            
+        end
         
         function onInitialization(obj)
             
             % Store basic info about the raw image stack in local variables
             stackSize = size(obj.SourceStack.Data);
+            obj.validateStackSize(stackSize)
 
             % Get options (preconfigs) for the normcorre registration
             % Todo: Different toolboxes might require different inputs.
@@ -126,32 +159,23 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Todo: Validate options. I.e, if processor is run again, some
             % of the options should be the same... 
             
-            
-            % todo: channels (and planes)...
-            if numel(stackSize) > 3
-                error('Multi channel and/or multiplane stacks are not supported yet')
-            elseif numel(stackSize) == 3
-                numFrames = stackSize(3);
-            else
-                error('Can not motion correct stack with less than 3 dimensions...')
-            end
-            
-            
-            dataTypeIn = obj.SourceStack.DataType;
-            dataTypeOut = obj.Options.Export.OutputDataType;
-            recastOutput = ~strcmp(dataTypeIn, dataTypeOut);
-            
-            if recastOutput % Calculate imagestats if needed (for recasting).
-                stack.methods.computeImageStats(obj.SourceStack, ...
-                    'DataIoModel', obj.DataIoModel)
+            if obj.RecastOutput % Calculate imagestats if needed (for recasting).
+                obj.displayStartCurrentStep()
+                processor = stack.methods.computeImageStats(obj.SourceStack, ...
+                    'DataIoModel', obj.DataIoModel);
+                processor.IsSubProcess = true;
+                processor.runMethod()
+                obj.displayFinishCurrentStep()
             end
 
+            numFrames = stackSize(end); % Todo...
+            dataTypeIn = obj.SourceStack.DataType;
             
             % Open output file
-            obj.openOutputFile(stackSize, dataTypeOut);
+            dataTypeOut = obj.Options.Export.OutputDataType;
+            obj.openTargetStack(stackSize, dataTypeOut);
             
             obj.ImageStats = obj.getImageStats(numFrames); % Todo: Remove???
-            
             
             % Initialize (or load) results
             obj.initializeShifts(numFrames);
@@ -280,7 +304,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             minVal = prctile(obj.ImageStats.prctileL2, 5);
             Y = Y + minVal;
 
-            
             % Correct drift.
             obj.Options.General.correctDrift = true;
             if iPart ~= 1 && obj.Options.General.correctDrift
@@ -343,45 +366,28 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 obj.MaxProjectionStack.writeFrameSet(maxProj, iPart)
             end
             
-        
             % Important: Do this last, because shifts are used to check if 
             % current part is corrected or not.
             obj.saveShifts()
-            
-            
         end
-        
     end
-    
-    methods % Implementation of abstract, public methods
-        
-        function tf = preview(obj) % -> imageStackProcessor
-            
-            %CLASSNAME = class(obj);
-            CLASSNAME = obj.ImviewerPluginName;
-           
-            rawStack = openRawTwoPhotonStack(obj, true);
-            rawStack.DynamicCacheEnabled = 'on';
-            
-            hImviewer = imviewer(rawStack);
-            
-            optionsName = obj.OptionsManager.OptionsName;
-            
-            h = hImviewer.openPlugin(CLASSNAME, obj.Parameters, optionsName);
-            % Will continue when the plugin is closed.
-            
-            obj.Parameters = h.settings;
-            tf = ~h.wasAborted;
 
-            delete(h)
-            hImviewer.quit()
+    methods (Access = protected)
+           
+        function openTargetStack(obj, stackSize, dataType)
+
+            % Get file reference for corrected stack
+            DATANAME = 'TwoPhotonSeries_Corrected';
+            filePath = obj.getDataFilePath( DATANAME );
             
+            % Call method of ImageStackProcessor
+            openTargetStack@nansen.stack.ImageStackProcessor(obj, filePath, stackSize, dataType)
+            
+            % Make sure caching is turned off...
+            obj.TargetStack.Data.UseDynamicCache = false;
+
         end
         
-    end
-    
-    methods (Access = protected)
-               
         function opts = initializeOptions(obj, opts, optionsVarname)
         % Get filepath for saving options file to session folder
 
@@ -416,87 +422,35 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     
     methods (Access = private)
 
-        
-        % Todo: Remove... This is done here: imagestackprocessor.parseImageStackInput
-        function rawStack = openRawTwoPhotonStack(obj, skipPrecomputeStats)
-                  
-        %   INPUT:
-        %       quickOpen : Flag for opening without calculating image
-        %       stats
-        
-            if nargin < 2
-                skipPrecomputeStats = false; 
+        function validateStackSize(~, stackSize)
+        %validateStackSize Check if stack has correct size for motion corr    
+            
+            % todo: channels (and planes)...
+            if numel(stackSize) > 3
+                error('Multi channel and/or multiplane stacks are not supported yet')
+            elseif numel(stackSize) == 3
+                % This is fine:)
+            else
+                error('Can not motion correct stack with less than 3 dimensions...')
             end
             
-            %Todo: Should this be a method of a TwoPhotonSession class?
+        end
+        
+        function rawStack = openRawTwoPhotonStack(obj)
+            
+            % Not sure if this will be ever used..
+            
             % Get filepath for raw 2p-images
             DATANAME = 'TwoPhotonSeries_Original';
             filePath = obj.SessionObjects.getDataFilePath(DATANAME);
             
             % Initialize file reference for raw 2p-images
             rawStack = nansen.stack.ImageStack(filePath);
-            return
-            
-            S = obj.getDefaultOptions();
-            
-            numFrames = rawStack.NumTimepoints;
-            imageStats = obj.getImageStats(numFrames);
-            
-            % Todo: Can this be improved or made into a separate method?
-            % Duplicate code: 
-            %   Looping over parts
-            %   Loading frames and saving image stats
-          
-            recastOutput = ~strcmp(rawStack.dataType, S.OutputDataType);
-            isStatsComputed = all( ~isnan(imageStats.meanValue) );
-            
-            if recastOutput && ~isStatsComputed && ~skipPrecomputeStats
-                
-                fprintf('Collecting image statistics...')
-                
-                % Loop through chunks and save image stats for rawstack
-                [numParts, frameIndices] = obj.getChunkSpecs(numFrames);
-                tic
-                
-                %colShiftsFinal = zeros(numFrames,1);
-                for iPart = 1:numParts
-                    
-                    IND = frameIndices{iPart};
-                    if ~any( isnan(imageStats.meanValue(IND)) )
-                        continue
-                    end
-                    
-                    Y = rawStack.getFrameSet(IND);
-                    Y = single(Y); % Cast to single
-                
-                    imageStats = obj.saveImageStats(Y, imageStats, IND);
-                    
-                    % todo: where and how to do this
-%                     [Y, bidirBatchSize, colShifts] = correctLineOffsets(Y, 100);
-%                     colShiftsFinal(IND) = colShifts;
-
-                end
-                toc
-            end
+            rawStack.enablePreprocessing()
             
         end
         
-        % Todo: rename to open target stack
-        function openOutputFile(obj, stackSize, dataType)
 
-            % Get file reference for corrected stack
-            DATANAME = 'TwoPhotonSeries_Corrected';
-            
-            filePath = obj.getDataFilePath( DATANAME );
-            
-            % Call method of ImageStackProcessor
-            obj.openTargetStack(filePath, stackSize, dataType)
-            
-            % Make sure caching is turned off...
-            obj.TargetStack.Data.UseDynamicCache = false;
-
-        end
-        
         % Todo: this should be done using save data method of iomodel
         function saveTiffStack(obj, DATANAME, imageArray)
             
@@ -523,11 +477,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             end
             
         end
-        
-        
 
         function initializeCorrectionStats(obj, numFrames)
-            
+        %initializeCorrectionStats Initialize struct to store stats
+        
+        
         %   Save rigid shifts (x and y)
         %   Save rms movement of frames    
 
@@ -551,18 +505,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             obj.CorrectionStats = S;
             
-        end% Rename initialize
-        
-        
+        end
 
         % Todo: This should be an external function!
         function S = getImageStats(obj, numFrames)
-               
-        % Question: Should S be implemented as table or struct?
-        % Should it even be implemented as a class with a save method?
-        
-        % Todo: rename to initialize image stats?
-
+            
             % Check if image stats already exist for this session
             filePath = obj.getDataFilePath('imageStats', ...
                 'Subfolder', 'raw_image_info');
@@ -570,84 +517,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             if isfile(filePath)
                 S = obj.loadData('imageStats');
             else
-                
-                nanArray = nan(numFrames, 1);
-                    
-                S = struct();
-                
-                S.meanValue = nanArray;
-                S.medianValue = nanArray;
-                S.minimumValue = nanArray;
-                S.maximumValue = nanArray;
-
-                pLevels = [0.05, 0.005];
-                pLevels = [pLevels, 100-pLevels];
-
-                S.percentileValues = pLevels;
-
-                S.prctileL1 = nanArray;
-                S.prctileL2 = nanArray;
-                S.prctileU1 = nanArray;
-                S.prctileU2 = nanArray;
-                
-                S.pctSaturatedValues = nanArray;
-
-                obj.saveData('imageStats', S, ...
-                    'Subfolder', 'raw_image_info');
-                
+                error('Image stats was not found')
             end
 
-        end % Rename initialize
-        
-        % Todo: This should be an external function!
-        function updateImageStats(obj, Y)
-        %updateImageStats Get/save statistical values of image data
-        %
-        %   saveImageStats(obj, Y, S, IND)
-            
-        %   Question: Move this to a more general image processing class?
-        
-            S = obj.ImageStats;
-            IND = obj.CurrentFrameIndices;
-        
-            % Test whether data already exists and return if so.
-            if ~any( isnan(S.meanValue(IND)) )
-                return
-            end
+        end
 
-            % Get plevels for getting prctile values from images.
-            pLevels = S.percentileValues;
-            
-            % Reshape to 2D array where all pixels from each image is 1D
-            Y_ = reshape(Y, [], size(Y, 3));
-            
-            % Collect different stats.
-            bLims = prctile(Y_, pLevels)';
-            if iscolumn(bLims); bLims = bLims'; end % If size(Y, 3)==1. 
-            
-            S.meanValue(IND) = nanmean( Y_ );
-            S.medianValue(IND) = nanmedian( Y_ );
-            S.minimumValue(IND) = min( Y_ );
-            S.maximumValue(IND) = max( Y_ );
-            
-            S.prctileL1(IND) = bLims(:, 1);
-            S.prctileL2(IND) = bLims(:, 2);
-            S.prctileU1(IND) = bLims(:, 3);
-            S.prctileU2(IND) = bLims(:, 4);
-            
-            saturationValue = 2^16; %Todo: Get from image type/class
-            S.pctSaturatedValues(IND) = mean(Y_ == saturationValue);
-            
-            % Save updated image stats to session
-            obj.saveData('imageStats', S)
-            
-            % Update property values
-            obj.ImageStats = S;
-
-        end % Rename updateImageStats
-        
-
-        
         function [M, shifts] = correctDrift(obj, M)
             
             % Todo: improve function....
@@ -669,7 +543,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
         end
         
-    end   
+    end
     
     methods (Static) % Method in external file (Get default options)
         
