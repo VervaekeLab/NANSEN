@@ -63,22 +63,25 @@ classdef HasSessionData < uim.handle
             if numOutputs > 0
                 [varargout{:}] = builtin('subsref', obj, s);
             else
-                varargout = {builtin('subsref', obj, s)};
-                try
-                    varargout{1} = builtin('subsref', obj, s);
-                catch ME
-                    switch ME.identifier
-                        case {'MATLAB:TooManyOutputs', 'MATLAB:maxlhs'}
-                            try
-                                builtin('subsref', obj, s)
-                            catch ME
-                                rethrow(ME)
-                            end
-                        otherwise
-                            rethrow(ME)
-                    end
-                end
+                builtin('subsref', obj, s)
             end
+            
+% %                 varargout = builtin('subsref', obj, s);
+% %                 try
+% %                     varargout{1} = builtin('subsref', obj, s);
+% %                 catch ME
+% %                     switch ME.identifier
+% %                         case {'MATLAB:TooManyOutputs', 'MATLAB:maxlhs'}
+% %                             try
+% %                                 builtin('subsref', obj, s)
+% %                             catch ME
+% %                                 rethrow(ME)
+% %                             end
+% %                         otherwise
+% %                             rethrow(ME)
+% %                     end
+% %                 end
+% %             end
             
 % %             if numRequestedOutputs == 0
 % %                 varargout{:}
