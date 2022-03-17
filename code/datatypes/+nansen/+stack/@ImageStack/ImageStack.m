@@ -461,10 +461,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
     % - Methods for getting processed versions of data
     
-        function tf = hasDownsampledStack(obj, method, downsampleFactor)
+        function [tf, filePath] = hasDownsampledStack(obj, method, downsampleFactor)
             
             % Todo; make this work for spatial downsampling as well.
-            
+                        
             if strcmp(method, 'temporal_mean'); method = 'mean'; end
             
             args = {obj, downsampleFactor, method};
@@ -472,8 +472,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             tf = isfile(filePath);
             
+            if nargout == 1
+                clear filePath
+            end
+            
         end
-    
+        
         function downsampledStack = downsampleT(obj, n, method, varargin)
         %downsampleT Downsample stack by a given factor
         %
@@ -510,9 +514,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             params.UseTransientVirtualStack = true;
             params.FilePath = '';
             params.OutputDataType = 'same';
+            params.Verbose = false;
             
             params = utility.parsenvpairs(params, 1, varargin{:});
-            %nvPairs = utility.struct2nvpairs(params);
             
             % Calculate number of downsampled frames
             numFramesFinal = floor( obj.NumTimepoints / n );
@@ -541,20 +545,20 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             % Todo: Make this more efficient. Ie. should tag ini-file if
             % data is already downsampled
-            
-            randFrameIdx = randperm(downsampledStack.NumTimepoints, 100);
-            
-            data = downsampledStack.getFrameSet(sort(randFrameIdx));
-            
-            if all( mean(mean(data,2),1) ~= 0 )
+            if nansen.stack.ImageStack.isStackComplete(downsampledStack, numChunks)
+                if params.Verbose
+                    fprintf('Downsampled stack already exists.\n')
+                end
                 return % Data is already downsampled...
-            end
-            
+            end            
             
             % Loop through blocks and downsample frames
             for iPart = 1:numChunks
                 imData = obj.getFrameSet( IND{iPart} );
-                downsampledStack.addFrames(imData); 
+                downsampledStack.addFrames(imData);
+                if params.Verbose
+                    fprintf('Downsampled part %d/%d\n', iPart, numChunks)
+                end
             end
             
         end
@@ -1325,6 +1329,29 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 errorId = 'NANSEN:Stack:InvalidImageStack';
                 throw(nansen.stack.getException(errorId))
             end
+            
+        end
+        
+        function tf = isStackComplete(fileRef, numChunks)
+        %isDownsampledStackComplete Check if image stack is complete 
+        %
+        %   Note, check that a random subset of frames are not just zeros.
+        
+        % Todo: Adjust number of random frames to load based on the number
+        % of chunks. Bigger chunks, fewer frames
+        
+            if isa(fileRef, 'char')
+                imageStack = nansen.stack.ImageStack(fileRef);
+            elseif isa(fileRef, 'nansen.stack.ImageStack')
+                imageStack = fileRef;
+            else
+                error('Invalid input')
+            end
+            
+            % Pick 100 random frames.
+            randFrameIdx = randperm(imageStack.NumTimepoints, 100);
+            data = imageStack.getFrameSet(sort(randFrameIdx));
+            tf = all( mean(mean(data,2),1) ~= 0 );
             
         end
         
