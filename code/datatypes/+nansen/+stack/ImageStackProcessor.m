@@ -63,7 +63,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %     also saved (see e.g. RoiSegmentation)
 %
 %     [ ] Add logging/progress messaging 
-%     [x] Created print task method.
+%     [v] Created print task method.
+%     [v] Method for logging when method finished.
 %     [ ] Output to log
 %     [ ] Remove previous message when updating message in loop
 
@@ -76,6 +77,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     end
     
     properties % User preferences
+        IsSubProcess = false        % Flag to indicate if this is a subprocess of another process (determines display output)
         PreprocessDataOnLoad = false; % Flag for whether to activate image stack data preprocessing...
         PartsToProcess = 'all'      % Parts to processs. Manually assign to process a subset of parts
         RedoProcessedParts = false  % Flag to use if processing should be done again on already processed parts
@@ -164,7 +166,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 
             elseif isa(varargin{1}, 'struct')
                 % Todo. Subclass must implement....
-                
             end
             
         end
@@ -291,20 +292,17 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 
         function initialize(obj)
             
+            % Check if SourceStack has been assigned.
+            assert(~isempty(obj.SourceStack), 'SourceStack is not assigned')
+            
+            obj.printInitializationMessage()
+            
 %             if obj.IsInitialized
 %                 fprintf('This method has already been initialized. Skipping...\n')
 %                 return;
 %             end
-            
-            % Check if SourceStack has been assigned.
-            assert(~isempty(obj.SourceStack), 'SourceStack is not assigned')
-            
-            fprintf('---\n')
-            obj.printTask(sprintf('Initializing method: %s', class(obj)))
-            fprintf('\n')
 
             obj.displayProcessingSteps()
-            fprintf('\n')
             
             % Todo: Check if options exist from before, i.e we are resuming
             % this method on data that was already processed.
@@ -380,6 +378,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             % Subclass may implement
             obj.onCompletion()
             
+            obj.printCompletionMessage()
             %obj.IsFinished = true;
         end
         
@@ -456,34 +455,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
     end
     
-    methods (Access = protected) % Methods for printing commandline output
-    
-        function printInitializationMessage(obj)
-            % Todo...
-            obj.printTask(sprintf('Initializing method: %s', class(obj)))
-        end
-        
-        function printSubTask(obj, varargin)
-            msg = sprintf(varargin{:});
-            nowstr = datestr(now, 'HH:MM:ss');
-            fprintf('%s (%s): %s\n', nowstr, obj.MethodName, msg)
-        end
-        
-        function displayStartCurrentStep(obj)
-            i = obj.CurrentStep;
-            obj.printTask('Running step %d/%d: %s...', i, obj.NumSteps, ...
-                obj.StepDescription{i})
-        end
-        
-        function displayFinishCurrentStep(obj)
-            i = obj.CurrentStep;
-            obj.printTask('Finished step %d/%d: %s.\n', i, obj.NumSteps, ...
-                obj.StepDescription{i})
-            obj.CurrentStep = obj.CurrentStep + 1;
-        end
-        
-    end
-        
     methods (Access = private)
         
         function partsToProcess = getPartsToProcess(obj, frameInd)
@@ -533,16 +504,86 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
         end
         
+    end
+    
+    methods (Access = protected) % Methods for printing commandline output
+        
+        function addProcessingStep(obj, description, position)
+            % Placeholder / Todo
+            switch position
+                case 'beginning'
+                    
+                case 'end'
+                    
+            end
+            
+        end
+        
+        function printSubTask(obj, varargin)
+            msg = sprintf(varargin{:});
+            nowstr = datestr(now, 'HH:MM:ss');
+            fprintf('%s (%s): %s\n', nowstr, obj.MethodName, msg)
+        end
+        
+        function displayStartCurrentStep(obj)
+        %displayStartCurrentStep Display message when current step starts    
+            if obj.IsSubProcess; return; end
+
+            i = obj.CurrentStep;
+            obj.printTask('Running step %d/%d: %s...', i, obj.NumSteps, ...
+                obj.StepDescription{i})
+        end
+        
+        function displayFinishCurrentStep(obj)
+        %displayFinishCurrentStep Display message when current step stops    
+            
+            if obj.IsSubProcess; return; end
+
+            i = obj.CurrentStep;
+            obj.printTask('Finished step %d/%d: %s.\n', i, obj.NumSteps, ...
+                obj.StepDescription{i})
+            obj.CurrentStep = obj.CurrentStep + 1;
+        end
+        
+    end
+    
+    methods (Access = private) % Should these methods be part of a data method logger class?
+        
+        function printInitializationMessage(obj)
+        %printInitializationMessage Display message when method starts
+        
+            if obj.IsSubProcess; return; end
+
+            fprintf('\n---\n')
+            obj.printTask(sprintf('Initializing method: %s', class(obj)))
+            fprintf('\n')
+        end
+        
         function displayProcessingSteps(obj)
         %displayProcessingSteps Display the processing steps for process    
+            
+            if obj.IsSubProcess; return; end
+            
             obj.printTask('Processing will happen in %d steps:', obj.NumSteps);
             
             for i = 1:obj.NumSteps
                  obj.printTask('Step %d/%d: %s', i, obj.NumSteps, ...
                      obj.StepDescription{i})
             end
-        end
+            fprintf('\n')
 
+        end
+        
+        function printCompletionMessage(obj)
+        %printCompletionMessage Display message when method is completed
+        
+            if obj.IsSubProcess; return; end
+            
+            obj.printTask(sprintf('Completed method: %s', class(obj)))
+            fprintf('---\n')
+            fprintf('\n')
+        end
+        
     end
     
     
