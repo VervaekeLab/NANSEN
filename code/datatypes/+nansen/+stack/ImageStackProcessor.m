@@ -96,9 +96,9 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         NumParts                    % Number of parts that image stack is split into for processing
     end
     
-    properties % Options % todo; make dependent or remove
-        frameInterval = []          % If empty, process all frames
-        numFramesPerPart = 1000;            
+    properties (Dependent) % Options
+        FrameInterval
+        NumFramesPerPart           
     end
     
     properties (Access = protected)
@@ -172,6 +172,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
     end
 
+    methods 
+        function numFramesPerPart = get.NumFramesPerPart(obj)
+            numFramesPerPart = obj.Options.Run.numFramesPerPart;
+        end
+    end
+    
     methods
         
         function tf = preview(obj)
@@ -276,6 +282,16 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
             toc
             
+        end
+        
+        function matchConfiguration(obj, referenceProcessor)
+            obj.Options.Run.numFramesPerPart = referenceProcessor.NumFramesPerPart;
+            obj.runInitialization()
+        end
+        
+        function setCurrentPart(obj, partNumber)
+            obj.CurrentPart = partNumber;
+            obj.CurrentFrameIndices = obj.FrameIndPerPart{partNumber};
         end
         
         function delete(obj)
