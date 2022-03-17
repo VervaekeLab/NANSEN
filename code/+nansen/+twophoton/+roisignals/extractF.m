@@ -55,6 +55,7 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
     
     [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
     P.showTimer      = false;    V.showTimer = @(x) assert(islogical(x), 'Value must be logical');
+    P.verbose        = false;    V.verbose = @(x) assert(islogical(x), 'Value must be logical');
     P.signalDataType = 'single'; V.signalDataType = @(x) assert(any(strcmp(x, {'single', 'double'})), 'Value must be ''single'' or ''double''');
     
     % Parse potential parameters from input arguments
@@ -109,10 +110,14 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
         tInit = tic;
         signalArray(iIND, :, :) = signalExtractionFcn(imData, roiData);
         elapsedTime = elapsedTime + toc(tInit);
+        
+        if params.verbose
+            fprintf('Signal Extraction: Finished part %d/%d\n', iPart, numParts)
+        end
     end
     
     % Display elapsed time as output if requested.
-    if params.showTimer
+    if params.showTimer || params.verbose
         fprintf('Signal extraction completed in %.2f seconds\n', ...
             elapsedTime)
     end
@@ -183,6 +188,10 @@ function params = updateParameters(params, imageStack, roiArray)
                 'the selected extraction function is "batchExtract".'];
             warning(msg);
         end
+    end
+    
+    if nargout >= 2
+        P = params;
     end
 
 end
