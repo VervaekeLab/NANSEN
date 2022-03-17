@@ -58,6 +58,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         RecastOutput        % Flag for whether to recast output.
     end
     
+    properties 
+        ImageStatsProcessor
+    end
+    
     properties (Access = protected) % Data to keep during processing.
         ToolboxOptions      % Options for specific toolbox that is used for image registration
         ImageStats          % Array of imagestats...
@@ -158,7 +162,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
            
             % Todo: Validate options. I.e, if processor is run again, some
             % of the options should be the same... 
-            
+           
             if obj.RecastOutput % Calculate imagestats if needed (for recasting).
                 obj.displayStartCurrentStep()
                 processor = stack.methods.computeImageStats(obj.SourceStack, ...
@@ -166,6 +170,12 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 processor.IsSubProcess = true;
                 processor.runMethod()
                 obj.displayFinishCurrentStep()
+            else
+                % Can be computed during motion correction
+                obj.ImageStatsProcessor = stack.methods.computeImageStats(...
+                    obj.SourceStack, 'DataIoModel', obj.DataIoModel);
+                obj.ImageStatsProcessor.IsSubProcess = true;
+                obj.ImageStatsProcessor.matchConfiguration(obj)
             end
 
             numFrames = stackSize(end); % Todo...
@@ -255,7 +265,13 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Update image stats
             % Todo: Only do this if output should be recast?
             % Todo: Do this using the stack.methods.computeImageStats class
-            obj.updateImageStats(Y);            
+            
+            if ~isempty( obj.ImageStatsProcessor )
+                obj.ImageStatsProcessor.setCurrentPart(obj.CurrentPart);
+                obj.ImageStatsProcessor.processPart(Y)
+            end
+            
+            % obj.updateImageStats(Y);            
 
             % Subtract minimum value. Might not be necessary...
             minVal = prctile(obj.ImageStats.prctileL2, 5);
