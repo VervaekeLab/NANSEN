@@ -461,6 +461,19 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
     % - Methods for getting processed versions of data
     
+        function tf = hasDownsampledStack(obj, method, downsampleFactor)
+            
+            % Todo; make this work for spatial downsampling as well.
+            
+            if strcmp(method, 'temporal_mean'); method = 'mean'; end
+            
+            args = {obj, downsampleFactor, method};
+            filePath = nansen.stack.DownsampledStack.createDataFilepath(args{:});
+            
+            tf = isfile(filePath);
+            
+        end
+    
         function downsampledStack = downsampleT(obj, n, method, varargin)
         %downsampleT Downsample stack by a given factor
         %
