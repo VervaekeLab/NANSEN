@@ -840,7 +840,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function set.Data(obj, newValue)
             obj.Data = newValue;
-            obj.onDataSet()
+            if ~isempty(newValue)
+                obj.onDataSet()
+            end
         end
         
         function set.CurrentChannel(obj, newValue)
