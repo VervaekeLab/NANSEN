@@ -84,6 +84,10 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
     
     methods % Set/Get methods
         function set.Visible(app, visibleState)
+            if isequal(app.Visible, visibleState)
+                app.Figure.Visible = 'off';
+                drawnow
+            end
             app.Figure.Visible = visibleState;
         end
         

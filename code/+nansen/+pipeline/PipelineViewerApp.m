@@ -133,20 +133,23 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
             
             isInitialization = isempty(app.UITable.DataTable);
             
-            app.UITable.DataTable = app.TaskTableData;
-            %numRows = size(app.TaskTableData, 1);
-            
-            % Update the column formatting properties
-            app.UITable.ColumnFormat = {'logical', 'char', 'char', 'logical', 'date'};
-
-            %colFormatData = {};
-            %app.UITable.ColumnFormatData = colFormatData;
-            
+                        
             if isInitialization
+                app.UITable.ColumnFormat = {'logical', 'char', 'char', 'logical', 'date'};
                 app.UITable.ColumnEditable = [true, false, false, false, false];
                 app.UITable.ColumnPreferredWidth = [70, 100, 100, 70, 100];
                 app.UITable.ColumnMaxWidth = [100, 1000, 1000, 100, 120];
             end
+
+            
+            app.UITable.DataTable = app.TaskTableData;
+            
+            %numRows = size(app.TaskTableData, 1);
+            
+            % Update the column formatting properties
+            %colFormatData = {};
+            %app.UITable.ColumnFormatData = colFormatData;
+
             
         end
         
@@ -165,8 +168,8 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                         app.UITable.Data{rowNumber, 5} = datetime.empty;
                     end
                     
-                    app.PipelineStruct(rowNumber).IsFinished = evt.NewValue;
-                    app.PipelineStruct(rowNumber).DateFinished = app.UITable.Data{rowNumber, 5};
+                    app.PipelineStruct.TaskList(rowNumber).IsFinished = evt.NewValue;
+                    app.PipelineStruct.TaskList(rowNumber).DateFinished = app.UITable.Data{rowNumber, 5};
                 %case 3 % Column showing option presets
 
             end
@@ -228,7 +231,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
         
         function onPipelineSet(app)
             % Set data for table (important to do after creating table...)
-            pipelineTable = struct2table( app.PipelineStruct, 'AsArray', true );
+            pipelineTable = struct2table( [app.PipelineStruct.TaskList], 'AsArray', true );
             
             % Create a reduced table for the viewer
             T = pipelineTable(:, app.ColumnsToDisplay);
@@ -247,7 +250,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 if rowNum == 0; return; end
                 
                 
-                thisTask = app.PipelineStruct(rowNum);
+                thisTask = app.PipelineStruct.TaskList(rowNum);
                 
                 if thisTask.IsManual
                     app.runManualTask(thisTask, rowNum)
@@ -257,7 +260,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 
                 %disp('double clicked')
             elseif evt.Button == 3 || strcmp(evt.SelectionType, 'alt')
-                disp('right clicked')
+                %disp('right clicked')
                 %app.onMouseRightClickedInTable(src, evt)
             end
             
@@ -291,7 +294,8 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
         %initQueuableTask Initialize the task on the batch processor
 
             if isempty(app.BatchProcessor)
-                error('Batch Processor is not available')
+                return
+                %error('Batch Processor is not available')
             end
             
             numTasks = numel(taskStructure);

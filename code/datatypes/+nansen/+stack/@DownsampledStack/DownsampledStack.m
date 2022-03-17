@@ -233,10 +233,8 @@ classdef DownsampledStack < nansen.stack.ImageStack
                 if isempty(hIm.FileName)
                     error('Not implemented yet for non-virtual (?) stack')
                 else
-                    [~, ~, ext] = fileparts(hIm.FileName);
-                    postfix = sprintf('_downsampled_%s_x%d', method, n);
-                    postfix = strcat(postfix, ext);
-                    params.FilePath = strrep(hIm.FileName, ext, postfix);
+                    createPathFcn = @nansen.stack.DownsampledStack.createDataFilepath;
+                    params.FilePath = createPathFcn(hIm, n, method);
                 end
             end
 
@@ -260,6 +258,21 @@ classdef DownsampledStack < nansen.stack.ImageStack
             
         end
         
+        function filePath = createDataFilepath(hImageStack, n, method)
+        %createDataFilepath Create filepath for a downsampled stack
+        %
+        %   Rename file to describe method and "amount" of downsampling.
+        
+            if nargin < 3 || isempty(method)
+                method = 'mean'; % Todo: temporal mean
+            end
+        
+            [~, ~, ext] = fileparts(hImageStack.FileName);
+            postfix = sprintf('_downsampled_%s_x%d', method, n);
+            postfix = strcat(postfix, ext);
+            filePath = strrep(hImageStack.FileName, ext, postfix);
+            
+        end
     end
     
     

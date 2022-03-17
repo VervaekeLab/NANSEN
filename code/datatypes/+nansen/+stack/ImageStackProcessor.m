@@ -58,12 +58,15 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %   
 %     [ ] Preview mode where images are opened in imviewer
 %
-
+%     [ ] Save intermediate results in processParts. I.e expand so that if
+%     there are additional results (not just processed imagedata), it is
+%     also saved (see e.g. RoiSegmentation)
 %
 %     [ ] Add logging/progress messaging 
-%       [x] Created print task method.
-%       [ ] Output to log
-%       [ ] Remove previous message when updating message in loop
+%     [v] Created print task method.
+%     [v] Method for logging when method finished.
+%     [ ] Output to log
+%     [ ] Remove previous message when updating message in loop
 
 
 % - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - 
@@ -74,6 +77,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     end
     
     properties % User preferences
+        IsSubProcess = false        % Flag to indicate if this is a subprocess of another process (determines display output)
         PreprocessDataOnLoad = false; % Flag for whether to activate image stack data preprocessing...
         PartsToProcess = 'all'      % Parts to processs. Manually assign to process a subset of parts
         RedoProcessedParts = false  % Flag to use if processing should be done again on already processed parts
@@ -92,15 +96,18 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         NumParts                    % Number of parts that image stack is split into for processing
     end
     
-    properties % Options % todo; make dependent or remove
-        frameInterval = []          % If empty, process all frames
-        numFramesPerPart = 1000;            
+    properties (Dependent) % Options
+        FrameInterval
+        NumFramesPerPart           
     end
     
     properties (Access = protected)
-        FrameIndPerPart = []
-        IsInitialized = false;
-        IsFinished = false;
+        NumSteps = 1                % Number of steps for algorithm. I.e Step 1/2 = downsample stack, Step 2/2 autosegment stack
+        CurrentStep = 1;            % Current step of algorithm.
+        StepDescription = {}        % Description of steps (cell array of text descriptions)
+        FrameIndPerPart = []        % List (cell array) of frame indices for each subpart of image stack
+        IsInitialized = false;      % Boolean flag; is processor already initialized?
+        IsFinished = false;         % Boolean flag; has processor completed?
     end
     
 % - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - 
@@ -159,16 +166,69 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 
             elseif isa(varargin{1}, 'struct')
                 % Todo. Subclass must implement....
-                
             end
             
         end
         
     end
 
+    methods 
+        function numFramesPerPart = get.NumFramesPerPart(obj)
+            numFramesPerPart = obj.Options.Run.numFramesPerPart;
+        end
+    end
+    
     methods
         
+        function tf = preview(obj)
+        %PREVIEW Open preview of data and options for method.
+        %
+        %   This method opens an imviewer plugin for the current
+        %   algorithm/tool if such a plugin is available. Otherwise it
+        %   opens a generic options editor to edit the options of the
+        %   algotithm
+                
+            pluginName = obj.ImviewerPluginName;
+            pluginFcn = imviewer.App.getPluginFcnFromName(pluginName);
+
+            if ~isempty(pluginFcn)
+
+                obj.SourceStack.DynamicCacheEnabled = 'on';
+                hImviewer = imviewer(obj.SourceStack);
+                hImviewer.ImageDragAndDropEnabled = false; 
+                % Todo: Should this be more specific. (I add this because 
+                % the extract plugin has plot objects that can be dragged, 
+                % and in that case the image should not be dragged...)
+                
+                h = hImviewer.openPlugin(pluginFcn, obj.OptionsManager, ...
+                    'RunMethodOnFinish', false);
+                % Will pause here until the plugin is closed.
+
+                % Abort if h is invalid (improper exit)
+                if ~isvalid(h); tf = false; return; end
+                
+                newParameters = h.settings;
+                tf = ~h.wasAborted;
+
+                delete(h)
+                hImviewer.quit()
+                obj.SourceStack.DynamicCacheEnabled = 'off';
+                
+            else
+%                 warning('NANSEN:Roisegmentation:PluginMissing', ...
+%                     'Plugin for %s was not found', CLASSNAME)
+
+                % Todo: use superclass method editOptions
+                [newParameters, wasAborted] = tools.editStruct(obj.Parameters);
+                tf = ~wasAborted;
+            end
+            
+            obj.Parameters = newParameters;
+            
+        end
+        
         function runInitialization(obj)
+        %runInitialization Run the processor initialization stage.
             obj.initialize()
         end
         
@@ -181,6 +241,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
             if nargin < 2; skipInit = false; end
             
+            obj.runPreInitialization()
+            
             if ~skipInit
                 obj.initialize()
             end
@@ -192,6 +254,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         end
         
         function runFinalization(obj)
+        %runFinalization Run the processor finalization stage.
             obj.finish()
         end
         
@@ -205,8 +268,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             opts = obj.Options;
             opts.Run.runOnSeparateWorker = false;
             
-            args = {obj.SourceStack, opts};
-            
+            % Todo: should reconcile this, using a dataiomodel
+            %args = {obj.SourceStack, opts};
+            args = {obj.SessionObjects, opts};
+
             batchFcn = str2func( class(obj) );
             
             job = batch(batchFcn, 0, args, ...
@@ -219,6 +284,16 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
         end
         
+        function matchConfiguration(obj, referenceProcessor)
+            obj.Options.Run.numFramesPerPart = referenceProcessor.NumFramesPerPart;
+            obj.runInitialization()
+        end
+        
+        function setCurrentPart(obj, partNumber)
+            obj.CurrentPart = partNumber;
+            obj.CurrentFrameIndices = obj.FrameIndPerPart{partNumber};
+        end
+        
         function delete(obj)
             % Todo: Delete source stack if it is opened on construction...
             
@@ -229,20 +304,21 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
     end
     
-    
-    methods (Access = protected, Sealed)
+    methods (Access = protected, Sealed) % initialize/processParts/finish
                 
         function initialize(obj)
+            
+            % Check if SourceStack has been assigned.
+            assert(~isempty(obj.SourceStack), 'SourceStack is not assigned')
+            
+            obj.printInitializationMessage()
             
 %             if obj.IsInitialized
 %                 fprintf('This method has already been initialized. Skipping...\n')
 %                 return;
 %             end
-            
-            obj.printTask(sprintf('Initializing method: %s', class(obj)))
 
-            % Todo: Make sure SourceStack is assigned here!
-            assert(~isempty(obj.SourceStack), 'SourceStack is not assigned')
+            obj.displayProcessingSteps()
             
             % Todo: Check if options exist from before, i.e we are resuming
             % this method on data that was already processed.
@@ -257,18 +333,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             obj.onInitialization()
             obj.IsInitialized = true;
             
-            
-            % Print message here. Stack splitting might be reconfigured in
-            % subclasses..
-            obj.printTask(sprintf(['ImageStack will be split into %d ', ...
-                'parts for processing'], obj.NumParts))
-            
-            
-            
         end
         
         function processParts(obj)
             
+            obj.displayStartCurrentStep()
+
             IND = obj.FrameIndPerPart;
             
             % Todo: Do this here or in initialization??
@@ -280,12 +350,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             end
             
             obj.printTask(sprintf('Running method: %s', class(obj) ) )
-            obj.printTask(sprintf('ImageStack will be processed in %d parts', numel(partsToProcess)))
+            obj.printSubTask(sprintf('ImageStack will be processed in %d parts', numel(partsToProcess)))
 
             % Loop through 
             for iPart = partsToProcess
                 
-                obj.printTask(sprintf('Processing part %d/%d', iPart, obj.NumParts))
+                obj.printSubTask(sprintf('Processing part %d/%d', iPart, obj.NumParts))
 
                 iIndices = IND{iPart};
                 
@@ -313,21 +383,31 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 
             end
             
+            obj.displayFinishCurrentStep()
+
         end
         
         function finish(obj)
+            
             %if obj.IsFinished; return; end
 
-            
             % Subclass may implement
             obj.onCompletion()
             
+            obj.printCompletionMessage()
             %obj.IsFinished = true;
         end
         
     end
     
     methods (Access = protected) % Subroutines (Subclasses may override)
+              
+        function runPreInitialization(obj) % todo: protected?
+        %runPreInitialization Runs before the initialization step    
+            % Subclasses can override
+            obj.NumSteps = 1;
+            obj.StepDescription = {obj.MethodName};
+        end
         
         function openSourceStack(obj, imageStackRef)
         %openSourceStack Open/assign image stack which is source
@@ -403,6 +483,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         %   PartsToProcess property. Also if parts are processed from 
         %   before, they will be skipped, unless the RedoProcessedParts
         %   property is set to true
+        
+        % Note: frameInd might be used by subclasses(?)
        
             % Set the parts to process.
             if strcmp(obj.PartsToProcess, 'all')
@@ -440,17 +522,93 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
     end
     
-    
-    methods (Static)
+    methods (Access = protected) % Methods for printing commandline output
         
-        function printTask(varargin)
+        function addProcessingStep(obj, description, position)
+            % Placeholder / Todo
+            switch position
+                case 'beginning'
+                    
+                case 'end'
+                    
+            end
             
-            
-            msg = sprintf(varargin{:});
-            nowstr = datestr(now, 'HH:MM:ss ');
-            fprintf('%s %s\n', nowstr, msg)
         end
         
+        function printSubTask(obj, varargin)
+            msg = sprintf(varargin{:});
+            nowstr = datestr(now, 'HH:MM:ss');
+            fprintf('%s (%s): %s\n', nowstr, obj.MethodName, msg)
+        end
+        
+        function displayStartCurrentStep(obj)
+        %displayStartCurrentStep Display message when current step starts    
+            if obj.IsSubProcess; return; end
+
+            i = obj.CurrentStep;
+            obj.printTask('Running step %d/%d: %s...', i, obj.NumSteps, ...
+                obj.StepDescription{i})
+        end
+        
+        function displayFinishCurrentStep(obj)
+        %displayFinishCurrentStep Display message when current step stops    
+            
+            if obj.IsSubProcess; return; end
+
+            i = obj.CurrentStep;
+            obj.printTask('Finished step %d/%d: %s.\n', i, obj.NumSteps, ...
+                obj.StepDescription{i})
+            obj.CurrentStep = obj.CurrentStep + 1;
+        end
+        
+    end
+    
+    methods (Access = private) % Should these methods be part of a data method logger class?
+        
+        function printInitializationMessage(obj)
+        %printInitializationMessage Display message when method starts
+        
+            if obj.IsSubProcess; return; end
+
+            fprintf('\n---\n')
+            obj.printTask(sprintf('Initializing method: %s', class(obj)))
+            fprintf('\n')
+        end
+        
+        function displayProcessingSteps(obj)
+        %displayProcessingSteps Display the processing steps for process    
+            
+            if obj.IsSubProcess; return; end
+            
+            obj.printTask('Processing will happen in %d steps:', obj.NumSteps);
+            
+            for i = 1:obj.NumSteps
+                 obj.printTask('Step %d/%d: %s', i, obj.NumSteps, ...
+                     obj.StepDescription{i})
+            end
+            fprintf('\n')
+
+        end
+        
+        function printCompletionMessage(obj)
+        %printCompletionMessage Display message when method is completed
+        
+            if obj.IsSubProcess; return; end
+            
+            obj.printTask(sprintf('Completed method: %s', class(obj)))
+            fprintf('---\n')
+            fprintf('\n')
+        end
+        
+    end
+    
+    
+    methods (Static)
+        function printTask(varargin)
+            msg = sprintf(varargin{:});
+            nowstr = datestr(now, 'HH:MM:ss');
+            fprintf('%s: %s\n', nowstr, msg)
+        end
     end
     
 end 

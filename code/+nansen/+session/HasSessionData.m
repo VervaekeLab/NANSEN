@@ -1,0 +1,131 @@
+classdef HasSessionData < uim.handle
+%HasSessionData Mixin to provide SessionData to a class
+%
+%   This class overrides the subsref to initialize the Data upon the first
+%   subsref request. Updating all the variables of the SessionData has some
+%   overhead, so only want this to happen when necessary. 
+%
+%   The reason for not adding the subsref directly to a class having a 
+%   Data property is because overriding the subsref method can render the 
+%   original class not to work as intended.
+
+%   I later found out that, of course, the class that inherits this
+%   superclass will also inherit the subsref method, so back to square 1.
+%   
+%   Update: Seems like overriding the numArgumentsFromSubscript method and
+%   calling the builtin from there gives the expected behavior. Needs some
+%   stress testing.
+%
+%   Conclusion: Would be nice to solve this in a more elegant way...
+
+    properties %(Dependent, Transient)
+        Data nansen.session.SessionData
+    end
+    
+    methods
+        function obj = HasSessionData()
+            % Assign data for each obj individually
+            for i = 1:numel(obj)
+                obj(i).Data = nansen.session.SessionData(obj(i)); %#ok<AGROW>
+            end
+        end
+    end
+    
+% %         Todo: Is this even possible without breaking my head. How to
+% %         properly output stuff from properties that i.e contains struct
+% %         arrays.
+
+    methods (Sealed, Hidden)
+
+        function varargout = subsref(obj, s)
+            
+% %             numRequestedOutputs = nargout();
+% %             if numRequestedOutputs == 0
+% %                 numOutputs = obj.determineNumArgout(s); %#ok<NASGU>
+% %             else
+% %                 numOutputs = numRequestedOutputs;
+% %             end
+
+            numOutputs = nargout;
+            varargout = cell(1, numOutputs);
+            
+            if strcmp(s(1).type, '.')
+                if strcmp(s(1).subs, 'Data')
+                    for i = 1:numel(obj)
+                        if ~obj(i).Data.IsInitialized
+                            obj(i).Data.initialize();
+                        end
+                    end
+                end
+            end
+            
+            % If we got this far, use the builtin subsref
+            if numOutputs > 0
+                [varargout{:}] = builtin('subsref', obj, s);
+            else
+                builtin('subsref', obj, s)
+            end
+            
+% %                 varargout = builtin('subsref', obj, s);
+% %                 try
+% %                     varargout{1} = builtin('subsref', obj, s);
+% %                 catch ME
+% %                     switch ME.identifier
+% %                         case {'MATLAB:TooManyOutputs', 'MATLAB:maxlhs'}
+% %                             try
+% %                                 builtin('subsref', obj, s)
+% %                             catch ME
+% %                                 rethrow(ME)
+% %                             end
+% %                         otherwise
+% %                             rethrow(ME)
+% %                     end
+% %                 end
+% %             end
+            
+% %             if numRequestedOutputs == 0
+% %                 varargout{:}
+% %                 clear varargout
+% %             end
+        end
+        
+        
+        function n = numArgumentsFromSubscript(obj, s, indexingContext)
+            n = builtin('numArgumentsFromSubscript', obj, s, indexingContext);
+        end
+
+    end
+    
+    methods (Access = private)
+                    
+        function numArgouts = determineNumArgout(obj, s)
+        %determineNumArgout Determine expected nargout from subsref
+        
+        % This was an experiment. Did not work very well.
+        
+            persistent ic
+            if isempty(ic)
+                ic = enumeration('matlab.mixin.util.IndexingContext');
+            end
+            
+            % Determine the number of expected outputs from each of the
+            % indexing contexts
+            n = zeros(1, numel(ic));
+            for i = 1:numel(ic)
+                n(i) = builtin('numArgumentsFromSubscript', obj, s, ic(i));
+            end
+            
+            % Check if different number of outputs are expected and issue
+            % warning if yes.
+            uniqueN = unique(n);
+            if numel(uniqueN) ~= 1
+                warning('The number of outputs from this subscripted reference might not be correct')
+            end
+            
+            % Return the value from the "Statement" indexing context
+            numArgouts = n(1);
+            
+        end
+        
+    end
+end

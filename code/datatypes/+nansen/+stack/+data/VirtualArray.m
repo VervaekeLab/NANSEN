@@ -1,9 +1,23 @@
 classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
 %VirtualArray ImageStackData superclass for mapping data to virtual array
 
-% Questions. Implement frame caches using mixin class?
+% Note: 
+%   Since data is stored in one way, and the virtual array allows data to
+%   be represented in a different way, this class is a bit complex. Some
+%   issues that might be developed in a clearer way is the caching of data,
+%   and how it is returned...
+%   
+%   When subsrefing a virtual array (through the superclass, 
+%   nansen.stack.data.abstract.ImageStackData) the data is added to the
+%   cache in the getData/getDataUsingCache methods of this class, so before
+%   data is permuted and output to the user. 
+%
+%   Therefore, in the methods, getCachedFrames and getStaticCache data is
+%   also permuted before outputting. This is important to be aware if using
+%   these methods or creating new methods for outputting data.
 
-% todo: 
+
+% Todo: 
 %   [ ] Get data should call method readFrames instead of method
 %       readData??? Or need to add both readData and readFrames as abstract
 %       methods.
@@ -171,6 +185,22 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
     end
     
+    methods (Access = protected) % Override methods of superclass
+        function onDataSizeChanged(obj)
+            onDataSizeChanged@nansen.stack.data.abstract.ImageStackData(obj)
+            
+            if obj.UseDynamicCache
+                % Todo: Reset dynamic cache
+                obj.initializeDynamicFrameCache()
+            end
+            
+            if obj.HasStaticCache
+                error('This is not implemented yet. Please report')
+                % Todo: Reset static cache
+            end
+        end
+    end
+    
     methods (Access = protected) % Subclasses can override
         
         function obj = assignFilePath(obj, filePath, ~)
@@ -333,24 +363,47 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         % % % Methods for getting all cached data
 
         function data = getCachedFrames(obj)
-            data = obj.DynamicFrameCache.fetchData();
+        %getCachedFrames Get all data from static and/or dynamic FrameCache
+
+            data = [];
+            
+            if obj.HasStaticCache
+                data = obj.StaticFrameCache.fetchData();
+            end
+            
+            if obj.UseDynamicCache
+                data = obj.DynamicFrameCache.fetchData();
+            end
+            
+            % Note, data in cache has same dimensional order as original,
+            % so need to permute data before returning.
+            data = permute(data, obj.StackDimensionOrder);
+            
         end
         
         function data = getStaticCache(obj)
+        %getStaticCache Get data which is stored in static FrameCache
             data = obj.StaticFrameCache.fetchData();
+             
+            % Note, data in cache has same dimensional order as original,
+            % so need to permute data before returning.
+            data = permute(data, obj.StackDimensionOrder);
         end
-   
+        
         % % % Methods for adding data to cache
 
         function addToStaticCache(obj, imData, frameIndices)
-            
+        %addToStaticCache Add image data to FrameCache for given frameIdx
+        %
+        %  dataObj.addToStaticCache(imData, frameIndices)
+        
+            import nansen.stack.utility.FrameCache
+        
+            % Create a static frame cache if it does not exist.
             if isempty(obj.StaticFrameCache)
                 dataSize = size(obj); % obj.StackSize;
                 dataType = obj.DataType;
-                
-                % dataSize should be imageFrameSize...
-                
-                obj.StaticFrameCache = nansen.stack.utility.FrameCache(dataSize, dataType, [], 'static');
+                obj.StaticFrameCache = FrameCache(dataSize, dataType, [], 'static');
             end
             
             obj.StaticFrameCache.submitStaticData(imData, frameIndices)
@@ -358,14 +411,14 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function onCacheSizeChanged(obj)
-            
+        %onCacheSizeChanged Callback if cache size changes.    
             if obj.UseDynamicCache && ~isempty(obj.DynamicFrameCache)
                 obj.DynamicFrameCache.CacheLength = obj.DynamicCacheSize;
             end
         end
         
         function onUseCacheChanged(obj)
-            
+        %onUseCacheChanged Callback if flag to use cache or not changes.
             if obj.UseDynamicCache
                 if isempty(obj.DynamicFrameCache)
                     obj.initializeDynamicFrameCache()

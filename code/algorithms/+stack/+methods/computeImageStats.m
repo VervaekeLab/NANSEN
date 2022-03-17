@@ -1,5 +1,7 @@
 classdef computeImageStats < nansen.stack.ImageStackProcessor
-    
+%computeImageStats Compute pixel statistics for imagestack
+%
+%   Mean, limits and percentiles of all pixels for stack.
       
     properties (Constant)
         MethodName = 'Compute Image Stats'
@@ -131,9 +133,15 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
         end
         
         function updateImageStats(obj, Y)
-            
+        %updateImageStats Update image stats for current part.
+        
+            % Skip computation if results already exist...
+            if obj.checkIfPartIsFinished(obj.CurrentPart)
+                return
+            end
+        
             IND = obj.CurrentFrameIndices;
-            
+
             Y = single(Y);
             
             % Reshape to 2D array where all pixels from each image is 1D

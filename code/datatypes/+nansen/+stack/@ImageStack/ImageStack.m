@@ -74,6 +74,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %
 %   [ ] Add listener for DataCacheChanged and update flags for whether
 %       projections should be updated...
+%   [ ] Add event (or observable property) to allow listeners to detect if
+%       data size changes
+%
 %   [x] Permute output from getFrameSet to correspond with DimensionOrder
 %       Actually, this is done in the imageStackData class...
 %   [ ] Rename DimensionOrder and make it obvious what it refers to and how
@@ -308,15 +311,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         if obj.Data.HasCachedData
                             imArray = obj.Data.getCachedFrames();
                         else
-                            numFrames = min([obj.NumTimepoints, 500]);
-                            imArray = obj.getFrameSet(1:numFrames);
+                            imArray = [];
                         end
                     catch
-                        imArray = obj.Data(indexingSubs{:});
+                        imArray = [];
                     end
                     
                     if isempty(imArray) % If cache is empty, get images directly from Data
-                        imArray = obj.Data(indexingSubs{:});
+                        numFrames = min([obj.NumTimepoints, 500]);
+                        imArray = obj.getFrameSet(1:numFrames);
                     end
 
                 else
@@ -458,6 +461,23 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
     % - Methods for getting processed versions of data
     
+        function [tf, filePath] = hasDownsampledStack(obj, method, downsampleFactor)
+            
+            % Todo; make this work for spatial downsampling as well.
+                        
+            if strcmp(method, 'temporal_mean'); method = 'mean'; end
+            
+            args = {obj, downsampleFactor, method};
+            filePath = nansen.stack.DownsampledStack.createDataFilepath(args{:});
+            
+            tf = isfile(filePath);
+            
+            if nargout == 1
+                clear filePath
+            end
+            
+        end
+        
         function downsampledStack = downsampleT(obj, n, method, varargin)
         %downsampleT Downsample stack by a given factor
         %
@@ -494,9 +514,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             params.UseTransientVirtualStack = true;
             params.FilePath = '';
             params.OutputDataType = 'same';
+            params.Verbose = false;
             
             params = utility.parsenvpairs(params, 1, varargin{:});
-            %nvPairs = utility.struct2nvpairs(params);
             
             % Calculate number of downsampled frames
             numFramesFinal = floor( obj.NumTimepoints / n );
@@ -525,20 +545,20 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             % Todo: Make this more efficient. Ie. should tag ini-file if
             % data is already downsampled
-            
-            randFrameIdx = randperm(downsampledStack.NumTimepoints, 100);
-            
-            data = downsampledStack.getFrameSet(sort(randFrameIdx));
-            
-            if all( mean(mean(data,2),1) ~= 0 )
+            if nansen.stack.ImageStack.isStackComplete(downsampledStack, numChunks)
+                if params.Verbose
+                    fprintf('Downsampled stack already exists.\n')
+                end
                 return % Data is already downsampled...
-            end
-            
+            end            
             
             % Loop through blocks and downsample frames
             for iPart = 1:numChunks
                 imData = obj.getFrameSet( IND{iPart} );
-                downsampledStack.addFrames(imData); 
+                downsampledStack.addFrames(imData);
+                if params.Verbose
+                    fprintf('Downsampled part %d/%d\n', iPart, numChunks)
+                end
             end
             
         end
@@ -602,8 +622,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if dim == 3 && numel(obj.CurrentChannel) > 1 
                 dim = 4;
             end
-            
-            
+
             
             % Calculate the projection image
             switch lower(projectionName)
@@ -727,6 +746,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     N = N / obj.NumPlanes / obj.NumTimepoints;
             end
             
+            
         end
         
         function [IND, numChunks] = getChunkedFrameIndices(obj, numFramesPerChunk, chunkInd, dim)
@@ -822,13 +842,24 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         end
 
+        function enablePreprocessing(obj, varargin)
+        %enablePreprocessing Enable preprocessing of data on retrieval
+            obj.Data.enablePreprocessing(varargin{:})
+        end
+        
+        function disablePreprocessing(obj, varargin)
+        %disablePreprocessing Disable preprocessing of data on retrieval
+            obj.Data.disablePreprocessing(varargin{:})
+        end
     end
     
     methods % Set/get methods
         
         function set.Data(obj, newValue)
             obj.Data = newValue;
-            obj.onDataSet()
+            if ~isempty(newValue)
+                obj.onDataSet()
+            end
         end
         
         function set.CurrentChannel(obj, newValue)
@@ -1265,7 +1296,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 case 'off'
                     if ~isempty(obj.CacheChangedListener)
                         delete(obj.CacheChangedListener)
-                        obj.CacheChangedListener = [];
+                        obj.CacheChangedListener = event.listener.empty;
                     end
             end
             
@@ -1298,6 +1329,29 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 errorId = 'NANSEN:Stack:InvalidImageStack';
                 throw(nansen.stack.getException(errorId))
             end
+            
+        end
+        
+        function tf = isStackComplete(fileRef, numChunks)
+        %isDownsampledStackComplete Check if image stack is complete 
+        %
+        %   Note, check that a random subset of frames are not just zeros.
+        
+        % Todo: Adjust number of random frames to load based on the number
+        % of chunks. Bigger chunks, fewer frames
+        
+            if isa(fileRef, 'char')
+                imageStack = nansen.stack.ImageStack(fileRef);
+            elseif isa(fileRef, 'nansen.stack.ImageStack')
+                imageStack = fileRef;
+            else
+                error('Invalid input')
+            end
+            
+            % Pick 100 random frames.
+            randFrameIdx = randperm(imageStack.NumTimepoints, 100);
+            data = imageStack.getFrameSet(sort(randFrameIdx));
+            tf = all( mean(mean(data,2),1) ~= 0 );
             
         end
         

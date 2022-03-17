@@ -30,6 +30,8 @@ function varargout = openRoiManager(sessionObj, varargin)
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
 % Implementation of the method : Add you code here:
         
+    %sessionObj.validateVariable('TwoPhotonSeries_Corrected')
+
     sessionData = nansen.session.SessionData( sessionObj );
     sessionData.updateDataVariables()
 
@@ -38,7 +40,8 @@ function varargout = openRoiManager(sessionObj, varargin)
     end
     
     imageStack = sessionData.TwoPhotonSeries_Corrected;
-
+    imageStack.useDynamicCache = true;
+    
     hRoimanager = nansen.roimanager(imageStack);
     
     try

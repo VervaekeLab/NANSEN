@@ -166,13 +166,13 @@ classdef NoteViewerApp < handle
             
             switch app.SortButton.Tag
                 case 'Sort Descend'
-                    app.SortButton.Icon = 'Sort Ascend.png';
+                    app.SortButton.Icon =  app.getIcon('Sort Ascend');
                     app.SortButton.Tag = 'Sort Ascend';
                 case 'Sort Ascend'
-                    app.SortButton.Icon = 'Sort Descend.png';
+                    app.SortButton.Icon = app.getIcon('Sort Descend');
                     app.SortButton.Tag = 'Sort Descend';
             end
-            
+           
             app.updateListItems();
             app.updateTreeOrder();
         end
@@ -304,14 +304,14 @@ classdef NoteViewerApp < handle
             % Create TreeButton
             app.TreeButton = uitogglebutton(app.TabButtonGroup);
             app.TreeButton.Tag = 'Tree';
-            app.TreeButton.Icon = '/Users/eivinhen/PhD/Programmering/MATLAB/VervaekeLab_Github/NANSEN/_design/NoteViewer_Icons/Tree.png';
+            app.TreeButton.Icon = app.getIcon('Tree');
             app.TreeButton.Text = '';
             app.TreeButton.Position = [35 1 28 28];
 
             % Create ListButton
             app.ListButton = uitogglebutton(app.TabButtonGroup);
             app.ListButton.Tag = 'List';
-            app.ListButton.Icon = '/Users/eivinhen/PhD/Programmering/MATLAB/VervaekeLab_Github/NANSEN/_design/NoteViewer_Icons/List.png';
+            app.ListButton.Icon =  app.getIcon('List');
             app.ListButton.Text = '';
             app.ListButton.Position = [5 1 28 28];
             app.ListButton.Value = true;
@@ -319,7 +319,7 @@ classdef NoteViewerApp < handle
             % Create CreateNoteButton
             app.CreateNoteButton = uibutton(app.HeaderPanel, 'push');
             app.CreateNoteButton.Tag = 'Add Note';
-            app.CreateNoteButton.Icon = 'Create.png';
+            app.CreateNoteButton.Icon = app.getIcon('Create');
             app.CreateNoteButton.IconAlignment = 'center';
             app.CreateNoteButton.Position = [156 8 28 28];
             app.CreateNoteButton.Text = '';
@@ -327,7 +327,7 @@ classdef NoteViewerApp < handle
             % Create SortButton
             app.SortButton = uibutton(app.HeaderPanel, 'push');
             app.SortButton.Tag = 'Sort Ascend';
-            app.SortButton.Icon = 'Sort Ascend.png';
+            app.SortButton.Icon = app.getIcon('Sort Ascend');
             app.SortButton.IconAlignment = 'center';
             app.SortButton.Position = [81 8 28 28];
             app.SortButton.Text = '';
@@ -335,14 +335,14 @@ classdef NoteViewerApp < handle
             % Create LockButton
             app.LockButton = uibutton(app.HeaderPanel, 'push');
             app.LockButton.Tag = 'Lock Note';
-            app.LockButton.Icon = 'Lock.png';
+            app.LockButton.Icon = app.getIcon('Locked');
             app.LockButton.Position = [189 8 28 28];
             app.LockButton.Text = '';
 
             % Create DeleteNoteButton
             app.DeleteNoteButton = uibutton(app.HeaderPanel, 'push');
-            app.DeleteNoteButton.Tag = 'Sort Ascend';
-            app.DeleteNoteButton.Icon = 'Delete.png';
+            app.DeleteNoteButton.Tag = 'Delete Note';
+            app.DeleteNoteButton.Icon = app.getIcon('Delete');
             app.DeleteNoteButton.IconAlignment = 'center';
             app.DeleteNoteButton.Position = [123 8 28 28];
             app.DeleteNoteButton.Text = '';
@@ -374,6 +374,8 @@ classdef NoteViewerApp < handle
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
         end
+        
+
 
         function assignCallbacks(app)
             
@@ -693,5 +695,19 @@ classdef NoteViewerApp < handle
 %         function tf = isvalid(app)
 %             tf = isvalid(app.UIFigure);
 %         end
+    end
+    
+    methods (Static)
+        
+        function iconPath = getIcon(iconName)
+
+            persistent buttonIconDir
+            if isempty(buttonIconDir)
+                buttonIconDir = fullfile(fileparts(mfilename('fullpath')), 'uiicons');
+            end
+            
+            iconPath = fullfile(buttonIconDir, [iconName, '.png']);
+
+        end
     end
 end

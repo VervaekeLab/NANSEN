@@ -36,14 +36,31 @@ function varargout = classifyRois(sessionObject, varargin)
     
     sessionData = nansen.session.SessionData( sessionObject );
     sessionData.updateDataVariables()
+    
+    varName = sessionData.uiSelectVariableName('RoiArray');
 
+    if ~isempty(varName)
+        roiArray = sessionData.(varName{1});
+    else
+        return
+    end
+    
     try
-        imageStack = sessionData.TwoPhotonSeries_Corrected;
-        roiArray = sessionData.RoiArray;
+        
+        roiGroup = getRoiGroup(sessionObject, roiArray, varName{1});
 
-        hClassifier = roiclassifier.openRoiClassifier(roiArray, imageStack);
+        if isempty(roiGroup)
+            imageStack = sessionData.TwoPhotonSeries_Corrected;
+            hClassifier = roiclassifier.openRoiClassifier(roiArray, imageStack);
+        else
+            hClassifier = roiclassifier.openRoiClassifier(roiGroup);
+        end
+            
         hClassifier.dataFilePath = sessionObject.getDataFilePath('RoiArray');
     
+        % Todo: uiwait and then retrieve results and save when closing?
+        
+        
     catch ME
         throw(ME)
     end
@@ -54,5 +71,37 @@ function S = getDefaultParameters()
     
     S = struct();
     % Add more fields:
+
+end
+
+
+function roiGroup = getRoiGroup(sessionObject, roiArray, roiVariableName)
+
+        roiGroup = [];
+        
+        filePath = sessionObject.getDataFilePath(roiVariableName);
+        
+        S = load(filePath);
+        
+        if isfield(S, 'roiImages')
+            roiArray = roiArray.setappdata('roiImages', S.roiImages);
+        else
+            return
+        end
+        
+        if isfield(S, 'roiStats')
+            roiArray = roiArray.setappdata('roiStats', S.roiStats);
+        else
+            return
+        end
+        
+        if isfield(S, 'roiClassification')
+            roiArray = roiArray.setappdata('roiClassification',  S.roiClassification);
+        else
+            roiClassification = zeros(1, numel(roiArray));
+            roiArray = roiArray.setappdata('roiClassification',  roiClassification);
+        end
+        
+        roiGroup = roimanager.roiGroup(roiArray);
 
 end

@@ -5,10 +5,9 @@ function virtualData = open(pathStr, varargin)
 
     [nvPairs, varargin] = utility.getnvpairs(varargin{:});
 
-    % Initialize output variable.
-    %obj = [];
+    % Initialize output
+    % virtualData = [];
 
-    
     % pathStr can be both a cell array (a list of pathStr) or a char/string
     % with a single path. If latter is the case, put it in a cell array,
     % because the rest of the function assumes the variable is a list of
@@ -18,25 +17,19 @@ function virtualData = open(pathStr, varargin)
     if ~isa(pathStr, 'cell'); pathStr = {pathStr}; end
     
     numFiles = numel(pathStr);
-    
     [folder, filename, fileext] = fileparts(pathStr{1});
-
-% %     S.filePath = folder;
-% % 	S.stackname = filename;
+    
 
     assert(all(contains(pathStr, fileext)), 'All files must be the same')
     
-    %virtualData = virtualStack(pathStr, varargin{:});
-    
+
     % Todo: Add a call to a function that checks whether data should be
     % loaded using a custom FileAdapter class.
-    virtualData = []; %openCustomFileAdapter(pathStr);
+    virtualData = []; %openUsingCustomFileAdapter(pathStr);
     if ~isempty(virtualData)
-        obj = nansen.stack.ImageStack(virtualData);
         return
     end
-    
-    
+
     switch lower(fileext)
         
         case {'.tif', '.tiff'}
@@ -44,7 +37,8 @@ function virtualData = open(pathStr, varargin)
             imInfo = Tiff(pathStr{1});
             virtualData = [];
             
-            try
+            % Should file be opened using the custom ScanImageTiff adapter?
+            try 
                 softwareName = imInfo.getTag('Software');
                 if strcmp(softwareName(1:2), 'SI')
                     virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
@@ -53,11 +47,13 @@ function virtualData = open(pathStr, varargin)
                 % Do nothing.
             end
             
+
+            % Fall back to opening tiffs using a generic tiff-file adapter
             if isempty(virtualData)
-                if numel(pathStr) > 1
+                if numFiles > 1
                     virtualData = nansen.stack.virtual.TiffMultiPart(pathStr, varargin{:}, nvPairs{:});
                 else
-                    %try
+                    %try TODO
                     %    virtualData = nansen.stack.virtual.Tiff(pathStr, varargin{:}, nvPairs{:});
                     %catch
                         virtualData = nansen.stack.virtual.TiffMultiPart(pathStr, varargin{:}, nvPairs{:});
@@ -65,8 +61,6 @@ function virtualData = open(pathStr, varargin)
                 end
             end
             
-            %obj = imviewer.ImageStack(virtualData);
-
         case '.h5'
             virtualData = nansen.stack.virtual.HDF5(pathStr, '', varargin{:}, nvPairs{:});
             
@@ -91,7 +85,6 @@ function virtualData = open(pathStr, varargin)
 %             toc
             
             virtualData = nansen.stack.virtual.Image(pathStr);
-            %obj = nansen.stack.ImageStack(imArray);
             
         case {'.raw','.ini'}
             
@@ -101,11 +94,8 @@ function virtualData = open(pathStr, varargin)
                 virtualData = nansen.stack.virtual.Binary(pathStr, varargin{:}, nvPairs{:});
             end
             
-            %obj = imviewer.ImageStack(virtualData);
-
         case {'.avi', '.mov', '.mpg', '.mp4'}
             virtualData = nansen.stack.virtual.Video(pathStr, nvPairs);
-            %obj = imviewer.ImageStack(virtualData);
             
         otherwise
 
@@ -116,12 +106,9 @@ function virtualData = open(pathStr, varargin)
                 error('NotImplemented:FileType', ...
                     'No load definition available for files of type %s', fileext)
             end
-
     end
     
 end
-
-
 
 
 % NEW VERSION:
@@ -132,8 +119,3 @@ end
 % % 
 % % % This should be done within the imagestack constructor
 % % obj.filePath = pathStr{1};
-
-
-
-
-    

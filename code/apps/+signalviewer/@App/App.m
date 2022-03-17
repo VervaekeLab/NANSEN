@@ -105,6 +105,7 @@ classdef App < applify.ModularApp
     end
     
     properties (Dependent)
+        Axes
         ActiveYAxis
 
         XLabelName
@@ -115,7 +116,9 @@ classdef App < applify.ModularApp
        
         settings = struct('ScrollFactorPanX', 5, ...
                           'ScrollFactorZoomX', 1, ...
-                          'ScrollFactorZoomY', 1 )
+                          'ScrollFactorZoomY', 1 )%, ...
+%                           'YLimLeft', [0, 1], ...
+%                           'YLimRight', [0, 1] )
                       
         plotMethod = 'stack' % stacked | overlaid
         
@@ -414,6 +417,10 @@ classdef App < applify.ModularApp
         
         function activeYAxis = get.ActiveYAxis(obj)
             activeYAxis = obj.ax.YAxisLocation;
+        end
+        
+        function ax = get.Axes(obj)
+            ax = obj.getAxes();
         end
         
     end
@@ -985,7 +992,7 @@ classdef App < applify.ModularApp
         function editSettings(obj, ~, ~)
         
             oldSettings = obj.settings;
-            newSettings = utilities.editStruct(oldSettings, 'all', 'Signal Viewer Settings');
+            newSettings = tools.editStruct(oldSettings, 'all', 'Signal Viewer Settings');
             obj.settings = newSettings;
             
         end
@@ -1012,7 +1019,7 @@ classdef App < applify.ModularApp
             %colors = cbrewer('qual', 'Set2', nColors, 'spline');
             %patchColors = cbrewer('seq', 'PuBuGn', nColors*2, 'spline');
             %patchColors = patchColors(nColors+1:end, :);
-            patchColors = cbrewer('qual', 'Set2', nColors, 'spline');
+            patchColors = cbrewer('qual', 'Set2', max([nColors,3]), 'spline'); % Should be min 3 for cbrewer
             
             for i = 1:numel(tsArray)
                 colorInd = mod(colorInd, nColors) + 1;

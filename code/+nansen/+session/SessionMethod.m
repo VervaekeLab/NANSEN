@@ -121,8 +121,11 @@ classdef SessionMethod < nansen.DataMethod
             % Parse name-value pairs and assign to parameters property.
             if ~isempty(obj.OptionsManager)
                 params = obj.OptionsManager.getOptions;
-                obj.Parameters = utility.parsenvpairs(params, [], varargin);
+                obj.Parameters = utility.parsenvpairs(params, 1, varargin);
             end
+            
+            % Check that required variables for this method exist.
+            obj.checkRequiredVariables()
             
             % Call the appropriate run method
             if ~nargout
@@ -136,8 +139,31 @@ classdef SessionMethod < nansen.DataMethod
     
     methods
         
+        function checkRequiredVariables(obj)
+        %checkRequiredVariables Check if required variables are available    
+            if isempty(obj.DataIoModel)
+                error('Nansen:SessionMethod:IoModelMissing', ...
+                    'Data I/O Model is missing for method %s', class(obj))
+            end
+            
+            % Alternative to making this abstract in which case subclasses
+            % has to implement it...
+            if ~isprop(obj, 'RequiredVariables'); return; end
+            
+            for i = 1:numel(obj.RequiredVariables)
+                
+                assertionMsg = sprintf(['File for the required data ', ...
+                    'variable "%s" is missing'], obj.RequiredVariables{i});
+                
+                filePath = obj.getDataFilePath(obj.RequiredVariables{i});
+                assert(isfile(filePath), assertionMsg)
+                
+            end
+            
+        end
+        
         function run(obj)
-
+            
             % Todo: How to create a sessionMethod instance from a function?
             % Create a subclass??
             if ~isempty(obj.ExternalFcn)
@@ -150,23 +176,28 @@ classdef SessionMethod < nansen.DataMethod
             end
         end
         
-%         function tf = preview(obj, optsName)
-%             % Todo:
-%             % How to do this?
-%                
-%             
-%             if nargin == 2 && ~isempty(optsName)
-%                 params = obj.OptionsManager.getOptions(optsName);
-%             else
-%                 params = obj.Parameters;
-%             end
-%             
-%             nvPairs = { 'OptionsManager', obj.OptionsManager };
-%             params = tools.editStruct(params, nan, '', nvPairs{:} );
-%             
-%             tf = true;
-%         end
         
+% %         function tf = preview(obj, optsName)
+% %             % Todo:
+% %             % How to do this?
+% %                
+% %             
+% %             if nargin == 2 && ~isempty(optsName)
+% %                 params = obj.OptionsManager.getOptions(optsName);
+% %             else
+% %                 params = obj.Parameters;
+% %             end
+% %             
+% %             [newParameters, ~] = tools.editStruct(obj.Parameters);
+% %             obj.Parameters = newParameters;
+% % 
+% %             %nvPairs = { 'OptionsManager', obj.OptionsManager };
+% %             %params = tools.editStruct(params, nan, '', nvPairs{:} );
+% %             
+% %             %tf = true;
+% %         end
+% %         
+% %         
         function setup(obj)
                         
             obj.Parameters = tools.editStruct(obj.Parameters);
@@ -174,6 +205,9 @@ classdef SessionMethod < nansen.DataMethod
         end
         
         function usePreset(obj, presetName)
+            
+            obj.OptionsManager.setOptions(presetName)
+            
             obj.Parameters = obj.OptionsManager.getOptions(presetName);
         end
         
@@ -225,6 +259,8 @@ classdef SessionMethod < nansen.DataMethod
             % Todo: Get all constant properties + parameters from metaclass
             % definition.
             
+            %    Include Required variables as attribute
+            
             % Fields of output struct with defaults.
             S.BatchMode = 'serial';
             S.IsQueueable = true;
@@ -254,11 +290,11 @@ classdef SessionMethod < nansen.DataMethod
                 S.BatchMode = 'batch';
             end
             
-            if contains('queueable', varargin)
+            if any( strcmpi('queueable', varargin) )
                 S.IsQueueable = true;
             end
             
-            if contains('unqueueable', varargin)
+            if any( strcmpi('unqueueable', varargin) )
                 S.IsQueueable = false;
             end
             

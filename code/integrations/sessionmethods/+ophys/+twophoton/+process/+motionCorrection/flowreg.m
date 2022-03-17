@@ -26,6 +26,8 @@ classdef flowreg < nansen.session.SessionMethod & nansen.wrapper.flowreg.Process
             sessionData = nansen.session.SessionData( varargin{1} );
             sessionData.updateDataVariables()
             
+            sessionData.TwoPhotonSeries_Original.enablePreprocessing()
+
             obj.openSourceStack(sessionData.TwoPhotonSeries_Original)
             
             if ~nargout % how to generalize this???

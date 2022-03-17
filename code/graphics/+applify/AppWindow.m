@@ -62,7 +62,8 @@ classdef AppWindow < uim.handle
         end
     end
     
-    methods 
+    methods
+    
         function set.IsConstructed(obj, newValue)
             assert(islogical(newValue), 'Value must be logical')
             if ~obj.IsConstructed
@@ -182,6 +183,11 @@ classdef AppWindow < uim.handle
     end
     
     methods
+        
+        function uiwait(obj)
+            uiwait(obj.Figure)
+        end
+        
         function [screenSize, screenNum] = getCurrentMonitorSize(obj)
             [screenSize, screenNum] = obj.getMonitorInfo(obj.Figure);
         end

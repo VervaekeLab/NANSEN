@@ -1,7 +1,8 @@
-function createNewSessionMethod(app)
+function wasSuccess = createNewSessionMethod(app)
 %createNewSessionMethod Let user interactively create a new session method template    
 
-
+    wasSuccess = false;
+    
     % Parameters to open in a dialog
     S = struct();
     S.MethodName = '';
@@ -22,7 +23,8 @@ function createNewSessionMethod(app)
     
     if wasAborted; return; end
     if isempty(S.MethodName); return; end
-    
+    wasSuccess = true;
+
     
     switch S.TemplateType
         case 'Function'

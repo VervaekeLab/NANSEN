@@ -58,7 +58,7 @@ classdef FileViewer < handle
         nwbContextMenu
         
         hPanelPreview
-        
+        hBackgroundLabel
     end
     
     
@@ -70,8 +70,9 @@ classdef FileViewer < handle
             % Take care of input arguments.
             obj.parseInputs(varargin)
             
-            
             obj.setIconFolderPath()  
+            
+            obj.createBackgroundLabel()
             
             % Initialize the context menu on construction. This will be 
             % reused across data locations and items in the uitree.
@@ -85,6 +86,9 @@ classdef FileViewer < handle
 % % %             
 % % %             % center
 % % %             uim.utility.layout.centerObjectInRectangle(obj.hPanelPreview, obj.Parent);
+        
+            addlistener(obj.Parent, 'SizeChanged', @obj.onParentSizeChanged);
+
         end
 
         function delete(obj)
@@ -171,6 +175,19 @@ classdef FileViewer < handle
         function setIconFolderPath(obj)
             rootDir = fileparts(mfilename('fullpath'));
             obj.IconFolderPath = fullfile(rootDir, '_graphics', 'icons');
+        end
+        
+        function createBackgroundLabel(obj)
+        %createBackground
+        
+            obj.hBackgroundLabel = uicontrol(obj.Parent, 'style', 'text');
+            obj.hBackgroundLabel.String = 'No Session Selected';
+            obj.hBackgroundLabel.FontSize = 20;
+            obj.hBackgroundLabel.ForegroundColor = ones(1,3)*0.6;
+            obj.hBackgroundLabel.Position(3:4) = obj.hBackgroundLabel.Extent(3:4);
+            uim.utility.layout.centerObjectInRectangle(obj.hBackgroundLabel, ...
+                getpixelposition(obj.Parent))
+            
         end
         
         function createTabgroup(obj, metaTableEntry)
@@ -647,6 +664,12 @@ classdef FileViewer < handle
             
         end
         
+        function onParentSizeChanged(obj, src, evt)
+                      
+            uim.utility.layout.centerObjectInRectangle(obj.hBackgroundLabel, ...
+                getpixelposition(obj.Parent))
+            
+        end
     end
     
 end

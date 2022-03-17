@@ -77,8 +77,9 @@ classdef OptionsManager < handle
 %     user can change which option set to use by default.
 %
 %     Note: The default options are automatically selected when an instance
-%     of options manager is created. If the options are changed, this new
-%     selection wil remain the current one until the object is recreated...
+%     of options manager is created. If an options set is edited, it will
+%     be selected and remain selected until another options set is selected
+%     or a new OptionsManager instance is recreated.
     
 
         
@@ -110,7 +111,7 @@ classdef OptionsManager < handle
     %   [ ] Methods for comparing options with archived options. Should
     %       ignore parameters tagged with transient....
     %
-    %   [ ] Save options sets for project tasks to the project folder?
+    %   [v] Save options sets for project tasks to the project folder?
     
     
 % %     properties (Access = private)
@@ -332,7 +333,9 @@ classdef OptionsManager < handle
                      
             elseif obj.isModified(optionsName)
                 S = obj.getModifiedOptions(optionsName);
-            
+            else
+                S = struct;
+                warning('No options were found')
             end
             
             if nargout == 0
@@ -345,8 +348,20 @@ classdef OptionsManager < handle
             
         end
         
-        function setOptions(obj, options, optionsName)
+        function setOptions(obj, optionsName, options)
             % Todo: Create this method
+            
+            optionsName = obj.unformatDefaultName(optionsName);
+            optionsName = obj.unformatPresetName(optionsName);
+            
+            if any(strcmp(obj.AllOptionNames, optionsName))
+                obj.OptionsName = optionsName;
+                obj.Options = obj.getOptions(optionsName);
+            else
+                error('not implemented yet')
+            end
+                
+            
         end
         
     end
@@ -387,6 +402,26 @@ classdef OptionsManager < handle
             
         end
         
+        function hOptionsEditor = openOptionsEditor(obj, optionsName, optsStruct)
+        %openOptionsEditor Open options editor for current options.
+        
+            if nargin < 2
+                optionsName = obj.OptionsName;
+            end
+            
+            if nargin < 3
+                optsStruct = obj.getOptions(optionsName);
+            end
+        
+            titleStr = obj.getEditorTitle(obj.FunctionName);
+
+            hOptionsEditor = structeditor(optsStruct, ...
+                'Title', titleStr, ...
+                'OptionsManager', obj );
+            hOptionsEditor.changeOptionsSelectionDropdownValue(optionsName);
+            
+        end
+        
         function [optsName, optsStruct, wasAborted] = editOptions(obj, optsName, optsStruct)
         %editOptions Interactively edit options using structeditor app
         
@@ -407,22 +442,18 @@ classdef OptionsManager < handle
                 optsStruct = obj.getOptions(optsName);
             end
             
-            fcnName = strsplit(obj.FunctionName, '.'); fcnName = fcnName{end};
-            sEditor = structeditor(optsStruct, 'OptionsManager', obj, 'Title', fcnName);
-            sEditor.changeOptionsSelectionDropdownValue(optsName);
-            
+            sEditor = obj.openOptionsEditor(optsName, optsStruct);
             sEditor.waitfor()
+            
             wasAborted = sEditor.wasCanceled;
 
             if sEditor.wasCanceled
                 optsStruct = sEditor.dataOrig;
+                optsName = sEditor.currentOptionsName;
             else
                 optsStruct = sEditor.dataEdit;
-                
             end
-            
-            optsName = sEditor.currentOptionsName;
-            
+                        
             obj.Options = optsStruct;
             obj.OptionsName = optsName;
             
@@ -798,10 +829,16 @@ classdef OptionsManager < handle
             
             % Return as options entry (struct)
             opts = fcnHandle();
-            name = 'Function Preset';
+            name = 'Preset Options';
             
             if obj.FunctionTypeIdx == 1
                 opts = opts.DefaultOptions; % Session task formatting...
+            end
+            
+            if isempty(obj.OptionsName)
+                if isequal(obj.Options, opts)
+                    obj.OptionsName = name;
+                end
             end
             
             optionsEntry = obj.createOptionsStructForSaving(opts, name, ...
@@ -821,7 +858,7 @@ classdef OptionsManager < handle
 
             % Return as options entry (struct)
             opts = fcnHandle();
-            name = 'Class Preset';
+            name = 'Preset Options';
             
             optionsEntry = obj.createOptionsStructForSaving(opts, name, ...
                 sprintf('Default preset options for %s', obj.FunctionName) );
@@ -1025,6 +1062,8 @@ classdef OptionsManager < handle
             pathStr = which(obj.FunctionName);
             if contains(pathStr, fullfile('code', 'integrations', 'sessionmethods'))
                 location = 'local';
+            elseif contains(pathStr, '+nansen')
+                location = 'local';
             else
                 location = 'project';
             end
@@ -1218,6 +1257,31 @@ classdef OptionsManager < handle
     end
     
     methods (Static, Access = private)
+        
+        function editorTitleStr = getEditorTitle(functionName)
+        %getEditorTitle Get title for options editor
+        
+            methodName = '';
+            
+            mc = meta.class.fromName( functionName );
+            if ~isempty(mc)
+                if any(strcmp({mc.PropertyList.Name}, 'MethodName'))
+                    isMatch = strcmp({mc.PropertyList.Name}, 'MethodName');
+                    propertyItem = mc.PropertyList(isMatch);
+                    if propertyItem.HasDefault
+                        methodName = propertyItem.DefaultValue;
+                    end
+                end
+            end
+            
+            if isempty(methodName)
+                methodName = strsplit( functionName, '.'); 
+                methodName = methodName{end};
+            end
+            
+            editorTitleStr = sprintf('Options Editor (%s)', methodName);
+            
+        end
         
         function varName = getReferenceTypeVarname(referenceType)
         %getReferenceTypeVarname Get variable name for given reference type

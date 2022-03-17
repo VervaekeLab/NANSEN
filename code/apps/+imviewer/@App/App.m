@@ -1047,8 +1047,10 @@ methods % App initialization & creation
 
         mitem = uimenu(m, 'Label', 'Link to Another Viewer...', 'Separator', 'on');
         mitem.Callback = @(s, e) obj.manualLinkProp;
+
+        mitem = uimenu(m, 'Label', 'Unlink from Viewer', 'Enable', 'off');
         
-        mitem = uimenu(m, 'Label', 'Load Images...');
+        mitem = uimenu(m, 'Label', 'Load Images...', 'Separator', 'on');
         mitem.Callback = @(s, e, bool) obj.onLoadImageDataPressed(true);
 
         mitem = uimenu(m, 'Text', 'Save');
@@ -1116,7 +1118,7 @@ methods % App initialization & creation
         
         if obj.imHeight==0 || obj.imWidth == 0; return; end
         if obj.nFrames == 1; return; end
-        return
+        %return
         
         % Only proceed if this widget is not initialized/present.
         if ~isfield(obj.uiwidgets, 'thumbnailSelector') || ...
@@ -1597,6 +1599,10 @@ methods % Set/Get
         
     end
         
+    function set.LinkedApps(obj, newValue)
+        obj.LinkedApps = newValue;
+        obj.onLinkedAppsSet()
+    end
     
 end
 
@@ -2015,16 +2021,29 @@ methods % App update
         
     end
     
-    function hPlugin = openPlugin(obj, pluginName, pluginOptions)
-        
+    function hPlugin = openPlugin(obj, pluginName, pluginOptions, varargin)
+    %openPlugin Open a plugin in the imviewer
+    %
+    
+    %   Todo: Work more on this. Seems like some of this should be moved to
+    %   the AppWithPlugin superclass...Also, shouldnt plugin be added to
+    %   the plugin property here?
+    
+    
         if nargin < 3 || isempty(pluginOptions)
             pluginOptions = struct.empty;
         end
         
-        pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
-        pluginFcn = str2func(pluginFcnName);
-        
-        hPlugin = pluginFcn(obj, pluginOptions);
+        % Require function handle for plugin.
+        if ischar(pluginName)
+            pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
+            pluginFcn = str2func(pluginFcnName);
+        elseif isa(pluginName, 'function_handle')
+            pluginFcn = pluginName;
+        end
+            
+        % Create the plugin
+        hPlugin = pluginFcn(obj, pluginOptions, varargin{:});
 
         if ~nargout
             clear(hPlugin)
@@ -2743,6 +2762,15 @@ methods % Misc, most can be outsourced
         
     end
     
+    function manualUnlinkProp(obj, appName)
+        
+        
+        %obj.uiaxes.imdisplay.UIContextMenu
+        
+        
+        
+    end
+    
     function linkprop(obj, externalGuiHandle, prop)
     %linkprop Link properties with external guis, so that update to
     %property is applied in all linked guis.
@@ -2757,6 +2785,9 @@ methods % Misc, most can be outsourced
     if nargin < 3 || isempty(prop)
         prop = 'currentFrameNo';
     end
+    
+    assert(strcmp(prop, 'currentFrameNo'), 'Currently only supports linking currentFrameNo property')
+
         
     if isempty(obj.LinkedApps)
         obj.LinkedApps = externalGuiHandle;
@@ -2770,7 +2801,21 @@ methods % Misc, most can be outsourced
         externalGuiHandle.LinkedApps(end+1) = obj;
     end
     
-    assert(strcmp(prop, 'currentFrameNo'), 'Currently only supports linking currentFrameNo property')
+    % Add to menu...
+    
+    ax(1) = obj.Axes;
+    ax(2) = externalGuiHandle.Axes;
+    h=gobjects(1,2);
+    for i = 1:3
+        for j = 1:2
+        	h(j) = plot(ax(j), ax(j).XLim([1,1,2,2,1]), ax(j).YLim([1,2,2,1,1]), 'g', 'LineWidth', 2);
+        end
+        drawnow
+        pause(0.2)
+        delete(h)
+        pause(0.2)
+    end
+    
     
 % %         assert(numel(externalGuiHandle) == 1, 'Currently only supports one handle at a time.')
 % %         
@@ -2792,8 +2837,37 @@ methods % Misc, most can be outsourced
         
     end
     
+    function onLinkedAppsSet(obj)
+        
+        hMenu = findobj(obj.uiaxes.imdisplay.UIContextMenu, ...
+            'Label', 'Unlink from Viewer');
+        
+        if ~isempty(hMenu.Children)
+            delete(hMenu.Children)
+        end
+        
+        for i = 1:numel(obj.LinkedApps)
+            hMenuItem = uimenu(hMenu, 'Label', obj.LinkedApps(i).Figure.Name);
+            hMenuItem.Callback = @(s,e,h) obj.unlinkprop(obj.LinkedApps(i));
+        end
+        
+        if ~isempty(hMenu.Children)
+            hMenu.Enable = 'on';
+        else
+            hMenu.Enable = 'off';
+        end
+        
+        
+    end
+    
     function unlinkprop(obj, externalGuiHandle, prop) %#ok<INUSD>
-        %todo
+        
+        removeIdxInternal = isequal(obj.LinkedApps, externalGuiHandle);
+        obj.LinkedApps(removeIdxInternal) = [];
+        
+        removeIdxExternal = isequal(externalGuiHandle.LinkedApps, obj);
+        externalGuiHandle.LinkedApps(removeIdxExternal) = [];
+        
     end
     
     function linkedPropertyChange(obj, event, guiList)
@@ -4442,6 +4516,8 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         if ~obj.isMouseInApp; return; end
 
+        % Todo: This only holds the pointermanager. Should make it into an
+        % interface.., not a plugin. 
         if ~isempty(obj.plugins)
             for i = 1:numel(obj.plugins)
                 try
@@ -4453,6 +4529,9 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 end
             end
         end
+        
+        wasCaptured = obj.sendKeyEventToPlugins([], event);
+        if wasCaptured; return; end
         
         
         if contains('shift', event.Modifier)
@@ -5202,6 +5281,26 @@ methods (Static)
         
         hApp = getappdata(openFigures(figInd), 'ViewerObject');
     
+    end
+    
+    
+    function pluginFcn = getPluginFcnFromName(pluginName)
+        pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};
+
+        pluginFcn = [];
+        for i = 1:2
+            pluginFcnName = strjoin([pluginPackage(i), pluginName], '.');
+            str = which(pluginFcnName);
+            if ~isempty(str)
+                pluginFcn = str2func(pluginFcnName);
+            end
+        end
+    end
+    
+    function installPlugin()
+        % Todo...
+        
+        
     end
     
 end

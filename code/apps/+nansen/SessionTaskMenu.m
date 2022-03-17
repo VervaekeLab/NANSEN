@@ -57,8 +57,8 @@ classdef SessionTaskMenu < handle
     properties (Access = private)
         DefaultMethodsPath char % Todo: Tie to a session type. Ie Ephys, ophys etc.
         ProjectMethodsPath char
-        DefaultMethodsPackage char
-        ProjectMethodsPackage char
+        DefaultMethodsPackage char % not used, remove?
+        ProjectMethodsPackage char % not used, remove?
         
         ProjectChangedListener
     end
@@ -70,14 +70,18 @@ classdef SessionTaskMenu < handle
     
     methods
         
-        function obj = SessionTaskMenu(appHandle)
+        function obj = SessionTaskMenu(appHandle, modules)
             
             obj.ParentApp = appHandle;
+            
+            if nargin < 2
+                modules = {'ophys.twophoton'};
+            end
             
             % NB: This assumes that the ParentApp has a Figure property
             hFig = obj.ParentApp.Figure;
             
-            obj.assignDefaultMethodsPath()
+            obj.assignDefaultMethodsPath(modules)
             obj.assignProjectMethodsPath()
             
             % Todo: Improve performance!
@@ -130,7 +134,14 @@ classdef SessionTaskMenu < handle
     
     methods (Access = private)
         
-        function assignDefaultMethodsPath(obj)
+        function assignDefaultMethodsPath(obj, modules)
+            
+            sesMethodRootFolder = nansen.localpath('sessionmethods');
+
+            integrationDirs = utility.path.packagename2pathstr(modules);
+            obj.DefaultMethodsPath = fullfile(sesMethodRootFolder, integrationDirs);
+            return
+            
             %Todo: This should depend on session schema.
             obj.DefaultMethodsPath = fullfile(nansen.rootpath, '+session', '+methods');
             obj.DefaultMethodsPackage = utility.path.pathstr2packagename(obj.DefaultMethodsPath);
@@ -203,7 +214,7 @@ classdef SessionTaskMenu < handle
         % Requires: utility.string.varname2label
         
             if nargin < 3
-                dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
+                dirPath = [obj.DefaultMethodsPath, {obj.ProjectMethodsPath}];
                 init = true;
             else
                 init = false;
@@ -276,7 +287,7 @@ classdef SessionTaskMenu < handle
                         options = fcnConfig.OptionsManager.AllOptionNames;
                         iSubMenu = uimenu(hParent, 'Text', menuName);
                         
-                        if isempty(options)
+                        if isempty(options) || numel(options)==1
                             obj.createMenuCallback(iSubMenu, functionName)
                             obj.registerMenuObject(iSubMenu, fcnConfig)
                         

@@ -209,16 +209,21 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
 
         function onTaskTableDataSet(obj)
             
+            isInitialized = ~isempty(obj.UITable.DataTable);
             obj.UITable.DataTable = obj.TaskTableData;
-            numRows = size(obj.TaskTableData, 1);
             
-            % Update the column formatting properties
-            obj.UITable.ColumnFormat = {'popup', 'char', 'char', 'popup'};
+            if ~isInitialized
+                        
+                numRows = size(obj.TaskTableData, 1);
 
-            colFormatData = {arrayfun(@(x) uint8(x), 1:numRows, 'uni',0), [], [], {'OptionA', 'OptionB'}};
-            
-            obj.UITable.ColumnFormatData = colFormatData;
-            obj.UITable.ColumnEditable = [true, true, false, true];
+                % Update the column formatting properties
+                obj.UITable.ColumnFormat = {'popup', 'char', 'char', 'popup'};
+
+                colFormatData = {arrayfun(@(x) uint8(x), 1:numRows, 'uni',0), [], [], {'OptionA', 'OptionB'}};
+
+                obj.UITable.ColumnFormatData = colFormatData;
+                obj.UITable.ColumnEditable = [true, true, false, true];
+            end
             
         end
         
@@ -315,7 +320,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             
             if isDirty
             
-                message = sprintf('Save changes to %s?', obj.PipelineStruct.PipelineName);
+                message = sprintf('Save changes to %s pipeline?', obj.PipelineStruct.PipelineName);
                 title = 'Confirm Save';
 
                 answer = questdlg(message, title, 'Yes', 'No', 'Cancel', 'Yes');
@@ -357,7 +362,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             for i = 1:numRows
                 data{i, 1} = uint8(i);
             end
-
+        
             obj.UITable.DataTable = data;
 
         end
@@ -372,8 +377,9 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             for i = 1:numRows
                 data{i, 1} = uint8(i);
             end
-
-            obj.UITable.DataTable = data;
+            
+            obj.TaskTableData = data;
+            %obj.UITable.DataTable = data;
 
         end
         
@@ -426,12 +432,10 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
         
         function onRemoveTaskMenuItemClicked(obj, src, evt)
             rowNumber = obj.UITable.SelectedRows;
+            
             if ~isempty(rowNumber)
                 obj.removeTask(rowNumber)
             end
-            
-            % Update task numbers
-            obj.updateTaskOrder()
 
         end
         
@@ -442,6 +446,8 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
         function addTask(obj, newTask)
             
             functionName = obj.AutoCompleteWidget.Value;
+            
+            if isempty(functionName); return; end
             
             % Find in sessionMethodCatalog
             sMethodItem = obj.SessionMethodCatalog.getItem(functionName);
@@ -472,6 +478,9 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
         function removeTask(obj, rowIdx)
             fprintf('Removing task %s\n', obj.UITable.DataTable{rowIdx, 2}{1})
             obj.TaskTableData(rowIdx, :) = []; 
+            
+            % Update task numbers
+            obj.updateTaskOrder()
         end
         
         function openTableContextMenu(obj, x, y)

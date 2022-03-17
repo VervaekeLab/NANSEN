@@ -29,39 +29,55 @@ classdef TwoPhotonRecording < handle
 
 
     properties (Dependent)
-        ProcessData % Flag for subclass to decide whether is should invoke the processdata method
+        PreprocessDataEnabled % Flag for subclass to decide whether is should invoke the processdata method
         % Is it better if this is just set internally whenever properties
         % are changed?
     end
 
-
-    properties (Hidden) % Todo: Add a twophoton mixin class for data preprocessing
-        StretchCorrectionMethod = 'imwarp'
-        % Todo: StretchCorrectionLookupTable
+    properties (Hidden) 
         NumFlybackLines = 8
-        CorrectBidirectionalOffset = false; 
+        StretchCorrectionMethod = 'none' % 'imwarp', 'imresize', 'none'
+        CorrectBidirectionalOffset = false;
+    end
+    
+    properties (Access = protected)
+        % Todo: StretchCorrectionLookupTable
+    end
+
+    methods % Constructor
+        
+        function obj = TwoPhotonRecording(varargin)
+            
+            obj.assignNvPairs(varargin{:})
+
+        end
+        
+        function assignNvPairs(obj, varargin)
+            
+            import utility.getnvparametervalue
+            
+            if isempty(varargin); return; end
+            
+            propertyNames = {...
+                'NumFlybackLines', ...
+                'StretchCorrectionMethod', ...
+                'CorrectBidirectionalOffset' };
+            
+            for i = 1:numel(propertyNames)
+                value = getnvparametervalue(varargin, propertyNames{i});
+                
+                if ~isempty(value)
+                    obj.(propertyNames{i}) = value;
+                end
+            end
+
+        end
     end
     
     
     methods % Set/get methods
-        
-        function set.StretchCorrectionMethod(obj, newValue)
             
-            % Todo: Make sure value is valid.
-            obj.StretchCorrectionMethod = newValue;
-            obj.onStretchCorrectionMethodChanged()
-
-        end
-        
-        function set.NumFlybackLines(obj, newValue)
-            
-            % Todo: Make sure value is valid.
-            obj.NumFlybackLines = newValue;
-            obj.onNumFlybackLinesChanged()
-
-        end
-        
-        function tf = get.ProcessData(obj)
+        function tf = get.PreprocessDataEnabled(obj)
             
             doFlyBackRemoval = obj.NumFlybackLines ~= 0;
             doStretchCorrection = ~strcmp(obj.StretchCorrectionMethod, 'none');
@@ -71,6 +87,23 @@ classdef TwoPhotonRecording < handle
                     doBidirectionOffsetCorrection;
         end
         
+        function set.StretchCorrectionMethod(obj, newValue)
+            
+            if isempty(newValue); newValue = 'none'; end
+            newValue = validatestring(newValue, {'none', 'imwarp', 'imresize'});
+            
+            % Todo: Make sure value is valid.
+            obj.StretchCorrectionMethod = newValue;
+
+        end
+        
+        function set.NumFlybackLines(obj, newValue)
+                        
+            % Todo: Make sure value is valid.
+            obj.NumFlybackLines = newValue;
+            
+        end
+        
     end
     
     methods (Access = protected)
@@ -78,67 +111,80 @@ classdef TwoPhotonRecording < handle
         function data = processData(obj, data)
             
             if obj.NumFlybackLines ~= 0
-                firstLine = obj.NumFlybackLines + 1;
-                % Create subs
-                subs = repmat({':'}, 1, ndims(data));
-                subs{1} = firstLine:size(data,1);
-                % Get data without flyback lines
-                data = data(subs{:});
+                data = obj.removeFlybackLines(data);
             end
-        
             
+            if ~strcmp(obj.StretchCorrectionMethod, 'none')
+                data = obj.correctResonanceStretch(data);
+            end
+            
+            % Should this be done before or after destretching? I thought
+            % before....
+            if obj.CorrectBidirectionalOffset
+                obj.correctBidirectionalOffset()
+            end
+
+        end
+        
+        function data = removeFlybackLines(obj, data)
+        %removeFlybackLines Remove flyback lines from data 
+        
+            firstLineToInclude = obj.NumFlybackLines + 1;
+            
+            % Create subs
+            subs = repmat({':'}, 1, ndims(data));
+            yIdx = strfind(obj.DataDimensionArrangement, 'Y');
+            subs{yIdx} = firstLineToInclude:size(data,1);
+            
+            % Get data without flyback lines
+            data = data(subs{:});
+        end
+        
+        function data = correctResonanceStretch(obj, data)
+                        
             % Correct stretching of images due to the sinusoidal movement profile 
             % of the resonance mirror
             switch obj.StretchCorrectionMethod
-                
+
                 case {'imresize', 'imwarp'}
                     %scanParam = getSciScanVariables(folderpath, {'ZOOM', 'x.correct'});
                     
                     % Todo: Make sure scan params are available...
                     scanParam = struct('zoom', obj.MetaData.zoomFactor, 'xcorrect', 32);
+                    
+                    isTransposed = strcmp(obj.DataDimensionArrangement(1:2), 'XY');
+                    if isTransposed
+                        dimOrder = 1:ndims(obj);
+                        dimOrder([1:2]) = dimOrder([2,1]);
+                        data = permute(data, dimOrder);
+                    end
+                        
                     % Todo: Add this method...
-                    data = correctResonanceStretch(data, scanParam, ...
+                    data = ophys.twophoton.sciscan.correctResonanceStretch(data, scanParam, ...
                         obj.StretchCorrectionMethod);
+                    
+                    if isTransposed
+                        data = ipermute(data, dimOrder);
+                    end
                     
                 case 'none'
                     % Do nothing
                 otherwise
-                    warning('Unknown strtch correction method, resonance stretch is not corrected')
+                    warning('Unknown stretch correction method, resonance stretch is not corrected')
             end
-        
             
-            % TODO:
-                % Should this be done before or after destretching? I thought
-                % before....
-               % [data, bidirBatchSize, colShifts] = correctLineOffsets(data, 100);
+        end
+        
+        function data = correctBidirectionalOffset(obj, data)
+            % Todo...
 
-
+            % Should this be done before or after destretching? I thought
+            % before....
+            % [data, bidirBatchSize, colShifts] = correctLineOffsets(data, 100);
+            
         end
         
     end
-    
-    
-    methods (Access = private)
-        
-        function onStretchCorrectionMethodChanged(obj)
-            % Todo:
-            % Update the size of virtual data.
-            
-            % Reinitialize the cache (if cache is active) Perhaps this
-            % should be done in the virtual array class, if the size is
-            % ever changed...
-            
-        end
-        
-        function onNumFlybackLinesChanged(obj)
-            % Update the size of virtual data.
-            % Re-initialize the cache. See onStretchCorrectionMethodChanged
-        end
-        
-    end
-
-    
-    
     
     
 end

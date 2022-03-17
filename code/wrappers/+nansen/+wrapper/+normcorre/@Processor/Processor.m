@@ -7,11 +7,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %   This class provides functionality for running normcorre within
 %   the nansen package.
 %
-%   Added functionality:
-%       - Pause/stop registration and resume at later time
+%   Additional functionality:
+%       - Stop registration and resume at later time
 %       - Interactive configuration of parameters
 %       - Save reference images
-
 
 
 %   TODO:
@@ -22,17 +21,19 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
         MethodName = 'Motion Correction (NoRMCorre)'
-        IsManual = false        % Does method require manual supervision
-        IsQueueable = true      % Can method be added to a queue
+        IsManual = false        % Does method require manual supervision?
+        IsQueueable = true      % Can method be added to a queue?
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.normcorre.Processor')
+    end
+    
+    properties (Constant, Hidden)
+        DATA_SUBFOLDER = 'image_registration'; % Name of subfolder(s) where to save results by default
     end
     
     properties (Constant) % From motion correction
         ImviewerPluginName = 'NoRMCorre'
     end
-    
-
     
 % % %     properties (Constant, Access = protected)
 % % %         DependentPaths = nansen.wrapper.normcorre.getDependentPaths()
@@ -48,35 +49,13 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             obj@nansen.processing.MotionCorrection(varargin{:})
             
-        
             % Return if there are no inputs.
             if numel(varargin) == 0
                 return
             end
             
-            % Validate and assign image stack input
-            
-% % %             try % ImageStackProcessor method:
-% % %                 obj@nansen.processing.MotionCorrection(varargin{:})
-% % %                 %obj.parseImageStackInput(varargin{1})
-% % %             catch
-% % %                 id = 'NANSEN:InvalidImageStackInput';
-% % %                 throw(nansen.stack.getException(id, 'InputNumber', 1))
-% % %             end
-            
-            % Validate and assign options input if provided
-% %             if numel(varargin) >= 2
-% %                 obj.parseOptionsRef(varargin{2})
-% %             end
-            
-            % Assign options manager
-%             if isempty(obj.Options)
-%                 obj.assignOptionsManager(mfilename('class'))
-%             end
-            
             % Todo. Move to superclass
             obj.Options.Export.FileName = obj.SourceStack.Name;
-            
             
             % Call the appropriate run method
             if ~nargout
@@ -118,7 +97,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         end
         
         function tf = checkIfPartIsFinished(obj, partNumber)
-        %checkIfPartIsFinished Check if shift values exist for given frames
+        %checkIfPartIsFinished Check if shift values exist for given part
         
             shifts = obj.ShiftsArray;
             IND = obj.FrameIndPerPart{partNumber};
@@ -130,8 +109,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         function initializeShifts(obj, numFrames)
         %initializeShifts Load or initialize shifts...
         
+            % Get filepath (initialize if it does not exist)
             filePath = obj.getDataFilePath('normcorreShifts', '-w', ...
-                'Subfolder', 'image_registration');
+                'Subfolder', obj.DATA_SUBFOLDER);
             
             if isfile(filePath)
                 S = obj.loadData('normcorreShifts');

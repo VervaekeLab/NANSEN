@@ -1,7 +1,9 @@
 function roiStat = calculateRoiStats(roiArray, roiImageData, dff, ringKernel, diskKernel)
 
 
+
 boxSize = size(roiImageData(1).enhancedAverage);
+maxSize = roiArray(1).imagesize;
 
 centerCoords = round(cat(1, roiArray.center));
 
@@ -20,7 +22,14 @@ for i = 1:nRois
     tmpY = indY + centerCoords(i, 2);
     
     roiMask = roiArray(i).mask;
-    smallMask = roiMask(tmpY, tmpX);
+    if any([tmpX,tmpY]<1) || any(tmpX>maxSize(2)) || any(tmpY>maxSize(1))
+        smallMask = false(boxSize);
+        isValidX = tmpX >= 1 & tmpX<=maxSize(2);
+        isValidY = tmpY >= 1 & tmpY<=maxSize(1);
+        smallMask(isValidY,isValidX) = roiMask(tmpY(isValidY), tmpX(isValidX));
+    else
+        smallMask = roiMask(tmpY, tmpX);
+    end
     
     roiStat(i).ringCorrelation = corr2(roiImageData(i).enhancedAverage, ringKernel);
     roiStat(i).diskCorrelation = corr2(roiImageData(i).correlation, diskKernel);

@@ -8,6 +8,8 @@ function pathStr = localpath(pathKeyword, projectName)
 %   This function provides absolute local paths for directory or filepaths
 %   of folders or files that are used within the nansen package.
 
+% Todo: Should not give project dependent paths. This is a task for
+% ProjectManager, or better, a Project class.
 
 %   Use global variable to keep preference variables while matlab session
 %   is running. Getting values using getprefs is quite slow, so this is a
@@ -119,6 +121,11 @@ function pathStr = localpath(pathKeyword, projectName)
         case 'DataLocationSettings'
             folderPath = fullfile(projectRootDir, 'Configurations');
             fileName = 'datalocation_settings.mat';
+            
+        case 'SessionMatchMaker'
+            [~, projectName] = fileparts(projectRootDir);
+            folderPath = fullfile(projectRootDir, ['+', projectName]);
+            fileName = 'matchFolderListWithSessionID.m';
               
         otherwise
             % open dialog and save to preferences or get from preferences

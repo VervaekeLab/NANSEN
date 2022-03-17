@@ -58,6 +58,8 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
         function dateInterval = get.SelectedDateInterval(obj)
             selectedDates = obj.hDatePanel.getSelectionModel.getSelectedDates();
             
+            if isempty(selectedDates), dateInterval = []; return; end
+            
             initalDate = selectedDates(1);
             finalDate = selectedDates(end);
             

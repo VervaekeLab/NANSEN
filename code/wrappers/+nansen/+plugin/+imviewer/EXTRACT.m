@@ -1,36 +1,56 @@
 classdef EXTRACT < imviewer.ImviewerPlugin
-        
-    
+%EXTRACT Imviewer plugin for EXTRACT method
+%
+%   SYNTAX:
+%       extractPlugin = EXTRACT(imviewerObj)
+%
+%       extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
+
+
     properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false        % Ignore settings file
-        DEFAULT_SETTINGS = []
+        USE_DEFAULT_SETTINGS = false    % Ignore settings file
+        DEFAULT_SETTINGS = []           % This class uses an optionsmanager
     end
     
     properties (Constant)
-       Name = 'EXTRACT' 
+       Name = 'EXTRACT'
     end
     
-    properties
+    properties (Access = private)
         hGridLines
         hCellTemplates
         gobjectTransporter
-        %settings
     end
         
     
-    methods
+    methods % Structors
+        
+        function obj = EXTRACT(varargin)
+        %EXTRACT Create an instance of the extract plugin for imviewer
+        %
+        %   extractPlugin = EXTRACT(imviewerObj)
+        %
+        %   extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
+        
+            obj@imviewer.ImviewerPlugin(varargin{:})
+                        
+            obj.plotGrid()
+            obj.editSettings()
+            
+        end
+        
         function delete(obj)
             delete(obj.hGridLines)
             delete(obj.hCellTemplates)
             delete(obj.gobjectTransporter)
         end
+        
     end
-    
     
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} )
         
-        function tf = onKeyPress(src, evt) % todo: rename to onKeyPressed
-                        
+        function tf = keyPressHandler(src, evt)
+            % Todo?
         end
         
         %onMousePressed(src, evt)
@@ -38,11 +58,11 @@ classdef EXTRACT < imviewer.ImviewerPlugin
     end
     
     methods (Access = protected)
+        
         function onPluginActivated(obj)
             
         end
         
-                
         function onSettingsChanged(obj, name, value)
             
             
@@ -94,8 +114,13 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         end
     end
     
-    
     methods
+        function loadSettings(~)
+            % This class does not have to load settings
+        end
+        function saveSettings(~)
+            % This class does not have to save settings
+        end
         
         function changeSetting(obj, name, value)
             obj.onSettingsChanged(name, value)
@@ -107,6 +132,10 @@ classdef EXTRACT < imviewer.ImviewerPlugin
             obj.PrimaryApp.displayMessage(message, [], msgTime)
 
         end
+        
+    end
+    
+    methods (Access = private)
          
         function plotGrid(obj)
             
@@ -193,7 +222,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin
             end
         end
         
-        
      end
-        
+     
 end

@@ -1,35 +1,53 @@
 classdef AppWithPlugin < uim.handle
-    
+%AppWithPlugin Superclass for app that supports plugins.    
     
     properties
         Plugins applify.mixin.AppPlugin
     end
     
     methods
+        
         function openPlugin(~)
-            % Subclass whould override
+            % Subclass should override
         end
+        
+        function delete(obj)
+            for i = 1:numel(obj.Plugins)
+                delete(obj.Plugins(i))
+            end
+        end
+        
     end
     
     methods
         
-        function tf = isPluginActive(obj, pluginName)
-        %isPluginActive Is plugin with given name active in App?
-            tf = any( strcmp( {obj.Plugins.Name}, pluginName) );
-        end
-        
-        function addPlugin(obj, h)
+        function addPlugin(obj, pluginObj)
         %addPlugin Add plugin to app    
             
             % Check that plugin is not already active on app
-            if obj.isPluginActive(h.Name)
+            if obj.isPluginActive(pluginObj)
                 error('Plugin is already active in this app')
-            elseif ~isa(h, 'applify.mixin.AppPlugin')
+            elseif ~isa(pluginObj, 'applify.mixin.AppPlugin')
                 error('Object of type %s is not a valid AppPlugin.')
             else
-                obj.Plugins(end+1) = h;
+                obj.Plugins(end+1) = pluginObj;
             end
             
+        end 
+
+        function deletePlugin(obj)
+            
+            isMatch = strcmp( {obj.Plugins.Name}, pluginName);
+
+            h = obj.Plugins(isMatch);
+            delete(h)
+            obj.Plugins(isMatch) = [];
+
+        end
+        
+        function tf = isPluginActive(obj, pluginObj)
+        %isPluginActive Is plugin with given name active in App?
+            tf = any( strcmp( {obj.Plugins.Name}, pluginObj.Name) );
         end
         
         function h = getPluginHandle(obj, pluginName)
@@ -41,17 +59,25 @@ classdef AppWithPlugin < uim.handle
             
         end
         
-        function deletePlugin(obj)
+        function wasCaptured = sendKeyEventToPlugins(obj, ~, evt)
+        %sendKeyEventToPlugins Send a key event to plugins
+        %
+        %   The key event is sent to the plugins in the order they have
+        %   been added. If a plugin captures the key event, this method
+        %   returns before sending the event to the remaining plugins.
+        
+            wasCaptured = false;
             
-            isMatch = strcmp( {obj.Plugins.Name}, pluginName);
-
-            h = obj.Plugins(isMatch);
-            delete(h)
-            obj.Plugins(isMatch) = [];
-
+            for i = 1:numel(obj.Plugins)
+                try
+                    wasCaptured = obj.Plugins(i).keyPressHandler([], evt);
+                    if wasCaptured; return; end
+                catch ME
+                    warning( [ME.message, '\n'] )
+                end
+            end
         end
-
+        
     end
-    
     
 end

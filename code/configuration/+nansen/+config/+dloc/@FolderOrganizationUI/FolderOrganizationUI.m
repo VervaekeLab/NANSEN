@@ -18,6 +18,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 %     [ ] Add option for selecting whether lowest level is file or folder.
 %     I.e if data from many sessions, i.e sData, NWB files are located in
 %     the same folder...
+%   
+%     [ ] If a folder organization template is used for the first data @
+%         location, should also fill out the metadata ui  
 
 
 % Note: this class is a mess when it comes to updating the data and values.
@@ -527,6 +530,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             if obj.FolderListViewerActive
                 obj.hideFolderListViewer()
             end
+            
+            obj.updateDataLocationModel()
+            
         end
         
         function wasSuccess = addRow(obj, src, ~)

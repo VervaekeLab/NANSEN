@@ -1,15 +1,17 @@
-classdef SciScanRaw < nansen.stack.data.VirtualArray
+classdef SciScanRaw < nansen.stack.data.VirtualArray & nansen.stack.utility.TwoPhotonRecording
 
     
 properties (Access = private, Hidden)
     MemMap
 end
 
-properties (Hidden) % Todo: Add a twophoton mixin class for data preprocessing
-    stretchCorrectMethod = 'imwarp'
-    numFlybackLines = 8
+methods (Static)
+    
+    function nvPairs = getDefaultPreprocessingParams()
+        nvPairs = {'NumFlybackLines', 8, 'StretchCorrectionMethod', 'imwarp'};
+    end
+    
 end
-
     
 methods % Structors
     
@@ -17,8 +19,10 @@ methods % Structors
         
         % Open folder browser if there are no inputs.
         if nargin < 1; filePath = uigetdir; end
-        
+                
+        obj@nansen.stack.utility.TwoPhotonRecording(varargin{:})
         obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
+    
     end
     
     function delete(obj)
@@ -31,34 +35,22 @@ methods % Structors
     
 end
 
-methods (Hidden)
-        
-    function data = readDataPerformanceTest(obj, subs)
-        
-        persistent T i
-        if isempty(T); T = zeros(1,1000); i=1; end; t0 = tic;
-        
-        data = obj.MemMap.Data.ImageArray(subs{:});
-        data = swapbytes(data); % SciScan data is saved with bigendian?
-        
-        T(i) = toc(t0); i = i+1;
-        if mod(i, 1000)==0
-            figure; plot(T); i = 1; disp(mean(T))
-        end
-        
-    end
-    
-end
-
 methods % Implementation of VirtualArray abstract methods
     
     function data = readData(obj, subs)
         data = obj.MemMap.Data.ImageArray(subs{:});
         data = swapbytes(data); % SciScan data is saved with bigendian?
+        
+        if obj.PreprocessDataEnabled
+            data = obj.processData(data);
+        end
+        
     end
     
     function data = readFrames(obj, frameIndex)
-        
+        subs = repmat({':'}, 1, ndims(obj));
+        subs{end} = frameIndex;
+        data = obj.readData(subs);
     end
        
     function writeFrames(obj, frameIndex, data)
@@ -122,16 +114,9 @@ methods (Access = protected) % Implementation of abstract methods
         mapFormat = {obj.DataType, obj.DataSize, 'ImageArray'}; % 'frames'
         obj.MemMap = memmapfile(obj.FilePath, 'Format', mapFormat);
         
-% % %         % todo: add flyback removal
-        
-% % %         switch obj.stretchCorrectMethod
-% % %             case {'imwarp', 'imresize'}
-% % %                 testImage = obj.getFrameSet(1);
-% % %                 
-% % %                 obj.StackSize(1) = size(testImage, 2);
-% % %                 obj.StackSize(2) = size(testImage, 1);
-% % % 
-% % %         end
+        if obj.PreprocessDataEnabled
+            obj.updateDataSize() % Preprocessing might change the frame size
+        end
 
     end
     
@@ -175,7 +160,46 @@ methods (Access = protected) % Implementation of abstract methods
     
 end
 
+methods
+    
+    function enablePreprocessing(obj)
+    %enablePreprocessing Enable default preprocessing of sciscan raw data
+    
+        obj.assignDefaultPreprocessingParams()
+               
+        if obj.PreprocessDataEnabled
+            obj.updateDataSize() % Preprocessing might change the frame size
+        end
+        
+    end
+    
+    function disablePreprocessing(obj)
+    %disablePreprocessing Disable default preprocessing of sciscan raw data
+        
+        obj.NumFlybackLines = 0;
+        obj.StretchCorrectionMethod = 'none';
+        obj.CorrectBidirectionalOffset = false;
+               
+        obj.updateDataSize()
+        
+    end
+    
+end
 
+methods (Access = protected)
+    function assignDefaultPreprocessingParams(obj)
+        obj.NumFlybackLines = 8;
+        obj.StretchCorrectionMethod = 'imwarp';
+    end
+    
+    function updateDataSize(obj)
+        testImage = obj.readFrames(1);
+        newFrameSize = [size(testImage, 1), size(testImage, 2)];
+        %if ~isequal(newFrameSize, obj.DataSize(1:2))
+            obj.DataSize(1:2) = newFrameSize;
+        %end
+    end
+end
     
 methods % Subclass specific methods
     
@@ -323,6 +347,25 @@ methods (Static)
         sciscanVars = {'external.start.trigger.enable', 'aocard.model'};
         isValid = contains(inistring, sciscanVars);
 
+    end
+    
+end
+
+methods (Hidden) % Temp read performance plot
+        
+    function data = readDataPerformanceTest(obj, subs)
+        
+        persistent T i
+        if isempty(T); T = zeros(1,1000); i=1; end; t0 = tic;
+        
+        data = obj.MemMap.Data.ImageArray(subs{:});
+        data = swapbytes(data); % SciScan data is saved with bigendian?
+        
+        T(i) = toc(t0); i = i+1;
+        if mod(i, 1000)==0
+            figure; plot(T); i = 1; disp(mean(T))
+        end
+        
     end
     
 end

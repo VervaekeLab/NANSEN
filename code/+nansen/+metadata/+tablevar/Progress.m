@@ -33,19 +33,24 @@ classdef Progress < nansen.metadata.abstract.TableVariable
                 [hexColorLight, hexColorDark] = obj.getProgressBarColors();
             end
                         
-            % obj.Value is a struct of logicals. Convert to array and 
-            % calculate mean to get the percentwise progress.
+            % Create a progressbar for the pipeline.
             
             progressBarString = cell(1, numel(obj));
             
             for i = 1:numel(obj)
-            
+                
+                if isstruct(obj(i).Value) && isfield(obj(i).Value, 'TaskList')
+                    thisTaskList = obj(i).Value.TaskList;
+                else
+                    progressBarString{i} = 'N/A'; continue
+                end
+                
                 % Convert structure to cell and then to an array.
-                if isstruct(obj(i).Value) && isfield(obj(i).Value, 'IsFinished')
-                    isDone = [ obj(i).Value.IsFinished ] ;
+                if isstruct(thisTaskList) && isfield(thisTaskList, 'IsFinished')
+                    isDone = [ thisTaskList.IsFinished ] ;
                     mode = 'Standard';
                 else
-                    isDone = cell2mat( struct2cell(obj(i).Value) );
+                    isDone = cell2mat( struct2cell(thisTaskList) );
                     mode = 'Unassigned';
                     progressBarString{i} = 'N/A'; continue
                 end
@@ -86,18 +91,22 @@ classdef Progress < nansen.metadata.abstract.TableVariable
 % %                 
 % %             end
 
-            progressStruct = obj.Value;
-            
-            if isa(progressStruct, 'cell')
-                progressStruct = progressStruct{1};
+            pipelineStruct = obj.Value;
+            progressTooltipString = '';
+
+            if isa(pipelineStruct, 'cell')
+                pipelineStruct = pipelineStruct{1};
             end
             
-            if isempty(progressStruct)
-                progressTooltipString = '';
+            if isempty(pipelineStruct)
+                return
             else
+                if ~isfield(obj.Value, 'TaskList')
+                    return
+                end
                 
-                % Create a struct for the struct array...
-                progressStruct = obj.taskList2TaskStatus(obj.Value);
+                % Create a struct for the struct array...   
+                progressStruct = obj.taskList2TaskStatus(obj.Value.TaskList);   %#ok<NASGU>
                 
                 % Format struct into a multiline string:
                 structStr = evalc('disp(progressStruct)');
@@ -116,7 +125,11 @@ classdef Progress < nansen.metadata.abstract.TableVariable
                 
                 % Align all lines to the right, i.e justify at the : sign 
                 % since all struct values are same length (0 or 1).
-                str = sprintf('<html><div align="right"> %s </div>', structStr);
+                
+                % Create header title:
+                titleStr = sprintf( '<b>Pipeline:</b> %s <br /><br /> <b>Task List:</b> <br />', obj.Value.PipelineName);
+                % Combine with task list:
+                str = sprintf('<html> %s <div align="right"> %s </div>', titleStr, structStr);
                 
                 progressTooltipString = str;
                 
@@ -169,9 +182,9 @@ classdef Progress < nansen.metadata.abstract.TableVariable
                
                 fcnName = taskList(i).TaskName;
                 if taskList(i).IsFinished
-                    status = 'finished';
+                    status = 'Finished';
                 else
-                    status = 'unfinished';
+                    status = 'Unfinished';
                 end
                 
                 taskStatus.(fcnName) = status;
@@ -196,11 +209,11 @@ classdef Progress < nansen.metadata.abstract.TableVariable
             end
             
             % Special case...
-            if isequal(rgb, [7, 76, 241])
-                colorDark = '2F76B5'; % 'FFC000'; %(yellow) - '70AD47' %(green);
-                colorLight = 'DFEBF7'; % 'FFF3CC'; %(yellow) - 'C5E0B3' %(green);
-
-            else % Hardocde all of them??? Details matter ffs!
+% %             if isequal(rgb, [7, 76, 241])
+% %                 colorDark = '2F76B5'; % 'FFC000'; %(yellow) - '70AD47' %(green);
+% %                 colorLight = 'DFEBF7'; % 'FFF3CC'; %(yellow) - 'C5E0B3' %(green);
+% % 
+% %             else % Hardocde all of them??? Details matter ffs!
 
                 hsv = rgb2hsv(rgb./255);
 
@@ -230,7 +243,7 @@ classdef Progress < nansen.metadata.abstract.TableVariable
                 colorDark.Unassigned = uim.utility.rgb2hex( rgbC );
                 colorLight.Unassigned = uim.utility.rgb2hex( rgbD );
                 
-            end
+% %             end
             
         end
         

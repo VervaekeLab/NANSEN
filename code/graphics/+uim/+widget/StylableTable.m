@@ -113,6 +113,7 @@ classdef StylableTable < uiw.widget.Table
         end
         
         function retrieveAncestorContainer(obj)
+            % Need to update color of some ancestor container?
             obj.JRandomContainer = obj.JScrollPane.getParent.getParent.getParent.getParent;
             obj.updateTheme()
         end
@@ -132,7 +133,7 @@ classdef StylableTable < uiw.widget.Table
     
     methods
         
-        function figurePoint = tablepoint2figurepoint(obj, tablePosition)
+        function figurePoint = tablepoint2figurepoint(obj, tablePoint)
                   
             % Todo: Need to know if position is java position or not... in
             % which case the y position needs to be reversed.
@@ -142,8 +143,8 @@ classdef StylableTable < uiw.widget.Table
             yScroll = obj.getVerticalScrollOffset();
 
             % Correct the coordinates based on the scroll offsets
-            clickPosX = tablePosition(1) - xScroll;
-            clickPosY = tablePosition(2) - yScroll;
+            clickPosX = tablePoint(1) - xScroll;
+            clickPosY = tablePoint(2) - yScroll;
             
             % Convert from table-based to figure-based coordinates.
             tablePosition = getpixelposition(obj, true);

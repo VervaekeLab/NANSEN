@@ -320,6 +320,8 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         %   % Todo: make sure data is provided in stable order (i.e
         %   according the order of frame indices)?
         
+            if isempty(obj); frameData = []; return; end 
+        
             if nargin < 2
                 isRequested = obj.CachedFrameIndices ~= 0;
             else

@@ -7,7 +7,12 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             
             columnsToDisplay = {'SessionID', 'TaskName', 'OptionsName', 'Comment'};
             
-            app@nansen.pipeline.PipelineViewerApp(taskList, sessionObj, 'ColumnsToDisplay', columnsToDisplay)
+            % Put tasklist in a struct to mimick a pipeline item
+            pipelineStruct = struct();
+            pipelineStruct.TaskList = taskList;
+            
+            app@nansen.pipeline.PipelineViewerApp(pipelineStruct, ...
+                sessionObj, 'ColumnsToDisplay', columnsToDisplay)
             
             isManual = taskList(1).IsManual;
             if isManual
@@ -26,13 +31,13 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
     
     methods (Access = protected)
         
-        function sessionObj = getSessionObject(obj, rowNum)
+        function sessionObj = getSessionObject(app, rowNum)
             
-            sessionID = obj.PipelineStruct(rowNum).SessionID;
-            sessionIDs = {obj.MetaObject.sessionID};
+            sessionID = app.PipelineStruct.TaskList(rowNum).SessionID;
+            sessionIDs = {app.MetaObject.sessionID};
             
             idx = find(strcmp(sessionIDs, sessionID));
-            sessionObj = obj.MetaObject(idx);
+            sessionObj = app.MetaObject(idx);
 
         end
         
@@ -68,7 +73,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
         
         function createQueueButtons(app)
             
-            buttonSize = [150, 30];
+            buttonSize = [200, 30];
             
             [x, w] = uim.utility.layout.subdividePosition(app.Margins(1), ...
                 app.Figure.Position(3), [buttonSize(1), buttonSize(1)], 20);
@@ -77,7 +82,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             hButton = uicontrol(app.Figure, 'style', 'pushbutton');
             hButton.Position = [x(1), y, w(1), h];
             hButton.Units = 'normalized';
-            hButton.String = 'Add to Batch Processor';
+            hButton.String = 'Add to Task Processor Queue';
             hButton.FontUnits = 'pixels';
             hButton.FontName = 'Avenir Next';
             hButton.FontSize = 12;
@@ -101,7 +106,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
         function onRemoveFromListButtonPushed(app, src, evt)
             
             selectedRowIdx = app.UITable.SelectedRows;
-            app.PipelineStruct(selectedRowIdx) = [];
+            app.PipelineStruct.TaskList(selectedRowIdx) = [];
             app.onPipelineSet()
 
         end
@@ -111,7 +116,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             selectedRowIdx = app.UITable.SelectedRows;
             
             for rowNum = selectedRowIdx
-                thisTask = app.PipelineStruct(rowNum);
+                thisTask = app.PipelineStruct.TaskList(rowNum);
                 app.initQueuableTask(thisTask, rowNum)
             end
             

@@ -13,6 +13,7 @@ function [sessionFolderListOut] = matchSessionFolders(dataLocationModel, session
 %
 %   See also nansen.dataio.session.listSessionFolders
 
+    import nansen.dataio.session.matchFolderListWithSessionID
     
     dataLocationTypes = {dataLocationModel.Data.Name};
 
@@ -36,7 +37,8 @@ function [sessionFolderListOut] = matchSessionFolders(dataLocationModel, session
         for j = 2:numel(dataLocationTypes)
             
             jSessionFolderList = sessionFolderList.(dataLocationTypes{j});
-            isMatch = contains(jSessionFolderList, sessionID);
+            
+            isMatch = matchFolderListWithSessionID(jSessionFolderList, sessionID);
 
             if sum(isMatch) == 0
                 pathStr = '';

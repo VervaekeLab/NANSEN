@@ -6,99 +6,160 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 %   [ ] Separate between recently finished tasks and the complete log
 %   [ ] Dont accept job that already exists when using submitJob. 
 %        - compare at sessionID, taskName and optionsName.
+%   [ ] Need to save jobs list on a project basis
+%   [ ] need to send session info back to the metatable when a job
+%       finishes.
+%
+%   [ ] Should sessionobject have its own field in a task item? its a bit
+%       weird to pull it out from the argsfield when needed
 
+
+% Note: If changes are made on session class, it will not work to load task
+%       lists that contains sessions!
 
 %% PROPERTIES
 
-    properties % Properties keeping track of tasks and status
-        TaskQueue % A list of tasks present in the queue
-        TaskHistory % A list of tasks present in the history
-    	Status
+    properties
+        TimerPeriod = 10
+        RunTasksWhenQueued = false
+        RunTasksOnStartup = false
     end
     
-    properties % Properties for running tasks
+    properties (Dependent)
+        NumQueuedTasks
+        NumArchivedTasks
+    end
+    
+    properties (SetAccess = private) % Properties keeping track of tasks and status
+    	Status      % Status of processor (typically busy or idle)
+        TaskQueue   % A list of tasks present in the queue
+        TaskHistory % A list of tasks present in the history
+    end
+    
+    properties (Access = private) % Properties for running tasks
         Timer % Timer object for regularly checking status
-        ParPool % Parallell pool object
         runningTask % Handle to the task that is currently running
         isRunning = false; % Flag for whether the QueueProcessor is running
     end
-        
-    properties (Access = private)
-        Parent
-        TabGroup
-        queueTab
-        historyTab
-        queueTable
-        historyTable
-        %processingTable
-    end
-    
-    properties (Access = protected) % Should be part of table class
-        selectedRows
-        selectedColumns
-    end
     
     properties (Dependent, Access = private)
-        ActivePool
+        ActivePool % Parallell pool object
     end
     
-    properties (Constant, GetAccess = private) % Column names for table views. Todo: Move to separate classes?
-        queueTableVars =  {'SessionID', 'Method', 'Status', 'Submitted', 'Parameters', 'Comment'}
-        processingTableVars = {'SessionID', 'Method', 'Status', 'Started', 'Elapsed time', 'Comment'}
-        historyTableVars = {'SessionID', 'Method', 'Status', 'Finished', 'Elapsed Time', 'Comment'}
-    end
     
+    events 
+        TaskAdded
+        TaskRemoved
+        TaskStateChanged
+        TaskOrderChanged
+    end
     
 %% METHODS
 
     methods % Structors
                 
         function obj = TaskProcessor(varargin)
-        %queueProcessor Create a task processor.
-            
-            obj.Parent = varargin{2};
-            % Todo: Add parent destroyed listener.
-            
-%             obj.assignPVPairs(varargin{:});
+        %TaskProcessor Create a batch processor for tasks.
             
             obj.loadTaskLists()
-
-            obj.createPanels()
-            obj.createTable()
-            drawnow
+            obj.assignPVPairs(varargin{:})
             
-            obj.refreshTable()
+            
+            if obj.RunTasksOnStartup
+                obj.setTaskStatus('Initialize', 1:obj.NumQueuedTasks)
+            else
+                obj.setTaskStatus('Queue', 1:obj.NumQueuedTasks)
+            end
             
             obj.createTimer()
-            
+
             obj.isRunning = true;
             obj.Status = 'idle';
+            
         end
         
         function delete(obj)
             
             % Make conditional? I.e are there any chance the timer is
-            %already stopped or deleted?
+            % already stopped or deleted?
             
             if ~isempty(obj.Timer)
                 stop(obj.Timer)
                 delete(obj.Timer)
             end
             
+            % Todo: set state to queued?
+            
             obj.saveTaskLists()
-            
-            % Delete table view instances
-            delete(obj.queueTable)
-            delete(obj.historyTable)
-            
+                    
         end
         
     end
     
-    
-    methods
+    methods % Set/get methods
         
-        function submitJob(obj, name, func, numOut, args, optsName)
+        function set.TimerPeriod(obj, newValue)
+            assert(isnumeric(newValue), 'TimerPeriod must be numeric')
+            obj.TimerPeriod = newValue;
+            obj.onTimerPeriodSet()
+        end
+        
+        function numTasks = get.NumQueuedTasks(obj)
+            numTasks = numel(obj.TaskQueue);
+        end
+        
+        function numTasks = get.NumArchivedTasks(obj)
+            numTasks = numel(obj.TaskHistory);
+        end
+        
+    end
+    
+    methods % Public 
+        
+        function tf = promptQuit(obj)
+        %promptQuit Prompt user to quit processor
+        %
+        %   tf = promptQuit(obj) returns true if user wants to quit,
+        %   otherwise false
+        
+            % No need to ask user if processor is idle.
+            if strcmp(obj.Status, 'idle')
+                tf = true; 
+                return
+            end
+            
+            titleStr = 'Quit?';
+            promptStr = 'Tasks are still running. Are you sure you want to quit?';
+            
+            answer = questdlg(promptStr, titleStr, 'Yes', 'No', 'Yes');
+            switch lower(answer)
+                case 'yes'
+                    obj.cancelRunningTask()
+                    tf = true;
+                case 'no'
+                    tf = false;
+            end 
+            
+        end
+        
+        function updateSessionObjectListeners(obj, hReferenceApp)
+        %updateSessionObjectListeners 
+        
+            metaObjects = {};
+            if numel(obj.TaskQueue) == 0; return; end
+            
+            for i = 1:numel(obj.TaskQueue)
+                metaObjects{i} = obj.TaskQueue(i).args{1};
+            end
+            
+            metaObjects = cat(1, metaObjects{:});
+
+            addlistener(metaObjects, 'PropertyChanged', ...
+                @hReferenceApp.onMetaObjectPropertyChanged);
+        end
+        
+
+        function submitJob(obj, name, func, numOut, args, optsName, comments)
         % submitJob Submit a job to the task processor
         %------------------------------------------------------------------
         %
@@ -121,19 +182,9 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % Todo: Dont accept job that already exists. compare at
             % sessionID, taskName and optionsName
             
-            % Create a struct for the items and a table row for the table
-            newTask.name = name;
-            newTask.method = func;
-            newTask.methodName = utility.string.varname2label( func2str(func) );
-            newTask.status = 'Created';
-            newTask.numOut = numOut;
-            newTask.args = args;
-            newTask.timeCreated = datestr(now, 'yyyy.mm.dd HH:MM:SS');
-            newTask.timeStarted = '';
-            newTask.elapsedTime = ''; 
-            newTask.timeFinished = ''; 
-            newTask.parameters = optsName;
-            newTask.comments = '';
+            if nargin < 7; comments = ''; end
+            
+            newTask = obj.createTaskItem(name, func, numOut, args, optsName, comments);
             
             % Add to items of the task queue.
             if isempty(obj.TaskQueue)
@@ -143,23 +194,69 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             end
             
             % Add item to ui table view
-            obj.addTaskToQueueTable(newTask)
+            evtData = uiw.event.EventData('Table', 'Queue', 'Task', newTask);
+            obj.notify('TaskAdded', evtData)
+            
+            if obj.RunTasksWhenQueued
+                obj.setTaskStatus('Initialize', obj.NumQueuedTasks)
+            end
+
+        end
+
+        function diary = getCurrentDiary(obj)
+            if isempty(obj.runningTask)
+                diary = '';
+            else
+                diary = obj.runningTask.Diary();
+            end
+        end
+        
+        function taskItem = getQueuedTask(obj, taskIdx)
+            taskItem = cat(1, obj.TaskQueue(taskIdx) );
+        end
+        
+        function setQueuedTask(obj, taskItem, idx)
+            obj.TaskQueue(idx) = taskItem;
+        end
+       
+        function taskItem = getArchivedTask(obj, idx)
+            taskItem = cat(1, obj.TaskHistory(idx) );
+        end
+        
+        function rearrangeQueuedTasks(obj, taskIdx, mode)
+            
+            % Todo... 
+            % This might be messy, if we need to take the task status into
+            % account. I.e pending tasks should take precedence over queued
+            % (and paused) tasks...
             
         end
         
+        function updateTaskComment(obj, taskType, taskIdx, newComment)
+            switch taskType
+                case 'Queue'
+                    obj.TaskQueue(taskIdx).comments = newComment;
+                case 'History'
+                    obj.TaskHistory(taskIdx).comments = newComment;
+            end
+            
+        end
+    end
+
+    methods (Access = private)
         
         function loadTaskLists(obj, filePath)
         % loadTaskLists Load a list of tasks from file
         %------------------------------------------------------------------
         %
-        % Abstract: Set column sizes automatically to fit the contents
+        % Abstract: Load a list of tasks from file
         %
         % Syntax:
-        %           obj.loadListOfTasks()
-        %           loadListOfTasks(obj, filePath)
+        %           obj.loadTaskLists()
+        %           loadTaskLists(obj, filePath)
         %
         % Inputs:
-        %           obj - Table object
+        %           obj - TaskProcessor object
         %           filePath - Absolute filepath (optional)
         %
         % Outputs:
@@ -180,6 +277,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         end
         
         function saveTaskLists(obj, filePath)
+        % saveTaskLists Save lists of tasks to file
+        %------------------------------------------------------------------  
             
             % Get filepath
             if nargin < 2
@@ -194,75 +293,9 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end
         
-        
-    end
-
-    
-    methods (Access = private)
-        
-        function openFigure()
-            
-        end
-        
-        function closeFigure()
-            
-        end
-        
-% % % % Methods related to creating the gui
-
-        function createPanels(obj)
-        
-            % Create TabGroup
-            hParent = obj.Parent;
-            obj.TabGroup = uitabgroup(hParent);
-            obj.TabGroup.Units = 'normalized'; 
-            
-            %obj.TabGroup.Position = [0 0 1 1];
-
-            % Create Queue and History tab
-            obj.queueTab = uitab(obj.TabGroup);
-            obj.queueTab.Title = 'Queue';
-            
-            obj.historyTab = uitab(obj.TabGroup);
-            obj.historyTab.Title = 'History';
-
-        end
-        
-        function createTable(obj)
-           
-            drawnow % Need to add this for tables to be positioned properly        
-            obj.queueTable = nansen.uiwTaskTable('Parent', obj.queueTab, ...
-                'ColumnNames', obj.queueTableVars, ...
-                'ColumnEditable', [false, false, false, false, false, true] );
-
-            
-            obj.historyTable = nansen.TaskTable('Parent', obj.historyTab, ...
-                'ColumnNames', obj.historyTableVars, ...
-                'ColumnEditable', [false, false, false, false, false, true] );
-
-            
-% % %             obj.processingTable = nansen.uiwTaskTable('Parent', obj.queueTab, ...
-% % %                 'ColumnNames', obj.processingTableVars);
-% % %             
-% % %             pixelposition1 = getpixelposition(obj.queueTable.Table);
-% % %             pixelposition2 = getpixelposition(obj.processingTable.Table);
-% % %             pixelposition1(4) = pixelposition1(4) - 40;
-% % %             
-% % %             pixelposition2(4) = 40;
-% % %             pixelposition2(2) = pixelposition1(4);
-% % %             setpixelposition(obj.queueTable.Table, pixelposition1)
-% % %             setpixelposition(obj.processingTable.Table, pixelposition2)
-% % % 
-% % %             obj.processingTable.Table.ColumnResizePolicy = 'subsequent';
-            
-            obj.queueTable.Table.UIContextMenu = obj.createQueueContextMenu();
-            
-
-        end
-        
         function createTimer(obj)
                         
-            t = timer('ExecutionMode', 'fixedRate', 'Period', 10);
+            t = timer('ExecutionMode', 'fixedRate', 'Period', obj.TimerPeriod);
             
             t.TimerFcn = @(myTimerObj, thisEvent) obj.checkStatus();
             start(t)
@@ -271,8 +304,70 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end
 
+        function onTimerPeriodSet(obj)
+            
+            if ~isempty(obj.Timer)
+                stop(obj.Timer)
+                pause(0.05)
+                obj.Timer.Period = obj.TimerPeriod;
+                start(obj.Timer)
+            end
+            
+        end
+        
+        function taskItem = updateTaskWhenFinished(obj, taskItem)
+        %updateTaskWhenFinished Update task item from the running task obj
+        
+            date2str = @(dt) datestr(dt, 'yyyy.mm.dd HH:MM:SS');
+            finishDateStr = date2str(obj.runningTask.FinishDateTime);
+            
+            elapsedDuration = obj.runningTask.FinishDateTime - obj.runningTask.StartDateTime;
+            
+            % Update table status
+            taskItem.timeStarted = obj.runningTask.StartDateTime;
+            taskItem.timeFinished = finishDateStr;
+            taskItem.elapsedTime = datestr(elapsedDuration, 'HH:MM:SS');
+
+            % Add diary and error stack
+            taskItem.Diary = obj.runningTask.Diary;
+            taskItem.ErrorStack = obj.runningTask.Error;
+            
+            % Set status
+            if ~isempty(obj.runningTask.Error)
+                taskItem.status = 'Failed';
+            else
+                taskItem.status = 'Completed';
+            end
+
+        end
+        
+        function sortTasksByState(obj)
+            
+            TASK_STATUS_ORDER = {'Running', 'Pending', 'Paused', 'Queued'};
+            
+            currentTaskStatus = {obj.TaskQueue.status};
+            
+            oldTaskOrder = [];
+            newTaskOrder = 1:obj.NumQueuedTasks;
+            
+            for i = 1:numel(TASK_STATUS_ORDER)
+                idx = find(strcmp(currentTaskStatus, TASK_STATUS_ORDER{i}));
+                
+                oldTaskOrder = [oldTaskOrder, idx]; %#ok<AGROW>
+                
+            end
+            
+            assert(numel(oldTaskOrder)==numel(newTaskOrder), ...
+                'Some tasks have a status which is not accounted for. This is a bug, please report.')
+            
+            if ~isequal(newTaskOrder, oldTaskOrder)
+                obj.TaskQueue = obj.TaskQueue(oldTaskOrder);
+                evtData = uiw.event.EventData('IndexOrder', oldTaskOrder);
+                obj.notify('TaskOrderChanged', evtData)
+            end
+            
+        end
     end
-    
     
     methods
         
@@ -289,30 +384,28 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             end
         end
         
-        
 % % % % Methods Related to task handling
 
         function checkStatus(obj)
-            
-            
+        %checkStatus Check status of the running task
+        
             if ~obj.isRunning; return; end
             
-            
             if isempty(obj.runningTask)
-                % Start new task:
                 obj.startTask();
             end
             
+            % If not task was started, return here.
             if isempty(obj.runningTask); return ; end
             
             
             status = obj.runningTask.State;
             
-            switch status
+            switch lower( status )
                 
                 case 'running'
                     % Do nothing
-                    obj.Status = 'running';
+                    obj.Status = 'busy';
                     
                 case 'finished'
                     obj.finishTask()
@@ -328,228 +421,210 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             task = obj.TaskQueue(1);
 
             switch task.status
-                case 'queued'
+                case 'Pending' %'Queued'
                     
                     % Assign the job to the cluster
                     p = gcp();
                     F = parfeval(p, @task.method, 0, task.args{:});                    
                     obj.runningTask = F;
                     
-                    obj.TaskQueue(1).status = 'running';
-                    obj.refreshTable()
+                    obj.TaskQueue(1).status = 'Running';
                     
-                    obj.Status = 'running';
+                    eventData = uiw.event.EventData('TaskIdx', 1, 'NewState', 'Running');
+                    obj.notify('TaskStateChanged', eventData)
+                                        
+                    obj.Status = 'busy';
                     
             end
             
-            
-
             % Update table status
             
         end % /function startTask
         
-        function finishTask(obj)
+        function cancelRunningTask(obj)
+        %cancelTask Cancel the running task
+            
+            cancel( obj.runningTask )
+            obj.finishTask('cancel')
+
+        end
         
-            % TODO: Get error....
+        function finishTask(obj, mode)
+        %finishTask Method to execute when a task has finished
+        %
+        %    obj.finishTask()
+        %
+        %    obj.finishTask(mode) finishes task according to specified mode
+        %    mode can be '' (default) or 'cancel'
+    
+        
+        % Question: Is is possible that the user stops a task when this
+        % function is running, and the task is put back on the queue and
+        % added to the history simultaneously? Test/debug some time?
+        
+        % Question/todo: add mode for canceling task be retain in queue..?
+        
+        
+            if nargin < 2; mode = ''; end
+                
+            completedTask = obj.TaskQueue(1);
+            completedTask = obj.updateTaskWhenFinished(completedTask);
             
-            % Update table status
-            obj.TaskQueue(1).timeStarted = obj.runningTask.StartDateTime;
-            obj.TaskQueue(1).timeFinished = obj.runningTask.FinishDateTime;
-            obj.TaskQueue(1).elapsedTime = obj.runningTask.FinishDateTime - obj.runningTask.StartDateTime;
-            obj.TaskQueue(1).status = 'finished';
+            if strcmpi(mode, 'cancel')
+                completedTask.status = 'Canceled';
+            end
             
+            obj.TaskQueue(1) = [];
             obj.runningTask = [];
             obj.Status = 'idle';
             
-            % Move task to history list
-            task = obj.TaskQueue(1);
-            obj.TaskQueue(1) = [];
+            % Remove task from queue table (trigger event)
+            eventData = uiw.event.EventData('Table', 'Queue', 'TaskIdx', 1);
+            obj.notify('TaskRemoved', eventData)
             
-            obj.addTaskToHistoryTable(task)
-            
-            obj.refreshTable()
+            obj.addTaskToHistory(completedTask)
             
             % Start new task
-            if obj.isRunning
-               obj.startTask() 
+            if obj.isRunning && ~strcmpi(mode, 'cancel')
+                obj.startTask() 
             end
-            
-            
             
         end % /function finishTask
         
+        function addTaskToHistory(obj, taskItem)
+        %addTaskToHistory Add task to history and trigger event.
+        
+            % Add to items of the task queue.
+            if isempty(obj.TaskHistory)
+                obj.TaskHistory = taskItem;
+            else
+                obj.TaskHistory = cat(2, taskItem,  obj.TaskHistory);
+            end
+
+            % Add task to history table (trigger event)
+            evtData = uiw.event.EventData('Table', 'History', 'Task', taskItem);
+            obj.notify('TaskAdded', evtData)
+            
+        end
+        
+        function addCommandWindowTaskToHistory(obj, taskItem)
+        %addCommandWindowTaskToHistory Add task item (from command window) 
+            
+            % Todo: Streamline a bit more, and combine with similar parts
+            % from updateTaskWhenFinished.
+            
+            date2str = @(dt) datestr(dt, 'yyyy.mm.dd HH:MM:SS');
+            taskItem.timeFinished = date2str(now);
+        
+            elapsedDuration = datetime(now, 'ConvertFrom', 'datenum') - taskItem.timeStarted;
+            taskItem.elapsedTime = datestr(elapsedDuration, 'HH:MM:SS');
+
+            obj.addTaskToHistory(taskItem)
+            
+        end
         
 % % % % Methods related to managing tasks in the Queue and History list
+        function setTaskStatus(obj, action, taskIdx)
+            
+            if any(taskIdx == 1) && strcmp(obj.TaskQueue(1).status, 'Running') && ~strcmp(action, 'Cancel')
+                taskIdx(taskIdx==1) = [];
+            end
+            
+            if isempty(taskIdx)
+                return
+            end
+            
+            switch action
+                case {'Initialize', 'Start'}
+                    newState = 'Pending';
 
-        function addTaskToQueueTable(obj, S)
-            
-            % Select the following fields fram the task struct for
-            % displaying in the uitable queue viewer
-            
-            fields = {'name', 'methodName', 'status', 'timeCreated', 'parameters', 'comments'};
-            tableEntry = struct2table(S, 'AsArray', true);
-            tableEntry = tableEntry(:, fields);
-            
-            % Add the task to the uitable.
-            obj.queueTable.addTask(tableEntry, 'end')
+                case {'Pause', 'Paused'}
+                    newState = 'Paused';
+                    
+                case {'Queue', 'Queued'}
+                    newState = 'Queued';
+                    
+                case 'Cancel'
+                    assertMessage = 'Can only cancel a running task.';
+                    assert(isequal(taskIdx, 1) && strcmp(obj.TaskQueue(1).status, 'Running'), assertMessage)
+                    
+                    obj.cancelRunningTask()
+                    return
 
+            end
+            
+            [obj.TaskQueue(taskIdx).status] = deal(newState);
+
+            
+            newState = {obj.TaskQueue(taskIdx).status};
+            if isrow(newState); newState = transpose(newState); end
+            eventData = uiw.event.EventData('TaskIdx', taskIdx, 'NewState', newState);
+            obj.notify('TaskStateChanged', eventData)
+            
+            % Rearrange columns according to task states.
+            obj.sortTasksByState()
+            
+            
         end
-        
-        function addTaskToHistoryTable(obj, S)
-            
-            % Select the following fields fram the task struct for
-            % displaying in the uitable history viewer
-            fields = {'name', 'methodName', 'status', 'timeFinished', 'elapsedTime', 'comments'};
-            
-            % Todo: This should be part of the finish taks method.
-            S.timeFinished = datestr(S.timeFinished, 'yyyy.mm.dd HH:MM:SS');
-            S.elapsedTime = datestr(S.elapsedTime, 'HH:MM:SS');
 
-            tableEntry = struct2table(S, 'AsArray', true);
-            tableEntry = tableEntry(:, fields);
-            
-            obj.historyTable.addTask(tableEntry, 'beginning')
-            
-        end
+        function removeTask(obj, taskIdx, tableType)
+        %removeTask Remove task(s) from specified table
         
-        function setTaskStatus(obj, src, event, newStatus)
+            if nargin < 3; tableType = 'queue'; end
             
-            selectedRows = obj.queueTable.selectedRows;
-
-            switch newStatus
+            switch lower( tableType )
                 case 'queue'
-                    
-                    statusList = {obj.TaskQueue.status};
-                    
-                    ind = find( contains(statusList, 'queue'), 1, 'last');
-                    
-                    if isempty(ind) 
-                        ind = find( contains(statusList, 'running'), 1, 'last');
-                        if isempty(ind)
-                            ind = 0;
-                        end
-                    end
-                    
-                    poppedTasks = obj.TaskQueue(selectedRows);
-                    
-                    for i = 1:numel(poppedTasks)
-                        poppedTasks(i).status = 'queued';
-                    end
-                    
-                    obj.TaskQueue(selectedRows) = [];
-                    
-                    obj.TaskQueue = [ obj.TaskQueue(1:ind), ...
-                                      poppedTasks, obj.TaskQueue(ind+1:end) ];
-                    
-                    obj.refreshTable();
-                    
-                    
-                case 'pause'
-                    
-                    for i = selectedRows
-                        obj.TaskQueue(i).status = 'paused';
-                    end
-                    obj.refreshTable();
-
-                
+                    obj.TaskQueue(taskIdx) = [];
+                case 'history'
+                    obj.TaskHistory(taskIdx) = [];
             end
             
-        end
-        
-        function onEditOptionsClicked(obj, s, e)
-            
-            % Loop through selected rows:
-            for i = obj.queueTable.selectedRows
-                
-                % Get task object:
-                hTask = obj.TaskQueue(i);
-                
-                optsName = hTask.parameters;
-                optsStruct = hTask.args{2};
-                
-                mConfig = hTask.method();
-                optManager = mConfig.OptionsManager;
-                
-                
-                [optsName, optsStruct] = optManager.editOptions(optsName, optsStruct);
-
-                hTask.parameters = optsName;
-                hTask.args{2} = optsStruct;
-                
-                % Update task object in the queue.
-                obj.TaskQueue(i) = hTask;
-                
-                % Todo:
-                % Give session objects and specified options as inputs to
-                % the options manager / options adapter?
-             
-                obj.refreshTable();
-                
-            end
-            
-        end
-        
-        function refreshTable(obj)
-        % Todo: Make this more efficient.
-        
-            obj.queueTable.clearTable()
-        
-            if isempty(obj.TaskQueue); return; end
-            
-            fields = {'name', 'methodName', 'status', 'timeCreated', 'parameters', 'comments'};
-            
-            tableEntry = struct2table(obj.TaskQueue, 'AsArray', true);
-            tableEntry = tableEntry(:, fields);
-            %tableEntry(:, 'parameters') = {'Edit'}; %todo!!!
-            
-            for i = 1:size(tableEntry, 1)
-                obj.queueTable.addTask(tableEntry(i, :), 'end')
-            end
-            
-        end
-        
-        function removeTask(obj, src, event)
-            ind = obj.queueTable.selectedRows;
-            
-            obj.TaskQueue(ind) = [];
-            obj.refreshTable()
-            
-        end
-        
-        function changeOrder()
-            
-        end
-        
-        function onListUpdate()
-            
-        end
-        
-        function onTableUpdate()
+            % Remove task from queue table
+            eventData = uiw.event.EventData('Table', tableType, 'TaskIdx', taskIdx);
+            obj.notify('TaskRemoved', eventData)
             
         end
         
     end
-    
-    
-    methods (Access = private)
-        
-        function h = createQueueContextMenu(obj)
-            
-            hFig = ancestor(obj.Parent, 'figure');
-            h = uicontextmenu(hFig);
-            
-            mTmp = uimenu(h, 'Text', 'Queue Task', 'Callback', @(s,e,newStatus) obj.setTaskStatus(s,e,'queue'));
-            mTmp = uimenu(h, 'Text', 'Pause Task', 'Callback', @(s,e,newStatus) obj.setTaskStatus(s,e,'pause'));
-            mTmp = uimenu(h, 'Text', 'Edit Options', 'Callback', @(s,e) obj.onEditOptionsClicked(s,e), 'Separator', 'on'); % Todo: create callback
-            mTmp = uimenu(h, 'Text', 'Remove Task', 'Callback', @(s,e) obj.removeTask(), 'Separator', 'on');
-
-        
-        end
-        
-    end
-    
     
     methods (Static)
+        
+        function newTask = createTaskItem(name, func, numOut, args, optsName, comments)
+            
+            if nargin < 7; comments = ''; end
+            
+            % Create a struct for the items and a table row for the table
+            newTask.name = name;
+            newTask.method = func;
+            newTask.methodName = utility.string.varname2label( func2str(func) );
+            newTask.status = 'Queued';
+            newTask.numOut = numOut;
+            newTask.args = args;
+            newTask.timeCreated = datestr(now, 'yyyy.mm.dd HH:MM:SS');
+            newTask.timeStarted = '';
+            newTask.elapsedTime = ''; 
+            newTask.timeFinished = ''; 
+            newTask.parameters = optsName;
+            newTask.comments = comments;
+            newTask.Diary = '';
+            newTask.ErrorStack = [];
+            
+        end
+        
+        function [cleanUpObj, logfile] = initializeTempDiaryLog()
+        %initializeTempDiaryLog Create and log to temp logfile
+        
+            % Create a log file in temporary directory
+            logfile = fullfile(tempdir, 'temp_logfile');
+            
+            % Create a cleanup object to make sure file is deleted later.
+            cleanUpObj = onCleanup(@() delete(logfile));
+            
+            % Start logging diary to temporary file: 
+            diary(logfile)
+                
+        end
+        
         function pathStr = getDefaultTaskListFilePath()
         %getTaskListFilePath Get filepath for task lists
         %

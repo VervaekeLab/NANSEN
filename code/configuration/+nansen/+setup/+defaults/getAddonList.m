@@ -76,5 +76,16 @@ function S = getAddonList()
     S(i).SetupFileName = '';
     S(i).FunctionName = 'normcorre_batch';
     
-    
+% %     i = i + 1;
+% %     S(i).Name = 'Flow Registration';
+% %     S(i).Description = ' Optical Flow based correction for calcium imaging data';
+% %     S(i).IsRequired = false;
+% %     S(i).Type = 'Neuroscience';
+% %     S(i).Source = 'Github';
+% %     S(i).WebUrl = '';
+% %     S(i).DownloadUrl = '';
+% %     S(i).HasSetupFile = false;
+% %     S(i).SetupFileName = 'set_path';
+% %     S(i).FunctionName = 'OF_Options';
+
 end

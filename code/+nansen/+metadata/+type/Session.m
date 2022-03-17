@@ -1,4 +1,4 @@
-classdef Session < nansen.metadata.abstract.BaseSchema
+classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessionData
 %Session A generic metadata schema for an experimental session.
 %
 %
@@ -21,6 +21,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
 %           datalocation struct. Should session inherit HasDataLocationModel???
 %           This would be quite handy... How would performance be with so
 %           many listeners???
+%       [ ] Create a HasSessionInfo(?) class and make a session class that is not a "metadata" class, which subclasses hasSessionInfo and HasSessionData 
 
 
     % Implement superclass abstract property
@@ -58,20 +59,27 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         InternalVariables = {'Ignore', 'DataLocation', 'Notebook'}
     end
     
-    properties (Hidden, Transient) %, SetAccess = immutable) % Todo: Immutable setacces.. Does it have to be set in this, or can it be set in superclasses?
+    properties (Hidden, SetAccess = immutable) %(Transient) 
         DataLocationModel
+        % Note: can not be transient because it does not get passed to a
+        % worker in a parallell pool.
+        % Todo: Immutable setacces.. Will this work? If using
+        % assignPVPairs, the property is not set in  the constructor:/ Need
+        % to adapt constructor, to retrieve datalocationmodel from pvpairs
+        % and assign in constructor
+        
     end
 
-    
     methods % Constructor
         function obj = Session(varargin)
             
             obj@nansen.metadata.abstract.BaseSchema(varargin{:})
-            
+            obj@nansen.session.HasSessionData()
+
             if isempty(varargin)
                 return; 
             end
-            
+
             % Todo: Inherit from assignPVPairs??
             [nvPairs, ~] = utility.getnvpairs(varargin);
             for i = 1:2:numel(nvPairs)
@@ -92,7 +100,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             if ~isempty(obj(1).DataLocationModel)
                 obj.refreshDataLocations()
             end
-            
             
             % Todo: Should DataSet/DataIoModel/DataCollection be set
             % assigned from default project datalocation if it is not given
@@ -143,7 +150,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             % obj.assignPipeline()
             
         end
-        
         
         function assignSubjectID(obj, pathStr)
             % Get specification for how to retrieve subject id from
@@ -238,6 +244,50 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             end
         end
         
+        function updatePipeline(obj, pipelineTemplate)
+        %updatePipeline Update pipeline for sessions that use given template
+        %
+        %   Updates the progress property of the session objects that has a
+        %   pipeline based on the pipeline template.
+        
+            pipelineStructArray = [obj.Progress];
+            pipelineUuids = {pipelineStructArray.Uuid};
+            
+            affectedIdx = find(strcmp(pipelineUuids, pipelineTemplate.Uuid));
+            
+            for i = 1:numel(affectedIdx)
+                
+                thisSession = obj(affectedIdx(i));
+                pipelineStruct = thisSession.Progress; 
+                pipelineStruct = nansen.pipeline.updatePipelinesFromPipelineTemplate(pipelineStruct, pipelineTemplate);
+                thisSession.Progress = pipelineStruct;
+            end
+
+        end
+        
+        function updateProgress(obj, fcnName, status)
+            
+            % Return if session object does not have a pipeline.
+            if isempty(obj.Progress); return; end
+            
+            if isa(fcnName, 'function_handle')
+                fcnName = func2str(fcnName);
+            end
+            
+            if any(strcmp({obj.Progress.TaskList.FunctionName}, fcnName))
+
+                tf = strcmp({obj.Progress.TaskList.FunctionName}, fcnName);
+                taskList = obj.Progress.TaskList;
+
+                if strcmp(status, 'Completed')
+                    taskList(tf).IsFinished = true;
+                    taskList(tf).DateFinished = datetime('now');
+                    obj.Progress.TaskList = taskList;
+                end
+            end
+            
+        end
+        
         function refreshDataLocations(obj)
             
             obj.fixDataLocations()
@@ -327,6 +377,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             S = toStruct@nansen.metadata.abstract.BaseSchema(obj);
             if isfield(S, 'DataLocationModel')
                 S = rmfield(S, 'DataLocationModel');
+            end
+            if isfield(S, 'data')
+                S = rmfield(S, 'data');
             end
         end
         
@@ -434,40 +487,52 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             filePath = obj.getDataFilePath(varName, '-w', varargin{:});
             
             S.(varName) = data;
-            save(filePath, '-struct', 'S')
+
+            varInfo = whos('data');
+            byteSize = varInfo.bytes;
             
+            if byteSize > 2^31
+                save(filePath, '-struct', 'S', '-v7.3')
+            else
+                save(filePath, '-struct', 'S')
+            end
         end
         
         function validateVariable(obj, variableName)
         %validateData Does data variable exists?
                     
             dataFilePathModel = nansen.config.varmodel.VariableModel;
+            
+            if ~isa(variableName, 'cell'); 
+                variableName = {variableName}; 
+            end
+            
+            for i = 1:numel(variableName)
+            
+                [S, ~] = dataFilePathModel.getVariableStructure(variableName{i});
+            
+                % Check if data location folder exists:
+                if ~obj.existSessionFolder( S.DataLocation )
+                    errorID = 'NANSEN:Session:FolderNotFound';
+                    errorMsg = sprintf(['The data location "%s" does not exist (or is not available) ', ...
+                        'for session %s'], S.DataLocation, obj.sessionID);
+                    error(errorID, errorMsg) %#ok<SPERR>
 
-            [S, ~] = dataFilePathModel.getVariableStructure(variableName);
-            
-            % Check if data location folder exists:
-            if ~obj.existSessionFolder( S.DataLocation )
-                errorID = 'NANSEN:Session:FolderNotFound';
-                errorMsg = sprintf(['No folder exists in the data location "%s" ', ...
-                    'for session %s'], S.DataLocation, obj.sessionID);
-                error(errorID, errorMsg) %#ok<SPERR>
-                
-% %                 [errorId, errorMsg] = obj.getErrorDetails();
-% %                 error(errorId, errorMsg)
+    % %                 [errorId, errorMsg] = obj.getErrorDetails();
+    % %                 error(errorId, errorMsg)
+                end
+
+                filePath = obj.getDataFilePath(variableName{i});
+
+                if ~isfile(filePath)
+                    errorId = 'NANSEN:Session:RequiredDataMissing';
+                    %errorMsg = obj.getErrorMessage(errorId);
+                    errorMsg = sprintf(['The file containing "%s" does not ', ...
+                        'exist or was not found for session "%s"'], ...
+                        variableName{i}, obj.sessionID);
+                    error(errorId, errorMsg) %#ok<SPERR>
+                end
             end
-            
-            filePath = obj.getDataFilePath(variableName);
-            
-            if ~isfile(filePath)
-                errorId = 'NANSEN:Session:RequiredDataMissing';
-                %errorMsg = obj.getErrorMessage(errorId);
-                errorMsg = sprintf(['The file containing "%s" does not ', ...
-                    'exist or was not found for session "%s"'], ...
-                    variableName, obj.sessionID);
-                error(errorId, errorMsg) %#ok<SPERR>
-            end
-            
-            
         end
         
         function tf = existSessionFolder(obj, dataLocationName)
@@ -521,15 +586,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             
             
             % Get the model for data file paths.
-            %global dataFilePathModel
-            %if isempty(dataFilePathModel)
             
             % Todo: Should be part of DataIoModel
-                dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
-                dataFilePathModel = nansen.config.varmodel.VariableModel;
-
-            %end
-
+            %dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
+            dataFilePathModel = nansen.config.varmodel.VariableModel;
             
             % Check if mode is given as input:
             [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
@@ -541,7 +601,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             if ~isExistingEntry
                 S = utility.parsenvpairs(S, [], parameters);
                 if isempty(S.DataLocation)
-                    S.DataLocation = obj.DataLocationModel.DefaultDataLocation;
+                    dlItem = obj.DataLocationModel.getDefaultDataLocation;
+                    S.DataLocation = dlItem.Name;
+                    S.DataLocationUuid = dlItem.Uuid;
                 end
             end
             
@@ -706,7 +768,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                 thisDataLocName = obj.DataLocation(i).Name;
                 
                 oldRootDir = obj.DataLocation(i).RootPath;
-                newRootDir = rootdirStruct.(thisDataLocName);
+                newRootDir = rootdirStruct.(thisDataLocName).RootPath;
                 if ~strcmp( oldRootDir, newRootDir )
                     thisModel = obj.DataLocationModel.getItem(i);
                     
@@ -715,6 +777,13 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                     obj.DataLocation(i).RootUid = thisModel.RootPath(rootIdx).Key;
                     obj.DataLocation(i).RootPath = newRootDir;
                     
+                    wasModified = true;
+                end
+                
+                oldSubfolder = obj.DataLocation(i).Subfolders;
+                newSubfolder = rootdirStruct.(thisDataLocName).Subfolder;
+                if ~strcmp( oldSubfolder, newSubfolder )
+                    obj.DataLocation(i).Subfolders = newSubfolder;
                     wasModified = true;
                 end
             end
