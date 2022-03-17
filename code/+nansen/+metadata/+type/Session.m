@@ -214,7 +214,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 pipelineIdx = 1:pmc.NumPipelines;
                 doAutoAssign = true;
             elseif nargin == 2
-                pipelineIdx = pmc.containsItem(pipelineName);
+                pipelineIdx = find( pmc.containsItem(pipelineName) );
                 doAutoAssign = false;
             end
            
