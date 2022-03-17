@@ -170,6 +170,52 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
     methods
         
+        function tf = preview(obj)
+        %PREVIEW Open preview of data and options for method.
+        %
+        %   This method opens an imviewer plugin for the current
+        %   algorithm/tool if such a plugin is available. Otherwise it
+        %   opens a generic options editor to edit the options of the
+        %   algotithm
+                
+            pluginName = obj.ImviewerPluginName;
+            pluginFcn = imviewer.App.getPluginFcnFromName(pluginName);
+
+            if ~isempty(pluginFcn)
+
+                obj.SourceStack.DynamicCacheEnabled = 'on';
+                hImviewer = imviewer(obj.SourceStack);
+                hImviewer.ImageDragAndDropEnabled = false; 
+                % Todo: Should this be more specific. (I add this because 
+                % the extract plugin has plot objects that can be dragged, 
+                % and in that case the image should not be dragged...)
+                
+                h = hImviewer.openPlugin(pluginFcn, obj.OptionsManager, ...
+                    'RunMethodOnFinish', false);
+                % Will pause here until the plugin is closed.
+
+                % Abort if h is invalid (improper exit)
+                if ~isvalid(h); tf = false; return; end
+                
+                newParameters = h.settings;
+                tf = ~h.wasAborted;
+
+                delete(h)
+                hImviewer.quit()
+                obj.SourceStack.DynamicCacheEnabled = 'off';
+                
+            else
+%                 warning('NANSEN:Roisegmentation:PluginMissing', ...
+%                     'Plugin for %s was not found', CLASSNAME)
+                
+                [newParameters, wasAborted] = tools.editStruct(obj.Parameters);
+                tf = ~wasAborted;
+            end
+            
+            obj.Parameters = newParameters;
+            
+        end
+        
         function runInitialization(obj)
             obj.initialize()
         end
