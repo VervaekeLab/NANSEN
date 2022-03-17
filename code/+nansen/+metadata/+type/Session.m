@@ -99,7 +99,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % Need to update data locations based on data location model
             if ~isempty(obj(1).DataLocationModel)
                 obj.refreshDataLocations()
-                obj.Data = nansen.session.SessionData(obj);
+                for i = 1:numel(obj)
+                    obj(i).Data = nansen.session.SessionData(obj(i));
+                end
             end
             
             % Todo: Should DataSet/DataIoModel/DataCollection be set
@@ -515,7 +517,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 % Check if data location folder exists:
                 if ~obj.existSessionFolder( S.DataLocation )
                     errorID = 'NANSEN:Session:FolderNotFound';
-                    errorMsg = sprintf(['No folder exists in the data location "%s" ', ...
+                    errorMsg = sprintf(['The data location "%s" does not exist (or is not available) ', ...
                         'for session %s'], S.DataLocation, obj.sessionID);
                     error(errorID, errorMsg) %#ok<SPERR>
 

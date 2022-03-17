@@ -8,6 +8,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 % properties and methods are accounted for, there could be issues if
 % subclassing this class and implementing protected properties. Long story
 % short, protected properties would not be protected in this case.
+% Another issue if trying something like {sessionData.RoiArray.area}, wont
+% work, so assign roiArray to another variable first
+
+% Note: This class is not yet well adapted non-scalar objects!
 
 
 % Todo: 
@@ -75,12 +79,15 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     
     methods
         
-        function initialize(obj)
-            obj.updateDataVariables()
+        function obj = initialize(obj)
+        %initialize Initialize the variables of session
+            fprintf('Initializing session data variables...\n')
+            obj.updateDataVariables();
         end
         
-        function update(obj)
-            obj.updateDataVariables()
+        function obj = update(obj)
+            fprintf('Updating session data variables...\n')
+            obj.updateDataVariables();
         end
         
     end
@@ -143,7 +150,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         end
         
 
-        function obj = updateDataVariables(obj)
+        function updateDataVariables(obj)
             
             obj.DataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
             varNames = {obj.DataFilePathModel.VariableList.VariableName};
@@ -279,7 +286,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             privateVarName = strcat(varName, '_');
             
             if isempty(obj.(privateVarName))
-                value = 'Uninitialized';
+                value = 'Unassigned';
             else
                 value = obj.(privateVarName);
             end
@@ -303,47 +310,67 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             str = getHeader@matlab.mixin.CustomDisplay(obj);
             
             className = strrep(class(obj), 'nansen.session.', '');
-                        
-            if strcmp(obj.State, 'uninitialized')
-                className = sprintf('%s (%s)', className, obj.State);
+            
+            if numel(obj) == 1
+                if strcmp(obj.State, 'uninitialized')
+                    className = sprintf('%s (%s)', className, obj.State);
+                end
             end
-
+            
             str = strrep(str, '>SessionData<', sprintf('>%s<', className));
-            str = strrep(str, 'properties', 'data variables');
+            
+            if numel(obj) == 1
+                str = strrep(str, 'properties', 'data variables');
+            else
+                str = strrep(str, 'with properties:', '(variables not displayable for non-scalar SessionData)');
+            end
+            
+            % Todo: Improve header for arrays
         end
         
         function propGroup = getPropertyGroups(obj)
             
-            if strcmp(obj.State, 'uninitialized')
-                propGroup = matlab.mixin.util.PropertyGroup.empty;
+            % Initialize output variable as empty
+            propGroup = matlab.mixin.util.PropertyGroup.empty;
+
+            if numel(obj) > 1
                 return
+                % Todo: Improve property groups for arrays!
             end
             
-            isDefault = [obj.VariableList.IsDefaultVariable];
+            if strcmp(obj(1).State, 'uninitialized') ...
+                    || isempty(obj(1).VariableList)
+                return;
+            end
+            
+            isDefault = [obj(1).VariableList.IsDefaultVariable];
             
             internal = []; %Todo
             isDefault(internal) = false;
             
             propGroup = matlab.mixin.util.PropertyGroup.empty;
             
-            if obj.settings.ShowFavouriteVariables
-                favIdx = []; %Todo
+            favIdx = []; %Todo
+            internal = ~isDefault;
+            isUser = [];
+
+            
+            if obj.settings.ShowFavouriteVariables && any(favIdx)
                 propNames = sort( {obj.VariableList(favIdx).VariableName} ); 
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Favourite Variables:')];
             end
             
-            if obj.settings.ShowDefaultVariables
+            if obj.settings.ShowDefaultVariables && any(isDefault)
                 propNames = sort( {obj.VariableList(isDefault).VariableName} ); 
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Default Variables:')];
             end
             
-            if obj.settings.ShowUserVariables
+            if obj.settings.ShowUserVariables && any(isUser)
                 propNames = sort( {obj.VariableList([]).VariableName} ); 
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'User Variables:')];
             end
             
-            if obj.settings.ShowInternalVariables
-                internal = ~isDefault;
+            if obj.settings.ShowInternalVariables && any(internal)
                 propNames = sort( {obj.VariableList(internal).VariableName} ); 
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Internal Variables:')];
             end

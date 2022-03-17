@@ -14,7 +14,10 @@ classdef HasSessionData < uim.handle
     
     methods
         function obj = HasSessionData()
-            obj.Data = nansen.session.SessionData(obj);
+            % Assign data for each obj individually
+            for i = 1:numel(obj)
+                obj(i).Data = nansen.session.SessionData(obj(i)); %#ok<AGROW>
+            end
         end
     end
     
@@ -32,8 +35,10 @@ classdef HasSessionData < uim.handle
             
             if strcmp(s(1).type, '.')
                 if strcmp(s(1).subs, 'Data')
-                    if ~obj.Data.IsInitialized
-                        obj.Data.initialize();
+                    for i = 1:numel(obj)
+                        if ~obj(i).Data.IsInitialized
+                            obj(i).Data.initialize();
+                        end
                     end
                 end
             end
