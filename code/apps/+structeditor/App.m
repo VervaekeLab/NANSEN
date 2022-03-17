@@ -299,6 +299,19 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     
     methods % Set/get
         
+        function set.Callback(obj, newValue)
+            %msg = 'Callback must be a function handle';
+            %assert(isempty(newValue) || isa(newValue, 'function_handle'), msg)
+            % Todo: Also accept cell array of function handles...
+            obj.Callback = newValue;
+            obj.onCallbackSet()
+        end
+        
+        function set.ValueChangedFcn(obj, newValue)
+            obj.ValueChangedFcn = newValue;
+            obj.onValueChangedFcnSet()
+        end
+        
         function set.Title(obj, newValue)
             assert( ischar(newValue), 'Title must be a character vector')
             
@@ -462,6 +475,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.Figure.Position(4) = h + sum(obj.Margins([2,4])) + 20;
                 uim.utility.centerFigureOnScreen(obj.Figure)
             end
+            
+            % Todo: Take horizontal extent of textlabels into account
                         
         end
         
@@ -558,6 +573,37 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.moveElementsToTop()
             end
             
+        end
+        
+        function onCallbackSet(obj)
+        %onCallbackSet Need to make on callback for each page...    
+            if obj.isConstructed && ~isempty(obj.Callback)
+                
+                if numel(obj.Callback) ~= obj.numTabs
+                    if obj.numTabs > 1
+                        obj.Callback = arrayfun(@(i) obj.Callback, 1:obj.numTabs, 'uni', 0);
+                    else
+                        if ~isa(obj.Callback)
+                            obj.Callback = {obj.Callback};
+                        end
+                    end
+                end
+            end
+        end
+        
+        function onValueChangedFcnSet(obj)
+            if obj.isConstructed && ~isempty(obj.ValueChangedFcn)
+                
+                if numel(obj.ValueChangedFcn) ~= obj.numTabs
+                    if obj.numTabs > 1
+                        obj.ValueChangedFcn = arrayfun(@(i) obj.ValueChangedFcn, 1:obj.numTabs, 'uni', 0);
+                    else
+                        if ~isa(obj.ValueChangedFcn)
+                            obj.ValueChangedFcn = {obj.ValueChangedFcn};
+                        end
+                    end
+                end
+            end
         end
         
         function onConstructed(obj)
@@ -1183,6 +1229,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             obj.dataOrig = S;
             obj.dataEdit = S;
+            
             
             % Count number of structs in input.
             if isa(S, 'cell') && numel(S) > 1
@@ -2088,7 +2135,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
                 
                 if ~isempty(obj.ValueChangedFcn) && ~isempty(obj.ValueChangedFcn{obj.currentPanel})
-                    evd = structeditor.eventdata.ValueChanged(name, oldVal, newVal, obj.hControls);
+                    evd = structeditor.eventdata.ValueChanged(name, oldVal, newVal, obj.hControls, obj.currentPanel);
                     obj.ValueChangedFcn{obj.currentPanel}(obj, evd)
                 end
                 
@@ -2728,13 +2775,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function waitfor(obj)                               
             uiwait(obj.Figure)
-            %disp('a')
         end
         
         function quit(obj, action)
     
             switch action
-
                 case 'Cancel'
                     obj.wasCanceled = true;
                 case 'Save'

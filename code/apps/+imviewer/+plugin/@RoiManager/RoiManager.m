@@ -115,13 +115,12 @@ classdef RoiManager < applify.mixin.AppPlugin
     
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} ) % Callbacks
         
-        function wasCaptured = onKeyPress(obj, src, event)
+        function wasCaptured = keyPressHandler(obj, src, event)
             wasCaptured = true; %Guilty until proven innocent c-^_^-?
             
             switch event.Key
                 case 'space'
                     obj.toggleShowRoiOutlines()
-                    
                     
                 otherwise
                     wasCaptured = false;

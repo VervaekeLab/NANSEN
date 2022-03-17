@@ -6,6 +6,7 @@ classdef (ConstructOnLoad) ValueChanged < event.EventData
         OldValue
         NewValue
         UIControls
+        PageNumber
     end
     
     

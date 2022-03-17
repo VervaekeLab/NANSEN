@@ -81,6 +81,10 @@ classdef (Abstract) UserSettings < uim.handle
     properties (Dependent)
         settings            % A struct containing different settings variables
     end
+    
+    properties (Hidden)
+        wasAborted = false; % Flag to indicate if settings editor ui was aborted..
+    end
 
     properties (Access = protected, Hidden = true)
         settings_ struct    % For internal use to assign settings without triggering callbacks
@@ -267,6 +271,13 @@ classdef (Abstract) UserSettings < uim.handle
             obj.saveSettings()
         end
         
+        function waitfor(obj)
+        %uiwait Wait for the settings editor (if open)
+            if ~isempty(obj.hSettingsEditor)
+                obj.hSettingsEditor.waitfor()
+            end
+        end
+        
     end
     
     methods % Set/get methods
@@ -397,10 +408,12 @@ classdef (Abstract) UserSettings < uim.handle
             
             if obj.hSettingsEditor.wasCanceled
                 updatedSettings = obj.hSettingsEditor.dataOrig;
+                obj.wasAborted = true;
             else
                 updatedSettings = obj.hSettingsEditor.dataEdit;
+                obj.wasAborted = false;
             end
-            
+
             obj.saveSettings()
             
             delete(obj.hSettingsEditor)
