@@ -1019,7 +1019,7 @@ classdef App < applify.ModularApp
             %colors = cbrewer('qual', 'Set2', nColors, 'spline');
             %patchColors = cbrewer('seq', 'PuBuGn', nColors*2, 'spline');
             %patchColors = patchColors(nColors+1:end, :);
-            patchColors = cbrewer('qual', 'Set2', nColors, 'spline');
+            patchColors = cbrewer('qual', 'Set2', max([nColors,3]), 'spline'); % Should be min 3 for cbrewer
             
             for i = 1:numel(tsArray)
                 colorInd = mod(colorInd, nColors) + 1;
