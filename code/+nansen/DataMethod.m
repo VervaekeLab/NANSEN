@@ -2,11 +2,12 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
     
     % TODO:
     % [ ] Make property to determine what should be done if a method is
-    % already completed. I.e rerun and overwrite, rerun and save to new
-    % folder, or do nothing...
+    %     already completed. I.e rerun and overwrite, rerun and save to new
+    %     folder, or do nothing...
     %
     % [ ] Implement printStatus method. Create a special class for method
     %     logging?
+    
    
     properties (Constant, Abstract)
         MethodName      % Name of method
@@ -14,14 +15,25 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
         IsQueueable     % Is method suitable for queueing. Examples were not: method creates figures or requires manual input
     end
     
+    properties
+        RedoIfCompleted = false % Run method again if results already exist from before? i.e force redo
+    end
+    
     properties (Access = protected)
         DataIoModel
     end
     
-    methods (Static) % Make abstract???
+    methods (Static)
         function pathList = getDependentPaths()
+        %getDependentPaths Get dependent paths for this method.
+        %
+        %   Note: Dependent paths are necessary in order to create batch
+        %   jobs, or run methods on a different worker.
+        
             pathList = {};
-            % Todo: what was this again?
+        
+            % Todo: return the nansen code directory.
+            
         end
     end
     
@@ -33,6 +45,8 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
                 % Todo: Assign default data io model...
             end
             
+            % Todo: if input is a file/folder path, create a generic data
+            % input/output model. 
             %obj@nansen.dataio.DataIoModel(varargin{1})
             obj.DataIoModel = varargin{1};
             
@@ -40,7 +54,18 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
         end
     end
     
-    methods (Access = public)
+    methods (Access = public) % Todo: Use methods of hasOptions superclass
+        
+        function preview_workinprogress(obj)
+            %Todo: Combine this with methods that are already present in
+            %some subclasses (motion correction / auto segmentation)
+            
+            obj.editOptions()
+        end
+        
+    end
+    
+    methods (Access = public) % Shortcuts for methods of DataIOModel
     
         function data = loadData(obj, varargin)
             data = obj.DataIoModel.loadData(varargin{:});
