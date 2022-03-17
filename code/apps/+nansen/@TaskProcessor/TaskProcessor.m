@@ -611,6 +611,20 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end
         
+        function [cleanUpObj, logfile] = initializeTempDiaryLog()
+        %initializeTempDiaryLog Create and log to temp logfile
+        
+            % Create a log file in temporary directory
+            logfile = fullfile(tempdir, 'temp_logfile');
+            
+            % Create a cleanup object to make sure file is deleted later.
+            cleanUpObj = onCleanup(@() delete(logfile));
+            
+            % Start logging diary to temporary file: 
+            diary(logfile)
+                
+        end
+        
         function pathStr = getDefaultTaskListFilePath()
         %getTaskListFilePath Get filepath for task lists
         %
