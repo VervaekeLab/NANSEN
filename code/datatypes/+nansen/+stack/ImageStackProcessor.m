@@ -100,9 +100,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     end
     
     properties (Access = protected)
-        FrameIndPerPart = []
-        IsInitialized = false;
-        IsFinished = false;
+        NumSteps = 1                % Number of steps for algorithm. I.e Step 1/2 = downsample stack, Step 2/2 autosegment stack
+        CurrentStep = 1;            % Current step of algorithm.
+        StepDescription = {}        % Description of steps (cell array of text descriptions)
+        FrameIndPerPart = []        % List (cell array) of frame indices for each subpart of image stack
+        IsInitialized = false;      % Boolean flag; is processor already initialized?
+        IsFinished = false;         % Boolean flag; has processor completed?
     end
     
 % - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - 
@@ -207,7 +210,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             else
 %                 warning('NANSEN:Roisegmentation:PluginMissing', ...
 %                     'Plugin for %s was not found', CLASSNAME)
-                
+
+                % Todo: use superclass method editOptions
                 [newParameters, wasAborted] = tools.editStruct(obj.Parameters);
                 tf = ~wasAborted;
             end
@@ -217,6 +221,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         end
         
         function runInitialization(obj)
+        %runInitialization Run the processor initialization stage.
             obj.initialize()
         end
         
@@ -229,6 +234,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
             if nargin < 2; skipInit = false; end
             
+            obj.runPreInitialization()
+            
             if ~skipInit
                 obj.initialize()
             end
@@ -240,6 +247,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         end
         
         function runFinalization(obj)
+        %runFinalization Run the processor finalization stage.
             obj.finish()
         end
         
@@ -288,11 +296,15 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %                 return;
 %             end
             
-
             % Check if SourceStack has been assigned.
             assert(~isempty(obj.SourceStack), 'SourceStack is not assigned')
             
+            fprintf('---\n')
             obj.printTask(sprintf('Initializing method: %s', class(obj)))
+            fprintf('\n')
+
+            obj.displayProcessingSteps()
+            fprintf('\n')
             
             % Todo: Check if options exist from before, i.e we are resuming
             % this method on data that was already processed.
@@ -307,18 +319,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             obj.onInitialization()
             obj.IsInitialized = true;
             
-            
-            % Print message here. Stack splitting might be reconfigured in
-            % subclasses..
-            obj.printTask(sprintf(['ImageStack will be split into %d ', ...
-                'parts for processing'], obj.NumParts))
-            
-            
-            
         end
         
         function processParts(obj)
             
+            obj.displayStartCurrentStep()
+
             IND = obj.FrameIndPerPart;
             
             % Todo: Do this here or in initialization??
@@ -329,7 +335,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 return
             end
             
-            obj.printSubTask(sprintf('Running method: %s', class(obj) ) )
+            obj.printTask(sprintf('Running method: %s', class(obj) ) )
             obj.printSubTask(sprintf('ImageStack will be processed in %d parts', numel(partsToProcess)))
 
             % Loop through 
@@ -363,12 +369,14 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 
             end
             
+            obj.displayFinishCurrentStep()
+
         end
         
         function finish(obj)
+            
             %if obj.IsFinished; return; end
 
-            
             % Subclass may implement
             obj.onCompletion()
             
@@ -378,6 +386,13 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     end
     
     methods (Access = protected) % Subroutines (Subclasses may override)
+              
+        function runPreInitialization(obj) % todo: protected?
+        %runPreInitialization Runs before the initialization step    
+            % Subclasses can override
+            obj.NumSteps = 1;
+            obj.StepDescription = {obj.MethodName};
+        end
         
         function openSourceStack(obj, imageStackRef)
         %openSourceStack Open/assign image stack which is source
@@ -454,6 +469,19 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             fprintf('%s (%s): %s\n', nowstr, obj.MethodName, msg)
         end
         
+        function displayStartCurrentStep(obj)
+            i = obj.CurrentStep;
+            obj.printTask('Running step %d/%d: %s...', i, obj.NumSteps, ...
+                obj.StepDescription{i})
+        end
+        
+        function displayFinishCurrentStep(obj)
+            i = obj.CurrentStep;
+            obj.printTask('Finished step %d/%d: %s.\n', i, obj.NumSteps, ...
+                obj.StepDescription{i})
+            obj.CurrentStep = obj.CurrentStep + 1;
+        end
+        
     end
         
     methods (Access = private)
@@ -505,6 +533,15 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
         end
         
+        function displayProcessingSteps(obj)
+        %displayProcessingSteps Display the processing steps for process    
+            obj.printTask('Processing will happen in %d steps:', obj.NumSteps);
+            
+            for i = 1:obj.NumSteps
+                 obj.printTask('Step %d/%d: %s', i, obj.NumSteps, ...
+                     obj.StepDescription{i})
+            end
+        end
 
     end
     
