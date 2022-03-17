@@ -99,9 +99,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % Need to update data locations based on data location model
             if ~isempty(obj(1).DataLocationModel)
                 obj.refreshDataLocations()
-                for i = 1:numel(obj)
-                    obj(i).Data = nansen.session.SessionData(obj(i));
-                end
             end
             
             % Todo: Should DataSet/DataIoModel/DataCollection be set

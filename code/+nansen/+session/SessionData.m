@@ -152,6 +152,12 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 
         function updateDataVariables(obj)
             
+            if isempty(obj.SessionObject.DataLocationModel)
+                % Todo: Consider to throw an error.
+                fprintf('Aborted, this session does not have a DataLocationModel')
+                return
+            end
+            
             obj.DataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
             varNames = {obj.DataFilePathModel.VariableList.VariableName};
             
