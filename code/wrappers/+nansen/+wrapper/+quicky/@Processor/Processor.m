@@ -107,6 +107,14 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
         end
         
+        function runPreInitialization(obj)
+            runPreInitialization@nansen.processing.RoiSegmentation(obj)
+            
+            obj.NumSteps = obj.NumSteps + 1;
+            descr = 'Combining and refining detected components...';
+            obj.StepDescription = [obj.StepDescription, descr];
+            
+        end
     end
     
     methods (Access = protected) % Run the motion correction / image registration
@@ -146,7 +154,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         function onCompletion(obj)
             
             % Combine spatial segments
-            if numel(obj.Results) > 1
+            if numel(obj.Results) >= 1
                 obj.mergeSpatialComponents()
             end
             
@@ -158,6 +166,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
         function mergeSpatialComponents(obj)
             
+            obj.displayStartCurrentStep()
+
             obj.Results = cat(1, obj.Results{:});
             S = cat(1, obj.Results.spatialComponents );
                 
@@ -171,6 +181,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             [roiArray, roiImages, roiStats] = nansen.wrapper.quicky.utility.finalizeRoiSegmentation(imArray, avgIm, roiArrayT);
             % Todo: save all...
+            
+            obj.displayFinishCurrentStep()
             
             obj.saveData('roiArrayQuickyAuto', roiArray, 'Subfolder', 'roi_data')
         end
