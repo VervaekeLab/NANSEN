@@ -2068,9 +2068,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 newTask = app.BatchProcessor.createTaskItem(sessionObj{i}.sessionID, ...
                     sessionMethod, 0, sessionObj(i), 'Default', 'Command window task');
 
-                logfile = fullfile(tempdir, 'temp_logfile');
-                c = onCleanup(@() delete(logfile));
-                diary(logfile)
+                % cleanupObj makes sure temp logfile is deleted later
+                [cleanUpObj, logfile] = app.BatchProcessor.initializeTempDiaryLog(); %#ok<ASGLU,NASGU>
                 
                 newTask.timeStarted = datetime(now,'ConvertFrom','datenum');
                 
@@ -2084,6 +2083,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
                 catch ME
                     newTask.status = 'Failed';
+                    diary off
                     newTask.Diary = fileread(logfile);
                     newTask.ErrorStack = ME;
                     app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
@@ -2091,11 +2091,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         func2str(sessionMethod))
                 end
                 
+                clear cleanUpObj
             end
             
         end
         
         function runTasksWithPreview(app, sessionMethod, sessionObj, opts, optsName)
+            
             % Get default options
             % Get task name
 
@@ -2107,6 +2109,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % implemented through functions??
             
             % Todo: Add task to history.
+            
             
             numTasks = numel(sessionObj);
             for i = 1:numTasks
@@ -2563,8 +2566,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             errorMessage = sprintf('Session method ''%s'' failed for session ''%s''.\n', ...
                 methodName, sessionObj.sessionID);
+            
+            % Show error message in user dialog
             errordlg([errorMessage, ME.message])
-            rethrow(ME)
+            
+            % Display error stack for better chance at debugging
+            disp(getReport(ME, 'extended'))
+
         end
     end
         
