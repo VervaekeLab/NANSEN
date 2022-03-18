@@ -89,11 +89,6 @@ classdef RoiManager < applify.mixin.AppPlugin
                 return
             end
 
-            
-            % Initialize a roi map and store in the roiDisplay property
-            obj.roiGroup = roimanager.roiGroup();
-            
-            
             % if imviewer was empty, we return here
             if ~isempty(hImviewer)
                 obj.activatePlugin(hImviewer)
@@ -141,18 +136,24 @@ classdef RoiManager < applify.mixin.AppPlugin
     
     methods (Access = protected)
         
+        function onConstruction(obj)
+            % Todo?
+            % Initialize a roi map and store in the roiDisplay property
+            obj.roiGroup = roimanager.roiGroup();
+        end
+        
         function onPluginActivated(obj)
                                  
             obj.PrimaryApp.displayMessage('Activating roimanager...', [], 2)
 
-            
             [obj.StackViewer, hImviewer] = deal( obj.PrimaryApp );
 
             hAxes = hImviewer.Axes;
             
             % Update menu, by adding some roimanager options:
             obj.createMenu()
-
+            
+            obj.roiGroup = roimanager.roiGroup();
             obj.roiGroup.ParentApp = obj.PrimaryApp;
             
             obj.roiDisplay = roimanager.roiMap(hImviewer, hAxes, obj.roiGroup);
@@ -380,7 +381,6 @@ classdef RoiManager < applify.mixin.AppPlugin
             mitem.Callback = @(s,e) imviewer.plugin.roiSignalVideo(obj.PrimaryApp); % Todo: update reference.
             
             obj.hMenu = hMenu;
-            obj.Menu = hMenu;
             
         end
         
@@ -1127,7 +1127,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                 obj.initializeSignalArray()
             end
             
-            mItem = findobj(obj.Menu, '-regexp', 'Text', 'Signal Viewer');
+            mItem = findobj(obj.hMenu, '-regexp', 'Text', 'Signal Viewer');
 
             
             if isempty(obj.SignalViewer)
