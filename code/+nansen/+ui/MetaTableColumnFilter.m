@@ -17,9 +17,12 @@ classdef MetaTableColumnFilter < handle
         PopupLocation = 'header'; %'sidebar'
     end
     
+    properties (Dependent, SetAccess = private)
+    	MetaTable   % Meta table data (depends on metatable viewer obj)
+    end
+    
     properties (SetAccess = private) %?
         % Question: Is this the MetaTable object or the metatable table???
-        MetaTable   % The MetaTable to use for retrieving column layouts.
         MetaTableUi
         TableParent
     end
@@ -29,7 +32,7 @@ classdef MetaTableColumnFilter < handle
     end
     
     
-    methods
+    methods % Constructor
         
         function obj = MetaTableColumnFilter(hViewer, appRef)
                        
@@ -47,15 +50,23 @@ classdef MetaTableColumnFilter < handle
             
         end
         
+    end
+    
+    methods
+        function metaTable = get.MetaTable(obj)
+            % Get the cell array version of meta table
+            metaTable = obj.MetaTableUi.MetaTableCell;
+        end
+    end
+    
+    methods
+        
         function onMetaTableChanged(obj)
         %onMetaTableChanged Make necessary updates to property values.
         
             % Get the variable names of the metatable
             varNames = obj.MetaTableUi.MetaTable.Properties.VariableNames;
             numColumns = numel(varNames);
-            
-            % Assign the cell array version of meta table to property
-            obj.MetaTable = obj.MetaTableUi.MetaTableCell;
             
             if ~isempty(obj.hColumnFilterPopups)
                 cellfun(@(c) delete(c), obj.hColumnFilterPopups)
@@ -93,7 +104,8 @@ classdef MetaTableColumnFilter < handle
             h = [];
         
             % Need table column data.
-            columnData = obj.MetaTable(:, columnIdx);
+            rowIdx = find( all(obj.MetaTableUi.DataFilterMap, 2) );
+            columnData = obj.MetaTable(rowIdx, columnIdx);
                         
             switch class(columnData{1})
                 
@@ -153,26 +165,23 @@ classdef MetaTableColumnFilter < handle
         end
         
         function initializeColumnFilterDropdownControl(obj, columnIdx)
-            
-
+           
         end
         
         function refreshFilterControls(obj, columnIdx)
 
+            rowIdx = find( all(obj.MetaTableUi.DataFilterMap, 2) );
+            
             % Need table column data.
-            columnData = obj.MetaTable(:, columnIdx);
+            columnData = obj.MetaTable(rowIdx, columnIdx);
             
             switch obj.columnFilterType{columnIdx}
                 case 'multiSelection'
                     uniqueColumnData = unique(columnData);
                     filterChoices = cat(1, 'Show All', uniqueColumnData);
                     
-                    if numel(uniqueColumnData) < numel(columnData)*0.95
-                        obj.hColumnFilterPopups{columnIdx}.String = filterChoices;
-                        obj.hColumnFilterPopups{columnIdx}.Value = 1;
-                    else
-                        
-                    end
+                    obj.hColumnFilterPopups{columnIdx}.String = filterChoices;
+                    obj.hColumnFilterPopups{columnIdx}.Value = 1;
             end
         end
         
@@ -270,6 +279,7 @@ classdef MetaTableColumnFilter < handle
             end
             
             obj.MetaTableUi.updateTableView()
+            obj.isColumnFilterDirty(:) = true;
             
 % % %             keepRows = all(obj.MetaTableUi.DataFilterMap, 2);
 % % %             T = T(keepRows, :);
