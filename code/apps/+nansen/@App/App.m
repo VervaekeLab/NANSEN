@@ -108,7 +108,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.switchJavaWarnings('off')
             
             app.configureWindow()
-            app.configFigureCallbacks()
             
             warning('off', 'Nansen:OptionsManager:PresetChanged')
             app.createMenu()
@@ -124,6 +123,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.Figure.SizeChangedFcn = @(s, e) app.onFigureSizeChanged;
             
 %             app.initialized = true;
+            app.configFigureCallbacks() % Do this last
             app.setIdle()
             
             if nargout == 0
@@ -323,6 +323,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             uimenu( mitem, 'Text', 'Variables...', 'MenuSelectedFcn', @(s,e)nansen.config.varmodel.VariableModelApp);
             %mitem.MenuSelectedFcn = [];
+            
+            uimenu( mitem, 'Text', 'Watch Folders...', 'MenuSelectedFcn', ...
+                @(s,e)nansen.config.watchfolder.WatchFolderManagerApp, ...
+                'Enable', 'off');
+
             
             mitem = uimenu(m, 'Text','Preferences...');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;
@@ -1024,13 +1029,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             schema = str2func(class(app.MetaTable));
             
             schema = @nansen.metadata.type.Session;
-
             
             if isempty(entries)
                 expression = strjoin({class(app.MetaTable), 'empty'}, '.');
                 metaObjects = eval(expression);
             else
-                  
                 % Submit the current datalocation model on create of
                 % objects that have datalocation information.
                 if any(strcmp(entries.Properties.VariableNames, 'DataLocation'))
@@ -1038,11 +1041,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 else
                     nvPairs = {};
                 end
-                
+
                 metaObjects = schema(entries, nvPairs{:});
                 addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
-
             end
+            
             
         end
         
@@ -2044,11 +2047,30 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function sendToWorkspace(app)
                     
             sessionObj = app.getSelectedMetaObjects();
+
+% %             switch app.settings.Session.ExportSessionObjectAs
+% %                 case 'Nansen'
+% %                     % Pass
+% %                 case 'NDI'
+% %                     sessionObj = app.getNdiSessionObj(sessionObj);
+% %             end
+            
             if ~isempty(sessionObj)
-                assignin('base', 'sessionObjects', sessionObj)
+                varName = app.settings.Session.SessionObjectWorkspaceName;
+                assignin('base', varName, sessionObj)
             end
             
         end
+        
+        function ndiSessionObj = getNdiSessionObj(app, sessionObj)
+            
+            dataLocation = sessionObj.getDataLocation('Rawdata');
+            dirPath = dataLocation.RootPath;
+            
+            ndiSessionObj = ndi.session.dir('ts_exper', dirPath);
+            
+        end
+        
         
         function runTasksWithDefaults(app, sessionMethod, sessionObj, opts, ~)
         %runTasksWithDefaults Run session method with default options

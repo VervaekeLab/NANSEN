@@ -4,8 +4,9 @@ function hApp = nansen(varargin)
     
     try
         hApp = nansen.App(varargin{:});
-    catch
+    catch ME
         hApp = [];
+        disp(getReport(ME, 'extended'))
     end
     
     if nargout == 0

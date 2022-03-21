@@ -248,6 +248,9 @@ classdef (Abstract) UserSettings < uim.handle
                                 errordlg(msg)
                                 error(msg)
                             end
+                                            
+                        otherwise
+                            rethrow(ME)
 
                     end
                 end
