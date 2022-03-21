@@ -105,6 +105,7 @@ classdef VariableModelUI < applify.apptable
             hRow.DataLocSelect.FontName = 'Segoe UI';
             hRow.DataLocSelect.BackgroundColor = [1 1 1];
             hRow.DataLocSelect.Position = [xi y wi-25 h];
+            hRow.DataLocSelect.ValueChangedFcn = @obj.onDataLocationChanged;
             obj.centerComponent(hRow.DataLocSelect, y)
             
             % Fill in values (and items..)
@@ -131,7 +132,7 @@ classdef VariableModelUI < applify.apptable
             hRow.FileNameExpr.BackgroundColor = [1 1 1];
             hRow.FileNameExpr.Position = [xi y wi h];
             obj.centerComponent(hRow.FileNameExpr, y)
-            hRow.FileNameExpr.ValueChangedFcn = @obj.fileNameExpressionChanged;
+            hRow.FileNameExpr.ValueChangedFcn = @obj.onFileNameExpressionChanged;
             
             if ~isempty(rowData.FileNameExpression)
                 hRow.FileNameExpr.Value = rowData.FileNameExpression;
@@ -205,32 +206,18 @@ classdef VariableModelUI < applify.apptable
     
     methods (Access = protected)
         
-        function fileNameExpressionChanged(obj,src, evt)
-            
-            newExpression = src.Value;
-            
+        function onDataLocationChanged(obj,src, ~)
+                                
             rowNumber = obj.getComponentRowNumber(src);
-            hRow = obj.RowControls(rowNumber);
+            obj.updateFileTypeDropdownItems(rowNumber)
             
-            folderPath = obj.getSelectedDataLocationFolderPath(rowNumber);
-            
-            expression = ['*', newExpression, '*'];
-            L = dir(fullfile(folderPath, expression));
-            
-            listOfFileExtension = cell(numel(L), 1);
-            for i = 1:numel(L)
-                [~, ~, ext] = fileparts(L(i).name);
-                listOfFileExtension{i} = ext;
-            end
-            
-            if isempty(listOfFileExtension)
-                listOfFileExtension = obj.DEFAULT_FILETYPES;
-            end
-            
-            listOfFileExtension = unique(listOfFileExtension);
-            
-            hRow.FileTypeSelect.Items = listOfFileExtension;
-            % Todo: List files....
+            obj.IsDirty = true;
+        end
+        
+        function onFileNameExpressionChanged(obj,src, ~)
+                                
+            rowNumber = obj.getComponentRowNumber(src);
+            obj.updateFileTypeDropdownItems(rowNumber)
             
             obj.IsDirty = true;
         end
@@ -409,6 +396,38 @@ classdef VariableModelUI < applify.apptable
                     obj.RowControls(i).DataLocSelect.Items = {obj.DataLocationModel.Data.Name};
                 end
             end
+        end
+        
+        function updateFileTypeDropdownItems(obj, rowNumber)
+        %updateFileTypeDropdownItems Update items of file type dropdown  
+        
+            hRow = obj.RowControls(rowNumber);
+            
+            folderPath = obj.getSelectedDataLocationFolderPath(rowNumber);
+            fileNameExpression = hRow.FileNameExpr.Value;
+            
+            % Find files in folder
+            expression = ['*', fileNameExpression, '*'];
+            L = dir(fullfile(folderPath, expression));
+            keep = ~strncmp({L.name}, '.', 1);
+            L = L(keep);
+            
+            listOfFileExtension = cell(numel(L), 1);
+            for i = 1:numel(L)
+                [~, ~, ext] = fileparts(L(i).name);
+                listOfFileExtension{i} = ext;
+            end
+            
+            if isempty(listOfFileExtension)
+                listOfFileExtension = obj.DEFAULT_FILETYPES;
+            end
+            
+            listOfFileExtension = unique(listOfFileExtension);
+            
+            hRow.FileTypeSelect.Items = listOfFileExtension;
+            % Todo: List files....
+            
+            
         end
         
         function S = getUpdatedTableData(obj)
