@@ -6,11 +6,13 @@ function wasSuccess = createNewSessionMethod(app)
     % Parameters to open in a dialog
     S = struct();
     S.MethodName = '';
-    S.BatchMode = 'serial';
-    S.BatchMode_ = {'serial', 'batch'};
-    S.IsQueueable = true;
-    S.TemplateType = 'Function';
-    S.TemplateType_ = {'Function', 'SessionMethod Class'};
+% %     S.BatchMode = 'serial';
+% %     S.BatchMode_ = {'serial', 'batch'};
+    S.Input = 'Single session';
+    S.Input_ = {'Single session', 'Multiple sessions'};    
+    S.Queueable = true;
+    S.Type = 'Function'; % (Template type, i.e use function template or sessionmethod template)
+    S.Type_ = {'Function', 'SessionMethod Class'};
     
     menuNames = app.SessionTaskMenu.getTopMenuNames();
     S.MenuLocation = menuNames{1};
@@ -18,15 +20,17 @@ function wasSuccess = createNewSessionMethod(app)
     
     S.MenuSubLocation = '';
     
-    [S, wasAborted] = tools.editStruct(S, '', 'new session method configuration', ...
-                'ReferencePosition', app.Figure.Position);
+    [S, wasAborted] = tools.editStruct(S, '', 'Create Session Method', ...
+                'Prompt', 'Configure new session method:', ...
+                'ReferencePosition', app.Figure.Position, ...
+                'ValueChangedFcn', @onValueChanged );
     
     if wasAborted; return; end
     if isempty(S.MethodName); return; end
     wasSuccess = true;
 
     
-    switch S.TemplateType
+    switch S.Type
         case 'Function'
             mFilename = 'sessionMethodFunctionTemplate';
         case 'SessionMethod Class'
@@ -46,31 +50,31 @@ function wasSuccess = createNewSessionMethod(app)
     fcnContentStr = strrep(fcnContentStr, upper(mFilename), upper(S.MethodName));
     
     % Add attributes
-    switch S.TemplateType
+    switch S.Type
         case 'Function'
             expression = 'ATTRIBUTES = {''serial'', ''queueable''}';
             replacement = expression;
 
-            if strcmp(S.BatchMode, 'batch')
+            if strcmpi(S.Input, 'single session')
                 replacement = strrep(replacement, 'serial', 'batch');
             end
-            if ~S.IsQueueable
+            if ~S.Queueable
                 replacement = strrep(replacement, 'queueable', 'unqueueable');
             end
             fcnContentStr = strrep(fcnContentStr, expression, replacement);
             
         case 'SessionMethod Class'
             fcnContentStr = strrep(fcnContentStr, 'MethodName = ''', sprintf('MethodName = ''%s''', S.MethodName));
-            switch S.BatchMode
-                case 'serial'
+            switch lower( S.Input )
+                case 'single session'
                     % This is the default
-                case 'batch'
+                case 'multiple sessions'
                     expression = 'BatchMode = ''serial''';
                     replacement = 'BatchMode = ''batch''';
                     fcnContentStr = strrep(fcnContentStr, expression, replacement);
             end
             
-            if ~S.IsQueueable
+            if ~S.Queueable
                 expression = 'IsQueueable = true';
                 replacement = 'IsQueueable = false';
                 fcnContentStr = strrep(fcnContentStr, expression, replacement);
@@ -103,7 +107,19 @@ function wasSuccess = createNewSessionMethod(app)
     
     % Finally, open the function in the matlab editor.
     edit(fullfile(fcnTargetPath, fcnFilename))
-    
-    
-    
+
+end
+
+function onValueChanged(~, evt)
+
+    switch evt.Name
+        case {'MethodName', 'MenuSubLocation'}
+            if ~isvarname(evt.NewValue)
+                msg = sprintf('%s must be a valid matlab variable name', evt.Name);
+                formattedMsg = strcat('\fontsize{12}', msg);
+                opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex');
+                errordlg(formattedMsg, 'Invalid Value', opts)
+                evt.UIControls.(evt.Name).String = evt.OldValue;
+            end
+    end
 end
