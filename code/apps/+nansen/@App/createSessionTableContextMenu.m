@@ -8,12 +8,17 @@ function createSessionTableContextMenu(app)
     %hContextMenu.ContextMenuOpeningFcn = @(s,e,m) disp('test');%onContextMenuOpening;
     %hContextMenu.ContextMenuOpeningFcn = @(src,event)disp('Context menu opened');
     
-    if ~isempty(app.UiMetaTableViewer.HTable.ContextMenu)
-        delete(app.UiMetaTableViewer.HTable.ContextMenu)
-    end
     
-    %app.UiMetaTableViewer.HTable.ContextMenu = hContextMenu;
+% % %     if ~isempty(app.UiMetaTableViewer.HTable.ContextMenu)
+% % %         delete(app.UiMetaTableViewer.HTable.ContextMenu)
+% % %     end
+% % %     app.UiMetaTableViewer.HTable.ContextMenu = hContextMenu;
+
+    if ~isempty(app.UiMetaTableViewer.TableContextMenu)
+        delete(app.UiMetaTableViewer.TableContextMenu)
+    end
     app.UiMetaTableViewer.TableContextMenu = hContextMenu;
+    
     hMenuItem = gobjects(0);
     c = 1;
     
@@ -72,5 +77,7 @@ function createSessionTableContextMenu(app)
     %m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
     %m4 = uimenu(hContextMenu, 'Text', 'Edit Session Notes', 'Callback', @app.editSessionNotes, 'Enable', 'on');
     %m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');
+    
+    %app.UiMetaTableViewer.TableContextMenu = 
     
 end

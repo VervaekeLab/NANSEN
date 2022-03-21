@@ -583,8 +583,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     hMenu(i).Enable = 'on';
                 end
                 
-                
+            end
             
+            % Update enable state of a related menu item (Should not be 
+            % here, but it's related to above):
+            hMenuTmp = findobj(app.Figure, 'Text', 'Configure Pipeline Assignment...');
+            if ~isempty(hMenuTmp)
+                if isempty(plNames)
+                    hMenuTmp.Enable = 'off';
+                else
+                    hMenuTmp.Enable = 'on';
+                end
             end
             
         end
@@ -977,6 +986,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
             app.SessionTaskMenu.refresh()
             app.createSessionTableContextMenu()
+            app.updatePipelineItemsInMenu()
             
             % Make sure project list is displayed correctly
             % Indicating current project
