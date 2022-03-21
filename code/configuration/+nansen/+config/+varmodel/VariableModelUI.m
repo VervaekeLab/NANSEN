@@ -53,8 +53,8 @@ classdef VariableModelUI < applify.apptable
                  'Filename expression', 'File type', 'File adapter'};
             obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
             obj.ColumnWidths = [12, 150, 105, 135, 70, 75];
-            obj.RowSpacing = 15;   
-            obj.ColumnSpacing = 20;
+            obj.RowSpacing = 20;   
+            obj.ColumnSpacing = 18;
         end
         
         function hRow = createTableRowComponents(obj, rowData, rowNum)

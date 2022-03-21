@@ -39,6 +39,10 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
         
         function onFigureClosed(obj, src, evt)
             
+            if isempty(obj.UIModule)
+                delete(obj.Figure); return
+            end
+            
             % Check if changes were made to the model.
             newModel = obj.UIModule{1}.getUpdatedTableData();
             isDirty = ~isequal(newModel, obj.ModelBackup);
@@ -72,7 +76,6 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
         end
         
     end
-    
     
     methods (Access = private)
         
