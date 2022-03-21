@@ -707,6 +707,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     methods (Access = private) % Mouse / user event callbacks
         
         function onHeaderPressTimerRunOut(obj, src, evt)
+            
+            if isempty(obj.ColumnPressedTimer)
+                return
+            end
+            
             stop(obj.ColumnPressedTimer)
             delete(obj.ColumnPressedTimer)
             obj.ColumnPressedTimer = [];
@@ -939,11 +944,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
         function openColumnContextMenu(obj, x, y)
             
+            colNumber = obj.getColumnAtPoint(x, y);
+            if colNumber == 0; return; end
+            
             if isempty(obj.ColumnContextMenu)
                 obj.createColumnContextMenu()
             end
-            
-            colNumber = obj.getColumnAtPoint(x, y);
+
             columnType = obj.HTable.ColumnFormat{colNumber};
             
             [~, varNames] = obj.ColumnModel.getColumnNames();
@@ -1069,6 +1076,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function openColumnFilter(obj, x, y)
         %openColumnFilter Open column filter as dropdown below column header             
             tableColumnIdx = obj.getColumnAtPoint(x, y);
+            if tableColumnIdx == 0; return; end
             
             colIndices = obj.ColumnModel.getColumnIndices();
             dataColumnIndex = colIndices(tableColumnIdx);
