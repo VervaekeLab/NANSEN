@@ -969,7 +969,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.TableIsUpdating = true;
             
             % Todo: Remove. TEMP:
-            h = nansen.metadata.MetaTableCatalog();
+            %h = nansen.metadata.MetaTableCatalog();
             
             app.UiMetaTableViewer.resetTable()
             app.UiMetaTableViewer.refreshTable(table.empty, true)
@@ -1440,8 +1440,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     'Do you want to modify this variable? ', ...
                     'Note: The old variable definition will be lost.'], S.VariableName);
                 title = 'Confirm Variable Modification';
-                answer = questdlg(message, title);
-                 
+                %answer = questdlg(message, title);
+                answer = app.openQuestionDialog(message, title);
+
                 switch answer
                     case 'Yes'
                         % Proceed
@@ -1458,7 +1459,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Make sure the variable name is valid
             msg = sprintf('%s is not a valid variable name', S.VariableName);
-            if ~isvarname(S.VariableName); errordlg(msg); error(msg); end
+            if ~isvarname(S.VariableName); app.openErrorDialog(msg); error(msg); end
             
             switch S.InputMode
                 case 'Enter values manually'
@@ -1673,7 +1674,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 varName );
             title = 'Delete data?';
             
-            answer = questdlg(message, title);
+            %answer = questdlg(message, title);
+            answer = app.openQuestionDialog(message, title);
+
             switch answer
                 case {'No', 'Cancel', ''}
                     return
@@ -1733,7 +1736,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % folder while the corresponding variable is still present in
             % the table.
             
-            %Get list of default table variables. 
+            % Get list of default table variables. 
             schemaVarNames = referenceVarNames(~[variableAttributes.IsCustom]);
             
             % Get those variables in the table that are not default
@@ -1750,8 +1753,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     'from the table?'], thisName );
                 title = 'Delete Table Data?';
                 
-                answer = questdlg(message, title);
-                
+                %answer = questdlg(message, title);
+                answer = app.openQuestionDialog(message, title);
+
                 switch answer
                     case 'Yes'
                         app.MetaTable.removeTableVariable(thisName)
@@ -1828,7 +1832,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Ask user to save current database (if any is open)
             if ~isempty(app.MetaTable)
-                app.promptToSaveCurrentMetaTable()
+                wasCanceled = app.promptToSaveCurrentMetaTable();
+                if wasCanceled; return; end
             end
             
             try
@@ -1850,7 +1855,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %                     app.updateRelatedInventoryLists()
 % %                 end
             catch ME
-                errordlg(ME.message)
+                app.openErrorDialog(ME.message, 'Could Not Load Session Table')
             end
             
             % Add name of loaded inventory to figure title
@@ -1871,29 +1876,42 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         end
         
-        function promptToSaveCurrentMetaTable(app)
+        function wasCanceled = promptToSaveCurrentMetaTable(app)
         %promptToSaveCurrentMetaTable Ask user to save current metatable
+        %
+        %   wasCanceled = promptToSaveCurrentMetaTable(app)
         
+            wasCanceled = false;
+            
             % Return if there are no unsaved changes
             if app.MetaTable.isClean
                 return 
             end
             
+            projectName = getpref('Nansen', 'CurrentProject');
+
             % Prepare inputs for the question dialog
-            qstring = sprintf('Save changes to the current metatable (%s)?', ...
-                                app.MetaTable.getName());
-            title = 'Current metatable has unsaved changes';
+            qstring = sprintf(['The session table for project "%s" has ', ...
+                'unsaved changes. Do you want to save changes to the ', ...
+                'table?'], projectName);
+            
+            title = 'Save changes to table?';
             alternatives = {'Save', 'Don''t Save', 'Cancel'};
             default = 'Save';
             
-            answer = questdlg(qstring, title, alternatives{:}, default);
+            %answer = questdlg(qstring, title, alternatives{:}, default);
+            answer = app.openQuestionDialog(qstring, title, alternatives{:}, default);
             
             switch answer
                 case 'Save'
                     app.saveMetaTable()
                 case 'Don''t Save'
-                    % continue without saving
+                    % Continue without saving (mark as clean to avoid
+                    % entering current method again, i.e when changing
+                    % project)
+                    app.MetaTable.markClean()
                 otherwise % Cancel or no answer.
+                    wasCanceled = true;
                     return
             end
             
@@ -1911,7 +1929,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             newSessionObjects = nansen.manage.detectNewSessions(app.MetaTable, dataLocationName);
             
             if isempty(newSessionObjects)
-                msgbox('No sessions were detected')
+                app.openMessageBox('No sessions were detected')
                 return
             end
             
@@ -1928,7 +1946,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
-            msgbox(sprintf('%d sessions were successfully added', numel(newSessionObjects)))
+            app.openMessageBox(sprintf('%d sessions were successfully added', numel(newSessionObjects)))
 
         end
         
@@ -1981,7 +1999,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if numSessions == 0
                 msg = 'No sessions are selected';
-                msgbox(msg)
+                app.openMessageBox(msg, 'Aborted')
                 return
             end
             
@@ -2081,7 +2099,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
-        
         function runTasksWithDefaults(app, sessionMethod, sessionObj, opts, ~)
         %runTasksWithDefaults Run session method with default options
             
@@ -2173,7 +2190,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             optManager = nansen.manage.OptionsManager(fcnName, opts, optsName);
                             [~, opts, wasAborted] = optManager.editOptions();
                         else
-                            msgbox('This method does not have any parameters')
+                            app.openMessageBox('This method does not have any parameters')
                             wasAborted = false;
                         end
 
@@ -2267,7 +2284,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if count == 0
                 close(f)
-                msgbox('No tasks were found')
+                app.openMessageBox('No tasks were found')
             end
             
             
@@ -2308,7 +2325,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
                 uim.utility.layout.centerObjectInRectangle(h, app.Figure)
             else
-                msgbox('No tasks were found')
+                app.openMessageBox('No tasks were found')
             end
             
         end
@@ -2334,11 +2351,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             import nansen.config.project.ProjectManagerUI
 
             switch src.Text
-                case 'Create New...' 
+                case 'Create...' 
                     % Todo: open setup from create project page
                     
                     msg = 'This will close the current app and open nansen setup. Do you want to continue?';
-                    answer = questdlg(msg, 'Close and continue?');
+                    %answer = questdlg(msg, 'Close and continue?');
+                    answer = app.openQuestionDialog(msg, 'Close and continue?');
                     
                     switch answer
                         case 'Yes'
@@ -2360,6 +2378,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onChangeProjectMenuClicked(app, src, evt)
         %onChangeProjectMenuClicked Let user change current project
+        
+            if ~app.MetaTable.isClean()
+                wasCanceled = app.promptToSaveCurrentMetaTable();
+                if wasCanceled; return; end
+            end
         
             projectManager = nansen.ProjectManager;
             projectManager.changeProject(src.Text)
@@ -2560,6 +2583,92 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
     end
    
+    methods (Access = private) % Open dialog windows. Todo: make separate class
+        
+        function openMessageBox(app, messageStr, titleStr)
+            
+            % Todo: Specify icons in inputs...
+            
+            messageStr = app.getFormattedMessage(messageStr);
+            opts = app.getDialogOptions();
+            
+            if nargin < 3
+                msgbox(messageStr, opts)
+            elseif nargin == 3
+                msgbox(messageStr, titleStr, opts)
+            end
+            
+            msgbox(messageStr)
+        end
+        
+        function answer = openQuestionDialog(app, varargin)
+        %openQuestionDialog Open a question dialog window
+        %
+        %   app.openQuestionDialog(message)
+        
+            messageStr = app.getFormattedMessage(varargin{1});
+            varargin = varargin(2:end);
+            opts = app.getDialogOptions();
+            
+            if numel(varargin) > 1
+                if contains(varargin{end}, varargin)
+                    opts.Default = varargin{end};
+                    varargin(end) = [];
+                else
+                    error('Invalid inputs for openQuestionDialog')
+                end
+            else
+                opts.Default = 'Yes';
+            end
+            answer = questdlg(messageStr, varargin{:}, opts);
+            
+        end
+        
+        function openInputDialog()
+            
+        end
+        
+        function openErrorDialog(app, messageStr, titleStr)
+                    
+            if nargin < 3
+                titleStr = 'Error';
+            end
+            
+            messageStr = app.getFormattedMessage(messageStr);
+            opts = app.getDialogOptions();
+            errordlg(messageStr, titleStr, opts)
+            
+        end
+        
+        function formattedMessage = getFormattedMessage(~, message)
+            formattedMessage = strcat('\fontsize{12}', message);
+            
+            % Fix some characters that are interpreted as tex markup
+            formattedMessage = strrep(formattedMessage, '_', '\_');
+            
+        end
+        
+        function opts = getDialogOptions(~)
+            opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex');
+        end
+        
+        function throwSessionMethodFailedError(app, ME, sessionObj, methodName)
+            
+            % Todo: Use a messagebox widget to show error message
+            
+            errorMessage = sprintf('Method ''%s'' failed for session ''%s'', with the following error:\n', ...
+                methodName, sessionObj.sessionID);
+            
+            % Show error message in user dialog
+            app.openErrorDialog(sprintf('%s\n%s', errorMessage, ME.message))
+            
+            % Display error stack for better chance at debugging
+            disp(getReport(ME, 'extended'))
+
+        end
+        
+    end
+    
     
     methods (Static)
     
@@ -2591,21 +2700,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             warning(newState, 'MATLAB:ui:javaframe:PropertyToBeRemoved')
             warning(newState, 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
         end
-        
-        function throwSessionMethodFailedError(ME, sessionObj, methodName)
-            
-            % Todo: Use a messagebox widget to show error message
-            
-            errorMessage = sprintf('Session method ''%s'' failed for session ''%s''.\n', ...
-                methodName, sessionObj.sessionID);
-            
-            % Show error message in user dialog
-            errordlg([errorMessage, ME.message])
-            
-            % Display error stack for better chance at debugging
-            disp(getReport(ME, 'extended'))
 
-        end
     end
         
     
