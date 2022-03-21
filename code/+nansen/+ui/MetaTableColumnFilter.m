@@ -273,7 +273,7 @@ classdef MetaTableColumnFilter < handle
                 case 'numericRangeSelector'
                     
                     columnData = cell2mat(columnData);
-                    TF = columnData > h.Low & columnData < h.High;
+                    TF = columnData >= h.Low & columnData <= h.High;
                     obj.MetaTableUi.DataFilterMap(:, columnIdx) = TF;
                     
             end
