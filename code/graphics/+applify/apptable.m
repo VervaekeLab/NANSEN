@@ -113,8 +113,6 @@ classdef apptable < applify.UiControlTable
 % %             rootPath = fileparts( mfilename('fullpath') );
 % %             imgPath = fullfile(rootPath, '_graphics', 'icons');
 
-            rootPath = fileparts(nansen.rootpath);
-            imgPath = fullfile(rootPath, 'setup', '_icons');
             
             yOff = 5; % Correction factor in pixels to keep labels closer 
                       % to horizontal border below
@@ -182,13 +180,10 @@ classdef apptable < applify.UiControlTable
                 obj.centerComponent(obj.ColumnHeaderLabels{i}, y-yOff)
                 
                 if obj.ShowColumnHeaderHelp
-                    obj.ColumnLabelHelpButton{i} = uiimage(obj.Parent);
+                    obj.ColumnLabelHelpButton{i} = obj.createHelpIconButton(obj.Parent);
                     w_ = obj.ColumnHeaderLabels{i}.UserData.Extent(3);
                     obj.ColumnLabelHelpButton{i}.Position = [xi+w_, y, 18, 18];
-                    obj.ColumnLabelHelpButton{i}.ImageSource = fullfile(imgPath, 'help.png');
-                    obj.ColumnLabelHelpButton{i}.ImageClickedFcn = @obj.onHelpButtonClicked;
                     obj.ColumnLabelHelpButton{i}.Tag = obj.ColumnNames{i};
-                    obj.ColumnLabelHelpButton{i}.Tooltip = 'Press for help';
                     obj.centerComponent(obj.ColumnLabelHelpButton{i}, y-yOff)
                     
                 end
@@ -196,6 +191,19 @@ classdef apptable < applify.UiControlTable
             end
             
             % Add horizontal border below header.
+            
+        end
+        
+        function hIconButton = createHelpIconButton(obj, hContainer)
+            
+            rootPath = fileparts(nansen.rootpath);
+            imgPath = fullfile(rootPath, 'setup', '_icons');
+            
+            hIconButton = uiimage(hContainer);
+            hIconButton.Tooltip = 'Press for help';
+            hIconButton.ImageSource = fullfile(imgPath, 'help.png');
+            hIconButton.ImageClickedFcn = @obj.onHelpButtonClicked;
+
             
         end
         
