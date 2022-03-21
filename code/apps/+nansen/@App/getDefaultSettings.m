@@ -13,7 +13,7 @@ S.MetadataTable.AllowTableEdits = true;
 S.Session.SessionObjectWorkspaceName = 'sessionObjects';
 
 % Task processor settings:
-S.TaskProcessor.TimerPeriod = 10;
+% S.TaskProcessor.TimerPeriod = 10;
 S.TaskProcessor.RunTasksWhenQueued = false;
 S.TaskProcessor.RunTasksOnStartup = false;
 

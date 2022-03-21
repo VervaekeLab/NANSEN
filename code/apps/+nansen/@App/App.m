@@ -85,7 +85,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             setappdata(app.Figure, 'AppInstance', app)
             
             if app.isOpen()
-                delete(app); clear app;
+                delete(app); clear app; % Todo: get handle for app.
                 return
             else
                 app.Figure.Visible = 'on';
@@ -1459,7 +1459,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Make sure the variable name is valid
             msg = sprintf('%s is not a valid variable name', S.VariableName);
-            if ~isvarname(S.VariableName); app.openErrorDialog(msg); error(msg); end
+            if ~isvarname(S.VariableName); app.openErrorDialog(msg); return; end
             
             switch S.InputMode
                 case 'Enter values manually'
