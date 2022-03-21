@@ -40,7 +40,7 @@ function varargout = openRoiManager(sessionObj, varargin)
     end
     
     imageStack = sessionData.TwoPhotonSeries_Corrected;
-    imageStack.useDynamicCache = true;
+    imageStack.DynamicCacheEnabled = true;
     
     hRoimanager = nansen.roimanager(imageStack);
     
