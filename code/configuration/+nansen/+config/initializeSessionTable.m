@@ -1,7 +1,8 @@
-function initializeSessionTable(dataLocationModel, sessionSchema, uiWaitbar)
+function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, uiWaitbar, hFigure)
 
     if nargin < 3; uiWaitbar = struct(); end  % create dummy waitbar
-
+    if nargin < 4; hFigure = []; end
+    
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
     
@@ -30,6 +31,16 @@ function initializeSessionTable(dataLocationModel, sessionSchema, uiWaitbar)
     end
     
     sessionArray = cat(1, sessionArray{:});
+    
+    % Check for duplicate session IDs
+    sessionIDs = {sessionArray.sessionID};
+    if numel(sessionIDs) ~= numel(unique(sessionIDs))
+        [sessionArray, wasAborted] = nansen.manage.uiresolveDuplicateSessions(sessionArray, hFigure);
+        % Todo: Rerun initialization from here if sessions were resolved
+        if wasAborted
+            return
+        end
+    end
     
     uiWaitbar.Message = 'Creating session table...';
 
