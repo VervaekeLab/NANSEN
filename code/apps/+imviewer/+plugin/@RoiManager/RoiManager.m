@@ -416,8 +416,12 @@ classdef RoiManager < applify.mixin.AppPlugin
                 end
                 
                 fieldMatch = contains(field, {'roiArray', 'roi_arr', 'RoiArray'});
-                if isempty(fieldMatch)
-                    error('Did not find roi array in selected file')
+                if isempty(fieldMatch) || ~any(fieldMatch)
+                    delete(C) % Delete to prevent following message from getting cleared
+                    message = 'Did not find roi array in selected file';
+                    obj.PrimaryApp.displayMessage(['Error: ', message])
+                    return
+                    %error('Did not find roi array in selected file')
                 else
                     roi_arr = S.(field{fieldMatch});
                     if isa(roi_arr, 'struct')
@@ -446,7 +450,9 @@ classdef RoiManager < applify.mixin.AppPlugin
                 
                 obj.roiFilePath = loadPath;
             else
-                error('File not found')
+                delete(C) % Delete to prevent following message from getting cleared
+                obj.PrimaryApp.displayMessage('Error: File does not exist', [], 2)
+                %error('File not found')
             end
             
             % Todo: Current group / Current channel etc...
