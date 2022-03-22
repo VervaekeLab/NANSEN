@@ -90,7 +90,6 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
                 obj.assignPVPairs(varargin{2:end})
             end
             
-            
             if ~hApp.isPluginActive(obj)
                 obj.activatePlugin(hApp)
             end
@@ -121,13 +120,13 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     % Methods for mouse and keyboard interactive callbacks
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} )
         
-        function tf = keyPressHandler(src, evt) % Subclass can overide
+        function tf = keyPressHandler(obj, src, evt) % Subclass can overide
             % todo: rename to onKeyPressed
             tf = false; % Key press event was not captured by plugin
 
         end
         
-        function tf = keyReleasedHandler(src, evt) % Subclass can overide
+        function tf = keyReleasedHandler(obj, src, evt) % Subclass can overide
             tf = false; % Key released event was not captured by plugin
         end
 
