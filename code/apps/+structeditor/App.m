@@ -473,6 +473,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function adjustFigureSizeToComponents(obj)
             
+            % Only adjust size if figure is standalone
+            if ~strcmp(obj.mode, 'standalone'); return; end
+            
+            
             if obj.virtualHeight(obj.currentPanel) < obj.visibleHeight
                 h = obj.virtualHeight(obj.currentPanel);
                 obj.Figure.Position(4) = h + sum(obj.Margins([2,4])) + 20;
@@ -482,6 +486,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function adjustFigureWidthToComponents(obj)
+            
+            % Only adjust size if figure is standalone
+            if ~strcmp(obj.mode, 'standalone'); return; end
             
             if obj.virtualWidth(obj.currentPanel) > obj.visibleWidth
                 w = obj.virtualWidth(obj.currentPanel);
