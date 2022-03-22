@@ -344,9 +344,12 @@ methods (Access = private, Hidden) % Gui Creation/construction
         inputbox(end).HorizontalAlignment = 'left';
         inputbox(end).Tag = 'SelectionImage';
         inputbox(end).Callback = @(src, event) obj.changeImageType;
-        inputbox(end).TooltipString = 'Press cmd+number to switch selection';
+
+        if ismac
+            inputbox(end).TooltipString = 'Press cmd+number to switch selection';
+        else
+            inputbox(end).TooltipString = 'Press ctrl+number to switch selection';
         end
-        
         
         if ~isempty(obj.itemStats)
         % Create a textbox to label variable sorting selection dropdown menu
