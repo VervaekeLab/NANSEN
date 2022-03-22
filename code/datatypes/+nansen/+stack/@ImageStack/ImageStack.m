@@ -576,12 +576,23 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 return % Data is already downsampled...
             end            
             
+            global waitbar
+            useWaitbar = false;
+            if ~isempty(waitbar); useWaitbar = true; end
+              
+            if useWaitbar
+                waitbar(0/numChunks, 'Initializing downsampling')
+            end
+            
             % Loop through blocks and downsample frames
             for iPart = 1:numChunks
                 imData = obj.getFrameSet( IND{iPart} );
                 downsampledStack.addFrames(imData);
                 if params.Verbose
                     fprintf('Downsampled part %d/%d\n', iPart, numChunks)
+                end
+                if useWaitbar
+                    waitbar(iPart/numChunks, 'Downsampling image stack')
                 end
             end
             
@@ -1223,18 +1234,29 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function onCachedDataChanged(obj, src, evt)
-            %error('not implemented')
+        %onCachedDataChanged Callback for cache changed event
+        
+        % This method is used for resetting the projection "cache", i.e the
+        % projection images that are stored in the Projections property.
             
-            persistent counter
+            persistent counter resetProjectionCacheInterval
             if isempty(counter); counter = 0; end
+            if isempty(resetProjectionCacheInterval); resetProjectionCacheInterval = 10; end
+            
+            % Todo: selective reset, ie some projections are heavier and
+            % should be reset less often. 
             
             counter = counter + 1;
-            if counter >= 100
+            if mod(counter, resetProjectionCacheInterval) == 0
                 fieldNames = fieldnames(obj.isDirty);
                 for i = 1:numel(fieldNames)
                     obj.isDirty.(fieldNames{i}) = true;
                 end
-                counter = mod(counter, 100);
+                
+                if resetProjectionCacheInterval < 50
+                    resetProjectionCacheInterval = resetProjectionCacheInterval + 10;
+                end
+
             end
             % Todo: Set projection images to dirty. Only do this every once
             % in a while...
@@ -1337,14 +1359,16 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         function onDynamicCacheEnabledChanged(obj)
             
             switch obj.DynamicCacheEnabled
-                case 'on'
+                case {'on', true}
                     obj.CacheChangedListener = listener(obj.Data, ...
                         'DynamicCacheChanged', @obj.onCachedDataChanged);
-                case 'off'
+                case {'off', false}
                     if ~isempty(obj.CacheChangedListener)
                         delete(obj.CacheChangedListener)
                         obj.CacheChangedListener = event.listener.empty;
                     end
+                otherwise
+                    warning('Value of DynamicCacheChanged is not valid')
             end
             
         end
