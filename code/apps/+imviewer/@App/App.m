@@ -436,6 +436,8 @@ methods % App initialization & creation
             obj.createPlaybackWidget()
 %         end
 
+        obj.createThumbnailViewerToggleButton()
+
         obj.onThemeChanged() % Apply theme colors...
         
         % Need to turn on figure visibility here because otherwise some
@@ -836,6 +838,23 @@ methods % App initialization & creation
         
         obj.uiwidgets.playback.NumChannels = obj.ImageStack.NumChannels;
         obj.uiwidgets.playback.CurrentChannels = obj.currentChannel;
+    end
+    
+    function createThumbnailViewerToggleButton(obj)
+                        
+                
+        hButton = uim.control.Button_(obj.Panel, ...
+            'Icon', obj.ICONS.show_sidebar, ...
+            'IconSize', [20, 20], ...
+            'Size', [25, 25], 'SizeMode', 'auto', ...
+            'Margin', [1, 0,0,0], ...
+            'Style', uim.style.buttonSymbol, ...
+            'Location', 'west', 'HorizontalAlignment', 'center', ...
+            'VerticalAlignment', 'middle', ...
+            'HorizontalAlignment', 'left');
+        hButton.Callback = @(s,e)obj.showThumbnailViewer(s);
+        
+        
     end
     
     function addLandingPage(obj)
@@ -1429,7 +1448,6 @@ methods % App initialization & creation
             'BackgroundColor', obj.Theme.HeaderBgColor, ...
             'BackgroundAlpha', 1, 'Size', [inf, pixelMargins(2)], ...
             'NewButtonSize', newButtonSize, 'Padding', [5,3,7,5], 'Spacing', 3);
-        
         
         buttonArgs = {'Padding', [0,0,0,0], 'Style', uim.style.buttonSymbol}; %#ok<NASGU>
         
@@ -2580,12 +2598,18 @@ methods % Handle user actions
         params.OutputDataType = 'same';
         params.CreateVirtualOutput = params.SaveToFile;
         
-        obj.displayMessage('Downsampling stack...', [], 1.5)
         
+        % Todo: Specify that this will take a while if stack is large...
+        
+        obj.displayMessage('Downsampling stack...', [], 1.5)
+        obj.uiwidgets.msgBox.activateGlobalWaitbar()
+
         n = params.DownSamplingFactor;
         binMethod = params.BinningMethod;
         imageStackDs = obj.ImageStack.downsampleT(n, binMethod, params);
-        
+            
+        obj.uiwidgets.msgBox.deactivateGlobalWaitbar()
+
         if params.OpenOutputInNewWindow
             imviewer(imageStackDs)
         else
@@ -3003,7 +3027,43 @@ methods % Misc, most can be outsourced
         
     end
     
-    function showThumbnailViewer(obj, action)
+    function hideThumbnailViewer(obj)
+        
+        isVisible = strcmp(obj.uiwidgets.thumbnailSelector.Visible, 'on');
+    
+        if isVisible
+            obj.uiwidgets.thumbnailSelector.Visible = 'off';
+            obj.uiwidgets.thumbNailToggler.Visible = 'off';
+            obj.uiwidgets.ThumbnailSelectorToggleButton.Visible = 'on';
+        end
+    end
+    
+    function showThumbnailViewer(obj, srcButton)
+        
+        if ~isfield(obj.uiwidgets, 'thumbnailSelector') % Create widget on demand
+            if isa(obj.ImageStack.Data, 'stack.io.fileadapter.Video')
+                return
+            end
+                
+            try
+                obj.openThumbnailSelector(true)
+                obj.uiwidgets.ThumbnailSelectorToggleButton = srcButton;
+            catch ME
+                rethrow(ME)
+            end
+            
+        end
+        
+        isVisible = strcmp(obj.uiwidgets.thumbnailSelector.Visible, 'on');
+    
+        if ~isVisible
+            obj.uiwidgets.thumbnailSelector.Visible = 'on';
+            obj.uiwidgets.thumbNailToggler.Visible = 'on';
+            obj.uiwidgets.ThumbnailSelectorToggleButton.Visible = 'off';
+        end
+                
+        return
+        
         
         tmpAx = obj.uiwidgets.thumbnailSelector.Axes;
         tmpTb = obj.uiwidgets.thumbNailToggler;
@@ -4477,37 +4537,15 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             isUntouch = ~any(isLeft);
             
             if isTouch && ~isVisible
-                obj.uiwidgets.thumbnailSelector.Visible = 'on';
-                obj.uiwidgets.thumbNailToggler.Visible = 'on';
+                %obj.showThumbnailViewer(); % This is controlled by button
+                %instead of mouse motion in left part of image..
             elseif isUntouch && isVisible
                 if x > obj.uiwidgets.thumbnailSelector.Position(3) + 35 || ...
                     y < obj.uiwidgets.thumbnailSelector.Position(1)
                     
                     if ~obj.isThumbnailSelectorPinned
-                        obj.uiwidgets.thumbnailSelector.Visible = 'off';
-                        obj.uiwidgets.thumbNailToggler.Visible = 'off';
+                        obj.hideThumbnailViewer()
                     end
-                end
-            end
-        elseif ~isfield(obj.uiwidgets, 'thumbnailSelector') % Create widget on demand
-            if isLeft(1)
-                if isa(obj.ImageStack.Data, 'stack.io.fileadapter.Video')
-                    return
-                end
-                
-                try
-                    obj.openThumbnailSelector(true)
-                catch ME
-                    if isvalid(obj) 
-                        rethrow(ME)
-                    else
-                        return % obj was deleted during creation
-                    end
-                end
-                
-                if isfield(obj.uiwidgets, 'thumbnailSelector')
-                    obj.uiwidgets.thumbnailSelector.Visible = 'on';
-                    obj.uiwidgets.thumbNailToggler.Visible = 'on';
                 end
             end
         end
