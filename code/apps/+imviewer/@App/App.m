@@ -2560,21 +2560,27 @@ methods % Handle user actions
         params.BinningMethod = 'mean';
         params.BinningMethod_ = {'mean', 'max'};
         
-        params.CreateVirtualOutput = false;
-        params.UseTransientVirtualStack = true;
+        params.SaveToFile = false;
         params.FilePath = '';
-        params.OutputDataType = 'same';
         
-        params = tools.editStruct(params);
+        % Open options editor.
+        titleStr = 'Downsample Image Stack';
+        [params, wasCanceled] = tools.editStruct(params, [], titleStr, ...
+            'Prompt', 'Set parameters for downsampling:');
+        
+        if wasCanceled; return; end
         
         if ~params.OpenOutputInNewWindow        
             obj.displayMessage('Not implemented yet')
             return
         end
         
+        % Update some parameters from the image stack method:
+        params.UseTransientVirtualStack = ~params.SaveToFile;
+        params.OutputDataType = 'same';
+        params.CreateVirtualOutput = params.SaveToFile;
+        
         obj.displayMessage('Downsampling stack...', [], 1.5)
-
-
         
         n = params.DownSamplingFactor;
         binMethod = params.BinningMethod;
