@@ -321,7 +321,13 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         %   according the order of frame indices)?
         
             if isempty(obj); frameData = []; return; end 
-        
+            
+            % Todo: Should make 2 classes, dynamic and static and implement
+            % these methods differently
+            if nargin < 2 && strcmp( obj.Mode, 'static')
+                frameData = obj.Data; return
+            end
+            
             if nargin < 2
                 isRequested = obj.CachedFrameIndices ~= 0;
             else

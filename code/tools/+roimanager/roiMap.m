@@ -713,7 +713,7 @@ classdef roiMap < handle
             obj.displayApp.ImageStack.DataXLim = [S(1), L(1)];
             obj.displayApp.ImageStack.DataYLim = [S(2), L(2)];
 
-            imChunk = obj.displayApp.ImageStack.getFrameSet('all');
+            imChunk = obj.displayApp.ImageStack.getFrameSet('cache');
             
             obj.displayApp.ImageStack.DataXLim = oldXLim;
             obj.displayApp.ImageStack.DataYLim =  oldYLim;

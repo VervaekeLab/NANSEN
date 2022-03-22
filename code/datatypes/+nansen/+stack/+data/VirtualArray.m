@@ -369,9 +369,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             
             if obj.HasStaticCache
                 data = obj.StaticFrameCache.fetchData();
-            end
-            
-            if obj.UseDynamicCache
+            elseif obj.UseDynamicCache
                 data = obj.DynamicFrameCache.fetchData();
             end
             

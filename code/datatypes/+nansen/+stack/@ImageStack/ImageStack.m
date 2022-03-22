@@ -346,11 +346,35 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         imArray = imArray(indexingSubs{:});
                     end
                 end
-            
-            % Case 3: Subset of frames are requested.
+                
+            % Case 3; Get cached frames
+            elseif (ischar(frameInd) && strcmp(frameInd, 'cache'))
+                if obj.IsVirtual
+                    if obj.Data.HasCachedData
+                        if obj.HasStaticCache
+                            imArray = obj.Data.getStaticCache();
+                        else
+                            imArray = obj.Data.getCachedFrames();
+                        end
+                    else
+                        imArray = [];
+                    end
+                else
+                    imArray = obj.Data.DataArray;
+                end
+                
+                % Only apply subindexing if necessary
+                if doCropImage
+                    indexingSubs(3:end) = {':'};
+                    imArray = imArray(indexingSubs{:});
+                end
+                
+            % Case 4: Subset of frames are requested.
             else
                 imArray = obj.Data(indexingSubs{:});
             end
+            
+            
             
             % Set data intensity limits based on current data if needed.
             if isempty( obj.DataIntensityLimits )
@@ -770,6 +794,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
             % Make sure chunk length does not exceed number of frames.
             numFramesPerChunk = min([numFramesPerChunk, numFramesDim]);
+            
+            % If there will be more than one chunk... Adjust so that last
+            % chunkSize so that last chunk is not smaller than 1/3rd of
+            % the chunk size... 
+            % Todo: make sure options of various methods are updated before
+            % saving if chunklength is adjusted.
+% % %             if numFramesDim > numFramesPerChunk
+% % %                 numFramesPerChunk = obj.autoAdjustChunkLength(numFramesPerChunk, numFramesDim);
+% % %             end
 
             % Determine first and last frame index for each chunk
             firstFrames = 1:numFramesPerChunk:numFramesDim;
@@ -792,6 +825,20 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if nargout == 1
                 clear numChunks
             end
+        end
+        
+        function numFramesPerChunk = autoAdjustChunkLength(obj, numFramesPerChunk, numFramesDim)
+        %autoAdjustChunkLength Adjust chunklength to avoid short last chunk    
+           
+            fractionalSize = 1/3;
+            
+            % Check how many frames are part of last chunk:
+            numFramesLastChunk = mod(numFramesDim, numFramesPerChunk);
+            if numFramesLastChunk < numFramesPerChunk * fractionalSize
+                numChunks = floor(numFramesDim / numFramesPerChunk);
+                numFramesPerChunk = numFramesPerChunk + ceil(numFramesLastChunk/numChunks);
+            end
+            
         end
         
         function [imArray, IND] = getFrameChunk(obj, chunkNumber)
