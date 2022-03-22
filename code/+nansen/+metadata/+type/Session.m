@@ -244,6 +244,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
         end
         
+        function unassignPipeline(obj)
+            [obj(:).Progress] = deal(struct.empty);            
+        end
+        
         function updatePipeline(obj, pipelineTemplate)
         %updatePipeline Update pipeline for sessions that use given template
         %
