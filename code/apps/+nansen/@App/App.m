@@ -510,7 +510,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem.MenuSelectedFcn = @(s, e, mode) app.createBatchList('Manual');
             
           % --- Section with menu item for detecting sessions
-            mitem = uimenu(hMenu, 'Text','Autodetect Sessions', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text','Detect New Sessions', 'Separator', 'on');
             mitem.Callback = @(src, event) app.menuCallback_DetectSessions;
             
             
@@ -571,10 +571,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
                 
                 if strcmp(hMenu(i).Text, 'Assign Pipeline')
-                    mSubItem = uimenu(hMenu(i), 'Text', 'No pipeline', 'Separator', 'on', 'Enable', 'off');
-                    mSubItem.MenuSelectedFcn = @app.onEditPipelinesMenuItemClicked;
+                    mSubItem = uimenu(hMenu(i), 'Text', 'No pipeline', 'Separator', 'on', 'Enable', 'on');
+                    mSubItem.MenuSelectedFcn = @app.onAssignPipelinesMenuItemClicked;
                     mSubItem = uimenu(hMenu(i), 'Text', 'Autoassign pipeline', 'Enable', 'off');
-                    mSubItem.MenuSelectedFcn = @app.onEditPipelinesMenuItemClicked;
+                    mSubItem.MenuSelectedFcn = @app.onAssignPipelinesMenuItemClicked;
                 end
 
                 if isempty(plNames)
@@ -1008,6 +1008,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.TableIsUpdating = false;
 
+        end
+        
+        function onDataLocationModelChanged(app, src, evt)
+        %onDataLocationModelChanged Event callback for datalocation model               
+            app.MetaTable = nansen.manage.updateSessionDatalocations(...
+                app.MetaTable, app.DataLocationModel);
         end
         
     % % Get meta objects from table selections
@@ -1604,10 +1610,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         end
         
-        function onAssignPipelinesMenuItemClicked(app, src, evt)
-                    
+        function onAssignPipelinesMenuItemClicked(app, src, ~)
+        %onAssignPipelinesMenuItemClicked Session context menu callback            
             sessionObj = app.getSelectedMetaObjects();
-            sessionObj.assignPipeline(src.Text)
+            if strcmp(src.Text, 'No pipeline')
+                sessionObj.unassignPipeline()
+            elseif strcmp(src.Text, 'Autoassign pipeline')
+                sessionObj.assignPipeline() % No input = pipeline is autoassigned
+            else
+                sessionObj.assignPipeline(src.Text)
+            end
         end
         
         function onCreateNoteSessionContextMenuClicked(app)
@@ -1651,6 +1663,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 hApp = nansen.config.dloc.DataLocationModelApp(args{:}); 
                 hApp.transferOwnership(app)
                 app.DLModelApp = hApp;
+                
+                addlistener(hApp, 'DataLocationModelChanged', ...
+                    @app.onDataLocationModelChanged);
                 
             else
                 app.DLModelApp.Visible = 'on';
@@ -2598,7 +2613,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 msgbox(messageStr, titleStr, opts)
             end
             
-            msgbox(messageStr)
         end
         
         function answer = openQuestionDialog(app, varargin)
