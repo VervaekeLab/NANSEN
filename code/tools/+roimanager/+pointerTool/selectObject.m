@@ -70,6 +70,8 @@ classdef selectObject < uim.interface.abstractPointer & ...
                     
                 case 'backspace'
                     obj.hObjectMap.removeRois;
+                case 'i'
+                    obj.hObjectMap.improveRois();
                 case 'g'
                     obj.hObjectMap.growRois();
                 case 'h'
@@ -92,7 +94,12 @@ classdef selectObject < uim.interface.abstractPointer & ...
 %                     end
                     
                 %todo: arrowkeys for moving rois.
-
+                case {'leftarrow', 'rightarrow', 'uparrow', 'downarrow'}
+                    
+                    shift = obj.text2shift(strrep(event.Key, 'arrow', ''));
+                    obj.hObjectMap.moveRoi(shift)
+                    
+                    
                 otherwise
                     wasCaptured = false;
             end
@@ -195,6 +202,23 @@ classdef selectObject < uim.interface.abstractPointer & ...
             
             obj.setPointerSymbol()
             obj.previousPoint = [nan, nan];
+        end
+        
+    end
+    
+    methods (Static)
+        function shift = text2shift(direction)
+            % Todo: Enumerator?
+            switch direction
+                case 'left'
+                    shift = [-1, 0];
+                case 'right'
+                    shift = [1, 0];
+                case 'up'
+                    shift = [0, -1];
+                case 'down'
+                    shift = [0, 1]; 
+            end
         end
         
     end
