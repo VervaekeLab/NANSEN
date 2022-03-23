@@ -6,17 +6,21 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         Parent
     end
     
-    properties 
+    properties
         ImageStack
         DisplayedRoiIdx
     end
     
     properties (Access = private)
         hAxes
+        hText
         hRoiImage
         hRoiOutline
     end
     
+    properties (Access = private)
+        ShowMessageRoiImageUpdateError = true;
+    end
     
     methods % Constructor
         
@@ -34,6 +38,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
     methods (Access = private)
         
         function createImageDisplay(obj)
+        %createImageDisplay Create axes for image display    
             
             % Create axes.
             obj.hAxes = axes('Parent', obj.Parent);
@@ -43,6 +48,18 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             obj.hAxes.Tag = 'Roi Thumbnail Display';
             obj.hAxes.Color = obj.Parent.BackgroundColor;
             obj.hAxes.Visible = 'off';
+            
+        end
+        
+        function plotRoiImageNotAvailableText(obj)
+            
+            obj.hText = text(obj.hAxes, 'Units', 'normalized');
+            obj.hText.Position(1:2) = [0.5, 0.5];
+            obj.hText.String = 'Roi image not available';
+            obj.hText.Color = ones(1,3)*0.4;
+            obj.hText.HorizontalAlignment = 'center';
+            obj.hText.FontSize = 12;
+            
         end
         
         function updateImageDisplay(obj, roiObj)
@@ -66,7 +83,6 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                 if ~ishold(obj.hAxes)  
                     hold(obj.hAxes, 'on') 
                 end
-                
             else
                 set(obj.hRoiImage, 'cdata', im);
             end
@@ -101,7 +117,11 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             imArray = obj.ImageStack.getFrameSet('cache');
             
             if size(imArray, 3) < 100
-                obj.Dashboard.displayMessage('Can not update roi image because there are not enough image frames in memory')
+                if obj.ShowMessageRoiImageUpdateError
+                    obj.plotRoiImageNotAvailableText()
+                    obj.Dashboard.displayMessage('Can not update roi image because there are not enough image frames in memory')
+                    obj.ShowMessageRoiImageUpdateError = false;
+                end
                 im = [];
                 return
             end
@@ -141,7 +161,6 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         
         function onRoiSelectionChanged(obj, evtData)
             % Update image for roi
-            
         
             if isempty(evtData.roiIndices)
                 return
@@ -152,11 +171,13 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             roi = obj.roiGroup.roiArray(roiIdx);
             obj.updateImageDisplay(roi)
             obj.DisplayedRoiIdx = roiIdx;
+            
         end
         
         function onRoiClassificationChanged(obj, evtData)
             % Do nothing
         end
+        
     end
     
     methods % Implement abstract methods from
