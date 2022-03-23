@@ -23,13 +23,17 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     end
     
     properties (Constant, Hidden)
-        PanelTitles = {'Controls', 'Image Display', 'Roi Manager', 'Signal Viewer', ''}
+        PanelTitles = {'Controls', 'Image Display', 'Roi Manager', 'Signal Viewer', '', 'Roi Image'}
        %PanelModules = {'structeditor.App', 'imviewer.App', 'roimanager.RoiTable', 'roisignalviewer.App', []}
     end
     
     properties (Access = private)
        TabButtonGroup = struct() 
        ShowBottomPanel = true;
+       
+       ShowImagePanel = true;
+       
+       RoiThumbnailViewer = []
        
        TempControlPanel
        TempControlPanelDestroyedListener
@@ -57,7 +61,9 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             h.resizePanelContents()
             obj.AppModules = h;
             obj.configurePanelResizeButton(obj.hPanels(2).Children(1), h)
-
+            
+            obj.DialogBox = h.uiwidgets.msgBox;
+            
             % Call method for activating the roimanager plugin on imviewer
             obj.activatePlugin(h)
             
@@ -75,6 +81,12 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.addPanelResizeButton(obj.hPanels(3).Children(1))
             obj.AppModules(end+1) = h;
 
+            % 4) Roi image display
+            
+            obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), obj.roiGroup);
+            obj.RoiThumbnailViewer.ImageStack = obj.StackViewer.ImageStack;
+            obj.RoiThumbnailViewer.Dashboard = obj;
+            
             % Button bar on bottom switching between different panels.
             obj.createToolbar()
 
@@ -109,7 +121,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             % Todo: Incorporate colors into theme
             S = obj.Theme;
-                            
+            
             bgColor2 = [0.15,0.15,0.15];
             hlColor = [0.3000 0.3000 0.3000];
             shColor = [0.3000 0.3000 0.3000];
@@ -120,11 +132,12 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 'Background', bgColor2, 'ShadowColor', shColor, ...
                 'Foreground', fgColor, 'HighlightColor', hlColor };
             
+            % Create each of the panels:
             for i = 1:numel(obj.PanelTitles)
                 iTitle = obj.PanelTitles{i};
                 obj.hPanels(i) = uipanel( panelParameters{:}, 'Title', iTitle);
             end
-
+            
             set(obj.hPanels, 'Units', 'pixel')
 
             obj.addPanelResizeButton(obj.hPanels(1))
@@ -133,22 +146,24 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         end
 
         function resizePanels(obj)
-            
+        %resizePanels Resize panels of dashboard
+        
             if ~obj.IsConstructed; return; end
             
+            % Turn off border to prevent flickering
             set(obj.hPanels(1:3), 'BorderType', 'none');
             set(obj.hPanels(3), 'Visible', 'off');
             
+            % Store visibility state of main panel before turning
+            % visibility off.
             mainPanelVisibility = obj.hMainPanel.Visible;
             %drawnow limitrate
             
             obj.hMainPanel.Visible = 'off';
             %obj.hFigure.Visible = 'off';
             
-            [xPosA, Wa] = obj.computePanelPositions([200, 0.7, 0.3], 'x');
-            [xPosB, Wb] = obj.computePanelPositions(1, 'x');
-
-
+            
+            % - - - Compute heights and yposition for each of the panel rows
             if obj.ShowBottomPanel
                 panelHeights = [25, 0.3, 0.7];
                 iA = 3;
@@ -159,6 +174,28 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             end
             
             [yPos, H] = obj.computePanelPositions(panelHeights, 'y');
+            
+            
+            % - - - Compute widths and xposition for each of the panel rows
+
+            % New positions of panels on top row (controls, imviewer, roitable)
+            [xPosA, Wa] = obj.computePanelPositions([200, 0.7, 0.3], 'x');
+            
+            
+            % New positions of panels on middle row (signal viewer, roi image)
+            if obj.ShowImagePanel && obj.ShowBottomPanel
+                imPanelWidth = H(iB);
+                [xPosB, Wb] = obj.computePanelPositions([1,imPanelWidth], 'x');
+            elseif obj.ShowImagePanel && ~obj.ShowBottomPanel
+                obj.hideModule('Roi Info')
+            else
+                [xPosB, Wb] = obj.computePanelPositions(1, 'x');
+            end
+            
+            % New positions of panels on bottom row (toolbar)
+            [xPosC, Wc] = obj.computePanelPositions(1, 'x');
+
+            % - - - Resize the panels:
             
             panelNumsA = [1, 2, 3];
             numPanelsA = numel(panelNumsA);
@@ -171,15 +208,19 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             end
             
             if obj.ShowBottomPanel
-                setpixelposition(obj.hPanels(4), [xPosB, yPos(iB), Wb, H(iB)])
+                setpixelposition(obj.hPanels(4), [xPosB(1), yPos(iB), Wb(1), H(iB)])
+            end
+            if obj.ShowImagePanel
+                setpixelposition(obj.hPanels(6), [xPosB(2), yPos(iB), Wb(2), H(iB)])
             end
             
-            setpixelposition(obj.hPanels(5), [xPosB, yPos(1), Wb, H(1)])
+            setpixelposition(obj.hPanels(5), [xPosC, yPos(1), Wc, H(1)])
 
-            
             %set( obj.hPanels, {'Position'},  newPos );
-            
+                      
+            % Restore border to prevent flickering
             set(obj.hPanels(1:3), 'BorderType', 'line');
+            
             set(obj.hPanels(3), 'Visible', 'on');
             
             obj.hMainPanel.Visible = mainPanelVisibility;
@@ -500,7 +541,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             end
             
             hBtn(1).Value = true;
-            
+            hBtn(3).Value = true;
+
             obj.TabButtonGroup.Group = hToolbar;
             obj.TabButtonGroup.Buttons = hBtn;
             
@@ -508,6 +550,16 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         end
         
         function onTabButtonPressed(obj, src, evt)
+            
+            if strcmp(src.Text, 'Roi Info')
+                if src.Value
+                    obj.showModule('Roi Info')
+                else
+                    obj.hideModule('Roi Info')
+                end
+                return
+            end
+            
             
             for iBtn = 1:numel(obj.TabButtonGroup.Buttons)
                 
@@ -527,6 +579,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 end
             end
             
+            
+            
         end
         
         function showModule(obj, moduleName)
@@ -540,7 +594,16 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                         obj.ShowBottomPanel = true;
                         obj.resizePanels()
                         obj.hPanels(4).BorderType = 'line';
-                        
+                    end
+                    
+                case 'Roi Info'
+                    
+                    if ~strcmp( obj.hPanels(6).Visible, 'on' )
+                        set([obj.hPanels(6).Children], 'Visible', 'on');
+                        obj.hPanels(6).Visible = 'on';
+                        obj.ShowImagePanel = true;
+                        obj.resizePanels()
+                        obj.hPanels(6).BorderType = 'line';
                     end
             end
             
@@ -551,14 +614,21 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                       
             switch moduleName
                 case 'Signal Viewer'
-                    
                     if ~strcmp( obj.hPanels(4).Visible, 'off' )
                         set([obj.hPanels(4).Children], 'Visible', 'off');
                         obj.hPanels(4).Visible = 'off';
                         obj.hPanels(4).BorderType = 'none';
                         obj.ShowBottomPanel = false;
                         obj.resizePanels()
-                        
+                    end
+                    
+                case 'Roi Info'
+                    if ~strcmp( obj.hPanels(6).Visible, 'off' )
+                        set([obj.hPanels(6).Children], 'Visible', 'off');
+                        obj.hPanels(6).Visible = 'off';
+                        obj.hPanels(6).BorderType = 'none';
+                        obj.ShowImagePanel = false;
+                        obj.resizePanels()
                     end
             end
             

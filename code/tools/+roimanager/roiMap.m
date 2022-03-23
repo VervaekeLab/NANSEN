@@ -149,7 +149,7 @@ classdef roiMap < handle
                     for i = evt.roiIndices
                         obj.updateRoiPlot(i)
                     end
-                    obj.updateLinkPlot(evt.roiIndices)
+                    %obj.updateLinkPlot(evt.roiIndices)
 
                     %obj.updateRoiMaskAll(evt.roiIndices, evt.eventType)
                     obj.updateRoiIndexMap()
@@ -412,7 +412,7 @@ classdef roiMap < handle
             
 %             drawnow;
 
-            obj.shiftLinkPlot(shift)
+            %obj.shiftLinkPlot(shift)
 
         end
         
@@ -698,7 +698,7 @@ classdef roiMap < handle
             % is this a flufinder task...
             
             % ad hoc for solution for setting an extended radius in mode 4
-            rExtended = r(2);
+            if numel(r) > 1; rExtended = r(2); end
             r = r(1);
             
             
@@ -709,7 +709,9 @@ classdef roiMap < handle
             
             oldXLim = obj.displayApp.ImageStack.DataXLim;
             oldYLim = obj.displayApp.ImageStack.DataYLim;
-
+            
+            % Todo: This is a bit sketchy, what if getFrameSet method
+            % fails and data limits are not reset...
             obj.displayApp.ImageStack.DataXLim = [S(1), L(1)];
             obj.displayApp.ImageStack.DataYLim = [S(2), L(2)];
 
@@ -718,10 +720,13 @@ classdef roiMap < handle
             obj.displayApp.ImageStack.DataXLim = oldXLim;
             obj.displayApp.ImageStack.DataYLim =  oldYLim;
             
-            
+            if size(imChunk, 3) < 10
+                obj.displayApp.displayMessage('Please load some frames into memory in order to improve rois')
+                error('Not enough frames available for improving rois')
+            end
+
             %imData = obj.displayApp.ImageStack.getCompleteFrameSet('all');
             %imChunk = roimanager.imtools.getPixelChunk(imData, S, L);
-            
             
             % Get x- and y-coordinate for the image subset.
             x_ = x - S(1)+1; 
@@ -834,7 +839,23 @@ classdef roiMap < handle
             % select roi            
         end
         
+        function improveRois(obj)
+                    
+            % Get selected rois
+            originalRois = obj.roiGroup.roiArray(obj.selectedRois);
+            newRois = originalRois; % Preallocate...
+            for i = 1:numel(originalRois)
+                center = originalRois(i).center;
+                r = sqrt( originalRois(i).area / pi);
+                tmpRoi = obj.autodetectRoi(center(1), center(2), r, 1, false);
+                
+                newRois(i) = originalRois(i).reshape('Mask', tmpRoi.mask);
+            end
             
+            obj.roiGroup.modifyRois(newRois, obj.selectedRois)
+            
+        end
+        
         function pObj = patchRoi(obj, mask, tag, color)
             % Patch a roi with potential holes.
             

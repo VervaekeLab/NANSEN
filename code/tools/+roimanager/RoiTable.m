@@ -25,7 +25,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
     end
     
     
-    methods
+    methods % Structors
         
         function obj = RoiTable(varargin)
         %RoiTable Create an instance of a RoiTable modular app
@@ -54,9 +54,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
         end
 
     end
-    
-    
-    
+
     
     methods
         function addRois(~)
@@ -100,7 +98,21 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
                 'connectedrois', 'layer', 'tags', 'enhancedImage'});
             
             % add column with label and number for roi
+            [S(:).ID] = deal({''});
+            S = orderfields(S, ['ID', setdiff(fieldnames(S), 'ID', 'stable')' ]);
+            roiTable = struct2table(S, 'AsArray', true);
             
+            
+        end
+        
+        function roiTable = rois2table_old(obj, roiArray)
+                
+            S = roimanager.utilities.roiarray2struct(roiArray);
+            
+            S = rmfield(S, {'coordinates', 'imagesize', 'boundary', ...
+                'connectedrois', 'layer', 'tags', 'enhancedImage'});
+            
+            % add column with label and number for roi
             roiTable = struct2table(S, 'AsArray', true);
             
             % Create column for adding ids and prepend to table.
@@ -169,20 +181,31 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             end
             
             % Update the values of the roi ids / roi labels
-            if obj.roiGroup.roiCount ~= 0
-            
-                tags = {obj.roiGroup.roiArray.tag};
-                numRois = numel(tags);
-                nums = arrayfun(@(i) num2str(i, '%03d'), 1:numRois, 'uni', 0);
-                roiLabels = strcat(tags, nums);
+            if obj.roiGroup.roiCount ~= 0 
+               
+                numRois = obj.roiGroup.roiCount;
 
-                newTable{:,1} = roiLabels';
+                if ~contains(lower(evtData.eventType), {'modify', 'reshape'})
+                    roiInd = evtData.roiIndices;
+                    tags = {evtData.roiArray.tag};
+                else
+                    roiInd = 1:numRois;
+                    tags = {obj.roiGroup.roiArray.tag};
+                end
+                
+                charLength = ceil( log10(numRois+1) );
+                formatStr = sprintf(' %%0%dd', charLength);
+
+                nums = strsplit( num2str(roiInd, formatStr), ' ');
+
+                roiLabels = strcat(tags, nums);
+                newTable{roiInd,1} = roiLabels';
                 
             end
                         
             obj.roiTable = newTable;
             obj.UITable.refreshTable(newTable)
-
+            % Todo: Update cell....
         end
         
         function onRoiSelectionChanged(obj, evtData)
