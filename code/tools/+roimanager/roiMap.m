@@ -32,6 +32,7 @@ classdef roiMap < handle
     
     
     properties (Access = public)
+        EnableLinkedRois matlab.lang.OnOffSwitchState = 'off'
         roiOutlineVisible = true % Todo: make set method, so that this is updated when value is changed...
         roiLabelVisible = false
         neuropilMaskVisible = false % Todo: make set method, so that this is updated when value is changed...
@@ -156,13 +157,16 @@ classdef roiMap < handle
                     
                 case 'remove'
                     delete(obj.roiPlotHandles(evt.roiIndices))
-                    delete(obj.roiTextHandles(evt.roiIndices))
                     delete(obj.roiLinkHandles(evt.roiIndices))
 
                     obj.roiPlotHandles(evt.roiIndices) = [];
-                    obj.roiTextHandles(evt.roiIndices) = [];
                     obj.roiLinkHandles(evt.roiIndices) = [];
-
+                    
+                    if ~isempty(obj.roiTextHandles)
+                        delete(obj.roiTextHandles(evt.roiIndices))
+                        obj.roiTextHandles(evt.roiIndices) = [];
+                    end
+                     
                     obj.roiLinePos(evt.roiIndices, :) = [];
                     obj.roiTextPos(evt.roiIndices) = [];
                     %obj.updateRoiMaskAll(evt.roiIndices, 'remove') 
@@ -278,7 +282,7 @@ classdef roiMap < handle
             % Initialize Plot/Text handles and position cell arrays
             if isempty(obj.roiPlotHandles)
                 obj.roiPlotHandles = gobjects(0);
-                obj.roiTextHandles = gobjects(0);
+                %obj.roiTextHandles = gobjects(0);
                 obj.roiLinkHandles = gobjects(0);
             end   
             
@@ -306,9 +310,8 @@ classdef roiMap < handle
             roiBoundaryCellArray(i, j) = {nan};
 
             % Plot lines and add text objects for all rois
-            %Use plot instead of line in order to plot all boundaries
+            % Use plot instead of line in order to plot all boundaries
             hLine = plot(obj.hAxes, roiBoundaryCellArray{:}, 'LineStyle', '-', 'Marker', 'None');
-            hText = text(obj.hAxes, centerPosArray(:, 1), centerPosArray(:, 2), '');
 
             set(hLine, {'color'}, colorCellArray)
             set(hLine, 'HitTest', 'off')
@@ -316,28 +319,31 @@ classdef roiMap < handle
             set(hLine, 'Tag', 'RoI')
             set(hLine, 'LineWidth', obj.RoiOutlineWidth)
 
-            set(hText, {'color'}, colorCellArray)
-            set(hText, 'HitTest', 'off')
-            set(hText, 'PickableParts', 'none')
-            set(hText, 'HorizontalAlignment', 'center')
-            set(hText, 'Tag', 'RoIlabel')
+            
+% %             hText = text(obj.hAxes, centerPosArray(:, 1), centerPosArray(:, 2), '');
+% % 
+% %             set(hText, {'color'}, colorCellArray)
+% %             set(hText, 'HitTest', 'off')
+% %             set(hText, 'PickableParts', 'none')
+% %             set(hText, 'HorizontalAlignment', 'center')
+% %             set(hText, 'Tag', 'RoIlabel')
 
             
                     
-            % Assemble text labels for the listbox
-            tags = {roiArray.tag};
-            nums = arrayfun(@(i) num2str(i, '%03d'), ind, 'uni', 0);
-            % Set texthandles
-            set(hText, {'String'}, strcat(tags, nums)');
+% %             % Assemble text labels for the listbox
+% %             tags = {roiArray.tag};
+% %             nums = arrayfun(@(i) num2str(i, '%03d'), ind, 'uni', 0);
+% %             % Set texthandles
+% %             set(hText, {'String'}, strcat(tags, nums)');
             
             
             if ~obj.roiOutlineVisible
                 set(hLine, 'Visible', 'off')
             end
             
-            if ~obj.roiLabelVisible
-                set(hText, 'Visible', 'off')
-            end
+% %             if ~obj.roiLabelVisible
+% %                 set(hText, 'Visible', 'off')
+% %             end
             
             % Todo:
 % % %             % Set visibility of text based on button "Show/Hide Tags"
@@ -351,9 +357,13 @@ classdef roiMap < handle
             
             
             % Collect links for all rois in a cell array
-            hLink = plot(obj.hAxes, nan(2, nRois), 'LineStyle', '-', 'Marker', 'None', 'Color', ones(1,3)*0.8);
-            set(hLink, 'HitTest', 'off')
-            set(hLink, 'PickableParts', 'none')
+            if obj.EnableLinkedRois
+                hLink = plot(obj.hAxes, nan(2, nRois), 'LineStyle', '-', 'Marker', 'None', 'Color', ones(1,3)*0.8);
+                set(hLink, 'HitTest', 'off')
+                set(hLink, 'PickableParts', 'none')
+            else
+                hLink = gobjects(nRois, 1);
+            end
             
             % NB: Ind is a row vector, so plot handles become a row
             % vector as well. hLine and hText are column vectors, thats
@@ -363,11 +373,11 @@ classdef roiMap < handle
             switch mode
                 case {'append', 'initialize'}
                     obj.roiPlotHandles(ind) = hLine;
-                    obj.roiTextHandles(ind) = hText;
+                    %obj.roiTextHandles(ind) = hText;
                     obj.roiLinkHandles(ind) = hLink;
                 case 'insert'
                     obj.roiPlotHandles = utility.insertIntoArray(obj.roiPlotHandles, hLine', ind);
-                    obj.roiTextHandles = utility.insertIntoArray(obj.roiTextHandles, hText', ind);
+                    %obj.roiTextHandles = utility.insertIntoArray(obj.roiTextHandles, hText', ind);
                     obj.roiLinkHandles = utility.insertIntoArray(obj.roiLinkHandles, hLink', ind);
             end
 
@@ -384,9 +394,72 @@ classdef roiMap < handle
                     obj.roiLinePos = utility.insertIntoArray(obj.roiLinePos, roiBoundaryCellArray', ind, 1);
                     obj.roiTextPos = utility.insertIntoArray(obj.roiTextPos, centerPosArray', ind, 1);
             end
+            
+            obj.plotRoiTextLabels( roiArray, ind, mode )
              
         end
         
+        function plotRoiTextLabels(obj, roiArray, roiInd, mode)
+            
+            if isempty(obj.roiTextHandles) && ~obj.roiLabelVisible
+                return
+            elseif isempty(obj.roiTextHandles) && obj.roiLabelVisible
+                obj.roiTextHandles = gobjects(0);
+            end
+            
+            if nargin < 2
+                roiArray = obj.roiGroup.roiArray;
+                roiInd = 1:obj.roiGroup.roiCount;
+                mode = 'initialize';
+            end
+            
+            if numel(roiInd) > 100
+                obj.displayApp.displayMessage('Plotting roi text labels...')
+            end
+            
+            nRois = numel(roiArray);
+            colorCellArray = cell(nRois, 1);
+
+            % Collect boundaries for all rois in a cell array
+            for roiNo = 1:numel(roiArray)
+                colorCellArray{roiNo} = obj.getRoiColor(roiArray(roiNo));
+            end
+            
+            centerPosArray = cat(1, roiArray.center);
+            hText = text(obj.hAxes, centerPosArray(:, 1), centerPosArray(:, 2), '');
+
+            set(hText, {'color'}, colorCellArray)
+            set(hText, 'HitTest', 'off')
+            set(hText, 'PickableParts', 'none')
+            set(hText, 'HorizontalAlignment', 'center')
+            set(hText, 'Tag', 'RoIlabel')
+            
+            if ~obj.roiLabelVisible
+                set(hText, 'Visible', 'off')
+            end
+                        
+            roiLabels = obj.roiGroup.getRoiLabels(roiInd);
+
+% %             % Assemble text labels for the listbox
+% %             tags = {roiArray.tag};
+% %             nums = arrayfun(@(i) num2str(i, '%03d'), roiInd, 'uni', 0);
+            
+            % Set texthandles
+            if isrow(roiLabels); roiLabels = roiLabels'; end
+            set(hText, {'String'}, roiLabels );
+            
+            switch mode
+                case {'append', 'initialize'}
+                    obj.roiTextHandles(roiInd) = hText;
+                case 'insert'
+                    obj.roiTextHandles = utility.insertIntoArray(obj.roiTextHandles, hText', roiInd);
+            end
+            
+            if numel(roiInd) > 100
+                obj.displayApp.clearMessage()
+            end
+
+        end
         
         function shiftRoiPlot(obj, shift)
         % Shift Roi plots according to a shift [x, y, 0]
@@ -412,8 +485,10 @@ classdef roiMap < handle
             
 %             drawnow;
 
-            %obj.shiftLinkPlot(shift)
-
+            if obj.EnableLinkedRois
+                obj.shiftLinkPlot(shift)
+            end
+            
         end
         
         
@@ -496,6 +571,8 @@ classdef roiMap < handle
         
         
         function updateLinkPlot(obj, roiInd, mode)
+            
+            if ~obj.EnableLinkedRois; return; end
             
             if nargin == 3 && strcmp(mode, 'relink')
                 nRois = numel(roiInd);
@@ -1000,6 +1077,10 @@ classdef roiMap < handle
         
         
         function showRoiTextLabels(obj)
+            if isempty(obj.roiTextHandles)
+                obj.plotRoiTextLabels()
+            end
+            
             set(obj.roiTextHandles, 'Visible', 'on')
         end
         
@@ -1240,8 +1321,10 @@ classdef roiMap < handle
             % Change the color of roi outlines and text labels
             set(obj.roiPlotHandles(roiIndices), 'LineWidth', newLineWidth);
             set(obj.roiPlotHandles(roiIndices), {'color'}, colorCellArray);
-            set(obj.roiTextHandles(roiIndices), {'color'}, colorCellArray); 
-
+            
+            if ~isempty(obj.roiTextHandles)
+                set(obj.roiTextHandles(roiIndices), {'color'}, colorCellArray); 
+            end
             
             if ~isempty(obj.selectedRois)
                 obj.selectedRois = unique(obj.selectedRois, 'stable'); % The lazy way
@@ -1360,6 +1443,17 @@ classdef roiMap < handle
 % % %                 obj.zoomOnRoi(obj.selectedRois(end))
 % % %             end
 
+        end
+        
+        
+        function selectNeighbors(obj)
+            
+            roiInd = obj.selectedRois(1);
+            roiIndNb = obj.roiGroup.roiArray.getNeighboringRoiIndices(roiInd);
+            if iscolumn(roiIndNb); roiIndNb = roiIndNb'; end
+            if ~isempty(roiIndNb)
+                obj.roiGroup.changeRoiSelection(roiIndNb, 'select')
+            end
         end
         
         function removeRois(obj)

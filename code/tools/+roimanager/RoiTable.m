@@ -187,25 +187,19 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
 
                 if ~contains(lower(evtData.eventType), {'modify', 'reshape'})
                     roiInd = evtData.roiIndices;
-                    tags = {evtData.roiArray.tag};
                 else
                     roiInd = 1:numRois;
-                    tags = {obj.roiGroup.roiArray.tag};
                 end
                 
-                charLength = ceil( log10(numRois+1) );
-                formatStr = sprintf(' %%0%dd', charLength);
-
-                nums = strsplit( num2str(roiInd, formatStr), ' ');
-
-                roiLabels = strcat(tags, nums);
+                roiLabels = obj.roiGroup.getRoiLabels(roiInd);
                 newTable{roiInd,1} = roiLabels';
                 
             end
                         
             obj.roiTable = newTable;
             obj.UITable.refreshTable(newTable)
-            % Todo: Update cell....
+            
+            % Todo: Update cells instead of whole table....
         end
         
         function onRoiSelectionChanged(obj, evtData)

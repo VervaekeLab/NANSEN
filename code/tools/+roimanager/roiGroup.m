@@ -153,7 +153,6 @@ classdef roiGroup < handle
             end
         end
         
-        
         function addRois(obj, newRois, roiInd, mode, isUndoRedo)
         % addRois Add new rois to the roiGroup.
 
@@ -338,6 +337,19 @@ classdef roiGroup < handle
                 % Remove selection of all rois if this was a undo/redo
                 obj.changeRoiSelection('all', 'unselect') % Note: unselect all rois before executing undo!
             end
+            
+        end
+        
+        function roiLabels = getRoiLabels(obj, roiInd)
+            
+            numRois = obj.roiCount;
+            charLength = ceil( log10(numRois+1) );
+            formatStr = sprintf(' %%0%dd', charLength);
+
+            tags = {obj.roiArray(roiInd).tag};
+            nums = strsplit( num2str(roiInd, formatStr), ' ');
+
+            roiLabels = strcat(tags, nums); 
             
         end
         

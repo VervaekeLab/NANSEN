@@ -76,6 +76,10 @@ classdef selectObject < uim.interface.abstractPointer & ...
                     obj.hObjectMap.growRois();
                 case 'h'
                     obj.hObjectMap.shrinkRois();
+                
+% %                 case 'n' % For testing...
+% %                     obj.hObjectMap.selectNeighbors()
+                    
                 case 'c'
                     if strcmp(event.Modifier, 'shift')
                         obj.hObjectMap.connectRois() % Todo: delegate to flufinder instead?
