@@ -11,7 +11,7 @@ classdef StylableTable < uiw.widget.Table
     %     and format) without invoking onStyleChangedMethod from
     %     uiw.widget.Table
     % [ ] How can I remove column header
-
+    % [ ] Update colors of table header and table header area in updateTheme
     
     properties
         Theme uim.style.tableTheme = uim.style.tableLight
@@ -272,14 +272,20 @@ classdef StylableTable < uiw.widget.Table
 %             % Convert to javacolors.
 %             bgColor2 = obj.rgb2jrgb( S.tableBackgroundColor );
 %             fgColor = obj.rgb2jrgb( S.tableForegroundColor );
-%             
-%             jViewPort = getappdata(obj.hTableView, 'JViewPort');
-%             jScrollPane = getappdata(obj.hTableView, 'jScrollPane');
-% 
-%             % Set background color of table viewport (area available for table)
-%             set(jViewPort, 'background', S.bgColor);
-            
+%             jScrollPane = getappdata(obj.hTableView, 'jScrollPane'); 
+
+
             obj.BackgroundColor = obj.Theme.CellColorUnmodified;
+            
+            
+            % Set background color of table viewport (area available for table)
+            jViewPort = obj.JScrollPane.getComponent(0);
+            set(jViewPort, 'background', jRGB(obj.BackgroundColor));
+
+% %             jViewPort = obj.JScrollPane.getComponent(3);
+% %             set(jViewPort, 'background', jRGB(obj.BackgroundColor));
+            
+            
             obj.JTable.GridColor = jRGB( obj.Theme.GridColor );
 
             if ~obj.UseDefaultHeader
