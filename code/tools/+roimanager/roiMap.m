@@ -1357,8 +1357,9 @@ classdef roiMap < handle
                 end
                 
                 set(obj.roiPlotHandles(roiIndices), {'color'}, colorCellArray);
-                set(obj.roiTextHandles(roiIndices), {'color'}, colorCellArray); 
-
+                if ~isempty(obj.roiTextHandles)
+                    set(obj.roiTextHandles(roiIndices), {'color'}, colorCellArray); 
+                end
             end
             
         end
@@ -1634,7 +1635,9 @@ classdef roiMap < handle
                 color = obj.getRoiColor(obj.roiGroup.roiArray(i));
                 obj.roiPlotHandles(i).LineWidth = newLineWidth;
                 obj.roiPlotHandles(i).Color = color;
-                obj.roiTextHandles(i).Color = color;
+                if ~isempty(obj.roiTextHandles)
+                    obj.roiTextHandles(i).Color = color;
+                end
             end
             
         end
