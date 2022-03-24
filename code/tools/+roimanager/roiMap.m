@@ -558,9 +558,12 @@ classdef roiMap < handle
 
             obj.roiPlotHandles(roiInd).XData = boundary(:, 2);
             obj.roiPlotHandles(roiInd).YData = boundary(:, 1);
+            
+            
             % Move roi label/tag to new center position
-            set(obj.roiTextHandles(roiInd), 'Position', [roi.center, 0])
-
+            if ~isempty(obj.roiTextHandles)
+                set(obj.roiTextHandles(roiInd), 'Position', [roi.center, 0])
+            end
             
             obj.roiLinePos(roiInd, :) = {boundary(:, 2), boundary(:, 1)};
             % Move roi label/tag to new center position
