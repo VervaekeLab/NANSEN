@@ -321,35 +321,37 @@ methods (Access = private, Hidden) % Gui Creation/construction
         inputbox(end).TooltipString = 'Press shift+number to switch selection';
         
         if ~isempty(obj.itemImages)
-        % Create a textbox to label image selection dropdown menu
-        i = i+1;
-        textbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'text');
-        textbox(end).String = 'Image Selection:';
-        textbox(end).Units = 'normalized';
-        textbox(end).Position = [xPos(i)+0.003, yPosTxt, uicSize];
-        textbox(end).Tag = '';
-        
-        
-        % Create image selection dropdown menu
-        
-        imageNames = fieldnames(obj.itemImages);
-        numbers = 1:numel(imageNames);
-        popupLabels = arrayfun(@(j) sprintf('(%d) %s', j, imageNames{j}), numbers, 'uni', 0);
+            % Create a textbox to label image selection dropdown menu
+            i = i+1;
+            textbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'text');
+            textbox(end).String = 'Image Selection:';
+            textbox(end).Units = 'normalized';
+            textbox(end).Position = [xPos(i)+0.003, yPosTxt, uicSize];
+            textbox(end).Tag = '';
 
-        inputbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'popupmenu');
-        inputbox(end).String = popupLabels;
-        inputbox(end).Value = 1;
-        inputbox(end).Units = 'normalized';
-        inputbox(end).Position = [xPos(i), yPosPop, uicSize];
-        inputbox(end).HorizontalAlignment = 'left';
-        inputbox(end).Tag = 'SelectionImage';
-        inputbox(end).Callback = @(src, event) obj.changeImageType;
 
-        if ismac
-            inputbox(end).TooltipString = 'Press cmd+number to switch selection';
-        else
-            inputbox(end).TooltipString = 'Press ctrl+number to switch selection';
+            % Create image selection dropdown menu
+
+            imageNames = fieldnames(obj.itemImages);
+            numbers = 1:numel(imageNames);
+            popupLabels = arrayfun(@(j) sprintf('(%d) %s', j, imageNames{j}), numbers, 'uni', 0);
+
+            inputbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'popupmenu');
+            inputbox(end).String = popupLabels;
+            inputbox(end).Value = 1;
+            inputbox(end).Units = 'normalized';
+            inputbox(end).Position = [xPos(i), yPosPop, uicSize];
+            inputbox(end).HorizontalAlignment = 'left';
+            inputbox(end).Tag = 'SelectionImage';
+            inputbox(end).Callback = @(src, event) obj.changeImageType;
+
+            if ismac
+                inputbox(end).TooltipString = 'Press cmd+number to switch selection';
+            else
+                inputbox(end).TooltipString = 'Press ctrl+number to switch selection';
+            end
         end
+        
         
         if ~isempty(obj.itemStats)
         % Create a textbox to label variable sorting selection dropdown menu
