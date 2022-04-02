@@ -104,6 +104,10 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
         LimitsChangedListener
     end
 
+    properties (Constant, Hidden)
+        STYLE_PROPS = {'FontSize', 'FontWeight', 'LineWidth', ...
+            'Color', 'Location', 'FontName'};
+    end
     
     methods % Contructor/destructor
         
@@ -452,7 +456,9 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             
             % Plot scalebar
             obj.hScalebarLine = plot(obj.hAxes, xData, yData);
-        
+            %obj.hScalebarLine.HandleVisibility = 'off';
+            obj.hScalebarLine.Tag = 'Scalebar Line';
+            
             addlistener(obj.hScalebarLine, 'ObjectBeingDestroyed', ...
                 @(s,e) obj.delete);
             
@@ -478,6 +484,8 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                 obj.hScalebarText = text(obj.hAxes, txtPos.x, txtPos.y, ...
                     textLabel, 'Color', obj.Color, 'FontSize', ...
                     obj.FontSize, 'FontWeight', obj.FontWeight);
+                %obj.hScalebarText.HandleVisibility = 'off';
+                obj.hScalebarText.Tag = 'Scalebar Text';
             else
                 obj.hScalebarText.Position(1:2) = [txtPos.x, txtPos.y];
             end
@@ -846,6 +854,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             else 
                 obj.FontWeight = opts.FontWeight;
                 obj.FontSize = opts.FontSize;
+                obj.FontName = opts.FontName;
             end
             
         end
@@ -899,7 +908,7 @@ end
 function props2prefs(obj)
     
     [~, groupName, ~] = fileparts(mfilename('fullpath'));
-    propNames = {'FontSize', 'FontWeight', 'LineWidth', 'Color', 'Location', 'FontName'};
+    propNames = scalebar.STYLE_PROPS;
     
     for i = 1:numel(propNames)
         setpref(groupName, propNames{i}, obj.(propNames{i}))
@@ -910,7 +919,8 @@ end
 function nvPairs = prefs2props()
     
     [~, groupName, ~] = fileparts(mfilename('fullpath'));
-    propNames = {'FontSize', 'FontWeight', 'LineWidth', 'Color', 'Location', 'FontName'};
+    propNames = scalebar.STYLE_PROPS;
+    % todo: get from mc...
     defaultValues = {12, 'normal', 1, 'k', 'southeast', 'Helvetica Neue'};
     prefValues = cell(1, numel(propNames));
     
