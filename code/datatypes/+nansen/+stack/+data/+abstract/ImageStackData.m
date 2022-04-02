@@ -8,12 +8,12 @@ classdef ImageStackData < uim.mixin.assignProperties
 %       getData(obj, subs)              % Get data specified by subs
 %       setData(obj, data, subs)        % Set data specified by subs
 
-
 %   TODO
 %       [ ] Add reshape functionality, so that number of data dimensions
 %           and number of stack dimensions can be different
-%       
-%       
+%           - i.e data dimension is : YXN and stack dimension is YX[CT]
+
+
 
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
 
@@ -23,6 +23,7 @@ classdef ImageStackData < uim.mixin.assignProperties
     end
        
     properties (SetAccess = protected) % Size and type of original data
+        MetaData nansen.metadata.StackMetadata
         DataSize                        % Length of each dimension of the original data array
         DataType                        % Data type for the original data array
     end
@@ -118,6 +119,9 @@ classdef ImageStackData < uim.mixin.assignProperties
             
             % Preallocate cell array of output.
             varargout = cell(1, nargout);
+            
+            % Todo: use numArgumentsFromSubscript instead of try catch
+            % blocks below.
 
             switch s(1).type
 
@@ -153,6 +157,9 @@ classdef ImageStackData < uim.mixin.assignProperties
                         return
                     elseif numRequestedDim == ndims(obj)
                         subs = obj.rearrangeSubs(s.subs);
+                    elseif numRequestedDim == 1
+                        % todo:
+                        [subs{1:ndims(obj)}] = ind2sub(obj.DataSize, s.subs{1});
                     else
                         error('Requested number of dimensions does not match number of data dimensions')
                         % Todo: If there are too many dimensions in subs,
@@ -162,21 +169,11 @@ classdef ImageStackData < uim.mixin.assignProperties
                     end
                     
                     % Todo: check that subs are not exceeding data/array bounds 
+                    % obj.validateSubs() % Todo: make this method...
                     
-                    
-                    % Are any of these frames found in the cache?
-%                     if false %obj.HasCachedData
-%                         data = obj.getDataFromCache(subs);
-%                     else
                     data = obj.getData(subs);
-%                     end
-
-%                     % Todo: Test this. Get cropped data if requested... 
-%                     % Note: this should only be part of subclasses where
-%                     whole images are read, i.e Tiff or Image
-%                     data = data(subs{1:end-1}, ':');
                     
-                    % Squeeze if possible
+                    % Permute data according to the stack dimendion order
                     data = permute(data, obj.StackDimensionOrder);
                     
                     [varargout{:}] = data;
@@ -247,6 +244,7 @@ classdef ImageStackData < uim.mixin.assignProperties
             
             obj.StackDimensionArrangement = newValue;
             obj.updateDimensionOrders()
+            
         end
         
         function set.StackDimensionOrder(obj, newValue)
@@ -343,6 +341,9 @@ classdef ImageStackData < uim.mixin.assignProperties
                     % Note: This assumes the dimension was added at the end
                     % I dont know if thats a valid assumption.
                     obj.StackDimensionArrangement = strcat(obj.StackDimensionArrangement, newDim);
+                elseif isempty(newDim) && isempty(oldDim)
+                    % Data dimensions were rearranged
+                    obj.StackDimensionArrangement = newValue;
                 else
                     error('Something went wrong')
                 end
@@ -360,6 +361,23 @@ classdef ImageStackData < uim.mixin.assignProperties
             
             obj.StackDimensionOrder = Locb(Lia);
             
+            obj.MetaData.DimensionArrangement =  obj.StackDimensionArrangement;
+
+        end
+        
+        function dimLength = getDimLength(obj, dimensionName)
+        %getDimLength Get length of dimension given by letter
+        %
+        %   dimLength = getDimLength(obj, dimensionName) where
+        %   dimensionName is 'X', 'Y', 'C', 'Z' or 'T'.
+        
+            ind = strfind(obj.DataDimensionArrangement, dimensionName);
+            
+            if isempty(ind)
+                dimLength = 1;
+            else
+                dimLength = obj.DataSize(ind);
+            end
         end
         
         function subs = rearrangeSubs(obj, subs)

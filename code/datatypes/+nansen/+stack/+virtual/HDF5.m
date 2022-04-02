@@ -10,6 +10,9 @@ classdef HDF5 < nansen.stack.data.VirtualArray
     %  [ ] Subclass (?) for datasets within the NWB format...
     %  [ ] Check nwb-datapipe for inspiration how to use low level h5 functions 
 
+properties (Constant, Hidden)
+    FILE_PERMISSION = 'write'
+end
     
 properties
     DatasetName = ''
@@ -78,16 +81,13 @@ methods (Access = protected) % Implementation of abstract methods
         
         obj.DatasetInfoH5 = h5info(obj.FilePath, ['/', obj.DatasetName] );
         obj.MetaData.Size = obj.DatasetInfoH5.Dataspace.Size;
-
         obj.MetaData.Class = obj.h5Type2matType(obj.DatasetInfoH5.Datatype);
-                
-        % TODO
-        % Add more meta, specifically numPlanes and numChannels 
-        
         
         obj.assignDataSize()
         
         obj.assignDataType()
+        
+        % Todo: Update metadata properties
         
     end
     

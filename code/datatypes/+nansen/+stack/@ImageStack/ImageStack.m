@@ -86,6 +86,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %   [ ] More work on dimension selection for frame chunks.
 %   [ ] Make ProjectionCache class and add as property...
 %   [ ] Set method for name
+%   [ ] Fix projecton cache and retrieval for multichannel images
 %
 %   [ ] Properties: FrameSize and NumFrames. Useful, Keep? 
 %
@@ -116,14 +117,18 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         DataDimensionOrder      % Dimension arrangement of data (i.e source) Depends on ImageStackData
     end
     
-    properties % Properties for customization of dimension lengths and units
-        DimensionLength         % Length of each dimension, i.e 1 pixel = 1.5 micrometer
-        DimensionUnits          % Units of each dimension, i.e [micrometer, micrometer, second] for XYT stack
+    properties (Dependent) % Properties for customization of dimension lengths and units
+        ImagePhysicalSize       % Length of each dimension, i.e 1 pixel = 1.5 micrometer
+        ImagePhysicalUnits      % Units of each dimension, i.e [micrometer, micrometer, second] for XYT stack
+        StackDuration
+    end
+    
+    properties (Dependent)
+        MetaData
     end
     
     properties 
         FileName char = ''      % Filename (absolute path for file) if data is a virtual array
-        MetaData struct         % Metadata
         UserData struct         % Userdata 
 
         DataXLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
@@ -236,6 +241,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if ~isempty(obj.Data) && isvalid(obj.Data)
                 delete(obj.Data)
             end
+            
+            % fprintf('Deleted ImageStack.\n') % For testing
             
         end
 
@@ -374,6 +381,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 imArray = obj.Data(indexingSubs{:});
             end
             
+            % Todo: Subselect channels and or planes
             
             
             % Set data intensity limits based on current data if needed.
@@ -483,6 +491,49 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
+    % - Methods for getting image stack metadata
+        
+        function sampleRate = getSampleRate(obj)
+            sampleRate = obj.Data.MetaData.SampleRate;
+        end
+        
+        function timeStep = getTimeStep(obj)
+            timeStep = obj.Data.MetaData.TimeIncrement;
+        end
+        
+        function frameTimes = getFrameTimes(obj, frameIndex)
+            
+            if isempty(frameIndex)
+                frameIndex = 1:obj.NumTimepoints;
+            end
+            
+            if ~isempty(obj.MetaData.FrameTimes)
+                frameTimes = obj.MetaData.FrameTimes(frameIndex);
+            else
+                frameTimes = (frameIndex-1) .* seconds(obj.MetaData.TimeIncrement);
+                if ~isempty(obj.MetaData.StartTime) % Todo.
+                    frameTimes = frameTimes + obj.MetaData.StartTime;
+                end
+            end
+
+        end
+        
+        function framePosition = getFramePosition(obj, frameIndex)
+            
+            % Todo: How to represent this is stack has multiple planes and
+            % multiple timepoints?
+            
+            if nargin < 2
+                frameIndex = [];
+            end
+            
+            if isempty(frameIndex) || isempty(obj.MetaData.FramePosition)
+                framePosition = obj.MetaData.SpatialPosition;
+            else
+                framePosition = obj.MetaData.FramePosition(frameIndex, :);
+            end
+        end
+
     % - Methods for getting processed versions of data
     
         function [tf, filePath] = hasDownsampledStack(obj, method, downsampleFactor)
@@ -913,6 +964,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     
     methods % Set/get methods
         
+        function metadata = get.MetaData(obj)
+            metadata = obj.Data.MetaData;
+        end
+        
         function set.Data(obj, newValue)
             obj.Data = newValue;
             if ~isempty(newValue)
@@ -1055,6 +1110,20 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
+        function physicalSize = get.ImagePhysicalSize(obj)
+            physicalSize = [obj.MetaData.PhysicalSizeX .* obj.ImageWidth, ...
+                obj.MetaData.PhysicalSizeY .* obj.ImageHeight];
+            physicalSize = round(physicalSize, 1);
+        end
+        
+        function physicalUnits = get.ImagePhysicalUnits(obj)
+            physicalUnits = {obj.MetaData.PhysicalSizeXUnit, obj.MetaData.PhysicalSizeYUnit};
+        end
+        
+        function stackDuration = get.StackDuration(obj)
+            stackDuration = obj.NumTimepoints * seconds(obj.getTimeStep);
+            stackDuration.Format = 'hh:mm:ss'; 
+        end
     end
 
     methods (Access = private) % Internal methods

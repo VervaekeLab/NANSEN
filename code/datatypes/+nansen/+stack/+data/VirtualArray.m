@@ -23,13 +23,17 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
 %       methods.
 
 
+    properties (Abstract, Constant, Hidden)
+        FILE_PERMISSION char % File access permission ('read' or 'write')
+    end
+
     properties
         FilePath
         Writable = false    % Todo: implement this
     end
     
-    properties 
-        MetaData % hm....
+    properties (SetAccess = protected)
+        %MetaData nansen.metadata.ImageMetaData
         UserData % Move to imagestack...
     end
     
@@ -88,10 +92,12 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
 
             if ~isa(filePath, 'cell'); filePath = {filePath}; end
             
+            % Todo: obj.validateFileReference(filePath) Add this method...
+            
             % Create new file (if file does not exist and stack size and
             % type is given) Todo: Check that varargin contains one size
             % argument and one datatype argument.
-            if ~isfile(filePath{1}) && ~isempty(varargin)
+            if ischar(filePath{1}) && ~isfile(filePath{1}) && ~isempty(varargin)
                 obj.createFile(filePath{1}, varargin{:})
                 obj.FileAccessMode = 'create';
                 % TODO: ASSIGN size properties, but leave actual file
@@ -109,6 +115,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             end
             
             obj.assignFilePath(filePath);
+            
+            obj.initializeMetaData()
             obj.getFileInfo()
             
             % Todo: open input dialog?
@@ -120,6 +128,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             
             obj.createMemoryMap()
             
+            obj.updateMetadata()
+            
             if obj.UseDynamicCache
                 obj.initializeDynamicFrameCache()
             end
@@ -127,6 +137,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function delete(obj)
+            obj.writeMetadata()
+            
             if obj.IsTransient
                 delete( obj.FilePath )
             end
@@ -183,6 +195,19 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
 
             %error('Not implemented yet')
         end
+        
+        function readMetadata(obj)
+            obj.MetaData.readFromFile()
+        end
+        
+        function writeMetadata(obj)
+        %writeMetadata Write metadata for stack.    
+            if strcmp(obj.FILE_PERMISSION, 'write')
+                obj.MetaData.writeToFile()
+            else
+                % Skip
+            end
+        end
     end
     
     methods (Access = protected) % Override methods of superclass
@@ -207,6 +232,28 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             obj.FilePath = filePath;
         end
         
+        function initializeMetaData(obj)
+        %initializeMetaData Initialize metadata for imagestack data    
+            if strcmp(obj.FILE_PERMISSION, 'write')
+                obj.MetaData = nansen.metadata.StackMetadata(obj.FilePath);
+            else
+                obj.MetaData = nansen.metadata.StackMetadata();
+            end
+        end
+        
+        function updateMetadata(obj)
+        %updateMetadata General update of metadata after initialization    
+            
+        % The size of the data will be configured on the obj and should be 
+        % retrieved from the getDimLength method:
+            obj.MetaData.SizeX = obj.getDimLength('X');
+            obj.MetaData.SizeY = obj.getDimLength('Y');
+            obj.MetaData.SizeC = obj.getDimLength('C');
+            obj.MetaData.SizeZ = obj.getDimLength('Z');
+            obj.MetaData.SizeT = obj.getDimLength('T');
+        end
+        
+        
         function data = getData(obj, subs)
              
             % Todo, use readFrames, not readData. And resolve which
@@ -217,17 +264,28 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 data = obj.getDataUsingCache(subs);
             else
                 data = obj.readData(subs);
-                %data = obj.readFrames(subs);
+                % data = obj.readFrames(subs);
             end
             
-            if ~all( size(data, [1,2]) == cellfun(@numel, subs(1:2) ) )
+            % This is a backup solution in case some virtualarray
+            % subclasses does not crop the first two dimension (because 
+            % the whole frame has to be read into memory). Todo: better
+            % design needed.
+            
+            isColon = cellfun(@(c) isequal(c, ':'), subs(1:2));
+            doCrop = ~all( size(data, [1,2]) == cellfun(@numel, subs(1:2)) );
+            if ~isColon && doCrop
                 subs(3:end) = {':'}; % Only subindex along x-y dimension here.
                 data = data(subs{1:ndims(data)});
             end
-                
+            
         end
         
         function setData(obj, subs, data)
+            
+            if ~strcmp(obj.FILE_PERMISSION, 'write')
+                error('No write permission for %s', builtin('class', obj))
+            end
             
             % Are any of these frames found in the cache?
             if obj.HasCachedData
@@ -302,7 +360,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             
             % Todo: What if data is in different order....
             if isequal(hitInd, frameIndices)
-                data = cachedData;
+                data = cachedData(subs{1:end-1}, ':');
                 return
             end
             
@@ -324,7 +382,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             end
             
             if isequal(missInd, frameIndices)
-                data = uncachedData;
+                data = uncachedData(subs{1:end-1}, ':');
                 return
             end
                         
@@ -335,7 +393,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             dataFrameIndices = [hitInd, missInd];
             
             if isequal(dataFrameIndices, frameIndices)
-                return
+                % pass
             else
                 [~, ~, iB] = intersect(frameIndices, dataFrameIndices);
                 tmpSubs = [ repmat({':'}, 1, sampleDim-1), {iB} ];
@@ -343,7 +401,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             end
             
             data = data(subs{1:end-1}, ':');
-
             
         end
         

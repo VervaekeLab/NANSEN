@@ -1,9 +1,11 @@
-
 % Class for indexing data from a binary file in the same manner that data 
 % is indexed from matlab arrays.
 
 classdef Binary < nansen.stack.data.VirtualArray
-
+%Binary Create a virtual data adapter for a binary file.
+%
+% NOTE: Currently assumes that data in binary file is a 3d stack. This
+% should be changed to full support for 5D stacks
     
     % Todo: 
     %   [ ] Generalize.
@@ -15,14 +17,14 @@ classdef Binary < nansen.stack.data.VirtualArray
     
     %   [x] Add list of file formats, i.e .raw and .bin??
     
-properties (Hidden, Constant)
+properties (Constant, Hidden)
+    FILE_PERMISSION = 'write'
     FILE_FORMATS = {'RAW', 'BIN'} 
 end
-    
+
 properties (Access = private, Hidden)
     MemMap
 end
-
 
 methods % Structors
     
@@ -83,12 +85,15 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function getFileInfo(obj)
-        
-        obj.MetaData = obj.readinifile();
+    %getFileInfo Get file info from metadata and assign to properties
+    
+        if ischar(obj.MetaData.Size) % Temp fix
+            obj.MetaData.Size = str2num(obj.MetaData.Size); %#ok<ST2NM>
+        end
 
-        obj.assignDataSize()
+        obj.assignDataSize() % Assign size related properties
         
-        obj.assignDataType()
+        obj.assignDataType() % Assign data type property
         
     end
     
@@ -138,7 +143,6 @@ methods (Access = protected) % Implementation of abstract methods
 end
 
 methods % Implementation of abstract methods
-
     
     function readFrames(obj) 	% defined in nansen.stack.data.VirtualArray
         % Todo
