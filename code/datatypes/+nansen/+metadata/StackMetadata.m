@@ -54,9 +54,7 @@ classdef StackMetadata < nansen.metadata.AbstractMetadata
                 return
             else
                 obj.assignFilepath(filePath)
-                if isfile(obj.Filename)
-                    obj.readFromFile()
-                end
+                obj.readFromFile()
             end
         end
         
@@ -128,22 +126,16 @@ classdef StackMetadata < nansen.metadata.AbstractMetadata
             % Todo: Turn 0.001 second into 1 microsecond etc.
         end
         
-        function assignFilepath(obj, filepath)
-        %assignFilepath Assign filepath for accompanying metadata file
-            [filepath, name, ~] = fileparts(filepath);
-            obj.Filename = fullfile(filepath, [name, '.ini']);
-        end
-        
         function readFromFile(obj)
             if isempty(obj.Filename); return; end
-            obj.ini2yaml(obj.Filename)
+            %obj.ini2yaml(obj.Filename) 
             readFromFile@nansen.metadata.AbstractMetadata(obj)
         end
 
         function writeToFile(obj)
             if isempty(obj.Filename); return; end
             writeToFile@nansen.metadata.AbstractMetadata(obj)
-            obj.yaml2ini(obj.Filename)
+            %obj.yaml2ini(obj.Filename)
         end
         
         function addSectionToMetadata(obj, S, sectionName)
