@@ -585,7 +585,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
         
             params = struct();
-            params.CreateVirtualOutput = false;
+            params.SaveToFile = false;
             params.UseTransientVirtualStack = true;
             params.FilePath = '';
             params.OutputDataType = 'same';
@@ -605,8 +605,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             % Determine if we need to save data to file
-            if obj.IsVirtual && numFramesFinal > chunkLength 
-                params.CreateVirtualOutput = true;
+            if obj.IsVirtual && numFramesFinal > chunkLength
+                if ~params.SaveToFile
+                    params.UseTransientVirtualStack = true;
+                end
+                params.SaveToFile = true;
             end
             
             % Create a new ImageStack object, which is an instance of a
@@ -616,14 +619,18 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % Get indices for different parts/blocks
             [IND, numChunks] = obj.getChunkedFrameIndices(chunkLength);
             
-            % Todo: Should this be commented out or not??
+            % Check metadata to see if stack is already downsampled
+            if downsampledStack.MetaData.Downsampling.IsCompleted
+                return
+            end
             
-            % Todo: Make this more efficient. Ie. should tag ini-file if
-            % data is already downsampled
+            % Check data to see if stack is already downsampled
             if nansen.stack.ImageStack.isStackComplete(downsampledStack, numChunks)
+                
                 if params.Verbose
                     fprintf('Downsampled stack already exists.\n')
                 end
+                downsampledStack.MetaData.Downsampling.IsCompleted = true;
                 return % Data is already downsampled...
             end            
             
@@ -645,6 +652,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 if useWaitbar
                     waitbar(iPart/numChunks, 'Downsampling image stack')
                 end
+            end
+            
+            downsampledStack.MetaData.Downsampling.IsCompleted = true;
+            
+            if ~nargout
+                clear(downsampledStack)
             end
             
         end
