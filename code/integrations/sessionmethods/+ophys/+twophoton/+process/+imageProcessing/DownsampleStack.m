@@ -38,7 +38,8 @@ function varargout = DownsampleStack(sessionObject, varargin)
     n = params.DownsamplingFactor;
     binMethod = params.BinningMethod;
     
-    imageStack.downsampleT(n, binMethod, 'SaveToFile', true);
+    options = {'SaveToFile', true, 'UseTransientVirtualStack', false};
+    imageStack.downsampleT(n, binMethod, options{:});
 
 end
 

@@ -908,7 +908,7 @@ end
 function props2prefs(obj)
     
     [~, groupName, ~] = fileparts(mfilename('fullpath'));
-    propNames = scalebar.STYLE_PROPS;
+    propNames = uim.illustration.scalebar.STYLE_PROPS;
     
     for i = 1:numel(propNames)
         setpref(groupName, propNames{i}, obj.(propNames{i}))
@@ -919,7 +919,7 @@ end
 function nvPairs = prefs2props()
     
     [~, groupName, ~] = fileparts(mfilename('fullpath'));
-    propNames = scalebar.STYLE_PROPS;
+    propNames = uim.illustration.scalebar.STYLE_PROPS;
     % todo: get from mc...
     defaultValues = {12, 'normal', 1, 'k', 'southeast', 'Helvetica Neue'};
     prefValues = cell(1, numel(propNames));

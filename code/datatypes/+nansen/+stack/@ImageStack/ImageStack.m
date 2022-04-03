@@ -657,7 +657,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             downsampledStack.MetaData.Downsampling.IsCompleted = true;
             
             if ~nargout
-                clear(downsampledStack)
+                clear downsampledStack
             end
             
         end
