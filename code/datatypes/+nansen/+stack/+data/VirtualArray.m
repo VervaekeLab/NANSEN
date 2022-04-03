@@ -137,12 +137,16 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function delete(obj)
-            obj.writeMetadata()
+        %delete Delete VirtualArray object.        
             
-            if obj.IsTransient
+            obj.writeMetadata() % Save metadata
+
+            if obj.IsTransient % Delete files
+                obj.MetaData.deleteFile()
                 delete( obj.FilePath )
             end
         end
+        
     end
     
     methods % Set methods for properties
@@ -202,7 +206,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         
         function writeMetadata(obj)
         %writeMetadata Write metadata for stack.    
-            if strcmp(obj.FILE_PERMISSION, 'write')
+            if strcmp(obj.FILE_PERMISSION, 'write') && ~obj.IsTransient
                 obj.MetaData.writeToFile()
             else
                 % Skip
@@ -272,7 +276,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             % the whole frame has to be read into memory). Todo: better
             % design needed.
             
-            isColon = cellfun(@(c) isequal(c, ':'), subs(1:2));
+            isColon = all( cellfun(@(c) isequal(c, ':'), subs(1:2)) );
             doCrop = ~all( size(data, [1,2]) == cellfun(@numel, subs(1:2)) );
             if ~isColon && doCrop
                 subs(3:end) = {':'}; % Only subindex along x-y dimension here.
