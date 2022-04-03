@@ -23,7 +23,7 @@ classdef ImageStackData < uim.mixin.assignProperties
     end
        
     properties (SetAccess = protected) % Size and type of original data
-        MetaData nansen.metadata.StackMetadata
+        MetaData nansen.stack.metadata.StackMetadata
         DataSize                        % Length of each dimension of the original data array
         DataType                        % Data type for the original data array
     end

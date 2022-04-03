@@ -239,9 +239,9 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         function initializeMetaData(obj)
         %initializeMetaData Initialize metadata for imagestack data    
             if strcmp(obj.FILE_PERMISSION, 'write')
-                obj.MetaData = nansen.metadata.StackMetadata(obj.FilePath);
+                obj.MetaData = nansen.stack.metadata.StackMetadata(obj.FilePath);
             else
-                obj.MetaData = nansen.metadata.StackMetadata();
+                obj.MetaData = nansen.stack.metadata.StackMetadata();
             end
         end
         

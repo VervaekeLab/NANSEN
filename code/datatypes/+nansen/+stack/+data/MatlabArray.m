@@ -15,7 +15,7 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
         function obj = MatlabArray(dataArray, varargin)
             obj.DataArray = dataArray;
             
-            obj.MetaData = nansen.metadata.StackMetadata();
+            obj.MetaData = nansen.stack.metadata.StackMetadata();
             
             obj.assignDataSize()
             obj.assignDataType()

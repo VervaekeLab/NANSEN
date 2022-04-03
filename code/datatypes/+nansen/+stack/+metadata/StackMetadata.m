@@ -1,4 +1,4 @@
-classdef StackMetadata < nansen.metadata.AbstractMetadata
+classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
 %ImageMetadata Class representing metadata for an imagestack   
     
     % A stack can be 2D to 5D arrays consisting of data of minimum 2
@@ -65,13 +65,13 @@ classdef StackMetadata < nansen.metadata.AbstractMetadata
         function sampleRate = get.SampleRate(obj)
             
             if contains( obj.TimeIncrementUnit, 'second')
-                prefix = strrep(obj.TimeIncrementUnit, 'second', '');
-                if ~isempty(prefix)
-                    prefix = nansen.metadata.SIUnitPrefix(prefix);
-                    timeStep = prefix.getValue(obj.TimeIncrement);
-                else
+%                 prefix = strrep(obj.TimeIncrementUnit, 'second', '');
+%                 if ~isempty(prefix)
+%                     prefix = nansen.dataio.metadata.SIUnitPrefix(prefix);
+%                     timeStep = prefix.getValue(obj.TimeIncrement);
+%                 else
                     timeStep = obj.TimeIncrement;
-                end
+%                 end
                 sampleRate = 1 / timeStep;
             else
                 sampleRate = nan;
@@ -129,12 +129,12 @@ classdef StackMetadata < nansen.metadata.AbstractMetadata
         function readFromFile(obj)
             if isempty(obj.Filename); return; end
             %obj.ini2yaml(obj.Filename) 
-            readFromFile@nansen.metadata.AbstractMetadata(obj)
+            readFromFile@nansen.dataio.metadata.AbstractMetadata(obj)
         end
 
         function writeToFile(obj)
             if isempty(obj.Filename); return; end
-            writeToFile@nansen.metadata.AbstractMetadata(obj)
+            writeToFile@nansen.dataio.metadata.AbstractMetadata(obj)
             %obj.yaml2ini(obj.Filename)
         end
         
@@ -176,7 +176,7 @@ classdef StackMetadata < nansen.metadata.AbstractMetadata
     methods (Access = protected)
         
         function S = toStruct(obj)
-            S = toStruct@nansen.metadata.AbstractMetadata(obj);
+            S = toStruct@nansen.dataio.metadata.AbstractMetadata(obj);
             datestrFormat = 'YYYY_MM_DD_HH_MM_SS_sss';
             S.StartTime = datestr(S.StartTime, datestrFormat);
         end
@@ -208,7 +208,7 @@ classdef StackMetadata < nansen.metadata.AbstractMetadata
                 S.FrameTimes = cell2mat(S.FrameTimes);
             end
             
-            fromStruct@nansen.metadata.AbstractMetadata(obj, S, propertyNames)
+            fromStruct@nansen.dataio.metadata.AbstractMetadata(obj, S, propertyNames)
         end
         
         function propertyNames = getPropertyNames(obj)
