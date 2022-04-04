@@ -18,6 +18,10 @@ classdef VariableModelUI < applify.apptable
         VariableModel
     end
     
+    properties (Dependent)
+        FileAdapterList
+    end
+    
     properties % Toolbar button...
         UIButton_AddVariable
         UIButton_ToggleVariableVisibility
@@ -158,8 +162,9 @@ classdef VariableModelUI < applify.apptable
                 end
 
                 hRow.FileTypeSelect.Value = rowData.FileType;
-
             end
+            
+            hRow.FileTypeSelect.ValueChangedFcn = @obj.onFileTypeChanged;
             
            % Create FileAdapter Dropdown
             i = i+1;
@@ -171,7 +176,7 @@ classdef VariableModelUI < applify.apptable
             hRow.FileAdapterSelect.Position = [xi y wi h];
             obj.centerComponent(hRow.FileAdapterSelect, y)
             
-            hRow.FileAdapterSelect.Items = {'Default', 'ImageStack'};
+            hRow.FileAdapterSelect.Items = {obj.FileAdapterList.FileAdapterName};
             
             if ~contains(rowData.FileAdapter, hRow.FileAdapterSelect.Items)
             
@@ -184,6 +189,8 @@ classdef VariableModelUI < applify.apptable
             else
                 hRow.FileAdapterSelect.Value = rowData.FileAdapter;
             end
+            
+            hRow.FileAdapterSelect.ValueChangedFcn = @obj.onFileAdapterChanged;
             
         end
         
@@ -220,6 +227,70 @@ classdef VariableModelUI < applify.apptable
             obj.updateFileTypeDropdownItems(rowNumber)
             
             obj.IsDirty = true;
+        end
+        
+        function onFileTypeChanged(obj, src, evt)
+        %onFileTypeChanged Callback for filetype selection changed
+        
+            % Get row number where filetype was changed
+            rowNumber = obj.getComponentRowNumber(src);
+            hRow = obj.RowControls(rowNumber);
+            
+            % Get the selected filetype
+            fileType = hRow.FileTypeSelect.Value;
+            fileType = strrep(fileType, '.', '');
+            
+            % Find file adapters that supports the filetype.
+            fileAdapterList = obj.FileAdapterList;
+            
+            matchesFiletype = cellfun(@(c) any(strcmp(fileType, c)), ...
+                {fileAdapterList.SupportedFileTypes}, 'uni', 1);
+            
+            % Update the list of file adapters available for this filetype
+            if any(matchesFiletype)
+                fileAdapterNames = {fileAdapterList(matchesFiletype).FileAdapterName};
+                
+                hRow.FileAdapterSelect.Items = fileAdapterNames;
+
+                if ~contains(hRow.FileAdapterSelect.Value, fileAdapterNames)
+                    hRow.FileAdapterSelect.Value = fileAdapterNames{1};
+                end
+                
+            else
+                hRow.FileAdapterSelect.Items = {'N/A'};
+                hRow.FileAdapterSelect.Value = 'N/A';
+            end
+            
+        end
+        
+        function onFileAdapterChanged(obj, src, evt)
+        %onFileAdapterChanged Callback for file adapter selection changed
+            
+            % Get row number where file adapter was changed
+            rowNumber = obj.getComponentRowNumber(src);
+            hRow = obj.RowControls(rowNumber);
+            
+            % Get the selected filetype for this row
+            fileType = hRow.FileTypeSelect.Value;
+            fileType = strrep(fileType, '.', '');
+
+            % Check if the current file adapter selection is supporting
+            % this filetype
+            newValue = evt.Value;
+            fileAdapterList = obj.FileAdapterList;
+            isMatch = strcmp({fileAdapterList.FileAdapterName}, newValue);
+            
+            % Reset the file adapter selection if filetype is not supported
+            if any(strcmp(fileAdapterList(isMatch).SupportedFileTypes, fileType))
+                % pass
+            else 
+                hFig = ancestor(obj.Parent, 'figure');
+                allowedFileTypes = strcat('.', fileAdapterList(isMatch).SupportedFileTypes);
+                supportedFileTypes = strjoin(allowedFileTypes, ', ');
+                uialert(hFig, sprintf('The file adapter "%s" supports the following file types: %s', newValue, supportedFileTypes), 'Selection Aborted')
+                src.Value = evt.PreviousValue;
+            end
+            
         end
         
         function pathStr = getSelectedDataLocationFolderPath(obj, rowNumber)
@@ -375,6 +446,10 @@ classdef VariableModelUI < applify.apptable
             obj.onVariableModelSet();
         end
         
+        function fileAdapterList = get.FileAdapterList(obj)
+            fileAdapterList = nansen.dataio.listFileAdapters();
+        end
+        
         function setDataLocationSelectionDropdownValues(obj, hRow, rowData)
             
             hRow.DataLocSelect.Items = {obj.DataLocationModel.Data.Name}; % Todo: Where to get this from?
@@ -431,14 +506,10 @@ classdef VariableModelUI < applify.apptable
         end
         
         function S = getUpdatedTableData(obj)
-                        
-            S = struct('VariableName', {}, ...
-                'IsDefaultVariable', {}, ...
-                'FileNameExpression', {}, ...
-                'DataLocation', {}, ...
-                'FileType', {}, ...
-                'FileAdapter', {}) ;
             
+            
+            fileAdapterList = obj.FileAdapterList;
+
             % Todo: debug this (important)!
             S = obj.Data;
             
@@ -457,6 +528,13 @@ classdef VariableModelUI < applify.apptable
                 S(j).DataLocation = hRow.DataLocSelect.Value;
                 S(j).FileType = hRow.FileTypeSelect.Value;
                 S(j).FileAdapter = hRow.FileAdapterSelect.Value;
+                
+                % Update data type based on fileadapter selection
+                isMatch = strcmp({fileAdapterList.FileAdapterName}, S(j).FileAdapter);
+                if any(isMatch) && ~strcmp( S(j).FileAdapter, 'Default' )
+                    S(j).DataType = fileAdapterList(isMatch).DataType;
+                end
+                
             end
             
         end
