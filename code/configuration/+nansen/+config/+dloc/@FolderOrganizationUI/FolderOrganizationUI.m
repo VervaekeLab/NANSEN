@@ -187,11 +187,11 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.centerComponent(hRow.SubfolderTypeDropdown, y)
             hRow.SubfolderTypeDropdown.ValueChangedFcn = @obj.subFolderTypeChanged;
             
-            hRow.SubfolderTypeDropdown.Items = {'Date', 'Animal', 'Session', 'Other'};
+            hRow.SubfolderTypeDropdown.Items = {'Select type', 'Date', 'Animal', 'Session', 'Other'};
             
             if isempty(rowData.Type)
-                hRow.SubfolderTypeDropdown.Value = 'Date';
-                obj.Data(rowNum).Type = 'Date';
+                hRow.SubfolderTypeDropdown.Value = 'Select type';
+                obj.Data(rowNum).Type = '';
             else
                 hRow.SubfolderTypeDropdown.Value = rowData.Type;
             end
@@ -760,6 +760,10 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 
                 S(j).Name = obj.RowControls(j).SubfolderDropdown.Value;
                 S(j).Type = obj.RowControls(j).SubfolderTypeDropdown.Value;
+                
+                if strcmp(S(j).Type, 'Select type')
+                    S(j).Type = '';
+                end
                 
                 inputExpr = obj.RowControls(j).DynamicRegexp.Value;
 
