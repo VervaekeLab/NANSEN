@@ -41,6 +41,7 @@ classdef StorableCatalog < handle
 %       [ ] addpref and removepref methods
 %       [ ] Add mode for saving changes immediately or not. I.e when
 %           working with table on command line versus in app...
+%       [ ] Property flag for whether items should be assigned uuids or not
 
 % Questions:
 %     - Should data be a struct or a table?
@@ -69,7 +70,6 @@ classdef StorableCatalog < handle
     properties (SetAccess = protected)
         FilePath char   % Filepath where current table is archived
     end
-    
     
     properties (Access = protected) % Might be better id this is dependent... (no need to explicity update)
         ItemNames       % Name of all items in archive
@@ -178,6 +178,11 @@ classdef StorableCatalog < handle
         
         function refresh(obj)
             obj.reloadDefault()
+        end
+        
+        function restoreCatalog(obj, structCatalog)
+            obj.Preferences = structCatalog.Preferences;
+            obj.Data = structCatalog.Data;
         end
         
         function S = initialize(obj)
@@ -381,8 +386,15 @@ classdef StorableCatalog < handle
             obj.Data = dataStruct; 
         end
         
+        function S = getBackupCatalog(obj)
+            S = obj.toStruct();
+        end
+        
+        function tf = isequal(obj, catalogStruct)
+            S = obj.toStruct();
+            tf = isequal(S, catalogStruct);
+        end
     end
-    
     
     methods (Access = protected)
         
@@ -405,7 +417,12 @@ classdef StorableCatalog < handle
         
             % Assumes the "Name" is the second fieldname. Todo: generalize
             fieldNames = fieldnames(obj.Data);
-            idName = fieldNames{2};
+            
+            if strcmp(fieldNames{1}, 'Uuid')
+                idName = fieldNames{2};
+            else
+                idName = fieldNames{1};
+            end
             
             assertMsg = 'Expected leading tablevariable to be name of item';
             assert(contains(lower(idName), 'name'), assertMsg)
@@ -425,6 +442,11 @@ classdef StorableCatalog < handle
         end
         
         function fromStruct(obj, S)
+            assert(isfield(S, 'Preferences'), 'Catalog must have Preferences')
+            assert(isfield(S, 'Data'), 'Catalog must have Data')
+            
+            % Todo: Make sure all the fieldnames are the same.
+            
             obj.Data = S.Data;
             obj.Preferences = S.Preferences;
         end
@@ -477,7 +499,6 @@ classdef StorableCatalog < handle
         end
         
     end
-
     
     methods (Static)
         
