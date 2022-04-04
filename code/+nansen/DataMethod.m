@@ -21,6 +21,8 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
     
     properties (Access = protected)
         DataIoModel
+        Parameters % Todo: Resolve: Same as options...
+
     end
     
     methods (Static)
@@ -50,17 +52,21 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
             %obj@nansen.dataio.DataIoModel(varargin{1})
             obj.DataIoModel = varargin{1};
             
-            
         end
     end
     
     methods (Access = public) % Todo: Use methods of hasOptions superclass
         
-        function preview_workinprogress(obj)
+        function wasSuccess = preview(obj) %_workinprogress(obj)
             %Todo: Combine this with methods that are already present in
             %some subclasses (motion correction / auto segmentation)
             
-            obj.editOptions()
+            [~, wasAborted] = obj.editOptions();
+            wasSuccess = ~wasAborted;
+
+            if wasSuccess
+                obj.Parameters = obj.OptionsManager.Options;
+            end
         end
         
     end
