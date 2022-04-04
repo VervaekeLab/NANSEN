@@ -138,6 +138,7 @@ properties (Access = private) % Private components (todo: clean up)
     hDropbox2
     hThumbnail 
 
+    Annotation
 
     textStrings = struct('CurrentFrame', '', 'Resolution', '', 'CursorPoint', '', 'Status', '');
         
@@ -452,10 +453,6 @@ methods % App initialization & creation
 
         obj.uiwidgets.msgBox = uim.widget.messageBox(obj.uiaxes.imdisplay);
         %obj.displayMessage('Initializing...')
-        
-        global fprintf
-        fprintf = @(msg, nSec) obj.uiwidgets.msgBox.displayMessage(msg, 1);
-        
         
         % Initialize the pointer interface.
         pif = uim.interface.pointerManager(obj.Figure, obj.uiaxes.imdisplay, {'zoomIn', 'zoomOut', 'pan'});
@@ -842,7 +839,6 @@ methods % App initialization & creation
     
     function createThumbnailViewerToggleButton(obj)
                         
-                
         hButton = uim.control.Button_(obj.Panel, ...
             'Icon', obj.ICONS.show_sidebar, ...
             'IconSize', [20, 20], ...
@@ -1019,6 +1015,12 @@ methods % App initialization & creation
             tmpItem.Callback = @obj.changeColormap;
         end
         
+        mitem = uimenu(m, 'Label', 'Show Scalebar');
+        mitem.Callback = @(s, e) obj.showScalebar();
+
+        mSubItem = uimenu(m, 'Text', 'Edit Stack Properties', 'Enable', 'on', 'Separator', 'on');
+        mSubItem.Callback = @(s,e)obj.uiEditStackMetadata;
+        
         mitem = uimenu(m, 'Label', 'Calculate Projection', 'Separator', 'on');
         projectionPackage = {'stack','zproject'};
         
@@ -1045,7 +1047,6 @@ methods % App initialization & creation
         mitem = uimenu(m, 'Label', 'Downsample Stack');
         mitem.Callback = @(s, e) obj.createDownsampledStack();
 
-        
         
         mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');            
             tmpItem = uimenu(mitem, 'Label', 'NoRMCorre', 'Enable', 'on');
@@ -1144,6 +1145,9 @@ methods % App initialization & creation
                 ~isvalid(obj.uiwidgets.thumbnailSelector.Figure) 
             %try
                 
+            imageDragAndDropState = obj.ImageDragAndDropEnabled;
+            obj.ImageDragAndDropEnabled = false;
+            
             obj.uiwidgets.thumbnailSelector = struct.empty;
             
             if showMessage
@@ -1268,6 +1272,8 @@ methods % App initialization & creation
             if showMessage
                 obj.clearMessage()
             end
+            
+            obj.ImageDragAndDropEnabled = imageDragAndDropState;
             
 %             catch
 %                 try
@@ -1729,9 +1735,7 @@ methods % App update
         showBinning = ~strcmpi(obj.imageDisplayMode.binning, 'none');
 
         if showProjection
-            global fprintf %#ok<TLEV>
-            fprintf = @(msg)obj.uiwidgets.msgBox.displayMessage(msg);
-            C = onCleanup(@obj.resetFprintfToBuiltin);
+            C = activateGlobalMessageDisplay(obj);
             
             projectionName = obj.imageDisplayMode.projection;
             obj.image = obj.ImageStack.getFullProjection(projectionName);
@@ -1814,8 +1818,7 @@ methods % App update
             otherwise
                 hFcn = str2func(sprintf('stack.process.filter2.%s', filterName));
         end
-    end
-    
+    end   
     
     function imageOut = setChColors(obj, image)
     % Creates an rgb frame based on channel color settings
@@ -1874,7 +1877,7 @@ methods % App update
                 lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^8;
             case 'uint16'
                 lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^16;
-            case 'int16'
+            case 'int16' %#%&$#
                 lowhigh_in = (obj.settings.ImageDisplay.imageBrightnessLimits+2^15) /2^16;
             case {'single', 'double'}
                 cLim = obj.settings.ImageDisplay.imageBrightnessLimits;
@@ -1895,15 +1898,35 @@ methods % App update
             im = imrotate(im, obj.imTheta, 'bicubic', 'crop');
         end
         
+        
+        % Todo: Make method to determine if colormap of channel coloring
+        % shouldbe applied. Use this method also in changeBrightness
+        
+        displayChannelColors = false;
+        
         % Adjust the image color and brightness if image is truecolor
         if (size(im, 3) > 1 || obj.ImageStack.NumChannels > 1) && strcmp(obj.ImageStack.ColorModel, 'Grayscale')
             im = mean(im, 3);
-        elseif size(im, 3) > 1 && obj.ImageStack.NumChannels > 1
+            
+            % Todo: If numel(obj.CurrentChannel) == 1, there should be an
+            % option to show the original channel color or use a colormap
+            
+        elseif obj.ImageStack.NumChannels > 1 && numel(obj.ImageStack.CurrentChannel) == 1
+%             if obj.settings.UsePseudoMapForSingleChannel
+%                 displayChannelColors = false;
+%             else
+                displayChannelColors = true;
+%             end
+        elseif obj.ImageStack.NumChannels > 1 && numel(obj.ImageStack.CurrentChannel) > 1
+            displayChannelColors = true;
+        end
+        
+        if displayChannelColors
             im = obj.setChColors(im);
             im = adjustMultichannelImage(obj, im);
         end
         
-         
+        
         % Create or update the image object
         if isempty(obj.imObj) 
             hold(obj.uiaxes.imdisplay, 'on')
@@ -1981,7 +2004,7 @@ methods % App update
         obj.currentFrameNo = 1;
     end
     
-    function activateGlobalMessageDisplay(obj, mode)
+    function C = activateGlobalMessageDisplay(obj, mode)
         
         if nargin < 2
             mode = 'update';
@@ -1996,6 +2019,14 @@ methods % App update
                 fprintf = @(varargin)obj.uiwidgets.msgBox.displayMessage(varargin{:});
         end
         
+        C = onCleanup(@obj.deactivateGlobalMessageDisplay);
+        
+    end
+    
+    function deactivateGlobalMessageDisplay(obj)
+        global fprintf
+        fprintf = str2func('fprintf');
+        obj.uiwidgets.msgBox.clearMessage()
     end
     
     function updateMessage(obj, message, varargin)
@@ -2403,8 +2434,10 @@ methods % Event/widget callbacks
         filterFunc = str2func(strcat('stack.process.filter2.',filterName));
         param = filterFunc();
         
-        titleStr = sprintf('Set Parameters for %s', filterName);
-        param = tools.editStruct(param, '', titleStr, 'TestFunc', @(param) obj.updatePreview(param));
+        titleStr = sprintf('Set parameters for %s', filterName);
+        param = tools.editStruct(param, '', titleStr, ...
+            'Prompt', [titleStr, ':'], ...
+            'TestFunc', @(param) obj.updatePreview(param));
         
         obj.imageDisplayMode.filter = filterName;
         obj.imageDisplayMode.filterParam = param;
@@ -2539,13 +2572,31 @@ methods % Event/widget callbacks
                 
     end
 
+    function showScalebar(obj)
+        
+        if isfield(obj.Annotation, 'Scalebar')
+            props = {'FontSize', 'FontWeight', 'LineWidth', 'Color', 'Location', 'FontName'};
+            values = cellfun(@(p) obj.Annotation.Scalebar.(p), props, 'uni', 0);
+            pvPairs = cat(1, props, values);
+            delete(obj.Annotation.Scalebar)
+        else
+            pvPairs = {'Location', 'southeast'};%, 'Color', ones(1,3)*0.9};
+        end
+        
+        conversionFactor = obj.ImageStack.MetaData.PhysicalSizeX;
+        label = obj.ImageStack.MetaData.PhysicalSizeXUnit;
+        
+        h = uim.illustration.scalebar(obj.Axes, 'x', 100, label, ...
+            'ConversionFactor', conversionFactor, pvPairs{:});
+        
+        obj.Annotation.Scalebar = h;
+    end
 end
 
 methods % Handle user actions
     function calculateProjection(obj, funcName)
-        global fprintf
-        fprintf = @(msg)obj.uiwidgets.msgBox.displayMessage(msg);
-        C = onCleanup(@obj.resetFprintfToBuiltin);
+        
+        C = obj.activateGlobalMessageDisplay(); % Will reset when C is cleared
         
         % todo: Should messagebox.displayMessage accept varargin that will
         % be formatted as in fprintf or sprintf?
@@ -2596,8 +2647,6 @@ methods % Handle user actions
         % Update some parameters from the image stack method:
         params.UseTransientVirtualStack = ~params.SaveToFile;
         params.OutputDataType = 'same';
-        params.CreateVirtualOutput = params.SaveToFile;
-        
         
         % Todo: Specify that this will take a while if stack is large...
         
@@ -2788,7 +2837,7 @@ methods % Misc, most can be outsourced
         viewerNames = {'StackViewer', 'imviewer', 'Signal Viewer', 'Roi Classifier'};
         
         hApp = obj.uiSelectViewer(viewerNames, obj.Figure);
-        obj.linkprop(hApp, 'currentFrameNo')
+        obj.linkprop(hApp, 'currentFrameNo', true)
         
     end
     
@@ -2801,7 +2850,7 @@ methods % Misc, most can be outsourced
         
     end
     
-    function linkprop(obj, externalGuiHandle, prop)
+    function linkprop(obj, externalGuiHandle, prop, showIndicator)
     %linkprop Link properties with external guis, so that update to
     %property is applied in all linked guis.
     
@@ -2814,6 +2863,10 @@ methods % Misc, most can be outsourced
     
     if nargin < 3 || isempty(prop)
         prop = 'currentFrameNo';
+    end
+    
+    if nargin < 4 
+        showIndicator = false;
     end
     
     assert(strcmp(prop, 'currentFrameNo'), 'Currently only supports linking currentFrameNo property')
@@ -2835,15 +2888,18 @@ methods % Misc, most can be outsourced
     
     ax(1) = obj.Axes;
     ax(2) = externalGuiHandle.Axes;
-    h=gobjects(1,2);
-    for i = 1:3
-        for j = 1:2
-        	h(j) = plot(ax(j), ax(j).XLim([1,1,2,2,1]), ax(j).YLim([1,2,2,1,1]), 'g', 'LineWidth', 2);
+    
+    if showIndicator
+        h = gobjects(1,2);
+        for i = 1:3
+            for j = 1:2
+                h(j) = plot(ax(j), ax(j).XLim([1,1,2,2,1]), ax(j).YLim([1,2,2,1,1]), 'g', 'LineWidth', 2);
+            end
+            drawnow
+            pause(0.2)
+            delete(h)
+            pause(0.2)
         end
-        drawnow
-        pause(0.2)
-        delete(h)
-        pause(0.2)
     end
     
     
@@ -3039,6 +3095,8 @@ methods % Misc, most can be outsourced
     end
     
     function showThumbnailViewer(obj, srcButton)
+        
+        if obj.ImageStack.isDummyStack; return; end
         
         if ~isfield(obj.uiwidgets, 'thumbnailSelector') % Create widget on demand
             if isa(obj.ImageStack.Data, 'stack.io.fileadapter.Video')
@@ -3888,6 +3946,42 @@ methods % Misc, most can be outsourced
         obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
     end
 
+    function uiEditStackMetadata(obj)
+        
+        S = struct;
+        S.SpatialPosition = obj.ImageStack.MetaData.SpatialPosition;
+        S.PhysicalSize(1) = obj.ImageStack.MetaData.PhysicalSizeX;
+        S.PhysicalSize(2) = obj.ImageStack.MetaData.PhysicalSizeY;
+        S.PhysicalSize(3) = obj.ImageStack.MetaData.PhysicalSizeZ;
+        S.PhysicalUnits = obj.ImageStack.MetaData.getPhysicalUnits();
+        S.SampleRate = obj.ImageStack.getSampleRate();
+        
+        h = structeditor.App(S, 'Title', 'ImageStack Properties', ...
+            'Prompt', 'Set ImageStack Properties:');
+        h.waitfor()
+        
+        if ~h.wasCanceled
+            obj.ImageStack.MetaData.SampleRate = h.dataEdit.SampleRate;
+            obj.ImageStack.MetaData.SpatialPosition = h.dataEdit.SpatialPosition;
+            physSize = h.dataEdit.PhysicalSize;
+            if numel(h.dataEdit.PhysicalUnits) == 1
+                physUnits = strsplit(h.dataEdit.PhysicalUnits{1}, ', ');
+            else
+                physUnits = h.dataEdit.PhysicalUnits;
+            end
+            obj.ImageStack.MetaData.PhysicalSizeX = physSize(1);
+            obj.ImageStack.MetaData.PhysicalSizeY = physSize(2);
+            obj.ImageStack.MetaData.PhysicalSizeZ = physSize(3);
+            obj.ImageStack.MetaData.PhysicalSizeXUnit = physUnits{1};
+            obj.ImageStack.MetaData.PhysicalSizeYUnit = physUnits{2};
+            obj.ImageStack.MetaData.PhysicalSizeZUnit = physUnits{3};
+        end
+        
+        if isfield(obj.Annotation, 'Scalebar')
+            obj.showScalebar()
+        end
+        
+    end
     
 % % Plot tools % Move to a toolbox?
 
@@ -4362,7 +4456,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         if strcmp(obj.Figure.SelectionType, 'normal')
             obj.mouseDown = true;
         end
-                
+        % h = hittest();     
         global imviewerInstances
         
         isValid = arrayfun(@(h) isvalid(h.Figure), imviewerInstances.Handles);
@@ -4556,9 +4650,11 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         obj.mouseScrollCallbackHandler(src, evt)
     end
     
-    function onKeyPressed(obj, ~, event)
+    function onKeyPressed(obj, ~, event, forceKey)
         
-        if ~obj.isMouseInApp; return; end
+        if nargin < 4; forceKey = false; end
+        
+        if ~obj.isMouseInApp && ~forceKey; return; end
 
         % Todo: This only holds the pointermanager. Should make it into an
         % interface.., not a plugin. 
@@ -4579,14 +4675,15 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         
         if contains('shift', event.Modifier)
-            switch event.Key
-                
-                case 'f'
-                    obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Filter')
-                case 'p'
-                    obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Projection')
-                case 'b'
-                    obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Binning')
+            if isfield(obj.uiwidgets, 'thumbnailSelector')
+                switch event.Key
+                    case 'f'
+                        obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Filter')
+                    case 'p'
+                        obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Projection')
+                    case 'b'
+                        obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Binning')
+                end
             end
         end
         
@@ -5326,7 +5423,6 @@ methods (Static)
         hApp = getappdata(openFigures(figInd), 'ViewerObject');
     
     end
-    
     
     function pluginFcn = getPluginFcnFromName(pluginName)
         pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};
