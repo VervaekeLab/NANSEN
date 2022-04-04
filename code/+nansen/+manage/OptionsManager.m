@@ -119,6 +119,10 @@ classdef OptionsManager < handle
 % %         PresetOptionFinder nansen.manage.PresetOptionFinder
 % %     end
    
+    properties (Constant, Hidden)
+        SAVE_MODE = 'single_file' %'multiple_files' % 'multiple_files', 'single_file'
+    end
+
     properties (SetAccess = private)
         FunctionName char       % Name of function (or class)
         FunctionType char
@@ -220,10 +224,15 @@ classdef OptionsManager < handle
             obj.findPresetOptions()
             
             % Check if options file exists for the given function
-            if isfile(obj.FilePath)
-                obj.synchOptionsFromFile()
-            else
-                obj.initializeOptionsFile()
+            switch obj.SAVE_MODE
+                case 'single_file'
+                    if isfile(obj.FilePath)
+                        obj.synchOptionsFromFile()
+                    else
+                        obj.initializeOptionsFile()
+                    end
+                case 'multiple_files'
+                    error('Not implemented yet')
             end
             
             
@@ -405,19 +414,25 @@ classdef OptionsManager < handle
         function hOptionsEditor = openOptionsEditor(obj, optionsName, optsStruct)
         %openOptionsEditor Open options editor for current options.
         
-            if nargin < 2
+            if nargin < 2 || isempty(optionsName)
                 optionsName = obj.OptionsName;
             end
             
-            if nargin < 3
+            if nargin < 3 || isempty(optsStruct)
                 optsStruct = obj.getOptions(optionsName);
             end
+            
+            methodName = strsplit( obj.FunctionName, '.'); 
+            methodName = methodName{end};
         
-            titleStr = obj.getEditorTitle(obj.FunctionName);
-
+            titleStr = obj.getEditorTitle(methodName);
+            promptStr = sprintf('Set parameters for %s:', methodName);
+            
             hOptionsEditor = structeditor(optsStruct, ...
+                'OptionsManager', obj, ...
                 'Title', titleStr, ...
-                'OptionsManager', obj );
+                'Prompt', promptStr );
+            
             hOptionsEditor.changeOptionsSelectionDropdownValue(optionsName);
             
         end
@@ -453,7 +468,7 @@ classdef OptionsManager < handle
             else
                 optsStruct = sEditor.dataEdit;
             end
-                        
+            
             obj.Options = optsStruct;
             obj.OptionsName = optsName;
             
@@ -781,7 +796,7 @@ classdef OptionsManager < handle
         %   Find preset options for a function and assign them to the
         %   private property containing preset options. Check whether the
         %   found preset options match provided options or options in file.
-        
+
             if obj.FunctionTypeIdx == 0
                 if isempty(obj.Options)
                     error(['Options must be provided when creating an ', ...
@@ -792,6 +807,7 @@ classdef OptionsManager < handle
                 optionsEntry = obj.findPresetsFromFunction();
                 
             elseif obj.FunctionTypeIdx == 3 || obj.FunctionTypeIdx == 4
+
                 if obj.inheritOptionsFromSuperclass()
                     optionsEntry = obj.getPresetsFromSuperclass();
                 elseif obj.hasPresetPackage
@@ -802,7 +818,7 @@ classdef OptionsManager < handle
             else
                 error('Something went wrong!')
             end
-            
+                        
             % Make sure any options are present before continuing.
             if isempty(obj.Options) && isempty(optionsEntry)
                 error('Preset options were not found for %s', obj.FunctionName)
@@ -926,13 +942,21 @@ classdef OptionsManager < handle
             % Find the full path to where the function/package is located
             folderNames =  strsplit(obj.FunctionName, '.');
             s = what( fullfile(folderNames{1:end-1}) );
-            
+                        
             if isempty(s)
                 return
+            elseif numel(s) > 1
+                warning('Multiple instances of function "%s" was found on the path.')
+                % Note: If this happens when running a job on a parallell
+                % pool of workers, it might be necessary to reset the
+                % pool(?) by deleting it from Matlab's Job Monitor...
+                % (Restarting matlab did not fix it for me)
+                s = s(1);
+            else
+                % All good.
             end
-            
+
             tf = ~isempty(s.packages) && contains('presets', s.packages);
-            
         end
         
         function optionsEntry = findPresetsFromPresetsPackage(obj)
@@ -1056,6 +1080,17 @@ classdef OptionsManager < handle
             fileName = [fileName, '.mat'];
         end
         
+        function folderName = createFoldername(obj)
+        %createFilename Create a filename for the file containing presets
+            
+            if obj.inheritOptionsFromSuperclass()
+                folderName = obj.getOptionsDefiningSuperclassName();
+            else
+                folderName = obj.FunctionName;
+            end
+            
+        end
+        
         function filePath = createFilePath(obj)
         %assignFilePath Assign the filepath for the file containing presets
 
@@ -1068,10 +1103,15 @@ classdef OptionsManager < handle
                 location = 'project';
             end
             folderPath = obj.getOptionsDirectory(location);
-            fileName = obj.createFilename();
             
-            filePath = fullfile(folderPath, fileName);
-            
+            if strcmp(obj.SAVE_MODE, 'single_file')
+                fileName = obj.createFilename();
+                filePath = fullfile(folderPath, fileName);
+            elseif strcmp(obj.SAVE_MODE, 'multiple_files')
+                error('Not implemented yet')
+                %fileName = obj.createFoldername();
+                %filePath = fullfile(folderPath, fileName);
+            end
         end
         
         function initializeOptionsFile(obj)
@@ -1410,4 +1450,3 @@ classdef OptionsManager < handle
     end
 
 end
-
