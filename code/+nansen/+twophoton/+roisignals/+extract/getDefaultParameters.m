@@ -42,9 +42,15 @@ function [P, V] = getDefaultParameters()
     P.cellNeuropilSeparation    = 0;                    % "Safe zone" between a roi and a nuropil region (in pixels)
     P.numNeuropilSlices         = 1;                    % Number of neuropil slices to split each neuropil reigon in. Default = 1
     P.maxNeuropilRadius         = 50;                   % Maximum radius of neuropil region.
-    P.roiMaskFormat             = 'struct';             % Format to use when rois are prepared for signal extraction. Alternatives: 'sparse' | 'struct'. 
-    P.extractFcn                = [];                   % Function handle for function to use for extraction (If using different than inbuilt)
-        
+    P.roiMaskFormat             = 'struct';             % Format to use when rois are prepared for signal extraction. Alternatives: 'sparse' | 'struct'. (Should be internal...)
+    P.extractFcn                = [];                   % Function handle for function to use for extraction (If using different than inbuilt) (Should be internal..?)
+    
+    % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
+    P.roiInd_                   = 'internal';
+    P.imageMask_                = 'internal';
+    P.pixelComputationMethod_   = {'mean'};
+    P.roiMaskFormat_            = 'internal';
+    P.extractFcn_               = 'internal';
     
     % - - - - Specify validation/assertion test for each parameter - - - -
     
