@@ -399,6 +399,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Call method of ImageStackProcessor
             openTargetStack@nansen.stack.ImageStackProcessor(obj, filePath, stackSize, dataType)
             
+            % Inherit metadata from the source stack
+            obj.TargetStack.MetaData.updateFromSource(obj.SourceStack.MetaData)
+            
             % Make sure caching is turned off...
             obj.TargetStack.Data.UseDynamicCache = false;
 
