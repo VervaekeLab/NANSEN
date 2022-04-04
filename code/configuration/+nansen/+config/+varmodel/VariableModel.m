@@ -46,7 +46,9 @@ classdef VariableModel < utility.data.StorableCatalog
                 'Subfolder', '', ...
                 'FileNameExpression', '', ...
                 'FileType', '', ...
-                'FileAdapter', ''   );
+                'FileAdapter', '', ...
+                'DataType', '', ...
+                'GroupName', '' );
         end
         
         function S = getDefaultItem(varName)
@@ -143,6 +145,9 @@ classdef VariableModel < utility.data.StorableCatalog
                 dlModel = nansen.config.dloc.DataLocationModel();
             end
             
+            fileAdapterList = nansen.dataio.listFileAdapters();
+
+            
             for i = 1:numel(obj.Data)
                 if isempty( obj.Data(i).FileAdapter ) || strcmp(obj.Data(i).FileAdapter, str)
                     obj.Data(i).FileAdapter = 'Default';
@@ -153,6 +158,26 @@ classdef VariableModel < utility.data.StorableCatalog
                     dlItem = dlModel.getDataLocation(dlName);
                     obj.Data(i).DataLocationUuid = dlItem.Uuid;
                 end
+            end
+            
+            if ~isfield(obj.Data, 'DataType')
+                [obj.Data(:).DataType] = deal('');
+                for i = 1:numel(obj.Data)
+                    if ~strcmp(obj.Data(i).FileAdapter, 'Default')
+                        isMatch = strcmp({fileAdapterList.FileAdapterName}, obj.Data(i).FileAdapter);
+                        if any(isMatch)
+                            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+                            obj.Data(i).DataType = fileAdapterFcn().DataType;
+                        else
+                            % pass
+                        end
+                    end
+                end
+            end
+            
+            if ~isfield(obj.Data, 'GroupName')
+                [obj.Data(:).GroupName] = deal('');
+                
             end
             
         end
