@@ -41,16 +41,28 @@ function S = getAddonList()
     S(i).FunctionName = 'uiw.abstract.AppWindow';
     
     i = i + 1;
-    S(i).Name = 'CaImAn-Matlab';
-    S(i).Description = 'A Computational toolbox for large scale Calcium Imaging data Analysis';
-    S(i).IsRequired = false;
-    S(i).Type = 'Neuroscience';
+    S(i).Name = 'YAML-Matlab';
+    S(i).Description = 'Reading in and writing out a yaml file.';
+    S(i).IsRequired = true;
+    S(i).Type = 'General';
     S(i).Source = 'Github';
-    S(i).WebUrl = 'https://github.com/flatironinstitute/CaImAn-MATLAB';
-    S(i).DownloadUrl = 'https://github.com/flatironinstitute/CaImAn-MATLAB/archive/refs/heads/master.zip';
+    S(i).WebUrl = 'https://github.com/ewiger/yamlmatlab';
+    S(i).DownloadUrl = 'https://github.com/ewiger/yamlmatlab/archive/refs/heads/master.zip';
     S(i).HasSetupFile = false;
     S(i).SetupFileName = '';
-    S(i).FunctionName = 'CNMFSetParms';
+    S(i).FunctionName = 'yaml.WriteYaml';
+    
+    i = i + 1;
+    S(i).Name = 'TIFFStack';
+    S(i).Description = 'Package for creating virtual tiff stack (Used for ScanImage tiff files).';
+    S(i).IsRequired = false;
+    S(i).Type = 'General';
+    S(i).Source = 'Github';
+    S(i).WebUrl = 'https://github.com/DylanMuir/TIFFStack';
+    S(i).DownloadUrl = 'https://github.com/DylanMuir/TIFFStack/archive/refs/heads/master.zip';
+    S(i).HasSetupFile = false;
+    S(i).SetupFileName = '';
+    S(i).FunctionName = 'TIFFStack';
         
     i = i + 1;
     S(i).Name = 'EXTRACT';
@@ -76,16 +88,28 @@ function S = getAddonList()
     S(i).SetupFileName = '';
     S(i).FunctionName = 'normcorre_batch';
     
-% %     i = i + 1;
-% %     S(i).Name = 'Flow Registration';
-% %     S(i).Description = ' Optical Flow based correction for calcium imaging data';
-% %     S(i).IsRequired = false;
-% %     S(i).Type = 'Neuroscience';
-% %     S(i).Source = 'Github';
-% %     S(i).WebUrl = '';
-% %     S(i).DownloadUrl = '';
-% %     S(i).HasSetupFile = false;
-% %     S(i).SetupFileName = 'set_path';
-% %     S(i).FunctionName = 'OF_Options';
+    i = i + 1;
+    S(i).Name = 'Flow Registration';
+    S(i).Description = ' Optical Flow based correction for calcium imaging data';
+    S(i).IsRequired = false;
+    S(i).Type = 'Neuroscience';
+    S(i).Source = 'Github';
+    S(i).WebUrl = 'https://github.com/phflot/flow_registration';
+    S(i).DownloadUrl = 'https://github.com/phflot/flow_registration/archive/refs/heads/master.zip';
+    S(i).HasSetupFile = true;
+    S(i).SetupFileName = 'set_path';
+    S(i).FunctionName = 'OF_Options';
+    
+    i = i + 1;
+    S(i).Name = 'SEUDO';
+    S(i).Description = 'Calcium signal decontamination';
+    S(i).IsRequired = false;
+    S(i).Type = 'Neuroscience';
+    S(i).Source = 'Github';
+    S(i).WebUrl = 'https://github.com/adamshch/SEUDO';
+    S(i).DownloadUrl = 'https://github.com/adamshch/SEUDO/archive/refs/heads/master.zip';
+    S(i).HasSetupFile = false;
+    S(i).SetupFileName = '';
+    S(i).FunctionName = 'globalSEUDOWrapper.m';
 
 end
