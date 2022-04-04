@@ -39,9 +39,11 @@ classdef AbstractMetadata < dynamicprops
             end
         end
 
-        function writeToFile(obj)
+        function writeToFile(obj, S)
             if isempty(obj.Filename); return; end
-            S = obj.toStruct();
+            if nargin < 2
+                S = obj.toStruct();
+            end
             filepath = obj.getFilepathWrite();
             yaml.WriteYaml(filepath, S);
             
@@ -163,6 +165,7 @@ classdef AbstractMetadata < dynamicprops
                 end
             end
         end
+        
     end
     
     methods
