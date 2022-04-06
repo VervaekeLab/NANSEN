@@ -49,6 +49,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     
     properties
         RunMethodOnFinish = true    % Should we run method when settings/options are "saved"?
+        Modal = true
         OptionsManager              % Store optionsmanager handle if plugin is provided with an optionsmanager on construction
     end
     
@@ -68,7 +69,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
 
     methods % Constructor
         
-        function obj = AppPlugin(hApp, varargin)
+        function obj = AppPlugin(hApp, options, varargin)
 
             if ~nargin || isempty(hApp); return; end
             
@@ -80,14 +81,14 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             end
             
             % Assign options from input if provided
-            if nargin >= 2
-                obj.assignOptions(varargin{1})
+            if nargin >= 2 && ~isempty(options)
+                obj.assignOptions(options)
             else
                 obj.assignDefaultOptions()
             end
             
             if nargin > 2
-                obj.assignPVPairs(varargin{2:end})
+                obj.assignPVPairs(varargin{1:end})
             end
             
             if ~hApp.isPluginActive(obj)
@@ -158,6 +159,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             end
             
             obj.relocatePrimaryApp(sEditor) % To prevent figures covering each other
+            obj.hSettingsEditor = sEditor;
             
             addlistener(obj, 'ObjectBeingDestroyed', @(s,e)delete(sEditor));
         
@@ -167,26 +169,22 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         %editSettings Open and wait for user to edit settings.
         
             sEditor = obj.openSettingsEditor();
-            sEditor.waitfor()
-            
-            % Abort if sEditor is invalid (improper exit)
-            if ~isvalid(sEditor); return; end
 
-            if ~sEditor.wasCanceled
-                obj.settings = sEditor.dataEdit;
-            end
-            
-            obj.wasAborted = sEditor.wasCanceled;
-            delete(sEditor)
-            
-            obj.onSettingsEditorClosed()
-            
-            if ~obj.wasAborted && obj.RunMethodOnFinish
-                obj.run();
+            if obj.Modal
+                sEditor.waitfor()
+                obj.onSettingsEditorResumed()
+
+            else
+                % Todo: implement above in callback.
+                addlistener(sEditor, 'AppDestroyed', ...
+                        @(s, e) obj.onSettingsEditorResumed);
             end
 
         end
         
+        function place(obj, varargin)
+            obj.hSettingsEditor.place(varargin{:})
+        end
     end
     
     methods (Access = protected)
@@ -219,6 +217,27 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         
         function createSubMenu(obj)
             % Subclasses may override
+        end
+        
+        function onSettingsEditorResumed(obj)
+        %onSettingsEditorResumed Callback for when settings editor is resumed              
+            
+            % Abort if sEditor is invalid (improper exit)
+            if ~isvalid(obj.hSettingsEditor); return; end
+
+            if ~obj.hSettingsEditor.wasCanceled
+                obj.settings = obj.hSettingsEditor.dataEdit;
+            end
+
+            obj.wasAborted = obj.hSettingsEditor.wasCanceled;
+            delete(obj.hSettingsEditor)
+
+            obj.onSettingsEditorClosed()
+
+            if ~obj.wasAborted && obj.RunMethodOnFinish
+                obj.run();
+            end
+        
         end
         
         function onSettingsEditorClosed(obj)
