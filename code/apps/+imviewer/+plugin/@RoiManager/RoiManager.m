@@ -1149,6 +1149,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                 else
                     obj.SignalViewer = roisignalviewer.App(hPanel, obj.roiSignalArray);
                 end
+                obj.SignalViewer.ShowRoiSignalOptionsOnMenu = true;
                 
                 %obj.SignalViewer.Theme = signalviewer.theme.Dark;
                 
