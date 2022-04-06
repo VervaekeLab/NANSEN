@@ -64,7 +64,7 @@ function wasSuccess = createNewSessionMethod(app)
             fcnContentStr = strrep(fcnContentStr, expression, replacement);
             
         case 'SessionMethod Class'
-            fcnContentStr = strrep(fcnContentStr, 'MethodName = ''', sprintf('MethodName = ''%s''', S.MethodName));
+            fcnContentStr = strrep(fcnContentStr, 'MethodName = ''''', sprintf('MethodName = ''%s''', S.MethodName));
             switch lower( S.Input )
                 case 'single session'
                     % This is the default
@@ -77,6 +77,12 @@ function wasSuccess = createNewSessionMethod(app)
             if ~S.Queueable
                 expression = 'IsQueueable = true';
                 replacement = 'IsQueueable = false';
+                fcnContentStr = strrep(fcnContentStr, expression, replacement);
+                
+                % Todo: This is redeundant. Remove of fix according to
+                % intention.
+                expression = 'IsManual = false';
+                replacement = 'IsManual = true';
                 fcnContentStr = strrep(fcnContentStr, expression, replacement);
             end
             
