@@ -78,6 +78,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             % 3) Roi table 
             h = roimanager.RoiTable(obj.hPanels(3), obj.roiGroup);
+            h.KeyPressFcn = @(s, e) obj.onKeyPressed(s, e, 'roimanager');
             obj.addPanelResizeButton(obj.hPanels(3).Children(1))
             obj.AppModules(end+1) = h;
 
@@ -507,6 +508,22 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             delete(obj.TempControlPanelDestroyedListener)
             obj.TempControlPanelDestroyedListener=[];
+        end
+        
+    end
+    
+    methods (Access = protected)
+        
+        function onKeyPressed(obj, src, evt, module)
+            
+            if nargin < 4
+                onKeyPressed@applify.DashBoard(obj, src, evt)
+            else
+                switch module
+                    case 'roimanager'
+                        obj.AppModules(1).onKeyPressed(src, evt, true)
+                end
+            end
         end
         
     end
