@@ -1,4 +1,4 @@
-classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
+classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPreferences
 
     % TODO:
     %  [x] make setSelectedEntries for uitable, so that selection works
@@ -14,10 +14,17 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
         AppName = 'Roi Info Table'
     end
 
-    
     properties
         roiTable        % Keeps a data table with info for all rois
         selectedRois    % List of rois(rows) that are selected in the table
+    end
+    
+    properties (Dependent)
+        SelectionMode % can we select multiple: (['single'],'contiguous','discontiguous')
+    end
+    
+    properties (Dependent)
+        KeyPressFcn
     end
     
     properties (Access = protected)
@@ -36,20 +43,41 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             roiGroup = varargin{1}; % todo: check arg
             obj@roimanager.roiDisplay(roiGroup)
             
+            obj.Panel.Units = 'normalized';
+            obj.Figure.Position = obj.initializeFigurePosition();
+            
             roiTable = obj.rois2table(roiGroup.roiArray);
+            obj.roiTable = roiTable;
             
             nansen.assert('WidgetsToolboxInstalled')
             obj.UITable = nansen.ui.MetaTableViewer(obj.Panel, roiTable);
             
+            % Set table properties
             obj.UITable.HTable.hideHorizontalScroller()
             obj.UITable.HTable.hideVerticalScroller()
             obj.UITable.HTable.RowHeight = 18;
             obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;
+            obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressed;
+            
+            if roiGroup.roiCount > 0
+                obj.updateRoiLabels()
+            end
             
             obj.isConstructed = true;
         end
         
         function delete(obj)
+            
+            if strcmp(obj.mode, 'standalone') 
+                
+                if isvalid(obj.Figure)
+                    % Save figure position to preferences
+                    obj.setPreference('Position', obj.Figure.Position);
+                    obj.savePreferences();
+                end
+                
+            end
+            
             delete(obj.UITable)
         end
 
@@ -57,6 +85,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
 
     
     methods
+        
         function addRois(~)
             % This class can not add rois
         end
@@ -64,30 +93,69 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
         function removeRois(obj)
             % Todo
         end
+        
+        function updateRoiLabels(obj)               
+            roiLabels = obj.roiGroup.getRoiLabels(1:obj.roiGroup.roiCount);
+            obj.roiTable(:, 1) = roiLabels';
+            obj.UITable.refreshTable(obj.roiTable)
+        end
     end
     
+    methods % Set/get
+        
+        function set.SelectionMode(obj, newMode)
+            if ~isempty(obj.UITable.HTable)
+                obj.UITable.HTable.SelectionMode = newMode;
+            end            
+        end
+        
+        function mode = get.SelectionMode(obj)
+            if ~isempty(obj.UITable.HTable)
+                mode = obj.UITable.HTable.SelectionMode;
+            else
+                mode = '';
+            end
+        end
+        
+        function set.KeyPressFcn(obj, newValue)
+            assert(isempty(newValue) || isa(newValue, 'function_handle'), ...
+                'Value must be a function handle')
+            obj.UITable.HTable.KeyPressFcn = newValue;
+        end
+        function keyPressFcn = get.KeyPressFcn(obj)
+            keyPressFcn = obj.UITable.HTable.KeyPressFcn;
+        end
+    end
     
     methods (Access = private) 
-        
         
         function onTableSelectionChanged(obj, src, evt)
             
             IND = obj.UITable.getSelectedEntries();
-            
+
             newlySelectedRois = setdiff(IND, obj.selectedRois);
             unselectedRois = setdiff(obj.selectedRois, IND);
-                        
+            obj.selectedRois = IND;
+            
             if iscolumn(newlySelectedRois); newlySelectedRois = newlySelectedRois'; end
             if iscolumn(unselectedRois); unselectedRois = unselectedRois'; end
-            
-            if ~isempty(unselectedRois)
-                obj.roiGroup.changeRoiSelection(unselectedRois, 'unselect')
-            end
-            
-            if ~isempty(newlySelectedRois)
-                obj.roiGroup.changeRoiSelection(newlySelectedRois, 'select')
-            end
 
+            if ~isempty(unselectedRois) && ~isempty(newlySelectedRois)
+                selectionInfo = struct;
+                selectionInfo.Selected = newlySelectedRois;
+                selectionInfo.Deselected = unselectedRois;
+                obj.roiGroup.changeRoiSelection(selectionInfo, 'both', [], obj)
+                
+            elseif ~isempty(unselectedRois)
+                obj.roiGroup.changeRoiSelection(unselectedRois, 'unselect', [], obj)
+                
+            elseif ~isempty(newlySelectedRois)
+                obj.roiGroup.changeRoiSelection(newlySelectedRois, 'select', [], obj)
+
+            else
+                % pass
+            end
+            
         end
         
         function roiTable = rois2table(obj, roiArray)
@@ -127,14 +195,15 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
         
     end
     
-    
     methods (Access = protected) % Inherited from applify.ModularApp
 
         % use for when restoring figure size from maximized
-        function pos = initializeFigurePosition(app)
-            pos = [100,100,400,600];
+        function pos = initializeFigurePosition(obj)
+            initPos = initializeFigurePosition@applify.ModularApp(obj);
+            pos = obj.getPreference('Position', initPos);
+
         end
-           
+
         function resizePanel(obj, src, evt)
             
             parentPosition = getpixelposition(obj.Panel);
@@ -149,8 +218,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
             
             
         end
+        
     end
-
     
     methods (Access = protected) % Inherited from roimanager.roiDisplay
         
@@ -198,7 +267,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
                         
             obj.roiTable = newTable;
             obj.UITable.refreshTable(newTable)
-            
+            % Todo: If this happens, the table focus is lost?...
             % Todo: Update cells instead of whole table....
         end
         
@@ -219,15 +288,32 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
                     %obj.selectedRois = setdiff(obj.selectedRois, roiIndices);
                     newRowSelection = setdiff(currentRowSelection, evtData.roiIndices);
                 case 'select'
-                    newRowSelection = union(currentRowSelection, evtData.roiIndices);  
+                    newRowSelection = union(currentRowSelection, evtData.roiIndices);
+                
+                case 'both'
+                    newRowSelection = union(currentRowSelection, evtData.roiIndices.Selected);
+                    newRowSelection = setdiff(newRowSelection, evtData.roiIndices.Deselected);
             end
             
             if iscolumn(newRowSelection); newRowSelection = newRowSelection'; end
             
-                        
-            % Update selected rois property
-            obj.selectedRois = newRowSelection;
-
+            
+            if isequal(obj, evtData.origin)
+                % This is super ad hoc. When selecting quickly from the
+                % table, events (or listeners) are not triggered as I expect. 
+                % This is an attempt to work around this.
+                if ~isequal(obj.selectedRois, newRowSelection)
+                    unselectedRois = setdiff(newRowSelection, obj.selectedRois);
+                    selectionInfo = struct;
+                    selectionInfo.Selected = obj.selectedRois;
+                    selectionInfo.Deselected = unselectedRois;
+                    obj.roiGroup.changeRoiSelection(selectionInfo, 'both', [], obj)
+                    return
+                end
+            end
+            
+            
+            currentRowSelection = obj.UITable.getSelectedEntries();
             % Only set new selection if its different than current 
             % selection to prevent an infinite loop. Feel like this will
             % come back and bite me hard...
@@ -235,6 +321,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
                 return
             else
                 obj.UITable.setSelectedEntries(newRowSelection);
+                obj.selectedRois = newRowSelection;
             end
             
         end
@@ -248,7 +335,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay
         
         function onKeyPressed(obj, src, evt)
             % Todo implement...
-            disp(evt.Key)
+            % disp(evt.Key)  
+  
         end
         
     end
