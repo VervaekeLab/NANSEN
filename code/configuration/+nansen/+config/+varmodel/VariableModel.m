@@ -39,16 +39,20 @@ classdef VariableModel < utility.data.StorableCatalog
         function S = getBlankItem()
             
             S = struct(...
-                'VariableName', '', ...
-                'IsDefaultVariable', false, ... 
-                'DataLocation', '', ...     % todo: rename DataLocationName
-                'DataLocationUuid', '', ...
-                'Subfolder', '', ...
-                'FileNameExpression', '', ...
-                'FileType', '', ...
-                'FileAdapter', '', ...
-                'DataType', '', ...
-                'GroupName', '' );
+                'VariableName', '', ...         % Name of variable
+                'DataLocation', '', ...         % todo: rename DataLocationName? Name of datalocation where variable is stored.
+                'DataLocationUuid', '', ...     % uuid of datalocation variable belongs to (internal)
+                'Subfolder', '', ...            % Subfolder within sessionfolder where variable is saved to file (optional)
+                'FileNameExpression', '', ...   % Part of filename to reckognize variable from (optional)
+                'FileType', '', ...             % File type of variable
+                'FileAdapter', '', ...          % File adapter to use for loading and saving variable
+                'DataType', '', ...             % Datatype of variable: Will depend on file adapter
+                'Alias', '', ...                % alias or "nickname" for varibles
+                'GroupName', '', ...            % Placeholder...
+                'IsDefaultVariable', false, ... % Rename: IsDefault
+                'IsCustom', false, ...          % Is variable custom, i.e user made?
+                'IsInternal', false, ...        % Flag for internal variables
+                'IsFavorite', false );          % Flag for favorited variables
         end
         
         function S = getDefaultItem(varName)
@@ -146,7 +150,6 @@ classdef VariableModel < utility.data.StorableCatalog
             end
             
             fileAdapterList = nansen.dataio.listFileAdapters();
-
             
             for i = 1:numel(obj.Data)
                 if isempty( obj.Data(i).FileAdapter ) || strcmp(obj.Data(i).FileAdapter, str)
@@ -175,9 +178,24 @@ classdef VariableModel < utility.data.StorableCatalog
                 end
             end
             
+            if ~isfield(obj.Data, 'Alias')
+                [obj.Data(:).Alias] = deal('');
+            end
+            
             if ~isfield(obj.Data, 'GroupName')
                 [obj.Data(:).GroupName] = deal('');
-                
+            end
+            
+            if ~isfield(obj.Data, 'IsCustom')
+                [obj.Data(:).IsCustom] = deal(false);
+            end
+            
+            if ~isfield(obj.Data, 'IsInternal')
+                [obj.Data(:).IsInternal] = deal(false);
+            end
+            
+            if ~isfield(obj.Data, 'IsFavorite')
+                [obj.Data(:).IsFavorite] = deal(false);
             end
             
         end
@@ -198,6 +216,12 @@ classdef VariableModel < utility.data.StorableCatalog
                 % Todo: Have defaults for different filetypes...
                 item.FileAdapter = 'Default';
             end
+            
+            if strcmp(item.DataLocation, 'DEFAULT')
+                dataLocationModel = nansen.config.dloc.DataLocationModel();
+                item.DataLocation = dataLocationModel.DefaultDataLocation;
+            end
+            
         end
         
     end

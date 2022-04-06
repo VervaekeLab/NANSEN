@@ -56,7 +56,7 @@ classdef VariableModelUI < applify.apptable
             obj.ColumnNames = {'', 'Data variable name', 'Data location', ...
                  'Filename expression', 'File type', 'File adapter'};
             obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
-            obj.ColumnWidths = [12, 150, 105, 135, 70, 75];
+            obj.ColumnWidths = [12, 150, 115, 125, 70, 75];
             obj.RowSpacing = 20;   
             obj.ColumnSpacing = 18;
         end
@@ -90,6 +90,7 @@ classdef VariableModelUI < applify.apptable
             if rowData.IsDefaultVariable
                 hRow.VariableName = uilabel(obj.TablePanel);
                 hRow.VariableName.Text = rowData.VariableName;
+                hRow.VariableName.Tooltip = rowData.VariableName;
             else
                 hRow.VariableName = uieditfield(obj.TablePanel, 'text');
                 hRow.VariableName.Value = rowData.VariableName;
@@ -97,8 +98,22 @@ classdef VariableModelUI < applify.apptable
             
             hRow.VariableName.FontName = 'Segoe UI';
             hRow.VariableName.BackgroundColor = [1 1 1];
-            hRow.VariableName.Position = [xi y wi h];
+            hRow.VariableName.Position = [xi+25 y wi-25 h];
             obj.centerComponent(hRow.VariableName, y)
+            
+            % % Create star button
+            hRow.StarButton = uiimage(obj.TablePanel);
+            hRow.StarButton.Position = [xi y 20 20];
+            obj.centerComponent(hRow.StarButton, y)
+            hRow.StarButton.ImageClickedFcn = @obj.onStarButtonClicked;
+            
+            if rowData.IsFavorite
+                hRow.StarButton.ImageSource = 'star_on.png';
+                hRow.StarButton.Tooltip = 'Remove from favorites';
+            else
+                hRow.StarButton.ImageSource = 'star_off.png';
+                hRow.StarButton.Tooltip = 'Add to favorites';
+            end
 
             
          % % Create DataLocation Dropdown
@@ -221,6 +236,19 @@ classdef VariableModelUI < applify.apptable
             obj.IsDirty = true;
         end
         
+        function onStarButtonClicked(obj, src, ~)
+            
+            switch src.Tooltip
+                case 'Remove from favorites'
+                    src.Tooltip = 'Add to favorites';
+                    src.ImageSource = 'star_off.png';
+                case 'Add to favorites'
+                    src.Tooltip = 'Remove from favorites';
+                    src.ImageSource = 'star_on.png';
+            end
+            
+        end
+        
         function onFileNameExpressionChanged(obj,src, ~)
                                 
             rowNumber = obj.getComponentRowNumber(src);
@@ -315,6 +343,8 @@ classdef VariableModelUI < applify.apptable
         function onAddNewVariableButtonPushed(obj, src, event)
             numRows = obj.NumRows;
             rowData = obj.VariableModel.getBlankItem;
+            rowData.IsCustom = true;
+            
             % Fuck, this is ugly
             if ~isfield(rowData, 'Uuid')
                 rowData.Uuid = nansen.util.getuuid();
@@ -507,7 +537,6 @@ classdef VariableModelUI < applify.apptable
         
         function S = getUpdatedTableData(obj)
             
-            
             fileAdapterList = obj.FileAdapterList;
 
             % Todo: debug this (important)!
@@ -524,6 +553,7 @@ classdef VariableModelUI < applify.apptable
                     S(j).VariableName = hRow.VariableName.Text;
                     S(j).IsDefaultVariable = true;
                 end
+                S(j).IsFavorite = strcmp(hRow.StarButton.Tooltip, 'Remove from favorites');
                 S(j).FileNameExpression = hRow.FileNameExpr.Value;
                 S(j).DataLocation = hRow.DataLocSelect.Value;
                 S(j).FileType = hRow.FileTypeSelect.Value;
