@@ -239,7 +239,13 @@ classdef StorableCatalog < handle
     end
     
     methods % Methods for manipulating entries
-                
+        
+        function insertItemList(obj, newItemList)
+            for i = 1:numel(newItemList)
+                obj.insertItem(newItemList(i))
+            end
+        end
+        
         function newItem = insertItem(obj, newItem)
             
             newItem.Uuid = nansen.util.getuuid();
@@ -302,6 +308,10 @@ classdef StorableCatalog < handle
     end
     
     methods
+        
+        function list(obj)
+            disp( obj.TabularData )
+        end
         
         function initializeWithDefault(obj)
             obj.Data = obj.getDefaultItem();
