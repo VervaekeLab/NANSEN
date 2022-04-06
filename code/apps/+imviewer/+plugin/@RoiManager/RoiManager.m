@@ -117,6 +117,10 @@ classdef RoiManager < applify.mixin.AppPlugin
                 case 'space'
                     obj.toggleShowRoiOutlines()
                     
+                case 'i'
+                    obj.roiDisplay.improveRois();
+
+                    
                 otherwise
                     wasCaptured = false;
             end
@@ -398,7 +402,6 @@ classdef RoiManager < applify.mixin.AppPlugin
             obj.loadRois(loadPath)
             
         end
-        
         
         function loadRois(obj, loadPath)
             
@@ -713,7 +716,6 @@ classdef RoiManager < applify.mixin.AppPlugin
         end
         
         
-        
         function toggleShowRoiRelations(obj, src)
             
             % Get handle to menuItem
@@ -821,6 +823,10 @@ classdef RoiManager < applify.mixin.AppPlugin
             %A = obj.roiDisplay.roiIndexMap
         end
         
+        
+        function improveRois(obj)
+            obj.roiDisplay.improveRois()
+        end
         
 % % % % 
 
