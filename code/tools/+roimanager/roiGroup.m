@@ -353,17 +353,20 @@ classdef roiGroup < handle
             
         end
         
-        function changeRoiSelection(obj, roiIndices, mode, zoomOnRoi)
+        function changeRoiSelection(obj, roiIndices, mode, zoomOnRoi, origin)
         %changeRoiSelection
         %
         % INPUTS:
         %   mode : 'select' | 'unselect'
         
-            if nargin < 4; zoomOnRoi = false; end
-            
+            % Todo: get from settings?
+            if nargin < 4 || isempty(zoomOnRoi); zoomOnRoi = false; end
+            if nargin < 5; origin = []; end
+                
             getEventData = @roimanager.eventdata.RoiSelectionChanged;
-            eventData = getEventData(roiIndices, mode, zoomOnRoi);
+            eventData = getEventData(roiIndices, mode, zoomOnRoi, origin);
             obj.notify('roiSelectionChanged', eventData)
+            
         end
         
         function setRoiClassification(obj, roiInd, newClass)
