@@ -69,6 +69,19 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
             end
         end
         
+        function wasSuccess = finishPreview(obj, hPreviewApp)
+        %finishPreview For wrapping up preview if using a preview app...
+        
+            % Abort if h is invalid (improper exit)
+            if ~isvalid(hPreviewApp); wasSuccess = false; return; end
+            
+            obj.Parameters = hPreviewApp.settings;
+            wasSuccess = ~hPreviewApp.wasAborted;
+            
+            delete(hPreviewApp)
+            
+        end
+        
     end
     
     methods (Access = public) % Shortcuts for methods of DataIOModel
