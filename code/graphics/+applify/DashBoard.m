@@ -397,7 +397,7 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
     methods (Access = protected) % Interactive callbacks
         %(Access = {?applify.ModularApp, ?applify.DashBoard} )
         
-        function onKeyPressed(obj, src, evt)
+        function onKeyPressed(obj, src, evt, ~)
             currentApp = obj.getCurrentApp();
             
             if ~isempty(currentApp)
