@@ -95,6 +95,7 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
    
     uiWaitbar.Message = 'Metatable created!'; %#ok<STRNU>
     
+    wasAborted = false;
     
     
 end
