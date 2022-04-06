@@ -609,11 +609,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         %onCallbackSet Need to make on callback for each page...    
             if obj.isConstructed && ~isempty(obj.Callback)
                 
-                if numel(obj.Callback) ~= obj.numTabs
+                if ~iscell(obj.Callback) || numel(obj.Callback) ~= obj.numTabs
                     if obj.numTabs > 1
                         obj.Callback = arrayfun(@(i) obj.Callback, 1:obj.numTabs, 'uni', 0);
                     else
-                        if ~isa(obj.Callback)
+                        if ~isa(obj.Callback, 'cell')
                             obj.Callback = {obj.Callback};
                         end
                     end
