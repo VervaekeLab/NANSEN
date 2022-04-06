@@ -158,7 +158,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             if nargin == 2
                 obj.MetaTable = newTable;
             else
-                fprintf('Print message if this case occurs...\n')
+                %fprintf('Print message if this case occurs...\n')
+                newTable = [];
             end
             
             % only update column layout if number of columns change
@@ -377,7 +378,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Table data should already be formatted
             obj.HTable.Data = obj.MetaTableCell(rows, columns);
             obj.HTable.Visible = 'on';
-            drawnow
+            %drawnow % Comment out because of roimanager and table
+            %jumping...
         end
      
         function changeColumnNames(obj, newNames)
@@ -440,6 +442,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             elseif isa(newTable, 'table')
                 obj.MetaTableCell = table2cell(newTable);
             end
+            
+            % Todo: refresh ui table (if it exists)?
             
         end
         
