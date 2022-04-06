@@ -52,11 +52,18 @@ function createSessionTableContextMenu(app)
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'View Session Notes');
     hMenuItem(c).Callback = @(s, e) app.onViewSessionNotesContextMenuClicked();
-    
+   
     c = c + 1;
-    hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Assign Pipeline', 'Separator', 'on');
-    app.updatePipelineItemsInMenu(hMenuItem(c))
+    hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Get Task List', 'Separator', 'on');
+    hSubmenuItem = uimenu(hMenuItem(c), 'Text', 'Manual');
+    hSubmenuItem.Callback = @(s, e) app.createBatchList('Manual');
+    hSubmenuItem = uimenu(hMenuItem(c), 'Text', 'Queuable');
+    hSubmenuItem.Callback = @(s, e) app.createBatchList('Queuable');
 
+    c = c + 1;
+    hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Assign Pipeline');
+    app.updatePipelineItemsInMenu(hMenuItem(c))
+    
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Update Column Variable');
     %columnVariables = getPublicSessionInfoVariables(app.MetaTable);
