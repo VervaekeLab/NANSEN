@@ -827,7 +827,13 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             end
             
             obj.tsNames = [obj.tsNames, varNames];
-            obj.tsArray = [obj.tsArray, tsArray];
+            
+            % Append timeseries array to prop.
+            if isempty(obj.tsArray)
+                obj.tsArray = tsArray;
+            else
+                obj.tsArray = [obj.tsArray, tsArray];
+            end
             
             % TODO: set this based on
             if isa(tsArray, 'timeseries')
