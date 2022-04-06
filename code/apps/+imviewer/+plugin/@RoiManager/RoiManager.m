@@ -418,7 +418,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                     field = fieldnames(S);
                 end
                 
-                fieldMatch = contains(field, {'roiArray', 'roi_arr', 'RoiArray'});
+                fieldMatch = contains(field, {'roi_arr', 'RoiArray'}); %'roiArray'
                 if isempty(fieldMatch) || ~any(fieldMatch)
                     delete(C) % Delete to prevent following message from getting cleared
                     message = 'Did not find roi array in selected file';
