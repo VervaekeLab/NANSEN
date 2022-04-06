@@ -27,8 +27,7 @@ classdef SessionMethod < nansen.DataMethod
 %       one by one session whereas other methods will run a group of
 %       sessions as a batch.
 %
-%
-%
+% 
 %       If class instance is run without output, the class' main
 %       method/implementation is run directly.
 %
@@ -36,19 +35,10 @@ classdef SessionMethod < nansen.DataMethod
 %       method is not initialized, and can be initialized at a later time.
 
 
-% Preset options/parameters.
-%
-%   Default / premade 
-%   User edited/custom
-%       
-%   Save as variable - value or variable struct
-%       variable = struct('Params', [], 'IsDefault', [])
-
-
 
     % Questions:
     %
-    %   Whats the benefits of having alternatives as separate properties as
+    %   Are there benefits of having alternatives as separate properties as
     %   done in the original implementation in the session browser?
     
     
@@ -57,24 +47,21 @@ classdef SessionMethod < nansen.DataMethod
     %   [x] methods/functionality for preset options.
     %   [x] append a page in options for saving a preset
     %   [x] create method for getting options based on name.
-    
+
     
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
     
     properties (Abstract, Constant)
-        %MethodName
-        BatchMode               % char      : 'serial' | 'batch'
-        %IsQueueable             % logical   : true | false
-        % maxAllowedSessions = inf;
-        %OptionsManager
-    end
+        BatchMode                   % char      : 'serial' | 'batch' Should session method accept one (serial) or multiple (batch) session objects?
+        % MaxAllowedSessions = inf;     % Todo(?): limit number of sessions...
+        % Similar to above, but for performance or other issues??
+     end
     
     
     properties 
         SessionObjects          % Array of session objects
-        %Options                 % Todo: Keep only Options or Parameters
         ExternalFcn % remove this...???
-        Parameters
+        % Parameters % inherited from datamethod
     end
     
     
@@ -175,29 +162,7 @@ classdef SessionMethod < nansen.DataMethod
                 obj.runMethod()
             end
         end
-        
-        
-% %         function tf = preview(obj, optsName)
-% %             % Todo:
-% %             % How to do this?
-% %                
-% %             
-% %             if nargin == 2 && ~isempty(optsName)
-% %                 params = obj.OptionsManager.getOptions(optsName);
-% %             else
-% %                 params = obj.Parameters;
-% %             end
-% %             
-% %             [newParameters, ~] = tools.editStruct(obj.Parameters);
-% %             obj.Parameters = newParameters;
-% % 
-% %             %nvPairs = { 'OptionsManager', obj.OptionsManager };
-% %             %params = tools.editStruct(params, nan, '', nvPairs{:} );
-% %             
-% %             %tf = true;
-% %         end
-% %         
-% %         
+
         function setup(obj)
                         
             obj.Parameters = tools.editStruct(obj.Parameters);
