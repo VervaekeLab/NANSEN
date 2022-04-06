@@ -1,4 +1,5 @@
-classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
+classdef ModularApp < uim.handle & applify.HasTheme & ...
+        matlab.mixin.Heterogeneous
 %ModularApp An abstract base class for modular apps
 %
 %   ModularApp() creates the app in a new figure
@@ -70,7 +71,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
         %Margins = [0, 0, 0, 0] % Margins (left, bottom, right, top) in pixels
     end
     
-    properties 
+    properties
         Figure matlab.ui.Figure     % Should this be public? 
         Widgets                     % Should this be public? 
         % Visible
@@ -130,10 +131,9 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
 
         end
         
-        
     end
     
-    methods
+    methods % Constructor
         
         function app = ModularApp(hPanel)
             
@@ -159,14 +159,21 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
             
             % Why not set this in createAppPanel?
             app.Panel.SizeChangedFcn = @app.resizePanel;
-
             
             % Check version of matlab.
             app.matlabVersionCheck()
             
         end
         
-        
+        function delete(app)
+            if strcmp(app.mode, 'standalone') 
+                
+                if isvalid(app.Figure)
+                    delete(app.Figure)
+                end
+                
+            end
+        end
     end
     
     methods %Set/Get
@@ -213,6 +220,21 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
         function tf = isStandalone(app)
             tf = strcmp(app.mode, 'standalone');
         end
+           
+        function place(app, location, offset)
+        %PLACE Place apps figure in location on screen 
+            if nargin < 3; offset = 0; end
+            uim.utility.layout.place(app.Figure, location, offset)
+        end
+        
+        function align(app, handles, keyword)
+            error('Not implemented yet')
+        end
+    
+        function distribute(app, handles, keyword)
+            error('Not implemented yet')
+        end
+
     end
     
     methods (Access = protected)
@@ -238,6 +260,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
         end
         
         function createAppWindow(app)
+            
             % Create the figure window
             hFig = figure('Visible', 'off');
             app.Figure = hFig;
@@ -248,7 +271,8 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
             app.Figure.ToolBar = 'none';
             
             set(app.Figure, 'DefaultAxesCreateFcn', @app.onAxesCreated)
-
+            app.Figure.CloseRequestFcn = @(s, e) app.delete;
+            
         end
         
         function onAxesCreated(app, src, evt)
@@ -361,13 +385,11 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
             app.hPanel.BorderType = 'etchedin';
             app.hPanel.HighlightColor = [0.1569    0.1569    0.1569]; 
 
-            app.uiaxes.imdisplay.Position = [1,1,newPanelPos(3:4)-2];
-
-            app.uiaxes.textdisplay.Visible = 'off';
+            %app.uiaxes.imdisplay.Position = [1,1,newPanelPos(3:4)-2];
+            %app.uiaxes.textdisplay.Visible = 'off';
         end
 
     end
-    
     
     methods (Access = protected) % Configurations (Subclasses may override)
         
@@ -520,24 +542,8 @@ classdef ModularApp < uim.handle & applify.HasTheme & matlab.mixin.Heterogeneous
 
             if nargin < 1
                 screenSize = get(0, 'ScreenSize');
-
             else
-
-                figurePosition = hFigure.Position;
-
-                MP = get(0, 'MonitorPosition');
-                xPos = figurePosition(1);
-                yPos = figurePosition(2) + figurePosition(4);
-
-                % Get screenSize for monitor where figure is located.
-                for i = 1:size(MP, 1)
-                    if xPos >= MP(i, 1) && xPos <= sum(MP(i, [1,3]))
-                        if yPos >= MP(i, 2) && yPos <= sum(MP(i, [2,4]))
-                            screenSize = MP(i,:);
-                            break
-                        end
-                    end
-                end
+                screenSize = uim.utility.getCurrentScreenSize(hFigure);
             end
 
             if ismac
