@@ -84,8 +84,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             setappdata(app.Figure, 'AppInstance', app)
             
-            if app.isOpen()
-                delete(app); clear app; % Todo: get handle for app.
+            [isAppOpen, hApp] = app.isOpen();
+            if isAppOpen
+                app = hApp;
+                %delete(app); clear app; % Todo: get handle for app.
                 return
             else
                 app.Figure.Visible = 'on';
@@ -2206,7 +2208,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             [~, opts, wasAborted] = optManager.editOptions();
                         else
                             app.openMessageBox('This method does not have any parameters')
-                            wasAborted = false;
+                            wasAborted = true;
                         end
 
                         if ~wasAborted
@@ -2686,18 +2688,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     methods (Static)
     
-        function tf = isOpen()
+        function [tf, hApp] = isOpen()
         %ISOPEN Check if app figure is open bring to focus if it is.
         %
         %   
-        
+            hApp = [];
+
             openFigures = findall(0, 'Type', 'Figure');
             if isempty(openFigures)
                 tf = false;
             else
                 figMatch = contains({openFigures.Name}, 'Nansen |');
                 if any(figMatch)
-                    figure(openFigures(figMatch))
+                    matchedFigure = openFigures(figMatch);
+                    hApp = getappdata(matchedFigure, 'AppInstance');
+                    figure(matchedFigure) % Bring figure into focus
                     tf = true;
                 else
                     tf = false;
