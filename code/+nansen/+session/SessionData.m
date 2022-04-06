@@ -350,20 +350,15 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             end
             
             isDefault = [obj(1).VariableList.IsDefaultVariable];
-            
-            internal = []; %Todo
-            isDefault(internal) = false;
+            isInternal = [obj(1).VariableList.IsInternal];
+            isFavorite = [obj(1).VariableList.IsFavorite];
+            isCustom = [obj(1).VariableList.IsCustom];
             
             propGroup = matlab.mixin.util.PropertyGroup.empty;
-            
-            favIdx = []; %Todo
-            internal = ~isDefault;
-            isUser = [];
-
-            
-            if obj.settings.ShowFavouriteVariables && any(favIdx)
-                propNames = sort( {obj.VariableList(favIdx).VariableName} ); 
-                propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Favourite Variables:')];
+                        
+            if obj.settings.ShowFavouriteVariables && any(isFavorite)
+                propNames = sort( {obj.VariableList(isFavorite).VariableName} ); 
+                propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Favorite Variables:')];
             end
             
             if obj.settings.ShowDefaultVariables && any(isDefault)
@@ -371,13 +366,13 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Default Variables:')];
             end
             
-            if obj.settings.ShowUserVariables && any(isUser)
-                propNames = sort( {obj.VariableList([]).VariableName} ); 
+            if obj.settings.ShowUserVariables && any(isCustom)
+                propNames = sort( {obj.VariableList(isCustom).VariableName} ); 
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'User Variables:')];
             end
             
-            if obj.settings.ShowInternalVariables && any(internal)
-                propNames = sort( {obj.VariableList(internal).VariableName} ); 
+            if obj.settings.ShowInternalVariables && any(isInternal)
+                propNames = sort( {obj.VariableList(isInternal).VariableName} ); 
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Internal Variables:')];
             end
             
