@@ -10,14 +10,14 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
         Size = []                        % Size of data along each dimension
         Class = '';                      % Class (data type) of image data
         
-        SizeX (1,1) double = 1           % Dimensional size of pixel data array
-        SizeY (1,1) double = 1           % Dimensional size of pixel data array
-        SizeZ (1,1) double = 1           % Dimensional size of pixel data array
-        SizeC (1,1) double = 1           % Dimensional size of pixel data array
-        SizeT (1,1) double = 1           % Dimensional size of pixel data array
+        SizeX (1,1) double = 1           % Dimensional size of image data array
+        SizeY (1,1) double = 1           % Dimensional size of image data array
+        SizeZ (1,1) double = 1           % Dimensional size of image data array
+        SizeC (1,1) double = 1           % Dimensional size of image data array
+        SizeT (1,1) double = 1           % Dimensional size of image data array
         
-        PhysicalSizeX (1,1) double = 1   % Physical size of a pixel. 
-        PhysicalSizeY (1,1) double = 1   % Physical size of a pixel. 
+        PhysicalSizeX (1,1) double = 1   % Physical width of a pixel. 
+        PhysicalSizeY (1,1) double = 1   % Physical height of a pixel. 
         PhysicalSizeZ (1,1) double = 1   % Physical distance between planes. 
         PhysicalSizeXUnit char = 'pixel' % The units of the physical size of a pixel.
         PhysicalSizeYUnit char = 'pixel' % The units of the physical size of a pixel.
