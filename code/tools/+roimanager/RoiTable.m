@@ -25,8 +25,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     
     properties (Dependent) % Depends on uiw.widget.Table
         SelectionMode % can we select multiple: (['single'],'contiguous','discontiguous')
+    end
+    
+    properties
         KeyPressFcn
-
     end
     
     properties (Access = protected)
@@ -59,7 +61,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.UITable.HTable.hideVerticalScroller()
             obj.UITable.HTable.RowHeight = 18;
             obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;
-            obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressed;
+            obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressedInTable;
             
             if roiGroup.roiCount > 0
                 obj.updateRoiLabels()
@@ -123,11 +125,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function set.KeyPressFcn(obj, newValue)
             assert(isempty(newValue) || isa(newValue, 'function_handle'), ...
                 'Value must be a function handle')
-            obj.UITable.HTable.KeyPressFcn = newValue;
+            obj.KeyPressFcn = newValue;
         end
-        function keyPressFcn = get.KeyPressFcn(obj)
-            keyPressFcn = obj.UITable.HTable.KeyPressFcn;
-        end
+        
     end
     
     methods (Access = private) 
@@ -145,6 +145,22 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             newSelection = obj.UITable.getSelectedEntries();
             
             obj.RoiGroup.changeRoiSelection(oldSelection, newSelection);
+            
+        end
+        
+        function onKeyPressedInTable(obj, src, evt)
+            
+            switch evt.Key
+                case {'↓', '↑', '←', '→'} % arrowkeys
+                    if isempty(evt.Modifier)
+                        return % Reserved for moving up and down in table
+                    end
+            end
+            
+            
+            if ~isempty(obj.KeyPressFcn)
+                obj.KeyPressFcn(src, evt)
+            end
             
         end
         
@@ -170,7 +186,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.roiTable(rowIdx, :) = tableRowData;
             
             % Count number of columns and get column indices
-            colIdx = 1:size(T,2);
+            colIdx = 1:size(tableRowData, 2);
             
             if isa(tableRowData, 'table')
                 newData = table2cell(tableRowData);
@@ -251,7 +267,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             % Update the values of the roi ids / roi labels
             if obj.RoiGroup.roiCount ~= 0 
 
-                if ~contains(lower(evtData.eventType), {'modify', 'reshape'})
+                if contains(lower(evtData.eventType), {'modify', 'reshape'})
                     roiInd = evtData.roiIndices;
                 else
                     % Need to update all labels if rois were added/removed
@@ -303,7 +319,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         
         function onKeyPressed(obj, src, evt)
             % Todo implement...
-            % disp(evt.Key)  
+            disp(evt.Key)
+            
+            % Todo: This should be the table keypress callback function
+            
   
         end
         
