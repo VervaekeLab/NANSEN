@@ -114,7 +114,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.saveSettings()
         end
     end
-
     
     methods (Access = protected) % Create/configure layout
         
@@ -234,7 +233,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         
     end
     
-    
     methods (Access = protected) % Create/configure modules
         
         function initializeSettingsPanel(obj)
@@ -259,10 +257,11 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                        
             i = i+1;
             structs{i} = obj.settings.RoiDisplayPreferences;
-            structs{i} = roimanager.roiDisplayParameters; % Todo. Fix this (need to reset some values in this settings on startup..)
             names{i} = 'Roi Display';
             callbacks{i} = @obj.onRoiDisplayPreferencesChanged;
+            obj.initializeRoiDisplaySettings()
             
+
             i = i+1;
             structs{i} = obj.settings.Autosegmentation();
             % Todo: Add field for preset selection.
@@ -304,6 +303,28 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.AppModules(end+1) = h;
         end
 
+        function initializeRoiDisplaySettings(obj)
+            
+            fields = {'showNeuropilMask', 'showLabels', 'showOutlines', ...
+                'maskRoiInterior', 'showByClassification', 'roiColorScheme'};
+            
+            for i = 1:numel(fields)
+                thisName = fields{i};
+                thisValue = obj.settings.RoiDisplayPreferences.(fields{i});
+                obj.onRoiDisplayPreferencesChanged(thisName, thisValue)
+            end
+            
+            %defaults = roimanager.roiDisplayParameters; % Todo. Fix this (need to reset some values in this settings on startup..)
+
+            
+            % Reset some "transient" fields.
+            obj.settings.RoiDisplayPreferences.setCurrentRoiGroup = ...
+                obj.settings.RoiDisplayPreferences.setCurrentRoiGroup_{1};
+            obj.settings.RoiDisplayPreferences.showRoiGroups = ...
+                obj.settings.RoiDisplayPreferences.showRoiGroups_{1};
+        end
+        
+        
         function configurePanelResizeButton(obj, hPanel, hImviewer)
             
             hAppbar = hImviewer.uiwidgets.Appbar;
@@ -317,7 +338,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     
     methods % Settings changed callbacks
 
-        
         function onRoiDisplayPreferencesChanged(obj, name, value)
                         
             % Todo: move to roiMap class...!
