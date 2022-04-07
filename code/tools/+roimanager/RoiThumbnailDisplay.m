@@ -2,8 +2,13 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
 %RoiThumbnailDisplay Widget for displaying a roi image    
 
     properties
-        Dashboard
-        Parent
+        Dashboard   % Handle for dashboard where thumbnail display is present
+        Parent      % Parent container (typically a uipanel)
+    end
+    
+    properties
+        ColorMap % Todo
+        LineColor % Todo
     end
     
     properties
@@ -61,12 +66,21 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             
         end
         
+        function updateImageText(obj, str)
+            if isempty(obj.hText) 
+                obj.plotRoiImageNotAvailableText()
+            end
+            obj.hText.String = str;
+           
+        end
+        
         function updateImageDisplay(obj, roiObj)
             
             im = roiObj.enhancedImage;
             
             if all(im(:) == 0 )
                 im = obj.createRoiImage(roiObj);
+                obj.updateImageText('Image not available')
                 if isempty(im); return; end
             end
             
@@ -91,7 +105,9 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             roiBoundary = (roiBoundary - ul + [1,1]) * usFactor;
             
             if isempty(obj.hRoiOutline)
-                obj.hRoiOutline = plot(obj.hAxes, roiBoundary(:,1), roiBoundary(:,2), 'LineStyle', '-', 'Marker', 'None', 'LineWidth', 2);
+                obj.hRoiOutline = plot(obj.hAxes, roiBoundary(:,1), roiBoundary(:,2), ...
+                    'LineStyle', '-', 'Marker', 'None', 'LineWidth', 2 );
+                % set(obj.hRoiOutline,  'Color', ones(1,3)*0.9 )
             else
                 set(obj.hRoiOutline, 'XData', roiBoundary(:,1), 'YData', roiBoundary(:,2))
             end
@@ -109,6 +125,13 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                            'YLim', [1,imSize(1)]+0.5, ...
                            'CLim', clims );
             
+            obj.updateImageText('')
+            
+        end
+        
+        function resetImageDisplay(obj)
+            set(obj.hRoiOutline, 'XData', nan, 'YData', nan)
+            set(obj.hRoiImage, 'cdata', [])
         end
         
         function im = createRoiImage(obj, roiObj)
@@ -136,7 +159,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         
         function onRoiGroupChanged(obj, evtData)
             
-            % Update roiimage if roi groups is changing...
+            % Update roiimage if roi group is changing...
             
             % Take action for this EventType
             switch lower(evtData.eventType)
@@ -154,7 +177,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                     end
                     
                 otherwise
-                    % Do nothing....
+                    % Do nothing...
             end
             
         end
@@ -163,14 +186,15 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             % Update image for roi
         
             if isempty(evtData.NewIndices)
-                return
+                obj.resetImageDisplay()
+                obj.updateImageText('No roi selected')
+                obj.VisibleRois = [];
+            else
+                roiIdx = evtData.NewIndices(end);
+                roi = obj.RoiGroup.roiArray(roiIdx);
+                obj.updateImageDisplay(roi)
+                obj.VisibleRois = roiIdx;
             end
-            
-            roiIdx = evtData.NewIndices(end);
-            
-            roi = obj.RoiGroup.roiArray(roiIdx);
-            obj.updateImageDisplay(roi)
-            obj.VisibleRois = roiIdx;
             
         end
         
