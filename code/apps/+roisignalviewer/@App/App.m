@@ -177,7 +177,6 @@ classdef App < signalviewer.App & roimanager.roiDisplay
         
         function delete(obj)
             delete(obj.roiSignalsChangedListener)
-            delete(obj.roiSelectionChangedListener)
         end
         
     end
