@@ -1,4 +1,4 @@
-classdef roiSignalVideo < clib.generic.handle & clib.hasSettings
+classdef RoiSignalVideo < uim.handle & applify.mixin.HasSettings
     
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false        % Ignore settings file
@@ -64,7 +64,7 @@ classdef roiSignalVideo < clib.generic.handle & clib.hasSettings
     
     
     methods
-        function obj = roiSignalVideo(imvieverRef)
+        function obj = RoiSignalVideo(imvieverRef)
             obj.imviewerRef = imvieverRef;
             
             obj.loadSettings()
