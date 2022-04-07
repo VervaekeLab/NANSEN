@@ -152,7 +152,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             switch evt.Key
                 case {'↓', '↑', '←', '→'} % arrowkeys
-                    if isempty(evt.Modifier)
+                    if isempty(evt.Modifier) || ~strcmp(evt.Modifier, 'alt')
                         return % Reserved for moving up and down in table
                     end
             end
