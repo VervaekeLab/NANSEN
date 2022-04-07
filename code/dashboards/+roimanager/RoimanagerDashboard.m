@@ -106,12 +106,22 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
         end
         
-        
         function quit(obj)
             
             % Reset this
             obj.settings.Autosegmentation.options = [];
             obj.saveSettings()
+            
+            
+        end
+        
+        function onFigureCloseRequest(obj)
+                        
+            wasAborted = obj.promptSaveRois();
+            if wasAborted; return; end
+            
+            onFigureCloseRequest@applify.DashBoard(obj)
+            
         end
     end
     

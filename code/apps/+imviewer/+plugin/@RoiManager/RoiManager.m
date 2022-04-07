@@ -239,6 +239,36 @@ classdef RoiManager < applify.mixin.AppPlugin
             
         end
         
+        function wasAborted = promptSaveRois(obj)
+            
+            wasAborted = true;
+            
+            isDirty = true; % Todo.
+            
+            if isDirty
+            
+                message = 'Save changes to rois?';
+                title = 'Confirm Exit';
+
+                selection = questdlg(message, title, ...
+                    'Yes', 'No', 'Cancel', 'Yes');
+
+                switch selection
+
+                    case 'Yes'
+                        obj.saveRois(initPath)
+                        wasAborted = false;
+                    case 'No'
+                        wasAborted = false;
+                        
+                    otherwise
+                        % pass
+                end
+                
+            end
+            
+        end
+        
     end
     
     methods (Access = private) % Initialization
