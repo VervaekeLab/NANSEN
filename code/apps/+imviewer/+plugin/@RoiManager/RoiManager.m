@@ -164,7 +164,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             
             % Assign the Ancestor App of the roigroup to the app calling
             % for its creation.
-            obj.roiDisplay.roiGroup.ParentApp = hImviewer;
+            obj.roiDisplay.RoiGroup.ParentApp = hImviewer;
             obj.roiDisplay.hRoimanager = obj;
             
             obj.initializePointerTools()
@@ -492,12 +492,12 @@ classdef RoiManager < applify.mixin.AppPlugin
                     roi_arr(iA) = [];
             end
                         
-            obj.roiDisplay.roiGroup.addRois(roi_arr, [], addMode)
+            obj.roiDisplay.RoiGroup.addRois(roi_arr, [], addMode)
             
         end
         
         function addRois(obj, roiArray, plotColor)
-            obj.roiDisplay.roiGroup.addRois(roiArray, [], 'append')
+            obj.roiDisplay.RoiGroup.addRois(roiArray, [], 'append')
         end
         
         function newGroup = createNewRoiGroup(obj)
@@ -563,7 +563,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             if isempty(savePath); return; end
             
             S = struct;
-            S.roiArray = obj.roiDisplay.roiGroup.roiArray;
+            S.roiArray = obj.roiDisplay.RoiGroup.roiArray;
             
             % Add extra variables if present...
             varNames = {'roiImages', 'roiStats', 'roiClassification'};

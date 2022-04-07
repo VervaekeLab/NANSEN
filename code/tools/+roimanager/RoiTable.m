@@ -6,6 +6,11 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     %  [x] Fix bug when selecting from sorted tables...
     
     
+    % Inherited properties
+    %
+    % SelectedRois    % List of rois (rows) that are selected in the table
+
+    
     properties (Constant) % Inherited from applify.HasTheme via ModularApp
         DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
     end
@@ -16,15 +21,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
 
     properties
         roiTable        % Keeps a data table with info for all rois
-        selectedRois    % List of rois(rows) that are selected in the table
     end
     
-    properties (Dependent)
+    properties (Dependent) % Depends on uiw.widget.Table
         SelectionMode % can we select multiple: (['single'],'contiguous','discontiguous')
-    end
-    
-    properties (Dependent)
         KeyPressFcn
+
     end
     
     properties (Access = protected)
@@ -94,8 +96,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             % Todo
         end
         
-        function updateRoiLabels(obj)               
-            roiLabels = obj.roiGroup.getRoiLabels(1:obj.roiGroup.roiCount);
+        function updateRoiLabels(obj)
+        %updateRoiLabels Update the roi ID labels in first table column    
+            roiLabels = obj.RoiGroup.getRoiLabels(1:obj.RoiGroup.roiCount);
             obj.roiTable(:, 1) = roiLabels';
             obj.UITable.refreshTable(obj.roiTable)
         end
@@ -130,31 +133,18 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     methods (Access = private) 
         
         function onTableSelectionChanged(obj, src, evt)
+        %onTableSelectionChanged Callback for if table selection changed
+        %
+        %   Get selected table rows and call the changeRoiSelection of
+        %   roigroup to broadcast to all listeners.
+        
+        %   Todo: What if subset of table is visible. Need to convert table
+        %   rows into roi indices...
+        
+            oldSelection = obj.SelectedRois;
+            newSelection = obj.UITable.getSelectedEntries();
             
-            IND = obj.UITable.getSelectedEntries();
-
-            newlySelectedRois = setdiff(IND, obj.selectedRois);
-            unselectedRois = setdiff(obj.selectedRois, IND);
-            obj.selectedRois = IND;
-            
-            if iscolumn(newlySelectedRois); newlySelectedRois = newlySelectedRois'; end
-            if iscolumn(unselectedRois); unselectedRois = unselectedRois'; end
-
-            if ~isempty(unselectedRois) && ~isempty(newlySelectedRois)
-                selectionInfo = struct;
-                selectionInfo.Selected = newlySelectedRois;
-                selectionInfo.Deselected = unselectedRois;
-                obj.roiGroup.changeRoiSelection(selectionInfo, 'both', [], obj)
-                
-            elseif ~isempty(unselectedRois)
-                obj.roiGroup.changeRoiSelection(unselectedRois, 'unselect', [], obj)
-                
-            elseif ~isempty(newlySelectedRois)
-                obj.roiGroup.changeRoiSelection(newlySelectedRois, 'select', [], obj)
-
-            else
-                % pass
-            end
+            obj.RoiGroup.changeRoiSelection(oldSelection, newSelection);
             
         end
         
@@ -173,24 +163,26 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
         end
         
-        function roiTable = rois2table_old(obj, roiArray)
-                
-            S = roimanager.utilities.roiarray2struct(roiArray);
+        function updateTableRow(obj, rowIdx, tableRowData)
+                        
+            % Get the roi id from the current table and replace:
+            tableRowData(1, 1) = obj.roiTable(rowIdx, 1);
+            obj.roiTable(rowIdx, :) = tableRowData;
             
-            S = rmfield(S, {'coordinates', 'imagesize', 'boundary', ...
-                'connectedrois', 'layer', 'tags', 'enhancedImage'});
+            % Count number of columns and get column indices
+            colIdx = 1:size(T,2);
             
-            % add column with label and number for roi
-            roiTable = struct2table(S, 'AsArray', true);
+            if isa(tableRowData, 'table')
+                newData = table2cell(tableRowData);
+            elseif isa(tableRowData, 'cell')
+                %pass
+            else
+                error('Table row data is in the wrong format')
+            end
             
-            % Create column for adding ids and prepend to table.
-            numRois = numel(roiArray);
-
-            C = cell(repmat({''}, numRois, 1)); % Init to empty strings
-            T = cell2table(C, 'VariableNames',{'ID'});
-        
-            roiTable = [T, roiTable];
-            
+            % Refresh cells of ui table...
+            obj.UITable.updateCells(rowIdx, colIdx, newData)
+                        
         end
         
     end
@@ -241,6 +233,13 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     
                 case {'modify', 'reshape'}
                     T = obj.rois2table(evtData.roiArray);
+                    
+                    % Update cells of modified entries.
+                    if numel(evtData.roiIndices) == 1
+                        obj.updateTableRow( evtData.roiIndices, T );
+                        return
+                    end
+                    
                     newTable = oldTable;
                     newTable(evtData.roiIndices, :) = T;
                     
@@ -250,78 +249,46 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             end
             
             % Update the values of the roi ids / roi labels
-            if obj.roiGroup.roiCount ~= 0 
-               
-                numRois = obj.roiGroup.roiCount;
+            if obj.RoiGroup.roiCount ~= 0 
 
                 if ~contains(lower(evtData.eventType), {'modify', 'reshape'})
                     roiInd = evtData.roiIndices;
                 else
-                    roiInd = 1:numRois;
+                    % Need to update all labels if rois were added/removed
+                    roiInd = 1:obj.RoiGroup.roiCount;
                 end
                 
-                roiLabels = obj.roiGroup.getRoiLabels(roiInd);
-                newTable{roiInd,1} = roiLabels';
-                
+                roiLabels = obj.RoiGroup.getRoiLabels(roiInd);
+                newTable{roiInd, 1} = roiLabels';
             end
-                        
+             
+            % Update table data and uitable.
             obj.roiTable = newTable;
             obj.UITable.refreshTable(newTable)
-            % Todo: If this happens, the table focus is lost?...
-            % Todo: Update cells instead of whole table....
+            
         end
         
         function onRoiSelectionChanged(obj, evtData)
+        %onRoiSelectionChanged "RoiSelectionChanged" event callback
+        %
+        %   Update the table selection when roi selection changed.    
+        %   Use getSelectedEntries and setSelectedEntries because it
+        %   takes sorting order into consideration.
             
-            % Use getSelectedEntries and setSelectedEntries because it
-            % takes sorting order into consideration.
-            
-            currentRowSelection = obj.UITable.getSelectedEntries();
-
-            switch evtData.eventType
-                case 'unselect'
-                    if ischar(evtData.roiIndices) && strcmp(evtData.roiIndices, 'all')
-                        evtData.roiIndices = obj.selectedRois;
-                        if isempty(obj.selectedRois); return; end
-                    end
-                    
-                    %obj.selectedRois = setdiff(obj.selectedRois, roiIndices);
-                    newRowSelection = setdiff(currentRowSelection, evtData.roiIndices);
-                case 'select'
-                    newRowSelection = union(currentRowSelection, evtData.roiIndices);
-                
-                case 'both'
-                    newRowSelection = union(currentRowSelection, evtData.roiIndices.Selected);
-                    newRowSelection = setdiff(newRowSelection, evtData.roiIndices.Deselected);
-            end
-            
-            if iscolumn(newRowSelection); newRowSelection = newRowSelection'; end
-            
-            
-            if isequal(obj, evtData.origin)
-                % This is super ad hoc. When selecting quickly from the
-                % table, events (or listeners) are not triggered as I expect. 
-                % This is an attempt to work around this.
-                if ~isequal(obj.selectedRois, newRowSelection)
-                    unselectedRois = setdiff(newRowSelection, obj.selectedRois);
-                    selectionInfo = struct;
-                    selectionInfo.Selected = obj.selectedRois;
-                    selectionInfo.Deselected = unselectedRois;
-                    obj.roiGroup.changeRoiSelection(selectionInfo, 'both', [], obj)
-                    return
-                end
-            end
-            
+            % Todo: Implement row to roi when table filtering is
+            % implemented.
             
             currentRowSelection = obj.UITable.getSelectedEntries();
+            newRowSelection = evtData.NewIndices;
+            
             % Only set new selection if its different than current 
             % selection to prevent an infinite loop. Feel like this will
             % come back and bite me hard...
-            if isequal( sort(currentRowSelection), sort(newRowSelection) )
-                return
-            else
+            if ~isequal( sort(currentRowSelection), sort(newRowSelection) )
                 obj.UITable.setSelectedEntries(newRowSelection);
-                obj.selectedRois = newRowSelection;
+                obj.SelectedRois = newRowSelection;
+            else
+                % pass
             end
             
         end
@@ -329,6 +296,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function onRoiClassificationChanged(obj, evtData)
             
         end
+        
     end
     
     methods (Access = {?applify.ModularApp, ?applify.DashBoard} )

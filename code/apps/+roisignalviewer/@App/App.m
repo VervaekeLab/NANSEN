@@ -1,4 +1,4 @@
-classdef App < signalviewer.App
+classdef App < signalviewer.App & roimanager.roiDisplay
 % Class for interactively plotting and exploring roi signals    
 %
 %
@@ -79,6 +79,10 @@ classdef App < signalviewer.App
 %       [x] Append and overwrite modes
 
 
+%   Inherited properties:
+%       RoiGroup            % RoiGroup object
+
+
 
     properties
         DisplayMode = 'normal' % 'stacked' | 'imagesc' | 'normal'
@@ -91,15 +95,14 @@ classdef App < signalviewer.App
     end
     
     properties 
-        RoiGroup            % RoiGroup object
         RoiSignalArray      % RoiSignalArray object
         DisplayedRoiIndices % List of indices for currently displayed rois
+        % Todo: Replace above with SelectedRois and VisibleRois
     end
 
     properties (Access = protected)
         
         Parameters % signal extraction.
-        
         
         SignalExtractionOptions = nansen.twophoton.roisignals.extract.getDefaultParameters();
         DeconvolutionOptions = nansen.twophoton.roisignals.getDeconvolutionParameters();
@@ -120,7 +123,6 @@ classdef App < signalviewer.App
     
     properties (Transient, Access=private)
         roiSignalsChangedListener event.listener %Listener to changes on roi signal data
-        roiSelectionChangedListener event.listener %Listener to changes on roi selection
     end %properties
     
     
@@ -188,14 +190,6 @@ classdef App < signalviewer.App
                     obj.addContextMenuItemsExtra()
                 end
             end
-        end
-        
-        function set.RoiGroup(obj, newValue)
-            
-            assert(isa(newValue, 'roimanager.roiGroup'), 'Value must be a RoiGroup' )
-            obj.RoiGroup = newValue;
-            obj.onRoiGroupSet()
-            
         end
         
         function set.SignalsToDisplay(obj, newValue)
@@ -393,7 +387,7 @@ classdef App < signalviewer.App
         
     end
     
-    methods (Access = protected) % Signal extraction plugin methods...
+    methods (Access = public) % Signal extraction plugin methods...
         
         % Todo: Move to signal extraction / computation plugins:
         function setParameters(obj)
@@ -482,35 +476,30 @@ classdef App < signalviewer.App
 % %         end
         
         function onRoiGroupSet(obj)
+        %onRoiGroupSet Is called when roigroup is set.    
+            if obj.RoiGroup.roiCount >= 1 % -> Select first roi.
+                obj.RoiGroup.changeRoiSelection([], 1) 
+            end
+        end
+        
+        function onRoiSelectionChanged(obj, evtData)
             
-            el = listener(obj.RoiGroup, 'roiSelectionChanged', ...
-                @obj.onRoiSelectionChanged);
+            C = obj.activateGlobalMessageDisplay(); %#ok<NASGU>
             
-            obj.roiSelectionChangedListener = el;
+            newIndices = evtData.NewIndices;
             
-            if obj.RoiGroup.roiCount >= 1
-                % Select roi.
-                obj.RoiGroup.changeRoiSelection(1, 'select')
+            selectedRoiIdx = setdiff(newIndices, obj.DisplayedRoiIndices);
+            deselectedRoiIdx = setdiff(obj.DisplayedRoiIndices, newIndices);
+            
+            if ~isempty(deselectedRoiIdx)
+                obj.resetSignalPlot(deselectedRoiIdx)
             end
             
-        end
-        
-        function onSignalToDisplaySet(obj)
-            
-            % TODO: Update plots for new signal types.
-            
-            % need to know what changed, then call update signals...
-            
-            %updateSignalPlot(obj, obj.selectedRois, 'overwrite');
-            %updateSignalPlot(obj, obj.selectedRois, 'append');
-            
-            
-            
-        end
-        
-        function onRoiSelectionChanged(obj, src, evtData)
-            
-            C = obj.activateGlobalMessageDisplay();
+            if ~isempty(selectedRoiIdx)
+                obj.updateSignalPlot(selectedRoiIdx, 'append');
+            end
+                
+            return
             
             switch evtData.eventType
                 case 'unselect'
@@ -538,6 +527,28 @@ classdef App < signalviewer.App
                     obj.updateSignalPlot(evtData.roiIndices.Selected, 'append');
 
             end
+            
+        end
+        
+        function onRoiClassificationChanged(obj, evtData)
+            % pass
+        end
+        
+        function onRoiGroupChanged(obj, evt)
+            % pass
+        end
+        
+        
+        function onSignalToDisplaySet(obj)
+            
+            % TODO: Update plots for new signal types.
+            
+            % need to know what changed, then call update signals...
+            
+            %updateSignalPlot(obj, obj.selectedRois, 'overwrite');
+            %updateSignalPlot(obj, obj.selectedRois, 'append');
+            
+            
             
         end
         

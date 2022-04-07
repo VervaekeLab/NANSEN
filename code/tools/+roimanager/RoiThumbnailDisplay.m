@@ -7,8 +7,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
     end
     
     properties
-        ImageStack
-        DisplayedRoiIdx
+        ImageStack   % Handle of an ImageStack object. Necessary for creating roi images.
     end
     
     properties (Access = private)
@@ -19,7 +18,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
     end
     
     properties (Access = private)
-        ShowMessageRoiImageUpdateError = true;
+        ShowMessageRoiImageUpdateError = false;
     end
     
     methods % Constructor
@@ -149,10 +148,11 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                     end
                     
                     roiIdx = evtData.roiIndices(end);
-                    if isequal(roiIdx, obj.DisplayedRoiIdx)
-                        roi = obj.roiGroup.roiArray(roiIdx);
+                    if isequal(roiIdx, obj.VisibleRois)
+                        roi = obj.RoiGroup.roiArray(roiIdx);
                         obj.updateImageDisplay(roi)
                     end
+                    
                 otherwise
                     % Do nothing....
             end
@@ -162,15 +162,15 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         function onRoiSelectionChanged(obj, evtData)
             % Update image for roi
         
-            if isempty(evtData.roiIndices)
+            if isempty(evtData.NewIndices)
                 return
             end
             
-            roiIdx = evtData.roiIndices(end);
-
-            roi = obj.roiGroup.roiArray(roiIdx);
+            roiIdx = evtData.NewIndices(end);
+            
+            roi = obj.RoiGroup.roiArray(roiIdx);
             obj.updateImageDisplay(roi)
-            obj.DisplayedRoiIdx = roiIdx;
+            obj.VisibleRois = roiIdx;
             
         end
         

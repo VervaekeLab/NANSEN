@@ -69,7 +69,7 @@ classdef selectObject < uim.interface.abstractPointer & ...
                     end
                     
                 case 'backspace'
-                    obj.hObjectMap.removeRois;
+                    obj.hObjectMap.removeRois();
                 case 'i'
                     obj.hObjectMap.improveRois();
                 case 'g'

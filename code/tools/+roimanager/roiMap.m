@@ -1,5 +1,6 @@
-classdef roiMap < handle
-    
+classdef roiMap < roimanager.roiDisplay
+%roiMap The representation of a roigroup on a FOV, i.e a spatial map
+
     % TODO:
     %  *[ ] Have access to signal extraction settings from roimanager.
     %   [ ] Can i find another way than adding userdata everytime a roi is
@@ -8,7 +9,6 @@ classdef roiMap < handle
     %   [ ] Make this a subclass of RoiDisplay
     
     properties (Access = public)
-        roiGroup
         defaultColor = ones(1,3)*0.8; % Add color picker to settings...
         
         RoiOutlineWidth = 1 % Todo: implement this and make it adjustable from settings
@@ -22,14 +22,11 @@ classdef roiMap < handle
         roiMaskAll          % A logical mask where all rois are added.
     end
     
-    
     properties (Access = public)
         displayApp % aka. app aka. hViewer...
         hRoimanager
         hAxes
-        %smallRoiDisplay
     end
-    
     
     properties (Access = public)
         EnableLinkedRois matlab.lang.OnOffSwitchState = 'off'
@@ -38,14 +35,6 @@ classdef roiMap < handle
         neuropilMaskVisible = false % Todo: make set method, so that this is updated when value is changed...
         RoiColorScheme = 'None'
     end
-    
-        
-    properties (Transient, Access=private)
-        roisChangedListener event.listener %Listener to changes on roi data
-        roiSelectionChangedListener event.listener %Listener to changes on roi selection
-        classificationChangedListener event.listener
-    end %properties
-    
     
     properties (Access = private) % Properties related to how to display rois.
         
@@ -97,25 +86,15 @@ classdef roiMap < handle
         
         function obj = roiMap(app, hAxes, roiGroup)
         
-            
             obj.displayApp = app;
             obj.hAxes = hAxes;
             
             if nargin < 3 || isempty(roiGroup)
-                obj.roiGroup = roimanager.roiGroup();
+                obj.RoiGroup = roimanager.roiGroup();
             else
-                obj.roiGroup = roiGroup;
+                obj.RoiGroup = roiGroup;
             end
-            
-            obj.roisChangedListener = event.listener(obj.roiGroup, ...
-                'roisChanged', @(s, e) onRoiGroupChanged(obj, e));
-            
-            obj.roiSelectionChangedListener = event.listener(obj.roiGroup, ...
-                'roiSelectionChanged', @(s, e) onRoiSelectionChanged(obj, e));
-           
-            obj.classificationChangedListener = event.listener(obj.roiGroup, ...
-                'classificationChanged', @(s, e) onRoiClassificationChanged(obj, e));
-            
+
         end
         
         function delete(obj)
@@ -128,7 +107,22 @@ classdef roiMap < handle
         
     end
     
-    methods (Access = private)
+    methods % Public methods inherited from roiDisplay
+        
+        function addRois(obj)
+            % Todo
+        end
+        
+        function removeRois(obj)
+        %removeRois Remove selected rois
+           IND = obj.selectedRois;
+           obj.deselectRois(IND)
+           obj.RoiGroup.removeRois(IND);
+        end
+        
+    end
+    
+    methods (Access = protected) % Callbacks inherited from roiDisplay
           
         function onRoiGroupChanged(obj, evt)
             % Triggered on existing roiGroup events
@@ -192,6 +186,101 @@ classdef roiMap < handle
             
         end %function
         
+        function onRoiSelectionChanged(obj, evtData)
+        %onRoiSelectionChanged Takes care of selection of roi. 
+        %
+        %   Show roi as white in image on selection. Reset color on
+        %   deselection
+        
+% %             roiIndices = evtData.roiIndices;
+% %             if iscolumn(roiIndices)
+% %                 roiIndices = roiIndices';
+% %                 %disp('a') %Todo: debug, where does this become a col
+% %                 %vector
+% %             end
+            
+            newIndices = evtData.NewIndices;
+
+            selectedRoiIdx = setdiff(newIndices, obj.selectedRois);
+            deselectedRoiIdx = setdiff(obj.selectedRois, newIndices);
+            
+            
+            if ~isempty(deselectedRoiIdx)
+                colorCellArray = cell(numel(deselectedRoiIdx), 1);
+                c = 1;
+                for i = deselectedRoiIdx
+                    colorCellArray{c} = obj.getRoiColor(obj.RoiGroup.roiArray(i));
+                    c = c+1;
+                end
+                newLineWidth = obj.RoiOutlineWidth;
+
+                if obj.neuropilMaskVisible
+                    for i = deselectedRoiIdx
+                        obj.removeNeuropilPatch(i)
+                    end
+                end
+                
+                obj.updateRoiLineWidth(deselectedRoiIdx, newLineWidth)
+                obj.updateRoiColor(deselectedRoiIdx, colorCellArray)
+            end
+            
+            if ~isempty(selectedRoiIdx)
+                colorCellArray = repmat({'White'}, numel(selectedRoiIdx), 1);
+                newLineWidth = min([obj.RoiOutlineWidth+2, 3]);
+
+%                 if evtData.zoomOnRoi % Should be a setting for roimap...
+%                     obj.zoomInOnRoi(obj.selectedRois(end), true)
+%                 end
+
+                if obj.neuropilMaskVisible
+                    for i = selectedRoiIdx
+                        obj.addNeuropilPatch(i)
+                    end
+                end
+                
+                obj.updateRoiLineWidth(selectedRoiIdx, newLineWidth)
+                obj.updateRoiColor(selectedRoiIdx, colorCellArray)                
+
+            end
+            
+            obj.selectedRois = newIndices;
+            if iscolumn(obj.selectedRois)
+                obj.selectedRois = transpose(obj.selectedRois);
+            end
+
+        end
+        
+        function onRoiClassificationChanged(obj, evtData)
+            
+            roiIndices = evtData.roiIndices;
+            
+            if iscolumn(roiIndices); roiIndices = roiIndices'; end
+            
+            if true %strcmp(obj.settings.colorRoiBy, 'Validation')
+                
+                % Only recolor rois that are not selected.
+                roiIndices = setdiff(roiIndices, obj.selectedRois);
+                if isempty(roiIndices); return; end
+                
+                colorCellArray = cell(numel(roiIndices), 1);
+                c = 1;
+                for i = roiIndices
+                    colorCellArray{c} = obj.getRoiColor(obj.RoiGroup.roiArray(i));
+                    c = c+1;
+                end
+                
+                set(obj.roiPlotHandles(roiIndices), {'color'}, colorCellArray);
+                if ~isempty(obj.roiTextHandles)
+                    set(obj.roiTextHandles(roiIndices), {'color'}, colorCellArray); 
+                end
+            end
+            
+        end
+
+    end
+    
+    methods (Access = private)
+        
         function onNeuropilMaskVisibleChanged(obj)
             
             if obj.neuropilMaskVisible
@@ -241,6 +330,17 @@ classdef roiMap < handle
             obj.onNeuropilMaskVisibleChanged()
         end
         
+        function set.selectedRois(obj, newValue)
+           
+            if iscolumn(newValue)
+                newValue = transpose(newValue);
+            end
+            
+            obj.selectedRois = newValue;
+                
+            
+        end
+        
         function set.RoiColorScheme(obj, newValue)
             obj.RoiColorScheme = newValue;
             obj.onRoiColorSchemeChanged()
@@ -256,6 +356,7 @@ classdef roiMap < handle
     methods
         
 % % % % Methods for plotting rois and modifying the plots
+
         
         function plotRoi(obj, roiArray, ind, mode)
         %plotRoi Plot the roi in the axes of the display app.
@@ -275,7 +376,7 @@ classdef roiMap < handle
             if nargin < 4; mode = 'append'; end
             
             if nargin < 3
-                ind = obj.roiGroup.roiCount - fliplr(1:numel(roiArray)) + 1;
+                ind = obj.RoiGroup.roiCount - fliplr(1:numel(roiArray)) + 1;
             end
             
             
@@ -408,8 +509,8 @@ classdef roiMap < handle
             end
             
             if nargin < 2
-                roiArray = obj.roiGroup.roiArray;
-                roiInd = 1:obj.roiGroup.roiCount;
+                roiArray = obj.RoiGroup.roiArray;
+                roiInd = 1:obj.RoiGroup.roiCount;
                 mode = 'initialize';
             end
             
@@ -438,7 +539,7 @@ classdef roiMap < handle
                 set(hText, 'Visible', 'off')
             end
                         
-            roiLabels = obj.roiGroup.getRoiLabels(roiInd);
+            roiLabels = obj.RoiGroup.getRoiLabels(roiInd);
 
 % %             % Assemble text labels for the listbox
 % %             tags = {roiArray.tag};
@@ -493,7 +594,7 @@ classdef roiMap < handle
         
         
         function shiftLinkPlot(obj, shift)
-            isPropEmpty = @(prop) arrayfun(@(roi) isempty(roi.(prop)), obj.roiGroup.roiArray);
+            isPropEmpty = @(prop) arrayfun(@(roi) isempty(roi.(prop)), obj.RoiGroup.roiArray);
             
             parentInd = find( ~isPropEmpty('connectedrois') );
             childInd = find( ~isPropEmpty('parentroi') );
@@ -503,10 +604,10 @@ classdef roiMap < handle
             parentInd = intersect(parentInd, obj.selectedRois, 'stable');
             childInd = intersect(childInd, obj.selectedRois, 'stable');
             
-            childUIds = cat(2, obj.roiGroup.roiArray(parentInd).connectedrois);
+            childUIds = cat(2, obj.RoiGroup.roiArray(parentInd).connectedrois);
             childUIds = unique(childUIds);
             if ~isempty(childUIds)
-                [~, childOfParentInd] = intersect({obj.roiGroup.roiArray.uid}, childUIds);
+                [~, childOfParentInd] = intersect({obj.RoiGroup.roiArray.uid}, childUIds);
             else
                 childOfParentInd = [];
             end
@@ -544,7 +645,7 @@ classdef roiMap < handle
         
         %TODO: Accept vector of roi indices.
             
-            roi = obj.roiGroup.roiArray(roiInd);
+            roi = obj.RoiGroup.roiArray(roiInd);
             
             for j = 1:length(roi.boundary)
                 if j == 1
@@ -585,7 +686,7 @@ classdef roiMap < handle
                      'HitTest', 'off', 'PickableParts', 'none');
             end
             
-            isPropEmpty = @(prop) arrayfun(@(roi) isempty(roi.(prop)), obj.roiGroup.roiArray);
+            isPropEmpty = @(prop) arrayfun(@(roi) isempty(roi.(prop)), obj.RoiGroup.roiArray);
             
             parentInd = find( ~isPropEmpty('connectedrois') );
             childInd = find( ~isPropEmpty('parentroi') );
@@ -594,20 +695,20 @@ classdef roiMap < handle
             childInd = intersect(childInd, roiInd, 'stable');
 
             % Plot parent data
-            parentData = cat(1, obj.roiGroup.roiArray(parentInd).center);
+            parentData = cat(1, obj.RoiGroup.roiArray(parentInd).center);
             parentData = num2cell(parentData);
             
             if ~isempty(parentInd)
                 set(obj.roiLinkHandles(parentInd), {'XData'}, parentData(:,1),  {'YData'}, parentData(:,2), 'Marker', 'o', 'MarkerSize', 5)
             end
-            roiUids = {obj.roiGroup.roiArray.uid};
+            roiUids = {obj.RoiGroup.roiArray.uid};
             linkPosArray = cell(numel(childInd), 2);
 
             for i = 1:numel(childInd)
                 ii = childInd(i);
-                [~, iA] = intersect(roiUids, obj.roiGroup.roiArray(ii).parentroi);
-                linkPosArray{i, 1} = [obj.roiGroup.roiArray(iA).center(1) obj.roiGroup.roiArray(ii).center(1)];
-                linkPosArray{i, 2} = [obj.roiGroup.roiArray(iA).center(2) obj.roiGroup.roiArray(ii).center(2)];
+                [~, iA] = intersect(roiUids, obj.RoiGroup.roiArray(ii).parentroi);
+                linkPosArray{i, 1} = [obj.RoiGroup.roiArray(iA).center(1) obj.RoiGroup.roiArray(ii).center(1)];
+                linkPosArray{i, 2} = [obj.RoiGroup.roiArray(iA).center(2) obj.RoiGroup.roiArray(ii).center(2)];
             end
             
             if ~isempty(childInd)
@@ -629,7 +730,7 @@ classdef roiMap < handle
             end
             
             % Get selected rois
-            originalRois = obj.roiGroup.roiArray(obj.selectedRois);
+            originalRois = obj.RoiGroup.roiArray(obj.selectedRois);
             
             % Get new rois that are moved versions of original ones.
             newRois = originalRois;
@@ -638,7 +739,7 @@ classdef roiMap < handle
                 newRois(i) = obj.addUserData(newRois(i));
             end
             
-            obj.roiGroup.modifyRois(newRois, obj.selectedRois)
+            obj.RoiGroup.modifyRois(newRois, obj.selectedRois)
                        
         end
 
@@ -646,14 +747,14 @@ classdef roiMap < handle
         function growRois(obj)
             
             % Get selected rois
-            originalRois = obj.roiGroup.roiArray(obj.selectedRois);
+            originalRois = obj.RoiGroup.roiArray(obj.selectedRois);
             
             newRois = originalRois;
             for i = 1:numel(originalRois)
                 newRois(i) = originalRois(i).grow(1); % Grow rois
             end
             
-            obj.roiGroup.modifyRois(newRois, obj.selectedRois)
+            obj.RoiGroup.modifyRois(newRois, obj.selectedRois)
             
         end
         
@@ -661,14 +762,14 @@ classdef roiMap < handle
         function shrinkRois(obj)
                         
             % Get selected rois
-            originalRois = obj.roiGroup.roiArray(obj.selectedRois);
+            originalRois = obj.RoiGroup.roiArray(obj.selectedRois);
             
             newRois = originalRois;
             for i = 1:numel(originalRois)
                 newRois(i) = originalRois(i).shrink(1); % Shrink rois
             end
             
-            obj.roiGroup.modifyRois(newRois, obj.selectedRois)
+            obj.RoiGroup.modifyRois(newRois, obj.selectedRois)
             
         end
         
@@ -708,9 +809,9 @@ classdef roiMap < handle
             newRoi = obj.addUserData(newRoi);
             %newRoi = obj.editRoiProperties(newRoi);
             
-            obj.roiGroup.addRois(newRoi)
+            obj.RoiGroup.addRois(newRoi)
             
-            obj.selectRois(obj.roiGroup.roiCount, 'normal')
+            obj.selectRois(obj.RoiGroup.roiCount, 'normal')
 
             
         end
@@ -726,9 +827,9 @@ classdef roiMap < handle
             %newRoi = obj.editRoiProperties(newRoi);
             newRoi = obj.addUserData(newRoi);
             
-            obj.roiGroup.addRois(newRoi)
+            obj.RoiGroup.addRois(newRoi)
             
-            obj.selectRois(obj.roiGroup.roiCount, 'normal')
+            obj.selectRois(obj.RoiGroup.roiCount, 'normal')
         end
         
         function createFreehandRoi(obj, x, y, thickness)
@@ -753,8 +854,8 @@ classdef roiMap < handle
             %newRoi = obj.editRoiProperties(newRoi);
             newRoi = obj.addUserData(newRoi);
 
-            obj.roiGroup.addRois(newRoi)
-            obj.selectRois(obj.roiGroup.roiCount, 'normal')
+            obj.RoiGroup.addRois(newRoi)
+            obj.selectRois(obj.RoiGroup.roiCount, 'normal')
             
         end
         
@@ -902,10 +1003,10 @@ classdef roiMap < handle
                 if doReplace
                     i = obj.selectedRois;
                     newRoi = obj.addUserData(newRoi);
-                    obj.roiGroup.modifyRois(newRoi, i)
+                    obj.RoiGroup.modifyRois(newRoi, i)
                 else
                     newRoi = obj.addUserData(newRoi);
-                    obj.roiGroup.addRois(newRoi)
+                    obj.RoiGroup.addRois(newRoi)
                 end
                 
                 clear newRoi
@@ -922,7 +1023,7 @@ classdef roiMap < handle
         function improveRois(obj)
                     
             % Get selected rois
-            originalRois = obj.roiGroup.roiArray(obj.selectedRois);
+            originalRois = obj.RoiGroup.roiArray(obj.selectedRois);
             newRois = originalRois; % Preallocate...
             for i = 1:numel(originalRois)
                 center = originalRois(i).center;
@@ -932,7 +1033,7 @@ classdef roiMap < handle
                 newRois(i) = originalRois(i).reshape('Mask', tmpRoi.mask);
             end
             
-            obj.roiGroup.modifyRois(newRois, obj.selectedRois)
+            obj.RoiGroup.modifyRois(newRois, obj.selectedRois)
             
         end
         
@@ -985,7 +1086,7 @@ classdef roiMap < handle
             if isempty(obj.roiMaskAll)
                 obj.roiMaskAll = {};
                 
-                %obj.roiMaskAll = cat(3, obj.roiGroup.roiArray(:).mask);
+                %obj.roiMaskAll = cat(3, obj.RoiGroup.roiArray(:).mask);
                 %return
             end
             
@@ -1016,14 +1117,14 @@ classdef roiMap < handle
             switch lower(action)
                 case {'add', 'reshape', 'append', 'modify'}
                     for i = roiInd                        
-                        [localMask, globalSubs] = obj.roiGroup.roiArray(i).getLocalMask();
-                        [Y, X] = ind2sub(obj.roiGroup.FovImageSize, globalSubs);
+                        [localMask, globalSubs] = obj.RoiGroup.roiArray(i).getLocalMask();
+                        [Y, X] = ind2sub(obj.RoiGroup.FovImageSize, globalSubs);
                         obj.roiMaskAll(Y(:,1),X(1,:),i) = localMask;
                     end
-                    %obj.roiMaskAll(:,:,roiInd) = cat(3, obj.roiGroup.roiArray(roiInd).mask);
+                    %obj.roiMaskAll(:,:,roiInd) = cat(3, obj.RoiGroup.roiArray(roiInd).mask);
                     
                 case {'insert'}
-                    dataToInsert =  cat(3, obj.roiGroup.roiArray(roiInd).mask);
+                    dataToInsert =  cat(3, obj.RoiGroup.roiArray(roiInd).mask);
                     obj.roiMaskAll = utility.insertIntoArray(obj.roiMaskAll, dataToInsert, roiInd, 3);
 
                 case 'remove'
@@ -1037,23 +1138,23 @@ classdef roiMap < handle
             % This is super slow....
 % % %             if isempty( obj.roiIndexMap )
 % % %                 tic
-% % %                 obj.roiIndexMap = zeros(size(obj.roiGroup.roiArray(1).mask));
+% % %                 obj.roiIndexMap = zeros(size(obj.RoiGroup.roiArray(1).mask));
 % % %                 toc
 % % %             else
-% % %                 obj.roiIndexMap = zeros(size(obj.roiGroup.roiArray(1).mask));
+% % %                 obj.roiIndexMap = zeros(size(obj.RoiGroup.roiArray(1).mask));
 % % %                 %obj.roiIndexMap(:) = 0;
 % % %             end
 % % %             
 % % %             tic
-% % %             obj.roiIndexMap = zeros(size(obj.roiGroup.roiArray(1).mask));
+% % %             obj.roiIndexMap = zeros(size(obj.RoiGroup.roiArray(1).mask));
 % % %             toc
-% % %             for i = 1:obj.roiGroup.roiCount
-% % %                 %tmpMask = obj.roiGroup.roiArray(i).mask;
-% % %                 pixelIdxList = obj.roiGroup.roiArray(i).getPixelIdxList();
+% % %             for i = 1:obj.RoiGroup.roiCount
+% % %                 %tmpMask = obj.RoiGroup.roiArray(i).mask;
+% % %                 pixelIdxList = obj.RoiGroup.roiArray(i).getPixelIdxList();
 % % %                 tic;obj.roiIndexMap(pixelIdxList) = i;toc
 % % %             end
             
-            if obj.roiGroup.roiCount == 0
+            if obj.RoiGroup.roiCount == 0
                 return
             end
 
@@ -1063,11 +1164,11 @@ classdef roiMap < handle
             % Assign the "label matrix" to a temporary variable. For some
             % reason this code is very slow if the matrix is assigned to
             % the object property and then updated.
-            L = zeros(size(obj.roiGroup.roiArray(1).mask));
+            L = zeros(size(obj.RoiGroup.roiArray(1).mask));
 
-            for i = 1:obj.roiGroup.roiCount
-                %tmpMask = obj.roiGroup.roiArray(i).mask;
-                pixelIdxList = obj.roiGroup.roiArray(i).getPixelIdxList();
+            for i = 1:obj.RoiGroup.roiCount
+                %tmpMask = obj.RoiGroup.roiArray(i).mask;
+                pixelIdxList = obj.RoiGroup.roiArray(i).getPixelIdxList();
                 L(pixelIdxList) = i;
             end
             
@@ -1077,8 +1178,9 @@ classdef roiMap < handle
 %             obj.roiMaskAll = obj.roiIndexMap ~= 0;
 %             toc
         end
-        
-        
+
+% % % % Methods for showing/hiding roi visible features...
+
         function showRoiTextLabels(obj)
             if isempty(obj.roiTextHandles)
                 obj.plotRoiTextLabels()
@@ -1090,9 +1192,7 @@ classdef roiMap < handle
         function hideRoiTextLabels(obj)
             set(obj.roiTextHandles, 'Visible', 'off')
         end
-        
-        
-        
+                
         function showClassifiedCells(obj, label)
             
             if nargin < 2
@@ -1101,7 +1201,7 @@ classdef roiMap < handle
                 classificationToShow = strrep(label, 'Show ', '');
             end
             
-            clsf = obj.roiGroup.roiClassification;
+            clsf = obj.RoiGroup.roiClassification;
             
             %set(obj.roiPlotHandles, 'Visible', 'on')
             
@@ -1128,7 +1228,6 @@ classdef roiMap < handle
             obj.IsVisibleRoi = isVisibleRoi ;
             
         end
-        
         
         function showRoiOutlines(obj)
             set(obj.roiPlotHandles(obj.IsVisibleRoi), 'Visible', 'on')
@@ -1163,7 +1262,7 @@ classdef roiMap < handle
                 
                 % Todo: Get roi settings from somewhere...
                 
-                roiData = nansen.processing.roi.prepareRoiMasks(obj.roiGroup.roiArray, 'roiInd', i);
+                roiData = nansen.processing.roi.prepareRoiMasks(obj.RoiGroup.roiArray, 'roiInd', i);
                 npMask = roiData.Masks(:,:,2:end);
                   
 % %                 % Find neuropil mask
@@ -1200,6 +1299,7 @@ classdef roiMap < handle
         
         
 % % % % Methods for interaction with roi map
+        
         function tf = isPointValid(obj, x, y)    
             tf = true;
         end
@@ -1263,105 +1363,19 @@ classdef roiMap < handle
             
         end
         
-        function onRoiSelectionChanged(obj, evtData)
-        %onRoiSelectionChanged Takes care of selection of roi. 
-        %
-        %   Show roi as white in image on selection. Reset color on
-        %   deselection
-        
-            roiIndices = evtData.roiIndices;
-            if iscolumn(roiIndices)
-                roiIndices = roiIndices';
-                %disp('a') %Todo: debug, where does this become a col
-                %vector
-            end
-            
-            switch evtData.eventType
-                case 'unselect'
-                    
-                    if ischar(roiIndices) && strcmp(roiIndices, 'all')
-                        roiIndices = obj.selectedRois;
-                        if isempty(obj.selectedRois); return; end
-                    end
-                    
-                    obj.selectedRois = setdiff(obj.selectedRois, roiIndices);
-
-                    colorCellArray = cell(numel(roiIndices), 1);
-                    c = 1;
-                    for i = roiIndices
-                        colorCellArray{c} = obj.getRoiColor(obj.roiGroup.roiArray(i));
-                        c = c+1;
-                    end
-                    newLineWidth = obj.RoiOutlineWidth;
-                    
-                    if obj.neuropilMaskVisible
-                        for i = roiIndices
-                            obj.removeNeuropilPatch(i)
-                        end
-                    end
-                    
-                case 'select'
-                    obj.selectedRois = union(obj.selectedRois, roiIndices);
-                    if iscolumn(obj.selectedRois)
-                        obj.selectedRois = transpose(obj.selectedRois);
-                    end
-                    
-                    colorCellArray = repmat({'White'}, numel(roiIndices), 1);
-                    newLineWidth = min([obj.RoiOutlineWidth+2, 3]);
-                    
-                    if evtData.zoomOnRoi
-                        obj.zoomInOnRoi(obj.selectedRois(end), true)
-                    end
-                    
-                    if obj.neuropilMaskVisible
-                        for i = roiIndices
-                            obj.addNeuropilPatch(i)
-                        end
-                    end
-            end
-            
+        function updateRoiColor(obj, roiIdx, colorCellArray)
             
             % Change the color of roi outlines and text labels
-            set(obj.roiPlotHandles(roiIndices), 'LineWidth', newLineWidth);
-            set(obj.roiPlotHandles(roiIndices), {'color'}, colorCellArray);
+            set(obj.roiPlotHandles(roiIdx), {'color'}, colorCellArray);
             
             if ~isempty(obj.roiTextHandles)
-                set(obj.roiTextHandles(roiIndices), {'color'}, colorCellArray); 
-            end
-            
-            if ~isempty(obj.selectedRois)
-                obj.selectedRois = unique(obj.selectedRois, 'stable'); % The lazy way
-            else
-                obj.selectedRois = []; % setdiff creates an empty row vector, creates problems later...
+                set(obj.roiTextHandles(roiIdx), {'color'}, colorCellArray); 
             end
             
         end
         
-        function onRoiClassificationChanged(obj, evtData)
-            
-            roiIndices = evtData.roiIndices;
-            
-            if iscolumn(roiIndices); roiIndices = roiIndices'; end
-            
-            if true %strcmp(obj.settings.colorRoiBy, 'Validation')
-                
-                % Only recolor rois that are not selected.
-                roiIndices = setdiff(roiIndices, obj.selectedRois);
-                if isempty(roiIndices); return; end
-                
-                colorCellArray = cell(numel(roiIndices), 1);
-                c = 1;
-                for i = roiIndices
-                    colorCellArray{c} = obj.getRoiColor(obj.roiGroup.roiArray(i));
-                    c = c+1;
-                end
-                
-                set(obj.roiPlotHandles(roiIndices), {'color'}, colorCellArray);
-                if ~isempty(obj.roiTextHandles)
-                    set(obj.roiTextHandles(roiIndices), {'color'}, colorCellArray); 
-                end
-            end
-            
+        function updateRoiLineWidth(obj, roiIdx, newLineWidth)
+            set(obj.roiPlotHandles(roiIdx), 'LineWidth', newLineWidth);
         end
         
         function selectRois(obj, roiIndices, selectionType, isMousePress)
@@ -1385,7 +1399,7 @@ classdef roiMap < handle
                 wasInRoi = true;
             end
             
-            % Dont select rois that are not visible!
+            % Don't select rois that are not visible!
             roiIndices = intersect( find(obj.IsVisibleRoi), roiIndices);
             
             obj.unselectedRois = []; % Make sure this is empty.
@@ -1399,7 +1413,8 @@ classdef roiMap < handle
                     % Reset selection of all unselected rois
                     deselectedRois = setdiff(obj.selectedRois, roiIndices);
                     
-                    if any(obj.selectedRois == roiIndices)
+                    %if any(obj.selectedRois == roiIndices)
+                    if any( ismember(obj.selectedRois, roiIndices))
                         if ~isempty(deselectedRois) 
                             if isMousePress
                                 obj.unselectedRois = deselectedRois;
@@ -1436,7 +1451,10 @@ classdef roiMap < handle
             
             % Call the roiGroup's changeRoiSelection method to apply change
             if ~isempty(roiIndices)
-                obj.roiGroup.changeRoiSelection(roiIndices, 'select')
+                oldSelection = obj.selectedRois;
+                newSelection = unique([roiIndices, obj.selectedRois]);
+                
+                obj.RoiGroup.changeRoiSelection(oldSelection, newSelection)
             end
             
             
@@ -1449,24 +1467,14 @@ classdef roiMap < handle
 
         end
         
-        
         function selectNeighbors(obj)
             
             roiInd = obj.selectedRois(1);
-            roiIndNb = obj.roiGroup.roiArray.getNeighboringRoiIndices(roiInd);
+            roiIndNb = obj.RoiGroup.roiArray.getNeighboringRoiIndices(roiInd);
             if iscolumn(roiIndNb); roiIndNb = roiIndNb'; end
             if ~isempty(roiIndNb)
-                obj.roiGroup.changeRoiSelection(roiIndNb, 'select')
+                obj.RoiGroup.changeRoiSelection(obj.selectedRois, roiIndNb)
             end
-        end
-        
-        function removeRois(obj)
-           % Todo: Should this method be part of roimap?
-
-           IND = obj.selectedRois;
-           obj.deselectRois(IND)
-           obj.roiGroup.removeRois(IND);
-
         end
         
         function deselectRois(obj, roiIndices)
@@ -1480,10 +1488,11 @@ classdef roiMap < handle
                     return; 
                 end
             end
-            
-            obj.selectedRois = setdiff(obj.selectedRois, roiIndices);
+            oldIndices = obj.selectedRois;
+            %obj.selectedRois = setdiff(obj.selectedRois, roiIndices);
+            newIndices = setdiff(obj.selectedRois, roiIndices);
+            obj.RoiGroup.changeRoiSelection(oldIndices, newIndices)
 
-            obj.roiGroup.changeRoiSelection(roiIndices, 'unselect')
         end
         
         function multiSelectRois(obj, xBounds, yBounds)
@@ -1508,7 +1517,7 @@ classdef roiMap < handle
             
             roiInd = obj.selectedRois;
             newClass = repmat(classification, size(roiInd));
-            obj.roiGroup.setRoiClassification(...
+            obj.RoiGroup.setRoiClassification(...
                 roiInd, newClass)
                         
         end
@@ -1524,10 +1533,10 @@ classdef roiMap < handle
             xLim = obj.hAxes.XLim;
             yLim = obj.hAxes.YLim;
 
-            roiCenter = obj.roiGroup.roiArray(i).center;
+            roiCenter = obj.RoiGroup.roiArray(i).center;
             
             % Decide if field of view should be changed (if roi is not inside image)
-            [y,x] = find(obj.roiGroup.roiArray(i).mask);
+            [y,x] = find(obj.RoiGroup.roiArray(i).mask);
             roiPositionLimits = [min(x), max(x); min(y), max(y)];
             if ~ ( roiPositionLimits(1,1) > xLim(1) && roiPositionLimits(1,2) < xLim(2) )
                 changeFOV = true;
@@ -1560,7 +1569,7 @@ classdef roiMap < handle
             parentInd = obj.selectedRois(1);
             childInd = obj.selectedRois(2:end);
             
-            obj.roiGroup.connectRois(parentInd, childInd)
+            obj.RoiGroup.connectRois(parentInd, childInd)
             
         end
         
@@ -1623,7 +1632,12 @@ classdef roiMap < handle
 
         function updateRoiColors(obj, roiInd)
             
-            if nargin < 2; roiInd = 1:obj.roiGroup.roiCount; end
+            if nargin < 2; roiInd = 1:obj.RoiGroup.roiCount; end
+            
+            % Todo: see
+% %             updateRoiColor
+% %             updateRoiLineWidth
+% %             onRoiSelectionChanged
             
             for i = roiInd
                 if ismember(i, obj.selectedRois)
@@ -1632,9 +1646,10 @@ classdef roiMap < handle
                     newLineWidth = obj.RoiOutlineWidth;
                 end
                 
-                color = obj.getRoiColor(obj.roiGroup.roiArray(i));
+                color = obj.getRoiColor(obj.RoiGroup.roiArray(i));
                 obj.roiPlotHandles(i).LineWidth = newLineWidth;
                 obj.roiPlotHandles(i).Color = color;
+                
                 if ~isempty(obj.roiTextHandles)
                     obj.roiTextHandles(i).Color = color;
                 end

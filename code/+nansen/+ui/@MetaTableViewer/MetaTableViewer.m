@@ -150,7 +150,47 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
     methods % Public methods
         
-        function refreshTable(obj, newTable)
+        function updateCells(obj, rowIdx, colIdx, newData)
+        %updateCells Update subset of cells...
+        
+            obj.MetaTableCell(rowIdx, colIdx) = newData;
+            
+            % Todo: Need to find the corresponding cell in the viewable
+            % table...
+            
+            % Get based on user selection of which columns to display
+            colIdxVisible = obj.getCurrentColumnSelection();
+            
+            % Get based on filter states
+            rowIdxVisible = obj.getCurrentRowSelection();
+            
+            % Get the row taking the table sorting into account:
+            %dataInd = get(obj.HTable.JTable.Model, 'Indexes');
+
+            if ~isempty(obj.HTable.RowSortIndex)
+                rowIdxVisible = rowIdxVisible(obj.HTable.RowSortIndex);
+            end
+            
+            newData = newData(:, colIdxVisible);
+            
+            [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
+            [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
+            
+            for i = 1:numel(uiTableRowIdx)
+                for j = 1:numel(uiTableColIdx)
+                    iRow = uiTableRowIdx(i);
+                    jCol = uiTableColIdx(j);
+                    obj.HTable.setCell(iRow, jCol, newData{i,j})
+                end
+            end
+            
+            %obj.HTable.setCell(uiTableRowIdx, uiTableColIdx, newData)
+            %obj.HTable.Data(uiTableRowIdx, uiTableColIdx) = newData;
+            drawnow
+            
+        end
+        
+        function refreshTable(obj, newTable, flushTable)
         %refreshTable Method for refreshing the table
         
             currentTable = obj.MetaTable;
@@ -160,6 +200,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             else
                 %fprintf('Print message if this case occurs...\n')
                 newTable = [];
+            end
+
+            if nargin < 3
+                flushTable = false;
+            end
+            
+            if flushTable % Empty table, gives smoother update in some cases
+                obj.HTable.Data = {};
             end
             
             % only update column layout if number of columns change

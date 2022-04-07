@@ -3,9 +3,8 @@ classdef roiDisplay < uim.handle
 % if the underlying roi group is changed.
 %
 %
-% should methods like grow/shrink move etc be part of this class? No???
-%
-% Work in progress. RoiMap & roiclassifier should inherit from this class...
+
+% Work in progress.
     
     properties
         % These properties should be gotten from an enum class... Also:
@@ -17,49 +16,139 @@ classdef roiDisplay < uim.handle
         classificationLabels = { 'Accepted', 'Rejected', 'Unclear' } 
     end
     
+    properties
+        RoiGroup            % The handle of a roigroup object
+    end
     
     properties
-        roiGroup
+        SelectedRois        % Vector with indices of selected rois
+        VisibleRois         % Vector with indices of visible rois
     end
     
-    
-    properties (Access = protected)
-        roisChangedListener
-        roiSelectionChangedListener
-        roiClassificationChangedListener
+    properties (Access = protected) % RoiGroup event listeners
+        RoisChangedListener event.listener
+        RoiSelectionChangedListener event.listener
+        RoiClassificationChangedListener event.listener
     end
     
-    
-    methods (Abstract, Access = protected)
+    methods (Abstract, Access = protected) % RoiGroup event callbacks
         onRoiGroupChanged(obj, evtData)
         onRoiSelectionChanged(obj, evtData)
         onRoiClassificationChanged(obj, evtData)        
     end
     
     
-    methods (Abstract)
-        addRois(obj)
-        removeRois(obj)
+    methods
+        function addRois(obj)
+            % Subclass should implement if subclass can add more rois to a
+            % RoiGroup.
+        end
+        
+        function removeRois(obj)
+            % Subclass should implement if subclass can remove rois from a
+            % RoiGroup.
+        end
     end
     
-    
-    
-    methods 
+    methods % Constructor
+        
         function obj = roiDisplay(roiGroup)
-            
-            obj.roiGroup = roiGroup;
-            
-            obj.roisChangedListener = event.listener(obj.roiGroup, ...
-                'roisChanged', @(s, e) onRoiGroupChanged(obj, e));
-            
-            obj.roiSelectionChangedListener = event.listener(obj.roiGroup, ...
-                'roiSelectionChanged', @(s, e) onRoiSelectionChanged(obj, e));
-           
-            obj.roiClassificationChangedListener = event.listener(obj.roiGroup, ...
-                'classificationChanged', @(s, e) onRoiClassificationChanged(obj, e));
-            
+        %roiDisplay Constructor for roi display
+        
+            if ~nargin; return; end
+        
+            obj.RoiGroup = roiGroup;
+
+        end
+        
+        function delete(obj)
+            obj.resetListeners()
         end
 
     end
+
+    methods % Set/get
+        
+        function set.RoiGroup(obj, newValue)
+            
+            msg = 'RoiGroup must be a roimanager.roiGroup object';
+            assert( isa(newValue, 'roimanager.roiGroup'), ...
+                'RoiDisplay:InvalidPropertyValue', msg )
+            
+            obj.resetListeners()
+            obj.RoiGroup = newValue;
+            obj.createListeners()
+            
+            obj.onRoiGroupSet()
+            
+        end
+        
+        function set.SelectedRois(obj, newValue)
+            
+            % Make sure the selected indices is a row vector.
+            if iscolumn(newValue)
+                newValue = transpose(newValue);
+            end
+            
+            newValue = unique(newValue, 'stable');
+            obj.SelectedRois = newValue;
+            
+        end
+        
+        function set.VisibleRois(obj, newValue)
+            
+            % Make sure the selected indices is a row vector.
+            if iscolumn(newValue)
+                newValue = transpose(newValue);
+            end
+            
+            obj.VisibleRois = newValue;
+            
+        end
+        
+    end
+    
+    methods (Access = protected)
+        function onRoiGroupSet(obj)
+            % Subclasses may implement
+        end
+    end
+    
+    methods (Access = private)
+        
+        function tf = hasListeners(obj)
+            % All listeners should be set if one is set.
+            tf = ~isempty(obj.RoisChangedListener);
+        end
+        
+        function createListeners(obj)
+        %createListeners Create listeners for events on RoiGroup    
+        
+            obj.RoisChangedListener = event.listener(obj.RoiGroup, ...
+                'roisChanged', @(s, e) onRoiGroupChanged(obj, e));
+            
+            obj.RoiSelectionChangedListener = event.listener(obj.RoiGroup, ...
+                'roiSelectionChanged', @(s, e) onRoiSelectionChanged(obj, e));
+           
+            obj.RoiClassificationChangedListener = event.listener(obj.RoiGroup, ...
+                'classificationChanged', @(s, e) onRoiClassificationChanged(obj, e));
+        end
+        
+        function resetListeners(obj)
+            
+            if ~obj.hasListeners; return; end
+            
+            delete( obj.RoisChangedListener )
+            delete( obj.RoiSelectionChangedListener )
+            delete( obj.RoiClassificationChangedListener )
+            
+            obj.RoisChangedListener = event.listener.empty;
+            obj.RoiSelectionChangedListener = event.listener.empty;
+            obj.RoiClassificationChangedListener = event.listener.empty;
+            
+        end
+        
+    end
+    
     
 end

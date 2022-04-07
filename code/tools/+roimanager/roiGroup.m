@@ -1,6 +1,6 @@
 classdef roiGroup < handle
-%roiGroup Class that stores rois and broadcasts events whenever rois are
-% added, removed or modified.
+%roiGroup Class that stores rois and associated data and broadcasts events 
+% whenever rois are added, removed or modified.
 %
 %   This class is used to give shared access to rois across multiple apps 
 %   and uses events to let other apps know of changes to the rois.
@@ -9,7 +9,7 @@ classdef roiGroup < handle
 %   Er det i orden at roi thumbnail bilder og stats lagres her...?
 %   Det er UserData... Skal jeg lage en userdata egenskap?
 %
-%   For: Da f�lger disse dataene roien. Fleksibilitet
+%   For: Da følger disse dataene roien. Fleksibilitet
 %   Mot: Ikke elegant? Rotete
 
 
@@ -36,6 +36,7 @@ classdef roiGroup < handle
         isActive = true                 % Active (true/false) indicates whether rois should be kept in memory as an object or a struct array.
     end
     
+    
     events
         roisChanged                     % Triggered when rois are changed
         classificationChanged           % Triggered when roi classifications are changed
@@ -46,7 +47,13 @@ classdef roiGroup < handle
     methods % Methods for handling changes on the roiGroup
         
         function obj = roiGroup(varargin)
-            
+        %roiGroup Create a roiGroup object
+        %
+        %   roiGoupObj = roimanager.roiGroup(filename) creates a roigroup
+        %   from file. filename is the absolute filepath for a file
+        %   containing roi data.
+        
+        
             if ~isempty(varargin)
             
                 if isa(varargin{1}, 'char')
@@ -141,14 +148,14 @@ classdef roiGroup < handle
         
         function undo(obj)
             if ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
-                obj.changeRoiSelection('all', 'unselect') % Note: unselect all rois before executing undo!
+                obj.changeRoiSelection(nan, []) % Note: unselect all rois before executing undo!
                 uiundo(obj.ParentApp.Figure, 'execUndo')
             end
         end
         
         function redo(obj)
             if ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
-                obj.changeRoiSelection('all', 'unselect') % Note: unselect all rois before executing redo!
+                obj.changeRoiSelection(nan, []) % Note: unselect all rois before executing undo!
                 uiundo(obj.ParentApp.Figure, 'execRedo')
             end
         end
@@ -298,7 +305,7 @@ classdef roiGroup < handle
             
             if isUndoRedo
                 % Remove selection of all rois if this was a undo/redo
-                obj.changeRoiSelection('all', 'unselect') % Note: unselect all rois before executing undo!
+                obj.changeRoiSelection(nan, []) % Note: unselect all rois before executing undo!
             end
             
             for i = fliplr(roiInd) % Delete from end to beginning.
@@ -335,7 +342,7 @@ classdef roiGroup < handle
                 uiundo(obj.ParentApp.Figure, 'function', cmd);
             else
                 % Remove selection of all rois if this was a undo/redo
-                obj.changeRoiSelection('all', 'unselect') % Note: unselect all rois before executing undo!
+                obj.changeRoiSelection(nan, []) % Note: unselect all rois before executing undo!
             end
             
         end
@@ -353,21 +360,22 @@ classdef roiGroup < handle
             
         end
         
-        function changeRoiSelection(obj, roiIndices, mode, zoomOnRoi, origin)
-        %changeRoiSelection
+        function changeRoiSelection(obj, oldSelection, newSelection, origin)
+        %changeRoiSelection Method to notify a roiSelectionChanged event
         %
         % INPUTS:
-        %   mode : 'select' | 'unselect'
+        %   oldSelection : indices of rois that were selected before.
+        %   newSelection : indices of rois that are newly selected.
+        %   origin       : the class/interface that origninated this call
         
-            % Todo: get from settings?
-            if nargin < 4 || isempty(zoomOnRoi); zoomOnRoi = false; end
-            if nargin < 5; origin = []; end
-                
+            if nargin < 4; origin = []; end
+            
             getEventData = @roimanager.eventdata.RoiSelectionChanged;
-            eventData = getEventData(roiIndices, mode, zoomOnRoi, origin);
+            eventData = getEventData(oldSelection, newSelection, origin);
             obj.notify('roiSelectionChanged', eventData)
             
         end
+
         
         function setRoiClassification(obj, roiInd, newClass)
             %mode: add, insert, append...

@@ -1167,7 +1167,7 @@ methods
     end
     
     
-    function removeRois(obj, indToRemove)
+    function removeItems(obj, indToRemove)
         
         if isempty(indToRemove); return; end
         

@@ -32,6 +32,7 @@ nRois = numel(roiArray);
 signalSize = size(dff);
 nFrames = signalSize(signalSize~=nRois & signalSize~=1);
 
+assert(nFrames == size(imArray,3), 'Number of frames not matching')
 
 if opt.Debug
     nFrames = zeros(nRois, 1);
