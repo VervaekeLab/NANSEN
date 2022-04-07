@@ -2574,7 +2574,8 @@ methods % Event/widget callbacks
 
     function showScalebar(obj)
         
-        if isfield(obj.Annotation, 'Scalebar')
+        if isfield(obj.Annotation, 'Scalebar') && isvalid(obj.Annotation.Scalebar)
+            
             props = {'FontSize', 'FontWeight', 'LineWidth', 'Color', 'Location', 'FontName'};
             values = cellfun(@(p) obj.Annotation.Scalebar.(p), props, 'uni', 0);
             pvPairs = cat(1, props, values);
