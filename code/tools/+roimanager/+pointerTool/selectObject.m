@@ -68,7 +68,7 @@ classdef selectObject < uim.interface.abstractPointer & ...
                         wasCaptured = false;
                     end
                     
-                case 'backspace'
+                case {'backspace', '⌫'}
                     obj.hObjectMap.removeRois();
                 case 'i'
                     obj.hObjectMap.improveRois();
@@ -82,7 +82,7 @@ classdef selectObject < uim.interface.abstractPointer & ...
                     
                 case 'c'
                     if strcmp(event.Modifier, 'shift')
-                        obj.hObjectMap.connectRois() % Todo: delegate to flufinder instead?
+                        obj.hObjectMap.connectRois() % Todo: delegate to roimanager instead?
                     else
                         wasCaptured = false;
                     end
@@ -94,13 +94,14 @@ classdef selectObject < uim.interface.abstractPointer & ...
                     end
                     % todo....
 %                     if strcmp(event.Modifier, 'shift')
-%                         obj.hObjectMap.mergeRois() % Todo: delegate to flufinder instead?
+%                         obj.hObjectMap.mergeRois() % Todo: delegate to roimanager instead?
 %                     end
                     
                 %todo: arrowkeys for moving rois.
-                case {'leftarrow', 'rightarrow', 'uparrow', 'downarrow'}
+                case {'leftarrow', 'rightarrow', 'uparrow', 'downarrow', ...
+                        '↓', '↑', '←', '→'}
                     
-                    shift = obj.text2shift(strrep(event.Key, 'arrow', ''));
+                    shift = obj.keyname2shift(strrep(event.Key, 'arrow', ''));
                     obj.hObjectMap.moveRoi(shift)
                     
                     
@@ -211,16 +212,16 @@ classdef selectObject < uim.interface.abstractPointer & ...
     end
     
     methods (Static)
-        function shift = text2shift(direction)
+        function shift = keyname2shift(direction)
             % Todo: Enumerator?
             switch direction
-                case 'left'
+                case {'left', '←'}
                     shift = [-1, 0];
-                case 'right'
+                case {'right', '→'}
                     shift = [1, 0];
-                case 'up'
+                case {'up', '↑'}
                     shift = [0, -1];
-                case 'down'
+                case {'down', '↓'}
                     shift = [0, 1]; 
             end
         end
