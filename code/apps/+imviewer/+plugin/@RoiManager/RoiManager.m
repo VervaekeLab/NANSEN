@@ -418,7 +418,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                     field = fieldnames(S);
                 end
                 
-                fieldMatch = contains(field, {'roi_arr', 'RoiArray'}); %'roiArray'
+                fieldMatch = contains(field, {'roi_arr', 'RoiArray', 'roiArray'}); %'roiArray'
                 if isempty(fieldMatch) || ~any(fieldMatch)
                     delete(C) % Delete to prevent following message from getting cleared
                     message = 'Did not find roi array in selected file';
@@ -426,6 +426,8 @@ classdef RoiManager < applify.mixin.AppPlugin
                     return
                     %error('Did not find roi array in selected file')
                 else
+                    if sum(fieldMatch) > 1; fieldMatch = find(fieldMatch, 1, 'first'); end
+                    
                     roi_arr = S.(field{fieldMatch});
                     if isa(roi_arr, 'struct')
                         roi_arr = roimanager.utilities.struct2roiarray(roi_arr);
@@ -569,8 +571,8 @@ classdef RoiManager < applify.mixin.AppPlugin
             varNames = {'roiImages', 'roiStats', 'roiClassification'};
             
             for i = 1:numel(varNames)
-                if ~isempty(obj.(varNames{i}))
-                    S.(varNames{i}) = obj.(varNames{i});
+                if ~isempty(obj.roiGroup.(varNames{i}))
+                    S.(varNames{i}) = obj.roiGroup.(varNames{i});
                 end
             end
 
