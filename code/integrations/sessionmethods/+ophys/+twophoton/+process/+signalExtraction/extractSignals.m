@@ -30,6 +30,7 @@ classdef extractSignals < nansen.session.SessionMethod
             
             if ~nargout
                 obj.runMethod()
+                clear obj
             end
             
         end

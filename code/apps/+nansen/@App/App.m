@@ -2141,7 +2141,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 % Run the task
                 try
-                    sessionMethod(sessionObj{i}, opts)
+                    sessionMethod(sessionObj{i}, opts);
                     sessionObj{i}.updateProgress(sessionMethod, 'Completed')
                     newTask.status = 'Completed';
                     diary off
@@ -2212,7 +2212,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         end
 
                         if ~wasAborted
-                            sessionMethod(sessionObj{i}, opts)
+                            sessionMethod(sessionObj{i}, opts);
                             sessionObj{i}.updateProgress(sessionMethod, 'Completed')
                         end
                     end
