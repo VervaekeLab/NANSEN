@@ -62,7 +62,7 @@ classdef selectObject < uim.interface.abstractPointer & ...
                 case 'a'
                     if contains('command', event.Modifier) || ...
                             contains('control', event.Modifier)
-                        numRois = obj.hObjectMap.roiGroup.roiCount;
+                        numRois = obj.hObjectMap.RoiGroup.roiCount;
                         obj.hObjectMap.selectRois(1:numRois, 'extend')
                     else
                         wasCaptured = false;
