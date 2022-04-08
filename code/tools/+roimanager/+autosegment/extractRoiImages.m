@@ -32,6 +32,7 @@ nRois = numel(roiArray);
 signalSize = size(dff);
 nFrames = signalSize(signalSize~=nRois & signalSize~=1);
 
+[numRows, numCols, ~] = size(imArray);
 assert(nFrames == size(imArray,3), 'Number of frames not matching')
 
 if opt.Debug
@@ -88,10 +89,14 @@ for i = 1:nRois
         frameInd = peakSortedFrameInd(1:min([50,numel(peakSortedFrameInd)]));
     end
     
-    
     if opt.Debug
         nFrames(i) = sum(frameInd);
     end
+    
+    isValidX = tmpX >= 1 & tmpX <= numCols;
+    isValidY = tmpY >= 1 & tmpY <= numRows;
+    tmpX = tmpX(isValidX);
+    tmpY = tmpY(isValidY);
     
     try
     % Create the image
@@ -107,5 +112,5 @@ for i = 1:nRois
     end
        
     % Add image to the stack
-    roiImageStack(:, :, i) = currentRoiIm;
+    roiImageStack(isValidY, isValidX, i) = currentRoiIm;
 end
