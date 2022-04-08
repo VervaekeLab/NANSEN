@@ -211,7 +211,8 @@ end
 methods % Structors
          
     function obj = App(varargin) % Constructor
-        
+    %App Create an instance of the imviewer App
+    
         [h, varargin] = applify.ModularApp.splitArgs(varargin{:});
         obj@applify.ModularApp(h);
         
@@ -222,18 +223,14 @@ methods % Structors
             varargin = varargin(2:end);
         end
         
-        % todo: method....
-        stackOpts = struct();
-        stackOpts.PreprocessOnLoad = obj.settings.VirtualData.preprocessData;
-        stackOpts.UseDynamicCache = obj.settings.VirtualData.useDynamicCache;
-        stackOpts.DynamicCacheSize = obj.settings.VirtualData.dynamicCacheSize;
-
-        nvPairs = utility.struct2nvpairs(stackOpts);
+        % Add default stack initialization options to list of options for
+        % opening imagestack
+        defaultStackInitOptions = obj.getStackInitializationOptions();
+        nvPairs = utility.struct2nvpairs(defaultStackInitOptions);
         nvPairs = [nvPairs, varargin{:}];
         
         % Check if data ref is an imageStack object, initialize if not.
         if ~isa(dataref, 'nansen.stack.ImageStack') % && ~isa(dataref, 'imviewer.ImageStack')
-            %obj.ImageStack = imviewer.stack.initialize(dataref, nvPairs);
             obj.ImageStack = nansen.stack.ImageStack(dataref, nvPairs{:});
             obj.DeleteImageStackOnQuit = true;
             %if isempty(obj.ImageStack); 
@@ -245,7 +242,7 @@ methods % Structors
         end
         
         
-        obj.matlabVersionCheck() % Todo: This is not a method of imviewer...
+        obj.matlabVersionCheck() % Todo: This should not be a method of imviewer...
 
         % Run this after imageArray is parsed. Basically, varargins can 
         % overwrite values set in parseimage array. Todo: Change this later.
@@ -415,11 +412,9 @@ methods % App initialization & creation
 % % Functions for creating the gui
     
     function initializeViewer(obj)
-        
-        [figurePosition, axesSize] = obj.initializeFigurePosition();
-        %obj.createFigure(figurePosition)
-        
+                
         if strcmp( obj.mode, 'standalone' )
+            [figurePosition, axesSize] = obj.initializeFigurePosition();
             obj.Figure.Position = figurePosition;
             obj.Panel.Position(3:4) = figurePosition(3:4); %Todo: Set this automatically through callbacks
         end
@@ -2843,12 +2838,7 @@ methods % Misc, most can be outsourced
     end
     
     function manualUnlinkProp(obj, appName)
-        
-        
         %obj.uiaxes.imdisplay.UIContextMenu
-        
-        
-        
     end
     
     function linkprop(obj, externalGuiHandle, prop, showIndicator)
@@ -2928,6 +2918,8 @@ methods % Misc, most can be outsourced
         
         hMenu = findobj(obj.uiaxes.imdisplay.UIContextMenu, ...
             'Label', 'Unlink from Viewer');
+        
+        if isempty(hMenu); return; end
         
         if ~isempty(hMenu.Children)
             delete(hMenu.Children)
@@ -4275,6 +4267,14 @@ methods (Access = private) % Housekeeping
         end 
         
     end
+    
+    function stackOpts = getStackInitializationOptions(obj)
+    %getStackInitializationOptions Get default options for stack initialization  
+        stackOpts = struct();
+        stackOpts.PreprocessOnLoad = obj.settings.VirtualData.preprocessData;
+        stackOpts.UseDynamicCache = obj.settings.VirtualData.useDynamicCache;
+        stackOpts.DynamicCacheSize = obj.settings.VirtualData.dynamicCacheSize;
+    end
 end
 
 methods (Access = protected) % Event callbacks
@@ -5200,6 +5200,8 @@ methods (Access = private) % Methods that runs when properties are set
             obj.updateImage();
             obj.updateImageDisplay();
 
+            obj.uiwidgets.playback.resetRangeSelector()
+            
             if ~all(isnan(obj.DisplayedImage(:)))
                 set(obj.hDropbox, 'Visible', 'off')
             end
