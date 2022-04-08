@@ -1,5 +1,5 @@
 classdef Addons < handle
-    %ADDONS A simple addon manager for managing a custom list of addons
+%ADDONS A simple addon manager for managing a custom list of addons
     %   Provides an interface for downloading and adding addons/toolboxes
     %   to the matlab path. Addons are specified in a separate function
     %   and this class provides several methods for managing these addons.
@@ -9,7 +9,7 @@ classdef Addons < handle
     % TODOS:
     % [X] Save addon list
     % [x] System for adding addons to path on startup
-    % [ ] Make another class for addons. 
+    % [ ] Make another class for addons.
     % [ ] Rename to addon manager
     % [ ] Add option for setting a custom installation dir
     % [ ] File with list of addons should be saved based on which software
@@ -118,7 +118,7 @@ classdef Addons < handle
             
             % Assign to AddonList property
             obj.AddonList = addonList;
-            
+
         end
         
         function saveAddonList(obj)
@@ -172,9 +172,19 @@ classdef Addons < handle
                 % installed, but not saved to the matlab search path.
                 S(next).AddToPathOnInit = false;
 
-                
             end
             
+            % Update package and download url links
+            for i = 1:numel(S)
+                thisName = S(i).Name;
+                isMatch = strcmp(thisName, defaultAddonNames);
+                if ~any(isMatch); return; end
+                
+                S(i).DownloadUrl = defaultAddonList(isMatch).DownloadUrl;
+                S(i).WebUrl = defaultAddonList(isMatch).WebUrl;
+                S(i).SetupFileName = defaultAddonList(isMatch).SetupFileName;
+                
+            end
         end
         
         function tf = browseAddonPath(obj, addonName)
@@ -220,6 +230,7 @@ classdef Addons < handle
             % Download the zip-file containing the addon toolbox
             try
                 tempZipFilepath = websave(tempZipFilepath, addonEntry.DownloadUrl);
+                fileCleanupObj = onCleanup( @(fname) delete(tempZipFilepath) );
             catch ME
                 error(ME)
             end
@@ -229,7 +240,10 @@ classdef Addons < handle
                 rootDir = utility.path.getAncestorDir(pkgInstallationDir);
                 
                 % Delete current version
-                rmdir(pkgInstallationDir, 's')
+                if isfolder(pkgInstallationDir)
+                    rmpath(genpath(pkgInstallationDir))
+                    rmdir(pkgInstallationDir, 's')
+                end
             else
                 
                 switch addonEntry.Type
@@ -247,7 +261,7 @@ classdef Addons < handle
             unzip(tempZipFilepath, pkgInstallationDir);
             
             % Delete the temp zip file
-            delete(tempZipFilepath)
+            clear fileCleanupObj
             
             % Github packages unzips to a new folder within the created
             % folder. Move it up one level.
@@ -283,12 +297,12 @@ classdef Addons < handle
            
             obj.markDirty()
             
+            addpath(genpath(pkgInstallationDir))
             
-            % Special case... Need to add something to the javapath
-            if strcmp(obj.AddonList(addonIdx).Name, 'Widgets Toolbox')
-                jarFilePath = fullfile(pkgInstallationDir, 'resource', 'MathWorksConsultingWidgets.jar');
-                success = nansen.setup.model.Addons.addStaticJavaPath(jarFilePath); 
-                javaclasspath( jarFilePath ) %Temp add to dynamic path...
+            % Run setup of package if it has a setup function.
+            if ~isempty(obj.AddonList(addonIdx).SetupFileName)
+                setupFcn = str2func(obj.AddonList(addonIdx).SetupFileName);
+                setupFcn()
             end
             
         end
@@ -488,28 +502,6 @@ classdef Addons < handle
             
         end
         
-        function doneTF = addStaticJavaPath(javapath)
-
-            doneTF = false; 
-
-            savedir = prefdir;
-
-            filepath = fullfile(savedir, 'javaclasspath.txt');
-
-            if ~exist(filepath, 'file')
-                fid = fopen(filepath, 'w', 'n', 'UTF-8');
-            else
-                fid = fopen(filepath, 'a', 'n', 'UTF-8');
-            end
-            
-            fprintf(fid, '%s', javapath);
-            
-            status = fclose(fid);
-            if status == 0
-                doneTF = true;
-            end
-
-        end
     end
 
 end
