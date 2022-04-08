@@ -37,7 +37,7 @@ function S = getAddonList()
     %S(i).DownloadUrl = 'https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/b0bebf59-856a-4068-9d9c-0ed8968ac9e6/a22b68d6-b5aa-48cb-87fa-1f4a763578e0/packages/zip';
     S(i).DownloadUrl = 'https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/b0bebf59-856a-4068-9d9c-0ed8968ac9e6/099f0a4d-9837-4e5f-b3df-aa7d4ec9c9c9/packages/zip';
     S(i).HasSetupFile = false;
-    S(i).SetupFileName = '';
+    S(i).SetupFileName = 'nansen.config.path.addUiwidgetsJarToJavaClassPath';
     S(i).FunctionName = 'uiw.abstract.AppWindow';
     
     i = i + 1;
@@ -47,9 +47,9 @@ function S = getAddonList()
     S(i).Type = 'General';
     S(i).Source = 'Github';
     S(i).WebUrl = 'https://github.com/ewiger/yamlmatlab';
-    S(i).DownloadUrl = 'https://github.com/ewiger/yamlmatlab/archive/refs/heads/master.zip';
+    S(i).DownloadUrl = 'https://github.com/ehennestad/yamlmatlab/archive/refs/heads/master.zip'; % Fixed som bugs with original
     S(i).HasSetupFile = false;
-    S(i).SetupFileName = '';
+    S(i).SetupFileName = 'yaml.addToStaticJavaClassPath';
     S(i).FunctionName = 'yaml.WriteYaml';
     
     i = i + 1;
@@ -64,6 +64,18 @@ function S = getAddonList()
     S(i).SetupFileName = '';
     S(i).FunctionName = 'TIFFStack';
         
+    i = i + 1;
+    S(i).Name = 'CaImAn-Matlab';
+    S(i).Description = 'A Computational toolbox for large scale Calcium Imaging data Analysis';
+    S(i).IsRequired = false;
+    S(i).Type = 'Neuroscience';
+    S(i).Source = 'Github';
+    S(i).WebUrl = 'https://github.com/flatironinstitute/CaImAn-MATLAB';
+    S(i).DownloadUrl = 'https://github.com/flatironinstitute/CaImAn-MATLAB/archive/refs/heads/master.zip';
+    S(i).HasSetupFile = false;
+    S(i).SetupFileName = '';
+    S(i).FunctionName = 'CNMFSetParms';
+    
     i = i + 1;
     S(i).Name = 'EXTRACT';
     S(i).Description = 'Tractable and Robust Automated Cell extraction Tool for calcium imaging';
