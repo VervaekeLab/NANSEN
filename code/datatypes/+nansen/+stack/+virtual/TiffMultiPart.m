@@ -186,8 +186,10 @@ methods % Implementation of abstract methods
             
             fileNum = obj.frameIndexInfo.fileNum(frameNum);
             frameInFile = obj.frameIndexInfo.frameInFile(frameNum);
-
+            
+            warning('off', 'imageio:tiffmexutils:libtiffWarning')
             obj.tiffObj(fileNum).setDirectory(frameInFile);
+            warning('on', 'imageio:tiffmexutils:libtiffWarning')
             
             data(insertSub{:}) = obj.tiffObj(fileNum).read();
             
@@ -247,6 +249,11 @@ methods % Implementation of abstract methods
         
     end
 
+    function writeMetadata(~)
+        % Pass. This class will most likely be used to open generic tiffs,
+        % and we don't want to drop metadata files all over the place.
+    end
+    
 end
 
 
