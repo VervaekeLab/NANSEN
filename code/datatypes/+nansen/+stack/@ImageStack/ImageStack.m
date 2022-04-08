@@ -1235,7 +1235,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         end
                         
                         % Make sure requested frame indices are in range.
-                        subs{i} = intersect(1:obj.NumTimepoints, subs{i});
+                        if isnumeric(subs{i})
+                            isValid = subs{i} >= 1 & subs{i} <= obj.NumTimepoints;
+                            if any(~isValid)
+                                error('Invalid data indexing along T dimension')
+                            end
+                            %subs{i} = subs{i}(isValid);
+                        end
+                        
                         % Todo: Generalize and do this for all dimensions
                     
                     case 'X'
