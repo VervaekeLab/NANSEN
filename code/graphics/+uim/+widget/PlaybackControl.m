@@ -163,6 +163,10 @@ classdef PlaybackControl < uim.mixin.assignProperties
             obj.Value = newFrame;
         end
 
+        function resetRangeSelector(obj)
+            obj.ActiveRange = [1,1];
+            obj.RangeSelectorEnabled = 'off';
+        end
     end
     
     methods % Set/Get
