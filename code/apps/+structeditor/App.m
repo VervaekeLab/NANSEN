@@ -1692,7 +1692,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % % %                                 'mode', 'pushbutton', config.args{:}, ...
 % % %                                 'HorizontalTextAlignment', 'center');
                             if strcmp(obj.LabelPosition, 'Over')
-                                ycorr = obj.RowSpacing;
+                                ycorr = 0.5*obj.RowSpacing;
                             end
                             xcorr = -3;
                             
