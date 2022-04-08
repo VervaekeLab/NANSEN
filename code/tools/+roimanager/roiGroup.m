@@ -36,6 +36,12 @@ classdef roiGroup < handle
         isActive = true                 % Active (true/false) indicates whether rois should be kept in memory as an object or a struct array.
     end
     
+    properties (Dependent, SetAccess = private)
+        IsDirty
+    end
+    properties (Access = private)
+        isDirty_ = false    % Internal flag for whether roigroup has unsaved changes
+    end
     
     events
         roisChanged                     % Triggered when rois are changed
@@ -160,6 +166,10 @@ classdef roiGroup < handle
             end
         end
         
+        function markClean(obj)
+            obj.isDirty_ = false;
+        end
+        
         function addRois(obj, newRois, roiInd, mode, isUndoRedo)
         % addRois Add new rois to the roiGroup.
 
@@ -251,6 +261,8 @@ classdef roiGroup < handle
                 uiundo(obj.ParentApp.Figure, 'function', cmd);
             end
             
+            obj.isDirty_ = true;
+            
         end
         
         function modifyRois(obj, modifiedRois, roiInd, isUndoRedo)
@@ -283,7 +295,7 @@ classdef roiGroup < handle
             obj.notify('roisChanged', eventData)
             
             % Register the action with the undo manager
-            if ~isUndoRedo && ~isempty(obj.ParentApp.Figure)
+            if ~isUndoRedo && ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 cmd.Name            = 'Modify Rois';
                 cmd.Function        = @obj.modifyRois;      % Redo action
                 cmd.Varargin        = {modifiedRois, roiInd, true};
@@ -292,6 +304,8 @@ classdef roiGroup < handle
 
                 uiundo(obj.ParentApp.Figure, 'function', cmd);
             end
+            
+            obj.isDirty_ = true;
 
         end
         
@@ -332,7 +346,7 @@ classdef roiGroup < handle
             obj.updateRoiRelations(removedRois, 'removed')
             
             % Register the action with the undo manager
-            if ~isUndoRedo && ~isempty(obj.ParentApp.Figure)
+            if ~isUndoRedo && ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 cmd.Name            = 'Remove Rois';
                 cmd.Function        = @obj.removeRois;      % Redo action
                 cmd.Varargin        = {roiInd, true};
@@ -345,6 +359,8 @@ classdef roiGroup < handle
                 obj.changeRoiSelection(nan, []) % Note: unselect all rois before executing undo!
             end
             
+            obj.isDirty_ = true;
+
         end
         
         function roiLabels = getRoiLabels(obj, roiInd)
@@ -376,7 +392,6 @@ classdef roiGroup < handle
             
         end
 
-        
         function setRoiClassification(obj, roiInd, newClass)
             %mode: add, insert, append...
             
@@ -467,4 +482,14 @@ classdef roiGroup < handle
         
     end
 
+    methods
+        function isDirty = get.IsDirty(obj)
+            if obj.roiCount == 0
+                isDirty = false;
+            else
+                isDirty = obj.isDirty_;
+            end
+        end
+    end
+    
 end
