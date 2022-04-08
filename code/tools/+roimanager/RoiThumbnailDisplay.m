@@ -67,7 +67,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         end
         
         function updateImageText(obj, str)
-            if isempty(obj.hText) 
+            if isempty(obj.hText) || ~isvalid(obj.hText)
                 obj.plotRoiImageNotAvailableText()
             end
             obj.hText.String = str;
