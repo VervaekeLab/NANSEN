@@ -1,5 +1,14 @@
 classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
-%RoiThumbnailDisplay Widget for displaying a roi image    
+%RoiThumbnailDisplay Widget for displaying a roi thumbnail image
+%
+%   This widget is created in a container (figure, panel, tab) and is
+%   listening to changes on a RoiGroup. If a new roi is selected on the
+%   RoiGroup, the display will update and show a thumbnail image of the
+%   selected roi. Also, if the roi is modified, the image will update.
+%
+%   An imagestack can be added to The ImageStack property. If an image is
+%   unavailable from a roi object, a new image will be created using the
+%   imagestack.
 
     properties
         Dashboard   % Handle for dashboard where thumbnail display is present
@@ -7,29 +16,34 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
     end
     
     properties
-        ColorMap % Todo
-        LineColor % Todo
+        ColorMap    % Todo
+        LineColor   % Todo
     end
     
     properties
-        ImageStack   % Handle of an ImageStack object. Necessary for creating roi images.
+        ImageStack  % Handle of an ImageStack object. Necessary for creating roi images.
     end
     
     properties (Access = private)
-        hAxes
-        hText
-        hRoiImage
-        hRoiOutline
-    end
+        hAxes       % Handle for axes to show image in
+        hText       % Handle for text which displays message
+        hRoiImage   % Handle for image 
+        hRoiOutline % Handle for line to show roi outline
+    end 
     
     properties (Access = private)
-        ShowMessageRoiImageUpdateError = false;
+        ShowRoiImageUpdateErrorMessage = false; % Flag for popup dialog.
     end
     
     methods % Constructor
         
         function obj = RoiThumbnailDisplay(hParent, roiGroup)
-            
+        %RoiThumbnailDisplay Create a RoiThumbnailDisplay object.
+        %
+        %   displayObj = RoiThumbnailDisplay(hParent, roiGroup) creates a
+        %   thumbnail display object in the container specified by hParent.
+        %   
+        
             obj@roimanager.roiDisplay(roiGroup)
             
             obj.Parent = hParent;
@@ -135,14 +149,18 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         end
         
         function im = createRoiImage(obj, roiObj)
-            % Add average images of roi
+        %createRoiImage Create a roi image from an ImageStack
+            
+            im = []; 
+            if isempty(obj.ImageStack); return; end
+                
             imArray = obj.ImageStack.getFrameSet('cache');
             
             if size(imArray, 3) < 100
-                if obj.ShowMessageRoiImageUpdateError
+                if obj.ShowRoiImageUpdateErrorMessage
                     obj.plotRoiImageNotAvailableText()
                     obj.Dashboard.displayMessage('Can not update roi image because there are not enough image frames in memory')
-                    obj.ShowMessageRoiImageUpdateError = false;
+                    obj.ShowRoiImageUpdateErrorMessage = false;
                 end
                 im = [];
                 return
@@ -158,9 +176,10 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
     methods (Access = protected) % Inherited from roimanager.roiDisplay
         
         function onRoiGroupChanged(obj, evtData)
-            
-            % Update roiimage if roi group is changing...
-            
+        %onRoiGroupChanged Callback for RoiGroupChanged event.
+        %
+        %   If a roi is modified, the image should be updated.
+                    
             % Take action for this EventType
             switch lower(evtData.eventType)
 
@@ -171,6 +190,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                     end
                     
                     roiIdx = evtData.roiIndices(end);
+                    % Update image if the displayed roi was modified
                     if isequal(roiIdx, obj.VisibleRois)
                         roi = obj.RoiGroup.roiArray(roiIdx);
                         obj.updateImageDisplay(roi)
@@ -183,7 +203,9 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         end
         
         function onRoiSelectionChanged(obj, evtData)
-            % Update image for roi
+        %onRoiSelectionChanged Callback for RoiSelectionChanged event
+        %
+        %   Update the image display with an image of the selected roi
         
             if isempty(evtData.NewIndices)
                 obj.resetImageDisplay()
