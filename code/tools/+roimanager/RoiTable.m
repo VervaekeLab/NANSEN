@@ -1,10 +1,5 @@
 classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPreferences
-
-    % TODO:
-    %  [x] make setSelectedEntries for uitable, so that selection works
-    %      also when rows are sorted
-    %  [x] Fix bug when selecting from sorted tables...
-    
+%RoiTable A table showing roi information
     
     % Inherited properties
     %
@@ -28,6 +23,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     end
     
     properties
+        AllowRowDeletion = true % todo..
         KeyPressFcn
     end
     
@@ -48,7 +44,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj@roimanager.roiDisplay(roiGroup)
             
             obj.Panel.Units = 'normalized';
-            obj.Figure.Position = obj.initializeFigurePosition();
+            
+            if strcmp(obj.mode, 'standalone')
+                obj.Figure.Position = obj.initializeFigurePosition();
+            end
             
             roiTable = obj.rois2table(roiGroup.roiArray);
             obj.roiTable = roiTable;
@@ -73,13 +72,11 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function delete(obj)
             
             if strcmp(obj.mode, 'standalone') 
-                
                 if isvalid(obj.Figure)
                     % Save figure position to preferences
                     obj.setPreference('Position', obj.Figure.Position);
                     obj.savePreferences();
                 end
-                
             end
             
             delete(obj.UITable)
@@ -95,7 +92,21 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         end
         
         function removeRois(obj)
-            % Todo
+        %removeRois
+            
+            if ~obj.AllowRowDeletion; return; end
+            
+            roiIdxToRemove = obj.SelectedRois;
+            
+            obj.UITable.HTable.Enable = 'off';
+            
+            obj.RoiGroup.removeRois(roiIdxToRemove);
+            newSelection = obj.UITable.getSelectedEntries();
+            obj.RoiGroup.changeRoiSelection([], newSelection)
+            obj.UITable.HTable.JTable.requestFocus()
+                        
+            obj.UITable.HTable.Enable = 'on';
+
         end
         
         function updateRoiLabels(obj)
@@ -151,12 +162,16 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function onKeyPressedInTable(obj, src, evt)
             
             switch evt.Key
-                case {'↓', '↑', '←', '→'} % arrowkeys
+                case {'↓', '↑', '←', '→', 'leftarrow', 'rightarrow', ...
+                        'uparrow', 'downarrow'} % arrowkeys
                     if isempty(evt.Modifier) || ~strcmp(evt.Modifier, 'alt')
                         return % Reserved for moving up and down in table
                     end
+                    
+                case '⌫'
+                    obj.removeRois()
+                    return
             end
-            
             
             if ~isempty(obj.KeyPressFcn)
                 obj.KeyPressFcn(src, evt)
@@ -209,7 +224,6 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function pos = initializeFigurePosition(obj)
             initPos = initializeFigurePosition@applify.ModularApp(obj);
             pos = obj.getPreference('Position', initPos);
-
         end
 
         function resizePanel(obj, src, evt)
@@ -254,6 +268,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     if numel(evtData.roiIndices) == 1
                         obj.updateTableRow( evtData.roiIndices, T );
                         return
+                    elseif numel(evtData.roiIndices) == 0
+                        return
                     end
                     
                     newTable = oldTable;
@@ -261,7 +277,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     
                 case 'remove'
                     newTable = obj.roiTable;
-                    newTable(evtData.roiIndices,:) = [];  
+                    newTable(evtData.roiIndices,:) = [];
+                    
+                    
             end
             
             % Update the values of the roi ids / roi labels
@@ -304,7 +322,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 obj.UITable.setSelectedEntries(newRowSelection);
                 obj.SelectedRois = newRowSelection;
             else
-                % pass
+                obj.SelectedRois = newRowSelection;
             end
             
         end
@@ -319,11 +337,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         
         function onKeyPressed(obj, src, evt)
             % Todo implement...
-            disp(evt.Key)
-            
-            % Todo: This should be the table keypress callback function
-            
-  
+            obj.onKeyPressedInTable(src, evt)
         end
         
     end
