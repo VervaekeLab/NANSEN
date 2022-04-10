@@ -5,23 +5,31 @@ function [S, L] = getImageSubsetBounds(imSize, x, y, r, padding, varargin)
 %           
 %   Outputs: S = smaller bound, L = larger bound
 
-
     % Should this function always return the same size or should it return
     % a assymmetric box relative to center if the point is too close to the
     % edges of the image?
 
     param = struct();
-    param.boundaryMethod = ''; 
+    param.boundaryMethod = '';
     param = utility.parsenvpairs(param, [], varargin);
-    
     
     rExtended = r+padding;
     
-    % Make sure bounds are within image
-    xMin = max( [round(x-rExtended), 1] ); 
-    yMin = max( [round(y-rExtended), 1] ); 
-    xMax = min( [round(x+rExtended), imSize(2)] );
-    yMax = min( [round(y+rExtended), imSize(1)] );
+    xMin = round(x-rExtended(2));
+    yMin = round(y-rExtended(2));
+    xMax = round(x+rExtended(1));
+    yMax = round(y+rExtended(1));
+    
+    if strcmp(param.boundaryMethod, 'none')
+        % pass
+    else
+        % Make sure bounds are within image
+        xMin = max( [xMin, 1] ); 
+        yMin = max( [yMin, 1] ); 
+        xMax = min( [xMax, imSize(2)] );
+        yMax = min( [yMax, imSize(1)] );
+    end
+    
     
     % Assign Output
     S = [xMin, yMin];
