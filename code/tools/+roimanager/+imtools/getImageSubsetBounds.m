@@ -27,4 +27,7 @@ function [S, L] = getImageSubsetBounds(imSize, x, y, r, padding, varargin)
     S = [xMin, yMin];
     L = [xMax, yMax];
 
+    % Make sure limits are same datatype
+    S = double(S);
+    L = double(L);
 end
