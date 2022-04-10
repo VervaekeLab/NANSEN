@@ -276,7 +276,11 @@ methods % Structors
     
     function delete(obj) % Destructor
         
-        obj.isPlaying = false;
+        if obj.isPlaying
+            obj.isPlaying = false;
+            dt = 1 / obj.ImageStack.getSampleRate;
+            pause(dt*2)
+        end
         
         obj.unregisterApp()
         
@@ -824,7 +828,7 @@ methods % App initialization & creation
             obj.Panel, 'Position', scrollerPosition, 'Minimum', 1, ...
             'Value', obj.currentFrameNo, 'Maximum', obj.nFrames, ...
             'RangeSelectorEnabled', 'off', 'NumChannels', obj.ImageStack.NumChannels, ...
-            'ChannelColors', obj.ChannelColors);
+            'ChannelColors', obj.ChannelColors, 'NumPlanes', obj.ImageStack.NumPlanes);
         
         obj.uiwidgets.playback.ActiveRangeChangedFcn = ...
             @obj.onFrameIntervalSelectionChanged;
@@ -1710,6 +1714,11 @@ methods % App update
                                 obj.textStrings.CursorPoint);
         end
         
+        
+        if obj.ImageStack.NumPlanes > 1
+            infoStr = sprintf('%s | %s', obj.textStrings.CurrentPlane, infoStr);
+        end
+        
         obj.infoField.String = infoStr;
     end
     
@@ -2367,6 +2376,7 @@ methods % Event/widget callbacks
     end
     
     function changePlane(obj, planeNum, mode) %#ok<INUSD>
+        obj.currentPlane = planeNum;
     end
     
     function set.currentPlane(obj, newValue)
@@ -2375,6 +2385,16 @@ methods % Event/widget callbacks
     end
     
     function onPlaneChanged(obj) %#ok<MANU>
+        if ~obj.isConstructed; return; end
+        obj.textStrings.CurrentPlane = sprintf('z=%d/%d', obj.currentPlane, obj.ImageStack.NumPlanes);
+        obj.uiwidgets.playback.CurrentPlane = obj.currentPlane;
+
+        obj.ImageStack.CurrentPlane = obj.currentPlane;
+            
+        if ~isempty(obj.imObj)
+            obj.updateImage()
+            obj.updateImageDisplay()
+        end
     end
     
     function set.nFrames(obj, newValue)
@@ -2598,7 +2618,7 @@ methods % Event/widget callbacks
             pvPairs = {'Location', 'southeast'};%, 'Color', ones(1,3)*0.9};
         end
         
-        conversionFactor = obj.ImageStack.MetaData.PhysicalSizeX;
+        conversionFactor = 1/obj.ImageStack.MetaData.PhysicalSizeX;
         label = obj.ImageStack.MetaData.PhysicalSizeXUnit;
         
         h = uim.illustration.scalebar(obj.Axes, 'x', 100, label, ...
@@ -4485,7 +4505,11 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         if strcmp(obj.Figure.SelectionType, 'normal')
             obj.mouseDown = true;
         end
-        % h = hittest();     
+        h = hittest(); 
+        if ~isequal(h, obj.Axes)
+            obj.ImageDragAndDropEnabled = false;
+        end
+        
         global imviewerInstances
         
         isValid = arrayfun(@(h) isvalid(h.Figure), imviewerInstances.Handles);
@@ -4505,6 +4529,8 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             obj.hThumbnail = [];
         end
         
+        obj.ImageDragAndDropEnabled = true;
+    
         global imviewerInstances
         
         pointerLocation = get(0, 'PointerLocation');
@@ -5266,12 +5292,14 @@ methods (Access = private) % Methods that runs when properties are set
         obj.nFrames = obj.ImageStack.NumTimepoints;
         
         obj.currentFrameNo = 1;
+        obj.currentPlane = obj.ImageStack.CurrentPlane;
         obj.currentChannel = obj.ImageStack.CurrentChannel;
 
 
         % Initialize text for textdisplay
         obj.textStrings.Resolution = sprintf('%dx%d pixels', obj.imHeight, obj.imWidth);
-        
+        obj.textStrings.CurrentPlane = sprintf('z=%d/%d', obj.currentPlane, obj.ImageStack.NumPlanes);
+
         obj.stackname = obj.ImageStack.Name;
 
         
