@@ -270,7 +270,7 @@ methods (Static) % H5 specific methods
         [start, count, stride] = deal( ones(1, numel(sz)) );
 
         for i = 1:numel(subs)
-            if subs{i} == ':'
+            if ischar(subs{i}) && isequal(subs{i}, ':') % make sure it's a char before comparing with isequal
                 % Write the whole dimension.
                 start(i) = 1;
                 count(i) = sz(i);
