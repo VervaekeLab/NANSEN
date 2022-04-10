@@ -70,7 +70,7 @@ methods (Access = protected) % Implementation of abstract methods
         
         % Determine whether TIFFStack is on path and should be used.
         if exist('TIFFStack', 'file') == 2
-            obj.UseTiffStack = true;
+            obj.UseTiffStack = false;
         end
         
     end
@@ -107,10 +107,10 @@ methods (Access = protected) % Implementation of abstract methods
             
         else
             
-            numFrames = obj.NumChannels_ * obj.NumTimepoints_;
+            numFrames = obj.NumChannels_ * obj.NumPlanes_ * obj.NumTimepoints_;
             frIndMap = 1:numFrames;
             
-            frIndMap = reshape(frIndMap, obj.NumChannels_, obj.NumTimepoints_);
+            frIndMap = reshape(frIndMap, obj.NumChannels_, obj.NumPlanes_, obj.NumTimepoints_);
             obj.FrameIndexMap = squeeze(frIndMap);
         
         end
@@ -119,46 +119,57 @@ methods (Access = protected) % Implementation of abstract methods
     
     function assignDataSize(obj)
         
+        % Todo: Verify that data is saved in order y,x,c,z,t
+        
+        % Get scan image tiff header
         evalc(obj.tiffInfo.getTag('ImageDescription'));
         evalc(obj.tiffInfo.getTag('Software'));
         
         obj.DataSize(1) = obj.tiffInfo.getTag('ImageLength');
         obj.DataSize(2) = obj.tiffInfo.getTag('ImageWidth');
+        %obj.ImageSize(1) = SI.hRoiManager.linesPerFrame;
+        %obj.ImageSize(2) = SI.hRoiManager.pixelsPerLine;
         
         % Specify data dimension sizes
         obj.MetaData.SizeX = obj.DataSize(2);
         obj.MetaData.SizeY = obj.DataSize(1);
-        
+        obj.DataDimensionArrangement = 'YX';
+
         % Specify physical sizes
         obj.MetaData.TimeIncrement = SI.hRoiManager.scanFramePeriod;
         
+        % Todo: Is there a better way to get the physical image size?
         obj.MetaData.ImageSize = abs( sum(SI.hRoiManager.imagingFovUm(1,:) ));
         %obj.MetaData.PhysicalSizeY = nan;
-        obj.MetaData.PhysicalSizeYUnit = 'micrometer';
         %obj.MetaData.PhysicalSizeX = nan;
-        obj.MetaData.PhysicalSizeXUnit = 'micrometer';  
+        obj.MetaData.PhysicalSizeYUnit = 'micrometer'; % Todo: Will this always be um?
+        obj.MetaData.PhysicalSizeXUnit = 'micrometer'; % Todo: Will this always be um?
+        obj.MetaData.SampleRate = SI.hRoiManager.scanVolumeRate;
         
         obj.NumTimepoints_ = SI.hStackManager.framesPerSlice;
 
-        %obj.ImageSize(1) = SI.hRoiManager.linesPerFrame;
-        %obj.ImageSize(2) = SI.hRoiManager.pixelsPerLine;
-
+        % Determine dimensions C, Z, T:
         obj.NumChannels_ = numel( SI.hChannels.channelSave );
+        obj.NumPlanes_ = SI.hStackManager.numSlices;
         obj.countNumFrames();
-        
-        if obj.NumChannels_ == 1
-            obj.DataSize(3) = obj.NumTimepoints_;
-            obj.DataDimensionArrangement = 'YXT';
-        else 
-            obj.DataSize(3) = obj.NumChannels_;
-            obj.DataSize(4) = obj.NumTimepoints_;
-            obj.DataDimensionArrangement = 'YXCT';
+
+        % Add length of channels if there is more than one channel
+        if obj.NumChannels_ > 1
+            obj.DataSize = [obj.DataSize, obj.NumChannels_];
+            obj.DataDimensionArrangement(end+1) = 'C';
         end
         
-        obj.MetaData.SizeZ = 1; %SI.hStackManager.numSlices ?
-        obj.MetaData.SizeC = obj.NumChannels_;
-        obj.MetaData.SizeT = obj.NumTimepoints_;
+        % Add length of planes if there is more than one plane
+        if obj.NumPlanes_ > 1
+            obj.DataSize = [obj.DataSize, obj.NumPlanes_];
+            obj.DataDimensionArrangement(end+1) = 'Z';
+        end
         
+        % Add length of sampling dimension.
+        if obj.NumTimepoints_ > 1
+            obj.DataSize = [obj.DataSize, obj.NumTimepoints_];
+            obj.DataDimensionArrangement(end+1) = 'T';
+        end
     end
     
     function assignDataType(obj)
@@ -256,7 +267,7 @@ methods % Implementation of VirtualArray abstract methods
         dataSize = zeros(1, numel(subs));
         
         for i = 1:numel(subs)
-            if subs{i} == ':'
+            if ischar(subs{i}) && isequal(subs{i}, ':')
                 dataSize(i) = obj.StackSize(i);
             else
                 thisDim = obj.StackDimensionArrangement(i);
@@ -286,7 +297,7 @@ methods (Access = private)
 
         % USING TIFF:
         n = findNumTiffDirectories(obj.tiffInfo, 1, 10000);
-        obj.NumTimepoints_ = n ./ obj.NumChannels_;
+        obj.NumTimepoints_ = n ./ obj.NumChannels_ ./ obj.NumPlanes_;
         return
     
         % Need to create the memorymap in order to correct the framecount.
