@@ -358,6 +358,8 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         
         function onPositionChanged(obj)
             
+            if ~obj.IsConstructed; return; end
+            
             [xCoords, yCoords] = obj.getTextCoordinates();
             obj.hText.Position(1:2) = [xCoords, yCoords];
             
