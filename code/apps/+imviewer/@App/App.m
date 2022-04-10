@@ -275,6 +275,9 @@ methods % Structors
     end
     
     function delete(obj) % Destructor
+        
+        obj.isPlaying = false;
+        
         obj.unregisterApp()
         
         if ~isempty(obj.dndObj)
@@ -2200,13 +2203,13 @@ methods % Event/widget callbacks
                 i = round(i);
             case 'keypress'
                 i = source.Value;
-            case {'jumptoframe'}                
+            case {'jumptoframe', 'playvideo'}                
                 newFrame = source.String;
                 if isa(newFrame, 'char'); newFrame = str2double(newFrame); end
                 i = newFrame -  obj.currentFrameNo;
                 i = round(i);
-            case 'playvideo'
-                i = source.Value;
+% %             case 'playvideo'
+% %                 i = source.Value;
             case 'next'
                 i = 1;
             case 'prev'
@@ -2220,6 +2223,11 @@ methods % Event/widget callbacks
             obj.imageDisplayMode.projection = 'none';
         end
         
+        restartVideoPlayer = false;
+        if obj.isPlaying && ~strcmp(action, 'playvideo')
+            obj.isPlaying = false; 
+            restartVideoPlayer = true;
+        end
 
         % Check that new value is within range and update current frame/slider info
         if (obj.currentFrameNo + i) >= 1  && (obj.currentFrameNo + i) <= obj.nFrames
@@ -2246,6 +2254,10 @@ methods % Event/widget callbacks
                 % Todo: Make sure the property is available....
                 obj.LinkedApps(i).currentFrameNo = obj.currentFrameNo;
             end
+        end
+        
+        if restartVideoPlayer
+            obj.playVideo()
         end
         
         
@@ -2746,7 +2758,7 @@ methods % Misc, most can be outsourced
     
     function playVideoFrames(obj, ~, ~)
         % Callback for play button. Plays calcium images as video
-        
+        % Deprecated...
         obj.isPlaying = true;
         
         while obj.isPlaying
@@ -2785,7 +2797,13 @@ methods % Misc, most can be outsourced
     
         obj.isPlaying = true;
         
-        dt = 1/31;
+        
+        dt = 1 / obj.ImageStack.getSampleRate;
+        if isnan(dt)
+            dt = 1/30;
+        end
+        
+        currentPlaybackSpeed = obj.playbackspeed;
         
         initialFrame = obj.currentFrameNo;
         tBegin = tic;
@@ -2795,6 +2813,10 @@ methods % Misc, most can be outsourced
             if obj.currentFrameNo >= obj.nFrames - (obj.playbackspeed+1)
                 obj.currentFrameNo = 1;
                 initialFrame = 1;
+                tBegin = tic;
+            elseif currentPlaybackSpeed ~= obj.playbackspeed
+                currentPlaybackSpeed = obj.playbackspeed;
+                initialFrame = obj.currentFrameNo;
                 tBegin = tic;
             end
             
@@ -2811,19 +2833,18 @@ methods % Misc, most can be outsourced
             end
             
             newFrame = initialFrame + elapsedFrames;
-            obj.changeFrame(struct('String', num2str(newFrame)), [], 'jumptoframe')
+            obj.changeFrame(struct('String', num2str(newFrame)), [], 'playvideo')
             drawnow
             
             t2 = toc(t1);
             if obj.playbackspeed < 1
-                pause(0.033/obj.playbackspeed - t2)
+                pause(dt/obj.playbackspeed - t2)
             else
-                pause(0.033 - t2)
+                pause(dt - t2)
             end
             
-            
-                        
-        end  
+
+        end
         
     end
     
