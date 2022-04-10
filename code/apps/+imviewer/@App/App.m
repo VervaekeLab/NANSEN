@@ -1194,7 +1194,8 @@ methods % App initialization & creation
                 if i == 1
                     images{i} = obj.image;
                 else
-                    images{i} = obj.ImageStack.getProjection(projectionNames{i}, 1:obj.settings.ImageDisplay.movingBinSize);
+                    numFramesBin = min(obj.settings.ImageDisplay.movingBinSize, obj.nFrames);
+                    images{i} = obj.ImageStack.getProjection(projectionNames{i}, 1:numFramesBin);
                 end
                 
                 %images{i} = imadjustn(images{i});
@@ -1976,8 +1977,14 @@ methods % App update
         if obj.autoAdjustLimits
             if all(isnan(obj.image(:))); return; end
             P = prctile(double(obj.image(:)), [0.05, 99.95]);
-            obj.brightnessSlider.Low = P(1);
-            obj.brightnessSlider.High = P(2);
+            
+            if obj.brightnessSlider.High < P(1) % Set high first.
+                obj.brightnessSlider.High = P(2);
+                obj.brightnessSlider.Low = P(1);
+            else
+                obj.brightnessSlider.Low = P(1);
+                obj.brightnessSlider.High = P(2);
+            end
         end
         
         
