@@ -48,6 +48,9 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
 %   for specific data types and what data to expect.
 
 
+% Todo: Add generic write2mat for subclasses to use...
+
+
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
 
     properties (Dependent)
@@ -62,6 +65,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
     
     properties %(SetAccess = immutable) ??
         Writable = false;   % Does the file adapter have write permission?
+    end
+    
+    properties (SetAccess = private, Hidden)
+        DiscardConvertedMatfile = false % Should we store matfile copy if data is converted from a different file format. false = delete file, true = keep file
+        RedoFileConversion = false
     end
     
     properties (Abstract, Constant, Hidden, Access = protected)
@@ -79,6 +87,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         Filename_  % Internal store for the filename
         Metadata_
         CachedData % Todo: Implement a global cache and make sure it is not overfilled.
+        FileCleanupList % list with paths of files to clean.
     end
     
 % - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - 
@@ -103,31 +112,79 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
     methods % Constructor
         
         function obj = FileAdapter(varargin)
+        %FileAdapter Constructor of file adapter object.
+        
+            if isempty(varargin); return; end % uninitialized file adapter
             
-            if isempty(varargin)
-                return; 
-            else
-                
-                if any( cellfun(@(c) isequal(c, '-w'), varargin) ) ...
-                    || any( cellfun(@(c) isequal(c, 'writable'), varargin) )
-                    obj.Writable = true;
-                end
-            
-                try
-                    obj.Filename = varargin{1};
-                    varargin(1) = [];
-                catch
-                    % Pass
+    
+            flagProps = {...
+                'Writable', 'DiscardConvertedMatfile', ...
+                'RedoFileConversion' };
+
+            % Need to set these in constructor because of set access
+            for i = 1:numel(flagProps)
+                if obj.containsFlag(varargin, flagProps{i})
+                    obj.(flagProps{i}) = true;
                 end
             end
+
+            try
+                obj.Filename = varargin{1};
+                varargin(1) = [];
+            catch
+                % Pass
+            end
             
-            
-            % Todo: Accept name value pair specifying writable...
-            [nvPairs, varargin] = utility.getnvpairs(varargin{:});
-            
+            % Todo: Accept name/value pairs specifying property values
+            [nvPairs, varargin] = utility.getnvpairs(varargin{:}); %#ok<ASGLU>
             
         end
         
+        function delete(obj)
+            if ~isempty(obj.FileCleanupList)
+                obj.deleteTemporaryFiles(); % File should be deleted when this is cleared
+            end
+        end
+    end
+    
+    methods (Access = private)
+        
+        function tf = containsFlag(~, C, flagName)
+        %containsFlag Check is cell array contains a specified flag
+        %
+        %   tf = obj.containsFlag(C, flag) returns true (1) if cell array C
+        %   contains the specified flag. Flag is a character vector
+        %
+        %   Flag names:
+        %       Writable
+        %       SaveMatfileOnConversion
+        
+            tf = false;
+            
+            containsflag = @(str) any(cellfun(@(c) isequal(c, str), C));
+            
+            switch flagName
+                case 'Writable'
+                    tf = containsflag('-w') || containsflag('writable');
+                    
+                case 'DiscardConvertedMatfile'
+                    tf = containsflag('-tempmat');
+                    
+                case 'RedoFileConversion'
+                    tf = containsflag('-u');
+                    
+            end
+            
+        end
+        
+        function deleteTemporaryFiles(obj)
+        %deleteTemporaryFiles Delete temporary files in file cleanup list.    
+            for i = 1:numel(obj.FileCleanupList)
+                if isfile(obj.FileCleanupList{i})
+                    delete(obj.FileCleanupList{i})
+                end
+            end
+        end
     end
     
     methods (Access = protected) % writeData (not implemented)
@@ -136,6 +193,29 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         %writeData Write (save) data to file 
             error('The file adapter "%s" does not support saving of data to file')
             % Subclass can implement
+        end
+        
+        function writeDataToMat(obj, S, varargin)
+        
+            % Todo: Test/debug this...
+            
+            % Use v7.3 is variable is large...
+            varInfo = whos('S');
+            byteSize = varInfo.bytes;
+
+            if byteSize > 2^31
+                versionFlag = '-v7.3';
+            else
+                versionFlag = '-v7';
+            end
+            
+            
+            if isfile(obj.Filename)
+                save(obj.Filename, '-struct', 'S', '-append', versionFlag)
+            else
+                save(obj.Filename, '-struct', 'S', versionFlag)
+            end
+            
         end
         
     end
@@ -245,6 +325,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
     
     methods % Utility methods
         
+        function uiopen(obj, initFolderPath)
+            if nargin < 2; initFolderPath = ''; end
+            obj.uifind(initFolderPath)
+        end
+        
         function uifind(obj, initFolderPath)
         %uifind Open file browser to let user select a file
         
@@ -255,6 +340,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             end
             
             fileFilter = obj.getFileFilter();
+            fileFilter = ['*.*'; fileFilter];
             titleStr = sprintf( 'Select a "%s" file:', class(obj) );
             
             [filename, folderPath] = uigetfile(fileFilter, titleStr, ...
@@ -299,6 +385,9 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         function fileFilter = getFileFilter(obj)
         %getFileFilter Get file filter for use in uigetfile    
             fileFilter = strcat('*.', obj.SUPPORTED_FILE_TYPES );
+            if isrow(fileFilter); fileFilter = fileFilter'; end
+            % Note: If file filter is a cell array, its N rows x 2 columns
+            % where the second colum is an optional description.
         end
         
         function str = getHeader(obj) % < matlab.mixin.CustomDisplay 
@@ -366,6 +455,38 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             S.Data = obj.getDefaultMetadata;
             obj.Metadata_ = nansen.dataio.metadata.GenericMetadata(obj.Filename, S);
         end
+        
+        function matFileName = convertToMatfile(obj)
+        %convertToMatfile Convert file to matfile using default converters
+            
+            [folderpath, name, ext] = fileparts(obj.Filename);
+            
+            matFileName = fullfile(folderpath, [name, '.mat']);
+            
+            
+            if isfile(matFileName) && obj.RedoFileConversion
+                delete(matFileName)
+            elseif isfile(matFileName) && ~obj.RedoFileConversion
+                return
+            else
+                % pass, mat file does not exist, conversion is needed
+            end
+            
+            switch ext
+                case '.npy'
+                    filepathMat = obj.convertNumpyFile(obj.Filename);
+                    
+                otherwise
+                    error('Conversion is not available for files with the "%s" extension', ext)
+                        
+            end
+            
+            if obj.DiscardConvertedMatfile
+                obj.FileCleanupList = [obj.FileCleanupList, {filepathMat}];
+            end
+                        
+        end
+        
     end
     
     methods (Hidden)
@@ -373,6 +494,45 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             className = strsplit(builtin('class', obj), '.');
             cls = sprintf('FileAdapter (%s)', className{end});
         end
+    end
+    
+    methods (Static)
+        
+        function filepathMat = convertNumpyFile(filepathNpy)
+        %convertNumpyFile Convert numpy to matfile
+        
+            thisFolderPath = fileparts(mfilename('fullpath'));
+            filepathPyScript = fullfile(thisFolderPath, '+fileconvert', ...
+                'numpy2mat.py');
+            
+            % Convert file in place:
+            filepathMat = strrep(filepathNpy, '.npy', '.mat');
+            
+            if ispc
+                commandStrTemplate = 'python.exe "%s" "%s" "%s"'; % pyFile, sourceFile, targetFile
+            elseif ismac
+                commandStrTemplate = 'python "%s" "%s" "%s"'; % pyFile, sourceFile, targetFile
+            elseif isunix
+                commandStrTemplate = 'python "%s" "%s" "%s"'; % Todo: Is this correct?
+            else
+                error('Unknown operating system')
+            end
+            
+            commandStr = sprintf(commandStrTemplate, filepathPyScript, filepathNpy, filepathMat);
+            
+            % Run conversion using system
+            [status, cmdout] = system(commandStr);
+            
+            if not( status == 0 )
+                error('File conversion from .npy to .mat failed with following message:\n%s\n', cmdout)
+            end
+            
+        end
+        
+        function filepathMat = convertTdmsFile(filepathTdms)
+            error('not implemented yet')
+        end
+        
     end
 
 end
