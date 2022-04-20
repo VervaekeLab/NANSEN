@@ -419,9 +419,10 @@ methods % App initialization & creation
 % % Functions for creating the gui
     
     function initializeViewer(obj)
-                
+        
+        [figurePosition, axesSize] = obj.initializeFigurePosition();
+       
         if strcmp( obj.mode, 'standalone' )
-            [figurePosition, axesSize] = obj.initializeFigurePosition();
             obj.Figure.Position = figurePosition;
             obj.Panel.Position(3:4) = figurePosition(3:4); %Todo: Set this automatically through callbacks
         end
@@ -1006,8 +1007,11 @@ methods % App initialization & creation
     end
     
     function createImageMenu(obj, m)
-        
-        % todo: get this from an external function.
+    %createImageMenu Create a context menu for the image axes.   
+
+    
+        % % % Menu section with items for image colormap and illustrations.
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -   
         
         mitem = uimenu(m, 'Label', 'Set Colormap');
         colormapNames = obj.settings.ImageDisplay.colorMap_;
@@ -1020,11 +1024,15 @@ methods % App initialization & creation
         mitem = uimenu(m, 'Label', 'Show Scalebar');
         mitem.Callback = @(s, e) obj.showScalebar();
 
-        mSubItem = uimenu(m, 'Text', 'Edit Stack Properties', 'Enable', 'on', 'Separator', 'on');
+        mSubItem = uimenu(m, 'Text', 'Edit Stack Properties', 'Separator', 'on');
         mSubItem.Callback = @(s,e)obj.uiEditStackMetadata;
+
+        
+        % % % Menu section with items for image processing
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -   
         
         mitem = uimenu(m, 'Label', 'Calculate Projection', 'Separator', 'on');
-        projectionPackage = {'stack','zproject'};
+        projectionPackage = {'stack', 'zproject'};
         
         result = what(fullfile(projectionPackage{:}));
         for i = 1:numel(result(1).m)
@@ -1043,35 +1051,40 @@ methods % App initialization & creation
             textLabel = utility.string.varname2label(funcName);
             tmpItem = uimenu(mitem, 'Label', textLabel, 'Enable', 'off');
             funcHandle = str2func(strjoin([filterPackage, {funcName}], '.'));
-            tmpItem.Callback = @(s,e,f) obj.filterImages(funcHandle);
+            tmpItem.Callback = @(s,e,f) obj.filterImages(funcHandle); %todo
         end
         
-        mitem = uimenu(m, 'Label', 'Downsample Stack');
+        mitem = uimenu(m, 'Label', 'Downsample Stack...');
         mitem.Callback = @(s, e) obj.createDownsampledStack();
 
         
-        mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');            
+        % % % Menu section with items for plugins.
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        if strcmp(obj.mode, 'standalone')
+            % Todo: Create as separate contextmenu on plugin button...
+            mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');
             tmpItem = uimenu(mitem, 'Label', 'NoRMCorre', 'Enable', 'on');
             tmpItem.Callback = @(s,e) imviewer.plugin.NoRMCorre(obj);
     
             tmpItem = uimenu(mitem, 'Label', 'FlowReg', 'Enable', 'on');
             tmpItem.Callback = @(s,e) imviewer.plugin.FlowRegistration(obj);
 
-% %         tmpItem = uimenu(m, 'Label', 'Align Images');
-% %         
-% %         tmpItemA = uimenu(tmpItem, 'Label', 'Rigid');
-% %         tmpItemA.Callback = @(s, e) obj.alignImagesRigid;
-% %         tmpItemB = uimenu(tmpItem, 'Label', 'Nonrigid');
-% %         tmpItemB.Callback = @(s, e) obj.alignImagesNonRigid;
+            mitem = uimenu(m, 'Label', 'Open Roimanager');   
+            mitem.Callback = @(s, e, h) imviewer.plugin.RoiManager(obj);
+        end
 
-        mitem = uimenu(m, 'Label', 'Open Roimanager');   
-        mitem.Callback = @(s, e, h) imviewer.plugin.RoiManager(obj);
-
+        
+        % % % Menu section with items for linking/unlinking with viewers.
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         mitem = uimenu(m, 'Label', 'Link to Another Viewer...', 'Separator', 'on');
         mitem.Callback = @(s, e) obj.manualLinkProp;
 
         mitem = uimenu(m, 'Label', 'Unlink from Viewer', 'Enable', 'off');
         
+        
+        % % % Menu section with items loading/saving images.
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
         mitem = uimenu(m, 'Label', 'Load Images...', 'Separator', 'on');
         mitem.Callback = @(s, e, bool) obj.onLoadImageDataPressed(true);
 
@@ -2609,7 +2622,6 @@ methods % Event/widget callbacks
     function showScalebar(obj)
         
         if isfield(obj.Annotation, 'Scalebar') && isvalid(obj.Annotation.Scalebar)
-            
             props = {'FontSize', 'FontWeight', 'LineWidth', 'Color', 'Location', 'FontName'};
             values = cellfun(@(p) obj.Annotation.Scalebar.(p), props, 'uni', 0);
             pvPairs = cat(1, props, values);
@@ -2617,6 +2629,7 @@ methods % Event/widget callbacks
         else
             pvPairs = {'Location', 'southeast'};%, 'Color', ones(1,3)*0.9};
         end
+        pvPairs = [pvPairs, 'AutoAdjustScalebarLength', true];
         
         conversionFactor = 1/obj.ImageStack.MetaData.PhysicalSizeX;
         label = obj.ImageStack.MetaData.PhysicalSizeXUnit;
@@ -2881,7 +2894,9 @@ methods % Misc, most can be outsourced
         viewerNames = {'StackViewer', 'imviewer', 'Signal Viewer', 'Roi Classifier'};
         
         hApp = obj.uiSelectViewer(viewerNames, obj.Figure);
-        obj.linkprop(hApp, 'currentFrameNo', true)
+        if ~isempty(hApp)
+            obj.linkprop(hApp, 'currentFrameNo', true)
+        end
         
     end
     
@@ -2889,7 +2904,7 @@ methods % Misc, most can be outsourced
         %obj.uiaxes.imdisplay.UIContextMenu
     end
     
-    function linkprop(obj, externalGuiHandle, prop, showIndicator)
+    function linkprop(obj, externalGuiHandle, prop, showIndicator, allowUnlink)
     %linkprop Link properties with external guis, so that update to
     %property is applied in all linked guis.
     
@@ -2906,6 +2921,10 @@ methods % Misc, most can be outsourced
     
     if nargin < 4 
         showIndicator = false;
+    end
+    
+    if nargin < 5
+        allowUnlink = true;
     end
     
     assert(strcmp(prop, 'currentFrameNo'), 'Currently only supports linking currentFrameNo property')
@@ -2941,6 +2960,12 @@ methods % Misc, most can be outsourced
         end
     end
     
+    if ~allowUnlink
+        hMenu = findobj(obj.uiaxes.imdisplay.UIContextMenu, ...
+            'Label', 'Unlink from Viewer');
+        hMenuItem = findobj(hMenu, 'Text', externalGuiHandle.Figure.Name);
+        hMenuItem.Enable = 'off';
+    end
     
 % %         assert(numel(externalGuiHandle) == 1, 'Currently only supports one handle at a time.')
 % %         
@@ -2989,10 +3014,10 @@ methods % Misc, most can be outsourced
     
     function unlinkprop(obj, externalGuiHandle, prop) %#ok<INUSD>
         
-        removeIdxInternal = isequal(obj.LinkedApps, externalGuiHandle);
+        removeIdxInternal = ismember(obj.LinkedApps, externalGuiHandle);
         obj.LinkedApps(removeIdxInternal) = [];
         
-        removeIdxExternal = isequal(externalGuiHandle.LinkedApps, obj);
+        removeIdxExternal = ismember(externalGuiHandle.LinkedApps, obj);
         externalGuiHandle.LinkedApps(removeIdxExternal) = [];
         
     end
@@ -5251,9 +5276,14 @@ methods (Access = private) % Methods that runs when properties are set
         if  obj.isConstructed
             obj.setSliderExtremeLimits()
             obj.setSliderLimits()
+            
+            obj.resetImageDisplay()
+            
             obj.updateImage();
             obj.updateImageDisplay();
-
+            uistack(obj.imObj, 'bottom')
+            %uistack(obj.imObj, 'up')
+            
             obj.uiwidgets.playback.resetRangeSelector()
             
             if ~all(isnan(obj.DisplayedImage(:)))
@@ -5437,6 +5467,8 @@ methods (Static)
             hFigure = [];
         end
         
+        hApp = []; % Initialize output
+        
         % Find all open figures that has a viewer object.
         openFigures = findall(0, 'Type', 'Figure');
         
@@ -5460,7 +5492,7 @@ methods (Static)
         figInd = find(isMatch);
 
         % Select figure window from selection dialog
-        if sum(isMatch) > 1
+        if sum(isMatch) > 0
 
             figNames = {openFigures(figInd).Name};
 %             figNumbers = [openFigures(figInd).Number];
