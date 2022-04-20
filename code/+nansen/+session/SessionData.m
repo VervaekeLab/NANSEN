@@ -90,6 +90,23 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             obj.updateDataVariables();
         end
         
+        function resetCache(obj, varNames)
+            
+            if nargin < 2
+                varNames = {obj.VariableList.VariableName};
+            end
+            
+            if isa(varNames, 'char')
+                varNames = {varNames};
+            end
+            
+            for i = 1:numel(varNames)
+                varName_ = strcat( varNames{i}, '_' );
+                obj.(varName_) = [];
+            end
+            
+        end
+        
     end
     
     methods 
@@ -189,7 +206,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             fileAdapters = {dataFilePathModel.VariableList.FileAdapter};
             
             switch typeName
-                case {'RoiGroup', 'RoiArray'}
+                case {'RoiGroup', 'RoiArray', 'roiArray'}
                     varNames = {'roiArrayQuickyAuto', 'roiArrayExtractAuto', 'RoiArray', 'roiArray'};
                     
                 otherwise
