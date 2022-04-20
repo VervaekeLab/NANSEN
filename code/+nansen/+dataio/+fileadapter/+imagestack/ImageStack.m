@@ -10,6 +10,10 @@ classdef ImageStack < nansen.dataio.FileAdapter
 %       movie files (avi)
 %       hdf5 files (h5)
     
+    % Note 1: Saving data will always overwrite the existing data.
+    % Note 2: Saving of data is only supported for tiff files.
+
+
     properties (Constant)
         DataType = 'ImageStack'
         Description = 'This file contains image stack / video data';
@@ -24,7 +28,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
         function imageStack = readData(obj, varargin)
         %readData Read image data as a virtual ImageStack
             
-            virtualDataFcn = obj.getVirtualDataFunctionHandle();
+            virtualDataFcn = str2func( obj.getVirtualDataClassName() );
             
             switch obj.FileType
                 case 'h5'
@@ -35,7 +39,18 @@ classdef ImageStack < nansen.dataio.FileAdapter
             end
             
             imageStack = nansen.stack.ImageStack(virtualData);
-
+        end
+        
+        function writeData(obj, data, varargin)
+        %writeData Write image data to a file using virtual adapter
+            virtualDataClassName = obj.getVirtualDataClassName();
+            saveFcn = str2func( [virtualDataClassName, '.createFile'] );
+            
+            try
+                saveFcn(obj.Filename, data);
+            catch
+                writeData@nansen.dataio.FileAdapter(obj)
+            end
         end
         
     end
@@ -46,14 +61,6 @@ classdef ImageStack < nansen.dataio.FileAdapter
             % todo
         end
         
-        function save(obj, data)
-            % Todo:
-            virtualDataFcn = obj.getVirtualDataFunctionHandle();
-
-            name = strsplit( builtin('class', obj), '.');
-            error('Saving is not yet implemented for the file adapter %s', class(obj))
-        end
-
         function open(obj)
             imageStack = obj.load();
             imviewer(imageStack)
@@ -64,33 +71,40 @@ classdef ImageStack < nansen.dataio.FileAdapter
             imviewer(imageStack)
         end
         
+        function uifind(obj, varargin)
+            %obj.FileSelectionMode = 'multiple';
+            uifind@nansen.dataio.FileAdapter(obj, varargin{:})
+        end
+        
     end
     
     methods (Access = private)
         
-        function fcnHandle = getVirtualDataFunctionHandle(obj)
-        %getVirtualDataFunctionHandle Get function handle for virtual data
+        function className = getVirtualDataClassName(obj)
+        %getVirtualDataClassName Get full name of class for virtual data
         %
-        %   The function handle to be used for creating a virtual data
+        %   Name of the class to be used for creating a virtual data
         %   object depends on the filetype of the file adapter
         
             switch obj.FileType
 
                 case 'h5'
-                    fcnHandle = @nansen.stack.virtual.HDF5;
+                    className = 'nansen.stack.virtual.HDF5';
                 
                 case {'avi', 'mov', 'mpg', 'mp4'}
-                    fcnHandle = @nansen.stack.virtual.Video;
+                    className = 'nansen.stack.virtual.Video';
                     
                 case 'raw'
-                    fcnHandle = @nansen.stack.virtual.Binary;
-                
+                    className = 'nansen.stack.virtual.Binary';
+                    
+                case {'tif', 'tiff'}
+                    className = 'nansen.stack.virtual.TiffMultiPart';
+
                 otherwise
                     error('Nansen:DataIO:FileTypeNotSupported', ...
                         'File type "%s" can not be opened as an ImageStack', ...
                         obj.FileType)
             end
-            
         end
         
     end
