@@ -49,7 +49,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
 
 
 % Todo: Add generic write2mat for subclasses to use...
-
+%   [ ] implement selection of multiple files..
 
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
 
@@ -70,6 +70,10 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
     properties (SetAccess = private, Hidden)
         DiscardConvertedMatfile = false % Should we store matfile copy if data is converted from a different file format. false = delete file, true = keep file
         RedoFileConversion = false
+    end
+    
+    properties (Access = protected)
+        FileSelectionMode = 'single'; % 'single' | 'multiple'
     end
     
     properties (Abstract, Constant, Hidden, Access = protected)
@@ -189,13 +193,14 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
     
     methods (Access = protected) % writeData (not implemented)
         
-        function writeData(obj, data, varargin)
+        function writeData(obj, data, varargin) % Subclass can override
         %writeData Write (save) data to file 
-            error('The file adapter "%s" does not support saving of data to file')
-            % Subclass can implement
+            name = strsplit( builtin('class', obj), '.');
+            error('The file adapter "%s" does not support saving of data to file.', name{end})
         end
         
         function writeDataToMat(obj, S, varargin)
+        %writeDataToMat General method to write data to matfile
         
             % Todo: Test/debug this...
             
@@ -338,15 +343,15 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             if nargin < 2
                 initFolderPath = '';
             end
-            
+
             fileFilter = obj.getFileFilter();
             fileFilter = ['*.*'; fileFilter];
             titleStr = sprintf( 'Select a "%s" file:', class(obj) );
             
             [filename, folderPath] = uigetfile(fileFilter, titleStr, ...
-                initFolderPath);
+                initFolderPath, 'MultiSelect', 'off'); %obj.getMultiSelectionMode());
 
-            if ~filename == 0
+            if ~isequal(filename, 0)
                 obj.Filename_ = fullfile(folderPath, filename);
             end
             
@@ -380,6 +385,14 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                     end
             end
 
+        end
+        
+        function mode = getMultiSelectionMode(obj)
+            if strcmp(obj.FileSelectionMode, 'single')
+                mode = 'off';
+            else
+                mode = 'on';
+            end
         end
         
         function fileFilter = getFileFilter(obj)
