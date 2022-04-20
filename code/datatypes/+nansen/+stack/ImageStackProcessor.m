@@ -115,6 +115,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     methods (Static)
         function S = getDefaultOptions()
             S.Run.frameInterval = [];
+            %S.Run.frameInterval_ = 'transient';
             S.Run.numFramesPerPart = 1000;            
             %S.Run.partsToProcess = 'all';
             %S.Run.redoPartIfFinished = false;
@@ -180,7 +181,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     
     methods
         
-        function tf = preview(obj)
+        function wasSuccess = preview(obj)
         %PREVIEW Open preview of data and options for method.
         %
         %   tf = preview(obj) returns 1 (true) if preview is successfully
@@ -204,11 +205,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 % and in that case the image should not be dragged...)
                 
                 h = hImviewer.openPlugin(pluginFcn, obj.OptionsManager, ...
-                    'RunMethodOnFinish', false);
+                    'RunMethodOnFinish', false, 'DataIoModel', obj);
                 % Will pause here until the plugin is closed.
 
                 wasSuccess = obj.finishPreview(h);
-                tf = ~wasSuccess;
 
                 hImviewer.quit()
                 obj.SourceStack.DynamicCacheEnabled = 'off';
@@ -219,7 +219,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
                 % Todo: use superclass method editOptions
                 [obj.Parameters, wasAborted] = tools.editStruct(obj.Parameters);
-                tf = ~wasAborted;
+                wasSuccess = ~wasAborted;
             end
             
         end
@@ -439,6 +439,11 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             tf = false; 
         end
         
+% % %         Todo: Add Results as property and use this instead
+% % %         function tf = checkIfPartIsFinished(obj, partNumber)
+% % %             tf = ~isempty(obj.Results{partNumber});
+% % %         end
+        
         function onInitialization(~)
             % Subclass may implement
         end
@@ -529,7 +534,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 case 'end'
                     
             end
-            
         end
         
         function printSubTask(obj, varargin)
@@ -584,7 +588,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                      obj.StepDescription{i})
             end
             fprintf('\n')
-
         end
         
         function printCompletionMessage(obj)
