@@ -98,18 +98,26 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
     % Get indices for different parts/blocks
     [IND, numParts] = imageStack.getChunkedFrameIndices(blockSize);
     
-    elapsedTime = 0;
+    [elapsedTimeLoad, elapsedTimeExtract] = deal( 0 );
     signalExtractionFcn = params.extractFcn;
+    method = params.pixelComputationMethod;
+    
+    if params.verbose
+        fprintf('Image stack is split in %d parts for signal extraction\n', numParts)
+    end
+    
     
     % Loop through blocks and extract signals.
     for iPart = 1:numParts
-        
+               
+        tInitLoad = tic;
         iIND = IND{iPart}; 
         imData = imageStack.getFrameSet( iIND );
+        elapsedTimeLoad = elapsedTimeLoad + toc(tInitLoad);
         
-        tInit = tic;
-        signalArray(iIND, :, :) = signalExtractionFcn(imData, roiData);
-        elapsedTime = elapsedTime + toc(tInit);
+        tInitExtract = tic;
+        signalArray(iIND, :, :) = signalExtractionFcn(imData, roiData, params);
+        elapsedTimeExtract = elapsedTimeExtract + toc(tInitExtract);
         
         if params.verbose
             fprintf('Signal Extraction: Finished part %d/%d\n', iPart, numParts)
@@ -119,7 +127,7 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
     % Display elapsed time as output if requested.
     if params.showTimer || params.verbose
         fprintf('Signal extraction completed in %.2f seconds\n', ...
-            elapsedTime)
+            elapsedTimeLoad + elapsedTimeExtract)
     end
 
 end
@@ -159,6 +167,11 @@ function params = updateParameters(params, imageStack, roiArray)
         params.roiInd = 1:numRois;
     end
     
+    % Only serial extract supports median/percentile methods.
+    if ~strcmp( params.pixelComputationMethod, 'mean' )
+        params.extractFcn = @nansen.twophoton.roisignals.extract.serialExtract;
+    end
+    
     % Count number of rois to extract signals for.
     numRois = numel(params.roiInd);
 
@@ -188,10 +201,6 @@ function params = updateParameters(params, imageStack, roiArray)
                 'the selected extraction function is "batchExtract".'];
             warning(msg);
         end
-    end
-    
-    if nargout >= 2
-        P = params;
     end
 
 end
