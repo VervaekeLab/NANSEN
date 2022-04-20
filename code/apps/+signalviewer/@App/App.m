@@ -235,7 +235,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             hold(obj.ax, 'on')
             
             
-            obj.parseTimeSeriesArray(tsArray, varargin{:});
+            obj.parseTimeSeriesArray(tsArray, varargin{:}, nvPairs{:});
 
             if isa(obj.tsArray, 'timeseries')
                 obj.plotTimeSeries(obj.tsArray);
@@ -980,12 +980,15 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             h = [];
             
-            ind = contains(obj.tsNames, name);
+            ind = strcmp(obj.tsNames, name);
             
             if isempty(ind); return; end
             
-            h = obj.hLineArray.(name);
-            %h = obj.hlineTsArray(ind);
+            try
+                h = obj.hLineArray.(name);
+            catch
+                h = obj.hlineTsArray(ind);
+            end
             
             if nargin >= 3
                 h = h(1:number);
