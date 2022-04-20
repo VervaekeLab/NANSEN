@@ -51,14 +51,9 @@ classdef selectObject < uim.interface.abstractPointer & ...
         function wasCaptured = onKeyPress(obj, src, event)
             wasCaptured = true;
             
+            % Keypress events that should always be handled:
             switch event.Key
-                case {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
-                    if isempty(event.Modifier)
-                        obj.hObjectMap.classifyRois(str2double(event.Key));
-                    else
-                        wasCaptured = false;
-                    end
-                    % Todo: change roi type using shift click??
+                
                 case 'a'
                     if contains('command', event.Modifier) || ...
                             contains('control', event.Modifier)
@@ -67,6 +62,26 @@ classdef selectObject < uim.interface.abstractPointer & ...
                     else
                         wasCaptured = false;
                     end
+                otherwise
+                    wasCaptured = false;
+                
+            end
+            
+            if isempty(obj.hObjectMap); return; end
+            if isempty(obj.hObjectMap.SelectedRois); return; end
+            wasCaptured = true; % Reset flag
+
+            % Keypress events that should only be handled if roi is selected:
+            switch event.Key
+
+                case {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
+                    if isempty(event.Modifier)
+                        obj.hObjectMap.classifyRois(str2double(event.Key));
+                    else
+                        wasCaptured = false;
+                    end
+                    % Todo: change roi type using shift click??
+
                     
                 case {'backspace', '⌫'}
                     obj.hObjectMap.removeRois();
