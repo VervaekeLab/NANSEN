@@ -21,7 +21,7 @@
 %       ConversionFactor : Conversion factor (if data units are different 
 %           than scalebar units). For example: If scalebar units is in mm 
 %           and 150 pixels of an image corresponds to 1 mm, 
-%           ConversionFactor should be 150.
+%           ConversionFactor should be 150. (pix/mm)
 %       Location      : northwest, southeast, southwestoutside etc 
 %       Color         : Color of scalebar line and text
 %       LineWidth     : Width of scalebar line
@@ -740,21 +740,29 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
         
         function updatePosition(obj)
             if ~obj.IsConstructed; return; end
+                        
+            % Make sure limit mode is manual, because resizing the scalebar
+            % could change the axes limits.
+            xLimModePreUpdate = obj.hAxes.XLimMode;
+            yLimModePreUpdate = obj.hAxes.YLimMode;
             
-            wasHoldOn = ishold(obj.hAxes);
-            hold(obj.hAxes, 'on')
-            obj.hAxes.XLim = obj.hAxes.XLim;
-            obj.hAxes.YLim = obj.hAxes.YLim;
-            
+            if ~strcmp(xLimModePreUpdate, 'manual')
+                obj.hAxes.XLimMode = 'manual';
+            end
+            if ~strcmp(yLimModePreUpdate, 'manual')
+                obj.hAxes.YLimMode = 'manual';
+            end
+                        
             assignScalebarLength(obj)
             calculateMarginDataUnits(obj)
             
             obj.updateScalebar()
             obj.plotTextLabel()
             
-            if ~wasHoldOn
-                hold(obj.hAxes, 'off')
-            end
+            % Reset xlim and ylim modes
+            obj.hAxes.XLimMode = xLimModePreUpdate;
+            obj.hAxes.YLimMode = yLimModePreUpdate;
+
         end
         
         function updateTextPosition(obj)
