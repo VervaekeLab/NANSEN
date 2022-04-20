@@ -1,16 +1,15 @@
 classdef pointerManager < handle
 %pointerManager.m A manager for switching between different interactive
-% pointer tools
+% pointer tools in axes.
 %
 %   See also uim.interface.abstractPointer
-
 
 
 % List of things to implement
 %   Keypress sequences should be read from settings somehow
 %   Also: Migrate other things from a settings file/preferences...
 %   Need to capture the figure's scroll callback.
-%   [ ] use listeners instead of attaching mouse function to figur handle
+%   [x] use listeners instead of attaching mouse function to figure handle
 
 
 
@@ -29,9 +28,18 @@ classdef pointerManager < handle
         previousPointerTool
         
         wasCursorInAxes = false;
-        
-        
-        defaultFigureCallbacks;
+    end
+    
+    properties (SetAccess = private)
+        OriginalAxesButtonDownFcn = [] % Store axes function
+    end
+    
+    properties (Access = private)
+        AxesButtonPressListener event.listener
+        WindowButtonMotionListener event.listener
+        WindowButtonUpListener event.listener
+        WindowScrollWheelListener event.listener % todo
+        %WindowKeyPressListener event.listener
     end
         
     properties (Access = protected)
@@ -41,33 +49,36 @@ classdef pointerManager < handle
     end
     
     
-    methods
-        
+    methods % Structors
 
         function obj = pointerManager(hFigure, hAxes, pointerNames)
-            % Attach a pointerManager to a figure
+        %pointerManager Attach a pointerManager to a figure
             
-            % Store default callbacks in a struct
-            obj.defaultFigureCallbacks = struct( ...
-                'ButtonDownFcn', {hAxes.ButtonDownFcn}, ...
-                'WindowButtonMotionFcn', {hFigure.WindowButtonMotionFcn}, ...
-                'WindowButtonUpFcn', {hFigure.WindowButtonUpFcn});% , ...
-                %'KeyPressFcn', {hFigure.KeyPressFcn} );
+            obj.hFigure = hFigure;
+            obj.hAxes = hAxes;
+            
+            % Assign dummy callback if WindowButtonMotionFcn is unassigned
+            if isempty( hFigure.WindowButtonMotionFcn )
+                hFigure.WindowButtonMotionFcn = @obj.mouseMotionDummyCallback;
+            end
+
+            % Create listeners for mouse event in figure
+            obj.createFigureMouseListeners()
+            
+            % Store current axes button down function
+            if ~isempty(hAxes.ButtonDownFcn)
+                obj.OriginalAxesButtonDownFcn = hAxes.ButtonDownFcn;
+            end
             
             % Assign pointerManager callbacks to figure
             hAxes.ButtonDownFcn = @obj.onButtonDown; % Use button down callback of axes..
-            hFigure.WindowButtonMotionFcn = @obj.onButtonMotion;
-            hFigure.WindowButtonUpFcn = @obj.onButtonRelease;
-            %hFigure.KeyPressFcn = @obj.onKeyPress;
-                 
-            obj.hFigure = hFigure;
-            obj.hAxes = hAxes;
+            hAxes.Interruptible = 'off'; % Todo: are there cases where its better if this is on?
+            
             hold(obj.hAxes, 'on')
             
             if nargin >= 3 &&  ~isempty(pointerNames)
                 obj.initializePointers(hAxes, pointerNames)
             end
-            
             
             if ~nargout
                 clear obj
@@ -76,22 +87,69 @@ classdef pointerManager < handle
         end
         
         function delete(obj)
-             
-            % Restore figure/axes callbacks
+        %delete Delete method for pointermanager.
+        
+            obj.deleteFigureMouseListeners()
+            
             if isvalid(obj.hAxes)
-                obj.hAxes.ButtonDownFcn = obj.defaultFigureCallbacks.ButtonDownFcn;
-            end
-            if isvalid(obj.hFigure)
-                obj.hFigure.WindowButtonMotionFcn = obj.defaultFigureCallbacks.WindowButtonMotionFcn;
-                obj.hFigure.WindowButtonUpFcn = obj.defaultFigureCallbacks.WindowButtonUpFcn;
+                if isequal( obj.hAxes.ButtonDownFcn, @obj.onButtonDown)
+                    obj.hAxes.ButtonDownFcn = [];
+                end
+                
+                if ~isempty(obj.OriginalAxesButtonDownFcn)
+                    obj.hAxes.ButtonDownFcn = obj.OriginalAxesButtonDownFcn;
+                end
             end
         end
+        
+    end
+    
+    methods (Access = private)
+        
+        function createFigureMouseListeners(obj)
+        
+            %obj.WindowMousePressListener = addlistener(obj.hFigure, ...
+            %    'WindowMousePress', @obj.onMousePressed);
+
+            obj.WindowButtonMotionListener = addlistener(obj.hFigure, ...
+                 'WindowMouseMotion', @obj.onButtonMotion);
+
+            obj.WindowButtonUpListener = addlistener(obj.hFigure, ...
+                'WindowMouseRelease', @obj.onButtonRelease);
+
+            %obj.WindowScrollWheelListener = addlistener(obj.hFigure, ...
+            %    'WindowScrollWheel', @obj.onMouseScrolled);
+
+            % Should this be independent, or called from external gui?
+            %obj.WindowKeyPressListener = addlistener(obj.hFigure, ...
+            %    'WindowKeyPress', @obj.onKeyPress);
+        end
+        
+        function deleteFigureMouseListeners(obj)
+           
+            isdeletable = @(x) ~isempty(x) && isvalid(x);
+            
+            if isdeletable(obj.WindowButtonMotionListener)
+                delete(obj.WindowButtonMotionListener)
+            end
+            
+            if isdeletable(obj.WindowButtonUpListener)
+                delete(obj.WindowButtonUpListener)
+            end
+            
+%             if isdeletable(obj.WindowKeyPressListener)
+%                 delete(obj.WindowKeyPressListener)
+%             end
+            
+        end
+    end
+    
+    methods
         
         function onFigureChanged(obj)
             
             
         end
-        
         
         function initializePointers(obj, hAxes, pointerRef)
             
@@ -113,20 +171,20 @@ classdef pointerManager < handle
             
         end
         
-        
         function updatePointerSymbol(obj)
             if ~isempty(obj.currentPointerTool)
                 obj.currentPointerTool.setPointerSymbol()
             end
         end
         
-        
         function onButtonDown(obj, src, event)
+            
+            % Todo: rename onButtonDownInAxes
                         
-            % 1) Call default figure callback
-            if ~isempty(obj.defaultFigureCallbacks.ButtonDownFcn)
-                obj.defaultFigureCallbacks.ButtonDownFcn(src, event)
-            end
+            % 1) Call default axes button down callback
+%             if ~isempty(obj.OriginalAxesButtonDownFcn)
+%                 obj.OriginalAxesButtonDownFcn(src, event)
+%             end
             
             % 2) Call active pointer tool
             if obj.isCursorInsideAxes(obj.hAxes)
@@ -137,35 +195,27 @@ classdef pointerManager < handle
 
         end
         
-        
         function onButtonMotion(obj, src, event)
             
-            % 1) Call default figure callback
-            if ~isempty(obj.defaultFigureCallbacks.WindowButtonMotionFcn)
-                obj.defaultFigureCallbacks.WindowButtonMotionFcn(src, event)
-            end
-            
             if isempty(obj.currentPointerTool); return; end
-            
             tf = obj.isCursorInsideAxes(obj.hAxes);
-
 
             % Change cursor symbol when pointer enters or leaves axes
             if tf && ~obj.wasCursorInAxes % Entered axes
                 if ~isempty(obj.currentPointerTool)
                     obj.currentPointerTool.setPointerSymbol()
                 end
+                obj.currentPointerTool.onPointerEnteredAxes()
             elseif ~tf && obj.wasCursorInAxes % Left axes
                 set(obj.hFigure, 'Pointer', 'arrow');
+                obj.currentPointerTool.onPointerExitedAxes()
             end
             
             
             % Create extended eventdata containing mousepoint coordinates?
-
-            
             
             % 2) Call active pointer tool
-            if ~isempty(obj.currentPointerTool)% && ~isSuspended(obj.currentPointerTool) Some tools, like zoom, should continue to workeven when cusor moves outside axes...
+            if ~isempty(obj.currentPointerTool)% && ~isSuspended(obj.currentPointerTool) Some tools, like zoom, should continue to workeven when cursor moves outside axes...
                 obj.currentPointerTool.onButtonMotion(src, event)
             end
             
@@ -180,35 +230,29 @@ classdef pointerManager < handle
             
         end
         
-        
         function onButtonRelease(obj, src, event)
             
-            % 1) Call default figure callback
-            if ~isempty(obj.defaultFigureCallbacks.WindowButtonUpFcn)
-                obj.defaultFigureCallbacks.WindowButtonUpFcn(src, event)
-            end
-            
-            % 2) Call active pointer tool
+            % Redirect to callback of active pointer tool
             if ~isempty(obj.currentPointerTool)
                 obj.currentPointerTool.onButtonUp(src, event)
             end
             
         end
         
-
+        function keyPressCallbackFunction(varargin)
+            wasCaptured = obj.onKeyPress(src, event);
+            clear wasCaptured
+        end
+        
         function wasCaptured = onKeyPress(obj, src, event)
             
             % Todo: Make a system for having unique key shortcuts and
-            % setting/changing them from on location..
+            % setting/changing them from one location..
             
-            
-            % 1) Call default figure callback
-% %             if ~isempty(obj.defaultFigureCallbacks.KeyPressFcn)
-% %                 obj.defaultFigureCallbacks.KeyPressFcn(src, event)
-% %             end
-            
+            % if ~obj.isCursorInsideAxes(obj.hAxes); return; end
+            % disp(event.Key)
+
             wasCaptured = true;
-            
             if isempty(event.Modifier)
                 switch event.Key
                     case 'q'
@@ -242,8 +286,10 @@ classdef pointerManager < handle
                 wasCaptured = obj.currentPointerTool.onKeyPress(src, event) || wasCaptured;
             end
             
+            if ~nargout
+                clear wasCaptured
+            end
         end
-        
         
         function togglePointerMode(obj, pointerName)
             % button press from toolbar or keypress callback.     
@@ -317,7 +363,6 @@ classdef pointerManager < handle
             
         end
         
-        
         function tf = isCursorInsideAxes(obj, hAx)
             
             currentPoint = hAx.CurrentPoint(1, 1:2);
@@ -332,19 +377,27 @@ classdef pointerManager < handle
             
         end
         
-        
         function tf = pointerEnteredAxes(obj)
 
             
         end
-        
         
         function tf = pointerExitedAxes(obj)
         
         end
         
     end
-    
+
+    methods (Access = private)
+        
+        function mouseMotionDummyCallback(obj, src, evt)
+            % Assign this if the WindowButtonMotionFcn of a figure is empty
+            
+            % The figure's CurrentPoint property is only updated if a
+            % mousemotion callback is assigned.
+            
+        end
+    end
     
     
 end
