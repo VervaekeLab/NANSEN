@@ -496,29 +496,31 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
             
             
             centerOffset = [x, y] - tileCenter;
-            centerOffset = round(centerOffset);
-                        
-            IM = circshift(IM, -fliplr(centerOffset));
+            
+            %centerOffset = round(centerOffset);
+            %IM = circshift(IM, -fliplr(centerOffset));
+            IM = imtranslate(IM, -centerOffset);
             
             switch autodetectionMode
                 case 1
                     %Todo: specify local center... This function should use local
                     %center, not assume to start in center of small image.
-                    [roiMask_, ~] = applib.roimanager.binarize.findRoiMaskFromImage(IM, imSize./2, imSize);
-
+                    [roiMask_, ~] = roimanager.binarize.findRoiMaskFromImage(IM, imSize/2, imSize, 'output', 'mask', 'us', 4);
+                    correction = -[0.5,0];
                 case {2, 3, 4}
-                    roiMask_ = applib.roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r(1)*2);
-            
+                    roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r(1)*2);
+                    correction = -[1,0.5];
             end
             
-            roiMask_ = imtranslate(roiMask_, centerOffset);
-                        
+            roiMask_ = imtranslate(roiMask_, round(centerOffset)); % + correction);
+            %roiMask_ = circshift(roiMask_, centerOffset);
+            
             if ~nargout                
                 roiObject = obj.RoiGroup.roiArray(roiInd);
                 [I, J] = roiObject.getThumbnailCoords(imSize);
                 mask = false(roiObject.imagesize);
                 mask(J, I) = roiMask_;
-                % mask = imtranslate(mask, [0,0]);
+                %mask = imtranslate(mask);
                 
                 % Using the reshape method to retain appdata. Note: reshape
                 % will circshift the existing images, not make new ones.
@@ -532,12 +534,25 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
                 % Need to make the mask the same size as the tiled image
                 % axes.
                 
-                roiMask = false(round(obj.hTiledImageAxes.axesRange));
-                xInd = round( (1:imSize(2)) - imSize(2)/2 + tileCenter(1));
-                yInd = round( (1:imSize(1)) - imSize(1)/2 + tileCenter(2));
-                roiMask(yInd, xInd) = roiMask_;
+                % persistent hImage
                 
-                newRoi = roiMask;
+                roiMask = false(round(fliplr(obj.hTiledImageAxes.axesRange)));
+                xInd = round( (1:imSize(2)) - imSize(2)/2 + tileCenter(1)+0.5);
+                yInd = round( (1:imSize(1)) - imSize(1)/2 + tileCenter(2)+0.5);
+                roiMask(yInd, xInd) = roiMask_;
+                roiMask = imtranslate(roiMask, [-1,0]);
+      
+                
+% %                 if isempty(hImage)
+% %                     f=figure; ax=axes(f); hImage = image(roiMask, 'Parent', ax);
+% %                     hImage.CDataMapping = 'scaled';
+% %                 else
+% %                     hImage.CData = roiMask;
+% %                 end
+                
+                newRoi = RoI('Mask', roiMask, size(roiMask));%roiMask;
+
+                %newRoi = roiMask;
             end
 
             
