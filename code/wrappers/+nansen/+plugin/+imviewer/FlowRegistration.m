@@ -1,4 +1,4 @@
-classdef FlowRegistration < imviewer.ImviewerPlugin
+classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectionPreview
 %FlowRegistration Imviewer plugin for FlowRegistration method
 %
 %   SYNTAX:
@@ -49,21 +49,20 @@ classdef FlowRegistration < imviewer.ImviewerPlugin
     methods
         
         function runTestAlign(obj)
-            %Todo:
-
-            % Get images
-            firstFrame = obj.settings.Preview.firstFrame;
-            lastFrame = (firstFrame-1) + obj.settings.Preview.numFrames;
             
-            obj.ImviewerObj.displayMessage('Loading Data...')
-            Y = obj.ImviewerObj.ImageStack.getFrameSet(firstFrame:lastFrame);
+            % Check if saveResult or showResults is selected
+            obj.assertPreviewSettingsValid()
             
+            % Prepare save directory
+            if obj.settings.Preview.saveResults
+                [saveFolder, datePrefix] = obj.prepareSaveFolder();
+                if isempty(saveFolder); return; end
+            end
             
+            % Get image data
+            Y = obj.loadSelectedFrameSet();
+                      
             imClass = class(Y);
-
-            Y = Y(8:end, :, :);
-            
-            %Y = stack.makeuint8(Y);
             %stackSize = size(Y);
             
             
@@ -73,52 +72,39 @@ classdef FlowRegistration < imviewer.ImviewerPlugin
             if ~isa(Y, 'single') || ~isa(Y, 'double') 
                 Y = single(Y);
             end
+            [Y, bidirBatchSize, colShifts] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
             
             obj.ImviewerObj.displayMessage('Running FlowRegistration...')
 
             
             ref = obj.initializeTemplate(Y, options); %<- todo: save initial template to session
             P = obj.initializeParameters(Y, ref, options);
-            M = obj.correctMotion(Y, options, ref, P);
+            [M, shifts] = obj.correctMotion(Y, options, ref, P);
 
             % Todo: Gather some results...
             % obj.TestResults
-            
-            
-            
+                        
             M = cast(M, imClass);
             M = squeeze(M);
             obj.ImviewerObj.clearMessage;
             
-            
-            if obj.settings.Preview.openResultInNewWindow
-                imviewer(M)
-                
-            else
-                filePath = obj.ImviewerObj.imageStack.filePath;
-                delete(obj.ImviewerObj.imageStack)
-                
-                obj.ImviewerObj.ImageStack = nansen.stack.ImageStack(M);
-                obj.ImviewerObj.ImageStack.filePath = filePath;
-                obj.ImviewerObj.updateImage();
-                obj.ImviewerObj.updateImageDisplay();
-                                
+
+            % Show results from test aliging:
+            if obj.settings.Preview.showResults
+                h = imviewer(M);
+                h.stackname = sprintf('%s - %s', obj.ImviewerObj.stackname, 'Flowreg Test Correction');                
             end
-            
-% %             if ~isempty(obj.settings.Export.PreviewSaveFolder)
-% %                 
-% %                 saveDir = obj.settings.Export.PreviewSaveFolder;
-% %                 if ~exist(saveDir, 'dir'); mkdir(saveDir); end
-% %                 
-% %                 [~, fileName, ~] = fileparts(obj.ImviewerObj.imageStack.filePath);
-% %                 
-% %                 fileNameShifts = sprintf(fileName, '_nc_shifts.mat');
-% %                 fileNameOpts = sprintf(fileName, '_nc_opts.mat');
-% %                 
-% %                 save(fullfile(saveDir, fileNameShifts), 'ncShifts')
-% %                 save(fullfile(saveDir, fileNameOpts), 'ncOptions')
-% % 
-% %             end
+                
+         	% Save results from test aliging:
+            if obj.settings.Preview.saveResults
+                getSavepath = @(name) fullfile(saveFolder, ...
+                    sprintf('%s_%s', datePrefix, name ) );
+                                
+                save(getSavepath('flowreg_shifts.mat'), 'shifts')
+                save(getSavepath('flowreg_opts.mat'), 'options')
+                
+                obj.saveProjections(Y, M, getSavepath)           
+            end
             
         end
         
@@ -267,7 +253,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin
             
         end
         
-        function M = correctMotion(obj, Y, options, templateIn, params)
+        function [M, shifts] = correctMotion(obj, Y, options, templateIn, params)
             
             % What is the difference between cref and cref raw???
               
@@ -295,7 +281,10 @@ classdef FlowRegistration < imviewer.ImviewerPlugin
         % Todo: Combine these into one method
         
         function onSettingsChanged(obj, name, value)
-                        
+           
+            exportFields = fieldnames(obj.settings.Export);
+            previewFields = fieldnames(obj.settings.Preview);
+            
             switch name
                 
                 case 'symmetricKernel'
@@ -321,12 +310,15 @@ classdef FlowRegistration < imviewer.ImviewerPlugin
                     obj.ImviewerObj.updateImage();        
                     obj.ImviewerObj.updateImageDisplay();
                     
-                         
-                case {'firstFrame', 'numFrames', 'openResultInNewWindow'}
-                    %obj.settings.Preview.(name) = value;
-                    
                 case 'run'
                     obj.runTestAlign()
+                    
+                case previewFields
+                    obj.settings.Preview.(name) = value;
+                    
+                case exportFields
+                    obj.settings.Export.(name) = value;
+                    
             end
         end
         

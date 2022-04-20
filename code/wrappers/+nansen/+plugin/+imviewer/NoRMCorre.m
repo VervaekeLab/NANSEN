@@ -1,4 +1,4 @@
-classdef NoRMCorre < imviewer.ImviewerPlugin
+classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectionPreview
 %NoRMCorre Imviewer plugin for NoRMCorre method
 %
 %   SYNTAX:
@@ -32,7 +32,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin
     end
     
     properties
-        TestResults struct      % Store results from a pretest correction
+        TestResults struct = struct     % Store results from a pretest correction
     end
     
     properties (Access = private)
@@ -47,9 +47,9 @@ classdef NoRMCorre < imviewer.ImviewerPlugin
         
         function obj = NoRMCorre(varargin)
         %NoRMCorre Create an instance of the NoRMCorre plugin for imviewer
-
-            obj@imviewer.ImviewerPlugin(varargin{:})
                         
+            obj@imviewer.ImviewerPlugin(varargin{:})
+            
             obj.plotGrid()
             obj.editSettings()
             
@@ -110,49 +110,27 @@ classdef NoRMCorre < imviewer.ImviewerPlugin
             obj.runAlign()
         end
         
-        function imArray = loadSelectedFrameSet(obj)
-        %loadSelectedFrameSet Load images for frame interval in settings
-            
-            imArray = [];
-                        
-            % Get frame interval from settings
-            firstFrame = obj.settings.Preview.firstFrame;            
-            lastFrame = (firstFrame-1) + obj.settings.Preview.numFrames;
-            
-            % Make sure we dont grab more than is available.
-            firstFrame = max([1, firstFrame]);
-            firstFrame = min(firstFrame, obj.ImviewerObj.ImageStack.NumTimepoints);
-            lastFrame = min(lastFrame, obj.ImviewerObj.ImageStack.NumTimepoints);
-            
-            if lastFrame-firstFrame < 2
-                errMsg = 'Error: Need at least two frames to run motion correction';
-                obj.ImviewerObj.displayMessage(errMsg)
-                pause(2)
-                obj.ImviewerObj.clearMessage()
-                return
-            end
-            
-            obj.ImviewerObj.displayMessage('Loading Data...')
 
-            % Todo: Enable imagestack preprocessing...
-                
-            imArray = obj.ImviewerObj.ImageStack.getFrameSet(firstFrame:lastFrame);
-            imArray = imArray(8:end, :, :);
-            
-        end
-        
         function runTestAlign(obj)
         %runTestAlign Run test correction and open results in new window
-        %
-        %   Todo: Should develop this further, and implement a way to save
-        %   the results of the test aligning...
         
         % Run a motion correction processor on frames instead?
         
+            % Check if saveResult or showResults is selected
+            obj.assertPreviewSettingsValid()
+            
+            % Prepare save directory
+            if obj.settings.Preview.saveResults
+                [saveFolder, datePrefix] = obj.prepareSaveFolder();
+                if isempty(saveFolder); return; end
+            end
+            
+            % Get image data
             Y = obj.loadSelectedFrameSet();
                       
             imClass = class(Y);
             stackSize = size(Y);
+            
             
             import nansen.wrapper.normcorre.*
             ncOptions = Options.convert(obj.settings, stackSize);
@@ -160,53 +138,40 @@ classdef NoRMCorre < imviewer.ImviewerPlugin
             if ~isa(Y, 'single') || ~isa(Y, 'double') 
                 Y = single(Y);
             end
+        
+            [Y, ~, ~] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
             
             obj.ImviewerObj.displayMessage('Running NoRMCorre...')
+            
+            warning('off', 'MATLAB:mir_warning_maybe_uninitialized_temporary')
             [M, ncShifts, ref] = normcorre_batch(Y, ncOptions);
+            warning('on', 'MATLAB:mir_warning_maybe_uninitialized_temporary')
             
-            obj.TestResults.Shifts = ncShifts;
-            obj.TestResults.Parameters = ncOptions;
+            obj.TestResults(end+1).Shifts = ncShifts;
+            obj.TestResults(end+1).Parameters = ncOptions;
             
-
             obj.MenuItem.PlotShifts.Enable = 'on';
             
             M = cast(M, imClass);
             
             obj.ImviewerObj.clearMessage;
             
-            
+         	% Show results from test aliging:
             if obj.settings.Preview.showResults
                 h = imviewer(M);
                 h.stackname = sprintf('%s - %s', obj.ImviewerObj.stackname, 'NoRMCorre Test Correction');                
-            else
-                
-% %                 filePath = obj.ImviewerObj.ImageStack.FileName;
-% %                 delete(obj.ImviewerObj.ImageStack)
-% %                 
-% %                 obj.ImviewerObj.ImageStack = imviewer.ImageStack(M);
-% %                 obj.ImviewerObj.ImageStack.filePath = filePath;
-% %                 obj.ImviewerObj.updateImage();
-% %                 obj.ImviewerObj.updateImageDisplay();
-% %                 
-% %                 obj.MenuItem.PlotShifts.Enable = 'on';
-                
             end
             
-         	% Todo: implement saving of results from test aliging
-            
-% %             if ~isempty(obj.settings.Export.PreviewSaveFolder)
-% %                 
-% %                 saveDir = obj.settings.Export.PreviewSaveFolder;
-% %                 if ~exist(saveDir, 'dir'); mkdir(saveDir); end
-% %                 
-% %                 [~, fileName, ~] = fileparts(obj.ImviewerObj.ImageStack.filePath);
-% %                 
-% %                 fileNameShifts = sprintf(fileName, '_nc_shifts.mat');
-% %                 fileNameOpts = sprintf(fileName, '_nc_opts.mat');
-% %                 
-% %                 save(fullfile(saveDir, fileNameShifts), 'ncShifts')
-% %                 save(fullfile(saveDir, fileNameOpts), 'ncOptions')
-% %             end
+         	% Save results from test aliging:
+            if obj.settings.Preview.saveResults
+                getSavepath = @(name) fullfile(saveFolder, ...
+                    sprintf('%s_%s', datePrefix, name ) );
+                                
+                save(getSavepath('nc_shifts.mat'), 'ncShifts')
+                save(getSavepath('nc_opts.mat'), 'ncOptions')
+                
+                obj.saveProjections(Y, M, getSavepath)           
+            end
             
         end
         
@@ -231,6 +196,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin
             
             patchesFields = fieldnames(obj.settings.Configuration);
             templateFields = fieldnames(obj.settings.Template);
+            exportFields = fieldnames(obj.settings.Export);
             
             switch name
                 case {'numRows', 'numCols', 'patchOverlap'}
@@ -243,7 +209,10 @@ classdef NoRMCorre < imviewer.ImviewerPlugin
                 case templateFields
                     obj.settings.Template.(name) = value;
                     
-                case {'firstFrame', 'numFrames', 'openResultInNewWindow'}
+                case exportFields
+                    obj.settings.Export.(name) = value;
+                    
+                case {'firstFrame', 'numFrames', 'saveResults', 'showResults'}
                     obj.settings.Preview.(name) = value;
                     
                 case 'run'
