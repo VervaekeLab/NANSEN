@@ -16,7 +16,7 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
         SizeC (1,1) double = 1           % Dimensional size of image data array
         SizeT (1,1) double = 1           % Dimensional size of image data array
         
-        PhysicalSizeX (1,1) double = 1   % Physical width of a pixel. 
+        PhysicalSizeX (1,1) double = 1   % Physical width of a pixel. um per pixel
         PhysicalSizeY (1,1) double = 1   % Physical height of a pixel. 
         PhysicalSizeZ (1,1) double = 1   % Physical distance between planes. 
         PhysicalSizeXUnit char = 'pixel' % The units of the physical size of a pixel.

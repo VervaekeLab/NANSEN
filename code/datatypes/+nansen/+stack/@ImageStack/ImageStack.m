@@ -179,7 +179,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
     properties (Access = private)
         CacheChangedListener event.listener
-        isDirty struct % Temp flag for whether buffer was updated... Should be moved to virtualStack...
+        isDirty struct % Temp flag for whether projection cache was updated... Should be moved to a projection cache class
     end
     
 
@@ -305,12 +305,20 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             doCropImage = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(1:2)));
             
+            % Todo: make another keyword, like 'all' or 'cache' but return
+            % a chunk also if cache is empty
+            
             % Case 1: All frames (along last dimension) are requested.
             % Should return all available frames (i.e cached frames for virtual...)
-            if (ischar(frameInd) && strcmp(frameInd, 'all'))
+            if (ischar(frameInd) && strcmp(frameInd, 'chunk'))
+                % Todo
+                error('Not implemented yet')
+            
+            elseif (ischar(frameInd) && strcmp(frameInd, 'all'))
                 
-                % Todo: Should return cached frames if number of frames
-                % will not fit in memory??
+                % Todo: Check if there is enough memory for operation.
+                % Throw error if not. Return all frames if possible
+
                 
                 % Assign image data to temp variable.
                 if obj.IsVirtual
@@ -431,6 +439,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             obj.Data.addToStaticCache(imData, frameIndices)
+            
+            obj.setProjectionCacheDirty()
             
         end
         
@@ -755,6 +765,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
+        function setProjectionCacheDirty(obj)
+        %setProjectionCacheDirty Set flags for all projections to dirty. 
+        % Todo: move to another class
+            fieldNames = fieldnames(obj.isDirty);
+            for i = 1:numel(fieldNames)
+                obj.isDirty.(fieldNames{i}) = true;
+            end
+        end
+        
         function calculateProjection(obj, funcHandle)
             
         end
@@ -845,7 +864,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     N = N / obj.NumPlanes / obj.NumTimepoints;
             end
             
-            
+            N = min([N, obj.NumTimepoints]);
         end
         
         function [IND, numChunks] = getChunkedFrameIndices(obj, numFramesPerChunk, chunkInd, dim)
@@ -1337,10 +1356,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             counter = counter + 1;
             if mod(counter, resetProjectionCacheInterval) == 0
-                fieldNames = fieldnames(obj.isDirty);
-                for i = 1:numel(fieldNames)
-                    obj.isDirty.(fieldNames{i}) = true;
-                end
+                obj.setProjectionCacheDirty()
                 
                 if resetProjectionCacheInterval < 50
                     resetProjectionCacheInterval = resetProjectionCacheInterval + 10;

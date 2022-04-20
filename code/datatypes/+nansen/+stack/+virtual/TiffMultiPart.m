@@ -7,6 +7,8 @@ classdef TiffMultiPart < nansen.stack.data.VirtualArray
     % [ ] implement writable...
     % [ ] Create a property for keeping a list of multiple filepaths.
     %     FilePath property should be reserved for a single filepath.
+    % [ ] Detect if other files are located in same location
+    
     
 properties (Constant, Hidden)
     FILE_PERMISSION = 'write'
@@ -30,6 +32,9 @@ end
 methods % Structors
     
     function obj = TiffMultiPart(filePath, varargin)
+        import('nansen.stack.virtual.TiffMultiPart')
+        filePath = TiffMultiPart.lookForMultipartFiles(filePath);
+        
         obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
     end
     
@@ -362,48 +367,48 @@ end
 
 
 methods (Static)
+
+    function createFile(filePath, varargin)
+    %createFile Create a new tiff stack
+    %
+    %   virtualTiffObj.createFile(filePath, imageArray) creates a new tiff
+    %   file and writes the data in imageArray to the file.
+    %
+    %   virtualTiffObj.createFile(filePath, stackSize, dataType) creates a
+    %   new tiff file and writes frames with zeros according to specified
+    %   stackSize and dataType
     
-    function initializeFile(filePath, arraySize, arrayClass)
-        
-        imArray = zeros( arraySize, arrayClass);
-        stack.utility.mat2tiffstack( imArray, filePath )
-        
-        return
-               
-        % Todo: This is just a draft. Create this as a file that can be
-        % written to....
-
-
-        t = Tiff(filePath, 'a');
-               
-        % Todo:
-        setTag(t, 'Photometric', Tiff.Photometric.MinIsBlack)
-        
-        setTag(t, 'Compression', Tiff.Compression.None)
-        setTag(t, 'ImageLength', arraySize(1));
-        setTag(t, 'ImageWidth', arraySize(2));
-        
-        switch arrayClass
-            case 'uint8'
-                setTag(t,'SampleFormat',Tiff.SampleFormat.UInt)
-                setTag(t, 'BitsPerSample', 8);
-%             case 'int8'
-%                 setTag(t,'SampleFormat',Tiff.SampleFormat.Int)
-%                 setTag(t, 'BitsPerSample', 8);
-            case 'uint16'
-                setTag(t,'SampleFormat',Tiff.SampleFormat.UInt)
-                setTag(t, 'BitsPerSample', 16);
-%             case 'int16'
-%                 setTag(t,'SampleFormat',Tiff.SampleFormat.Int)
-%                 setTag(t, 'BitsPerSample', 16);
-            otherwise
-                error('Not implemented yet')
+    %   Todo: Accept number of parts from inputs and write to multiple parts
+    
+        if numel(varargin) >= 2
+            arraySize = varargin{1};
+            arrayClass = varargin{2};
+            imArray = zeros( arraySize, arrayClass);
+        elseif numel(varargin) == 1
+            imArray = varargin{1};
+        elseif numel(varargin) == 0
+            error('Not enough input arguments')
         end
         
-        setTag(t, 'SamplesPerPixel', 1);
-        
+        nansen.stack.utility.mat2tiffstack( imArray, filePath )
     end
     
+    function filepath = lookForMultipartFiles(filepath)
+        
+        if ischar(filepath) || (iscell(filepath) && numel(filepath)==1)
+            if iscell(filepath)
+                [folder, ~, ext] = fileparts(filepath{1});
+            else
+                [folder, ~, ext] = fileparts(filepath);
+            end
+            L = dir(fullfile(folder, ['*', ext]));
+            
+            if numel(L) > 1 && numel( unique(cellfun(@numel, {L.name})) ) == 1
+                filepath = fullfile({L.folder}, {L.name});
+            end
+        end
+        
+    end
 end
 
 end

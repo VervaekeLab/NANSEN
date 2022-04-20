@@ -299,6 +299,9 @@ end
 methods (Static)
     
     function createFile(filePath, arraySize, arrayClass)
+        if ndims(arraySize) > 2
+            error('Writing of data to binary file is not supported yet')
+        end
         nansen.stack.virtual.Binary.initializeFile(filePath, arraySize, arrayClass)
     end
     

@@ -84,7 +84,7 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
         
         function data = getData(obj, subs)
         % Get data directly if indexing whole array
-            if all(cellfun(@(s) isequal(s, ':'), subs))
+            if all(cellfun(@(s) ischar(s) && isequal(s, ':'), subs))
                 data = obj.DataArray; % Quicker than subsindexing
             else
                 data = obj.DataArray(subs{:});
@@ -93,7 +93,7 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
         
         function setData(obj, subs, data)
         % Set data directly if indexing whole array
-            if all(cellfun(@(s) isequal(s, ':'), subs))
+            if all(cellfun(@(s) ischar(s) && isequal(s, ':'), subs))
                 obj.DataArray = data;
             else
                 obj.DataArray(subs{:}) = data;

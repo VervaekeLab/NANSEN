@@ -102,7 +102,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 obj.FileAccessMode = 'create';
                 % TODO: ASSIGN size properties, but leave actual file
                 % empty, so that it can be written to later by appending
-                % data.                
+                % data.
             end
             
             % Parse potential name-value pairs and assign to properties
@@ -496,7 +496,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             error('No method is defined for creating new files for %s', 'N/A')
             %Todo: get name of caller...
         end
-         
     end
     
 end
