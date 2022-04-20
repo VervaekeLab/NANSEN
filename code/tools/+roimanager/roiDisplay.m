@@ -9,18 +9,23 @@ classdef roiDisplay < uim.handle
     properties
         % These properties should be gotten from an enum class... Also:
         % Should they be part of this class???
+        classificationLabels = { 'Accepted', 'Rejected', 'Unresolved' }
         classificationColors = { [0.174, 0.697, 0.492], ...
                                  [0.920, 0.339, 0.378], ...
                                  [0.176, 0.374, 0.908] }
 
-        classificationLabels = { 'Accepted', 'Rejected', 'Unclear' } 
+    end
+    
+    properties % Options
+        % NB: RoiTable subclass already implements a property with this name.
+        %SelectionMode = 'multiple' % 'single' | 'multiple' (Not implemented yet)
     end
     
     properties
         RoiGroup            % The handle of a roigroup object
     end
     
-    properties
+    properties (SetAccess = protected)
         SelectedRois        % Vector with indices of selected rois
         VisibleRois         % Vector with indices of visible rois
     end
@@ -29,12 +34,19 @@ classdef roiDisplay < uim.handle
         RoisChangedListener event.listener
         RoiSelectionChangedListener event.listener
         RoiClassificationChangedListener event.listener
+        VisibleRoisChangedListener event.listener
     end
     
     methods (Abstract, Access = protected) % RoiGroup event callbacks
         onRoiGroupChanged(obj, evtData)
         onRoiSelectionChanged(obj, evtData)
-        onRoiClassificationChanged(obj, evtData)        
+        onRoiClassificationChanged(obj, evtData)
+    end
+    
+    methods (Access = protected)
+        function onVisibleRoisChanged(obj, evtData)
+            % Subclasses may override
+        end
     end
     
     
@@ -132,6 +144,9 @@ classdef roiDisplay < uim.handle
            
             obj.RoiClassificationChangedListener = event.listener(obj.RoiGroup, ...
                 'classificationChanged', @(s, e) onRoiClassificationChanged(obj, e));
+            
+            obj.VisibleRoisChangedListener = event.listener(obj.RoiGroup, ...
+                'VisibleRoisChanged', @(s, e) onVisibleRoisChanged(obj, e));
         end
         
         function resetListeners(obj)
@@ -141,10 +156,12 @@ classdef roiDisplay < uim.handle
             delete( obj.RoisChangedListener )
             delete( obj.RoiSelectionChangedListener )
             delete( obj.RoiClassificationChangedListener )
+            delete( obj.VisibleRoisChangedListener )
             
             obj.RoisChangedListener = event.listener.empty;
             obj.RoiSelectionChangedListener = event.listener.empty;
             obj.RoiClassificationChangedListener = event.listener.empty;
+            obj.VisibleRoisChangedListener = event.listener.empty;
             
         end
         

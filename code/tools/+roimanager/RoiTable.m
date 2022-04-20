@@ -31,6 +31,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         UITable         % Handle to the ui table
     end
     
+    properties (Access = private)
+        WindowMousePressListener
+        TableUpdatedListener
+    end
     
     methods % Structors
         
@@ -53,7 +57,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.roiTable = roiTable;
             
             nansen.assert('WidgetsToolboxInstalled')
-            obj.UITable = nansen.ui.MetaTableViewer(obj.Panel, roiTable);
+            obj.UITable = nansen.MetaTableViewer(obj.Panel, roiTable, 'MetaTableType', 'Roi');
             
             % Set table properties
             obj.UITable.HTable.hideHorizontalScroller()
@@ -66,6 +70,11 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 obj.updateRoiLabels()
             end
             
+            obj.WindowMousePressListener = listener(obj.Figure, ...
+                'WindowMousePress', @obj.onMousePressedInFigure);
+            obj.TableUpdatedListener = listener(obj.UITable, ...
+                'TableUpdated', @obj.onTableUpdated);
+            
             obj.isConstructed = true;
         end
         
@@ -77,6 +86,13 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     obj.setPreference('Position', obj.Figure.Position);
                     obj.savePreferences();
                 end
+            end
+            
+            if ~isempty(obj.WindowMousePressListener)
+                delete(obj.WindowMousePressListener)
+            end
+            if ~isempty(obj.TableUpdatedListener)
+                delete(obj.TableUpdatedListener)
             end
             
             delete(obj.UITable)
@@ -99,6 +115,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             roiIdxToRemove = obj.SelectedRois;
             
             obj.UITable.HTable.Enable = 'off';
+            obj.RoiGroup.changeRoiSelection([], [])
             
             obj.RoiGroup.removeRois(roiIdxToRemove);
             newSelection = obj.UITable.getSelectedEntries();
@@ -114,6 +131,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             roiLabels = obj.RoiGroup.getRoiLabels(1:obj.RoiGroup.roiCount);
             obj.roiTable(:, 1) = roiLabels';
             obj.UITable.refreshTable(obj.roiTable)
+        end
+        
+        function resetTableFilters(obj)
+            if ~ all(obj.UITable.DataFilterMap(:))
+                obj.UITable.resetColumnFilters()
+            end
         end
     end
     
@@ -143,6 +166,13 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     
     methods (Access = private) 
         
+        function onMousePressedInFigure(obj, src, evt)
+            % Hide filter if mouse is pressed anywhere in figure.
+            if ~isempty(obj.UITable.ColumnFilter)  
+                obj.UITable.ColumnFilter.hideFilters();
+            end
+        end
+        
         function onTableSelectionChanged(obj, src, evt)
         %onTableSelectionChanged Callback for if table selection changed
         %
@@ -157,6 +187,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             obj.RoiGroup.changeRoiSelection(oldSelection, newSelection);
             
+        end
+        
+        function onTableUpdated(obj, src, evt)            
+            obj.RoiGroup.changeVisibleRois(evt.RowIndices, evt.Type);
         end
         
         function onKeyPressedInTable(obj, src, evt)
@@ -184,14 +218,21 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             S = roimanager.utilities.roiarray2struct(roiArray);
             
             S = rmfield(S, {'coordinates', 'imagesize', 'boundary', ...
-                'connectedrois', 'layer', 'tags', 'enhancedImage'});
+                'connectedrois', 'layer', 'tags', 'enhancedImage', ...
+                'pixelweights'} );
             
             % add column with label and number for roi
             [S(:).ID] = deal({''});
             S = orderfields(S, ['ID', setdiff(fieldnames(S), 'ID', 'stable')' ]);
+            
+            if ~isempty(roiArray)
+                roiStats = getappdata(roiArray, 'roiStats');
+                if ~isempty(roiStats)
+                    S = utility.struct.mergestruct(S, roiStats);
+                end
+            end
+            
             roiTable = struct2table(S, 'AsArray', true);
-            
-            
         end
         
         function updateTableRow(obj, rowIdx, tableRowData)
@@ -249,12 +290,18 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             oldTable = obj.roiTable;
 
+            % fprintf('Index event listener callback 1: %d\n', evtData.roiIndices) % debug 
+
             % Take action for this EventType
             switch lower(evtData.eventType)
                 
                 case {'initialize', 'append'}
                     T = obj.rois2table(evtData.roiArray);
-                    newTable = cat(1, oldTable, T);
+                    if isempty(oldTable)
+                        newTable = T;
+                    else
+                        newTable = cat(1, oldTable, T);
+                    end
                     
                 case 'insert'
                     T = obj.rois2table(evtData.roiArray);
@@ -279,7 +326,6 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     newTable = obj.roiTable;
                     newTable(evtData.roiIndices,:) = [];
                     
-                    
             end
             
             % Update the values of the roi ids / roi labels
@@ -293,7 +339,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 end
                 
                 roiLabels = obj.RoiGroup.getRoiLabels(roiInd);
-                newTable{roiInd, 1} = roiLabels';
+                nRow = size(newTable, 1); % Roigroup might update faster than table if rois are added quickly...
+                newTable{roiInd(1:nRow), 1} = roiLabels(1:nRow)';
             end
              
             % Update table data and uitable.
@@ -319,6 +366,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             % selection to prevent an infinite loop. Feel like this will
             % come back and bite me hard...
             if ~isequal( sort(currentRowSelection), sort(newRowSelection) )
+                
+                
                 obj.UITable.setSelectedEntries(newRowSelection);
                 obj.SelectedRois = newRowSelection;
             else
@@ -327,6 +376,17 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
         end
         
+        function onVisibleRoisChanged(obj, evtData)
+            
+            if isempty(obj.UITable); return; end
+            
+            obj.VisibleRois = evtData.NewVisibleInd;
+            if ~strcmp(evtData.Type, 'RoiTableFilter')
+                obj.UITable.updateVisibleRows(obj.VisibleRois)
+            end
+            
+        end
+
         function onRoiClassificationChanged(obj, evtData)
             
         end

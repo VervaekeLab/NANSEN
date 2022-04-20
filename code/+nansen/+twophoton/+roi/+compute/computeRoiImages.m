@@ -16,9 +16,9 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
 %                                         mean of roi interior and roi
 %                                         surround. NB: Might produce
 %                                         artifical signals
-%           - 'Top 10th Percentile'     : Mean projection of frames where
+%           - 'Top 99th Percentile'     : Mean projection of frames where
 %                                         the roi signal is within the top
-%                                         10th percentile.
+%                                         99th percentile.
 %           - 'Local Correlation'       : Correlation measure of
 %                                         neighboring pixels.
 %           - More options are available, but either not working well or
@@ -131,7 +131,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
                 frameInd = dff(iRoi, :) > thresh; 
                 frameInd = imdilate(frameInd, ones(1,5) );
 
-            elseif contains(imageType, 'top 10th percentile')
+            elseif contains(imageType, 'top 99th percentile')
                 [~, descendingFrameInd] = sort(dff(iRoi, :), 'descend');
                 nFramesSubset =  round(numFrames .* 0.01);
                 frameInd = descendingFrameInd(1:nFramesSubset);
@@ -169,7 +169,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
             %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             
             switch imageType
-                case {'mean', 'activity weighted mean', 'top 10th percentile'}
+                case {'mean', 'activity weighted mean', 'top 99th percentile'}
                     currentRoiIm = mean(imArrayChunkTmp, 3);                
 
                 case {'std', 'activity weighted std'} % not as good as mean

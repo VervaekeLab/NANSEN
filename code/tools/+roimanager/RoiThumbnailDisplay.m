@@ -10,29 +10,48 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
 %   unavailable from a roi object, a new image will be created using the
 %   imagestack.
 
+    % Todo: 
+    %  [v] get image: get from roi appdata or set to roi appdata.
+
+
+    properties (Constant, Hidden)
+        IMAGE_TYPES = {'Activity Weighted Mean', 'Diff Surround', ...
+            'Top 99th Percentile', 'Local Correlation'};
+    end
+    
     properties
         Dashboard   % Handle for dashboard where thumbnail display is present
         Parent      % Parent container (typically a uipanel)
     end
     
-    properties
-        ColorMap    % Todo
-        LineColor   % Todo
+    properties % Preference-like properties
+        ColorMap        % Todo
+        ContourColor    % Todo
+        SpatialUpsampling = 4 % Factor for spatial upsampling of image.
     end
     
     properties
         ImageStack  % Handle of an ImageStack object. Necessary for creating roi images.
+        PointerManager
     end
     
-    properties (Access = private)
-        hAxes       % Handle for axes to show image in
-        hText       % Handle for text which displays message
-        hRoiImage   % Handle for image 
-        hRoiOutline % Handle for line to show roi outline
+    properties (Access = private) % Handles to graphical objects
+        hAxes           % Handle for axes to show image in
+        hText           % Handle for text which displays message
+        hRoiImage       % Handle for image 
+        hRoiOutline     % Handle for line to show roi outline
+        hContextMenu    % Handle for image contextmenu
+        hImageSelector  % Handle for image selector widget
+        hCountourToggleButton % Button for toggling visibility of contour
+        
+        ContextMenuTree % Struct containing contextmenu items.
     end 
     
-    properties (Access = private)
+    properties (Access = private) % Internal options
+        CurrentImage % Holds image data of current image
+        CurrentImageToShow = 'Activity Weighted Mean'
         ShowRoiImageUpdateErrorMessage = false; % Flag for popup dialog.
+        WindowKeyPressListener event.listener
     end
     
     methods % Constructor
@@ -47,75 +66,261 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             obj@roimanager.roiDisplay(roiGroup)
             
             obj.Parent = hParent;
-            obj.createImageDisplay()
-
+            obj.createImageDisplayAxes()
+            
+            %obj.initializePointerManager
+            
+            obj.createFigureInteractionListeners()
+            
         end
         
+        function delete(obj)
+            isdeletable = @(x) ~isempty(x) && isvalid(x);
+            
+            if isdeletable(obj.hContextMenu)
+                delete(obj.hContextMenu)
+            end
+            if isdeletable(obj.WindowKeyPressListener)
+                delete(obj.WindowKeyPressListener)
+            end
+        end
     end
     
     methods (Access = private)
         
-        function createImageDisplay(obj)
-        %createImageDisplay Create axes for image display    
+        function createImageDisplayAxes(obj)
+        %createImageDisplayAxes Create axes for image display    
+        
+            if isa(obj.Parent, 'matlab.graphics.axis.Axes')
+                obj.hAxes = obj.Parent;
+                obj.Parent = obj.Parent.Parent;
+            else
+                % Create axes.
+                obj.hAxes = axes('Parent', obj.Parent);
+                obj.hAxes.Position = [0.05, 0.05, 0.9, 0.9];
+            end
             
-            % Create axes.
-            obj.hAxes = axes('Parent', obj.Parent);
-            obj.hAxes.Position = [0.05, 0.05, 0.9, 0.9];
             obj.hAxes.XTick = []; 
             obj.hAxes.YTick = [];
             obj.hAxes.Tag = 'Roi Thumbnail Display';
             obj.hAxes.Color = obj.Parent.BackgroundColor;
             obj.hAxes.Visible = 'off';
+            obj.hAxes.PickableParts = 'all'; % In order to respond to pointer
             
         end
         
-        function plotRoiImageNotAvailableText(obj)
+        function initializePointerManager(obj)
             
+            hFigure = ancestor(obj.hAxes, 'figure');
+            
+            pointerRoot = strjoin({'roimanager', 'pointerTool'}, '.');
+            pointerNames = {'selectObject', 'autoDetect'};
+            
+            getPointerFcn = @(name) str2func(strjoin({pointerRoot, name}, '.'));
+            pointerFcn = cellfun(@(name) getPointerFcn(name), pointerNames, 'uni', 0);
+
+            pif = uim.interface.pointerManager(hFigure, obj.hAxes, pointerFcn);
+            obj.PointerManager = pif;
+            
+            % Create function handles:
+            
+% %             % Add roimanager pointer tools.
+% %             for i = 1:numel(pointerNames)
+% %                 obj.PointerManager.initializePointers(hAxes, pointerRefs{i})
+% %                 obj.PointerManager.pointers.(pointerNames{i}).hObjectMap = hMap;
+% %             end
+
+            % Set default tool.
+            obj.PointerManager.defaultPointerTool = obj.PointerManager.pointers.selectObject;
+            obj.PointerManager.currentPointerTool = obj.PointerManager.pointers.selectObject;
+            
+            %obj.PointerManager.pointers.autoDetect.hObjectMap = obj;
+            obj.PointerManager.currentPointerTool.activate();
+            
+            obj.PointerManager.pointers.autoDetect.UpdateRoiFcn = @obj.updateRoiEstimate;
+            
+        end
+        
+        function createFigureInteractionListeners(obj)
+            
+            hFigure = ancestor(obj.hAxes, 'figure');
+            obj.WindowKeyPressListener = listener(hFigure, 'KeyPress', ...
+                @obj.onKeyPressed);
+            
+        end
+        
+        function createImageMenu(obj)
+        %createImageMenu Create image context menu
+        
+            h = uicontextmenu(ancestor(obj.hAxes, 'figure'));
+            obj.ContextMenuTree = struct;
+            
+            % Todo...
+            
+% % %             mItem = uimenu(h, 'Text', 'Set Colormap', 'Enable', 'off');
+% % %             
+% % %             mItem = uimenu(h, 'Text', 'Set Image');
+% % %             obj.ContextMenuTree.SetImage = mItem;
+% % %             
+% % %             for i = 1:numel(obj.IMAGE_TYPES)
+% % %                 hMenuSubItem = uimenu(mItem, 'Text', obj.IMAGE_TYPES{i});
+% % %                 hMenuSubItem.Callback = @obj.onSetImageMenuItemClicked;
+% % %             end
+                
+            obj.hContextMenu = h;
+            obj.hRoiImage.UIContextMenu = h;
+            
+            obj.setCurrentImageToShow('Enhanced Average')
+        end
+        
+        function createImageSelector(obj)
+        %createImageSelector Create widget for selecting image to view
+        
+            % Create page indicator
+            options = {'Size', [inf, 60], 'Margin', [20, 13, 20, 20], ...
+                'Location', 'southwest', 'IndicatorSize', 12, ...
+                'SizeMode', 'manual', 'IndicatorColor', ones(1,3)*0.6, ...
+                'FontColor', ones(1,3)*0.9, 'BarColor', ones(1,3)*0.9, ...
+                'FontSize', 11, 'HorizontalTextAlignment', 'left', ...
+                'BarVisibility', 'off', 'TextVisibility', 'hit' };
+
+            uicc = getappdata(obj.Parent, 'UIComponentCanvas');
+            if isempty(uicc)
+                uicc = uim.UIComponentCanvas(obj.Parent);
+            end
+            
+            pageNames = obj.IMAGE_TYPES;
+            obj.hImageSelector = uim.widget.PageIndicator(uicc, pageNames, options{:});
+            obj.hImageSelector.ChangePageFcn = @obj.onSetImageTabButtonClicked;
+            
+            obj.setCurrentImageToShow(obj.IMAGE_TYPES{1})
+        end
+        
+        function recreateImageSelector(obj) % debugging
+            delete(obj.hImageSelector)
+            obj.createImageSelector()
+        end
+        
+        function createCountourToggleButton(obj)
+%             uicc = getappdata(obj.Parent, 'UIComponentCanvas');
+%             if isempty(uicc)
+%                 uicc = uim.UIComponentCanvas(obj.Parent);
+%             end
+            
+            ICONS = uim.style.iconSet(imviewer.plugin.RoiManager.getIconPath);
+
+            hButton = uim.control.Button_(obj.Parent, 'Icon', ICONS.circle, ...
+                'IconSize', [15, 15], ...
+                'Mode', 'togglebutton', ...
+                'Size', [20, 20], 'SizeMode', 'auto', ...
+                'Margin', [20,13,20,30], ...
+                'Style', uim.style.buttonSymbol, ...
+                'Location', 'northwest', 'HorizontalAlignment', 'center', ...
+                'VerticalAlignment', 'bottom', ...
+                'HorizontalAlignment', 'left' );
+            hButton.Callback = @(s,e)obj.toggleRoiOutline(s);
+            obj.hCountourToggleButton = hButton;
+            obj.hCountourToggleButton.Value = true;
+            obj.hCountourToggleButton.Tooltip = 'Hide Contour';
+            obj.hCountourToggleButton.TooltipYOffset = 10;
+        end
+        
+        function createImageTextbox(obj)
+        %createImageTextbox Create a textbox in the image display axes
             obj.hText = text(obj.hAxes, 'Units', 'normalized');
             obj.hText.Position(1:2) = [0.5, 0.5];
-            obj.hText.String = 'Roi image not available';
+            obj.hText.String = '';
             obj.hText.Color = ones(1,3)*0.4;
             obj.hText.HorizontalAlignment = 'center';
             obj.hText.FontSize = 12;
             
+            if ~isempty(obj.hRoiImage)
+                uistack(obj.hText, 'bottom')
+            end
         end
         
         function updateImageText(obj, str)
+        %updateImageText Update text in image text box
             if isempty(obj.hText) || ~isvalid(obj.hText)
-                obj.plotRoiImageNotAvailableText()
+                obj.createImageTextbox()
             end
             obj.hText.String = str;
-           
+        end
+        
+        function createImageDisplay(obj, imageData)
+        %createImageDisplay Create the image display 
+            
+            if isempty(obj.hText)
+                % Create first for it to be below image in the uistack
+                obj.createImageTextbox() 
+            end
+            
+            obj.hRoiImage = imshow(imageData, [0, 255], ...
+                'Parent', obj.hAxes, 'InitialMagnification', 'fit');
+            % set(obj.hRoiImage, 'ButtonDownFcn', @obj.mousePress)
+            
+            if ~ishold(obj.hAxes)  
+                hold(obj.hAxes, 'on') 
+            end
+
+            % obj.createImageMenu() % Todo?
+            obj.createImageSelector()
+            obj.createCountourToggleButton()
         end
         
         function updateImageDisplay(obj, roiObj)
+        %updateImageDisplay Update the displayed image
             
-            im = roiObj.enhancedImage;
+            roiThumbnailImage = obj.getImage(roiObj);
+            if isempty(roiThumbnailImage); return; end
             
-            if all(im(:) == 0 )
-                im = obj.createRoiImage(roiObj);
-                obj.updateImageText('Image not available')
-                if isempty(im); return; end
+            obj.CurrentImage = roiThumbnailImage;
+            
+            
+            if isempty(obj.hRoiImage) % First time. Create image object
+                obj.createImageDisplay(roiThumbnailImage)
+            else % Update image display:
+                set(obj.hRoiImage, 'cdata', roiThumbnailImage);
             end
-            
-            roiObj.enhancedImage = im;
-            
-            usFactor = 4; % Upsampling factor
-            im = imresize(im, usFactor);
-            
-            if isempty(obj.hRoiImage) % First time initialization. Create image object
-                obj.hRoiImage = imshow(im, [0, 255], 'Parent', obj.hAxes, 'InitialMagnification', 'fit');
-%                 set(obj.himageCurrentRoi, 'ButtonDownFcn', @obj.mousePress)
-               
-                if ~ishold(obj.hAxes)  
-                    hold(obj.hAxes, 'on') 
-                end
-            else
-                set(obj.hRoiImage, 'cdata', im);
+
+            % Update x- and y- limits of the axes based on size of image
+            imSize = size(roiThumbnailImage);
+            set(obj.hAxes, 'XLim', [0,imSize(2)]+0.5, ...
+                           'YLim', [0,imSize(1)]+0.5 )
+           
+            if ~isempty(obj.PointerManager)
+                hPointer = obj.PointerManager.pointers.autoDetect;
+                hPointer.xLimOrig = obj.hAxes.XLim;
+                hPointer.yLimOrig = obj.hAxes.YLim;
+            end   
+                       
+            % Update color limits to get the optimal brightness range
+            clims = [min(roiThumbnailImage(:)), max(roiThumbnailImage(:))];
+
+            % Make sure upper clim is larger than lower
+            if clims(2) <= clims(1) 
+                clims(2) = clims(1) + 1;
             end
+            set(obj.hAxes, 'CLim', clims );
             
-            ul = roiObj.getUpperLeftCorner();
-            roiBoundary = fliplr(roiObj.boundary{1});
+            obj.updateRoiContour(roiObj)
+            obj.updateImageText('')
+        end
+        
+        function resetImageDisplay(obj)
+            set(obj.hRoiOutline, 'XData', nan, 'YData', nan)
+            set(obj.hRoiImage, 'cdata', [])
+            obj.CurrentImage = [];
+        end
+        
+        function updateRoiContour(obj, roiObj)
+        %updateRoiContour Update the contour of a roi in the image display    
+            
+            usFactor = obj.SpatialUpsampling;
+            imageSize = size(obj.CurrentImage) ./ usFactor;
+            
+            ul = roiObj.getUpperLeftCorner([], imageSize);
+            roiBoundary = fliplr(roiObj.boundary{1}); % yx -> xy
             roiBoundary = (roiBoundary - ul + [1,1]) * usFactor;
             
             if isempty(obj.hRoiOutline)
@@ -125,40 +330,64 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             else
                 set(obj.hRoiOutline, 'XData', roiBoundary(:,1), 'YData', roiBoundary(:,2))
             end
+        end
+        
+        function toggleRoiOutline(obj, src)
             
-            imSize = size(im);
-            
-            % To avoid erroring
-            clims = [min(im(:)), max(im(:))];
-            if clims(2) <= clims(1)
-                clims(2) = clims(1) + 1;
+            if src.Value
+                obj.hRoiOutline.Visible = 'on';
+                obj.hCountourToggleButton.Tooltip = 'Hide Contour';
+            else
+                obj.hRoiOutline.Visible = 'off';
+                obj.hCountourToggleButton.Tooltip = 'Show Contour';
             end
-            
-            
-            set(obj.hAxes, 'XLim', [1,imSize(2)]+0.5, ...
-                           'YLim', [1,imSize(1)]+0.5, ...
-                           'CLim', clims );
-            
-            obj.updateImageText('')
             
         end
         
-        function resetImageDisplay(obj)
-            set(obj.hRoiOutline, 'XData', nan, 'YData', nan)
-            set(obj.hRoiImage, 'cdata', [])
+        function im = getImage(obj, roiObj)
+        %getImage Get roi thumbnail image based on current settings  
+                        
+            imageVarName = strrep(obj.CurrentImageToShow, ' ', '');
+            roiImageData = getappdata(roiObj, 'roiImages');
+           
+            if isfield(roiImageData, imageVarName)
+                im = roiImageData.(imageVarName);
+                if all(im(:) == 0 )
+                    im = obj.createRoiImage(roiObj);
+                end
+                if ~isempty(im)
+                    roiImageData.(imageVarName) = im;
+                end
+            else
+                im = obj.createRoiImage(roiObj);
+            end
+
+            if isempty(im)
+                obj.updateImageText('Image not available')
+                return; 
+            end
+            
+            % Perform spatial resampling of image
+            im = imresize(im, obj.SpatialUpsampling);
+            
         end
         
         function im = createRoiImage(obj, roiObj)
         %createRoiImage Create a roi image from an ImageStack
             
-            im = []; 
+            import nansen.twophoton.roi.compute.computeRoiImages
+            import nansen.twophoton.roisignals.extractF
+            import nansen.twophoton.roisignals.computeDff
+            
+            im = [];
             if isempty(obj.ImageStack); return; end
                 
             imArray = obj.ImageStack.getFrameSet('cache');
             
             if size(imArray, 3) < 100
                 if obj.ShowRoiImageUpdateErrorMessage
-                    obj.plotRoiImageNotAvailableText()
+                    obj.createImageTextbox()
+                    obj.updateImageText('Roi image not available')
                     obj.Dashboard.displayMessage('Can not update roi image because there are not enough image frames in memory')
                     obj.ShowRoiImageUpdateErrorMessage = false;
                 end
@@ -166,9 +395,86 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                 return
             end
             
-            f = nansen.twophoton.roisignals.extractF(imArray, roiObj);
-            dff = nansen.twophoton.roisignals.computeDff(f, 'dffFcn', 'dffRoiMinusDffNpil');
-            im = roimanager.autosegment.extractRoiImages(imArray, roiObj, dff'); 
+            f = extractF(imArray, roiObj);
+            dff = computeDff(f, 'dffFcn', 'dffRoiMinusDffNpil');
+            
+            im = computeRoiImages(imArray, roiObj, dff', ...
+                'ImageType', obj.CurrentImageToShow);
+        end
+        
+        function setCurrentImageToShow(obj, name)
+            
+            if strcmp(obj.CurrentImageToShow, name); return; end
+            
+            obj.CurrentImageToShow = name;
+            
+            if ~isempty(obj.ContextMenuTree)
+                if isfield( obj.ContextMenuTree, 'SetImage' )
+                    hMenuItems = obj.ContextMenuTree.SetImage.Children;
+                    set(hMenuItems, 'Checked', 'off')
+                    isMatch = strcmp({hMenuItems.Text}, name);
+                    set(hMenuItems(isMatch), 'Checked', 'on')
+                end
+            end
+            
+            if ~isempty(obj.VisibleRois)
+                roiObj = obj.RoiGroup.roiArray(obj.VisibleRois);
+                obj.updateImageDisplay(roiObj)
+                obj.updateEstimatedRoi()
+            end
+        end
+        
+        function [imageName, imageIdx] = getImageName(obj, token)
+            
+            idx = find( strcmp(obj.IMAGE_TYPES, obj.CurrentImageToShow) );
+            numImages = numel(obj.IMAGE_TYPES);
+            
+            switch token
+                case 'next'
+                    newIdx = mod(idx, numImages) + 1; % Next with reset.
+                case 'previous'
+                    newIdx = numImages - mod(-idx+1, numImages); % Previous with reset.
+            end
+            
+            imageName = obj.IMAGE_TYPES{newIdx};
+            
+            if nargout == 2
+                imageIdx = newIdx;
+            end
+            
+        end
+        
+    end
+    
+    methods (Access = private)
+        
+        function updateEstimatedRoi(obj)
+            if ~isempty(obj.PointerManager)
+                if isa( obj.PointerManager.currentPointerTool, ...
+                        'roimanager.pointerTool.autoDetect' ) 
+                    obj.PointerManager.currentPointerTool.updateRoi()
+                end
+            end
+        end
+        
+        % Todo implement modes (combine with roiMap method):
+        function newRoi = updateRoiEstimate(obj, x, y, r, autodetectionMode, doReplace)
+            
+            IM = obj.CurrentImage;
+            if isempty(IM); newRoi = RoI.empty; return; end
+            
+            imSize = size(IM);
+            
+            centerOffset = imSize/2 - [y,x]; %./obj.SpatialUpsampling;
+            IM = circshift( IM, round(centerOffset) );
+            %IM = imtranslate(IM, fliplr( round(centerOffset) ));
+            outputType = 'coords';
+            [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, ...
+                [x, y], imSize, 'output', outputType, 'us', 1);
+ 
+            roiMask = roiMask{1};
+            newRoi = RoI('Mask', roiMask, imSize);%roiMask;
+
         end
         
     end
@@ -194,6 +500,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                     if isequal(roiIdx, obj.VisibleRois)
                         roi = obj.RoiGroup.roiArray(roiIdx);
                         obj.updateImageDisplay(roi)
+                        obj.updateEstimatedRoi()
                     end
                     
                 otherwise
@@ -216,6 +523,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                 roi = obj.RoiGroup.roiArray(roiIdx);
                 obj.updateImageDisplay(roi)
                 obj.VisibleRois = roiIdx;
+                obj.updateEstimatedRoi()
             end
             
         end
@@ -224,6 +532,18 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             % Do nothing
         end
         
+    end
+    
+    methods (Access = private)
+        
+        function onSetImageMenuItemClicked(obj, src, evt)
+            obj.setCurrentImageToShow(src.Text);
+        end
+        
+        function onSetImageTabButtonClicked(obj, src, evt)
+            imageName = src.PageNames{evt.NewPageNumber};
+            obj.setCurrentImageToShow(imageName);
+        end
     end
     
     methods % Implement abstract methods from
@@ -236,5 +556,26 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         end
     end
     
+    methods 
+        function onKeyPressed(obj, src, evt)
+            
+            if ~isempty(obj.PointerManager)
+                wasCaptured = obj.PointerManager.onKeyPress(src, evt);
+                if wasCaptured; return; end
+            end
+            
+            switch evt.Character
+                case '>'
+                    [imageName, imageIdx] = obj.getImageName('next');
+                    obj.setCurrentImageToShow(imageName);
+                    obj.hImageSelector.changePage(imageIdx)
+
+                case '<'
+                    [imageName, imageIdx] = obj.getImageName('previous');
+                    obj.setCurrentImageToShow(imageName);
+                    obj.hImageSelector.changePage(imageIdx)
+            end
+        end
+    end
     
 end
