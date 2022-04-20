@@ -76,6 +76,19 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
         
     end
     
+    methods
+        function reset(obj)
+            obj.Low_ = obj.Minimum;
+            obj.High_ = obj.Maximum;
+            obj.updateLowValueField(obj.Low_)
+            obj.updateHighValueField(obj.High_)
+            
+            obj.hRangeSlidebar.Low = obj.Low_;
+            obj.hRangeSlidebar.High = obj.High_;
+        end
+        
+    end
+    
     methods % Set/get methods
         
         function set.Visible(obj, newValue)
@@ -152,7 +165,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
         end
         
     end
-    
     
     methods (Access = private) % Component creation
         
@@ -300,7 +312,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
                         
         end
     end
-    
     
     methods (Access = private) % Component update
 
