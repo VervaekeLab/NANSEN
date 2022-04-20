@@ -34,6 +34,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
        ShowImagePanel = true;
        
        RoiThumbnailViewer = []
+       UiControls = []
        
        TempControlPanel
        TempControlPanelDestroyedListener
@@ -44,9 +45,12 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         
         function obj = RoimanagerDashboard(varargin)
             
+            filepath = fullfile(nansen.localpath('root'), 'docs', 'resources', 'nansen_roiman.png');
+            [~, jLabel, C] = nansen.ui.showSplashScreen(filepath, 'RoiManager', 'Initializing imviewer...');
+            
             % Explicit call to superclass constructors.
             obj@applify.DashBoard()
-            obj@imviewer.plugin.RoiManager()
+            obj@imviewer.plugin.RoiManager('CreateContextMenu', false)
            
             % Todo: Get figure position from properties.
             obj.hFigure.Position = [100, 50, obj.FigureSize];
@@ -65,11 +69,12 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.DialogBox = h.uiwidgets.msgBox;
             
             % Call method for activating the roimanager plugin on imviewer
+            jLabel.setText('Initializing roi manager...')
             obj.activatePlugin(h)
             
             
-            
             % 2) Signal viewer
+            jLabel.setText('Initializing signal viewer...')
             if ~h.ImageStack.isDummyStack()
                 obj.openSignalViewer(obj.hPanels(4))
                 obj.addPanelResizeButton(obj.hPanels(4).Children(1))
@@ -77,13 +82,13 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             end
             
             % 3) Roi table 
+            jLabel.setText('Initializing roi table...')
             h = roimanager.RoiTable(obj.hPanels(3), obj.roiGroup);
             h.KeyPressFcn = @(s, e) obj.onKeyPressed(s, e, 'roimanager');
             obj.addPanelResizeButton(obj.hPanels(3).Children(1))
             obj.AppModules(end+1) = h;
 
             % 4) Roi image display
-            
             obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), obj.roiGroup);
             obj.RoiThumbnailViewer.ImageStack = obj.StackViewer.ImageStack;
             obj.RoiThumbnailViewer.Dashboard = obj;
@@ -91,14 +96,13 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             % Button bar on bottom switching between different panels.
             obj.createToolbar()
 
-            
+
             obj.IsConstructed = true; % triggers onConstructed which will
             % make figure visible, apply theme etc.
             
             drawnow
             
             obj.TabButtonGroup.Group.Visible = 'on';
-            
             
             % Load settings.... Needs to be done after figure is visible
             % due to the way controls are drawn.
@@ -111,7 +115,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             % Reset this
             obj.settings.Autosegmentation.options = [];
             obj.saveSettings()
-            
             
         end
         
@@ -247,9 +250,11 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         
         function initializeSettingsPanel(obj)
             
-            P0 = struct();
-            P0.ExperimentName = '';
-            P0.SampleRate = 31;
+% %             P0 = struct();
+% %             P0.ExperimentName = '';
+% %             P0.SampleRate = 31;
+            
+            P0 = obj.settings.ExperimentInfo;
             
             [P2, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
              
@@ -258,17 +263,18 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             P2.tauDecay_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 5000, 'nTicks', 500, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});
 
             i = 0;
-            [structs, names, callbacks] = deal( {} );
+            [structs, names, callbacks, valueChangedFcn] = deal( {} );
             
             i = i+1;
             structs{i} = P0;
             names{i} = 'Experiment Info';
-            callbacks{i} = [];
+            callbacks{i} = @obj.onExperimentOptionsChanged;
                        
             i = i+1;
             structs{i} = obj.settings.RoiDisplayPreferences;
             names{i} = 'Roi Display';
             callbacks{i} = @obj.onRoiDisplayPreferencesChanged;
+            %valueChangedFcn{i} = @obj.onRoiDisplayPreferencesChanged;
             obj.initializeRoiDisplaySettings()
             
 
@@ -282,13 +288,14 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             structs{i} = obj.settings.RoiCuration();
             % Todo: Add field for preset selection.
             names{i} = 'Roi Curation';
-            callbacks{i} = @obj.onRoiCurationOptionsChanged;
+            callbacks{i} = @obj.onRoiClassifierOptionsChanged;
             
             i = i+1;
             structs{i} = obj.settings.SignalExtraction();
             names{i} = 'Signal Extraction';
-            callbacks{i} = @obj.onSignalExtractionOptionsChanged;
+            callbacks{i} = @obj.onSignalExtractionOptionsChanged; % todo
             %valueChangedFcn{i} = @obj.onSignalExtractionOptionsChanged;
+            %valueChangedFcn{i} = [];
             
             hSignalViewer = obj.AppModules(2);
 
@@ -308,15 +315,17 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 'FontName', 'helvetica', 'LabelPosition', 'Over', ...
                 'TabMode', 'dropdown', ...
                 'Name', names, ...
-                'Callback', callbacks );
+                'Callback', callbacks);%, ...
+                %'ValueChangedFcn', valueChangedFcn);
             
             obj.AppModules(end+1) = h;
+            obj.UiControls = h;
         end
 
         function initializeRoiDisplaySettings(obj)
             
             fields = {'showNeuropilMask', 'showLabels', 'showOutlines', ...
-                'maskRoiInterior', 'showByClassification', 'roiColorScheme'};
+                'maskRoiInterior', 'roiColorScheme'};
             
             for i = 1:numel(fields)
                 thisName = fields{i};
@@ -328,6 +337,9 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
 
             
             % Reset some "transient" fields.
+            
+            obj.settings.RoiDisplayPreferences.showByClassification = ...
+                obj.settings.RoiDisplayPreferences.showByClassification_{1};
             obj.settings.RoiDisplayPreferences.setCurrentRoiGroup = ...
                 obj.settings.RoiDisplayPreferences.setCurrentRoiGroup_{1};
             obj.settings.RoiDisplayPreferences.showRoiGroups = ...
@@ -348,8 +360,27 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     
     methods % Settings changed callbacks
 
+        function onExperimentOptionsChanged(obj, name, value)
+            
+            switch name
+                case 'OpenStack'
+                    obj.openImageStack()
+                case 'LoadRois'
+                    obj.importRois()
+                case 'SaveRois'
+                    obj.saveRois()
+                case 'SampleRate'
+                    
+            end
+            
+        end
+        
         function onRoiDisplayPreferencesChanged(obj, name, value)
-                        
+            
+% %             if isa(value, 'structeditor.eventdata.ValueChanged')
+% %                 name = value.Name; %
+% %             end
+            
             % Todo: move to roiMap class...!
             switch name
                 
@@ -360,18 +391,17 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                     obj.roiDisplay.RoiColorScheme = value;
                     
                 case 'showByClassification'
+                    obj.AppModules(3).resetTableFilters()
                     obj.roiDisplay.showClassifiedCells(value)
                     
                 case 'showLabels'
-                    obj.roiDisplay.roiLabelVisible = value;
-                    obj.toggleShowRoiTextLabels()
+                    obj.switchRoiLabelVisibility(value)
 
                 case 'showOutlines'
-                    obj.roiDisplay.roiOutlineVisible = value;
-                    obj.toggleShowRoiOutlines()
+                    obj.switchRoiOutlineVisibility(value)
                     
                 case 'maskRoiInterior'
-                    obj.maskRoiInterior()
+                    obj.switchMaskRoiInteriorState(value)
                     
                 case 'setCurrentRoiGroup'
                     obj.changeCurrentRoiGroup(value)
@@ -461,7 +491,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
         end
         
-        function onRoiCurationOptionsChanged(obj, name, value)
+        function onRoiClassifierOptionsChanged(obj, name, value)
                         
             % Update the value in settings.
             obj.settings.RoiCuration.(name) = value;
@@ -476,7 +506,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 case 'cutoffValues'
                     % Change selection of classified rois...
                     
-                case 'openCurationApp'
+                case 'openClassifierApp'
                     obj.openManualRoiClassifier()
             
             end
@@ -552,6 +582,14 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 switch module
                     case 'roimanager'
                         obj.AppModules(1).onKeyPressed(src, evt, true)
+                        
+                        % Special case (temporary)
+                        switch evt.Character
+                            case {'<', '>'}
+                                if ~isempty(obj.RoiThumbnailViewer)
+                                    obj.RoiThumbnailViewer.onKeyPressed(src, evt)
+                                end
+                        end
                 end
             end
         end
@@ -596,6 +634,21 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
         end
         
+        function openImageStack(obj)
+            
+            fileAdapter = nansen.dataio.fileadapter.imagestack.ImageStack();
+            initPath = fileparts(obj.PrimaryApp.ImageStack.FileName);
+            fileAdapter.uiopen(initPath)
+            
+            imageStack = fileAdapter.load();
+                
+            obj.AppModules(1).replaceStack(imageStack, true)
+            obj.RoiThumbnailViewer.ImageStack = imageStack;
+            
+            obj.settings.ExperimentInfo.SampleRate = imageStack.getSampleRate();
+            
+        end
+            
         function onTabButtonPressed(obj, src, evt)
             
             if strcmp(src.Text, 'Roi Info')
