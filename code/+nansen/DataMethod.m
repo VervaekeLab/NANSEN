@@ -54,7 +54,7 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
             
         end
     end
-    
+
     methods (Access = public) % Todo: Use methods of hasOptions superclass
         
         function wasSuccess = preview(obj) %_workinprogress(obj)
@@ -79,12 +79,12 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
             wasSuccess = ~hPreviewApp.wasAborted;
             
             delete(hPreviewApp)
-            
         end
         
     end
     
     methods (Access = public) % Shortcuts for methods of DataIOModel
+    %Todo: Get this from a superclass / mixin class.
     
         function data = loadData(obj, varargin)
             data = obj.DataIoModel.loadData(varargin{:});
@@ -98,6 +98,41 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
             filePath = obj.DataIoModel.getDataFilePath(varargin{:});
         end
         
+        function folder = getTargetFolder(obj)
+            if isa(obj.DataIoModel, 'nansen.metadata.type.Session')
+                folder = obj.DataIoModel.getSessionFolder(); % Todo: Generalize away from session data location...
+            else
+                error('Not implemented yet')
+            end
+        end
+        
+        function tf = existVariable(obj, varName)
+            tf = isfile( obj.getDataFilePath(varName) );
+        end
     end
     
+    methods (Access = protected)
+        
+        function initializeVariables(obj)
+        %initializeVariables Initialize variables that is created by method
+            
+            % The purpose of this method is to initialize variable in the
+            % variable model for this method, so that they can be accessed
+            % without using "attributes".
+        
+            % Get variable names from property
+            varNames = obj.DataVariableNames;
+            for i = 1:numel(varNames)
+                obj.setVariable(varNames{i}, 'Subfolder', ...
+                    obj.DATA_SUBFOLDER, 'IsInternal', true);
+            end
+            
+            % Todos:
+            % 1) Implement the DataVariableNames property
+            % 2) Implement a DATA_SUBFOLDER abstract property
+            % 3) Implement a setVariable on the DataIoModel / VariableModel
+            
+        end
+        
+    end
 end
