@@ -49,11 +49,9 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
         case 'mask'
             mask = zeros([origImSize(1:2), numImages], 'logical');
         case 'coords'
-            mask = cell(1, numImages);
+            mask = repmat({zeros(0,2)}, 1, numImages);
     end
-            
-        
-
+    
     
     for i = 1:numImages
         
@@ -63,6 +61,7 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
         switch method
             case 'disk'
                 [edgeCoordsOut, statOut] = findEdge(tmpGradient, 'fall');
+                if isempty(edgeCoordsOut); continue; end
                 edgeCoordsOutS = utility.circularsmooth(edgeCoordsOut, 2*upSampleFactor);
 
                 edgeCoordsOutS(edgeCoordsOutS<1)=1;
@@ -74,6 +73,7 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
                 
             case 'donut'
                 [edgeCoordsInn, statInn] = findEdge(tmpGradient, 'rise');
+                if isempty(edgeCoordsInn); continue; end
                 edgeCoordsInnS = utility.circularsmooth(edgeCoordsInn, max([1, 2*upSampleFactor]));
 
                 lowerLim = floor(min(edgeCoordsInnS));
@@ -83,11 +83,20 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
                     values = tmpGradient(round(edgeCoordsInn(j)):end, j);
                     newIm(1:numel(values), j) = values;
                 end
+                
+                offset = 3; % Hardcoded value for thy1 somas...
 
-                h = min([size(newIm,1), 3*upSampleFactor ]);% why 3??????? parameterize
+                % Offset is supposed to keep search close to internal
+                % border. Expand search area a factor of 0.75 times the
+                % internal radius:
+                offset = round( mean(edgeCoordsInnS) ./ upSampleFactor .* 1); 
+                
+                h = min([size(newIm,1), offset*upSampleFactor ]);% why 3??????? parameterize
                 newIm = newIm(1:h, :);
                 
                 [edgeCoordsOut, statOut] = findEdge(newIm, 'fall');
+                if isempty(edgeCoordsOut); continue; end
+                
                 edgeCoordsOut = edgeCoordsOut+edgeCoordsInnS;
                 edgeCoordsOutS = utility.circularsmooth(edgeCoordsOut, max([1, 2*upSampleFactor]));
 
@@ -147,7 +156,15 @@ function [mask, stat] = findRoiMaskFromImage(im, center, origImSize, varargin)
                 [Y, X] = find(bwTmp);   
                 
                 offsetCorrection = -0.5;
-                mask{i} = [x+X-xOffset, y-Y+yOffset] + offsetCorrection;
+                
+                xCoords = x+X-xOffset + offsetCorrection;
+                yCoords = y-Y+yOffset + offsetCorrection;
+                
+                keepX = xCoords >= 1 & xCoords <= origImSize(2); 
+                keepY = yCoords >= 1 & yCoords <= origImSize(1);
+                keep = keepX & keepY;
+                
+                mask{i} = [xCoords(keep), yCoords(keep)];
         end
         
         
@@ -237,9 +254,13 @@ function [edgeCoords, stat] = findEdge(grad, polarity)
 
     cunt = 0;
     while true
-
+        
+        if isempty(edgeCoords)
+            break
+        end
+        
         deltaRs = diff([edgeCoords(end), edgeCoords]);
-
+        
         if all(deltaRs < 5)
             break
         end
@@ -291,8 +312,6 @@ function [edgeCoords, stat] = findEdge(grad, polarity)
     
     stat.EdgeValues = edgeVal;
     stat.EdgeValue = mean(edgeVal);
-
-
 
 end
 
