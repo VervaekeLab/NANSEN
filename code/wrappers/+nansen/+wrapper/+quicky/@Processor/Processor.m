@@ -6,9 +6,20 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %
 %   This class provides functionality for running Quicky within
 %   the nansen package.
-
+%
+%
+%   This class creates the following data variables:
+%
+%     * <strong>QuickyOptions</strong> : Struct with options used.
+%
+%     * <strong>QuickyResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack. 
+%           Struct contains output from Quicky
+%
+%     * <strong>roiArrayQuickyAuto</strong> : 
+%
     properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_quicky')
+        ROI_VARIABLE_NAME = 'roiArrayQuickyAuto'
     end
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
@@ -23,17 +34,20 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         ImviewerPluginName = ''
     end
     
-    properties
+    properties (Access = private)
         MergedResults
+        RoiArray
+        RoiImages
+        RoiStats
     end
     
     
     methods % Constructor 
         
         function obj = Processor(varargin)
-        %nansen.wrapper.extract.Processor Construct normcorre processor
+        %nansen.wrapper.quicky.Processor Construct quicky processor
         %
-        %   h = nansen.wrapper.extract.Processor(imageStackReference)
+        %   h = nansen.wrapper.quicky.Processor(imageStackReference)
             
             obj@nansen.processing.RoiSegmentation(varargin{:})
         
@@ -50,29 +64,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 obj.runMethod()
                 clear obj
             end
-            
         end
         
     end
     
-    methods 
-        function initializeVariables(obj)
-            
-            
-        end
-    end
-    
-    methods
-        
-        function saveResults(obj)
-           
-            tempResults = obj.Results;
-            obj.saveData('quickyResultsTemp', tempResults) 
-        end
-        
-    end
-    
-    methods (Access = protected) % Implementation of abstract, public methods
+    methods (Access = protected) % Implementation of RoiSegmentation methods
         
         function opts = getToolboxSpecificOptions(obj, varargin)
         %getToolboxSpecificOptions Get EXTRACT options from parameters or file
@@ -89,21 +85,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             opts = Options.convert(obj.Options);%, stackSize);
             
                 
-            optionsVarname = 'quickyOptions';
+            optionsVarname = 'QuickyOptions';
 
             % Initialize options (Load from session if options already
             % exist, otherwise save to session)
             opts = obj.initializeOptions(opts, optionsVarname);
-            
-        end
-        
-        function tf = checkIfPartIsFinished(obj, partNumber)
-        %checkIfPartIsFinished Check if shift values exist for given frames
-                    
-            msg = 'Number of parts is not matched';
-            assert(obj.NumParts == numel(obj.Results), msg)
-            
-            tf = ~isempty(obj.Results{partNumber});
             
         end
         
@@ -115,9 +101,29 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             obj.StepDescription = [obj.StepDescription, descr];
             
         end
+        
+        function saveResults(obj)
+            tempResults = obj.Results;
+            obj.saveData('QuickyResultsTemp', tempResults) 
+        end
+        
+        function mergeResults(obj)
+        %mergeResults Merge results from each processing part
+            
+            % Combine spatial segments
+            if numel(obj.Results) >= 1
+                obj.mergeSpatialComponents()
+            end
+        end
+
+        function roiArray = getRoiArray(obj)
+        %getRoiArray Get results as a roi array
+            roiArray = obj.RoiArray;
+        end
+        
     end
     
-    methods (Access = protected) % Run the motion correction / image registration
+    methods (Access = protected) % Implementation of ImageStackProcessor methods
 
         function result = segmentPartition(obj, Y)
             
@@ -142,22 +148,18 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             global fprintf; fprintf = str2func('fprintf');
             
-            filePath = obj.getDataFilePath('quickyResultsTemp', '-w',...
-                'Subfolder', obj.DATA_SUBFOLDER);
+            filePath = obj.getDataFilePath('QuickyResultsTemp', '-w',...
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
             
             if isfile(filePath)
-                obj.Results = obj.loadData('quickyResultsTemp');
+                obj.Results = obj.loadData('QuickyResultsTemp');
             end
             
         end
 
         function onCompletion(obj)
-            
-            % Combine spatial segments
-            if numel(obj.Results) >= 1
-                obj.mergeSpatialComponents()
-            end
-            
+            onCompletion@nansen.processing.RoiSegmentation(obj)
+
         end
         
     end
@@ -177,19 +179,22 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             N = obj.SourceStack.chooseChunkLength();
             imArray = obj.SourceStack.getFrameSet(1:N);
+            
             avgIm = mean( cat(3, obj.Results.meanFovImage ), 3);
 
             [roiArray, roiImages, roiStats] = nansen.wrapper.quicky.utility.finalizeRoiSegmentation(imArray, avgIm, roiArrayT);
             % Todo: save all...
             
+            obj.RoiArray = roiArray;
+            obj.RoiImages = roiImages;
+            obj.RoiStats = roiStats;
+            
             obj.displayFinishCurrentStep()
             
-            obj.saveData('roiArrayQuickyAuto', roiArray, 'Subfolder', 'roi_data')
         end
         
     end
-    
-    
+
     methods (Static) % Method in external file.
         options = getDefaultOptions()
         

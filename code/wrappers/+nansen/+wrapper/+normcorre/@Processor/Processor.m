@@ -12,6 +12,13 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %       - Interactive configuration of parameters
 %       - Save reference images
 
+%
+%   This class creates the following data variables:
+%
+%     * <strong>NormcorreOptions</strong> : Struct with options used for registration
+%
+%     * <strong>NormcorreShifts</strong> : Struct array with frame shifts 
+
 
 %   TODO:
 %       [ ] Print command line output
@@ -88,7 +95,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             import nansen.wrapper.normcorre.Options
             opts = Options.convert(obj.Options, stackSize);
             
-            optionsVarname = 'normcorreOptions';
+            optionsVarname = 'NormcorreOptions';
             
             % Initialize options (Load from session if options already
             % exist, otherwise save to session)
@@ -110,18 +117,18 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         %initializeShifts Load or initialize shifts...
         
             % Get filepath (initialize if it does not exist)
-            filePath = obj.getDataFilePath('normcorreShifts', '-w', ...
-                'Subfolder', obj.DATA_SUBFOLDER);
+            filePath = obj.getDataFilePath('NormcorreShifts', '-w', ...
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
             
             if isfile(filePath)
-                S = obj.loadData('normcorreShifts');
+                S = obj.loadData('NormcorreShifts');
             
             else
                 % Initialize blank struct array
                 C = cell(numFrames, 1);
                 S = struct('shifts', C, 'shifts_up', C, 'diff', C);
                 
-                obj.saveData('normcorreShifts', S)
+                obj.saveData('NormcorreShifts', S)
             end
             
             obj.ShiftsArray = S;
@@ -130,7 +137,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         
         function saveShifts(obj)
             shiftsArray = obj.ShiftsArray;
-            obj.saveData('normcorreShifts', shiftsArray)
+            obj.saveData('NormcorreShifts', shiftsArray)
         end
         
         function updateCorrectionStats(obj, IND)
@@ -155,7 +162,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             S.rmsMovement(IND) = rmsmov;
             
             % Save updated image registration stats to data location
-            obj.saveData('imregStats', S)
+            obj.saveData('MotionCorrectionStats', S)
             obj.CorrectionStats = S;
             
         end
