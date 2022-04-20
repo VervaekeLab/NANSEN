@@ -93,11 +93,11 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
         %
 
             % Check if image stats already exist for this datalocation
-            filePath = obj.getDataFilePath('imageStats', ...
-                'Subfolder', 'raw_image_info');
+            filePath = obj.getDataFilePath('ImageStats', '-w', ...
+                'Subfolder', 'raw_image_info', 'IsInternal', true);
             
             if isfile(filePath)
-                S = obj.loadData('imageStats');
+                S = obj.loadData('ImageStats');
             else
                 
                 numFrames = obj.SourceStack.NumFrames;
@@ -123,8 +123,7 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
                 
                 S.pctSaturatedValues = nanArray;
 
-                obj.saveData('imageStats', S, ...
-                    'Subfolder', 'raw_image_info');
+                obj.saveData('ImageStats', S);
                 
             end
             
@@ -174,7 +173,7 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
         
             % Save updated image stats to data location
             S = obj.ImageStats;
-            obj.saveData('imageStats', S)
+            obj.saveData('ImageStats', S)
             
         end
 
