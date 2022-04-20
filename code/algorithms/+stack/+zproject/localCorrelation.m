@@ -5,9 +5,12 @@ function im = localCorrelation(imArray, dim)
     end
 
 
-    numRows = 4;
-    numCols = 4;
-    showWaitbar = true;
+    [imageHeight, imageWidth, ~] = size(imArray);
+
+    numRows = ceil(imageHeight / 128);
+    numCols = ceil(imageWidth / 128);
+    
+    showWaitbar = false;
     
 
     getChunkedData = @stack.reshape.imsplit;
@@ -41,7 +44,7 @@ function im = localCorrelation(imArray, dim)
     end
 
     [d1,d2,~] = size(imArray);
-    cIm = getChunkedData(tmpC, false, [d1,d2,1], 'numRows', 4, 'numCols', 4);
+    cIm = getChunkedData(tmpC, false, [d1,d2,1], 'numRows', numRows, 'numCols', numCols);
     %cIm = stack.makeuint8(cIm);
     
     cIm = cIm .* range(P) + P(1);
