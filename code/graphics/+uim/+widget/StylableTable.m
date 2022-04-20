@@ -49,6 +49,8 @@ classdef StylableTable < uiw.widget.Table
     events
         ColumnWidthChanged % Event listener for if column width changes (if user drags column headers to resize)
         ColumnsRearranged % Event listener for if columns are rearranged (if user drags column headers to rearrange)
+        %HorizontalScroll
+        %VerticalScroll
     end
     
     
@@ -297,6 +299,9 @@ classdef StylableTable < uiw.widget.Table
             
             obj.JTable.Foreground = jRGB(obj.Theme.TableForegroundColor);
             obj.JTable.Background = jRGB(obj.Theme.CellColorModified);
+            
+            obj.JTable.DisabledBackground = jRGB(obj.Theme.TableBackgroundColorDisabled);
+            obj.JTable.DisabledForeground = jRGB(obj.Theme.TableForegroundColorDisabled);
             
             obj.JTable.selectionForeground = jRGB(obj.Theme.TableForegroundColorSelected);
             obj.JTable.selectionBackground = jRGB(obj.Theme.TableBackgroundColorSelected);
