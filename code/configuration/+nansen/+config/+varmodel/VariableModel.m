@@ -107,19 +107,18 @@ classdef VariableModel < utility.data.StorableCatalog
             
             S = obj.getItem(varName);
             
+            % Check if alias exists?
+            if isempty(S)
+                S = obj.getVariableInfoFromAlias(varName);
+            end
+            
             isExistingEntry = ~isempty(S);
             
             % Create a default variable structure
             if ~isExistingEntry
-                S = obj.getBlankItem();
-                
-                S.VariableName = varName;
-                S.DataLocation = '';
-                S.FileType = '.mat';
-                S.FileAdapter = 'Default';                
+                S = obj.getDefaultItem(varName);
+                S.IsCustom = true;              
             end
-               
-            
         end
         
         function setGlobal(obj)
@@ -227,7 +226,19 @@ classdef VariableModel < utility.data.StorableCatalog
     end
     
     methods (Access = private)
-               
+        
+        function S = getVariableInfoFromAlias(obj, varName)
+        %getVariableInfoFromAlias Get variable info from alias    
+            S = struct.empty;
+            
+            aliases = {obj.Data.Alias};
+            isMatch = strcmp(aliases, varName);
+            
+            if any(isMatch) && sum(isMatch) == 1
+                S = obj.Data(isMatch);
+            end
+        end
+        
         function tempFixVariableNameInFile(obj)
         %tempFixVariableNameInFile Rename VariableList to Data...    
             if isfile(obj.FilePath)
