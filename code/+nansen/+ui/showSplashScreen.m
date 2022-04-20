@@ -68,8 +68,8 @@ function [jFrame, jLabel, C] = showSplashScreen(imFilePath, titleStr, subTitleSt
     footerText = sprintf( "<html>%s</html>", strjoin(footerText, '<br>'));
     
     fgRGB = [0.9176, 0.9255, 0.9294];
-    jLabelFooter = javax.swing.JLabel('Vervaeke Lab of Neural Computation\nUniversity of Oslo');
-    jLabelFooter.setText(footerText)
+    jLabelFooter = javax.swing.JLabel(footerText);
+    %jLabelFooter.setText(footerText)
     jLabelFooter.setForeground( java.awt.Color(fgRGB(1), fgRGB(2), fgRGB(3)) )
     jLabelFooter.setBounds(10, 320, 250, 60);
     
@@ -79,7 +79,7 @@ function [jFrame, jLabel, C] = showSplashScreen(imFilePath, titleStr, subTitleSt
     titleFont = java.awt.Font('Avenir Next', java.awt.Font.PLAIN, 10);
     set(jLabelFooter, 'Font', titleFont);
     
-    jBackgroundLabel.add(jLabelFooter)
+    jBackgroundLabel.add(jLabelFooter);
     
     
 
