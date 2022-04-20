@@ -198,7 +198,9 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
     
     methods
         function hide(obj)
-            obj.Visible = 'off';
+            if isvalid(obj)
+                obj.Visible = 'off';
+            end
         end
         
         function show(obj)

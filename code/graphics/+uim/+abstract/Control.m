@@ -27,7 +27,7 @@ classdef Control < uim.abstract.Component
         IsMouseOver = false
         
         MouseReleasedListener
-        
+        LastPointer
     end
     
     
@@ -98,7 +98,9 @@ classdef Control < uim.abstract.Component
         end
         
         function onTooltipChanged(obj)
-            
+                      
+            obj.setTooltipPosition()
+
             if obj.IsMouseOver && ~isempty(obj.Tooltip) 
                 obj.showTooltip()
             end
@@ -113,7 +115,8 @@ classdef Control < uim.abstract.Component
         %setTooltipPosition Set position of tooltip on the canvas axes.
             
             if isempty(obj.Tooltip); return; end
-            
+            if ~obj.IsConstructed; return; end
+
             centerX = mean(obj.hBackground.XData);
             centerY = mean(obj.hBackground.YData);
 
@@ -131,6 +134,7 @@ classdef Control < uim.abstract.Component
             obj.changeAppearance()
             
             hFig = ancestor(obj.hBackground, 'figure');
+            %obj.LastPointer = hFig.Pointer;
             hFig.Pointer = 'hand';
             
             if ~isempty(obj.Tooltip)
@@ -149,6 +153,7 @@ classdef Control < uim.abstract.Component
             obj.changeAppearance()
             
             hFig = ancestor(obj.hBackground, 'figure');
+            %hFig.Pointer = obj.LastPointer;
             hFig.Pointer = 'arrow';
             
             if ~isempty(obj.Tooltip)

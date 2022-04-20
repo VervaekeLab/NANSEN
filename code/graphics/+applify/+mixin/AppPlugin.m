@@ -50,6 +50,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     properties
         RunMethodOnFinish = true    % Should we run method when settings/options are "saved"?
         Modal = true
+        DataIoModel                 % Store a data i/o model object if it is provided.
         OptionsManager              % Store optionsmanager handle if plugin is provided with an optionsmanager on construction
     end
     
@@ -71,6 +72,10 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         
         function obj = AppPlugin(hApp, options, varargin)
 
+            if nargin > 2
+                obj.assignPVPairs(varargin{1:end})
+            end
+            
             if ~nargin || isempty(hApp); return; end
             
             obj.validateAppHandle(hApp)
@@ -86,11 +91,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             else
                 obj.assignDefaultOptions()
             end
-            
-            if nargin > 2
-                obj.assignPVPairs(varargin{1:end})
-            end
-            
+                        
             if ~hApp.isPluginActive(obj)
                 obj.activatePlugin(hApp)
             end
@@ -222,6 +223,8 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         function onSettingsEditorResumed(obj)
         %onSettingsEditorResumed Callback for when settings editor is resumed              
             
+            % Todo: What if obj is invalid
+        
             % Abort if sEditor is invalid (improper exit)
             if ~isvalid(obj.hSettingsEditor); return; end
 
