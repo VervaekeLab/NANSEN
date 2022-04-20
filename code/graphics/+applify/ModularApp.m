@@ -31,14 +31,13 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
 %
 % * [ ] Fix units of panel! In standalone mode, units are pixels...
 %       What if figure is resized???
+%   [ ] Sort out units of the Panel property. Right now they are pixels
+%       based if mode is standalone and normalized if mode is docked. Is
+%       this a good idea? Should they instead always be one or the other?%
 %
 %   [ ] Methods for mouse leaving or entering app. 
 %           - onMouseEnteredApp 
 %           - onMouseExitedApp
-%
-%   [ ] Sort out units of the Panel property. Right now they are pixels
-%       based if mode is standalone and normalized if mode is docked. Is
-%       this a good idea? Should they instead always be one or the other?
 %
 %   [ ] Make method for docking/undocking app
 %
@@ -101,6 +100,10 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         PreviousMousePoint
     end
     
+    properties (Access = private)
+        PixelPosition_ % internal cache for position in pixel units
+        PanelLimits_ % internal cache for panel limits in pixel units
+    end
     
 % - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - - -
 
@@ -192,9 +195,9 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         
             tf = false;
             
-            if ~app.Parent.Visible
-                %return
-            end
+%             if ~app.Parent.Visible
+%               return
+%             end
             
             if strcmp( app.Parent.Visible, 'off' )
                 return
@@ -209,12 +212,10 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             end
             
             xy = app.Figure.CurrentPoint;
-            panelPos = getpixelposition(app.Panel, true);
 
-            panelLim = uim.utility.pos2lim(panelPos);
-
+            panelLim = app.PanelLimits_;
             tf = ~any(any(diff([panelLim(1:2); xy; panelLim(3:4)]) < 0));
-
+            
         end
         
         function tf = isStandalone(app)
@@ -310,6 +311,8 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             if strcmp(app.mode, 'standalone') 
                 app.Panel.Units = 'pixel'; % todo....
             end
+            
+            addlistener(app.Panel, 'SizeChanged', @app.onSizeChanged);
             
             %set(app.Panel, 'DefaultAxesCreateFcn', @app.onAxesCreated)
             %app.Panel.BackgroundColor = app.Figure.Color;
@@ -433,7 +436,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                 
                 % Todo: Probably can remove, but need to test more properly
                 
-                % Not this is done differently, by having the dashboard
+                % Note: this is done differently, by having the dashboard
                 % that these modules are placed in invoke the interactive
                 % callback functions if the pointer is over the module...
                 
@@ -477,6 +480,13 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             
             obj.Panel.Visible = 'on';
 
+        end
+        
+        function onSizeChanged(app, src, evt)
+        %onSizeChanged Callback for size changed event on panel
+            % Update cached pixel position value;
+            app.PixelPosition_ = getpixelposition(app.Panel, true);
+            app.PanelLimits_ = uim.utility.pos2lim(app.PixelPosition_);
         end
         
         function onThemeChanged(obj)
