@@ -15,16 +15,18 @@ end
 
 P = double( prctile(single(IM(:)), [0.5, 99.5]) );
 
+[imageHeight, imageWidth, ~] = size(IM);
+
+numRows = ceil(imageHeight / 32);
+numCols = ceil(imageWidth / 32);
 
 % Calculate the average signal of all pixels per time point
 imageSignal = mean(mean(IM,2),1);
 imageSignal = single( squeeze(imageSignal) );
 
-
 % Divide data into chunks to use less memory during calculation
-tmpIm = stack.reshape.imsplit(IM, true, [], 'numRows', 16, 'numCols', 16);
+tmpIm = stack.reshape.imsplit(IM, true, [], 'numRows', numRows, 'numCols', numCols);
 tmpC = cell(size(tmpIm));
-
 
 for i = 1:size(tmpIm,1)
     for j = 1:size(tmpIm,2)
@@ -33,7 +35,6 @@ for i = 1:size(tmpIm,1)
         pixelSignals = transpose( reshape( tmpIm{i,j} , d1*d2, d3) );
         pixelSignals = single(pixelSignals);
         
-
         % Calculate the correlation of each pixel with the image signal.
         % Note: data is cast to single and transposed to row vectors.
         RHO = corr(imageSignal, pixelSignals, 'tail', 'right', 'rows', 'all');
@@ -45,9 +46,9 @@ end
 
 % Unchunk data
 [d1,d2,~] = size(IM);
-cIm = stack.reshape.imsplit(tmpC, false, [d1,d2,1], 'numRows', 16, 'numCols', 16);
+cIm = stack.reshape.imsplit(tmpC, false, [d1,d2,1], 'numRows', numRows, 'numCols', numCols);
 
-% todo: cast...
+% cast...
 cIm = cIm .* range(P) + P(1);
 cIm = cast(cIm, class(IM));
 

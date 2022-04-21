@@ -473,6 +473,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function adjustFigureSizeToComponents(obj)
             
+            % Only adjust size if figure is standalone
+            if ~strcmp(obj.mode, 'standalone'); return; end
+            
+            
             if obj.virtualHeight(obj.currentPanel) < obj.visibleHeight
                 h = obj.virtualHeight(obj.currentPanel);
                 obj.Figure.Position(4) = h + sum(obj.Margins([2,4])) + 20;
@@ -482,6 +486,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function adjustFigureWidthToComponents(obj)
+            
+            % Only adjust size if figure is standalone
+            if ~strcmp(obj.mode, 'standalone'); return; end
             
             if obj.virtualWidth(obj.currentPanel) > obj.visibleWidth
                 w = obj.virtualWidth(obj.currentPanel);
@@ -602,11 +609,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         %onCallbackSet Need to make on callback for each page...    
             if obj.isConstructed && ~isempty(obj.Callback)
                 
-                if numel(obj.Callback) ~= obj.numTabs
+                if ~iscell(obj.Callback) || numel(obj.Callback) ~= obj.numTabs
                     if obj.numTabs > 1
                         obj.Callback = arrayfun(@(i) obj.Callback, 1:obj.numTabs, 'uni', 0);
                     else
-                        if ~isa(obj.Callback)
+                        if ~isa(obj.Callback, 'cell')
                             obj.Callback = {obj.Callback};
                         end
                     end
@@ -1685,7 +1692,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % % %                                 'mode', 'pushbutton', config.args{:}, ...
 % % %                                 'HorizontalTextAlignment', 'center');
                             if strcmp(obj.LabelPosition, 'Over')
-                                ycorr = obj.RowSpacing;
+                                ycorr = 0.5*obj.RowSpacing;
                             end
                             xcorr = -3;
                             
@@ -2054,6 +2061,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         %   in order to correct for posision offsets if components are
         %   wider than page
             
+        %   Todo: Generalize the update of position property for custom 
+        %   axes components
+        
             i = obj.currentPanel;
             
             if isnan(obj.virtualWidth(i)); return; end
@@ -2085,7 +2095,23 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 if isa(children(j), 'matlab.graphics.axis.Axes'); continue; end
                 children(j).Position(1) = children(j).Position(1) - difference;
             end
-
+            
+            if iscell(obj.hControls)
+                tmpControls = obj.hControls{i};
+            elseif isstruct(obj.hControls)
+                tmpControls = obj.hControls;
+            else
+                error('Please report')
+            end
+            
+            % Todo: Generalize!
+            tmpControls = struct2cell(tmpControls);
+            for j = 1:numel(tmpControls)
+                if isa(tmpControls{j}, 'uim.widget.slidebar')
+                    tmpControls{j}.Position(1) = tmpControls{j}.Position(1) - difference;
+                end
+            end
+                
         end
         
         function flipUpsideDown(obj, y, panelNum)

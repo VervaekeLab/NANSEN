@@ -8,6 +8,8 @@ classdef tableDark < uim.style.tableTheme
         TableForegroundColor = [0.85, 0.85, 0.85] 
         TableBackgroundColorSelected = [48,62,76]/255; %[240,171,15] ./ 255
         TableForegroundColorSelected = [0.95, 0.95, 0.95]
+        TableBackgroundColorDisabled = [0.15, 0.15, 0.15]
+        TableForegroundColorDisabled = [0.75, 0.75, 0.75]
         CellColorUnmodified = [0.15, 0.15, 0.15]
         CellColorModified = [0.15, 0.15, 0.15]
         GridColor = [0.3, 0.3, 0.3]

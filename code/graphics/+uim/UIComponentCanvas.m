@@ -31,7 +31,7 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
 
 
 % Todo: 
-%   [ ] Create a variation of UIComponentCanvas for single components.
+%   [ï¿½] Create a variation of UIComponentCanvas for single components.
 %   [ ] Outsource tooltip manager to a separate class.
 %   [ ] Debug object desctruction...
 
@@ -109,9 +109,9 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
                 extent = obj.TooltipHandle.Extent;
                 lim = {'XLim', 'YLim'};
                 for i = 1:2
-                    if position(i) - extent(i+2) < obj.Axes.(lim{i})(1)
-                        position(i) = obj.Axes.(lim{i})(1) +  extent(i+2) + 3; % + obj.TooltipHandle.Margin*2;
-                    elseif position(i) + extent(i+2) > obj.Axes.(lim{i})(2)
+                    if position(i) < obj.Axes.(lim{i})(1) % Tooltip too far left
+                        position(i) = obj.Axes.(lim{i})(1) + obj.TooltipHandle.Margin*2;
+                    elseif position(i) + extent(i+2) > obj.Axes.(lim{i})(2)  % Tooltip too far right
                         position(i) = obj.Axes.(lim{i})(2) - extent(i+2)*1.1;% - obj.TooltipHandle.Margin*2;
                     end
                 end

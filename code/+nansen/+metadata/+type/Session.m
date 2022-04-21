@@ -244,6 +244,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
         end
         
+        function unassignPipeline(obj)
+            [obj(:).Progress] = deal(struct.empty);            
+        end
+        
         function updatePipeline(obj, pipelineTemplate)
         %updatePipeline Update pipeline for sessions that use given template
         %
@@ -441,20 +445,60 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
     end
     
     methods % Load data variables
+        
+        function fileAdapter = getFileAdapter(obj, variableName)
+                    
+            [filePath, variableInfo] = obj.getDataFilePath(variableName);
+            fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
+            fileAdapter = fileAdapterFcn(filePath);
 
+        end
+        
+        function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
+        %getFileAdapterFcn Get function handle for creating file adapter                
+            
+            % Todo: Make fileAdapter class for this....
+            persistent fileAdapterList
+            
+            if isempty(fileAdapterList)
+                fileAdapterList = nansen.dataio.listFileAdapters();
+            end
+            
+            if ischar(variableInfo)
+                [~, variableInfo] = obj.getDataFilePath(variableInfo);
+            end
+            
+            % Get file adapter % Todo: make this more persistent...
+            isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
+            
+            if ~any(isMatch)
+                error('File adapter was not found')
+            elseif sum(isMatch) > 1
+                error('This is a bug. Please report')
+            end
+            
+            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+            
+        end
+        
         function data = loadData(obj, varName, varargin)
-            
+        %loadData Loads data for given variable 
+        %
+        % See also nansen.metadata.type.Session/getDataFilePath
+        
             % TODO:
-            %   [ ] Implement file adapters.
+            %   [v] Implement file adapters.
             
-            filePath = obj.getDataFilePath(varName, '-r', varargin{:});
+            [filePath, variableInfo] = obj.getDataFilePath(varName, '-r', varargin{:});
+            
+            obj.assertValidFileAdapter(variableInfo, 'load')
+            fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
             
             if isfile(filePath)
                 
-                [~, ~, ext] = fileparts(filePath);
-
-                switch ext
-                    case '.mat'
+                switch variableInfo.FileAdapter
+                    
+                    case 'Default'
                         S = load(filePath, varName);
                         if isfield(S, varName)
                             data = S.(varName);
@@ -465,13 +509,33 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         %                     error('File does not hold specified variable')
                         end
                         
-                    case {'.raw', '.tif'}
-                        data = nansen.stack.ImageStack(filePath);
-                        
                     otherwise
-                        error('Nansen:Session:LoadData', 'Files of type ''%s'' is not supported for loading', ext)
- 
+                        data = fileAdapterFcn(filePath).load();
+                        % data = fileAdapterFcn(filePath).load(varName); %Todo
+
                 end
+                
+% % %                 [~, ~, ext] = fileparts(filePath);
+% % % 
+% % %                 switch ext
+% % %                     case '.mat'
+% % %                         S = load(filePath, varName);
+% % %                         if isfield(S, varName)
+% % %                             data = S.(varName);
+% % %                         else
+% % %                             S = load(filePath);
+% % %                             data = S;
+% % %         %                 else
+% % %         %                     error('File does not hold specified variable')
+% % %                         end
+% % %                         
+% % %                     case {'.raw', '.tif'}
+% % %                         data = nansen.stack.ImageStack(filePath);
+% % %                         
+% % %                     otherwise
+% % %                         error('Nansen:Session:LoadData', 'Files of type ''%s'' is not supported for loading', ext)
+% % %  
+% % %                 end
 
             else
                 error('Variable ''%s'' was not found.', varName)
@@ -480,22 +544,38 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         end
         
         function saveData(obj, varName, data, varargin)
-            
+        %saveData Saves data for given variable 
+        %
+        % See also nansen.metadata.type.Session/getDataFilePath
+        
             % TODO:
             %   [ ] Implement file adapters.
             
-            filePath = obj.getDataFilePath(varName, '-w', varargin{:});
-            
-            S.(varName) = data;
+            [filePath, variableInfo] = obj.getDataFilePath(varName, '-w', varargin{:});
 
-            varInfo = whos('data');
-            byteSize = varInfo.bytes;
+            obj.assertValidFileAdapter(variableInfo, 'save')
+            fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
             
-            if byteSize > 2^31
-                save(filePath, '-struct', 'S', '-v7.3')
-            else
-                save(filePath, '-struct', 'S')
+            
+            switch variableInfo.FileAdapter
+                    
+                case 'Default'
+                    S.(varName) = data;
+
+                    varInfo = whos('data');
+                    byteSize = varInfo.bytes;
+
+                    if byteSize > 2^31
+                        save(filePath, '-struct', 'S', '-v7.3')
+                    else
+                        save(filePath, '-struct', 'S')
+                    end
+                otherwise
+                    fileAdapterFcn(filePath, '-w').save(data, varName);
+                    % data = fileAdapterFcn(filePath).load(varName); %Todo
+
             end
+            
         end
         
         function validateVariable(obj, variableName)
@@ -551,7 +631,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
         end
         
-        function pathStr = getDataFilePath(obj, varName, varargin)
+        function [pathStr, variableInfo] = getDataFilePath(obj, varName, varargin)
         %getDataFilePath Get filepath to data within a session folder
         %
         %   pathStr = sessionObj.getDataFilePath(varName) returns a
@@ -567,9 +647,12 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         %   name-value pair arguments to control aspects of the filename.
         %
         %   PARAMETERS:
-        %
-        %       Subfolder : If file is in a subfolder of sessionfolder.
-        %
+        %       
+        %       DataLocation        : Specifies which data location the variable belongs to
+        %       Subfolder           : If file is in a subfolder of sessionfolder.
+        %       FileNameExpression
+        %       FileType
+        %       FileAdapter
         %
         %   EXAMPLES:
         %
@@ -632,7 +715,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 end
             end
             
-            
             if isempty(S.FileNameExpression)
                 fileName = obj.createFileName(varName, S);
             else
@@ -648,6 +730,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % not exist from before...
             if ~isExistingEntry && strcmp(mode, 'write')
                 dataFilePathModel.insertItem(S)
+            end
+            
+            if nargout == 2
+                variableInfo = S;
             end
             
         end
@@ -967,7 +1053,18 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
     
     
     methods (Static)
-                        
+                
+        function assertValidFileAdapter(variableInfo, action)
+                    
+            if strcmp(variableInfo.FileAdapter, 'N/A')
+                error(['Variable "%s" is contained in an unsupported ', ...
+                    'fileformat (%s). Create or specify a file adapter ', ...
+                    'to %s this variable.'], ...
+                    variableInfo.VariableName, variableInfo.FileType, action)
+            end
+        
+        end
+        
         function S = getMetaDataVariables()
             
             

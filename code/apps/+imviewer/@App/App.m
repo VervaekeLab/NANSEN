@@ -138,6 +138,7 @@ properties (Access = private) % Private components (todo: clean up)
     hDropbox2
     hThumbnail 
 
+    Annotation
 
     textStrings = struct('CurrentFrame', '', 'Resolution', '', 'CursorPoint', '', 'Status', '');
         
@@ -210,7 +211,8 @@ end
 methods % Structors
          
     function obj = App(varargin) % Constructor
-        
+    %App Create an instance of the imviewer App
+    
         [h, varargin] = applify.ModularApp.splitArgs(varargin{:});
         obj@applify.ModularApp(h);
         
@@ -221,18 +223,14 @@ methods % Structors
             varargin = varargin(2:end);
         end
         
-        % todo: method....
-        stackOpts = struct();
-        stackOpts.PreprocessOnLoad = obj.settings.VirtualData.preprocessData;
-        stackOpts.UseDynamicCache = obj.settings.VirtualData.useDynamicCache;
-        stackOpts.DynamicCacheSize = obj.settings.VirtualData.dynamicCacheSize;
-
-        nvPairs = utility.struct2nvpairs(stackOpts);
+        % Add default stack initialization options to list of options for
+        % opening imagestack
+        defaultStackInitOptions = obj.getStackInitializationOptions();
+        nvPairs = utility.struct2nvpairs(defaultStackInitOptions);
         nvPairs = [nvPairs, varargin{:}];
         
         % Check if data ref is an imageStack object, initialize if not.
         if ~isa(dataref, 'nansen.stack.ImageStack') % && ~isa(dataref, 'imviewer.ImageStack')
-            %obj.ImageStack = imviewer.stack.initialize(dataref, nvPairs);
             obj.ImageStack = nansen.stack.ImageStack(dataref, nvPairs{:});
             obj.DeleteImageStackOnQuit = true;
             %if isempty(obj.ImageStack); 
@@ -244,7 +242,7 @@ methods % Structors
         end
         
         
-        obj.matlabVersionCheck() % Todo: This is not a method of imviewer...
+        obj.matlabVersionCheck() % Todo: This should not be a method of imviewer...
 
         % Run this after imageArray is parsed. Basically, varargins can 
         % overwrite values set in parseimage array. Todo: Change this later.
@@ -277,6 +275,13 @@ methods % Structors
     end
     
     function delete(obj) % Destructor
+        
+        if obj.isPlaying
+            obj.isPlaying = false;
+            dt = 1 / obj.ImageStack.getSampleRate;
+            pause(dt*2)
+        end
+        
         obj.unregisterApp()
         
         if ~isempty(obj.dndObj)
@@ -416,8 +421,7 @@ methods % App initialization & creation
     function initializeViewer(obj)
         
         [figurePosition, axesSize] = obj.initializeFigurePosition();
-        %obj.createFigure(figurePosition)
-        
+       
         if strcmp( obj.mode, 'standalone' )
             obj.Figure.Position = figurePosition;
             obj.Panel.Position(3:4) = figurePosition(3:4); %Todo: Set this automatically through callbacks
@@ -436,6 +440,8 @@ methods % App initialization & creation
             obj.createPlaybackWidget()
 %         end
 
+        obj.createThumbnailViewerToggleButton()
+
         obj.onThemeChanged() % Apply theme colors...
         
         % Need to turn on figure visibility here because otherwise some
@@ -450,10 +456,6 @@ methods % App initialization & creation
 
         obj.uiwidgets.msgBox = uim.widget.messageBox(obj.uiaxes.imdisplay);
         %obj.displayMessage('Initializing...')
-        
-        global fprintf
-        fprintf = @(msg, nSec) obj.uiwidgets.msgBox.displayMessage(msg, 1);
-        
         
         % Initialize the pointer interface.
         pif = uim.interface.pointerManager(obj.Figure, obj.uiaxes.imdisplay, {'zoomIn', 'zoomOut', 'pan'});
@@ -827,7 +829,7 @@ methods % App initialization & creation
             obj.Panel, 'Position', scrollerPosition, 'Minimum', 1, ...
             'Value', obj.currentFrameNo, 'Maximum', obj.nFrames, ...
             'RangeSelectorEnabled', 'off', 'NumChannels', obj.ImageStack.NumChannels, ...
-            'ChannelColors', obj.ChannelColors);
+            'ChannelColors', obj.ChannelColors, 'NumPlanes', obj.ImageStack.NumPlanes);
         
         obj.uiwidgets.playback.ActiveRangeChangedFcn = ...
             @obj.onFrameIntervalSelectionChanged;
@@ -836,6 +838,22 @@ methods % App initialization & creation
         
         obj.uiwidgets.playback.NumChannels = obj.ImageStack.NumChannels;
         obj.uiwidgets.playback.CurrentChannels = obj.currentChannel;
+    end
+    
+    function createThumbnailViewerToggleButton(obj)
+                        
+        hButton = uim.control.Button_(obj.Panel, ...
+            'Icon', obj.ICONS.show_sidebar, ...
+            'IconSize', [20, 20], ...
+            'Size', [25, 25], 'SizeMode', 'auto', ...
+            'Margin', [1, 0,0,0], ...
+            'Style', uim.style.buttonSymbol, ...
+            'Location', 'west', 'HorizontalAlignment', 'center', ...
+            'VerticalAlignment', 'middle', ...
+            'HorizontalAlignment', 'left');
+        hButton.Callback = @(s,e)obj.showThumbnailViewer(s);
+        
+        
     end
     
     function addLandingPage(obj)
@@ -989,8 +1007,11 @@ methods % App initialization & creation
     end
     
     function createImageMenu(obj, m)
-        
-        % todo: get this from an external function.
+    %createImageMenu Create a context menu for the image axes.   
+
+    
+        % % % Menu section with items for image colormap and illustrations.
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -   
         
         mitem = uimenu(m, 'Label', 'Set Colormap');
         colormapNames = obj.settings.ImageDisplay.colorMap_;
@@ -1000,8 +1021,18 @@ methods % App initialization & creation
             tmpItem.Callback = @obj.changeColormap;
         end
         
+        mitem = uimenu(m, 'Label', 'Show Scalebar');
+        mitem.Callback = @(s, e) obj.showScalebar();
+
+        mSubItem = uimenu(m, 'Text', 'Edit Stack Properties', 'Separator', 'on');
+        mSubItem.Callback = @(s,e)obj.uiEditStackMetadata;
+
+        
+        % % % Menu section with items for image processing
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -   
+        
         mitem = uimenu(m, 'Label', 'Calculate Projection', 'Separator', 'on');
-        projectionPackage = {'stack','zproject'};
+        projectionPackage = {'stack', 'zproject'};
         
         result = what(fullfile(projectionPackage{:}));
         for i = 1:numel(result(1).m)
@@ -1020,36 +1051,40 @@ methods % App initialization & creation
             textLabel = utility.string.varname2label(funcName);
             tmpItem = uimenu(mitem, 'Label', textLabel, 'Enable', 'off');
             funcHandle = str2func(strjoin([filterPackage, {funcName}], '.'));
-            tmpItem.Callback = @(s,e,f) obj.filterImages(funcHandle);
+            tmpItem.Callback = @(s,e,f) obj.filterImages(funcHandle); %todo
         end
         
-        mitem = uimenu(m, 'Label', 'Downsample Stack');
+        mitem = uimenu(m, 'Label', 'Downsample Stack...');
         mitem.Callback = @(s, e) obj.createDownsampledStack();
 
         
-        
-        mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');            
+        % % % Menu section with items for plugins.
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        if strcmp(obj.mode, 'standalone')
+            % Todo: Create as separate contextmenu on plugin button...
+            mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');
             tmpItem = uimenu(mitem, 'Label', 'NoRMCorre', 'Enable', 'on');
             tmpItem.Callback = @(s,e) imviewer.plugin.NoRMCorre(obj);
     
             tmpItem = uimenu(mitem, 'Label', 'FlowReg', 'Enable', 'on');
             tmpItem.Callback = @(s,e) imviewer.plugin.FlowRegistration(obj);
 
-% %         tmpItem = uimenu(m, 'Label', 'Align Images');
-% %         
-% %         tmpItemA = uimenu(tmpItem, 'Label', 'Rigid');
-% %         tmpItemA.Callback = @(s, e) obj.alignImagesRigid;
-% %         tmpItemB = uimenu(tmpItem, 'Label', 'Nonrigid');
-% %         tmpItemB.Callback = @(s, e) obj.alignImagesNonRigid;
+            mitem = uimenu(m, 'Label', 'Open Roimanager');   
+            mitem.Callback = @(s, e, h) imviewer.plugin.RoiManager(obj);
+        end
 
-        mitem = uimenu(m, 'Label', 'Open Roimanager');   
-        mitem.Callback = @(s, e, h) imviewer.plugin.RoiManager(obj);
-
+        
+        % % % Menu section with items for linking/unlinking with viewers.
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         mitem = uimenu(m, 'Label', 'Link to Another Viewer...', 'Separator', 'on');
         mitem.Callback = @(s, e) obj.manualLinkProp;
 
         mitem = uimenu(m, 'Label', 'Unlink from Viewer', 'Enable', 'off');
         
+        
+        % % % Menu section with items loading/saving images.
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
         mitem = uimenu(m, 'Label', 'Load Images...', 'Separator', 'on');
         mitem.Callback = @(s, e, bool) obj.onLoadImageDataPressed(true);
 
@@ -1125,6 +1160,9 @@ methods % App initialization & creation
                 ~isvalid(obj.uiwidgets.thumbnailSelector.Figure) 
             %try
                 
+            imageDragAndDropState = obj.ImageDragAndDropEnabled;
+            obj.ImageDragAndDropEnabled = false;
+            
             obj.uiwidgets.thumbnailSelector = struct.empty;
             
             if showMessage
@@ -1173,7 +1211,8 @@ methods % App initialization & creation
                 if i == 1
                     images{i} = obj.image;
                 else
-                    images{i} = obj.ImageStack.getProjection(projectionNames{i}, 1:obj.settings.ImageDisplay.movingBinSize);
+                    numFramesBin = min(obj.settings.ImageDisplay.movingBinSize, obj.nFrames);
+                    images{i} = obj.ImageStack.getProjection(projectionNames{i}, 1:numFramesBin);
                 end
                 
                 %images{i} = imadjustn(images{i});
@@ -1249,6 +1288,8 @@ methods % App initialization & creation
             if showMessage
                 obj.clearMessage()
             end
+            
+            obj.ImageDragAndDropEnabled = imageDragAndDropState;
             
 %             catch
 %                 try
@@ -1429,7 +1470,6 @@ methods % App initialization & creation
             'BackgroundColor', obj.Theme.HeaderBgColor, ...
             'BackgroundAlpha', 1, 'Size', [inf, pixelMargins(2)], ...
             'NewButtonSize', newButtonSize, 'Padding', [5,3,7,5], 'Spacing', 3);
-        
         
         buttonArgs = {'Padding', [0,0,0,0], 'Style', uim.style.buttonSymbol}; %#ok<NASGU>
         
@@ -1687,6 +1727,11 @@ methods % App update
                                 obj.textStrings.CursorPoint);
         end
         
+        
+        if obj.ImageStack.NumPlanes > 1
+            infoStr = sprintf('%s | %s', obj.textStrings.CurrentPlane, infoStr);
+        end
+        
         obj.infoField.String = infoStr;
     end
     
@@ -1711,9 +1756,7 @@ methods % App update
         showBinning = ~strcmpi(obj.imageDisplayMode.binning, 'none');
 
         if showProjection
-            global fprintf %#ok<TLEV>
-            fprintf = @(msg)obj.uiwidgets.msgBox.displayMessage(msg);
-            C = onCleanup(@obj.resetFprintfToBuiltin);
+            C = activateGlobalMessageDisplay(obj);
             
             projectionName = obj.imageDisplayMode.projection;
             obj.image = obj.ImageStack.getFullProjection(projectionName);
@@ -1796,8 +1839,7 @@ methods % App update
             otherwise
                 hFcn = str2func(sprintf('stack.process.filter2.%s', filterName));
         end
-    end
-    
+    end   
     
     function imageOut = setChColors(obj, image)
     % Creates an rgb frame based on channel color settings
@@ -1856,7 +1898,7 @@ methods % App update
                 lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^8;
             case 'uint16'
                 lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^16;
-            case 'int16'
+            case 'int16' %#%&$#
                 lowhigh_in = (obj.settings.ImageDisplay.imageBrightnessLimits+2^15) /2^16;
             case {'single', 'double'}
                 cLim = obj.settings.ImageDisplay.imageBrightnessLimits;
@@ -1877,15 +1919,35 @@ methods % App update
             im = imrotate(im, obj.imTheta, 'bicubic', 'crop');
         end
         
+        
+        % Todo: Make method to determine if colormap of channel coloring
+        % shouldbe applied. Use this method also in changeBrightness
+        
+        displayChannelColors = false;
+        
         % Adjust the image color and brightness if image is truecolor
         if (size(im, 3) > 1 || obj.ImageStack.NumChannels > 1) && strcmp(obj.ImageStack.ColorModel, 'Grayscale')
             im = mean(im, 3);
-        elseif size(im, 3) > 1 && obj.ImageStack.NumChannels > 1
+            
+            % Todo: If numel(obj.CurrentChannel) == 1, there should be an
+            % option to show the original channel color or use a colormap
+            
+        elseif obj.ImageStack.NumChannels > 1 && numel(obj.ImageStack.CurrentChannel) == 1
+%             if obj.settings.UsePseudoMapForSingleChannel
+%                 displayChannelColors = false;
+%             else
+                displayChannelColors = true;
+%             end
+        elseif obj.ImageStack.NumChannels > 1 && numel(obj.ImageStack.CurrentChannel) > 1
+            displayChannelColors = true;
+        end
+        
+        if displayChannelColors
             im = obj.setChColors(im);
             im = adjustMultichannelImage(obj, im);
         end
         
-         
+        
         % Create or update the image object
         if isempty(obj.imObj) 
             hold(obj.uiaxes.imdisplay, 'on')
@@ -1937,8 +1999,14 @@ methods % App update
         if obj.autoAdjustLimits
             if all(isnan(obj.image(:))); return; end
             P = prctile(double(obj.image(:)), [0.05, 99.95]);
-            obj.brightnessSlider.Low = P(1);
-            obj.brightnessSlider.High = P(2);
+            
+            if obj.brightnessSlider.High < P(1) % Set high first.
+                obj.brightnessSlider.High = P(2);
+                obj.brightnessSlider.Low = P(1);
+            else
+                obj.brightnessSlider.Low = P(1);
+                obj.brightnessSlider.High = P(2);
+            end
         end
         
         
@@ -1963,7 +2031,7 @@ methods % App update
         obj.currentFrameNo = 1;
     end
     
-    function activateGlobalMessageDisplay(obj, mode)
+    function C = activateGlobalMessageDisplay(obj, mode)
         
         if nargin < 2
             mode = 'update';
@@ -1978,6 +2046,14 @@ methods % App update
                 fprintf = @(varargin)obj.uiwidgets.msgBox.displayMessage(varargin{:});
         end
         
+        C = onCleanup(@obj.deactivateGlobalMessageDisplay);
+        
+    end
+    
+    function deactivateGlobalMessageDisplay(obj)
+        global fprintf
+        fprintf = str2func('fprintf');
+        obj.uiwidgets.msgBox.clearMessage()
     end
     
     function updateMessage(obj, message, varargin)
@@ -2156,13 +2232,13 @@ methods % Event/widget callbacks
                 i = round(i);
             case 'keypress'
                 i = source.Value;
-            case {'jumptoframe'}                
+            case {'jumptoframe', 'playvideo'}                
                 newFrame = source.String;
                 if isa(newFrame, 'char'); newFrame = str2double(newFrame); end
                 i = newFrame -  obj.currentFrameNo;
                 i = round(i);
-            case 'playvideo'
-                i = source.Value;
+% %             case 'playvideo'
+% %                 i = source.Value;
             case 'next'
                 i = 1;
             case 'prev'
@@ -2176,6 +2252,11 @@ methods % Event/widget callbacks
             obj.imageDisplayMode.projection = 'none';
         end
         
+        restartVideoPlayer = false;
+        if obj.isPlaying && ~strcmp(action, 'playvideo')
+            obj.isPlaying = false; 
+            restartVideoPlayer = true;
+        end
 
         % Check that new value is within range and update current frame/slider info
         if (obj.currentFrameNo + i) >= 1  && (obj.currentFrameNo + i) <= obj.nFrames
@@ -2202,6 +2283,10 @@ methods % Event/widget callbacks
                 % Todo: Make sure the property is available....
                 obj.LinkedApps(i).currentFrameNo = obj.currentFrameNo;
             end
+        end
+        
+        if restartVideoPlayer
+            obj.playVideo()
         end
         
         
@@ -2304,6 +2389,7 @@ methods % Event/widget callbacks
     end
     
     function changePlane(obj, planeNum, mode) %#ok<INUSD>
+        obj.currentPlane = planeNum;
     end
     
     function set.currentPlane(obj, newValue)
@@ -2312,6 +2398,16 @@ methods % Event/widget callbacks
     end
     
     function onPlaneChanged(obj) %#ok<MANU>
+        if ~obj.isConstructed; return; end
+        obj.textStrings.CurrentPlane = sprintf('z=%d/%d', obj.currentPlane, obj.ImageStack.NumPlanes);
+        obj.uiwidgets.playback.CurrentPlane = obj.currentPlane;
+
+        obj.ImageStack.CurrentPlane = obj.currentPlane;
+            
+        if ~isempty(obj.imObj)
+            obj.updateImage()
+            obj.updateImageDisplay()
+        end
     end
     
     function set.nFrames(obj, newValue)
@@ -2385,8 +2481,10 @@ methods % Event/widget callbacks
         filterFunc = str2func(strcat('stack.process.filter2.',filterName));
         param = filterFunc();
         
-        titleStr = sprintf('Set Parameters for %s', filterName);
-        param = tools.editStruct(param, '', titleStr, 'TestFunc', @(param) obj.updatePreview(param));
+        titleStr = sprintf('Set parameters for %s', filterName);
+        param = tools.editStruct(param, '', titleStr, ...
+            'Prompt', [titleStr, ':'], ...
+            'TestFunc', @(param) obj.updatePreview(param));
         
         obj.imageDisplayMode.filter = filterName;
         obj.imageDisplayMode.filterParam = param;
@@ -2521,13 +2619,32 @@ methods % Event/widget callbacks
                 
     end
 
+    function showScalebar(obj)
+        
+        if isfield(obj.Annotation, 'Scalebar') && isvalid(obj.Annotation.Scalebar)
+            props = {'FontSize', 'FontWeight', 'LineWidth', 'Color', 'Location', 'FontName'};
+            values = cellfun(@(p) obj.Annotation.Scalebar.(p), props, 'uni', 0);
+            pvPairs = cat(1, props, values);
+            delete(obj.Annotation.Scalebar)
+        else
+            pvPairs = {'Location', 'southeast'};%, 'Color', ones(1,3)*0.9};
+        end
+        pvPairs = [pvPairs, 'AutoAdjustScalebarLength', true];
+        
+        conversionFactor = 1/obj.ImageStack.MetaData.PhysicalSizeX;
+        label = obj.ImageStack.MetaData.PhysicalSizeXUnit;
+        
+        h = uim.illustration.scalebar(obj.Axes, 'x', 100, label, ...
+            'ConversionFactor', conversionFactor, pvPairs{:});
+        
+        obj.Annotation.Scalebar = h;
+    end
 end
 
 methods % Handle user actions
     function calculateProjection(obj, funcName)
-        global fprintf
-        fprintf = @(msg)obj.uiwidgets.msgBox.displayMessage(msg);
-        C = onCleanup(@obj.resetFprintfToBuiltin);
+        
+        C = obj.activateGlobalMessageDisplay(); % Will reset when C is cleared
         
         % todo: Should messagebox.displayMessage accept varargin that will
         % be formatted as in fprintf or sprintf?
@@ -2560,26 +2677,36 @@ methods % Handle user actions
         params.BinningMethod = 'mean';
         params.BinningMethod_ = {'mean', 'max'};
         
-        params.CreateVirtualOutput = false;
-        params.UseTransientVirtualStack = true;
+        params.SaveToFile = false;
         params.FilePath = '';
-        params.OutputDataType = 'same';
         
-        params = tools.editStruct(params);
+        % Open options editor.
+        titleStr = 'Downsample Image Stack';
+        [params, wasCanceled] = tools.editStruct(params, [], titleStr, ...
+            'Prompt', 'Set parameters for downsampling:');
+        
+        if wasCanceled; return; end
         
         if ~params.OpenOutputInNewWindow        
             obj.displayMessage('Not implemented yet')
             return
         end
         
-        obj.displayMessage('Downsampling stack...', [], 1.5)
-
-
+        % Update some parameters from the image stack method:
+        params.UseTransientVirtualStack = ~params.SaveToFile;
+        params.OutputDataType = 'same';
         
+        % Todo: Specify that this will take a while if stack is large...
+        
+        obj.displayMessage('Downsampling stack...', [], 1.5)
+        obj.uiwidgets.msgBox.activateGlobalWaitbar()
+
         n = params.DownSamplingFactor;
         binMethod = params.BinningMethod;
         imageStackDs = obj.ImageStack.downsampleT(n, binMethod, params);
-        
+            
+        obj.uiwidgets.msgBox.deactivateGlobalWaitbar()
+
         if params.OpenOutputInNewWindow
             imviewer(imageStackDs)
         else
@@ -2671,7 +2798,7 @@ methods % Misc, most can be outsourced
     
     function playVideoFrames(obj, ~, ~)
         % Callback for play button. Plays calcium images as video
-        
+        % Deprecated...
         obj.isPlaying = true;
         
         while obj.isPlaying
@@ -2710,7 +2837,13 @@ methods % Misc, most can be outsourced
     
         obj.isPlaying = true;
         
-        dt = 1/31;
+        
+        dt = 1 / obj.ImageStack.getSampleRate;
+        if isnan(dt)
+            dt = 1/30;
+        end
+        
+        currentPlaybackSpeed = obj.playbackspeed;
         
         initialFrame = obj.currentFrameNo;
         tBegin = tic;
@@ -2720,6 +2853,10 @@ methods % Misc, most can be outsourced
             if obj.currentFrameNo >= obj.nFrames - (obj.playbackspeed+1)
                 obj.currentFrameNo = 1;
                 initialFrame = 1;
+                tBegin = tic;
+            elseif currentPlaybackSpeed ~= obj.playbackspeed
+                currentPlaybackSpeed = obj.playbackspeed;
+                initialFrame = obj.currentFrameNo;
                 tBegin = tic;
             end
             
@@ -2736,19 +2873,18 @@ methods % Misc, most can be outsourced
             end
             
             newFrame = initialFrame + elapsedFrames;
-            obj.changeFrame(struct('String', num2str(newFrame)), [], 'jumptoframe')
+            obj.changeFrame(struct('String', num2str(newFrame)), [], 'playvideo')
             drawnow
             
             t2 = toc(t1);
             if obj.playbackspeed < 1
-                pause(0.033/obj.playbackspeed - t2)
+                pause(dt/obj.playbackspeed - t2)
             else
-                pause(0.033 - t2)
+                pause(dt - t2)
             end
             
-            
-                        
-        end  
+
+        end
         
     end
     
@@ -2758,20 +2894,17 @@ methods % Misc, most can be outsourced
         viewerNames = {'StackViewer', 'imviewer', 'Signal Viewer', 'Roi Classifier'};
         
         hApp = obj.uiSelectViewer(viewerNames, obj.Figure);
-        obj.linkprop(hApp, 'currentFrameNo')
+        if ~isempty(hApp)
+            obj.linkprop(hApp, 'currentFrameNo', true)
+        end
         
     end
     
     function manualUnlinkProp(obj, appName)
-        
-        
         %obj.uiaxes.imdisplay.UIContextMenu
-        
-        
-        
     end
     
-    function linkprop(obj, externalGuiHandle, prop)
+    function linkprop(obj, externalGuiHandle, prop, showIndicator, allowUnlink)
     %linkprop Link properties with external guis, so that update to
     %property is applied in all linked guis.
     
@@ -2784,6 +2917,14 @@ methods % Misc, most can be outsourced
     
     if nargin < 3 || isempty(prop)
         prop = 'currentFrameNo';
+    end
+    
+    if nargin < 4 
+        showIndicator = false;
+    end
+    
+    if nargin < 5
+        allowUnlink = true;
     end
     
     assert(strcmp(prop, 'currentFrameNo'), 'Currently only supports linking currentFrameNo property')
@@ -2805,17 +2946,26 @@ methods % Misc, most can be outsourced
     
     ax(1) = obj.Axes;
     ax(2) = externalGuiHandle.Axes;
-    h=gobjects(1,2);
-    for i = 1:3
-        for j = 1:2
-        	h(j) = plot(ax(j), ax(j).XLim([1,1,2,2,1]), ax(j).YLim([1,2,2,1,1]), 'g', 'LineWidth', 2);
+    
+    if showIndicator
+        h = gobjects(1,2);
+        for i = 1:3
+            for j = 1:2
+                h(j) = plot(ax(j), ax(j).XLim([1,1,2,2,1]), ax(j).YLim([1,2,2,1,1]), 'g', 'LineWidth', 2);
+            end
+            drawnow
+            pause(0.2)
+            delete(h)
+            pause(0.2)
         end
-        drawnow
-        pause(0.2)
-        delete(h)
-        pause(0.2)
     end
     
+    if ~allowUnlink
+        hMenu = findobj(obj.uiaxes.imdisplay.UIContextMenu, ...
+            'Label', 'Unlink from Viewer');
+        hMenuItem = findobj(hMenu, 'Text', externalGuiHandle.Figure.Name);
+        hMenuItem.Enable = 'off';
+    end
     
 % %         assert(numel(externalGuiHandle) == 1, 'Currently only supports one handle at a time.')
 % %         
@@ -2842,6 +2992,8 @@ methods % Misc, most can be outsourced
         hMenu = findobj(obj.uiaxes.imdisplay.UIContextMenu, ...
             'Label', 'Unlink from Viewer');
         
+        if isempty(hMenu); return; end
+        
         if ~isempty(hMenu.Children)
             delete(hMenu.Children)
         end
@@ -2862,10 +3014,10 @@ methods % Misc, most can be outsourced
     
     function unlinkprop(obj, externalGuiHandle, prop) %#ok<INUSD>
         
-        removeIdxInternal = isequal(obj.LinkedApps, externalGuiHandle);
+        removeIdxInternal = ismember(obj.LinkedApps, externalGuiHandle);
         obj.LinkedApps(removeIdxInternal) = [];
         
-        removeIdxExternal = isequal(externalGuiHandle.LinkedApps, obj);
+        removeIdxExternal = ismember(externalGuiHandle.LinkedApps, obj);
         externalGuiHandle.LinkedApps(removeIdxExternal) = [];
         
     end
@@ -2997,7 +3149,45 @@ methods % Misc, most can be outsourced
         
     end
     
-    function showThumbnailViewer(obj, action)
+    function hideThumbnailViewer(obj)
+        
+        isVisible = strcmp(obj.uiwidgets.thumbnailSelector.Visible, 'on');
+    
+        if isVisible
+            obj.uiwidgets.thumbnailSelector.Visible = 'off';
+            obj.uiwidgets.thumbNailToggler.Visible = 'off';
+            obj.uiwidgets.ThumbnailSelectorToggleButton.Visible = 'on';
+        end
+    end
+    
+    function showThumbnailViewer(obj, srcButton)
+        
+        if obj.ImageStack.isDummyStack; return; end
+        
+        if ~isfield(obj.uiwidgets, 'thumbnailSelector') % Create widget on demand
+            if isa(obj.ImageStack.Data, 'stack.io.fileadapter.Video')
+                return
+            end
+                
+            try
+                obj.openThumbnailSelector(true)
+                obj.uiwidgets.ThumbnailSelectorToggleButton = srcButton;
+            catch ME
+                rethrow(ME)
+            end
+            
+        end
+        
+        isVisible = strcmp(obj.uiwidgets.thumbnailSelector.Visible, 'on');
+    
+        if ~isVisible
+            obj.uiwidgets.thumbnailSelector.Visible = 'on';
+            obj.uiwidgets.thumbNailToggler.Visible = 'on';
+            obj.uiwidgets.ThumbnailSelectorToggleButton.Visible = 'off';
+        end
+                
+        return
+        
         
         tmpAx = obj.uiwidgets.thumbnailSelector.Axes;
         tmpTb = obj.uiwidgets.thumbNailToggler;
@@ -3822,6 +4012,42 @@ methods % Misc, most can be outsourced
         obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
     end
 
+    function uiEditStackMetadata(obj)
+        
+        S = struct;
+        S.SpatialPosition = obj.ImageStack.MetaData.SpatialPosition;
+        S.PhysicalSize(1) = obj.ImageStack.MetaData.PhysicalSizeX;
+        S.PhysicalSize(2) = obj.ImageStack.MetaData.PhysicalSizeY;
+        S.PhysicalSize(3) = obj.ImageStack.MetaData.PhysicalSizeZ;
+        S.PhysicalUnits = obj.ImageStack.MetaData.getPhysicalUnits();
+        S.SampleRate = obj.ImageStack.getSampleRate();
+        
+        h = structeditor.App(S, 'Title', 'ImageStack Properties', ...
+            'Prompt', 'Set ImageStack Properties:');
+        h.waitfor()
+        
+        if ~h.wasCanceled
+            obj.ImageStack.MetaData.SampleRate = h.dataEdit.SampleRate;
+            obj.ImageStack.MetaData.SpatialPosition = h.dataEdit.SpatialPosition;
+            physSize = h.dataEdit.PhysicalSize;
+            if numel(h.dataEdit.PhysicalUnits) == 1
+                physUnits = strsplit(h.dataEdit.PhysicalUnits{1}, ', ');
+            else
+                physUnits = h.dataEdit.PhysicalUnits;
+            end
+            obj.ImageStack.MetaData.PhysicalSizeX = physSize(1);
+            obj.ImageStack.MetaData.PhysicalSizeY = physSize(2);
+            obj.ImageStack.MetaData.PhysicalSizeZ = physSize(3);
+            obj.ImageStack.MetaData.PhysicalSizeXUnit = physUnits{1};
+            obj.ImageStack.MetaData.PhysicalSizeYUnit = physUnits{2};
+            obj.ImageStack.MetaData.PhysicalSizeZUnit = physUnits{3};
+        end
+        
+        if isfield(obj.Annotation, 'Scalebar')
+            obj.showScalebar()
+        end
+        
+    end
     
 % % Plot tools % Move to a toolbox?
 
@@ -4114,6 +4340,14 @@ methods (Access = private) % Housekeeping
         end 
         
     end
+    
+    function stackOpts = getStackInitializationOptions(obj)
+    %getStackInitializationOptions Get default options for stack initialization  
+        stackOpts = struct();
+        stackOpts.PreprocessOnLoad = obj.settings.VirtualData.preprocessData;
+        stackOpts.UseDynamicCache = obj.settings.VirtualData.useDynamicCache;
+        stackOpts.DynamicCacheSize = obj.settings.VirtualData.dynamicCacheSize;
+    end
 end
 
 methods (Access = protected) % Event callbacks
@@ -4296,7 +4530,11 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         if strcmp(obj.Figure.SelectionType, 'normal')
             obj.mouseDown = true;
         end
-                
+        h = hittest(); 
+        if ~isequal(h, obj.Axes)
+            obj.ImageDragAndDropEnabled = false;
+        end
+        
         global imviewerInstances
         
         isValid = arrayfun(@(h) isvalid(h.Figure), imviewerInstances.Handles);
@@ -4316,6 +4554,8 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             obj.hThumbnail = [];
         end
         
+        obj.ImageDragAndDropEnabled = true;
+    
         global imviewerInstances
         
         pointerLocation = get(0, 'PointerLocation');
@@ -4471,37 +4711,15 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             isUntouch = ~any(isLeft);
             
             if isTouch && ~isVisible
-                obj.uiwidgets.thumbnailSelector.Visible = 'on';
-                obj.uiwidgets.thumbNailToggler.Visible = 'on';
+                %obj.showThumbnailViewer(); % This is controlled by button
+                %instead of mouse motion in left part of image..
             elseif isUntouch && isVisible
                 if x > obj.uiwidgets.thumbnailSelector.Position(3) + 35 || ...
                     y < obj.uiwidgets.thumbnailSelector.Position(1)
                     
                     if ~obj.isThumbnailSelectorPinned
-                        obj.uiwidgets.thumbnailSelector.Visible = 'off';
-                        obj.uiwidgets.thumbNailToggler.Visible = 'off';
+                        obj.hideThumbnailViewer()
                     end
-                end
-            end
-        elseif ~isfield(obj.uiwidgets, 'thumbnailSelector') % Create widget on demand
-            if isLeft(1)
-                if isa(obj.ImageStack.Data, 'stack.io.fileadapter.Video')
-                    return
-                end
-                
-                try
-                    obj.openThumbnailSelector(true)
-                catch ME
-                    if isvalid(obj) 
-                        rethrow(ME)
-                    else
-                        return % obj was deleted during creation
-                    end
-                end
-                
-                if isfield(obj.uiwidgets, 'thumbnailSelector')
-                    obj.uiwidgets.thumbnailSelector.Visible = 'on';
-                    obj.uiwidgets.thumbNailToggler.Visible = 'on';
                 end
             end
         end
@@ -4512,9 +4730,11 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         obj.mouseScrollCallbackHandler(src, evt)
     end
     
-    function onKeyPressed(obj, ~, event)
+    function onKeyPressed(obj, ~, event, forceKey)
         
-        if ~obj.isMouseInApp; return; end
+        if nargin < 4; forceKey = false; end
+        
+        if ~obj.isMouseInApp && ~forceKey; return; end
 
         % Todo: This only holds the pointermanager. Should make it into an
         % interface.., not a plugin. 
@@ -4535,14 +4755,15 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         
         if contains('shift', event.Modifier)
-            switch event.Key
-                
-                case 'f'
-                    obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Filter')
-                case 'p'
-                    obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Projection')
-                case 'b'
-                    obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Binning')
+            if isfield(obj.uiwidgets, 'thumbnailSelector')
+                switch event.Key
+                    case 'f'
+                        obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Filter')
+                    case 'p'
+                        obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Projection')
+                    case 'b'
+                        obj.uiwidgets.thumbnailSelector.changeThumbnailClass('Binning')
+                end
             end
         end
         
@@ -5055,9 +5276,16 @@ methods (Access = private) % Methods that runs when properties are set
         if  obj.isConstructed
             obj.setSliderExtremeLimits()
             obj.setSliderLimits()
+            
+            obj.resetImageDisplay()
+            
             obj.updateImage();
             obj.updateImageDisplay();
-
+            uistack(obj.imObj, 'bottom')
+            %uistack(obj.imObj, 'up')
+            
+            obj.uiwidgets.playback.resetRangeSelector()
+            
             if ~all(isnan(obj.DisplayedImage(:)))
                 set(obj.hDropbox, 'Visible', 'off')
             end
@@ -5094,12 +5322,14 @@ methods (Access = private) % Methods that runs when properties are set
         obj.nFrames = obj.ImageStack.NumTimepoints;
         
         obj.currentFrameNo = 1;
+        obj.currentPlane = obj.ImageStack.CurrentPlane;
         obj.currentChannel = obj.ImageStack.CurrentChannel;
 
 
         % Initialize text for textdisplay
         obj.textStrings.Resolution = sprintf('%dx%d pixels', obj.imHeight, obj.imWidth);
-        
+        obj.textStrings.CurrentPlane = sprintf('z=%d/%d', obj.currentPlane, obj.ImageStack.NumPlanes);
+
         obj.stackname = obj.ImageStack.Name;
 
         
@@ -5237,6 +5467,8 @@ methods (Static)
             hFigure = [];
         end
         
+        hApp = []; % Initialize output
+        
         % Find all open figures that has a viewer object.
         openFigures = findall(0, 'Type', 'Figure');
         
@@ -5260,7 +5492,7 @@ methods (Static)
         figInd = find(isMatch);
 
         % Select figure window from selection dialog
-        if sum(isMatch) > 1
+        if sum(isMatch) > 0
 
             figNames = {openFigures(figInd).Name};
 %             figNumbers = [openFigures(figInd).Number];
@@ -5282,7 +5514,6 @@ methods (Static)
         hApp = getappdata(openFigures(figInd), 'ViewerObject');
     
     end
-    
     
     function pluginFcn = getPluginFcnFromName(pluginName)
         pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};

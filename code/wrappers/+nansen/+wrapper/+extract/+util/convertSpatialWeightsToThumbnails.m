@@ -15,7 +15,7 @@ for iRoi = 1:numRois
     x = roiArray(iRoi).center(1);
     y = roiArray(iRoi).center(2);
     
-    [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, 0);
+    [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, 0, 'boundaryMethod', 'none');
     imChunk = roimanager.imtools.getPixelChunk(thisSpatialWeight, S, L);
 
 

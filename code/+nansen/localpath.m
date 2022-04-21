@@ -95,6 +95,10 @@ function pathStr = localpath(pathKeyword, projectName)
             
       % % Files
       
+        case 'WatchFolderCatalog'
+            folderPath = nansen.localpath('user_settings');
+            fileName = 'watch_folder_catalog.mat';
+            
         case 'TaskList'
             folderPath = nansen.localpath('user_settings');
             fileName = 'task_list.mat';

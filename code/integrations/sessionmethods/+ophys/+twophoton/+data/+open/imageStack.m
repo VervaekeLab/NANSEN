@@ -64,20 +64,19 @@ end
 
 function S = getDefaultParameters()
     
-    global dataFilePathModel
-    if isempty(dataFilePathModel)
-        dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
+    persistent varNames
+    if isempty(varNames)
+        
+        variableModel = nansen.config.varmodel.VariableModel();
+        dataTypes = {variableModel.Data.DataType};
+        isImageStack = contains(dataTypes, 'ImageStack');
+        varNames = {variableModel.Data(isImageStack).VariableName};
+        if isempty(varNames); varNames = {'N/A'}; end
+        
     end
     
     % Todo: This is project dependent, can not be part of nansen package
     % session methods.
-    
-    fileAdapters = {dataFilePathModel.VariableList.FileAdapter};
-    isImageStack = contains(fileAdapters, 'ImageStack');
-    
-    varNames = {dataFilePathModel.VariableList(isImageStack).VariableName};
-    
-    if isempty(varNames); varNames = {'N/A'}; end
     
     S = struct();
     S.VariableName = varNames{1};

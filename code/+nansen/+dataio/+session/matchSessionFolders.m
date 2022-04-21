@@ -1,4 +1,4 @@
-function [sessionFolderListOut] = matchSessionFolders(dataLocationModel, sessionFolderList)
+function [sessionFolderListOut, sessionIDs] = matchSessionFolders(dataLocationModel, sessionFolderList)
 %MATCHSESSIONFOLDERS Match session folders across datalocations
 %   This function should match sessionfolders across different
 %   datalocations based on their sessionIDs. Therefore the key to this
@@ -25,7 +25,10 @@ function [sessionFolderListOut] = matchSessionFolders(dataLocationModel, session
     initPaths = repmat({''}, 1, numel(dataLocationNames));
     fieldValuePairs = cat(1, dataLocationNames, initPaths);
     sessionFolderListOut = struct(fieldValuePairs{:});
-
+    
+    numSessions = numel(sessionFolderList.(dataLocationNames{1}));
+    sessionIDs = cell(numSessions, 1);
+    
     % Loop through data location types from the model
     for i = 1:numel(sessionFolderList.(dataLocationNames{1}))
                 
@@ -33,7 +36,8 @@ function [sessionFolderListOut] = matchSessionFolders(dataLocationModel, session
         sessionID = dataLocationModel.getSessionID(pathStr);
 
         sessionFolderListOut(i).(dataLocationNames{1}) = pathStr;
-        
+        sessionIDs{i} = sessionID;
+
         for j = 2:numel(dataLocationNames)
             
             jSessionFolderList = sessionFolderList.(dataLocationNames{j});
@@ -53,6 +57,10 @@ function [sessionFolderListOut] = matchSessionFolders(dataLocationModel, session
 
         end
         
+    end
+
+    if nargout == 1
+        clear sessionIDs
     end
     
     % Todo: Manually match folders which have multiple matches...

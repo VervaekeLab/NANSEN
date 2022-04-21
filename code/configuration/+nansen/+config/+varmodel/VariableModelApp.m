@@ -16,7 +16,9 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
         function obj = VariableModelApp(varargin)
             
             if isempty(varargin)
-                                
+                
+                obj.FigureSize = [699, 449];
+                
                 obj.createFigure()
                 obj.Figure.Visible = 'on';
                 
@@ -30,7 +32,6 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
                 
             end
             
-            
         end
         
     end
@@ -38,6 +39,10 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
     methods (Access = protected)
         
         function onFigureClosed(obj, src, evt)
+            
+            if isempty(obj.UIModule)
+                delete(obj.Figure); return
+            end
             
             % Check if changes were made to the model.
             newModel = obj.UIModule{1}.getUpdatedTableData();
@@ -71,18 +76,16 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
             
         end
         
-    end
-    
-    
-    methods (Access = private)
-        
+            
         function setLayout(obj)
             % Make sure inner position is : [699,229]
             
             % Todo: Make this part of abstract method... Adjust size if a
             % tabgroup is added....
             
-            targetPosition = [699, 229] + [0,20] + [40, 40];
+            margins = [20, 20, 20, 20];
+            
+            targetPosition = obj.FigureSize + [0,20] + [40, 40];
             
             pos = obj.Figure.Position;
             
@@ -92,8 +95,15 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
             obj.Figure.Position(3:4) = obj.Figure.Position(3:4) + deltaSize;
             obj.LoadingPanel.Position(3:4) = obj.Figure.Position(3:4);
             obj.updateLoadPanelComponentPositions()
+            
+            panelSize = obj.Figure.Position(3:4) - [40, 60];
+            obj.ControlPanels.Position = [20, 20, panelSize];
 
         end
+        
+    end
+
+    methods (Access = private)
 
         function createControlPanels(obj)
             obj.ControlPanels = obj.createControlPanel( obj.Figure );

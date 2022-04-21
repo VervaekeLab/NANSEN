@@ -1,5 +1,9 @@
 classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignProperties
-    
+%PageIndicator Widget to switch between pages / views.
+%
+%   Creates a "button group" where each button has a label, and pressing
+%   the button will invoke a callback with the index of the selected
+%   button. Can be used for multi tab views or similar.
 
     % Todo: generalize so that it can be used as tab header for tabgroups
     % Todo: subclass from uim.abstract.Container instead
@@ -12,8 +16,12 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
        IndicatorSize = 10
        IndicatorColor = ones(1,3) * 0.5
        BarColor = 'k'
+       BarVisibility = 'on'
+       TextVisibility = 'on'; % 'on', 'hit', 'off'
+       HorizontalTextAlignment = 'center';
        Spacing = 8
        ChangePageFcn = [];
+       BlockChangePage = false;
     end
    
     properties (Hidden, Access = private, Transient)
@@ -22,10 +30,11 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
         hHBar = gobjects(0)
         hVBar = gobjects(0)
     end
-   
+    
     methods
+        
         function obj = PageIndicator(hParent, pageNames, varargin)
-            
+        %PageIndicator Contruct instance of page indicator widget.    
             
             el = listener(hParent, 'SizeChanged', ...
                 @obj.onParentContainerSizeChanged);
@@ -41,17 +50,13 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             obj.createIndicator()
 
             obj.IsConstructed = true;
-
             
             % Call updateSize to trigger size update (call before location)
             obj.updateSize('auto')
             
             % Call updateLocation to trigger location update
             obj.updateLocation('auto')
-            
-
         end
-        
         
         function delete(obj)
             delete(obj.hPageButtons)
@@ -70,20 +75,48 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             obj.onAppearanceChanged()
         end
         
+        function set.BarVisibility(obj, newValue)
+            if islogical(newValue)
+                if newValue; newValue = 'on'; else; newValue = 'off'; end
+            end
+            newValue = validatestring(newValue, {'on', 'off'});
+            obj.BarVisibility = newValue;
+            obj.onBarVisibilityChanged()
+        end
+        
+        function set.TextVisibility(obj, newValue)
+            if islogical(newValue)
+                if newValue; newValue = 'on'; else; newValue = 'off'; end
+            end
+            
+            newValue = validatestring(newValue, {'on', 'hit', 'off'});
+            obj.TextVisibility = newValue;
+            obj.onTextVisibilitySet()
+        end
+        
+        function set.HorizontalTextAlignment(obj, newValue)
+            newValue = validatestring(newValue, {'left', 'center', 'right'});
+            obj.HorizontalTextAlignment = newValue;
+            obj.onHorizontalTextAlignmentSet()
+        end
+        
         function set.FontColor(obj, newValue)
 
             obj.FontColor = newValue;
             obj.onAppearanceChanged()
         end
         
+        function set.FontSize(obj, newValue)
+            obj.onSetFontSize(newValue)
+            obj.FontSize = newValue; % only set prop if above does not fail
+        end
+        
         function set.IndicatorColor(obj, newValue)
-
             obj.IndicatorColor = newValue;
             obj.onAppearanceChanged()
         end
 
     end
-    
     
     methods (Access = private)
         
@@ -95,7 +128,6 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             pos = obj.Position(1:2);
             
             xInit = pos(1);
-
             
             [X,Y] = uim.shape.circle(R);
             
@@ -120,8 +152,6 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
                 
                 obj.hPageLabels(i) = text(obj.hAxes, pos(1), pos(2)+3*R, obj.PageNames{i}, 'Color', obj.FontColor);
                 obj.hPageLabels(i).FontUnits = 'pixel';
-                obj.hPageLabels(i).FontSize = 12;
-                
                 
                 obj.hVBar(i) = plot(obj.hAxes, ones(1,2)*(pos(1)+R), [y1, y2]);
                 
@@ -133,7 +163,6 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
                 end
                 
                 pos(1) = pos(1) + 2*R + S;
-                
             end
             
             xEnd = pos(1) - S;
@@ -142,15 +171,13 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             set([obj.hHBar, obj.hVBar], 'Color', obj.BarColor)
             set([obj.hHBar, obj.hVBar], 'LineWidth', 1.5)
             set([obj.hPageButtons, obj.hVBar], 'LineWidth', 1)
-
-
-            centerPosX = xInit + (xEnd-xInit) / 2;
             
-            set(obj.hPageLabels, 'VerticalAlignment', 'Bottom', 'HorizontalAlignment', 'center')
             set(obj.hPageLabels, 'FontSize', obj.FontSize)
-            for i = 1:numel(obj.hPageLabels)
-                obj.hPageLabels(i).Position(1) = centerPosX;
-            end
+
+            obj.placeTextHorizontal()
+            obj.placeTextVertical()
+            obj.updateBarVisibility()
+            obj.updateTextVisibility()
             
         end
         
@@ -168,8 +195,39 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             obj.hHBar.YData = obj.hHBar.YData + shift(2);                           
             
         end
+        
+        function placeTextHorizontal(obj)
+        
+            xData = obj.hHBar.XData;
+
+            switch obj.HorizontalTextAlignment
+                case 'left'
+                    xPos = min(xData);
+                case 'center'
+                    xData = obj.hHBar.XData;
+                    xPos = min(xData) + (max(xData)-min(xData)) / 2;
+                case 'right'
+                    xPos = max(xData);
+            end
+
+            for i = 1:numel(obj.hPageLabels)
+                obj.hPageLabels(i).Position(1) = xPos;
+            end
+            
+            set(obj.hPageLabels, 'HorizontalAlignment', obj.HorizontalTextAlignment)
+        end
+        
+        function placeTextVertical(obj)
+                       
+            if strcmp(obj.BarVisibility, 'on')
+                set(obj.hPageLabels, 'VerticalAlignment', 'Bottom')
+            elseif strcmp(obj.BarVisibility, 'off')
+                set(obj.hPageLabels, 'VerticalAlignment', 'Middle')
+            end
+            
+        end
+        
     end
-    
     
     methods
         
@@ -184,6 +242,30 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
         function relocate(obj, shift)
             relocate@uim.abstract.virtualContainer(obj, shift)
             obj.shiftComponents(shift)
+        end
+        
+        function updateBarVisibility(obj)
+            
+            if strcmp(obj.BarVisibility, 'off')
+                set([obj.hHBar, obj.hVBar], 'Visible', obj.BarVisibility)
+            else
+                set(obj.hHBar, 'Visible', 'on')
+                set(obj.hVBar, 'Visible', 'off')
+                obj.hVBar(obj.CurrentPage).Visible = 'on';
+            end
+        end
+        
+        function updateTextVisibility(obj)
+            if strcmp(obj.TextVisibility, 'off')
+                set(obj.hPageLabels, 'Visible', 'off')
+                
+            elseif strcmp(obj.TextVisibility, 'on')
+                set(obj.hPageLabels, 'Visible', 'off')
+                obj.hPageLabels(obj.CurrentPage).Visible = 'on';
+                
+            elseif strcmp(obj.TextVisibility, 'hit')
+                set(obj.hPageLabels, 'Visible', 'off')
+            end
         end
         
         function changePage(obj, newPageNumber)
@@ -202,14 +284,13 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             % Deactivate current page
             obj.hPageButtons(obj.CurrentPage).FaceColor = obj.IndicatorColor;
             obj.hPageLabels(obj.CurrentPage).Visible = 'off';
-            obj.hVBar(obj.CurrentPage).Visible = 'off';
 
             % Activate new page
             obj.hPageButtons(newPageNumber).FaceColor = obj.BarColor;
             obj.hPageLabels(newPageNumber).Visible = 'on';
-            obj.hVBar(newPageNumber).Visible = 'on';
             
             obj.CurrentPage = newPageNumber;
+            obj.updateBarVisibility()
         end
         
         function onMouseOverIndicator(obj)
@@ -229,6 +310,30 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             set([obj.hHBar, obj.hVBar], 'Color', obj.BarColor)
             obj.hPageButtons(obj.CurrentPage).FaceColor = obj.BarColor;
         
+        end
+        
+        function onBarVisibilityChanged(obj)
+            if ~obj.IsConstructed; return; end
+            obj.placeTextVertical()
+            obj.updateBarVisibility()
+        end
+        
+        function onTextVisibilitySet(obj)
+            if ~obj.IsConstructed; return; end
+            if strcmp(obj.TextVisibility, 'hit')
+                set(obj.hPageLabels, 'Visible', 'off')
+            end
+            obj.updateTextVisibility()
+        end
+        
+        function onHorizontalTextAlignmentSet(obj)
+            if ~obj.IsConstructed; return; end
+            obj.placeTextHorizontal()
+        end
+        
+        function onSetFontSize(obj, newValue)
+            if ~obj.IsConstructed; return; end
+            set(obj.hPageLabels, 'FontSize', newValue)
         end
         
         function onVisibleChanged(obj, newValue)
@@ -259,7 +364,9 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             
             isCurrent = ismember(obj.hPageButtons, h);
             obj.hPageLabels(obj.CurrentPage).Visible = 'off';
-            obj.hPageLabels(isCurrent).Visible = 'on';
+            if ~strcmp(obj.TextVisibility, 'off')
+                obj.hPageLabels(isCurrent).Visible = 'on';
+            end
         end
 
         function onMouseExited(obj, hFig, h)
@@ -268,7 +375,9 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             
             isCurrent = ismember(obj.hPageButtons, h);
             obj.hPageLabels(isCurrent).Visible = 'off';
-            obj.hPageLabels(obj.CurrentPage).Visible = 'on';
+            if strcmp(obj.TextVisibility, 'on')
+                obj.hPageLabels(obj.CurrentPage).Visible = 'on';
+            end
 
         end
         
@@ -276,6 +385,10 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             
             oldPageNumber = obj.CurrentPage;
             newPageNumber = find( ismember(obj.hPageButtons, src) );
+            
+            if ~obj.BlockChangePage
+                obj.changePage(newPageNumber)
+            end
             
             evtData = uiw.event.EventData('OldPageNumber', oldPageNumber, ...
                 'NewPageNumber', newPageNumber);
@@ -287,6 +400,5 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
         end
         
     end
-   
    
 end

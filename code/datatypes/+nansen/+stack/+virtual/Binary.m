@@ -1,9 +1,11 @@
-
 % Class for indexing data from a binary file in the same manner that data 
 % is indexed from matlab arrays.
 
 classdef Binary < nansen.stack.data.VirtualArray
-
+%Binary Create a virtual data adapter for a binary file.
+%
+% NOTE: Currently assumes that data in binary file is a 3d stack. This
+% should be changed to full support for 5D stacks
     
     % Todo: 
     %   [ ] Generalize.
@@ -11,18 +13,18 @@ classdef Binary < nansen.stack.data.VirtualArray
     %   [ ] Open input dialog to enter info about how to open data (format)
     %       if ini file is not available
     %   [ ] Implement data write functionality.
-    %   [ ] Add methods for writing ini variables...
+    %   [x] Add methods for writing ini variables...
     
-    %   [x] Add list of file formats, i.e .raw and .bin??
+    %   [v] Add list of file formats, i.e .raw and .bin??
     
-properties (Hidden, Constant)
+properties (Constant, Hidden)
+    FILE_PERMISSION = 'write'       
     FILE_FORMATS = {'RAW', 'BIN'} 
 end
-    
+
 properties (Access = private, Hidden)
     MemMap
 end
-
 
 methods % Structors
     
@@ -39,7 +41,16 @@ methods % Structors
         obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
         
     end
-       
+     
+    function delete(obj)
+        
+        obj.writeMetadata()
+
+        % If both ini- and yaml file exists, delete the ini file.
+        iniPath = nansen.stack.virtual.Binary.getIniFilepath(obj.FilePath);
+        if isfile(iniPath); delete(iniPath); end
+        
+    end
 end
 
 methods (Access = protected) % Implementation of abstract methods
@@ -83,25 +94,24 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function getFileInfo(obj)
+    %getFileInfo Get file info from metadata and assign to properties
+    
+        S = obj.readinifile(obj.FilePath);
+        if ~isempty(S)
+            obj.MetaData.Size = S.Size;
+            obj.MetaData.Class = S.Class;
+        end
         
-        obj.MetaData = obj.readinifile();
+        if ischar(obj.MetaData.Size) % Temp fix
+            obj.MetaData.Size = str2num(obj.MetaData.Size); %#ok<ST2NM>
+        end
 
-        obj.assignDataSize()
+        obj.assignDataSize() % Assign size related properties
         
-        obj.assignDataType()
+        obj.assignDataType() % Assign data type property
         
     end
-    
-    function createMemoryMap(obj)
-        
-        mapFormat = {obj.DataType, obj.DataSize, 'ImageArray'};
-        
-        % Memory map the file (newly created or already existing)
-        obj.MemMap = memmapfile( obj.FilePath, 'Writable', true, ...
-            'Format', mapFormat );
 
-    end
-    
     function assignDataSize(obj)
         
         obj.DataSize = obj.MetaData.Size(1:2);
@@ -134,11 +144,21 @@ methods (Access = protected) % Implementation of abstract methods
     function assignDataType(obj)
         obj.DataType = obj.MetaData.Class;
     end
+        
+    function createMemoryMap(obj)
+    %createMemoryMap Create a memory map for the binary file.
+    
+        mapFormat = {obj.DataType, obj.DataSize, 'ImageArray'};
+        
+        % Memory map the file (newly created or already existing)
+        obj.MemMap = memmapfile( obj.FilePath, 'Writable', true, ...
+            'Format', mapFormat );
+
+    end
     
 end
 
 methods % Implementation of abstract methods
-
     
     function readFrames(obj) 	% defined in nansen.stack.data.VirtualArray
         % Todo
@@ -182,24 +202,32 @@ methods % Implementation of abstract methods
     
 end
 
-methods % Methods for reading/writing configuration file
+methods (Static, Access = protected)
     
-    function S = readinifile(obj)
-
-        % todo: generalize? struct2ini fileex??? checkout readstruct and
-        % writestruct
+    function iniFilepath = getIniFilepath(filepath)
+        [folder, filename, ~] = fileparts(filepath);
+        iniFilepath = fullfile(folder, [filename, '.ini']);
+    end
+        
+    function S = readinifile(filepath)
+        
+        S = struct.empty; % Initialize output.
         
         % Get name of inifile
-        iniPath = strrep(obj.FilePath, '.raw', '.ini');
-
+        iniPath = nansen.stack.virtual.Binary.getIniFilepath(filepath);
+        
+        if ~isfile(iniPath)
+            return
+        else
+            S = struct; % Initialize a struct which is not empty
+        end
+        
         % Read inifile
         iniString = fileread(iniPath);
 
         % Determine start of and end of lines
         endOfLine = cat(2, regexp(iniString, '\n') );
         startOfLine = cat(2, 1, endOfLine(1:end-1)+1);
-
-        S = struct;
 
         for i = 1:numel(startOfLine)
 
@@ -223,68 +251,20 @@ methods % Methods for reading/writing configuration file
         end
     end
 
-    function writeMetaVariable(obj, varName, varValue)
-        % Get name of inifile
-        iniPath = strrep(obj.FilePath, '.raw', '.ini');
-
-        if ispc
-            fid = fopen(iniPath, 'at');
-        else
-            fid = fopen(iniPath, 'a');
-        end
-        
-        if ~isa(varValue, 'char')
-            if islogical(varValue) || isinteger(varValue)
-                varValue = num2str(a);
-            elseif isnumeric(varValue)
-                varValue = num2str(a, '%.6f');
-            else
-                error('Not supported yet')
-            end
-            
-        end
-        fprintf(fid, '%s = %s\n', varName, varValue);
-
-        fclose(fid);
-        
-    end
+    function TF = writeinifile(filepath, S)
+    %writeinifile Write Size and Class to a inifile.
     
-    function varValue = readMetaVariable(obj, varName)
-        % Get name of inifile
-        iniPath = strrep(obj.FilePath, '.raw', '.ini');
-        
-        % Read inifile
-        iniString = fileread(iniPath);
-        expression = sprintf('%s = ', varName);
-
-        variableStrLocA = regexp(iniString, expression);
-        endOfLines = cat(2, regexp(iniString, '\n') );
-        
-        isEndOfThisLine = find( endOfLines > variableStrLocA, 1, 'first');
-        variableStrLocB = endOfLines(isEndOfThisLine);
-        
-        thisLine = iniString(variableStrLocA:variableStrLocB);
-        
-        splitStr = strsplit(thisLine, '=');
-        try
-            varValue = eval(strrep(splitStr{2}, '\n', ''));
-        catch
-            varValue = strrep(splitStr{2}, '\n', '');
-        end
-    end
-end
-
-methods (Static)
+    % Note: This file is written on creation of a binary file. It will be
+    % replaced with a yaml "metadata" file when the binary file is read as
+    % a virtual array.
     
-    function TF = writeinifile(filePath, S)
-
-        % todo: generalize?
-        
+        % Todo: replace with FEX struct2ini?
+    
         assert(isfield(S, 'Size'), 'Size input is missing')
         assert(isfield(S, 'Class'), 'Class input is missing')
 
         % Get name of inifile
-        iniPath = strrep(filePath, '.raw', '.ini');
+        iniPath = nansen.stack.virtual.Binary.getIniFilepath(filepath);
 
         if ispc
             fid = fopen(iniPath, 'wt');
@@ -314,7 +294,14 @@ methods (Static)
         
     end
     
+end
+
+methods (Static)
+    
     function createFile(filePath, arraySize, arrayClass)
+        if ndims(arraySize) > 2
+            error('Writing of data to binary file is not supported yet')
+        end
         nansen.stack.virtual.Binary.initializeFile(filePath, arraySize, arrayClass)
     end
     

@@ -10,6 +10,7 @@ function [roiImages, roiStats] = createRoiUserdata(roiArray, imArray, dff)
         % Add average images of roi
         f = nansen.twophoton.roisignals.extractF(imArray, roiArray);
         dff = nansen.twophoton.roisignals.computeDff(f, 'dffFcn', 'dffRoiMinusDffNpil');
+        dff = dff'; % NOTE: Should be nrois x nsamples
     end
     
     roiImA = autosegment.extractRoiImages(imArray, roiArray, dff);

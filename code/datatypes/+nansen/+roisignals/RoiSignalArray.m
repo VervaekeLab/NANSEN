@@ -94,6 +94,10 @@ classdef RoiSignalArray < handle
         % 
         %   Todo: Generalize so that signalArray can be loaded from file
         
+            if ~nargin
+                return
+            end
+        
         %   Data and Parameters arrays are set when ImageStack is set.
             obj.RoiGroup = roiGroup;
             obj.ImageStack = imageStack;
@@ -304,7 +308,7 @@ classdef RoiSignalArray < handle
             end
             
             signalData = [];
-            if obj.ImageStack.IsVirtual; return; end
+            if obj.isVirtual; return; end
             
             % Get image stack and roi array based on channel number
             
@@ -535,6 +539,9 @@ classdef RoiSignalArray < handle
             
             import nansen.twophoton.roisignals.deconvolveDff
             
+            global fprintf; if isempty(fprintf); fprintf = str2func('fprintf'); end
+            fprintf('Deconvolving signal...\n')
+            
             options = obj.DeconvolutionOptions;
 
             dff = obj.getSignals(roiInd, 'dff');
@@ -548,7 +555,6 @@ classdef RoiSignalArray < handle
             %signalData = signalData ./ max(signalData(:));
 
         end
-        
         
         function discretizeSignals(obj, roiInd, channelNum)
             

@@ -30,6 +30,7 @@ classdef extractSignals < nansen.session.SessionMethod
             
             if ~nargout
                 obj.runMethod()
+                clear obj
             end
             
         end
@@ -43,17 +44,25 @@ classdef extractSignals < nansen.session.SessionMethod
             sessionData = nansen.session.SessionData(obj.SessionObjects);
             sessionData.updateDataVariables()
             
-            imageData = sessionData.TwoPhotonSeries_Corrected;
+            imageStack = sessionData.TwoPhotonSeries_Corrected;
             roiArray = sessionData.RoiArray; 
             
             extractF = @nansen.twophoton.roisignals.extractF;
-            [signalArray, P] = extractF(imageData, roiArray, 'verbose', true, obj.Parameters);
-            
+            [signalArray, P] = extractF(imageStack, roiArray, 'verbose', true, obj.Parameters);
             
             % Todo: Save results...
-            obj.saveData('RoiSignalsMeanF', signalArray, 'Subfolder', 'roisignals')
-            obj.saveData('SignalExtractionOptions', P, 'Subfolder', 'roisignals')
-
+            obj.saveData('RoiSignals_MeanF', squeeze(signalArray(:, 1, :)) )
+            obj.saveData('RoiSignals_NeuropilF', squeeze(signalArray(:, 2:end, :)) )
+            
+            
+            obj.saveData('OptionsSignalExtraction', P, ...
+                'Subfolder', 'roisignals', 'IsInternal', true)
+            
+            % Inherit metadata from image stack
+            fileAdapter = obj.SessionObjects.getFileAdapter('RoiSignals_MeanF');
+            fileAdapter.setMetadata('SampleRate', imageStack.getSampleRate(), 'Data')
+            %fileAdapter.setMetadata('StartTimeNum', imageStack.getStartTime('number'), 'Data')
+            %fileAdapter.setMetadata('StartTimeStr', imageStack.getStartTime('string'), 'Data')
         end
         
     end

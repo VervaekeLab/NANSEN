@@ -30,7 +30,16 @@ function cellOfMasks = createMasks(roiArray, varargin)
     % Parse potential parameters from input arguments
     params = utility.parsenvpairs(P, V, varargin{:});    
 
-    roiMaskArrayOrig = cat(3, roiArray(:).mask);
+    % Special case when one roi is selected
+    if numel(params.roiInd) == 1
+        roiIndGet = roiArray.getNeighboringRoiIndices(params.roiInd);
+        params.roiInd = find(roiIndGet == params.roiInd);
+    else
+        roiIndGet = 1:numel(roiArray);
+    end
+    
+
+    roiMaskArrayOrig = cat(3, roiArray(roiIndGet).mask);
     
     if params.excludeRoiOverlaps
         roiMaskArray = removeSpatialOverlaps(roiMaskArrayOrig, ...
@@ -58,3 +67,4 @@ function cellOfMasks = createMasks(roiArray, varargin)
 
     
 end
+

@@ -51,7 +51,29 @@ classdef selectObject < uim.interface.abstractPointer & ...
         function wasCaptured = onKeyPress(obj, src, event)
             wasCaptured = true;
             
+            % Keypress events that should always be handled:
             switch event.Key
+                
+                case 'a'
+                    if contains('command', event.Modifier) || ...
+                            contains('control', event.Modifier)
+                        numRois = obj.hObjectMap.RoiGroup.roiCount;
+                        obj.hObjectMap.selectRois(1:numRois, 'extend')
+                    else
+                        wasCaptured = false;
+                    end
+                otherwise
+                    wasCaptured = false;
+                
+            end
+            
+            if isempty(obj.hObjectMap); return; end
+            if isempty(obj.hObjectMap.SelectedRois); return; end
+            wasCaptured = true; % Reset flag
+
+            % Keypress events that should only be handled if roi is selected:
+            switch event.Key
+
                 case {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
                     if isempty(event.Modifier)
                         obj.hObjectMap.classifyRois(str2double(event.Key));
@@ -59,24 +81,23 @@ classdef selectObject < uim.interface.abstractPointer & ...
                         wasCaptured = false;
                     end
                     % Todo: change roi type using shift click??
-                case 'a'
-                    if contains('command', event.Modifier) || ...
-                            contains('control', event.Modifier)
-                        numRois = obj.hObjectMap.roiGroup.roiCount;
-                        obj.hObjectMap.selectRois(1:numRois, 'extend')
-                    else
-                        wasCaptured = false;
-                    end
+
                     
-                case 'backspace'
-                    obj.hObjectMap.removeRois;
+                case {'backspace', '⌫'}
+                    obj.hObjectMap.removeRois();
+                case 'i'
+                    obj.hObjectMap.improveRois();
                 case 'g'
                     obj.hObjectMap.growRois();
                 case 'h'
                     obj.hObjectMap.shrinkRois();
+                
+% %                 case 'n' % For testing...
+% %                     obj.hObjectMap.selectNeighbors()
+                    
                 case 'c'
                     if strcmp(event.Modifier, 'shift')
-                        obj.hObjectMap.connectRois() % Todo: delegate to flufinder instead?
+                        obj.hObjectMap.connectRois() % Todo: delegate to roimanager instead?
                     else
                         wasCaptured = false;
                     end
@@ -88,11 +109,17 @@ classdef selectObject < uim.interface.abstractPointer & ...
                     end
                     % todo....
 %                     if strcmp(event.Modifier, 'shift')
-%                         obj.hObjectMap.mergeRois() % Todo: delegate to flufinder instead?
+%                         obj.hObjectMap.mergeRois() % Todo: delegate to roimanager instead?
 %                     end
                     
                 %todo: arrowkeys for moving rois.
-
+                case {'leftarrow', 'rightarrow', 'uparrow', 'downarrow', ...
+                        '↓', '↑', '←', '→'}
+                    
+                    shift = obj.keyname2shift(strrep(event.Key, 'arrow', ''));
+                    obj.hObjectMap.moveRoi(shift)
+                    
+                    
                 otherwise
                     wasCaptured = false;
             end
@@ -195,6 +222,23 @@ classdef selectObject < uim.interface.abstractPointer & ...
             
             obj.setPointerSymbol()
             obj.previousPoint = [nan, nan];
+        end
+        
+    end
+    
+    methods (Static)
+        function shift = keyname2shift(direction)
+            % Todo: Enumerator?
+            switch direction
+                case {'left', '←'}
+                    shift = [-1, 0];
+                case {'right', '→'}
+                    shift = [1, 0];
+                case {'up', '↑'}
+                    shift = [0, -1];
+                case {'down', '↓'}
+                    shift = [0, 1]; 
+            end
         end
         
     end

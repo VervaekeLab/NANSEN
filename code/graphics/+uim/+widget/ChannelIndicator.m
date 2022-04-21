@@ -263,12 +263,19 @@ classdef ChannelIndicator < uim.mixin.assignProperties
        
         function onChannelIndicatorPressed(obj, channelNum)
 
-            oldSelection = obj.CurrentChannels;
+            %oldSelection = obj.CurrentChannels;
             
             if ismember(channelNum, obj.CurrentChannels)
                 obj.CurrentChannels = setdiff(obj.CurrentChannels, channelNum);
             else
                 obj.CurrentChannels = union(obj.CurrentChannels, channelNum);
+            end
+            
+            % If only one channel is visible, and it is deselected, toggle
+            % all the other channels on
+            if isempty(obj.CurrentChannels)
+                allChannels = 1:obj.NumChannels;
+                obj.CurrentChannels = setdiff(allChannels, channelNum, 'stable');
             end
             
             if ~isempty(obj.Callback)

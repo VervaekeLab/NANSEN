@@ -193,7 +193,7 @@ classdef (Abstract) UserSettings < uim.handle
         function editSettings(obj)
         %editSettings Open gui for editing fields of settings.
         
-            titleStr = sprintf('preferences for %s', class(obj));
+            titleStr = sprintf('Preferences for %s', class(obj));
             doDefault = true; % backward compatibility...
             
             if ~isempty(obj.hSettingsEditor)

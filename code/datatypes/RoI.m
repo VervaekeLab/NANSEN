@@ -602,6 +602,26 @@ methods
         
     end
 
+    
+    function roiIndNeighbor = getNeighboringRoiIndices(obj, roiInd)
+    %getNeighboringRoiIndices Get indices of neighboring rois.
+
+        N_HOOD = 2; % n * radius;
+        
+        roiCenter = cat(1, obj.center);
+        
+        thisRoiCenter = roiCenter(roiInd, :);
+        thisRoiRadius = sqrt( obj(roiInd).area / pi );
+        
+        lowerBound = thisRoiCenter - thisRoiRadius * N_HOOD;
+        upperBound = thisRoiCenter + thisRoiRadius * N_HOOD;
+        
+        isNeighbor = roiCenter > lowerBound & roiCenter < upperBound;
+        
+        roiIndNeighbor = find(sum(isNeighbor,2)==2);
+        
+    end
+    
 
     function tf = isRoiInRect(obj, rectCoords)
        

@@ -1,4 +1,4 @@
-classdef DashBoard < applify.HasTheme %& applify.mixin.UserSettings
+classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.mixin.UserSettings
     
     
     % Todo:
@@ -52,7 +52,6 @@ classdef DashBoard < applify.HasTheme %& applify.mixin.UserSettings
         
     end
     
-    
     methods % Structors
         
         function obj = DashBoard(varargin)
@@ -76,7 +75,7 @@ classdef DashBoard < applify.HasTheme %& applify.mixin.UserSettings
             
         end
         
-        function obj.quit()
+        function quit(obj)
         
         end
         
@@ -164,7 +163,8 @@ classdef DashBoard < applify.HasTheme %& applify.mixin.UserSettings
         if any(blockCalls), return, end
         blockCalls = true;
 
-        set( cat(1, obj.hPanels([2,4]).Children ), 'Visible', 'off')
+        % Todo: Generalize this...:
+        set( cat(1, obj.hPanels([2:4]).Children ), 'Visible', 'off')
         %obj.hMainPanel.Visible = 'off';
 
         drawnow
@@ -184,7 +184,7 @@ classdef DashBoard < applify.HasTheme %& applify.mixin.UserSettings
         end
         
         %obj.hMainPanel.Visible = 'on';
-        set(cat(1,obj.hPanels([2,4]).Children), 'Visible', 'on')
+        set(cat(1,obj.hPanels([2:4]).Children), 'Visible', 'on')
         drawnow
         
         blockCalls = false;  % Allow further calls again
@@ -397,7 +397,7 @@ classdef DashBoard < applify.HasTheme %& applify.mixin.UserSettings
     methods (Access = protected) % Interactive callbacks
         %(Access = {?applify.ModularApp, ?applify.DashBoard} )
         
-        function onKeyPressed(obj, src, evt)
+        function onKeyPressed(obj, src, evt, ~)
             currentApp = obj.getCurrentApp();
             
             if ~isempty(currentApp)
@@ -483,9 +483,6 @@ classdef DashBoard < applify.HasTheme %& applify.mixin.UserSettings
         end
         
     end
-    
-    
-    
     
     
 end

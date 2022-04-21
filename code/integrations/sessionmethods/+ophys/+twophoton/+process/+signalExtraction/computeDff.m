@@ -1,46 +1,116 @@
-function varargout = computeDff(sessionObject, varargin)
+classdef computeDff < nansen.session.SessionMethod
 %COMPUTEDFF Summary of this function goes here
 %   Detailed explanation goes here
-
-
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Create a struct of default parameters (if applicable) and specify one or 
-% more attributes (see nansen.session.SessionMethod.setAttributes) for 
-% details.
     
-    % Get struct of parameters from local function
-    params = getDefaultParameters();
-    
-    % Create a cell array with attribute keywords
-    ATTRIBUTES = {'serial', 'queueable'};   
-    
-    
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
-    
-    % Create a struct with "attributes" using a predefined pattern
-    import nansen.session.SessionMethod
-    fcnAttributes = SessionMethod.setAttributes(params, ATTRIBUTES{:});
-    
-    if ~nargin && nargout > 0
-        varargout = {fcnAttributes};   return
+    properties (Constant) % SessionMethod attributes
+        MethodName = 'Compute Delta F over F'
+        BatchMode = 'serial'
+        IsManual = false
+        IsQueueable = true;
+        OptionsManager = nansen.OptionsManager(mfilename('class')) % todo...
     end
     
-    % Parse name-value pairs from function input.
-    params = utility.parsenvpairs(params, [], varargin);
+    methods
+        
+        function obj = computeDff(varargin)
+            
+            obj@nansen.session.SessionMethod(varargin{:})
+
+            if ~nargout % how to generalize this???
+                obj.runMethod()
+                clear obj
+            end 
+        end
+        
+    end
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Implementation of the method : Add your code here:    
-    
-    sessionObject.validateVariable('RoiSignalsMeanF')
-    signalArray = sessionObject.loadData('RoiSignalsMeanF');
-    dff = nansen.twophoton.roisignals.computeDff(signalArray, params);
-    sessionObject.saveData('RoiResponsesDff', dff, 'Subfolder', 'roisignals')
+    methods (Static)
+        function options = getDefaultOptions()
+        %GETDEFAULTOPTIONS Summary of this function goes here
+            options = nansen.twophoton.roisignals.getDffParameters();
+        end
+    end
+
+    methods
+        
+        function runMethod(obj)
+
+            import nansen.twophoton.roisignals.computeDff
+            
+            obj.SessionObjects.validateVariable('RoiSignals_MeanF')
+            
+            signalArray = obj.loadData('RoiSignals_MeanF');
+            
+            % Reshape signals to have correct dimensions and sizes for the
+            % dff functions. (numsamples x numsubregions x numrois)
+            if contains(signalArray.Properties.VariableNames, ...
+                    'RoiSignals_NeuropilF')
+                signalArray = cat(3, signalArray.RoiSignals_MeanF, ...
+                    signalArray.RoiSignals_NeuropilF );
+                signalArray = permute( signalArray, [1,3,2] );
+            else
+                signalArray = signalArray.RoiSignals_MeanF;
+                signalArray = reshape(signalArray, size(signalArray, 1), 1, []);
+                if ~strcmp(obj.Parameters.dffFcn, 'dffClassic')
+                    errMsg = sprintf('Neuropil signals are required for the method "%s", but were not available.', obj.Parameters.dffFcn );
+                    error(errMsg);
+                end
+            end
+            
+            dff = computeDff(signalArray, obj.Parameters);
+            obj.saveData('RoiSignals_Dff', dff) 
+            
+        end
+        
+        function wasSuccess = preview(obj) 
+            h = openDffExplorer(obj.SessionObjects);
+            wasSuccess = obj.finishPreview(h);
+        end
+        
+    end
 
 end
 
 
-function S = getDefaultParameters()
-    S = nansen.twophoton.roisignals.getDffParameters();
+
+function hDffPlugin = openDffExplorer(sessionObj)
+
+    % Load rois
+    roiArray = sessionObj.loadData('RoiArray');
+    
+    % Load signals
+    roiSignalTable = sessionObj.loadData('RoiSignals_MeanF');
+    
+    % Create roi group
+    roiGroup = roimanager.roiGroup(roiArray);
+
+    % Open roitable app
+    hTableViewer = roimanager.RoiTable(roiGroup);
+    
+    % Create a roi signal array....
+    rs = nansen.roisignals.RoiSignalArrayExtracted(roiSignalTable, roiGroup);
+
+    % Open roi signalviewer app
+    hSignalviewer = roisignalviewer.App(rs);
+    hSignalviewer.RoiGroup = roiGroup;
+    hSignalviewer.showSignal('dff')
+    hSignalviewer.showLegend()
+    
+    % Open the dff options
+    hDffPlugin = nansen.plugin.signalviewer.DffExplorer(hSignalviewer, [], 'Modal', false);
+    
+    % Position apps on screen
+    hSignalviewer.place('bottom')
+    hTableViewer.place('left')
+    hTableViewer.place('bottom', hSignalviewer.Figure.OuterPosition(4) + 5)
+    hDffPlugin.place('left', hTableViewer.Figure.OuterPosition(3) + 5)
+    hDffPlugin.place('bottom', hSignalviewer.Figure.OuterPosition(4) + 5)
+        
+    % Cleanup up if plugin is deleted.
+    addlistener(hDffPlugin, 'ObjectBeingDestroyed', @(s,e) delete(hSignalviewer));
+    addlistener(hDffPlugin, 'ObjectBeingDestroyed', @(s,e) delete(hTableViewer));
+    
+    hDffPlugin.waitfor()
+    
 end
+

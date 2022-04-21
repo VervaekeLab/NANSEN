@@ -11,6 +11,12 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %       - Pause/stop registration and resume at later time
 %       - Interactive configuration of parameters
 %       - Save reference images
+%
+%   This class creates the following data variables:
+%
+%     * <strong>FlowregOptions</strong> : Struct with options used for registration
+%
+%     * <strong>FlowregShifts</strong> : Cell array with frameshifts with shifts for each frame
 
 
 
@@ -18,7 +24,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %       [ ] Print command line output
 %       [ ] Implement multiple channel correction
 %       [ ] Improve initialization of template or leave it to normcorre...
-
 
 %       [ ] Is there time to be saved on calculating shift metrics on
 %           downsampled shift data. Will metrics be quanitatively similar or
@@ -93,7 +98,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             import nansen.wrapper.flowreg.Options
             opts = Options.convert(obj.Options);
             
-            optionsVarname = 'flowregOptions';
+            optionsVarname = 'FlowregOptions';
             
             % Initialize options (Load from session if options already
             % exist, otherwise save to session)
@@ -116,17 +121,16 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         function initializeShifts(obj, numFrames)
         %initializeShifts Load or initialize shifts...
         
-            filePath = obj.getDataFilePath('flowregShifts', '-w', ...
-                'Subfolder', 'image_registration');
+            filePath = obj.getDataFilePath('FlowregShifts', '-w', ...
+                'Subfolder', 'image_registration', 'IsInternal', true);
             
             if isfile(filePath)
-                S = obj.loadData('flowregShifts');
-            
+                S = obj.loadData('FlowregShifts');
+                % TODO: IF DOWNSAMPLED, SHOULD UPSAMPLE
             else
                 % Initialize blank struct array
                 S = cell(numFrames, 1);
-                
-                obj.saveData('flowregShifts', S)
+                obj.saveData('FlowregShifts', S)
             end
             
             obj.ShiftsArray = S;
@@ -138,9 +142,12 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         end
         
         function saveShifts(obj)
-        %saveShifts Save shifts in shiftarray to file  
+        %saveShifts Save shifts in shiftarray to file
+        
+            % TODO: SAVE DOWNSAMPLED SHIFTS.
+        
             shiftsArray = obj.ShiftsArray;
-            obj.saveData('flowregShifts', shiftsArray)
+            obj.saveData('FlowregShifts', shiftsArray)
         end
         
         function updateCorrectionStats(obj, IND)
@@ -181,7 +188,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             
             % Save updated image registration stats to data location
-            obj.saveData('imregStats', S)
+            obj.saveData('MotionCorrectionStats', S)
             obj.CorrectionStats = S;
             
         end

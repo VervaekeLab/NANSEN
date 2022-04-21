@@ -7,10 +7,10 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
     %   position is set.
     
     properties (Dependent)
-        Min = 0                 % Minimum slider value
-        Max = 1                 % Maximum slider value
-        Low = 0
-        High = 1
+        Min                 % Minimum slider value
+        Max                 % Maximum slider value
+        Low
+        High
     end
     
     properties
@@ -553,11 +553,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                     obj.Callback(obj, evtData)
                     ticAtLastUpdate = tic;
                 end
-                
-                
-                
             end
-
         end
         
         function onMouseEnterKnob(obj, hSource, evtData)

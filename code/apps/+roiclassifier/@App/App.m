@@ -1,4 +1,4 @@
-classdef App < mclassifier.manualClassifier
+classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
     
     % todo, mouse tools are quite slow. should I use polygons instead of
     % patches?
@@ -14,17 +14,29 @@ classdef App < mclassifier.manualClassifier
     % keypress.....
     
     
+    % Todo: selectedItem is the same as roiDisplay's SelectedRois and 
+    %  displayedItems is the same as roiDisplay's VisibleRois
+    
+    
+%   Inherited properties:
+%       RoiGroup            % RoiGroup object (roiDisplay)
+
+
+   
     properties
         
-        classificationColors = { [0.174, 0.697, 0.492], ...
-                                 [0.920, 0.339, 0.378], ...
-                                 [0.176, 0.374, 0.908] }
+% %         classificationColors = { [0.174, 0.697, 0.492], ...
+% %                                  [0.920, 0.339, 0.378], ...
+% %                                  [0.176, 0.374, 0.908] }
+% % 
+% %         classificationLabels = { 'Accepted', 'Rejected', 'Unresolved' }
 
-        classificationLabels = { 'Accepted', 'Rejected', 'Unclear' }
 
-
-        guiColors = struct('Background', ones(1,3)*0.2, ...
-                           'Foreground', ones(1,3)*0.7 )
+%         guiColors = struct('Background', ones(1,3)*0.1, ...
+%                            'Foreground', ones(1,3)*0.7 )
+         guiColors = struct('Background',  [0.1020 0.1137 0.1294], ...
+                           'Foreground', [0.8196 0.8235 0.8275])                  
+                      
     
     end
     
@@ -53,10 +65,6 @@ classdef App < mclassifier.manualClassifier
         
         pointerManager
         
-        roisChangedListener
-        roiSelectionChangedListener
-        roiClassificationChangedListener
-        
         WindowMouseMotionListener
         WindowMouseReleaseListener
         
@@ -69,6 +77,8 @@ classdef App < mclassifier.manualClassifier
         function obj = App(varargin)
         %roiClassifier Construct roi classifier app
             
+            % Todo: Should units always be scaledby default??
+            varargin = [varargin, {'tileUnits', 'scaled'}];
             obj@mclassifier.manualClassifier(varargin{:})
                         
             obj.hFigure.Name = 'Roi Classifier';
@@ -80,16 +90,6 @@ classdef App < mclassifier.manualClassifier
             % Update tile callbacks because these are reset to default when
             % setting the tileUnits property of tiledImageAxes.
             obj.setTileCallbacks()
-            
-            obj.roiSelectionChangedListener = event.listener(obj.roiGroup, ...
-                'roiSelectionChanged', @(s, e) onRoiSelectionChanged(obj, e));
-            
-            obj.roiClassificationChangedListener = event.listener(obj.roiGroup, ...
-                'classificationChanged', @(s, e) onRoiClassificationChanged(obj, e));
-            
-            obj.roisChangedListener = event.listener(obj.roiGroup, ...
-                'roisChanged', @(s, e) onRoiGroupChanged(obj, e));
-            
             
             setappdata(obj.hFigure, 'ViewerObject', obj);
 
@@ -116,7 +116,10 @@ classdef App < mclassifier.manualClassifier
                     varargin = varargin(2:end);
                 end
             elseif isa(varargin{1}, 'roimanager.roiGroup')
-                obj.roiGroup = varargin{1};
+                obj.RoiGroup = varargin{1};
+                varargin = varargin(2:end);
+            elseif isa(varargin{1}, 'struct') && isfield(varargin{1}, 'roiArray')
+                obj.RoiGroup = varargin{1};
                 varargin = varargin(2:end);
             end
             nvpairs = varargin;
@@ -190,26 +193,30 @@ classdef App < mclassifier.manualClassifier
     methods % Touch callback handling
         
         function onKeyPressed(obj, src, event)
+            
             wasCaptured = obj.pointerManager.onKeyPress([], event);
         
             switch event.Key
-                
                 
                 case {'z', 'Z'}
                 % Todo: Figure out what todo if another app is keeper of
                 % the undomanager.
                 if contains('command', event.Modifier) && contains('shift', event.Modifier) ...
                         || contains('control', event.Modifier) && contains('shift', event.Modifier)
-                    obj.roiGroup.redo()
+                    obj.RoiGroup.redo()
                 elseif contains('command', event.Modifier) || contains('control', event.Modifier) 
-                    obj.roiGroup.undo()
+                    obj.RoiGroup.undo()
                 end
+                
+                case ''
+                    
+                    
             end
-            
             
         end
         
-        function onMousePressed(obj)
+        function mousePressed(obj, src, event, tileNum)
+            
         end
         
         function mouseClickInTile(obj, src, event, tileNum)
@@ -222,12 +229,8 @@ classdef App < mclassifier.manualClassifier
                 mouseClickInTile@mclassifier.manualClassifier(obj, src, event, tileNum)
             else
                 obj.pointerManager.onButtonDown(obj.hFigure, event)
-                
-                
             end
-            
-            
-            
+                        
         end
         
         function mouseClickInRoi(obj, src, event, tileNum)
@@ -239,8 +242,10 @@ classdef App < mclassifier.manualClassifier
                 
                 switch obj.hFigure.SelectionType
                     case {'normal'}
-                        obj.changeSelectedItem('tile', tileNum)
+                        % Important: start move should be called before
+                        % changeSelectedItem to avoid race conditions.
                         obj.startMove(src, event, tileNum)
+                        obj.changeSelectedItem('tile', tileNum)
 
                     case 'open'
                         % Edit roi
@@ -255,39 +260,47 @@ classdef App < mclassifier.manualClassifier
         function onMousePressedInRoi(obj)
         end
         
+        function moveRoi(obj, shift)
+            if isempty(obj.selectedItem)
+                return
+            end
+            
+        end
+        
         function growRois(obj)
             
             % Get selected rois
-            originalRois = obj.roiGroup.roiArray(obj.selectedItem);
+            originalRois = obj.RoiGroup.roiArray(obj.selectedItem);
             
             newRois = originalRois;
             for i = 1:numel(originalRois)
                 newRois(i) = originalRois(i).grow(1); % Grow rois
             end
             
-            obj.roiGroup.modifyRois(newRois, obj.selectedItem)
+            obj.RoiGroup.modifyRois(newRois, obj.selectedItem)
             
         end
         
         function shrinkRois(obj)
                         
             % Get selected rois
-            originalRois = obj.roiGroup.roiArray(obj.selectedItem);
+            originalRois = obj.RoiGroup.roiArray(obj.selectedItem);
             
             newRois = originalRois;
             for i = 1:numel(originalRois)
                 newRois(i) = originalRois(i).shrink(1); % Shrink rois
             end
             
-            obj.roiGroup.modifyRois(newRois, obj.selectedItem)
+            obj.RoiGroup.modifyRois(newRois, obj.selectedItem)
             
         end
         
         % % % Handling of user input for moving a roi within a tile.
         function startMove(obj, object, event, tileNum)
-
-            el1 = listener(obj.hFigure, 'WindowMouseMotion', @(s, e) obj.moveRoi(object));
+            
             el2 = listener(obj.hFigure, 'WindowMouseRelease', @(s, e) obj.endMove(object, tileNum));
+            el1 = listener(obj.hFigure, 'WindowMouseMotion', @(s, e) obj.onMouseDragRoi(object));
+            
             obj.WindowMouseMotionListener = el1;
             obj.WindowMouseReleaseListener = el2;
             
@@ -299,9 +312,12 @@ classdef App < mclassifier.manualClassifier
 
         end
 
-        function moveRoi(obj, h, ~)
+        function improveRois(obj)
+            fprintf('Not implemented yet\n')
+        end
+        
+        function onMouseDragRoi(obj, h, ~)
 
-            
             newMousePointAx = get(obj.hTiledImageAxes.Axes, 'CurrentPoint');
             newMousePointAx = newMousePointAx(1, 1:2);
 
@@ -312,7 +328,9 @@ classdef App < mclassifier.manualClassifier
     %             newMousePointAx2(2) = obj.pixelHeight - newMousePointAx2(2);
     %             newMousePointAx = newMousePointAx2;
 
-
+            
+            %TODO: Fix
+            
             % Check if pointer is outside of tile and return if so.
             tf = newMousePointAx(1) < h.UserData.XLim(1) || ...
                     newMousePointAx(1) > h.UserData.XLim(2) || ...
@@ -340,12 +358,9 @@ classdef App < mclassifier.manualClassifier
         end
 
         function endMove(obj, object, tileNum)
-            
-            
             delete(obj.WindowMouseMotionListener);
             delete(obj.WindowMouseReleaseListener);
             drawnow
-
 
             % Shift roi in roiarray
             if abs(sum(object.UserData.Shift)) > 0.1
@@ -360,11 +375,11 @@ classdef App < mclassifier.manualClassifier
             
             
             % Get selected rois
-            originalRoi = obj.roiGroup.roiArray(roiInd);
+            originalRoi = obj.RoiGroup.roiArray(roiInd);
             
             % Get new rois that are moved versions of original ones.
             newRoi = originalRoi.move(shift, 'shiftImage');
-            obj.roiGroup.modifyRois(newRoi, roiInd)
+            obj.RoiGroup.modifyRois(newRoi, roiInd)
 
             obj.updateTile(roiInd, tileNum)
 
@@ -373,6 +388,12 @@ classdef App < mclassifier.manualClassifier
     end
     
     methods
+        
+        function removeRois(obj, roiInd)
+            if nargin < 2; roiInd = obj.SelectedRois; end
+            
+            obj.removeItems(roiInd)
+        end
         
         % Methods for saving results.
         function saveClassification(obj, ~, ~, varargin)
@@ -493,7 +514,7 @@ classdef App < mclassifier.manualClassifier
             roiMask_ = imtranslate(roiMask_, centerOffset);
                         
             if ~nargout                
-                roiObject = obj.roiGroup.roiArray(roiInd);
+                roiObject = obj.RoiGroup.roiArray(roiInd);
                 [I, J] = roiObject.getThumbnailCoords(imSize);
                 mask = false(roiObject.imagesize);
                 mask(J, I) = roiMask_;
@@ -503,7 +524,7 @@ classdef App < mclassifier.manualClassifier
                 % will circshift the existing images, not make new ones.
                 newRoi = roiObject.reshape('Mask', mask, 'shiftImage');
 
-                obj.roiGroup.modifyRois(newRoi, roiInd)
+                obj.RoiGroup.modifyRois(newRoi, roiInd)
                 
                 clear newRoi
                 
@@ -529,7 +550,7 @@ classdef App < mclassifier.manualClassifier
             tileNum = obj.hTiledImageAxes.hittest(x, y);
             roiInd = obj.displayedItems(tileNum);
 
-            oldRoi = obj.roiGroup.roiArray(roiInd);
+            oldRoi = obj.RoiGroup.roiArray(roiInd);
             
             % Calculate x,y coordinates in original image
             tileCenter = obj.hTiledImageAxes.getTileCenter(tileNum);
@@ -540,7 +561,7 @@ classdef App < mclassifier.manualClassifier
             
             newRoi = oldRoi.reshape('Circle', [x_, y_, r], 'shiftImage');
             
-            obj.roiGroup.modifyRois(newRoi, roiInd)
+            obj.RoiGroup.modifyRois(newRoi, roiInd)
 
          end
         
@@ -553,17 +574,26 @@ classdef App < mclassifier.manualClassifier
         %   is only one selection. Therefore the unselection is processed
         %   first, then the superclass method is called.
             
+            if nargin == 2
+                changeSelectedItem@mclassifier.manualClassifier(obj, mode);
+                return
+            end
+        
             roiInd = obj.displayedItems(tileNum);
             
-            if isequal(obj.selectedItem, roiInd)
-                obj.roiGroup.changeRoiSelection(obj.selectedItem, 'unselect')
+            if isequal(obj.selectedItem, roiInd) % Toggle off.
+                obj.RoiGroup.changeRoiSelection(obj.selectedItem, [])
                 return
-            elseif ~isempty(obj.selectedItem)
-                obj.roiGroup.changeRoiSelection(obj.selectedItem, 'unselect')
-                obj.selectedItem = [];
+                
+%             elseif ~isempty(obj.selectedItem)
+%                 obj.RoiGroup.changeRoiSelection(obj.selectedItem, [])
+%                 %obj.selectedItem = [];
+            
+            elseif ~isempty(roiInd)
+                obj.RoiGroup.changeRoiSelection(obj.selectedItem, roiInd)
             end
             
-            changeSelectedItem@mclassifier.manualClassifier(obj, mode, tileNum);
+            %changeSelectedItem@mclassifier.manualClassifier(obj, mode, tileNum);
 
         end
         
@@ -572,7 +602,7 @@ classdef App < mclassifier.manualClassifier
             roiInd = obj.selectedItem;
             if isempty(roiInd); return; end
             newClass = repmat(classification, size(roiInd));
-            obj.roiGroup.setRoiClassification(...
+            obj.RoiGroup.setRoiClassification(...
                 roiInd, newClass)
                         
         end
@@ -584,7 +614,7 @@ classdef App < mclassifier.manualClassifier
             selection = hPopup.String{hPopup.Value};
             
             if contains(selection, 'Current Frame') % Show selection
-                roiImage = cat(3, obj.roiGroup.roiArray(roiInd).enhancedImage);
+                roiImage = cat(3, obj.RoiGroup.roiArray(roiInd).enhancedImage);
             else
                 roiImage = getRoiImage@mclassifier.manualClassifier(obj, roiInd, varargin);
             end
@@ -617,9 +647,7 @@ classdef App < mclassifier.manualClassifier
                 return
             end
             
-            
             obj.hTiledImageAxes.updateTileImage(imData, 1:numel(obj.displayedItems))
-            
             
         end
 
@@ -633,8 +661,7 @@ classdef App < mclassifier.manualClassifier
         
             % Call the changeRoiSelection of roiGroup, which will trigger
             % the roiSelectionChanged event
-            obj.roiGroup.changeRoiSelection(roiIndices, 'select', true)
-            
+            obj.RoiGroup.changeRoiSelection(obj.selectedItem, roiIndices, obj)
         end
         
         function onRoiSelectionChanged(obj, evtData)
@@ -648,16 +675,20 @@ classdef App < mclassifier.manualClassifier
         %   Takes care of selection of roi. Show roi as white in image 
         %   on selection. Reset color on deselection.
         
-            roiIndices = evtData.roiIndices;
-            tileNum = ismember(obj.displayedItems, roiIndices);
+        
+            selectedRoiIdx = setdiff(evtData.NewIndices, obj.selectedItem);
+            deselectedRoiIdx = setdiff(obj.selectedItem, evtData.NewIndices);
             
-            switch evtData.eventType
-                case 'unselect'
-                    obj.hTiledImageAxes.updateTilePlotLinewidth(tileNum, 1)
-                    obj.selectedItem = setdiff(obj.selectedItem, roiIndices);
-                case 'select'
-                    obj.hTiledImageAxes.updateTilePlotLinewidth(tileNum, 2)
-                    obj.selectedItem = cat(2, obj.selectedItem, roiIndices);
+            if ~isempty(selectedRoiIdx) % Update appearance of selected roi
+                tileNum = ismember(obj.displayedItems, selectedRoiIdx);
+                obj.hTiledImageAxes.updateTilePlotLinewidth(tileNum, 2)
+                obj.selectedItem = cat(2, obj.selectedItem, selectedRoiIdx);
+            end
+            
+            if ~isempty(deselectedRoiIdx) % Update appearance of deselected roi
+                tileNum = ismember(obj.displayedItems, deselectedRoiIdx);
+                obj.hTiledImageAxes.updateTilePlotLinewidth(tileNum, 1)
+                obj.selectedItem = setdiff(obj.selectedItem, deselectedRoiIdx);            
             end
             
             % Make sure the list is unique and well behaving....
@@ -666,6 +697,8 @@ classdef App < mclassifier.manualClassifier
             else
                 obj.selectedItem = []; % setdiff creates an empty row vector, creates problems later...
             end
+            
+            obj.SelectedRois = obj.selectedItem;
             
             if ~isempty(obj.selectedItem)
                 candidates = getCandidatesForUpdatedView(obj);
@@ -678,6 +711,7 @@ classdef App < mclassifier.manualClassifier
         function onRoiClassificationChanged(obj, evtData)
             
             tileNum = ismember(obj.displayedItems, evtData.roiIndices);
+            
             obj.updateTileColor(find(tileNum))
             
         end
@@ -796,8 +830,9 @@ classdef App < mclassifier.manualClassifier
             obj.updateTileColor(tileNum)
 
 
-            cellOfStr = arrayfun(@(i) num2str(i), roiInd, 'uni', 0);
-            obj.hTiledImageAxes.updateTileText(cellOfStr, tileNum)
+            %cellOfStr = arrayfun(@(i) num2str(i), roiInd, 'uni', 0);
+            roiLabels = obj.getItemText(roiInd);
+            obj.hTiledImageAxes.updateTileText(roiLabels, tileNum)
 
     %         for i = 1:numel(roiInd)
     %             obj.hTiledImageAxes.updateTileText(num2str(roiInd(i)), tileNum(i))
@@ -806,13 +841,12 @@ classdef App < mclassifier.manualClassifier
             % Get boundary coordinates for all rois. Shift boundary to origo
             % and resize according to upsampling factor.
             boundaryX = arrayfun(@(i) (obj.itemSpecs(i).boundary{1}(:,2) - ...
-                obj.itemSpecs(i).center(1)).* upsampling, roiInd, 'uni', 0) ;
+                obj.itemSpecs(i).center(1)).* upsampling(1), roiInd, 'uni', 0) ;
             boundaryY = arrayfun(@(i) (obj.itemSpecs(i).boundary{1}(:,1) - ...
-                obj.itemSpecs(i).center(2)).* upsampling, roiInd, 'uni', 0) ;
+                obj.itemSpecs(i).center(2)).* upsampling(2), roiInd, 'uni', 0) ;
 
             % Send to plotter method in TiledImageAxes Object
             obj.hTiledImageAxes.updateTilePlot(boundaryX, boundaryY, tileNum)
-            
             
             % Reset linewidth of objects in all tiles
             obj.hTiledImageAxes.updateTilePlotLinewidth(tileNum, 1)
@@ -837,7 +871,7 @@ classdef App < mclassifier.manualClassifier
             obj.roiPixelIndices = zeros([roiImageSize(1), 2, numRois]);
             
             for i = 1:numRois
-                roiObject = obj.roiGroup.roiArray(obj.displayedItems(i));
+                roiObject = obj.RoiGroup.roiArray(obj.displayedItems(i));
                 [I, J] = roiObject.getThumbnailCoords(roiImageSize);
                 obj.roiPixelIndices(:,1,i) = I;
                 obj.roiPixelIndices(:,2,i) = J;
@@ -898,7 +932,7 @@ classdef App < mclassifier.manualClassifier
             end
 
 
-            obj.roiGroup = applib.roimanager.roiGroup(S);
+            obj.RoiGroup = applib.roimanager.roiGroup(S);
             
             
 % %             allowedFields = {'roiArray', 'roiImages', 'roiStats', 'roiClassification'};
@@ -921,27 +955,27 @@ classdef App < mclassifier.manualClassifier
     
     methods %Set/get
         function specs = get.itemSpecs(obj)
-            specs = obj.roiGroup.roiArray;
+            specs = obj.RoiGroup.roiArray;
         end
         
         function imData = get.itemImages(obj)
-            imData = obj.roiGroup.roiImages;
+            imData = obj.RoiGroup.roiImages;
         end
         
         function set.itemClassification(obj, newClass)
             
-            oldClass = obj.roiGroup.roiClassification;
+            oldClass = obj.RoiGroup.roiClassification;
             roiInd = find(oldClass ~= newClass);
             
-            obj.roiGroup.setRoiClassification(roiInd, newClass(roiInd))
+            obj.RoiGroup.setRoiClassification(roiInd, newClass(roiInd))
         end
         
         function stats = get.itemStats(obj)
-            stats = obj.roiGroup.roiStats;
+            stats = obj.RoiGroup.roiStats;
         end
         
         function classification = get.itemClassification(obj)
-            classification = obj.roiGroup.roiClassification;
+            classification = obj.RoiGroup.roiClassification;
         end
     end
     

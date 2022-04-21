@@ -18,6 +18,10 @@ classdef VariableModelUI < applify.apptable
         VariableModel
     end
     
+    properties (Dependent)
+        FileAdapterList
+    end
+    
     properties % Toolbar button...
         UIButton_AddVariable
         UIButton_ToggleVariableVisibility
@@ -52,9 +56,9 @@ classdef VariableModelUI < applify.apptable
             obj.ColumnNames = {'', 'Data variable name', 'Data location', ...
                  'Filename expression', 'File type', 'File adapter'};
             obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
-            obj.ColumnWidths = [12, 150, 105, 135, 70, 75];
-            obj.RowSpacing = 15;   
-            obj.ColumnSpacing = 20;
+            obj.ColumnWidths = [12, 150, 115, 125, 70, 75];
+            obj.RowSpacing = 20;   
+            obj.ColumnSpacing = 18;
         end
         
         function hRow = createTableRowComponents(obj, rowData, rowNum)
@@ -86,6 +90,7 @@ classdef VariableModelUI < applify.apptable
             if rowData.IsDefaultVariable
                 hRow.VariableName = uilabel(obj.TablePanel);
                 hRow.VariableName.Text = rowData.VariableName;
+                hRow.VariableName.Tooltip = rowData.VariableName;
             else
                 hRow.VariableName = uieditfield(obj.TablePanel, 'text');
                 hRow.VariableName.Value = rowData.VariableName;
@@ -93,8 +98,22 @@ classdef VariableModelUI < applify.apptable
             
             hRow.VariableName.FontName = 'Segoe UI';
             hRow.VariableName.BackgroundColor = [1 1 1];
-            hRow.VariableName.Position = [xi y wi h];
+            hRow.VariableName.Position = [xi+25 y wi-25 h];
             obj.centerComponent(hRow.VariableName, y)
+            
+            % % Create star button
+            hRow.StarButton = uiimage(obj.TablePanel);
+            hRow.StarButton.Position = [xi y 20 20];
+            obj.centerComponent(hRow.StarButton, y)
+            hRow.StarButton.ImageClickedFcn = @obj.onStarButtonClicked;
+            
+            if rowData.IsFavorite
+                hRow.StarButton.ImageSource = 'star_on.png';
+                hRow.StarButton.Tooltip = 'Remove from favorites';
+            else
+                hRow.StarButton.ImageSource = 'star_off.png';
+                hRow.StarButton.Tooltip = 'Add to favorites';
+            end
 
             
          % % Create DataLocation Dropdown
@@ -105,6 +124,7 @@ classdef VariableModelUI < applify.apptable
             hRow.DataLocSelect.FontName = 'Segoe UI';
             hRow.DataLocSelect.BackgroundColor = [1 1 1];
             hRow.DataLocSelect.Position = [xi y wi-25 h];
+            hRow.DataLocSelect.ValueChangedFcn = @obj.onDataLocationChanged;
             obj.centerComponent(hRow.DataLocSelect, y)
             
             % Fill in values (and items..)
@@ -131,7 +151,7 @@ classdef VariableModelUI < applify.apptable
             hRow.FileNameExpr.BackgroundColor = [1 1 1];
             hRow.FileNameExpr.Position = [xi y wi h];
             obj.centerComponent(hRow.FileNameExpr, y)
-            hRow.FileNameExpr.ValueChangedFcn = @obj.fileNameExpressionChanged;
+            hRow.FileNameExpr.ValueChangedFcn = @obj.onFileNameExpressionChanged;
             
             if ~isempty(rowData.FileNameExpression)
                 hRow.FileNameExpr.Value = rowData.FileNameExpression;
@@ -157,8 +177,9 @@ classdef VariableModelUI < applify.apptable
                 end
 
                 hRow.FileTypeSelect.Value = rowData.FileType;
-
             end
+            
+            hRow.FileTypeSelect.ValueChangedFcn = @obj.onFileTypeChanged;
             
            % Create FileAdapter Dropdown
             i = i+1;
@@ -170,7 +191,7 @@ classdef VariableModelUI < applify.apptable
             hRow.FileAdapterSelect.Position = [xi y wi h];
             obj.centerComponent(hRow.FileAdapterSelect, y)
             
-            hRow.FileAdapterSelect.Items = {'Default', 'ImageStack'};
+            hRow.FileAdapterSelect.Items = {obj.FileAdapterList.FileAdapterName};
             
             if ~contains(rowData.FileAdapter, hRow.FileAdapterSelect.Items)
             
@@ -183,6 +204,8 @@ classdef VariableModelUI < applify.apptable
             else
                 hRow.FileAdapterSelect.Value = rowData.FileAdapter;
             end
+            
+            hRow.FileAdapterSelect.ValueChangedFcn = @obj.onFileAdapterChanged;
             
         end
         
@@ -205,34 +228,97 @@ classdef VariableModelUI < applify.apptable
     
     methods (Access = protected)
         
-        function fileNameExpressionChanged(obj,src, evt)
+        function onDataLocationChanged(obj,src, ~)
+                                
+            rowNumber = obj.getComponentRowNumber(src);
+            obj.updateFileTypeDropdownItems(rowNumber)
             
-            newExpression = src.Value;
+            obj.IsDirty = true;
+        end
+        
+        function onStarButtonClicked(obj, src, ~)
             
+            switch src.Tooltip
+                case 'Remove from favorites'
+                    src.Tooltip = 'Add to favorites';
+                    src.ImageSource = 'star_off.png';
+                case 'Add to favorites'
+                    src.Tooltip = 'Remove from favorites';
+                    src.ImageSource = 'star_on.png';
+            end
+            
+        end
+        
+        function onFileNameExpressionChanged(obj,src, ~)
+                                
+            rowNumber = obj.getComponentRowNumber(src);
+            obj.updateFileTypeDropdownItems(rowNumber)
+            
+            obj.IsDirty = true;
+        end
+        
+        function onFileTypeChanged(obj, src, evt)
+        %onFileTypeChanged Callback for filetype selection changed
+        
+            % Get row number where filetype was changed
             rowNumber = obj.getComponentRowNumber(src);
             hRow = obj.RowControls(rowNumber);
             
-            folderPath = obj.getSelectedDataLocationFolderPath(rowNumber);
+            % Get the selected filetype
+            fileType = hRow.FileTypeSelect.Value;
+            fileType = strrep(fileType, '.', '');
             
-            expression = ['*', newExpression, '*'];
-            L = dir(fullfile(folderPath, expression));
+            % Find file adapters that supports the filetype.
+            fileAdapterList = obj.FileAdapterList;
             
-            listOfFileExtension = cell(numel(L), 1);
-            for i = 1:numel(L)
-                [~, ~, ext] = fileparts(L(i).name);
-                listOfFileExtension{i} = ext;
+            matchesFiletype = cellfun(@(c) any(strcmp(fileType, c)), ...
+                {fileAdapterList.SupportedFileTypes}, 'uni', 1);
+            
+            % Update the list of file adapters available for this filetype
+            if any(matchesFiletype)
+                fileAdapterNames = {fileAdapterList(matchesFiletype).FileAdapterName};
+                
+                hRow.FileAdapterSelect.Items = fileAdapterNames;
+
+                if ~contains(hRow.FileAdapterSelect.Value, fileAdapterNames)
+                    hRow.FileAdapterSelect.Value = fileAdapterNames{1};
+                end
+                
+            else
+                hRow.FileAdapterSelect.Items = {'N/A'};
+                hRow.FileAdapterSelect.Value = 'N/A';
             end
             
-            if isempty(listOfFileExtension)
-                listOfFileExtension = obj.DEFAULT_FILETYPES;
+        end
+        
+        function onFileAdapterChanged(obj, src, evt)
+        %onFileAdapterChanged Callback for file adapter selection changed
+            
+            % Get row number where file adapter was changed
+            rowNumber = obj.getComponentRowNumber(src);
+            hRow = obj.RowControls(rowNumber);
+            
+            % Get the selected filetype for this row
+            fileType = hRow.FileTypeSelect.Value;
+            fileType = strrep(fileType, '.', '');
+
+            % Check if the current file adapter selection is supporting
+            % this filetype
+            newValue = evt.Value;
+            fileAdapterList = obj.FileAdapterList;
+            isMatch = strcmp({fileAdapterList.FileAdapterName}, newValue);
+            
+            % Reset the file adapter selection if filetype is not supported
+            if any(strcmp(fileAdapterList(isMatch).SupportedFileTypes, fileType))
+                % pass
+            else 
+                hFig = ancestor(obj.Parent, 'figure');
+                allowedFileTypes = strcat('.', fileAdapterList(isMatch).SupportedFileTypes);
+                supportedFileTypes = strjoin(allowedFileTypes, ', ');
+                uialert(hFig, sprintf('The file adapter "%s" supports the following file types: %s', newValue, supportedFileTypes), 'Selection Aborted')
+                src.Value = evt.PreviousValue;
             end
             
-            listOfFileExtension = unique(listOfFileExtension);
-            
-            hRow.FileTypeSelect.Items = listOfFileExtension;
-            % Todo: List files....
-            
-            obj.IsDirty = true;
         end
         
         function pathStr = getSelectedDataLocationFolderPath(obj, rowNumber)
@@ -257,6 +343,8 @@ classdef VariableModelUI < applify.apptable
         function onAddNewVariableButtonPushed(obj, src, event)
             numRows = obj.NumRows;
             rowData = obj.VariableModel.getBlankItem;
+            rowData.IsCustom = true;
+            
             % Fuck, this is ugly
             if ~isfield(rowData, 'Uuid')
                 rowData.Uuid = nansen.util.getuuid();
@@ -388,6 +476,10 @@ classdef VariableModelUI < applify.apptable
             obj.onVariableModelSet();
         end
         
+        function fileAdapterList = get.FileAdapterList(obj)
+            fileAdapterList = nansen.dataio.listFileAdapters();
+        end
+        
         function setDataLocationSelectionDropdownValues(obj, hRow, rowData)
             
             hRow.DataLocSelect.Items = {obj.DataLocationModel.Data.Name}; % Todo: Where to get this from?
@@ -411,15 +503,42 @@ classdef VariableModelUI < applify.apptable
             end
         end
         
-        function S = getUpdatedTableData(obj)
-                        
-            S = struct('VariableName', {}, ...
-                'IsDefaultVariable', {}, ...
-                'FileNameExpression', {}, ...
-                'DataLocation', {}, ...
-                'FileType', {}, ...
-                'FileAdapter', {}) ;
+        function updateFileTypeDropdownItems(obj, rowNumber)
+        %updateFileTypeDropdownItems Update items of file type dropdown  
+        
+            hRow = obj.RowControls(rowNumber);
             
+            folderPath = obj.getSelectedDataLocationFolderPath(rowNumber);
+            fileNameExpression = hRow.FileNameExpr.Value;
+            
+            % Find files in folder
+            expression = ['*', fileNameExpression, '*'];
+            L = dir(fullfile(folderPath, expression));
+            keep = ~strncmp({L.name}, '.', 1);
+            L = L(keep);
+            
+            listOfFileExtension = cell(numel(L), 1);
+            for i = 1:numel(L)
+                [~, ~, ext] = fileparts(L(i).name);
+                listOfFileExtension{i} = ext;
+            end
+            
+            if isempty(listOfFileExtension)
+                listOfFileExtension = obj.DEFAULT_FILETYPES;
+            end
+            
+            listOfFileExtension = unique(listOfFileExtension);
+            
+            hRow.FileTypeSelect.Items = listOfFileExtension;
+            % Todo: List files....
+            
+            
+        end
+        
+        function S = getUpdatedTableData(obj)
+            
+            fileAdapterList = obj.FileAdapterList;
+
             % Todo: debug this (important)!
             S = obj.Data;
             
@@ -434,10 +553,18 @@ classdef VariableModelUI < applify.apptable
                     S(j).VariableName = hRow.VariableName.Text;
                     S(j).IsDefaultVariable = true;
                 end
+                S(j).IsFavorite = strcmp(hRow.StarButton.Tooltip, 'Remove from favorites');
                 S(j).FileNameExpression = hRow.FileNameExpr.Value;
                 S(j).DataLocation = hRow.DataLocSelect.Value;
                 S(j).FileType = hRow.FileTypeSelect.Value;
                 S(j).FileAdapter = hRow.FileAdapterSelect.Value;
+                
+                % Update data type based on fileadapter selection
+                isMatch = strcmp({fileAdapterList.FileAdapterName}, S(j).FileAdapter);
+                if any(isMatch) && ~strcmp( S(j).FileAdapter, 'Default' )
+                    S(j).DataType = fileAdapterList(isMatch).DataType;
+                end
+                
             end
             
         end

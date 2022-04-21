@@ -1,4 +1,9 @@
 classdef ProcessorT < nansen.stack.ImageStackProcessor
+
+%   This class creates the following data variables:
+%
+%     * <strong>ExtractTemporalWeights</strong> : Extracted temporal components 
+%           (numRois x numTimepoints) single matrix
     
     % Rename to ExtractT
     
@@ -53,11 +58,11 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
         function onInitialization(obj)
         %onInitialization Initialize variables
         
-            filePath = obj.getDataFilePath('extractTemporalWeights_temp', '-w',...
-                'Subfolder', obj.DATA_SUBFOLDER);
-            
+            filePath = obj.getDataFilePath('ExtractTemporalWeights_temp', '-w',...
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
+           
             if isfile(filePath)
-                obj.Results = obj.loadData('extractTemporalWeights_temp');
+                obj.Results = obj.loadData('ExtractTemporalWeights_temp');
             end
         
             % Todo: Load from file....
@@ -84,7 +89,8 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
             T = cat(2, obj.Results{:});
             
             % Save temporal profiles
-            obj.saveData('extractTemporalWeights', T, 'Subfolder', obj.DATA_SUBFOLDER)
+            obj.saveData('ExtractTemporalWeights', T, 'Subfolder', ...
+                obj.DATA_SUBFOLDER, 'IsInternal', true)
         end
 
     end
@@ -98,7 +104,7 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
             [~, T, ~] = run_extract(Y, config);
             
             obj.Results{obj.CurrentPart} = T;
-            obj.saveData('extractTemporalWeights_temp', obj.Results)
+            obj.saveData('ExtractTemporalWeights_temp', obj.Results)
             
             results = [];
             

@@ -8,12 +8,17 @@ function createSessionTableContextMenu(app)
     %hContextMenu.ContextMenuOpeningFcn = @(s,e,m) disp('test');%onContextMenuOpening;
     %hContextMenu.ContextMenuOpeningFcn = @(src,event)disp('Context menu opened');
     
-    if ~isempty(app.UiMetaTableViewer.HTable.ContextMenu)
-        delete(app.UiMetaTableViewer.HTable.ContextMenu)
-    end
     
-    %app.UiMetaTableViewer.HTable.ContextMenu = hContextMenu;
+% % %     if ~isempty(app.UiMetaTableViewer.HTable.ContextMenu)
+% % %         delete(app.UiMetaTableViewer.HTable.ContextMenu)
+% % %     end
+% % %     app.UiMetaTableViewer.HTable.ContextMenu = hContextMenu;
+
+    if ~isempty(app.UiMetaTableViewer.TableContextMenu)
+        delete(app.UiMetaTableViewer.TableContextMenu)
+    end
     app.UiMetaTableViewer.TableContextMenu = hContextMenu;
+    
     hMenuItem = gobjects(0);
     c = 1;
     
@@ -47,11 +52,18 @@ function createSessionTableContextMenu(app)
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'View Session Notes');
     hMenuItem(c).Callback = @(s, e) app.onViewSessionNotesContextMenuClicked();
-    
+   
     c = c + 1;
-    hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Assign Pipeline', 'Separator', 'on');
-    app.updatePipelineItemsInMenu(hMenuItem(c))
+    hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Get Task List', 'Separator', 'on');
+    hSubmenuItem = uimenu(hMenuItem(c), 'Text', 'Manual');
+    hSubmenuItem.Callback = @(s, e) app.createBatchList('Manual');
+    hSubmenuItem = uimenu(hMenuItem(c), 'Text', 'Queuable');
+    hSubmenuItem.Callback = @(s, e) app.createBatchList('Queuable');
 
+    c = c + 1;
+    hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Assign Pipeline');
+    app.updatePipelineItemsInMenu(hMenuItem(c))
+    
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Update Column Variable');
     %columnVariables = getPublicSessionInfoVariables(app.MetaTable);
@@ -72,5 +84,7 @@ function createSessionTableContextMenu(app)
     %m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
     %m4 = uimenu(hContextMenu, 'Text', 'Edit Session Notes', 'Callback', @app.editSessionNotes, 'Enable', 'on');
     %m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');
+    
+    %app.UiMetaTableViewer.TableContextMenu = 
     
 end

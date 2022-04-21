@@ -1,10 +1,15 @@
 % Class for indexing data from a video file in the same manner that data 
 % is indexed from matlab arrays.
 
-classdef Video < nansen.stack.data.VirtualArray
-        
-    % Why is this so slow????
+% Why is this so slow????
 
+classdef Video < nansen.stack.data.VirtualArray
+%Video Create a virtual array object for a video file
+
+    properties (Constant, Hidden)
+        FILE_PERMISSION = 'read'
+    end
+    
     properties (Access = private, Hidden)
         VideoReaderObj
     end
@@ -16,11 +21,9 @@ classdef Video < nansen.stack.data.VirtualArray
     methods % Structors
         
         function obj = Video(filePath, varargin)
-
             % Open folder browser if there are no inputs.
             if nargin < 1; filePath = uigetdir; end
             obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
-            
         end
         
         function delete(obj)
@@ -118,23 +121,25 @@ classdef Video < nansen.stack.data.VirtualArray
         
         function data = readFrames(obj, frameInd)
             
+            nDim = numel(obj.DataSize);
+
             % Determine size of requested data
             newDataSize = obj.DataSize;
             newDataSize(end) = numel(frameInd);
                    
-            nDim = numel(obj.DataSize);
-            
+            % Preallocate output data
             data = zeros(newDataSize, obj.DataType);
 
             if iscolumn(frameInd); frameInd = frameInd'; end
-            
+
             c = 0;
-            for i = frameInd
+            for i = frameInd % Read all requested frames.
                 
                 if i > obj.DataSize(end)
                     break
                 end
                 
+                % Read frame and add to putput data:
                 obj.VideoReaderObj.currentTime = (i-1) .* (1/obj.FrameRate);
                 frameData = obj.VideoReaderObj.readFrame();
                 
@@ -151,14 +156,13 @@ classdef Video < nansen.stack.data.VirtualArray
         end
         
         function writeFrames(obj, data, frameInd)
-            
+            error('Writing frames to video files are not supported yet')
         end
         
         function frameData = getFrame(obj, iFrame)
             obj.VideoReaderObj.currentTime = (iFrame-1) .* (1/obj.FrameRate);
             frameData = readFrame(obj.VideoReaderObj);    
         end
-        
         
     end
     

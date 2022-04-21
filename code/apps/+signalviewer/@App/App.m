@@ -1,4 +1,4 @@
-classdef App < applify.ModularApp
+classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDialogBox
 %signalviewer.App is a plotter for timeseries data
 %
 %   The signalviewer app is useful for plotting long timeseries data 
@@ -77,6 +77,10 @@ classdef App < applify.ModularApp
     %   [ ] Can I configure some of the axes properties to improve
     %       performance?
     %
+    %   [ ] downsample
+    %   [ ] yscrollbar
+    %   [ ] dynamic update of data when panning..
+    %
     %   methods:
     %       change sample
     %       change timepoint      
@@ -89,7 +93,7 @@ classdef App < applify.ModularApp
 
 % - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - 
 
-    properties (Constant)
+    properties (Constant, Hidden)
         ICONS = uim.style.iconSet(signalviewer.App.getIconPath)
         DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
     end
@@ -112,11 +116,17 @@ classdef App < applify.ModularApp
         YLabelName
     end
     
+    properties (Access = private)
+        TimeAxis % Class for show time along x-axis
+    end
+    
     properties
        
         settings = struct('ScrollFactorPanX', 5, ...
                           'ScrollFactorZoomX', 1, ...
-                          'ScrollFactorZoomY', 1 )%, ...
+                          'ScrollFactorZoomY', 1, ...
+                          'DataPointPerPixel', 4, ...
+                          'MaxNumTraces', 100 )%, ... % Todo...
 %                           'YLimLeft', [0, 1], ...
 %                           'YLimRight', [0, 1] )
                       
@@ -127,7 +137,7 @@ classdef App < applify.ModularApp
         SynchedApps applify.ModularApp
         
     end
-
+    
     properties (Access = protected)
         ax
         
@@ -138,20 +148,30 @@ classdef App < applify.ModularApp
         
         PointerManager
         
+        %ContextMenu 
         hContextMenu
         
-        hScrollPanel
-        hScrollbar
+        hScrollPanelX
+        hScrollPanelY
+        hScrollbarX
+        hScrollbarY
         
         signalLegend
+        
+        hLineArray struct
         
         hlineCurrentFrame
         hlineTsArray
         
-        tsNames = {} % Should be dependent
-        tsArray = timeseries.empty
+        TimeseriesPyramid
         
-        yLimExtreme
+        tsNames = {} % Should be dependent
+        tsArray %= timeseries.empty
+        
+        %yLimExtreme
+        %tLimExtreme
+        
+        
         
         SynchTimer timer    % Timer for checking framenumber of synched app
     end
@@ -180,12 +200,13 @@ classdef App < applify.ModularApp
         function obj = App(varargin)
             
             [h, varargin] = applify.ModularApp.splitArgs(varargin{:});
-            
             obj@applify.ModularApp(h);
             
             obj.customizeFigure();
             obj.createAxes() %Todo: what if properties are set?
             obj.createInteractionAxes()
+            
+            obj.DialogBox = uim.AxesDialogBox(obj.Axes);
             
             try
                 obj.createScrollbar()
@@ -209,12 +230,23 @@ classdef App < applify.ModularApp
                 return
             end
             
-            obj.parseTimeSeriesArray(tsArray, varargin{:});
-            
+                        
             % Hold here!
             hold(obj.ax, 'on')
+            
+            
+            obj.parseTimeSeriesArray(tsArray, varargin{:}, nvPairs{:});
 
-            obj.plotTimeSeries(obj.tsArray);
+            if isa(obj.tsArray, 'timeseries')
+                obj.plotTimeSeries(obj.tsArray);
+                % Todo: time axis...
+            elseif isa(obj.tsArray, 'timetable')
+                obj.plotTimeTable(obj.tsArray);
+                obj.TimeAxis = signalviewer.TimeAxis(obj.tsArray.Time, obj.ax);
+            else
+                
+            end
+            
             obj.setNewXLims()
             %obj.ax.ButtonDownFcn = {@obj.interactiveFrameChangeRequest, 'mousepress' };
 
@@ -305,6 +337,8 @@ classdef App < applify.ModularApp
             % Plot time series arrays
             h = obj.plotTimeSeries(timeseriesArray);
             
+            
+            
             if nargout==0
                 clear h
             end
@@ -319,7 +353,7 @@ classdef App < applify.ModularApp
             
             for i = 1:numel(signalsToDisplay)
                 signalName = signalsToDisplay{i};
-                lines(i) = obj.getHandle(signalName);
+                lines(i) = obj.getHandle(signalName, 1);
             end
               
             obj.signalLegend = legend(lines, names, 'AutoUpdate', 'off');
@@ -332,6 +366,7 @@ classdef App < applify.ModularApp
             obj.signalLegend.FontSize = 10;
             obj.signalLegend.Units = 'pixel';
             obj.signalLegend.Position(2) = sum(obj.ax.Position([2,4]))+5;
+            obj.signalLegend.Interpreter = 'none';
             
         end
         
@@ -447,7 +482,7 @@ classdef App < applify.ModularApp
                 obj.Figure.CloseRequestFcn = @obj.quitApp;
 
             else
-                figurePos = getpixelposition(obj.Panel);
+                %figurePos = getpixelposition(obj.Panel);
             end
                         
             obj.setFigureName()
@@ -549,19 +584,36 @@ classdef App < applify.ModularApp
         function createScrollbar(obj)
             
             panelWidth = obj.ax.Position(3);
+            panelHeight = obj.ax.Position(4);
             
-            obj.hScrollPanel = uipanel('Parent', obj.Panel, 'Units', 'pixel', 'Position', ...
+            obj.hScrollPanelX = uipanel('Parent', obj.Panel, 'Units', 'pixel', 'Position', ...
                 [obj.Margins(1), 5, panelWidth, 10]);
-            obj.hScrollPanel.BorderType = 'none';
+                 
+            xLoc = obj.Figure.Position(3) - obj.Margins(3) - 10;
+            xLoc = obj.Figure.Position(3) - 15;
+            obj.hScrollPanelY = uipanel('Parent', obj.Panel, 'Units', 'pixel', 'Position', ...
+                [xLoc, obj.Margins(2), 10, panelHeight]);
+            
+            
+            obj.hScrollPanelX.BorderType = 'none';
+            obj.hScrollPanelY.BorderType = 'none';
+            
+            obj.hScrollbarX = uim.widget.scrollerBar(obj.hScrollPanelX, 'BarColor', ones(1,3)*0.7, 'Visible', 'off');
+            obj.hScrollbarY = uim.widget.scrollerBar(obj.hScrollPanelY, 'BarColor', ones(1,3)*0.7, 'Visible', 'off', 'Direction', 'reverse');
 
-            obj.hScrollbar = uim.widget.scrollerBar(obj.hScrollPanel, 'BarColor', ones(1,3)*0.7, 'Visible', 'off');
-%             obj.hScrollbar.TrackColor = ones(1,3)*0.9;
+%             obj.hScrollbarX.TrackColor = ones(1,3)*0.9;
 
-            obj.hScrollbar.Callback = @obj.setXLimitsScrollbar;
-            obj.hScrollbar.StopMoveCallback = @obj.onScrollStop;
-            obj.hScrollbar.showTrack()
-            obj.hScrollbar.TrackColor = ones(1,3);
-            obj.hScrollbar.VisibleAmount = 1;
+            obj.hScrollbarX.Callback = @obj.setXLimitsScrollbar;
+            obj.hScrollbarX.StopMoveCallback = @obj.onScrollStop;
+            obj.hScrollbarX.showTrack()
+            obj.hScrollbarX.TrackColor = ones(1,3);
+            obj.hScrollbarX.VisibleAmount = 1;
+            
+            obj.hScrollbarY.Callback = @obj.setYLimitsScrollbar;
+            %obj.hScrollbarY.StopMoveCallback = @obj.onScrollStop;
+            obj.hScrollbarY.hideTrack()
+            obj.hScrollbarY.TrackColor = ones(1,3);
+            obj.hScrollbarY.VisibleAmount = 1;
             
         end
         
@@ -638,8 +690,8 @@ classdef App < applify.ModularApp
             axPos = getpixelposition(obj.ax, true);
 
             
-            if ~isempty( obj.hScrollPanel )
-                scrollPos = getpixelposition(obj.hScrollPanel, true);
+            if ~isempty( obj.hScrollPanelX )
+                scrollPos = getpixelposition(obj.hScrollPanelX, true);
                 if xy(1) > scrollPos(1) && xy(1) < sum(scrollPos([1,3]))
                     if xy(2) > scrollPos(2) && xy(2) < sum(scrollPos([2,4]))
                         return
@@ -683,6 +735,10 @@ classdef App < applify.ModularApp
         function tsInd = isPointInEventVector(obj, pointX )
             
             tsInd = [];
+            
+            if isa(obj.tsArray, 'timetable')
+                return
+            end
             
             isEvent = arrayfun(@(x) islogical(x.Data), obj.tsArray );
             matchedInd = find(isEvent);
@@ -757,17 +813,38 @@ classdef App < applify.ModularApp
             
             % Returns tsArray if requested
             
-            if ~isa(tsArray, 'timeseries')
+            if isa(tsArray, 'timetable')
+                %pass
+                varNames = tsArray.Properties.VariableNames;
+                
+            elseif isa(tsArray, 'timeseries')
+                varNames = {tsArray.Name};
+
+            elseif ~isa(tsArray, 'timeseries')
                 tsArray = obj.createTimeseriesArray(tsArray, varargin{:});
+                varNames = {tsArray.Name};
+
             end
             
-            obj.tsNames = [obj.tsNames, {tsArray.Name}];
-            obj.tsArray = [obj.tsArray, tsArray];
+            obj.tsNames = [obj.tsNames, varNames];
+            
+            % Append timeseries array to prop.
+            if isempty(obj.tsArray)
+                obj.tsArray = tsArray;
+            else
+                obj.tsArray = [obj.tsArray, tsArray];
+            end
             
             % TODO: set this based on
-            obj.nSamples = max( arrayfun(@(ts) ts.Length, obj.tsArray) );
+            if isa(tsArray, 'timeseries')
+                obj.nSamples = max( arrayfun(@(ts) ts.Length, obj.tsArray) );
+            elseif isa(tsArray, 'timetable')
+                obj.nSamples = size(obj.tsArray, 1);
+            else
+                error('Unsupported')
+            end
             
-            obj.updateContextMenuSignalsToShow({tsArray.Name})
+            obj.updateContextMenuSignalsToShow( varNames )
 
             
             if ~nargout
@@ -898,16 +975,24 @@ classdef App < applify.ModularApp
 
     methods (Access = public) % Data access and update
         
-        function h = getHandle(obj, name)
+        function h = getHandle(obj, name, number)
             %Todo: Isthis to naive???
             
             h = [];
             
-            ind = contains(obj.tsNames, name);
+            ind = strcmp(obj.tsNames, name);
             
             if isempty(ind); return; end
             
-            h = obj.hlineTsArray(ind);
+            try
+                h = obj.hLineArray.(name);
+            catch
+                h = obj.hlineTsArray(ind);
+            end
+            
+            if nargin >= 3
+                h = h(1:number);
+            end
             
         end
         
@@ -978,12 +1063,14 @@ classdef App < applify.ModularApp
                 set(obj.ax.YAxis, 'LimitsMode', 'auto')
                 mItem.Checked = 'on';
                 set(h, 'Visible', 'on');
-                drawnow
                 set(obj.ax.YAxis, 'LimitsMode', 'manual')
             else
                 mItem.Checked = 'off';
                 set(h, 'Visible', 'off');
             end
+            
+            drawnow
+
 
         end
         
@@ -992,8 +1079,23 @@ classdef App < applify.ModularApp
         function editSettings(obj, ~, ~)
         
             oldSettings = obj.settings;
-            newSettings = tools.editStruct(oldSettings, 'all', 'Signal Viewer Settings');
+            newSettings = tools.editStruct(oldSettings, 'all', ...
+                'Signal Viewer Settings', 'Callback', @obj.onSettingsChanged);
             obj.settings = newSettings;
+            
+            
+            
+        end
+        
+        function onSettingsChanged(obj, name, value)
+
+            switch name
+                case 'DataPointPerPixel'
+                    if ~isempty(obj.TimeseriesPyramid)
+                        obj.TimeseriesPyramid.DataPointPerPixel = value;
+                        obj.updateDownsampledData()
+                    end
+            end
             
         end
         
@@ -1011,7 +1113,7 @@ classdef App < applify.ModularApp
             
             h = cell(nTimeseries, 1);
             
-            colors = get(gca,'ColorOrder');
+            colors = get(obj.Axes, 'ColorOrder');
             nColors = size(colors,1);
             
             %colors = viridis(nColors);
@@ -1019,6 +1121,7 @@ classdef App < applify.ModularApp
             %colors = cbrewer('qual', 'Set2', nColors, 'spline');
             %patchColors = cbrewer('seq', 'PuBuGn', nColors*2, 'spline');
             %patchColors = patchColors(nColors+1:end, :);
+            
             patchColors = cbrewer('qual', 'Set2', max([nColors,3]), 'spline'); % Should be min 3 for cbrewer
             
             for i = 1:numel(tsArray)
@@ -1046,6 +1149,10 @@ classdef App < applify.ModularApp
                 end
 
                 if i == 1; hold(obj.ax, 'on'); end
+                
+                
+                set(hNew, 'HitTest', 'off', 'PickableParts', 'none')
+                
                 
                 h{i} = hNew;
 
@@ -1079,6 +1186,156 @@ classdef App < applify.ModularApp
 
             if nargout == 0
                 clear h
+            end
+            
+        end
+        
+        function h = plotTimeTable(obj, timetableObj)
+                
+            persistent colorInd
+            if isempty(colorInd); colorInd = 0; end
+    
+            numTimepoints = size(timetableObj, 1);
+            numTimeseries = size(timetableObj, 2);
+            
+            sampleIdx = 1:size(timetableObj, 1);
+            
+            reso = obj.settings.DataPointPerPixel;
+            if signalviewer.TimeseriesPyramid.useDownsampling(numTimepoints, reso)
+                
+                % Todo: This should be done according to single/multitrace
+                % state....
+                yData = timetableObj.Variables;
+                yData = yData - prctile(yData, 25, 1); % Todo: keep these as persistent variables??
+                yData = yData ./ prctile(yData(:), 99.9);
+                timetableObj.Variables = yData;
+                
+                obj.TimeseriesPyramid = signalviewer.TimeseriesPyramid(timetableObj, reso);
+                addlistener(obj.ax, 'XLim', 'PostSet', @obj.updateDownsampledData);
+                [sampleIdx, timetableObj] = obj.TimeseriesPyramid.getData(sampleIdx([1,end]));
+            end
+            
+            h = cell(numTimeseries, 1);
+            
+            colors = get(gca,'ColorOrder');
+            nColors = size(colors,1);
+            
+            for i = 1:numTimeseries
+                             
+                colorInd = mod(colorInd, nColors) + 1;
+            
+                thisTimeseries = timetableObj(:, i);
+                dataValues = thisTimeseries.Variables;
+                
+                
+                numSeries = size(dataValues, 2);
+                
+                if numSeries > 1
+                    
+                    thisData = thisTimeseries.Variables;
+                    thisData = thisData - prctile(thisData, 25, 1);
+                    thisData = thisData ./ prctile(thisData(:), 99.9);
+                    thisData = thisData + (1:numSeries);
+                    
+                    baseColor = colors(colorInd,:);
+                    baseColorHsv = rgb2hsv(baseColor);
+                    
+                    colorMapHsv = repmat(baseColorHsv, numSeries, 1); 
+                    colorMapHsv(:, 3) = linspace(0.5, 1, numSeries);
+                    colorMap = hsv2rgb(colorMapHsv);
+                    
+                    hNew = line(obj.ax, sampleIdx, thisData, ...
+                        'Visible', 'on', 'Color', colors(colorInd,:) );
+                    
+                    set(hNew, {'Color'}, arrayfun(@(i) colorMap(i,:), 1:numSeries, 'uni', 0)')
+                
+                    varName = thisTimeseries.Properties.VariableNames{1};
+                    obj.hLineArray(1).(varName) = hNew;
+                
+                else
+                    
+                    hNew = plot(obj.ax, sampleIdx, thisTimeseries.Variables, ...
+                        'Visible', 'on', 'Color', colors(colorInd,:) );
+                end
+
+                set(hNew, 'HitTest', 'off', 'PickableParts', 'none')
+
+            end
+            
+
+            
+            switch obj.ActiveYAxis
+                case 'left'
+                    obj.YLimExtreme.left = obj.ax.YLim;
+                case 'right'
+                    obj.YLimExtreme.right = obj.ax.YLim;
+            end
+        end
+        
+        function updateDownsampledData(obj, src, evt)
+            % Todo: Update specific variables...
+            newLim = obj.ax.XLim;
+
+            persistent oldLim
+            if isempty(oldLim); oldLim = [1, obj.nSamples]; end
+            
+            isInsideLimits = newLim(1) >= oldLim(1) && newLim(2) <= oldLim(2);
+
+            % Calculate limits that are larger than the current view...
+            newLim = newLim + [-1, 1].*range(newLim)*0.5;
+            newLim(1) = max(1, newLim(1));
+            newLim(2) = min(obj.nSamples, newLim(2));
+            
+            level = obj.TimeseriesPyramid.getLevel(newLim);
+            requiresResampledData = level ~= obj.TimeseriesPyramid.CurrentLevel;
+            
+            if isInsideLimits && ~requiresResampledData
+                return
+            end
+            
+            %tic
+            [sampleIdx, timetableObj] = obj.TimeseriesPyramid.getData( newLim );
+
+            varNames = timetableObj.Properties.VariableNames;
+            for i = 1:numel(varNames)
+            
+                yData = double( timetableObj.(varNames{i}) );
+            
+                numSamples = size(yData, 1);
+                numSeries = size(yData, 2);
+                
+                % Todo: get subset of series.
+                
+                % Stack series vertically.
+                yData = yData + (1:numSeries);
+            
+% %             % Update plot v3 (Fastest, but requires a rewrite)
+% %             xData_ = repmat(sampleIdx', 1, numSeries);
+% %             xData_(end, :) = nan;
+% %             yData_ = yData;
+% %             yData_(end, :) = nan;
+% %             set( obj.hLineArray.dff(1), 'XData', xData_(:), 'YData', yData_(:))
+% % % %             set( obj.hLineArray.dff(1), 'Color', obj.hLineArray.dff(end).Color )
+% % % %             for i = 2:numSeries
+% % % %                 set( obj.hLineArray.dff(i), 'XData', nan, 'YData', nan);
+% % % %             end
+            
+
+                % Update plot (v1)
+                xData = repmat({sampleIdx}, numSeries, 1);
+                yData = mat2cell(yData, numSamples, ones(numSeries,1))';
+                set( obj.hLineArray.(varNames{i}), {'XData'}, xData, {'YData'}, yData )
+
+    % %         % Update plot (v2) Consistently about 50% slower
+    % %             for i = 1:size(yData, 2)
+    % %                 set( obj.hLineArray.dff(i), 'XData', sampleIdx, 'YData', yData(:,i));
+    % %             end
+                %toc
+
+                oldLim = newLim;
+                drawnow
+
+                %obj.TimeseriesPyramid.CurrentLevel
             end
             
         end
@@ -1290,7 +1547,6 @@ classdef App < applify.ModularApp
 % % % %  Methods for changing x axis limits
 %       Todo: Move to pointermanager.
         
-        
         function plotZoom(obj, direction, speed, axis)
 
             if nargin < 3 || isempty(speed); speed = 10; end
@@ -1438,19 +1694,46 @@ classdef App < applify.ModularApp
             newValue = src.Value;
             
             xLimRange = range(obj.ax.XLim);
+            xLimExtreme = [1, obj.nSamples];
             
-            newXLimStart = round(obj.nSamples-xLimRange) .* newValue;
+            newXLimStart = round(xLimExtreme(2)-xLimRange) .* newValue;
             
             newXLimEnd = newXLimStart + xLimRange;
             
-            if newXLimEnd > obj.nSamples
-                newXLimEnd = obj.nSamples;
+            if newXLimEnd > xLimExtreme(2)
+                newXLimEnd = xLimExtreme(2);
                 newXLimStart = newXLimEnd-xLimRange;
             end
              
             obj.setNewXLims([newXLimStart,newXLimEnd])
                         
         end
+       
+        function setYLimitsScrollbar(obj, src, ~)
+            
+            newValue = src.Value;
+            
+            yLimRange = range(obj.ax.YLim);
+            
+            switch obj.ActiveYAxis
+                case 'left'
+                    yLimExtreme = obj.YLimExtreme.left;
+                case 'right'
+                    yLimExtreme = obj.YLimExtreme.right;
+            end
+            
+            newYLimStart = round(yLimExtreme(2)+1-yLimRange) .* newValue;
+            newYLimEnd = newYLimStart + yLimRange;
+            
+            if newYLimEnd > yLimExtreme(2)
+                newYLimEnd = yLimExtreme(2);
+                newYLimStart = newYLimEnd-yLimRange;
+            end
+             
+            obj.setNewYLims([newYLimStart, newYLimEnd])
+                        
+        end
+        
         
         function onScrollStop(obj, ~, ~)
             
@@ -1509,15 +1792,34 @@ classdef App < applify.ModularApp
         end
         
         function setNewXLims(obj, newLimits)
-                      
+              
+% %             if isa(obj.tsArray, 'timetable')
+% %                 extremeLimits = obj.tsArray.Time([1,end]);
+% %                 obj.tLimExtreme = extremeLimits;
+% %             else
+% %                 extremeLimits = [1, obj.nSamples];
+% %             end
+            
+            extremeLimits = [1, obj.nSamples];
+
+            
             if nargin == 1 || isempty(newLimits)
-                newLimits = obj.firstFrameNo + [0, obj.nSamples-1];
+                if isa(obj.tsArray, 'timetable')
+                    newLimits = extremeLimits;
+                else
+                    newLimits = obj.firstFrameNo + [0, obj.nSamples-1];
+                end
             end
             
-            
+% %             if isa(obj.tsArray, 'timetable') && ~isa(newLimits, 'duration')
+% %                 newLimits = seconds(newLimits);
+% %             end
+
             % Todo: Make sure XLim2 > XLim1
-            newLimits(1) = max([1, newLimits(1)]);
-            newLimits(2) = min([obj.nSamples, newLimits(2)]);
+            newLimits(1) = max([extremeLimits(1), newLimits(1)]);
+            newLimits(2) = min([extremeLimits(2), newLimits(2)]);
+            
+            if diff(newLimits) < 100; return; end
             
             if obj.nSamples == 1 % Special case (i.e no data is loaded)
                 newLimits = [0,1]; 
@@ -1527,19 +1829,21 @@ classdef App < applify.ModularApp
             set(obj.ax, 'XLim', newLimits);
             
             
-            if ~isempty(obj.hScrollbar) && obj.nSamples ~= 1
-                obj.hScrollbar.VisibleAmount = range(obj.ax.XLim) / (obj.nSamples-1);
+            if ~isempty(obj.hScrollbarX) && obj.nSamples ~= 1
+                obj.hScrollbarX.VisibleAmount = range(obj.ax.XLim) / (obj.nSamples-1);
+                %obj.hScrollbarX.VisibleAmount = range(obj.ax.XLim) / range(extremeLimits);
 
                 % Calculate Value in same way as in the setXLimitsScrollbar
                 % function. Nb: Important to prevent recursive calls.
                 %
                 %   THIS SHIT NEED TO CHANGE!!!
-                obj.hScrollbar.Value = obj.ax.XLim(1) / (round(obj.nSamples-range(obj.ax.XLim)));
+                obj.hScrollbarX.Value = obj.ax.XLim(1) / (round(obj.nSamples-range(obj.ax.XLim)));
+                %obj.hScrollbarX.Value = obj.ax.XLim(1) / ( (round(extremeLimits(2)+1-range(obj.ax.XLim)))  );
                 
-                if abs(obj.hScrollbar.VisibleAmount - 1) < 0.001
-                    obj.hScrollbar.hide()
+                if abs(obj.hScrollbarX.VisibleAmount - 1) < 0.001
+                    obj.hScrollbarX.hide()
                 else
-                    obj.hScrollbar.show()
+                    obj.hScrollbarX.show()
                 end
             end
             
@@ -1550,14 +1854,52 @@ classdef App < applify.ModularApp
         
         function setNewYLims(obj, newLimits)
             
+            
+            yLimExtreme = obj.YLimExtreme.(obj.ActiveYAxis);
+            
+            if nargin < 2 || isempty(newLimits)
+                newLimits = yLimExtreme;
+            end
+            
+            % Todo: Make sure XLim2 > XLim1
+            newLimits(1) = max([yLimExtreme(1), newLimits(1)]);
+            newLimits(2) = min([yLimExtreme(2), newLimits(2)]);
+            
             % Set new limits
             if nargin == 1 || isempty(newLimits)
                 set(obj.ax, 'YLim', obj.YLimExtreme.(obj.ActiveYAxis))
                 obj.updateFrameMarker('update_y')
 %                 set(obj.ax, 'XLim', [1, obj.tsArray(1).Time(end)])
             else
-                set(obj.ax, 'YLim', newLimits);
+                %newLimits
+                set(obj.ax, 'YLim', sort(newLimits));
                 obj.updateFrameMarker('update_y')
+            end
+                                    
+            if ~isempty(obj.hScrollbarY)
+                
+                switch obj.ActiveYAxis
+                    case 'left'
+                        yLimExtreme = obj.YLimExtreme.left;
+                    case 'right'
+                        yLimExtreme = obj.YLimExtreme.right;
+                end
+                
+                %obj.hScrollbarY.VisibleAmount = range(obj.ax.YLim) / (obj.nSamples-1);
+                obj.hScrollbarY.VisibleAmount = range(obj.ax.YLim) / (range(yLimExtreme)-1);
+
+                % Calculate Value in same way as in the setYLimitsScrollbar
+                % function. Nb: Important to prevent recursive calls.
+                %
+                %   THIS SHIT NEED TO CHANGE!!!
+                obj.hScrollbarY.Value = obj.ax.YLim(1) / (round(yLimExtreme(2)+1 - range(obj.ax.YLim)));
+                %obj.hScrollbarX.Value = obj.ax.XLim(1) / ( (round(extremeLimits(2)+1-range(obj.ax.XLim)))  );
+                
+                if abs(obj.hScrollbarY.VisibleAmount - 1) < 0.001
+                    obj.hScrollbarY.hide()
+                else
+                    obj.hScrollbarY.show()
+                end
             end
             
         end
@@ -1679,10 +2021,18 @@ classdef App < applify.ModularApp
             obj.InteractionAxes.Position = axPosition;
             
             % Update position of panel with scrollbar
-            if isa(obj.hScrollPanel, 'matlab.ui.container.Panel')
-                if isvalid(obj.hScrollPanel)
+            if isa(obj.hScrollPanelX, 'matlab.ui.container.Panel')
+                if isvalid(obj.hScrollPanelX)
                     newPosition = [obj.Margins(1), 5, axesSize(1), 10];
-                    obj.hScrollPanel.Position = newPosition;
+                    obj.hScrollPanelX.Position = newPosition;
+                end
+            end
+            
+            if isa(obj.hScrollPanelY, 'matlab.ui.container.Panel')
+                if isvalid(obj.hScrollPanelY)
+                    xLoc = obj.Figure.Position(3) - 15;
+                    newPosition = [xLoc, obj.Margins(2), 10, axesSize(2)];
+                    obj.hScrollPanelY.Position = newPosition;
                 end
             end
                    
@@ -1714,12 +2064,14 @@ classdef App < applify.ModularApp
             obj.Panel.BackgroundColor = obj.Theme.FigureBackgroundColor;
             obj.Panel.BackgroundColor = obj.Theme.FigureBackgroundColor;
             
-            if isa(obj.hScrollPanel, 'matlab.ui.container.Panel')
-                obj.hScrollPanel.BackgroundColor = obj.Theme.FigureBackgroundColor;
+            if isa(obj.hScrollPanelX, 'matlab.ui.container.Panel')
+                obj.hScrollPanelX.BackgroundColor = obj.Theme.FigureBackgroundColor;
+                obj.hScrollPanelY.BackgroundColor = obj.Theme.FigureBackgroundColor;
             end
             
             obj.EventAxes.Color = obj.Theme.AxesBackgroundColor;
             obj.ax.XAxis.Color = obj.Theme.AxesForegroundColor;
+            obj.TimeAxis.Color = obj.Theme.AxesForegroundColor;
             for i = 1:numel(obj.ax.YAxis)
                 obj.ax.YAxis(i).Color = obj.Theme.AxesForegroundColor;
             end
@@ -1842,20 +2194,28 @@ classdef App < applify.ModularApp
         end
         
         function onMousePressed(obj, src, event)
-
+        %onMousePressed Callback for mouse press in figure.
+        
             if strcmp(obj.Figure.SelectionType, 'normal')
+                                
                 obj.isMouseDown = true;
                 obj.PreviousMouseClickPoint = obj.Figure.CurrentPoint;
                 obj.PreviousMousePoint = obj.Figure.CurrentPoint;
-                
+
+                if ~isempty( obj.PointerManager )
+                    if ~isempty( obj.PointerManager.currentPointerTool )
+                        return
+                    end
+                end
+
                 obj.interactiveFrameChangeRequest(src, event, 'mousepress')
-                
             
+                
             elseif strcmp(obj.Figure.SelectionType, 'open')
                 xPoint = round( obj.ax.CurrentPoint(1) );
                 ind = obj.isPointInEventVector( xPoint );
-                
-                if ~isempty(ind)
+
+                if ~isempty(ind) && ~isempty(obj.PointerManager)
                     if ~isa(obj.PointerManager.currentPointerTool, 'signalviewer.pointerTool.eventAnnotator')
                         obj.PointerManager.togglePointerMode('eventAnnotator')
                     end
@@ -1928,7 +2288,6 @@ classdef App < applify.ModularApp
 
         end
         
-        
         function hApp = uiSelectViewer(viewerNames, hFigure)
         
             % Todo: make this method of superclass??
@@ -1991,8 +2350,7 @@ classdef App < applify.ModularApp
             hApp = getappdata(openFigures(figInd), 'ViewerObject');
 
         end
-    
-        
+
     end
 
 end

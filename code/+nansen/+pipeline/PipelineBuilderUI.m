@@ -380,6 +380,9 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             
             obj.TaskTableData = data;
             %obj.UITable.DataTable = data;
+            
+            % Update the items in the dropdown on the first row.
+            obj.UITable.ColumnFormatData{1} = arrayfun(@(x) uint8(x), 1:numRows, 'uni',0);
 
         end
         
@@ -473,6 +476,9 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             end
             
             fprintf('Added task %s\n', obj.AutoCompleteWidget.Value)
+            
+            % Update task numbers
+            obj.updateTaskOrder()
         end
         
         function removeTask(obj, rowIdx)

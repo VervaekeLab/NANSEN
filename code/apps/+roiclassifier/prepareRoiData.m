@@ -11,11 +11,10 @@ function roiData = prepareRoiData(roiArray, imageStack, numFrames)
     roiData = struct;
     roiData.roiArray = roiArray;
 
-
+    fprintf('Loading imagedata for preparation of  rois...\n')
     numFrames = min( [numFrames, imageStack.NumTimepoints] );
-    
     imageData = imageStack.getFrameSet(1:numFrames);
-                    
+                
     fprintf('Preparing roidata for classification...\n')
     imageTypes = {'enhancedAverage', 'peakDff', 'correlation', 'enhancedCorrelation'};
     [roiData.roiImages, roiData.roiStats] = roimanager.gatherRoiData(imageData, ...
