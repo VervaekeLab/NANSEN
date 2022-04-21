@@ -100,6 +100,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             app.ProjectManager = nansen.ProjectManager();
+            app.assertProjectsAvailable()
             app.ProjectManager.setProject()
             
             
@@ -196,6 +197,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     methods (Hidden, Access = private) % Methods for app creation
         
         createSessionTableContextMenu(app) % Function in file...
+        
+        function assertProjectsAvailable(app)
+            if app.ProjectManager.NumProjects == 0
+                delete(app)
+                error('Nansen:NoProjectsAvailable', ...
+                    'No projects exists. Please run nansen.setup to configure a project')
+            end
+        end
         
         function createWindow(app)
         %createWindow Create and customize UIFigure 
