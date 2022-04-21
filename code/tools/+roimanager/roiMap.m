@@ -278,7 +278,7 @@ classdef roiMap < roimanager.roiDisplay
             if ~isempty(obj.SelectedRois)
                 if ~isequal(evtData.OriginSource, obj)
                     if numel(obj.SelectedRois) == 1
-                        obj.zoomInOnRoi(obj.SelectedRois(end), true)
+                        obj.zoomInOnRoi(obj.SelectedRois(end), false)
                     end
                 end
             end
