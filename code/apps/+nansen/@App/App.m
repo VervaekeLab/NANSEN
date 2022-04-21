@@ -2605,6 +2605,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.setPreference('PreferredScreenPosition', prefScreenPos)
             end
             
+            % Save preferences
+            app.savePreferences();
+            
         end
     end
     
