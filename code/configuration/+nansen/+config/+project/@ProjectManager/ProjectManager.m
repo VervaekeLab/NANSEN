@@ -166,6 +166,45 @@ classdef ProjectManager < handle
             obj.addProject(projectConfig)
         end
         
+        function moveProject(obj, projectName, newLocation)
+            
+            project = obj.getProject(projectName);
+            if isempty(project); return; end
+            
+            currentLocation = fileparts(project.Path);
+            newPath = strrep(project.Path, currentLocation, newLocation);
+            
+            if contains(path, project.Path)
+                rmpath(genpath(project.Path))
+            end
+            
+            movefile(project.Path, newPath)
+            
+            IND = strcmp({obj.Catalog.Name}, projectName);
+            obj.Catalog(IND).Path = newPath;
+            
+            obj.saveCatalog()
+
+            currentProject = obj.CurrentProject;
+            if ~strcmp(projectName, currentProject)
+                obj.changeProject(projectName)
+            end
+
+            % Todo: make method for this... :
+            MTC = nansen.metadata.MetaTableCatalog.quickload();
+            for i = 1:size(MTC,1)
+                MTC{i, 'SavePath'} = strrep(MTC{i, 'SavePath'}, currentLocation, newLocation);
+                mtFilePath = fullfile( MTC{i, {'SavePath', 'FileName'}}{:} );
+                MT = load( mtFilePath );
+                MT.SavePath = MTC{i, 'SavePath'}{1};
+                save(mtFilePath, '-struct', 'MT')
+            end
+            nansen.metadata.MetaTableCatalog.quicksave(MTC)
+
+            obj.changeProject(currentProject)
+            
+        end
+        
         function disp(obj)
         %disp Override display function to show table of projects.
             titleTxt = sprintf(['<a href = "matlab: helpPopup %s">', ...
@@ -312,13 +351,15 @@ classdef ProjectManager < handle
             
         end
         
-        function tf = uiselectProject(obj, projectNames)
+        function tf = uiSelectProject(obj, projectNames)
             
             if nargin < 2
                 projectNames = {obj.Catalog.Names};
             end
             
-            [ind, tf] = listdlg('ListString', projectNames);
+            promptStr = 'Select a project to open:';
+            [ind, tf] = listdlg('ListString', projectNames, ...
+                'PromptString', promptStr, 'Name', 'Select Project');
             
             if ~tf; return; end
             
