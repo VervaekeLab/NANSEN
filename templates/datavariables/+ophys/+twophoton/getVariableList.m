@@ -19,33 +19,27 @@ function variableList = getVariableList()
     variableList(i).Subfolder = 'image_registration';
     variableList(i).FileNameExpression = 'two_photon_corrected';
     variableList(i).FileType = '.raw';
-
-    i = i+1;
-    % Roi masks for corrected two photon series
-    variableList(i).VariableName = 'RoiMasks';
-    variableList(i).IsDefaultVariable = true;
-    variableList(i).DataLocation = 'DEFAULT';
-    variableList(i).Subfolder = 'roi_data';
-    variableList(i).FileNameExpression = 'roi_masks';
-    variableList(i).FileType = '.mat';
+    variableList(i).FileAdapter = 'ImageStack';
     
     i = i+1;
     % Array of roi objects
-    variableList(i).VariableName = 'RoiArray';
+    variableList(i).VariableName = 'Rois';
     variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
     variableList(i).Subfolder = 'roi_data';
-    variableList(i).FileNameExpression = 'roi_array';
+    variableList(i).FileNameExpression = 'rois';
     variableList(i).FileType = '.mat';
+    variableList(i).FileAdapter = 'RoiGroup';
     
     i = i+1;
     % Curated array of roi objects
-    variableList(i).VariableName = 'RoiArrayCurated';
+    variableList(i).VariableName = 'RoisCurated';
     variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
     variableList(i).Subfolder = 'roi_data';
-    variableList(i).FileNameExpression = 'roi_array_curated';
+    variableList(i).FileNameExpression = 'rois_curated';
     variableList(i).FileType = '.mat';
+    variableList(i).FileAdapter = 'RoiGroup';
     
    % Roi signals
    % - - - - - - 
