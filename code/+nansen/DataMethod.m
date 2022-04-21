@@ -21,6 +21,8 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
     
     properties (Access = protected)
         DataIoModel
+        Parameters % Todo: Resolve: Same as options...
+
     end
     
     methods (Static)
@@ -50,22 +52,39 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
             %obj@nansen.dataio.DataIoModel(varargin{1})
             obj.DataIoModel = varargin{1};
             
-            
         end
     end
-    
+
     methods (Access = public) % Todo: Use methods of hasOptions superclass
         
-        function preview_workinprogress(obj)
+        function wasSuccess = preview(obj) %_workinprogress(obj)
             %Todo: Combine this with methods that are already present in
             %some subclasses (motion correction / auto segmentation)
             
-            obj.editOptions()
+            [~, wasAborted] = obj.editOptions();
+            wasSuccess = ~wasAborted;
+
+            if wasSuccess
+                obj.Parameters = obj.OptionsManager.Options;
+            end
+        end
+        
+        function wasSuccess = finishPreview(obj, hPreviewApp)
+        %finishPreview For wrapping up preview if using a preview app...
+        
+            % Abort if h is invalid (improper exit)
+            if ~isvalid(hPreviewApp); wasSuccess = false; return; end
+            
+            obj.Parameters = hPreviewApp.settings;
+            wasSuccess = ~hPreviewApp.wasAborted;
+            
+            delete(hPreviewApp)
         end
         
     end
     
     methods (Access = public) % Shortcuts for methods of DataIOModel
+    %Todo: Get this from a superclass / mixin class.
     
         function data = loadData(obj, varargin)
             data = obj.DataIoModel.loadData(varargin{:});
@@ -79,6 +98,41 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
             filePath = obj.DataIoModel.getDataFilePath(varargin{:});
         end
         
+        function folder = getTargetFolder(obj)
+            if isa(obj.DataIoModel, 'nansen.metadata.type.Session')
+                folder = obj.DataIoModel.getSessionFolder(); % Todo: Generalize away from session data location...
+            else
+                error('Not implemented yet')
+            end
+        end
+        
+        function tf = existVariable(obj, varName)
+            tf = isfile( obj.getDataFilePath(varName) );
+        end
     end
     
+    methods (Access = protected)
+        
+        function initializeVariables(obj)
+        %initializeVariables Initialize variables that is created by method
+            
+            % The purpose of this method is to initialize variable in the
+            % variable model for this method, so that they can be accessed
+            % without using "attributes".
+        
+            % Get variable names from property
+            varNames = obj.DataVariableNames;
+            for i = 1:numel(varNames)
+                obj.setVariable(varNames{i}, 'Subfolder', ...
+                    obj.DATA_SUBFOLDER, 'IsInternal', true);
+            end
+            
+            % Todos:
+            % 1) Implement the DataVariableNames property
+            % 2) Implement a DATA_SUBFOLDER abstract property
+            % 3) Implement a setVariable on the DataIoModel / VariableModel
+            
+        end
+        
+    end
 end

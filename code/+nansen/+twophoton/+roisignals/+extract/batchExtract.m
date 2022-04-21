@@ -6,10 +6,11 @@ function signalArray = batchExtract(imArray, roiData, varargin)
 %
 %   signalArray = batchExtract(imArray, roiData, options) performs the
 %   extraction using specified optional parameters. See
-%   nansen.processing.signal.getDefaultParameters for default parameters
-%   and potnential options. options can either be a struct containing a
-%   subset of parameters as fields, or a cell array of name value pairs.
-%   If parameters are missing in input, the default values are used.
+%   nansen.twophoton.roisignals.extract.getDefaultParameters for default 
+%   parameters and potential options. options can either be a struct 
+%   containing a subset of parameters as fields, or a cell array of name 
+%   value pairs. If parameters are missing in input, the default values are 
+%   used.
 %   
 %   INPUTS:
 %     imArray : 3D (imHeight, imWidth, numFrames) matlab array.
@@ -40,7 +41,7 @@ function signalArray = batchExtract(imArray, roiData, varargin)
 %       Efficient for computing signals for 100s of rois. If computing
 %       signals for fewer rois (<100) see serialExtract
 %
-%   See also nansen.processing.signal.getDefaultParameters
+%   See also nansen.twophoton.roisignals.extract.getDefaultParameters
 %            nansen.processing.roi.prepareRoiMasks 
 %            nansen.processing.signal.serialExtract
 %            
@@ -52,7 +53,7 @@ function signalArray = batchExtract(imArray, roiData, varargin)
 %       or should it just be a simple cell array???
 %       [ ] Add support for weighted masks.
 %       [ ] Add support for getting median or percentile values instead of
-%           weighted mean?
+%           weighted mean? See serialExtract...
 
     
     assert( ndims(imArray) == 3, 'Image array must be 3D')

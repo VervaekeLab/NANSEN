@@ -22,6 +22,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         UIButton_AddDataLocation
         SelectDataLocationDropDownLabel
         SelectDataLocationDropDown
+        SelectDataLocationHelpButton
     end
     
     properties (Access = private) % Layout properties
@@ -90,9 +91,11 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             
             hRow.DataLocationName = uieditfield(obj.TablePanel, 'text');
             hRow.DataLocationName.FontName = 'Segoe UI';
-            hRow.DataLocationName.Position = [xi y wi-25 h];
-            hRow.DataLocationName.BackgroundColor = [0.94,0.94,0.94];
-            hRow.DataLocationName.Editable = false;
+            hRow.DataLocationName.Position = [xi y wi h];
+            %hRow.DataLocationName.Position = [xi y wi-25 h];
+            %hRow.DataLocationName.BackgroundColor = [0.94,0.94,0.94];
+            hRow.DataLocationName.BackgroundColor = [1, 1, 1];
+            hRow.DataLocationName.Editable = true;
 
             obj.centerComponent(hRow.DataLocationName, y)
             obj.TableComponentCellArray{rowNum, i} = hRow.DataLocationName;
@@ -101,20 +104,20 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             hRow.DataLocationName.ValueChangedFcn = ...
                 @obj.onDataLocationNameChanged;
             
-            % Add icon for toggling editing of field
-            hRow.EditTypeImage = uiimage(obj.TablePanel);
-            hRow.EditTypeImage.Position = [xi+wi-20 y 18 18];
-            %hRow.EditTypeImage.Position = [xi y 18 18];
-            obj.centerComponent(hRow.EditTypeImage, y)
-            hRow.EditTypeImage.ImageSource = 'edit.png';
-            hRow.EditTypeImage.Tooltip = 'Edit label for data location type';
-            hRow.EditTypeImage.ImageClickedFcn = @obj.onEditDataLocationNameIconClicked;
-                        
-            if isempty(hRow.DataLocationName.Value)
-                hRow.DataLocationName.Editable = true;
-                hRow.DataLocationName.BackgroundColor = [1 1 1];
-                hRow.EditTypeImage.ImageSource = 'edit3.png';
-            end
+% % %             % Add icon for toggling editing of field
+% % %             hRow.EditTypeImage = uiimage(obj.TablePanel);
+% % %             hRow.EditTypeImage.Position = [xi+wi-20 y 18 18];
+% % %             %hRow.EditTypeImage.Position = [xi y 18 18];
+% % %             obj.centerComponent(hRow.EditTypeImage, y)
+% % %             hRow.EditTypeImage.ImageSource = 'edit.png';
+% % %             hRow.EditTypeImage.Tooltip = 'Edit label for data location type';
+% % %             hRow.EditTypeImage.ImageClickedFcn = @obj.onEditDataLocationNameIconClicked;
+% % %                         
+% % %             if isempty(hRow.DataLocationName.Value)
+% % %                 hRow.DataLocationName.Editable = true;
+% % %                 hRow.DataLocationName.BackgroundColor = [1 1 1];
+% % %                 hRow.EditTypeImage.ImageSource = 'edit3.png';
+% % %             end
             
             
         % % Create second column: Edit field for data location type 
@@ -188,7 +191,8 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             toolbarComponents = [...
                 obj.UIButton_AddDataLocation, ...
                 obj.SelectDataLocationDropDownLabel, ...
-                obj.SelectDataLocationDropDown ];
+                obj.SelectDataLocationDropDown, ...
+                obj.SelectDataLocationHelpButton];
         end
     end
     
@@ -335,7 +339,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             dataLocationLabelWidth = 135;
             dataLocationSelectorWidth = 100;
                         
-            Wl_init = [dataLocationLabelWidth, dataLocationSelectorWidth];
+            Wl_init = [dataLocationLabelWidth, dataLocationSelectorWidth, 20];
             
             % Get component positions for the components on the left
             [Xl, Wl] = subdividePosition(toolbarPosition(1), ...
@@ -355,6 +359,10 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.SelectDataLocationDropDown.Position = [Xl(2) Y Wl(2) 22];
 
             obj.updateDefaultDataLocationSelector()
+            
+            obj.SelectDataLocationHelpButton = obj.createHelpIconButton(hPanel);
+            obj.SelectDataLocationHelpButton.Position = [Xl(3) Y+1 Wl(3) 20];
+            obj.SelectDataLocationHelpButton.Tag = 'Default Data Location';
         end
         
     end

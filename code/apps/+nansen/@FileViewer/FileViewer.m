@@ -421,6 +421,12 @@ classdef FileViewer < handle
                 [~, ~, fileExt] = fileparts(currentNode.Name);
 
                 switch fileExt
+                    
+                    case '' % Assume folder
+                        folderPath = currentNode.UserData.filePath;
+                        if isfolder(folderPath)
+                            utility.system.openFolder(folderPath)
+                        end
                     case {'.ini', '.tif', '.avi', '.raw'}
                         imviewer(currentNode.UserData.filePath)
                         

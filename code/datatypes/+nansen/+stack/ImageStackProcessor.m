@@ -115,6 +115,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     methods (Static)
         function S = getDefaultOptions()
             S.Run.frameInterval = [];
+            %S.Run.frameInterval_ = 'transient';
             S.Run.numFramesPerPart = 1000;            
             %S.Run.partsToProcess = 'all';
             %S.Run.redoPartIfFinished = false;
@@ -180,13 +181,16 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     
     methods
         
-        function tf = preview(obj)
+        function wasSuccess = preview(obj)
         %PREVIEW Open preview of data and options for method.
+        %
+        %   tf = preview(obj) returns 1 (true) if preview is successfully
+        %   completed, i.e user completed the options editor.
         %
         %   This method opens an imviewer plugin for the current
         %   algorithm/tool if such a plugin is available. Otherwise it
         %   opens a generic options editor to edit the options of the
-        %   algotithm
+        %   algorithm
                 
             pluginName = obj.ImviewerPluginName;
             pluginFcn = imviewer.App.getPluginFcnFromName(pluginName);
@@ -201,16 +205,11 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 % and in that case the image should not be dragged...)
                 
                 h = hImviewer.openPlugin(pluginFcn, obj.OptionsManager, ...
-                    'RunMethodOnFinish', false);
+                    'RunMethodOnFinish', false, 'DataIoModel', obj);
                 % Will pause here until the plugin is closed.
 
-                % Abort if h is invalid (improper exit)
-                if ~isvalid(h); tf = false; return; end
-                
-                newParameters = h.settings;
-                tf = ~h.wasAborted;
+                wasSuccess = obj.finishPreview(h);
 
-                delete(h)
                 hImviewer.quit()
                 obj.SourceStack.DynamicCacheEnabled = 'off';
                 
@@ -219,11 +218,9 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %                     'Plugin for %s was not found', CLASSNAME)
 
                 % Todo: use superclass method editOptions
-                [newParameters, wasAborted] = tools.editStruct(obj.Parameters);
-                tf = ~wasAborted;
+                [obj.Parameters, wasAborted] = tools.editStruct(obj.Parameters);
+                wasSuccess = ~wasAborted;
             end
-            
-            obj.Parameters = newParameters;
             
         end
         
@@ -442,6 +439,11 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             tf = false; 
         end
         
+% % %         Todo: Add Results as property and use this instead
+% % %         function tf = checkIfPartIsFinished(obj, partNumber)
+% % %             tf = ~isempty(obj.Results{partNumber});
+% % %         end
+        
         function onInitialization(~)
             % Subclass may implement
         end
@@ -532,7 +534,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 case 'end'
                     
             end
-            
         end
         
         function printSubTask(obj, varargin)
@@ -587,7 +588,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                      obj.StepDescription{i})
             end
             fprintf('\n')
-
         end
         
         function printCompletionMessage(obj)

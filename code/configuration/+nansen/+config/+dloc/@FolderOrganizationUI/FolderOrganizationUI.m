@@ -62,6 +62,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         SelectDataLocationDropDown
         SelectTemplateLabel
         SelectTemplateDropdown
+        SelectTemplateHelpIcon
         
         InfoButton
         PreviewButton
@@ -186,11 +187,11 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.centerComponent(hRow.SubfolderTypeDropdown, y)
             hRow.SubfolderTypeDropdown.ValueChangedFcn = @obj.subFolderTypeChanged;
             
-            hRow.SubfolderTypeDropdown.Items = {'Date', 'Animal', 'Session', 'Other'};
+            hRow.SubfolderTypeDropdown.Items = {'Select type', 'Date', 'Animal', 'Session', 'Other'};
             
             if isempty(rowData.Type)
-                hRow.SubfolderTypeDropdown.Value = 'Date';
-                obj.Data(rowNum).Type = 'Date';
+                hRow.SubfolderTypeDropdown.Value = 'Select type';
+                obj.Data(rowNum).Type = '';
             else
                 hRow.SubfolderTypeDropdown.Value = rowData.Type;
             end
@@ -273,7 +274,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             symbolButtonWidth = 30;
             advancedButtonWidth = 135;
             
-            Wl_init = [dataLocationLabelWidth, dataLocationSelectorWidth, templateLabelWidth, templateSelectorWidth];
+            Wl_init = [dataLocationLabelWidth, dataLocationSelectorWidth, templateLabelWidth, templateSelectorWidth, 20];
             Wr_init = [symbolButtonWidth, symbolButtonWidth, advancedButtonWidth];
             
             % Get component positions for the components on the left
@@ -316,6 +317,11 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             obj.SelectTemplateDropdown.Items = ['No Selection', {obj.FolderOrganizationTemplates.Name}];
             obj.SelectTemplateDropdown.Value = 'No Selection';
+            
+            
+            obj.SelectTemplateHelpIcon = obj.createHelpIconButton(hPanel);
+            obj.SelectTemplateHelpIcon.Position = [Xl(5) Y+1 Wl(5) 20];
+            obj.SelectTemplateHelpIcon.Tag = 'Folder Hierarchy Template';
             
                         
 % %             % Create Info Button
@@ -754,6 +760,10 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 
                 S(j).Name = obj.RowControls(j).SubfolderDropdown.Value;
                 S(j).Type = obj.RowControls(j).SubfolderTypeDropdown.Value;
+                
+                if strcmp(S(j).Type, 'Select type')
+                    S(j).Type = '';
+                end
                 
                 inputExpr = obj.RowControls(j).DynamicRegexp.Value;
 

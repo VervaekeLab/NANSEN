@@ -56,17 +56,26 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
         %Refresh Check known directories for methods and update catalog
         
             pathList = nansen.session.listSessionMethods();
-            
+            functionNames = cell(1, numel(pathList));
+                       
+            % Add session methods that are not part of the catalog.
             for i = 1:numel(pathList)
-                
                 tmpItem = obj.getSessionMethodItemFromPath(pathList{i});
+                functionNames{i} = tmpItem.FunctionName;
                 
                 if ~obj.ismember(tmpItem.FunctionName)
                     obj.insertItem(tmpItem)
                 end
-
             end
-
+            
+            % Remove session methods that are not found during listing.
+            for i = numel(obj.Data):-1:1
+                thisName = obj.Data(i).FunctionName;
+                if ~ismember(functionNames, thisName)
+                    obj.removeItem(i)
+                    warning('Method "%s" was not found on the path and is removed from the list of session methods', thisName)
+                end
+            end
         end
         
         function addOptionsAlternative(obj)

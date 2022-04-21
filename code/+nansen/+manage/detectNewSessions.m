@@ -1,7 +1,7 @@
-function newSessionObjects = detectNewSessions(metaTable, dataLocationName)
+function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 %detectNewSessions Detect new sessions associated with a metatable
 %
-%   newSessionObjects = detectNewSessions(metaTable, dataLocationName)
+%   newSessionArray = detectNewSessions(metaTable, dataLocationName)
 %   look for session folders based on the current datalocation model 
 %   (i.e current project) and make a list of session objects based on
 %   folders. Session objects for all sessions that are not present in the
@@ -57,6 +57,19 @@ function newSessionObjects = detectNewSessions(metaTable, dataLocationName)
 
     [~, iA] = setdiff( foundSessionIds, currentSessionIds, 'stable' );
 
-    newSessionObjects = sessionArray(iA);
+    newSessionArray = sessionArray(iA);
+    
+    % Check for duplicate session IDs
+    sessionIDs = {newSessionArray.sessionID};
+    if numel(sessionIDs) ~= numel(unique(sessionIDs))
+        [newSessionArray, wasCanceled] = nansen.manage.uiresolveDuplicateSessions(newSessionArray, []);
+        % Todo: Rerun detection from here if sessions were resolved
+        if wasCanceled
+            newSessionArray = [];
+            return
+        end
+    end
+    
+    
             
 end

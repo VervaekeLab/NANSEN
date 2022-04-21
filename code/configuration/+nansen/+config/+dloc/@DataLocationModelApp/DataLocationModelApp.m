@@ -64,6 +64,9 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         IsPageCreated = false(1,3)
     end
     
+    events
+        DataLocationModelChanged
+    end
     
     methods % Constructor & Destructor
         
@@ -212,9 +215,9 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         
         function onFigureClosed(obj, src, evt)
         %onFigureClosed Callback for when figure is closed.    
-            doAbort = promptSaveChanges(obj);
+            wasCanceled = promptSaveChanges(obj);
             
-            if doAbort
+            if wasCanceled
                 return
             else
                 delete(obj.Figure)
@@ -227,9 +230,9 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         %hideApp Make app invisible. Similar to closing app, but app
         %remains in memory.
 
-            doAbort = obj.promptSaveChanges();
+            wasCanceled = obj.promptSaveChanges();
             
-            if doAbort
+            if wasCanceled
                 return
             else
                 if ~isempty(obj.UIModule{2})
@@ -446,6 +449,8 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                         end
                         obj.DataLocationModel.save()
                         obj.UIModule{1}.markClean()
+                        evtData = event.EventData;
+                        obj.notify('DataLocationModelChanged', evtData)
 
                     case 'No'
                         obj.DataLocationModel.restore(obj.DataBackup)

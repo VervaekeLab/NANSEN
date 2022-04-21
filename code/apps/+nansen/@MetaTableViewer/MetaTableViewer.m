@@ -47,6 +47,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     properties % Table preferences
         ShowIgnoredEntries = true
         AllowTableEdits = true
+        MetaTableType = 'session'
     end
     
     properties
@@ -65,15 +66,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         MetaTableCell cell      % Cell array version of the table data
         MetaTableVariableNames  % Cell array of variable names in full table
         MetaTableVariableAttributes % Struct with attributes of metatable variables.
-
     end
     
     properties %(Access = private)
         ColumnModel             % Class instance for updating columns based on user preferences.
         ColumnFilter            % Class instance for filtering data based on column variables.
         
-        DisplayedRows % Rows of the original metatable which are currently displayed
-        DisplayedColumns % Columns of the original metatable which are currently displayed
+        DisplayedRows % Rows of the original metatable which are currently displayed (not implemented yet)
+        DisplayedColumns % Columns of the original metatable which are currently displayed (not implemented yet)
         
         AppRef
         Parent
@@ -83,7 +83,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         ColumnContextMenu = []
         TableContextMenu = []
         
-        DataFilterMap = []
+        DataFilterMap = []  % Boolean "map" (numRows x numColumns) with false for cells that is outside filter range
+        ExternalFilterMap = [] % Boolean vector with rows that are "filtered" externally. Todo: Formalize this better.
+        
         ColumnWidthChangedListener
         ColumnsRearrangedListener
         
@@ -94,6 +96,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         lastMousePressTic
         isConstructed = false;
     end
+    
+    events
+        TableUpdated
+    end
+    
     
 % - - - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - 
     
@@ -114,8 +121,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.HTable.Visible = 'on'; % Make table visible
                 drawnow
             end
-
-        % % % Todo: Uncomment this (it was commented out when implementing roi table, dont remember why)
+            
             obj.ColumnFilter = nansen.ui.MetaTableColumnFilter(obj, obj.AppRef);
 
         end
@@ -199,6 +205,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.MetaTable = table.empty;
         end
         
+        function resetColumnFilters(obj)
+            obj.ColumnFilter.resetFilters()
+        end
+        
         function updateCells(obj, rowIdx, colIdx, newData)
         %updateCells Update subset of cells...
         
@@ -222,22 +232,55 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
             [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
-            obj.HTable.setCell(uiTableRowIdx, uiTableColIdx, newData)
             
+            
+            % This is ad hoc, seems to work, but need to understand
+            % better what is going on here (todo)!
+            if numel(colIdx) == 1
+                columnIndexOrder = obj.ColumnModel.getColumnModelIndexOrder();
+                uiTableColIdx = columnIndexOrder(uiTableColIdx);
+            end
+            
+            % Rearrange data table columns...
+            [~, ~, dataTableColIdx] = intersect(colIdxVisible, colIdx);
+                        
+            % Only continue with those columns that are visible
+            newData = newData(:, dataTableColIdx);
+
+            for i = 1:numel(uiTableRowIdx)
+                for j = 1:numel(uiTableColIdx)
+                    iRow = uiTableRowIdx(i);
+                    jCol = uiTableColIdx(j);
+                    thisValue = newData(i, j);
+                    obj.HTable.setCell(iRow, jCol, thisValue)
+                end
+            end
+            
+            %obj.HTable.setCell(uiTableRowIdx, uiTableColIdx, newData)
             %obj.HTable.Data(uiTableRowIdx, uiTableColIdx) = newData;
             drawnow
             
+        end
+        
+        function updateVisibleRows(obj, rowInd)
+
+            [numRows, numColumns] = size(obj.MetaTable);
+            obj.ExternalFilterMap = false(numRows, 1);
+            obj.ExternalFilterMap(rowInd) = true;
+            
+            obj.updateTableView(rowInd)
         end
         
         function refreshTable(obj, newTable, flushTable)
         %refreshTable Method for refreshing the table
         
             % TODO: Make sure the selection is maintained.
-        
-            % Note: when line below is commented out, tables refresh better
-            % when changing projects.
             
-            if nargin >= 2 && ~isempty(newTable) % Note: This was commented out, but I dont remember why!
+            % Note: If [] is provided as 2nd arg, the table is not reset.
+            % This might be used in some cases where the table should be
+            % kept, but the fluchTable flag is provided.
+            
+            if nargin >= 2 && ~(isnumeric(newTable) && isempty(newTable))
                 obj.MetaTable = newTable;
             end
             
@@ -257,9 +300,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.DataFilterMap = []; % reset data filter map
             obj.updateTableView()
             
+            drawnow
             % Todo: Restore selection
             %obj.setSelectedEntries(selectedEntries);
-
             
         end
         
@@ -347,29 +390,33 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         function parseInputs(obj, listOfArgs)
          %parseInputs Input parser that checks for expected input classes
-         
-            if isempty(listOfArgs);    return;    end
+            
+            [nvPairs, remainingArgs] = utility.getnvpairs(listOfArgs);
+            
+            % Need to set name value pairs first
+            obj.assignPVPairs(nvPairs{:})
+            
+            
+            if isempty(remainingArgs);    return;    end
             
             % Check if first argument is a graphical container
             % Todo: check that graphical object is an actual container...
-            if isgraphics(listOfArgs{1})
-                obj.Parent = listOfArgs{1};
-                listOfArgs = listOfArgs(2:end);
+            if isgraphics(remainingArgs{1})
+                obj.Parent = remainingArgs{1};
+                remainingArgs = remainingArgs(2:end);
             end
             
-            if isempty(listOfArgs);    return;    end
+            if isempty(remainingArgs);    return;    end
 
             % Check if first argument in list is a valid metatable class
-            if obj.isValidTableClass( listOfArgs{1} )
-                obj.MetaTable = listOfArgs{1};
-                listOfArgs = listOfArgs(2:end);
+            if obj.isValidTableClass( remainingArgs{1} )
+                obj.MetaTable = remainingArgs{1};
+                remainingArgs = remainingArgs(2:end);
             end
             
-            if isempty(listOfArgs);    return;    end
-
-            % Assume rest of inputs are name value pairs
-            obj.assignPVPairs(listOfArgs{:})
             
+            if isempty(remainingArgs);    return;    end
+
         end
         
         function createUiTable(obj)
@@ -601,22 +648,34 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
         
-        function updateTableView(obj)
+        function updateTableView(obj, visibleRows)
 
             if isempty(obj.ColumnModel); return; end % On construction...
+                        
+            [numRows, numColumns] = size(obj.MetaTableCell);
+
+            if nargin < 2; visibleRows = 1:numRows; end
             
             % Todo: Get based on user selection of which columns to display
             columns = obj.getCurrentColumnSelection();
             
             % Todo: Get based on filter states
             rows = obj.getCurrentRowSelection(); 
+            rows = intersect(rows, visibleRows, 'stable');
             
             % Table data should already be formatted
-            obj.HTable.Data = obj.MetaTableCell(rows, columns);
+
+            
+            %[~, uiTableRowIdx] = intersect(rows, 1:numRows, 'stable');
+            [~, uiTableColIdx] = intersect(1:numColumns, columns, 'stable');
+            
+            obj.HTable.Data = obj.MetaTableCell(rows, uiTableColIdx);
             obj.HTable.Visible = 'on';
             drawnow
+            
+            evtdata = uiw.event.EventData('RowIndices', rows, 'Type', 'RoiTableFilter');
+            obj.notify('TableUpdated', evtdata)
         end
-        
         
         function changeColumnNames(obj, newNames)
             obj.HTable.ColumnName = newNames;
@@ -662,8 +721,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.MetaTableCell = table2cell(newTable);
             end
             
-            % Todo: session should not be hardcoded here
-            obj.MetaTableVariableAttributes = getMetaTableVariableAttributes('session');
+            % Get metatable variable attributes based on table type.
+            try
+                S = getMetaTableVariableAttributes(obj.MetaTableType);
+            catch
+                S = obj.getDefaultMetaTableVariableAttributes();
+            end
+            
+            obj.MetaTableVariableAttributes = S;
                         
         end
         
@@ -693,6 +758,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             % Get indices for rows where all cells in the map are true
             rowInd = find( all(obj.DataFilterMap, 2) );
+            
+            if ~isempty(obj.ExternalFilterMap)
+                rowInd = intersect(rowInd, find(obj.ExternalFilterMap), 'stable');
+            end
+            
         end
         
         function colInd = getCurrentColumnSelection(obj)
@@ -702,11 +772,27 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             colInd = obj.ColumnModel.getColumnIndices();
         end
         
+        function S = getDefaultMetaTableVariableAttributes(obj)
+                    
+            varNames = obj.MetaTable.Properties.VariableNames;
+            numVars = numel(varNames);
+            
+            S = struct('Name', varNames);
+            [S(1:numVars).IsCustom] = deal(false);
+            [S(1:numVars).IsEditable] = deal(false);
+            [S(1:numVars).HasFunction] = deal(false);
+
+        end
     end
  
     methods (Access = private) % Mouse / user event callbacks
         
         function onHeaderPressTimerRunOut(obj, src, evt)
+            
+            if isempty(obj.ColumnPressedTimer)
+                return
+            end
+            
             stop(obj.ColumnPressedTimer)
             delete(obj.ColumnPressedTimer)
             obj.ColumnPressedTimer = [];
@@ -716,9 +802,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.openColumnFilter(clickPosX, clickPosY)
             
         end
-        
-        
-        
+
         function onMouseReleasedFromHeader(obj, src, evt)
                         
             if ~isempty(obj.ColumnPressedTimer)
@@ -728,9 +812,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 
                 % Mouse was released before 1 second passed.
                 obj.HTable.JTable.getModel().setSortable(1)
-            end
-                
-            
+            end            
         end
         
         function onMousePressedInHeader(obj, src, evt)
@@ -836,7 +918,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     return % Command click on mac should not count as right click
                 end
 
-                
                 % Get row where mouse press ocurred.
                 row = evt.Cell(1); col = evt.Cell(2);
                 
@@ -850,18 +931,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         return
                     end
                 end
-                
-                % Get scroll positions in table
-                xScroll = obj.HTable.JScrollPane.getHorizontalScrollBar().getValue();
-                yScroll = obj.HTable.JScrollPane.getVerticalScrollBar().getValue();
-              
-                % Get position where mouseclick occured (in figure)
-                clickPosX = evt.Position(1) - xScroll;
-                clickPosY = evt.Position(2) - yScroll;
-                
+
                 % Open context menu for table
                 if ~isempty(obj.TableContextMenu)
-                    obj.openTableContextMenu(clickPosX, clickPosY);
+                    position = obj.getTableContextMenuPosition(evt.Position);
+                    obj.openTableContextMenu(position(1), position(2));
                 end
             end
 
@@ -918,6 +992,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Tell columnmodel of new order...
             newColumnArrangement = obj.HTable.getColumnOrder;
             obj.ColumnModel.setNewColumnOrder(newColumnArrangement)
+                        
+            if ~isempty(obj.ColumnFilter)  
+                obj.ColumnFilter.hideFilters();
+            end
         end
         
         function columnIdx = getColumnAtPoint(obj, x, y)
@@ -931,19 +1009,65 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
         
-        function [x, y] = figurePoint2tablePoint(obj, x, y)
+        function position = getTableContextMenuPosition(obj, eventPosition)
+        %getTableContextMenuPosition Get cmenu position from event position
+        
+            % Get scroll positions in table
+            xScroll = obj.HTable.getHorizontalScrollOffset();
+            yScroll = obj.HTable.getVerticalScrollOffset();
+                        
+            % Get position where mouseclick occured (in figure)
+            clickPosX = eventPosition(1) - xScroll;
+            clickPosY = eventPosition(2) - yScroll;
             
+            % Convert to position inside table
+            tablePosition = getpixelposition(obj.HTable, true);
+            tableLocationX = tablePosition(1); 
+            tableHeight = tablePosition(4);
             
+            positionX = clickPosX + tableLocationX + 1; % +1 because ad hoc...
+            positionY = tableHeight - clickPosY + 19; % +15 because ad hoc... size of table header?
+            
+            position = [positionX, positionY];
             
         end
+        
+        function figureCoords = javapoint2figurepoint(obj, javaCoords)
+        %javapoint2figurepoint Find coordinates of point in figure units
+        %
+        %   figureCoords = javapoint2figurepoint(obj, javaCoords) returns
+        %   figureCoords ([x,y]) of point in figure (measured from lower 
+        %   left corner) based on javaCoords ([x,y]) from a java mouse
+        %   event in the table (measured from upper left corner in table).
+        
+            % Note:
+            % x is position measured from left inside table
+            % y is position measured from top inside table
+           
 
+            % Get pixel position of table referenced in figure.
+            tablePosition = getpixelposition(obj.HTable, true);
+            
+            x0 = tablePosition(1);
+            y0 = tablePosition(2);
+            tableHeight = tablePosition(4);
+            
+            xPosition = x0 + javaCoords(1);
+            yPosition = y0 + tableHeight - javaCoords(2);
+             
+            figureCoords = [xPosition, yPosition];
+            
+        end
+        
         function openColumnContextMenu(obj, x, y)
+            
+            colNumber = obj.getColumnAtPoint(x, y);
+            if colNumber == 0; return; end
             
             if isempty(obj.ColumnContextMenu)
                 obj.createColumnContextMenu()
             end
-            
-            colNumber = obj.getColumnAtPoint(x, y);
+
             columnType = obj.HTable.ColumnFormat{colNumber};
             
             [~, varNames] = obj.ColumnModel.getColumnNames();
@@ -1018,38 +1142,51 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 end
             end
             
+
+            % Get the coordinates for where to show the context menu
+            figurePoint = obj.javapoint2figurepoint([x, y]);
             
-            % Determine the coordinates within the figure where the context
-            % menu should be made visible.
+            % Adjust for the horizontal scroll position in the table.
             xOff = obj.HTable.getHorizontalScrollOffset();
-            
-            tablePosition = getpixelposition(obj.HTable);
-            y = tablePosition(4);
+            figurePoint = figurePoint - [xOff, 0];
             
             % Set position and make menu visible.
-            obj.ColumnContextMenu.Position = [x+20-xOff,y+25];
+            obj.ColumnContextMenu.Position = figurePoint;
             obj.ColumnContextMenu.Visible = 'on';
             
         end
         
-        function openTableContextMenu(obj, x, y)            
+        function openTableContextMenu(obj, x, y)
             
             if isempty(obj.TableContextMenu); return; end
-            
-            % This is now corrected for in caller function...
-            %xOff = obj.HTable.getHorizontalScrollOffset();
 
-            tablePosition = getpixelposition(obj.HTable, true);
-            tableLocationX = tablePosition(1) + 1; % +1 because ad hoc...
-            tableHeight = tablePosition(4);
-            
-            cMenuPos = [tableLocationX + x, tableHeight - y + 15]; % +15 because ad hoc...
-            
-            %hFigure = ancestor(obj.TableContextMenu, 'figure');
-            
             % Set position and make menu visible.
-            obj.TableContextMenu.Position = cMenuPos;
+            obj.TableContextMenu.Position = [x,y]; 
             obj.TableContextMenu.Visible = 'on';
+            
+        end
+        
+        function openColumnFilter(obj, x, y)
+        %openColumnFilter Open column filter as dropdown below column header             
+            
+            tableColumnIdx = obj.getColumnAtPoint(x, y);
+            if tableColumnIdx == 0; return; end
+            
+            colIndices = obj.ColumnModel.getColumnIndices();
+            dataColumnIndex = colIndices(tableColumnIdx);
+            
+            obj.ColumnFilter.openFilterControl(dataColumnIndex)     
+
+        end
+        
+        function filterColumn(obj, columnNumber)
+        %filterColumn Open column filter in sidepanel
+        
+            colIndices = obj.ColumnModel.getColumnIndices();
+            dataColumnIndex = colIndices(columnNumber);
+            
+            obj.ColumnFilter.openFilterControl(dataColumnIndex)            
+            obj.AppRef.showSidePanel()
             
         end
         
@@ -1066,41 +1203,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         	obj.ColumnModel.hideColumn(columnNumber);
         end
         
-        function openColumnFilter(obj, x, y)
-        %openColumnFilter Open column filter as dropdown below column header             
-            tableColumnIdx = obj.getColumnAtPoint(x, y);
-            
-            colIndices = obj.ColumnModel.getColumnIndices();
-            dataColumnIndex = colIndices(tableColumnIdx);
-            
-            % Todo: Create methods (this is same for column context menu...)
-            % Get position where to open filter popup
-            xOff = obj.HTable.getHorizontalScrollOffset();
-
-            tablePosition = getpixelposition(obj.HTable);
-            y = tablePosition(4);
-            
-            % Set position and make menu visible.
-            popupPosition = [x+20-xOff,y+25];
-                        
-            obj.ColumnFilter.openFilterControl(dataColumnIndex, popupPosition)     
-
-        end
-        
-        function resetColumnFilters(obj)
-            obj.ColumnFilter.resetFilters()
-        end
-        
-        function filterColumn(obj, columnNumber)
-        %filterColumn Open column filter in sidepanel
-        
-            colIndices = obj.ColumnModel.getColumnIndices();
-            dataColumnIndex = colIndices(columnNumber);
-            
-            obj.ColumnFilter.openFilterControl(dataColumnIndex)            
-            obj.AppRef.showSidePanel()
-            
-        end
     end
     
     methods (Static)

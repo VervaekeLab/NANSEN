@@ -21,13 +21,14 @@ classdef Image < nansen.stack.data.VirtualArray
 
 properties (Constant, Hidden)
     VALID_FILE_FORMATS = {'JPG', 'JPEG', 'PNG', 'BMP', 'TIF', 'TIFF'}
+    FILE_PERMISSION = 'read'
 end
 
 properties (Access = private, Hidden) % File Info
     FilePathList = {} % Keep list of all filepaths if multiple files are open.
     numFiles
     
-    ImageInfo       % Should be for ll images, but right now it stores info for first image... 
+    ImageInfo       % Should be for all images, but right now it stores info for first image... 
 end
 
 
@@ -66,15 +67,12 @@ methods (Access = protected) % Implementation of abstract methods
     function getFileInfo(obj)
         
         obj.ImageInfo = imfinfo(obj.FilePathList{1});
-
-        obj.MetaData = struct;
-        obj.MetaData.numFrames = obj.numFiles;
         
-
         obj.assignDataSize()
         
         obj.assignDataType()
         
+        % Todo: Update metadata properties
     end
     
     function createMemoryMap(obj)
@@ -197,7 +195,7 @@ methods % Implementation of abstract methods for reading/writing data
         nDim = numel(obj.DataSize);
 
                 
-        % Loop through frames and load into data.
+        % Loop through frames and write data.
         for i = 1:numel( frameInd )
 
             frameNum = frameInd(i);

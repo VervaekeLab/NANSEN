@@ -91,6 +91,10 @@ classdef MetaTable < handle
            tf = ~obj.IsModified; 
         end
 
+        function markClean(obj)
+            obj.IsModified = false;
+        end
+        
         function schemaIdName = get.SchemaIdName(obj)
         %GET.SCHEMAIDNAME Get the propertyname of the ID of current schema   
             schemaIdName = eval(strjoin({obj.MetaTableClass, 'IDNAME'}, '.'));

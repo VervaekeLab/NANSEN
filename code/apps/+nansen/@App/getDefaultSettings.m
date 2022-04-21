@@ -8,8 +8,12 @@ S = struct();
 S.MetadataTable.ShowIgnoredEntries = true;
 S.MetadataTable.AllowTableEdits = true;
 
+% % S.Session.ExportSessionObjectAs = 'Nansen';
+% % S.Session.ExportSessionObjectAs_ = {'Nansen', 'NDI'};
+S.Session.SessionObjectWorkspaceName = 'sessionObjects';
+
 % Task processor settings:
-S.TaskProcessor.TimerPeriod = 10;
+% S.TaskProcessor.TimerPeriod = 10;
 S.TaskProcessor.RunTasksWhenQueued = false;
 S.TaskProcessor.RunTasksOnStartup = false;
 

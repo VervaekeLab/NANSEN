@@ -350,9 +350,13 @@ classdef ProjectManagerUI < handle
         
         function deleteProject(obj, rowIdx)
             
+            projectName = obj.getNameFromRowIndex(rowIdx);
+            
             % Display message
             hFig = ancestor(obj.hParent, 'figure');
-            message = 'This action will remove the project and delete all the project data. Are you sure you want to continue?';
+            message = sprintf(['This action will remove the project "%s" ', ...
+                'and delete all the project data. Are you sure you want ', ...
+                'to continue?'], projectName);
             title = 'Confirm Delete';
             opts = {'Options', {'Delete Project', 'Cancel'}};
             selection = uiconfirm(hFig, message, title, opts{:});
@@ -595,7 +599,13 @@ classdef ProjectManagerUI < handle
         end
         
         function onTableCellSelected(obj, ~, evt)
-        %onTableCellSelected Change selected row  
+        %onTableCellSelected Change selected row
+            
+            if isempty(evt.DisplayIndices)
+                obj.SelectedRow = []
+                return
+            end
+        
             obj.SelectedRow = evt.DisplayIndices(1);
             obj.setRowStyle('Selected Row', evt.DisplayIndices(1))
         end

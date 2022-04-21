@@ -29,6 +29,7 @@ classdef messageBox < uim.mixin.isResizable
         Style = uim.style.buttonDarkMode
         
         MessageTimer
+        CornerRadius = 2
     end
     
     properties
@@ -110,11 +111,12 @@ classdef messageBox < uim.mixin.isResizable
             
             obj.hAxes.Position = newPosition;
             obj.hAxes.Units = axUnits;
+            
+            obj.updateTextboxCoords()
         end
     end
     
     methods (Access = private)
-        
         
         function createAxes(obj)
            
@@ -175,14 +177,33 @@ classdef messageBox < uim.mixin.isResizable
             
         end % \createAxes
     
+        function [xData, yData] = getTextboxCoordinates(obj)
+                       
+% %             % Deprecate:
+% %             xLim = obj.hAxes.XLim;
+% %             yLim = obj.hAxes.YLim;
+% % 
+% %             xData = xLim([1,1,2,2,1]);
+% %             yData = yLim([2,1,1,2,2]);
+            
+            axesPos = getpixelposition(obj.hAxes);
+            boxSize = axesPos(3:4);
+            [xData, yData] = uim.shape.rectangle(boxSize, obj.CornerRadius);
+            xData = xData / max(xData(:));
+            yData = yData / max(yData(:));
+            
+            
+        end
+        
+        function updateTextboxCoords(obj)
+            if isempty(obj.hBackground); return; end
+            [xData, yData] = obj.getTextboxCoordinates();
+            set(obj.hBackground, 'XData', xData, 'YData', yData)
+        end
         
         function createTextbox(obj)
             
-            xLim = obj.hAxes.XLim;
-            yLim = obj.hAxes.YLim;
-
-            xData = xLim([1,1,2,2,1]);
-            yData = yLim([2,1,1,2,2]);
+            [xData, yData] = obj.getTextboxCoordinates();
             
             obj.hBackground = patch(obj.hAxes, xData, yData, 'w');
             obj.hBackground.FaceColor = obj.BackgroundColor;
@@ -384,6 +405,7 @@ classdef messageBox < uim.mixin.isResizable
                 obj.hAxes.Position(2) = obj.hAxes.Position(2) - ...
                     (obj.hAxes.Position(4) - obj.OriginalPosition(2))/2;
                 obj.setXbuttonPosition()
+                obj.updateTextboxCoords()
             end
 
         end % \foldMessage
@@ -496,6 +518,10 @@ classdef messageBox < uim.mixin.isResizable
     
     methods (Access = public)
 
+        function centerInWindow(obj, pos)
+            uim.utility.layout.centerObjectInRectangle(obj.Axes, pos)
+        end
+        
         function activateGlobalMessageDisplay(obj, mode)
         
             if nargin < 2
@@ -617,6 +643,8 @@ classdef messageBox < uim.mixin.isResizable
             
             if ~isempty(obj.OriginalPosition)
                 obj.hAxes.Position([2,4]) = obj.OriginalPosition;
+                obj.updateTextboxCoords()
+
                 obj.OriginalPosition = [];
                 obj.setXbuttonPosition()
             end
@@ -656,9 +684,10 @@ classdef messageBox < uim.mixin.isResizable
 
             axesLocation = [pos(1)+ (pos(3) - axW)/2, pos(2) + (pos(4) - axH)/2];
             obj.hAxes.Position = [axesLocation, axW, axH ];
+            obj.updateTextboxCoords()
 
         end
-                
+        
     end % \methods
     
     

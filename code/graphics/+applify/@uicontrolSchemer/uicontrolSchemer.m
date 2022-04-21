@@ -419,6 +419,14 @@ classdef uicontrolSchemer < handle
                     
                     % Width to zero to hide this ugly beast.
                     hControl.Position(3) = 0;
+                    
+                case 'edit'
+                    % Reset border when value is changed...
+                    % This does not work when value is programmatically
+                    % set...
+% %                     addlistener(hControl, 'String', 'PostSet', ...
+% %                         @(s,e,jH,prop, val) set(jControl, 'border', []) );
+                    
             end
             
         end
@@ -695,14 +703,14 @@ classdef uicontrolSchemer < handle
         
         function mouseEnterPopupButton(obj, src)
             if isvalid(src)
-                src.ForegroundColor = src.ForegroundColor * 1.5;
+                src.ForegroundColor = min([src.ForegroundColor * 1.5; 1,1,1]);
             end
         end
         
         
         function mouseLeavePopupButton(obj, src)
             if isvalid(src)
-                src.ForegroundColor = src.ForegroundColor / 1.5;
+                src.ForegroundColor = max([src.ForegroundColor / 1.5; 0,0,0]);
             end
         end
         

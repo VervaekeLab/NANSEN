@@ -4,8 +4,16 @@ function hApp = nansen(varargin)
     
     try
         hApp = nansen.App(varargin{:});
-    catch
+    catch ME
         hApp = [];
+        switch ME.identifier
+            case 'Nansen:ProjectNotConfigured:MetatableMissing'
+                disp(ME.message)
+            case 'Nansen:NoProjectsAvailable'
+                disp(ME.message)
+            otherwise
+                disp(getReport(ME, 'extended'))
+        end
     end
     
     if nargout == 0

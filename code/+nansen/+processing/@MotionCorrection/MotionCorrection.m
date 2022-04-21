@@ -15,11 +15,39 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 %  obj = obj@nansen.processing.MotionCorrection(dataLocation) creates the
 %  object based on a given dataLocation. The dataLocation can be:
 %       1) A filepath
-%       2) An ImageStack (containing VirtualData / file connection)
+%       2) An ImageStack (containing VirtualData)
 %       3) A struct-based DataLocation (not implemented yet).
 %
 %  obj = obj@nansen.processing.MotionCorrection(dataLocation, options)
 %  creates the object and specifies the options to use for processing.
+%
+% Notes:
+%
+%   This class creates the following data variables:
+%
+%     * <strong>FovAverageProjection</strong> : Average projection from the full corrected stack
+%
+%     * <strong>FovMaximumProjection</strong> : Maximum projection from the full corrected stack
+%
+%     * <strong>MotionCorrectionStats</strong> : A struct array with various stats from motion correction.
+%           - offsetX : Rigid frame offset in x (numFrames x 1)
+%           - offsetY : Rigid frame offset in y (numFrames x 1)
+%           - rmsMovement : root mean square movement for frames (numFrames x 1)
+%
+%     * <strong>MotionCorrectionReferenceImage</strong> : A stack of reference images 
+%     (templates) for motion correction. One reference per chunk
+%       
+%     * <strong>MotionCorrectionTemplates8bit</strong> : Same as above cast to 8bit
+%
+%     * <strong>MotionCorrectedAverageProjections</strong> : Image stack with average
+%     projections. Each average projection is from one chunk of the stack
+%
+%     * <strong>MotionCorrectedAverageProjections8bit</strong> : Same as above, cast to 8bit
+%     
+%     * <strong>MotionCorrectedMaximumProjections</strong> : Image stack with maximum
+%     projections. Each maximum projection is from one chunk of the stack
+%
+%     * <strong>MotionCorrectedMaximumProjections8bit</strong> : Same as above, cast to 8bit
 
 
 %   QUESTIONS:
@@ -33,13 +61,13 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     %   [ ] Multichannel support
     %
     %   [ ] Move preview method to stack.ChunkProcessor (and rename to testrun/samplerun etc)
+    %   [v] Move preview functionality to ImageStackProcessor...
+    %
     %   [ ] Move saveTiffStack & openTiffStack to somewhere else (not sure where.)
     %
     %   [ ] Add correctLineOffset, shiftStackSubRes functions
     %
     %   [ ] Save shifts in standardized output as well as method outputs...
-    %
-    %   [ ] Move preview functionality to ImageStackProcessor...
     %
     %   POSTPROCESSING
     %   [ ] Save temporal downsampled stacks (postprocessing?).
@@ -79,14 +107,13 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
         S = getToolboxSpecificOptions(obj, varargin) % -> toolboxwrapper
                 
-        S = initializeShifts(obj, numFrames) % Protected?
+        initializeShifts(obj, numFrames) % Protected?
         
-        S = updateCorrectionStats(obj, S, shiftsArray, frameIndices)
+        updateCorrectionStats(obj, S, shiftsArray, frameIndices)
         
         saveShifts(obj, shiftsArray)
         
-        % Todo: Rename to create template...
-        ref = initializeTemplate(obj, Y, opts);
+        ref = initializeTemplate(obj, Y, opts); % Todo: Rename to create template...
         
         M = registerImageData(obj, Y) % Run motion correction on subpart of ImageStack
         
@@ -116,7 +143,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             if ~isempty(obj.MaxProjectionStack)
                 delete(obj.MaxProjectionStack)
             end
-            
         end
         
     end
@@ -212,7 +238,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 obj.MaxProjectionStack = obj.openTiffStack(varName, refArray);
             end
 
-        
         end
         
         function Y = processPart(obj, Y, ~)
@@ -250,10 +275,26 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 imArray = stack.makeuint8(imArray, [], [], crop); % todo: Generalize this function / add tolerance as input
                 obj.saveTiffStack('MotionCorrectedMaximumProjections8bit', imArray)
             end
+            
+            % Save average projection image of full stack
+            imArray = obj.AvgProjectionStack.getFrameSet(1:obj.NumParts);
+            fovAverageProjection = mean(imArray, 3);
+            fovAverageProjection = stack.makeuint8(fovAverageProjection, [], [], crop);
+            obj.saveData('FovAverageProjection', fovAverageProjection, ...
+                'Subfolder', 'fov_images', 'FileType', 'tif', ...
+                'FileAdapter', 'ImageStack' );
+            
+            % Save maximum projection image of full stack
+            imArray = obj.MaxProjectionStack.getFrameSet(1:obj.NumParts);
+            fovMaximumProjection = mean(imArray, 3);
+            fovMaximumProjection = stack.makeuint8(fovMaximumProjection, [], [], crop);
+            obj.saveData('FovMaximumProjection', fovMaximumProjection, ...
+                'Subfolder', 'fov_images', 'FileType', 'tif', ...
+                'FileAdapter', 'ImageStack' );
         end
         
     end
-    
+        
     methods (Access = protected) % Pre- and processing methods for imagedata
 
         function Y = preprocessImageData(obj, Y, ~, ~)
@@ -399,6 +440,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Call method of ImageStackProcessor
             openTargetStack@nansen.stack.ImageStackProcessor(obj, filePath, stackSize, dataType)
             
+            % Inherit metadata from the source stack
+            obj.TargetStack.MetaData.updateFromSource(obj.SourceStack.MetaData)
+            
             % Make sure caching is turned off...
             obj.TargetStack.Data.UseDynamicCache = false;
 
@@ -408,7 +452,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         % Get filepath for saving options file to session folder
 
             filePath = obj.getDataFilePath(optionsVarname, '-w', ...
-                'Subfolder', 'image_registration');
+                'Subfolder', 'image_registration', 'IsInternal', true);
             
             % And check whether it already exists on file...
             if isfile(filePath)
@@ -471,17 +515,20 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function saveTiffStack(obj, DATANAME, imageArray)
             
             filePath = obj.getDataFilePath( DATANAME, '-w',...
-                'Subfolder', 'image_registration', 'FileType', 'tif' );
+                'Subfolder', 'image_registration', 'FileType', 'tif', ...
+                'FileAdapter', 'ImageStack', 'IsInternal', true );
                 
             nansen.stack.utility.mat2tiffstack( imageArray, filePath )
 
         end
         
         % Todo: this should be done using load data method of iomodel
+        % and an imagestack file adapter.
         function tiffStack = openTiffStack(obj, DATANAME, imageArray)
                         
             filePath = obj.getDataFilePath( DATANAME, '-w',...
-                'Subfolder', 'image_registration', 'FileType', 'tif' );
+                'Subfolder', 'image_registration', 'FileType', 'tif', ...
+                'FileAdapter', 'ImageStack', 'IsInternal', true );
             
             if ~isfile(filePath)
                 nansen.stack.utility.mat2tiffstack( imageArray, filePath )
@@ -502,12 +549,12 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %   Save rms movement of frames    
 
             % Check if imreg stats already exist for this session
-            filePath = obj.getDataFilePath('imregStats', '-w',...
-                'Subfolder', 'image_registration');
+            filePath = obj.getDataFilePath('MotionCorrectionStats', '-w',...
+                'Subfolder', 'image_registration', 'IsInternal', true);
             
             % Load or initialize
             if isfile(filePath)
-                S = obj.loadData('imregStats');
+                S = obj.loadData('MotionCorrectionStats');
             else
                 nanArray = nan(numFrames, 1);
                 
@@ -515,7 +562,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 S.offsetY = nanArray;
                 S.rmsMovement = nanArray;
 
-                obj.saveData('imregStats', S, ...
+                obj.saveData('MotionCorrectionStats', S, ...
                     'Subfolder', 'image_registration');
             end
             
@@ -524,14 +571,14 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         end
 
         % Todo: This should be an external function!
-        function S = getImageStats(obj, numFrames)
+        function S = getImageStats(obj)
             
             % Check if image stats already exist for this session
-            filePath = obj.getDataFilePath('imageStats', ...
-                'Subfolder', 'raw_image_info');
+            filePath = obj.getDataFilePath('ImageStats', '-w', ...
+                'Subfolder', 'raw_image_info', 'IsInternal', true);
             
             if isfile(filePath)
-                S = obj.loadData('imageStats');
+                S = obj.loadData('ImageStats');
             else
                 error('Image stats was not found')
             end

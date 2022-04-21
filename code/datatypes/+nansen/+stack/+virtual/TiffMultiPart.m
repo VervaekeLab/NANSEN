@@ -7,8 +7,13 @@ classdef TiffMultiPart < nansen.stack.data.VirtualArray
     % [ ] implement writable...
     % [ ] Create a property for keeping a list of multiple filepaths.
     %     FilePath property should be reserved for a single filepath.
+    % [ ] Detect if other files are located in same location
     
     
+properties (Constant, Hidden)
+    FILE_PERMISSION = 'write'
+end
+
 properties (Access = private, Hidden)
     tiffObj Tiff
     fileSize    
@@ -27,6 +32,9 @@ end
 methods % Structors
     
     function obj = TiffMultiPart(filePath, varargin)
+        import('nansen.stack.virtual.TiffMultiPart')
+        filePath = TiffMultiPart.lookForMultipartFiles(filePath);
+        
         obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
     end
     
@@ -78,7 +86,7 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function createMemoryMap(obj)
-        % this is done in coun frames method
+        % Skip. Tiff objects are creating in assignFilePath method
     end
     
     function assignDataSize(obj)
@@ -137,7 +145,6 @@ methods (Access = protected) % Implementation of abstract methods
                 error('Tiff file is not supported')
         end
 
-    
     end
     
 end
@@ -149,7 +156,7 @@ methods % Implementation of abstract methods
     function data = readData(obj, subs)
         
         % Special case for single frame image
-        if ndims(obj) == 2
+        if ndims(obj) == 2 %#ok<ISMAT>
             frameInd = 1;
         else
             frameInd = subs{end};
@@ -184,8 +191,10 @@ methods % Implementation of abstract methods
             
             fileNum = obj.frameIndexInfo.fileNum(frameNum);
             frameInFile = obj.frameIndexInfo.frameInFile(frameNum);
-
+            
+            warning('off', 'imageio:tiffmexutils:libtiffWarning')
             obj.tiffObj(fileNum).setDirectory(frameInFile);
+            warning('on', 'imageio:tiffmexutils:libtiffWarning')
             
             data(insertSub{:}) = obj.tiffObj(fileNum).read();
             
@@ -245,6 +254,11 @@ methods % Implementation of abstract methods
         
     end
 
+    function writeMetadata(~)
+        % Pass. This class will most likely be used to open generic tiffs,
+        % and we don't want to drop metadata files all over the place.
+    end
+    
 end
 
 
@@ -289,6 +303,8 @@ methods
     %   1) Number of frames depends on filesize (file not compressed)
     %   2) If there are many files, files with same filesize have same
     %   frame number
+        
+        import nansen.stack.utility.findNumTiffDirectories
     
         obj.NumFrames = 0;
         
@@ -302,7 +318,7 @@ methods
 
             % Todo: Add safety margin...
             n = obj.estimateNumberOfFrames(i);
-
+            
             if i > 1
                 if obj.fileSize(i) == obj.fileSize(i-1)
                     obj.numFramesPerFile(i) = obj.numFramesPerFile(i-1);
@@ -310,27 +326,9 @@ methods
                     skipCount = true;
                 end
             end
-    
+
             if ~skipCount
-                
-                % Count backwards
-                complete = false;
-                while ~complete
-                    try
-                        obj.tiffObj(i).setDirectory(n);
-                        complete = true;
-                    catch
-                        n = n-10;
-                    end
-                end
-                
-                % Count forwards
-                complete = obj.tiffObj(i).lastDirectory();
-                while ~complete
-                    obj.tiffObj(i).nextDirectory();
-                    n = n + 1;
-                    complete = obj.tiffObj(i).lastDirectory();
-                end
+                n = findNumTiffDirectories(obj.tiffObj(i), 1, 10000);
             end
             
             currentInd = obj.NumFrames + (1:n);
@@ -369,48 +367,48 @@ end
 
 
 methods (Static)
+
+    function createFile(filePath, varargin)
+    %createFile Create a new tiff stack
+    %
+    %   virtualTiffObj.createFile(filePath, imageArray) creates a new tiff
+    %   file and writes the data in imageArray to the file.
+    %
+    %   virtualTiffObj.createFile(filePath, stackSize, dataType) creates a
+    %   new tiff file and writes frames with zeros according to specified
+    %   stackSize and dataType
     
-    function initializeFile(filePath, arraySize, arrayClass)
-        
-        imArray = zeros( arraySize, arrayClass);
-        stack.utility.mat2tiffstack( imArray, filePath )
-        
-        return
-               
-        % Todo: This is just a draft. Create this as a file that can be
-        % written to....
-
-
-        t = Tiff(filePath, 'a');
-               
-        % Todo:
-        setTag(t, 'Photometric', Tiff.Photometric.MinIsBlack)
-        
-        setTag(t, 'Compression', Tiff.Compression.None)
-        setTag(t, 'ImageLength', arraySize(1));
-        setTag(t, 'ImageWidth', arraySize(2));
-        
-        switch arrayClass
-            case 'uint8'
-                setTag(t,'SampleFormat',Tiff.SampleFormat.UInt)
-                setTag(t, 'BitsPerSample', 8);
-%             case 'int8'
-%                 setTag(t,'SampleFormat',Tiff.SampleFormat.Int)
-%                 setTag(t, 'BitsPerSample', 8);
-            case 'uint16'
-                setTag(t,'SampleFormat',Tiff.SampleFormat.UInt)
-                setTag(t, 'BitsPerSample', 16);
-%             case 'int16'
-%                 setTag(t,'SampleFormat',Tiff.SampleFormat.Int)
-%                 setTag(t, 'BitsPerSample', 16);
-            otherwise
-                error('Not implemented yet')
+    %   Todo: Accept number of parts from inputs and write to multiple parts
+    
+        if numel(varargin) >= 2
+            arraySize = varargin{1};
+            arrayClass = varargin{2};
+            imArray = zeros( arraySize, arrayClass);
+        elseif numel(varargin) == 1
+            imArray = varargin{1};
+        elseif numel(varargin) == 0
+            error('Not enough input arguments')
         end
         
-        setTag(t, 'SamplesPerPixel', 1);
-        
+        nansen.stack.utility.mat2tiffstack( imArray, filePath )
     end
     
+    function filepath = lookForMultipartFiles(filepath)
+        
+        if ischar(filepath) || (iscell(filepath) && numel(filepath)==1)
+            if iscell(filepath)
+                [folder, ~, ext] = fileparts(filepath{1});
+            else
+                [folder, ~, ext] = fileparts(filepath);
+            end
+            L = dir(fullfile(folder, ['*', ext]));
+            
+            if numel(L) > 1 && numel( unique(cellfun(@numel, {L.name})) ) == 1
+                filepath = fullfile({L.folder}, {L.name});
+            end
+        end
+        
+    end
 end
 
 end

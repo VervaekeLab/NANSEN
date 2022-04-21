@@ -57,7 +57,7 @@ function [S, D] = convertParamsToStructArray(filepath)
     end
     
     % % Get validation function and message
-    fSub = getFileSectionStr(f, 1); % Get second subsection (local function)
+    fSub = getFileSectionStr(f, 2); % Get second subsection (local function)
     varBeginInd = strfind(fSub, 'V.'); % All parameter names should be succeeded by this expression    
     
     
@@ -104,22 +104,28 @@ function strOut = cleanValidationMessageStr(strIn)
 end
 
 function fOut = getFileSectionStr(fIn, sectionNumber)
+    
+    expr = cell(1,4);
 
     % % Get sections of file
-    expr1 = 'Specify parameters and default values';
-    expr2 = 'Specify customization flags';
-    expr3 = 'Specify validation/assertion test for each parameter';
-    expr4 = 'Adapt output to how many outputs are requested';
+    expr{1} = 'Specify parameters and default values';
+    expr{2} = 'Specify customization flags';
+    expr{3} = 'Specify validation/assertion test for each parameter';
+    expr{4} = 'Adapt output to how many outputs are requested';
 
+    % Take care of scenario where no customization section exists...
+    if isempty(regexp(fIn, expr{2}, 'once'))
+        expr{2} = expr{3};
+    end
     
     switch sectionNumber
         case 1
-            exprA = expr1;
-            exprB = expr2;
+            exprA = expr{1};
+            exprB = expr{2};
 
         case 2
-            exprA = expr3;
-            exprB = expr4;
+            exprA = expr{3};
+            exprB = expr{4};
     end
     
     sectionBeg = strfind(fIn, exprA);

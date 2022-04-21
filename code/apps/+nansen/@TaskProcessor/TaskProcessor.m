@@ -295,7 +295,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         
         function createTimer(obj)
                         
-            t = timer('ExecutionMode', 'fixedRate', 'Period', obj.TimerPeriod);
+            t = timer('Name', 'TaskProcessorTimer', 'ExecutionMode', ...
+                'fixedRate', 'Period', obj.TimerPeriod);
             
             t.TimerFcn = @(myTimerObj, thisEvent) obj.checkStatus();
             start(t)

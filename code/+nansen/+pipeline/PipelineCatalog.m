@@ -75,7 +75,7 @@ classdef PipelineCatalog < utility.data.StorableCatalog
             obj@utility.data.StorableCatalog(varargin{:})
 
             if ~nargout
-                utility.data.StorableCatalogApp(obj)
+                utility.data.CatalogViewerApp(obj)
                 clear obj
             end
             

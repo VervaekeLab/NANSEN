@@ -77,6 +77,8 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
                     error(msg)
                 end
                 
+            otherwise
+                rethrow(ME)
         end
         
         

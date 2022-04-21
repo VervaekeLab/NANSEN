@@ -1,4 +1,4 @@
-classdef App < signalviewer.App
+classdef App < signalviewer.App & roimanager.roiDisplay
 % Class for interactively plotting and exploring roi signals    
 %
 %
@@ -15,7 +15,6 @@ classdef App < signalviewer.App
 %       roiSignalViewer.App(roiSignalArray) opens a signal viewer instance
 %       based on an instance of a RoiSignalArray
 %
-
 
 
 %   Todo:
@@ -67,6 +66,8 @@ classdef App < signalviewer.App
 %           versions but fade them
 %       [x] Set options for signal extraction / processing and live update on plot. 
 %       [ ] Organize above point better. 
+%
+%       [ ] Label showing number of roi(s) that are selected
 
     
 %       Roimanager functionality that can be made into methods
@@ -78,6 +79,10 @@ classdef App < signalviewer.App
 %       [x] Append and overwrite modes
 
 
+%   Inherited properties:
+%       RoiGroup            % RoiGroup object
+
+
 
     properties
         DisplayMode = 'normal' % 'stacked' | 'imagesc' | 'normal'
@@ -85,10 +90,14 @@ classdef App < signalviewer.App
         HistoryOn = false;
     end
     
+    properties (Dependent)
+        ShowRoiSignalOptionsOnMenu; % TEMP: should remove
+    end
+    
     properties 
-        RoiGroup            % RoiGroup object
         RoiSignalArray      % RoiSignalArray object
         DisplayedRoiIndices % List of indices for currently displayed rois
+        % Todo: Replace above with SelectedRois and VisibleRois
     end
 
     properties (Access = protected)
@@ -114,7 +123,6 @@ classdef App < signalviewer.App
     
     properties (Transient, Access=private)
         roiSignalsChangedListener event.listener %Listener to changes on roi signal data
-        roiSelectionChangedListener event.listener %Listener to changes on roi selection
     end %properties
     
     
@@ -141,8 +149,8 @@ classdef App < signalviewer.App
             obj.initializeTimeSeriesObjects()
 
             %obj.createSignalSelectionDropdown()
-            delete(obj.hScrollbar);obj.hScrollbar=[];
-            delete(obj.hScrollPanel);obj.hScrollPanel=[];
+            delete(obj.hScrollbarX);obj.hScrollbarX=[];
+            delete(obj.hScrollPanelX);obj.hScrollPanelX=[];
             
             
             callbackFcn = @obj.onQuickZoomSelectionChanged;
@@ -150,6 +158,8 @@ classdef App < signalviewer.App
             
             %obj.addPlotToolbar()
 
+            % Temp
+            obj.hScrollPanelY.Visible = 'off';
             
             obj.setParameters()
             
@@ -160,26 +170,25 @@ classdef App < signalviewer.App
                 obj.showVirtualDataDisclaimer;
             end
             
-            obj.ax.ButtonDownFcn = {@obj.interactiveFrameChangeRequest, 'mousepress' };
+            %obj.ax.ButtonDownFcn = {@obj.interactiveFrameChangeRequest, 'mousepress' };
 
             obj.isConstructed = true;
         end
         
         function delete(obj)
             delete(obj.roiSignalsChangedListener)
-            delete(obj.roiSelectionChangedListener)
         end
         
     end
 
     methods % Set/get
         
-        function set.RoiGroup(obj, newValue)
-            
-            assert(isa(newValue, 'roimanager.roiGroup'), 'Value must be a RoiGroup' )
-            obj.RoiGroup = newValue;
-            obj.onRoiGroupSet()
-            
+        function set.ShowRoiSignalOptionsOnMenu(obj, newValue)
+            if obj.isConstructed
+                if newValue
+                    obj.addContextMenuItemsExtra()
+                end
+            end
         end
         
         function set.SignalsToDisplay(obj, newValue)
@@ -199,7 +208,7 @@ classdef App < signalviewer.App
         
     end
     
-    methods (Access = protected)
+    methods (Access = protected) % General methods
         
         function createAxes(obj)
 
@@ -227,17 +236,17 @@ classdef App < signalviewer.App
         
         function createQuickZoomLabels(obj)
             
-            
-            
-            
         end
         
         function addContextMenuItems(obj)
             
             mItem = uimenu(obj.ax.UIContextMenu, 'Label', 'Stack Signals Vertically', 'Callback', @obj.toggleDisplayMode, 'Separator', 'on', 'Checked', 'off');
+
+        end
+        
+        function addContextMenuItemsExtra(obj)
             mItem = uimenu(obj.ax.UIContextMenu, 'Label', 'Edit Signal Parameters', 'Callback', @obj.editParameters, 'Separator', 'on');
             mItem = uimenu(obj.ax.UIContextMenu, 'Label', 'Edit Deconvolution Parameters', 'Callback', @obj.editDeconvolutionParameters);
-                 
         end
         
         function updateContextMenuSignalsToShow(obj, names)
@@ -260,58 +269,6 @@ classdef App < signalviewer.App
             
         end
         
-        function setParameters(obj)
-        
-            params = nansen.twophoton.roisignals.extract.getDefaultParameters;
-        
-            obj.Parameters = params;
-
-        end
-        
-        function editParameters(obj, s, e)
-
-            params = obj.Parameters;
-            optManager = nansen.OptionsManager('roiSignalExtraction', params);
-        
-            params = tools.editStruct(params, nan, '', 'OptionsManager', ...
-                optManager, 'Callback', @obj.onSignalParamsChanged); 
-            
-            obj.Parameters = params;
-
-        end
-        
-        function editDeconvolutionParameters(obj, s, e)
-            
-            [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
-            P = rmfield(P, 'modelParams');
-            
-            P = obj.DeconvolutionOptions;
-            
-            P.modelType_ = {'ar1', 'ar2', 'exp2', 'autoar'};
-            P.tauRise_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 1000, 'nTicks', 100, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});
-            P.tauDecay_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 5000, 'nTicks', 500, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});
-
-            P = tools.editStruct(P, [], 'Set deconvolution parameters', ...
-                'Callback', @obj.onDeconvolutionParamsChanged);
-            
-            obj.DeconvolutionOptions = P;
-            obj.RoiSignalArray.DeconvolutionOptions = obj.DeconvolutionOptions;
-
-        end
-        
-        function onSignalParamsChanged(obj, name, value)
-           
-            
-            switch name
-                case {'pixelComputationMethod', 'excludeRoiOverlaps', ...
-                        'createNeuropilMask', 'excludeRoiFromNeuropil', ...
-                        'neuropilExpansionFactor', 'cellNeuropilSeparation', ...
-                        'numNeuropilSlices', 'roiMaskFormat' }
-                    obj.Parameters.(name) = value;
-                	obj.refreshSignalPlot();
-            end
-        end
-        
         function createSignalSelectionDropdown(obj)
                     
             strings = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
@@ -325,7 +282,7 @@ classdef App < signalviewer.App
             end
             hButtons(i).Value = true;
 
-        end
+        end %Create widget?
                        
         function onSignalSelectionChanged(obj, source, ~)
             
@@ -348,7 +305,7 @@ classdef App < signalviewer.App
                 obj.showLegend()
             end
 
-        end
+        end % Part of widget above
 
         function onQuickZoomSelectionChanged(obj, src, hBtn, i)
            
@@ -415,7 +372,7 @@ classdef App < signalviewer.App
             hButton3 = hToolbar.addButton('Icon', obj.ICONS.graph5, 'Padding', [3,3,3,3], 'Mode', 'togglebutton', 'Tag', 'pinToolbar', 'Tooltip', 'Stack Signals', 'MechanicalAction', 'Switch when pressed', 'IconAlignment', 'center', buttonProps{:});
             hButton3.Callback = @(s,e,mode)obj.toggleDisplayMode(s,'stacked');
 
-        end
+        end % Create widget?
         
         function resizePanel(obj, s, e)
             
@@ -426,37 +383,122 @@ classdef App < signalviewer.App
             end
 
         end
+        
     end
     
-    methods (Access = protected) % Callback methods
+    methods (Access = public) % Signal extraction plugin methods...
+        
+        % Todo: Move to signal extraction / computation plugins:
+        function setParameters(obj)
+        
+            params = nansen.twophoton.roisignals.extract.getDefaultParameters;
+        
+            obj.Parameters = params;
+
+        end %<- Signal extraction
+        
+        function editParameters(obj, s, e)
+
+            params = obj.Parameters;
+            optManager = nansen.OptionsManager('roiSignalExtraction', params);
+        
+            params = tools.editStruct(params, nan, '', 'OptionsManager', ...
+                optManager, 'Callback', @obj.onSignalParamsChanged); 
+            
+            obj.Parameters = params;
+
+        end
+        
+        function editDeconvolutionParameters(obj, s, e)
+            
+            [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
+            P = rmfield(P, 'modelParams');
+            
+            P = obj.DeconvolutionOptions;
+            
+            P.modelType_ = {'ar1', 'ar2', 'exp2', 'autoar'};
+            P.tauRise_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 1000, 'nTicks', 100, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});
+            P.tauDecay_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 5000, 'nTicks', 500, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});
+
+            P = tools.editStruct(P, [], 'Set deconvolution parameters', ...
+                'Callback', @obj.onDeconvolutionParamsChanged);
+            
+            obj.DeconvolutionOptions = P;
+            obj.RoiSignalArray.DeconvolutionOptions = obj.DeconvolutionOptions;
+
+        end
+        
+        function onSignalParamsChanged(obj, name, value)
+
+            switch name
+                case {'pixelComputationMethod', 'excludeRoiOverlaps', ...
+                        'createNeuropilMask', 'excludeRoiFromNeuropil', ...
+                        'neuropilExpansionFactor', 'cellNeuropilSeparation', ...
+                        'numNeuropilSlices', 'roiMaskFormat' }
+                    obj.Parameters.(name) = value;
+                	obj.refreshSignalPlot();
+            end
+        end
+        
+        function onDeconvolutionParamsChanged(obj, name, value)
+            
+            % Todo: Find a solution for when changing time constants and
+            % many rois are selected.
+% %             switch name
+% %                 case {'tauDecay', 'tauRise', 'spikeSnr', 'lambdaPr'}
+            obj.DeconvolutionOptions.(name) = value;
+            obj.RoiSignalArray.DeconvolutionOptions = obj.DeconvolutionOptions;
+            obj.RoiSignalArray.resetSignals('all', {'deconvolved', 'denoised'})
+
+            %obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace', {'deconvolved', 'denoised'}, true);
+                    
+% %             end
+        end
+        
+        function onDffOptionsChanged(obj, name, value)
+            
+            obj.DffOptions.(name) = value;
+                        
+            obj.RoiSignalArray.DffOptions = obj.DffOptions;
+            obj.RoiSignalArray.resetSignals('all', {'dff'})
+            
+            %obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace', {'dff'}, true);
+            
+        end
+        
+    end
+    
+    methods (Access = protected) % Callback methods (roi specific)
         
 % %         function resizePanel(obj, s, e)
 % %             resizePanel@signalviewer.App(obj, s, e)
 % %         end
         
         function onRoiGroupSet(obj)
-            
-            el = listener(obj.RoiGroup, 'roiSelectionChanged', ...
-                @obj.onRoiSelectionChanged);
-            
-            obj.roiSelectionChangedListener = el;
-            
+        %onRoiGroupSet Is called when roigroup is set.    
+            if obj.RoiGroup.roiCount >= 1 % -> Select first roi.
+                obj.RoiGroup.changeRoiSelection([], 1) 
+            end
         end
         
-        function onSignalToDisplaySet(obj)
+        function onRoiSelectionChanged(obj, evtData)
             
-            % TODO: Update plots for new signal types.
+            C = obj.activateGlobalMessageDisplay(); %#ok<NASGU>
             
-            % need to know what changed, then call update signals...
+            newIndices = evtData.NewIndices;
             
-            %updateSignalPlot(obj, obj.selectedRois, 'overwrite');
-            %updateSignalPlot(obj, obj.selectedRois, 'append');
+            selectedRoiIdx = setdiff(newIndices, obj.DisplayedRoiIndices);
+            deselectedRoiIdx = setdiff(obj.DisplayedRoiIndices, newIndices);
             
+            if ~isempty(deselectedRoiIdx)
+                obj.resetSignalPlot(deselectedRoiIdx)
+            end
             
-            
-        end
-        
-        function onRoiSelectionChanged(obj, src, evtData)
+            if ~isempty(selectedRoiIdx)
+                obj.updateSignalPlot(selectedRoiIdx, 'append');
+            end
+                
+            return
             
             switch evtData.eventType
                 case 'unselect'
@@ -475,11 +517,38 @@ classdef App < signalviewer.App
 %                     else
 %                         roiIndicesToPlot = evtData.roiIndices;
 %                     end
-                    
+
                     obj.updateSignalPlot(evtData.roiIndices, 'append');
+                    
+                case 'both'
+
+                    obj.resetSignalPlot(evtData.roiIndices.Deselected)
+                    obj.updateSignalPlot(evtData.roiIndices.Selected, 'append');
 
             end
-
+            
+        end
+        
+        function onRoiClassificationChanged(obj, evtData)
+            % pass
+        end
+        
+        function onRoiGroupChanged(obj, evt)
+            % pass
+        end
+        
+        
+        function onSignalToDisplaySet(obj)
+            
+            % TODO: Update plots for new signal types.
+            
+            % need to know what changed, then call update signals...
+            
+            %updateSignalPlot(obj, obj.selectedRois, 'overwrite');
+            %updateSignalPlot(obj, obj.selectedRois, 'append');
+            
+            
+            
         end
         
         function onRoiSignalsChanged(obj, src, evtData)
@@ -507,7 +576,6 @@ classdef App < signalviewer.App
                         obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace', ...
                             evtData.signalType);
                     end
-                    
                 end
             end
         end
@@ -516,8 +584,28 @@ classdef App < signalviewer.App
     
     methods
         
-        function onSignalsToShowChanged(obj, src, evt)
+        function showSignal(obj, signalName)
             
+            if ~isa(signalName, 'cell')
+                signalName = {signalName};
+            end
+            
+            for i = 1:numel(signalName)
+                % Make sure menus and lines are updated
+                obj.onSignalVisibilityChanged(signalName{i}, true)
+            end
+            
+            % Add signal to list of signals to show
+            obj.SignalsToDisplay = union(obj.SignalsToDisplay, signalName{i}, 'stable');
+
+            obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace')
+
+            % Todo: combine/integrate with onSignalSelectionChanged
+
+        end
+        
+        function onSignalsToShowChanged(obj, src, evt)
+            % Todo: protected
             tf = onSignalsToShowChanged@signalviewer.App(obj, src, evt);
             
             src = struct('String', src.Label, 'Value', tf);
@@ -528,32 +616,6 @@ classdef App < signalviewer.App
         function h = getHandle(obj, signalName)
             %Todo: Isthis to naive???
             h = obj.hLineObjects.(signalName);
-        end
-        
-        function onDeconvolutionParamsChanged(obj, name, value)
-            
-            % Todo: Find a solution for when changing time constants and
-            % many rois are selected.
-% %             switch name
-% %                 case {'tauDecay', 'tauRise', 'spikeSnr', 'lambdaPr'}
-            obj.DeconvolutionOptions.(name) = value;
-            obj.RoiSignalArray.DeconvolutionOptions = obj.DeconvolutionOptions;
-            obj.RoiSignalArray.resetSignals('all', {'deconvolved', 'denoised'})
-
-            %obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace', {'deconvolved', 'denoised'}, true);
-                    
-% %             end
-        end
-        
-        function onDffOptionsChanged(obj, name, value)
-            
-            obj.DffOptions.(name) = value;
-                        
-            obj.RoiSignalArray.DffOptions = obj.DffOptions;
-            obj.RoiSignalArray.resetSignals('all', {'dff'})
-            
-            %obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace', {'dff'}, true);
-            
         end
         
         function addLineToHistory(obj, roiInd)
@@ -617,7 +679,9 @@ classdef App < signalviewer.App
         %       mode : 'append' | 'overwrite'
             
          % todo, need append and replace.
-            
+               
+            persistent yMaxLeft yMaxRight
+         
             if nargin < 4
                 signalNames = obj.SignalsToDisplay;
             else
@@ -684,25 +748,28 @@ classdef App < signalviewer.App
                 
                 signalName = signalNames{i};
                 
-                % Change to left or right y axis depending on signal
-                switch signalName
-                    case {'dff', 'denoised', 'deconvolved'}
-                        yyaxis(obj.ax, 'right')
-                        yMax = 4;
-                    otherwise
-                        yyaxis(obj.ax, 'left')
-                        yMax = 255;
-                end
-
                 % Get signaldata based on signal name to plot
                 signalData = obj.RoiSignalArray.getSignals(roiInd, signalName, obj.Parameters, 1, forceUpdate);
                 
                 if isempty(signalData); return; end
                 
+                
+                % Change to left or right y axis depending on signal
+                switch signalName
+                    case {'dff', 'denoised', 'deconvolved'}
+                        yyaxis(obj.ax, 'right')
+                        yMax = 4;
+                    
+                    otherwise
+                        yyaxis(obj.ax, 'left')
+                        yMax = 255;
+                end
+
                 yScale = 1;
                 
                 if strcmp(obj.DisplayMode, 'stacked')
-                    signalData = signalData.*yScale + (0:numel(roiInd)-1) * yMax;
+                    yOffset = (numDisplayedLines + (0:numel(roiInd)-1)) * yMax;
+                    signalData = signalData.*yScale + yOffset;
                     %obj.ax.YLim = [0, numel(roiInd)*yMax];
                 else
                     %obj.ax.YLim = [0, yMax];
@@ -1037,7 +1104,6 @@ classdef App < signalviewer.App
             end
             
         end
-        
         
     end
     

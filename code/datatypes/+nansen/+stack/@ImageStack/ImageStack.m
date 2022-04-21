@@ -86,6 +86,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %   [ ] More work on dimension selection for frame chunks.
 %   [ ] Make ProjectionCache class and add as property...
 %   [ ] Set method for name
+%   [ ] Fix projecton cache and retrieval for multichannel images
 %
 %   [ ] Properties: FrameSize and NumFrames. Useful, Keep? 
 %
@@ -116,14 +117,18 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         DataDimensionOrder      % Dimension arrangement of data (i.e source) Depends on ImageStackData
     end
     
-    properties % Properties for customization of dimension lengths and units
-        DimensionLength         % Length of each dimension, i.e 1 pixel = 1.5 micrometer
-        DimensionUnits          % Units of each dimension, i.e [micrometer, micrometer, second] for XYT stack
+    properties (Dependent) % Properties for customization of dimension lengths and units
+        ImagePhysicalSize       % Length of each dimension, i.e 1 pixel = 1.5 micrometer
+        ImagePhysicalUnits      % Units of each dimension, i.e [micrometer, micrometer, second] for XYT stack
+        StackDuration
+    end
+    
+    properties (Dependent)
+        MetaData
     end
     
     properties 
         FileName char = ''      % Filename (absolute path for file) if data is a virtual array
-        MetaData struct         % Metadata
         UserData struct         % Userdata 
 
         DataXLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
@@ -174,7 +179,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
     properties (Access = private)
         CacheChangedListener event.listener
-        isDirty struct % Temp flag for whether buffer was updated... Should be moved to virtualStack...
+        isDirty struct % Temp flag for whether projection cache was updated... Should be moved to a projection cache class
     end
     
 
@@ -237,6 +242,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 delete(obj.Data)
             end
             
+            % fprintf('Deleted ImageStack.\n') % For testing
+            
         end
 
     end
@@ -298,12 +305,20 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             doCropImage = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(1:2)));
             
+            % Todo: make another keyword, like 'all' or 'cache' but return
+            % a chunk also if cache is empty
+            
             % Case 1: All frames (along last dimension) are requested.
             % Should return all available frames (i.e cached frames for virtual...)
-            if (ischar(frameInd) && strcmp(frameInd, 'all'))
+            if (ischar(frameInd) && strcmp(frameInd, 'chunk'))
+                % Todo
+                error('Not implemented yet')
+            
+            elseif (ischar(frameInd) && strcmp(frameInd, 'all'))
                 
-                % Todo: Should return cached frames if number of frames
-                % will not fit in memory??
+                % Todo: Check if there is enough memory for operation.
+                % Throw error if not. Return all frames if possible
+
                 
                 % Assign image data to temp variable.
                 if obj.IsVirtual
@@ -346,11 +361,36 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         imArray = imArray(indexingSubs{:});
                     end
                 end
-            
-            % Case 3: Subset of frames are requested.
+                
+            % Case 3; Get cached frames
+            elseif (ischar(frameInd) && strcmp(frameInd, 'cache'))
+                if obj.IsVirtual
+                    if obj.Data.HasCachedData
+                        if obj.HasStaticCache
+                            imArray = obj.Data.getStaticCache();
+                        else
+                            imArray = obj.Data.getCachedFrames();
+                        end
+                    else
+                        imArray = [];
+                    end
+                else
+                    imArray = obj.Data.DataArray;
+                end
+                
+                % Only apply subindexing if necessary
+                if doCropImage
+                    indexingSubs(3:end) = {':'};
+                    imArray = imArray(indexingSubs{:});
+                end
+                
+            % Case 4: Subset of frames are requested.
             else
                 imArray = obj.Data(indexingSubs{:});
             end
+            
+            % Todo: Subselect channels and or planes
+            
             
             % Set data intensity limits based on current data if needed.
             if isempty( obj.DataIntensityLimits )
@@ -399,6 +439,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             obj.Data.addToStaticCache(imData, frameIndices)
+            
+            obj.setProjectionCacheDirty()
             
         end
         
@@ -459,6 +501,49 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
+    % - Methods for getting image stack metadata
+        
+        function sampleRate = getSampleRate(obj)
+            sampleRate = obj.Data.MetaData.SampleRate;
+        end
+        
+        function timeStep = getTimeStep(obj)
+            timeStep = obj.Data.MetaData.TimeIncrement;
+        end
+        
+        function frameTimes = getFrameTimes(obj, frameIndex)
+            
+            if isempty(frameIndex)
+                frameIndex = 1:obj.NumTimepoints;
+            end
+            
+            if ~isempty(obj.MetaData.FrameTimes)
+                frameTimes = obj.MetaData.FrameTimes(frameIndex);
+            else
+                frameTimes = (frameIndex-1) .* seconds(obj.MetaData.TimeIncrement);
+                if ~isempty(obj.MetaData.StartTime) % Todo.
+                    frameTimes = frameTimes + obj.MetaData.StartTime;
+                end
+            end
+
+        end
+        
+        function framePosition = getFramePosition(obj, frameIndex)
+            
+            % Todo: How to represent this is stack has multiple planes and
+            % multiple timepoints?
+            
+            if nargin < 2
+                frameIndex = [];
+            end
+            
+            if isempty(frameIndex) || isempty(obj.MetaData.FramePosition)
+                framePosition = obj.MetaData.SpatialPosition;
+            else
+                framePosition = obj.MetaData.FramePosition(frameIndex, :);
+            end
+        end
+
     % - Methods for getting processed versions of data
     
         function [tf, filePath] = hasDownsampledStack(obj, method, downsampleFactor)
@@ -510,7 +595,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
         
             params = struct();
-            params.CreateVirtualOutput = false;
+            params.SaveToFile = false;
             params.UseTransientVirtualStack = true;
             params.FilePath = '';
             params.OutputDataType = 'same';
@@ -530,8 +615,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             % Determine if we need to save data to file
-            if obj.IsVirtual && numFramesFinal > chunkLength 
-                params.CreateVirtualOutput = true;
+            if obj.IsVirtual && numFramesFinal > chunkLength
+                if ~params.SaveToFile
+                    params.UseTransientVirtualStack = true;
+                end
+                params.SaveToFile = true;
             end
             
             % Create a new ImageStack object, which is an instance of a
@@ -541,16 +629,28 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % Get indices for different parts/blocks
             [IND, numChunks] = obj.getChunkedFrameIndices(chunkLength);
             
-            % Todo: Should this be commented out or not??
+            % Check metadata to see if stack is already downsampled
+            if downsampledStack.MetaData.Downsampling.IsCompleted
+                return
+            end
             
-            % Todo: Make this more efficient. Ie. should tag ini-file if
-            % data is already downsampled
+            % Check data to see if stack is already downsampled
             if nansen.stack.ImageStack.isStackComplete(downsampledStack, numChunks)
+                
                 if params.Verbose
                     fprintf('Downsampled stack already exists.\n')
                 end
+                downsampledStack.MetaData.Downsampling.IsCompleted = true;
                 return % Data is already downsampled...
             end            
+            
+            global waitbar
+            useWaitbar = false;
+            if ~isempty(waitbar); useWaitbar = true; end
+              
+            if useWaitbar
+                waitbar(0/numChunks, 'Initializing downsampling')
+            end
             
             % Loop through blocks and downsample frames
             for iPart = 1:numChunks
@@ -559,6 +659,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 if params.Verbose
                     fprintf('Downsampled part %d/%d\n', iPart, numChunks)
                 end
+                if useWaitbar
+                    waitbar(iPart/numChunks, 'Downsampling image stack')
+                end
+            end
+            
+            downsampledStack.MetaData.Downsampling.IsCompleted = true;
+            
+            if ~nargout
+                clear downsampledStack
             end
             
         end
@@ -656,6 +765,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
+        function setProjectionCacheDirty(obj)
+        %setProjectionCacheDirty Set flags for all projections to dirty. 
+        % Todo: move to another class
+            fieldNames = fieldnames(obj.isDirty);
+            for i = 1:numel(fieldNames)
+                obj.isDirty.(fieldNames{i}) = true;
+            end
+        end
+        
         function calculateProjection(obj, funcHandle)
             
         end
@@ -746,7 +864,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     N = N / obj.NumPlanes / obj.NumTimepoints;
             end
             
-            
+            N = min([N, obj.NumTimepoints]);
         end
         
         function [IND, numChunks] = getChunkedFrameIndices(obj, numFramesPerChunk, chunkInd, dim)
@@ -770,6 +888,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
             % Make sure chunk length does not exceed number of frames.
             numFramesPerChunk = min([numFramesPerChunk, numFramesDim]);
+            
+            % If there will be more than one chunk... Adjust so that last
+            % chunkSize so that last chunk is not smaller than 1/3rd of
+            % the chunk size... 
+            % Todo: make sure options of various methods are updated before
+            % saving if chunklength is adjusted.
+% % %             if numFramesDim > numFramesPerChunk
+% % %                 numFramesPerChunk = obj.autoAdjustChunkLength(numFramesPerChunk, numFramesDim);
+% % %             end
 
             % Determine first and last frame index for each chunk
             firstFrames = 1:numFramesPerChunk:numFramesDim;
@@ -792,6 +919,20 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if nargout == 1
                 clear numChunks
             end
+        end
+        
+        function numFramesPerChunk = autoAdjustChunkLength(obj, numFramesPerChunk, numFramesDim)
+        %autoAdjustChunkLength Adjust chunklength to avoid short last chunk    
+           
+            fractionalSize = 1/3;
+            
+            % Check how many frames are part of last chunk:
+            numFramesLastChunk = mod(numFramesDim, numFramesPerChunk);
+            if numFramesLastChunk < numFramesPerChunk * fractionalSize
+                numChunks = floor(numFramesDim / numFramesPerChunk);
+                numFramesPerChunk = numFramesPerChunk + ceil(numFramesLastChunk/numChunks);
+            end
+            
         end
         
         function [imArray, IND] = getFrameChunk(obj, chunkNumber)
@@ -854,6 +995,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     end
     
     methods % Set/get methods
+        
+        function metadata = get.MetaData(obj)
+            metadata = obj.Data.MetaData;
+        end
         
         function set.Data(obj, newValue)
             obj.Data = newValue;
@@ -997,6 +1142,20 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
+        function physicalSize = get.ImagePhysicalSize(obj)
+            physicalSize = [obj.MetaData.PhysicalSizeX .* obj.ImageWidth, ...
+                obj.MetaData.PhysicalSizeY .* obj.ImageHeight];
+            physicalSize = round(physicalSize, 1);
+        end
+        
+        function physicalUnits = get.ImagePhysicalUnits(obj)
+            physicalUnits = {obj.MetaData.PhysicalSizeXUnit, obj.MetaData.PhysicalSizeYUnit};
+        end
+        
+        function stackDuration = get.StackDuration(obj)
+            stackDuration = obj.NumTimepoints * seconds(obj.getTimeStep);
+            stackDuration.Format = 'hh:mm:ss'; 
+        end
     end
 
     methods (Access = private) % Internal methods
@@ -1095,7 +1254,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         end
                         
                         % Make sure requested frame indices are in range.
-                        subs{i} = intersect(1:obj.NumTimepoints, subs{i});
+                        if isnumeric(subs{i})
+                            isValid = subs{i} >= 1 & subs{i} <= obj.NumTimepoints;
+                            if any(~isValid)
+                                error('Invalid data indexing along T dimension')
+                            end
+                            %subs{i} = subs{i}(isValid);
+                        end
+                        
                         % Todo: Generalize and do this for all dimensions
                     
                     case 'X'
@@ -1176,18 +1342,26 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function onCachedDataChanged(obj, src, evt)
-            %error('not implemented')
+        %onCachedDataChanged Callback for cache changed event
+        
+        % This method is used for resetting the projection "cache", i.e the
+        % projection images that are stored in the Projections property.
             
-            persistent counter
+            persistent counter resetProjectionCacheInterval
             if isempty(counter); counter = 0; end
+            if isempty(resetProjectionCacheInterval); resetProjectionCacheInterval = 10; end
+            
+            % Todo: selective reset, ie some projections are heavier and
+            % should be reset less often. 
             
             counter = counter + 1;
-            if counter >= 100
-                fieldNames = fieldnames(obj.isDirty);
-                for i = 1:numel(fieldNames)
-                    obj.isDirty.(fieldNames{i}) = true;
+            if mod(counter, resetProjectionCacheInterval) == 0
+                obj.setProjectionCacheDirty()
+                
+                if resetProjectionCacheInterval < 50
+                    resetProjectionCacheInterval = resetProjectionCacheInterval + 10;
                 end
-                counter = mod(counter, 100);
+
             end
             % Todo: Set projection images to dirty. Only do this every once
             % in a while...
@@ -1290,14 +1464,16 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         function onDynamicCacheEnabledChanged(obj)
             
             switch obj.DynamicCacheEnabled
-                case 'on'
+                case {'on', true}
                     obj.CacheChangedListener = listener(obj.Data, ...
                         'DynamicCacheChanged', @obj.onCachedDataChanged);
-                case 'off'
+                case {'off', false}
                     if ~isempty(obj.CacheChangedListener)
                         delete(obj.CacheChangedListener)
                         obj.CacheChangedListener = event.listener.empty;
                     end
+                otherwise
+                    warning('Value of DynamicCacheChanged is not valid')
             end
             
         end

@@ -29,11 +29,22 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
             obj.PrimaryApp = h;
             obj.Axes = h.Axes;
             
+            obj.assignDataIoModel()
+            
         end
         
     end
     
     methods 
+        
+        function assignDataIoModel(obj)
+            return % Under construction
+            if isempty(obj.DataIoModel)
+                folderPath = fileparts( obj.ImviewerObj.ImageStack.FileName );
+                obj.DataIoModel = nansen.dataio.DataIoModel(folderPath);
+            end            
+        end
+        
         function imviewerObj = get.ImviewerObj(obj)
             imviewerObj = obj.PrimaryApp;
         end

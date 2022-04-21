@@ -7,6 +7,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     
     properties (Abstract, Constant, Hidden) % Todo: move to DataMethod
         DATA_SUBFOLDER  % Name of subfolder(s) where to save results by default
+        ROI_VARIABLE_NAME
     end
     
     properties (Access = protected) % Data to keep during processing.
@@ -21,7 +22,8 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     
     methods (Abstract, Access = protected)
         S = getToolboxSpecificOptions(obj)
-        results = segmentPartition(obj, y)    
+        results = segmentPartition(obj, y)
+        roiArray = getRoiArray(obj)
     end
     
     methods % Constructor
@@ -33,7 +35,16 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     end
     
     % Methods for initialization/completion of algorithm
-    methods (Access = protected) % Overide ImageStackProcessor methods 
+    methods (Access = protected) % Override ImageStackProcessor methods 
+        
+        function tf = checkIfPartIsFinished(obj, partNumber)
+        %checkIfPartIsFinished Check if intermediate results exist for part
+                    
+            msg = 'Number of parts is not matched';
+            assert(obj.NumParts == numel(obj.Results), msg)
+            
+            tf = ~isempty(obj.Results{partNumber});
+        end
 
         function runPreInitialization(obj)
         %onPreInitialization Method that runs before the initialization step    
@@ -74,7 +85,6 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 end
             end
 
-            
             % Get downsampled stack if required
             dsFactor = obj.getTemporalDownsamplingFactor();
             if dsFactor > 1
@@ -106,39 +116,33 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
              obj.Results{obj.CurrentPart} = output;
              obj.saveResults()
              
-             %Y = obj.postprocessImageData();
-
         end
         
         function onCompletion(obj)
-                  
-            disp('finished')
-            % Todo (subclasses?):
-            % merge rois. 
-            % Save final rois 
-                                    
-        end
-        
-    end
-    
-    methods (Access = protected) % Methods for processing each partition
-
-        function Y = preprocessImageData(obj, Y)
-             
-        end
-        
-        function Y = postprocessImageData(obj, Y)
-             
-        end
-
-    end
-    
-    methods (Access = protected) % Other utiliy methods for roi segmentation
+        %onCompletion Run when processor is done with all parts
+           
+            if ~isfile(obj.getDataFilePath(obj.ROI_VARIABLE_NAME))
+                obj.mergeResults()
                 
+                roiArray = obj.getRoiArray();
+                
+                obj.saveData(obj.ROI_VARIABLE_NAME, roiArray, ...
+                    'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
+                
+                % Todo: Get roiImages and roiStats
+                
+            end
+        end
+        
+    end
+
+    methods (Access = protected) % Methods specific for roi segmentation
+        
+        % Todo: Should this be an ImageStackProcessor method?
         function opts = initializeOptions(obj, opts, optionsVarname)
         % Get filepath for saving options file to session folder
             filePath = obj.getDataFilePath(optionsVarname, '-w', ...
-                'Subfolder', obj.DATA_SUBFOLDER);
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
             
             % And check whether it already exists on file...
             if isfile(filePath)
@@ -164,8 +168,8 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             
         end
         
-        function appendResults(obj)
-            
+        function mergeResults(obj)
+            % Subclasses may override
         end
         
         function dsFactor = getTemporalDownsamplingFactor(obj)

@@ -1,11 +1,15 @@
-function signalArray = extractSingleRoi(imArray, roiData, method)
+function signalArray = extractSingleRoi(imArray, roiData, method, n)
 %extractSingleRoi Extract fluorescence signal of one roi.
 %
-%   signalArray = extractSingleRoi(imArray, roiMask, npMask) extracts
+%   signalArray = extractSingleRoi(imArray, roiData, method) extracts
 %   the fluorescence signal of a roi in an imageArray based on the roiMask.
 %   If a neuropil mask (npMask) is supplied, the signal in the neuropil
 %   region will also be extracted. The signal is the mean spatial pixel 
 %   intensity within the roi for each frame.
+%
+%   signalArray = extractSingleRoi(imArray, roiData, method, n)
+%   additionally specifies the nth percentile to use (only relevant if
+%   method is percentile)
 %
 %   INPUTS:
 %       imArray: double (nPixY, nPixX, nFrames) array of images
@@ -14,8 +18,8 @@ function signalArray = extractSingleRoi(imArray, roiData, method)
 %           numSubregions) for each roi, and xInd and yInd are the x and y
 %           indices respectively for indexing the image array to get a
 %           subpart tightly cropped around the roi.
-%       method: 'mean' or 'median'. Default: 'mean'. Median (and 
-%           percentiles) are not implemented yet.
+%       method: 'mean', 'median' or 'percentile'. Default: 'mean'. For
+%           percentile, if n is not specified, 50 (median) is used.
 %
 %   OUTPUT:
 %       signalArray : double (nFrames, 1+nSubregions). Note: The signal of 
@@ -29,13 +33,10 @@ function signalArray = extractSingleRoi(imArray, roiData, method)
 %       This method produce quicker results when extracting the signals 
 %       from a few number of rois.
 
-%   TODO:
-%     [ ] Implement method for getting median values instead of mean
-%           i.e use implement the getPercentileSignal
-
 
     % Determine if surrounding neuropil fluorescence will be extracted
     if nargin < 3; method = 'mean'; end % Default is mean
+    if nargin < 4; n = 50; end % Default percentile is median
 
     numSamples = size(imArray, 3);
     numSubregions = size(roiData.Masks, 3);
@@ -44,21 +45,42 @@ function signalArray = extractSingleRoi(imArray, roiData, method)
     imArrayCropped = imArray(roiData.yInd, roiData.xInd, :);
     roiMaskCropped = roiData.Masks(roiData.yInd, roiData.xInd, :);
 
-    % Create a weighted 2D sparse version of the roi mask.
-    roiMaskCropped_ = reshape(roiMaskCropped, [], numSubregions)';
-    roiMaskCropped_ = roiMaskCropped_ ./ sum(roiMaskCropped_, 2);
-    roiMaskCropped_ = sparse(roiMaskCropped_);
+    if strcmp(method, 'mean')
     
-    imArrayCropped = double(reshape(imArrayCropped, [], numSamples));
-    tmpSignal = roiMaskCropped_ * imArrayCropped;
+        % Create a weighted 2D sparse version of the roi mask.
+        roiMaskCropped_ = reshape(roiMaskCropped, [], numSubregions)';
+        roiMaskCropped_ = roiMaskCropped_ ./ sum(roiMaskCropped_, 2);
+        roiMaskCropped_ = sparse(roiMaskCropped_);
 
-    % Return signal array as numSamples x numSubregions
-    signalArray = tmpSignal';
+        imArrayCropped = double(reshape(imArrayCropped, [], numSamples));
+        tmpSignal = roiMaskCropped_ * imArrayCropped;
 
+        % Return signal array as numSamples x numSubregions
+        signalArray = tmpSignal';
+        
+    elseif strcmp(method, 'median')
+        signalArray = getPercentileSignal(imArrayCropped, roiMaskCropped, 50);
+        
+    elseif strcmp(method, 'percentile')
+        signalArray = getPercentileSignal(imArrayCropped, roiMaskCropped, n);
+        
+    elseif strcmp(method, 'max')
+        error('Not implemented yet.')
+        
+    end
 end
 
 
 function signalArray = getPercentileSignal(imArrayChunk, roiMaskChunk, p)
+%getPercentileSignal Computes signal of roi using percentile of pixels
+%
+%   INPUTS:
+%       imArrayChunk : image array (nY x nX x nSamples)
+%       roiMaskChunk : roi mask array (nY x nX x nSubRegions)
+%       p : scalar, percentile value to use
+%
+%   OUTPUTS:
+%       signalArray : matrix (numSamples x numSubregions)
 
     if nargin < 2 || isempty(p)
         p = 50;
@@ -72,7 +94,7 @@ function signalArray = getPercentileSignal(imArrayChunk, roiMaskChunk, p)
     end
     
     % Preallocate signalArray
-    signalArray = zeros(nSamples, nSubregions );
+    signalArray = zeros(nSamples, nSubregions);
 
     % Extract roisignals
     for i = 1:nSubregions
@@ -90,6 +112,5 @@ function signalArray = getPercentileSignal(imArrayChunk, roiMaskChunk, p)
         end
         
     end
-    
 end
 

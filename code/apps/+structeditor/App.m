@@ -161,6 +161,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         visibleHeight
         visibleWidth
         virtualHeight
+        virtualWidth = 0
+        visibleWidthOrig
         
         lastScrollValue = 0
         figureCallbackStore
@@ -228,6 +230,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Resize panels before creating components
             obj.resizePanel()
+            obj.visibleWidthOrig = obj.visibleWidth;
             
             % Create components for first panel..
             obj.addComponents(1)
@@ -470,14 +473,35 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function adjustFigureSizeToComponents(obj)
             
+            % Only adjust size if figure is standalone
+            if ~strcmp(obj.mode, 'standalone'); return; end
+            
+            
             if obj.virtualHeight(obj.currentPanel) < obj.visibleHeight
                 h = obj.virtualHeight(obj.currentPanel);
                 obj.Figure.Position(4) = h + sum(obj.Margins([2,4])) + 20;
                 uim.utility.centerFigureOnScreen(obj.Figure)
             end
             
-            % Todo: Take horizontal extent of textlabels into account
-                        
+        end
+        
+        function adjustFigureWidthToComponents(obj)
+            
+            % Only adjust size if figure is standalone
+            if ~strcmp(obj.mode, 'standalone'); return; end
+            
+            if obj.virtualWidth(obj.currentPanel) > obj.visibleWidth
+                w = obj.virtualWidth(obj.currentPanel);
+            else
+                w = obj.visibleWidthOrig;
+            end
+            
+            newFigureWidth = w + sum(obj.Margins([1,3]));
+
+            dx = newFigureWidth - obj.Figure.Position(3);
+            obj.Figure.Position(3) = obj.Figure.Position(3) + dx;
+            drawnow
+            
         end
         
         function resizePanel(obj, src, evt)
@@ -536,9 +560,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 setpixelposition(obj.footer.hPanel, footerPos);
             end
             
-
-            
-            
             drawnow limitrate
             
         end
@@ -563,6 +584,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             else
                 newPosition(4) = obj.visibleHeight;
             end
+            
+            
+% %             % Panel width should be same as virtual width.
+% %             if ~isnan(obj.virtualWidth(pageNum))
+% %                 newPosition(3) = obj.virtualWidth(pageNum);
+% %             else
+% %                 newPosition(3) = obj.visibleWidth;
+% %             end
+            
 
             setpixelposition(obj.main.hPanel(pageNum), newPosition);
 
@@ -579,11 +609,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         %onCallbackSet Need to make on callback for each page...    
             if obj.isConstructed && ~isempty(obj.Callback)
                 
-                if numel(obj.Callback) ~= obj.numTabs
+                if ~iscell(obj.Callback) || numel(obj.Callback) ~= obj.numTabs
                     if obj.numTabs > 1
                         obj.Callback = arrayfun(@(i) obj.Callback, 1:obj.numTabs, 'uni', 0);
                     else
-                        if ~isa(obj.Callback)
+                        if ~isa(obj.Callback, 'cell')
                             obj.Callback = {obj.Callback};
                         end
                     end
@@ -691,11 +721,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Create sidebar panel for scroller
             obj.sidebar.hPanel = uipanel(obj.Panel);
-            %obj.sidebar.hPanel.Units = 'pixels';
+            obj.sidebar.hPanel.Units = 'pixels';
             % Create panel for tab buttons if struct is multipaged:
             if obj.showSidePanel
                 obj.uiPanel.Tab = uipanel(obj.Panel);
-                %obj.uiPanel.Tab.Units = 'pixels';
+                obj.uiPanel.Tab.Units = 'pixels';
             end
             
 
@@ -705,6 +735,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             if obj.showFooter
                 obj.footer.hPanel = uipanel(obj.Panel);
+                obj.footer.hPanel.Units = 'pixels';
+
             end
             
             % Todo: Remove this shit!
@@ -1274,7 +1306,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
             
             obj.virtualHeight = nan(1, obj.numTabs);
-            
+            obj.virtualWidth = nan(1, obj.numTabs);
         end
         
     end
@@ -1366,7 +1398,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function addComponents(obj, panelNum)
 
             obj.main.constructionCurtain.Visible = 'on';
-
+            
             if obj.Debug
                 obj.main.constructionCurtain.Visible = 'off';
             end
@@ -1492,13 +1524,17 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.resizeControlPanel(panelNum)
             
             obj.moveElementsToTop()
-
+            
             obj.isTabCreated(panelNum) = true;
             
             if obj.AdjustFigureSize
                 obj.adjustFigureSizeToComponents()
             end
             
+            if strcmpi(obj.LabelPosition, 'Left')
+                obj.moveElementsToRight()
+                obj.adjustFigureWidthToComponents()
+            end
         end
         
         function tf = isConfigField(~, currentField, allFields)
@@ -1553,7 +1589,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             elseif strcmpi(obj.LabelPosition, 'Left')
                 xMargin = [20, 50]; % Old: 65
-                x = guiAxes.Position(3)/2-10;
+                %x = guiAxes.Position(3)/2-10;
+                x = obj.visibleWidthOrig/2-10;
+
                 %x = guiAxes.Position(3) - 60;
                 xSpacing = 15;
                 yTxt = y;
@@ -1574,7 +1612,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     case 'logical'
                         inputbox = uicontrol(guiPanel, 'style', 'checkbox');
                         inputbox.Value = val;
-                        ycorr = 3;
+                        %ycorr = 3;
                         
                     case 'cell'
                         if all(ischar([ val{:} ]))
@@ -1654,7 +1692,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % % %                                 'mode', 'pushbutton', config.args{:}, ...
 % % %                                 'HorizontalTextAlignment', 'center');
                             if strcmp(obj.LabelPosition, 'Over')
-                                ycorr = obj.RowSpacing;
+                                ycorr = 0.5*obj.RowSpacing;
                             end
                             xcorr = -3;
                             
@@ -1678,8 +1716,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             
             % Configure properties/appearance of uicontrol
-            pos = [x+xSpacing+xcorr, y, guiAxes.XLim(2) - x - xMargin(2) - xSpacing, height+hcorr];
-            
+            %pos = [x+xSpacing+xcorr, y+ycorr, guiAxes.XLim(2) - x - xMargin(2) - xSpacing, height+hcorr];
+            pos = [x+xSpacing+xcorr, y+ycorr, obj.visibleWidthOrig - x - xMargin(2) - xSpacing, height+hcorr];
+
             if numel(inputbox) == 1
                 inputbox.Position = pos;
             else
@@ -1733,6 +1772,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             textbox.FontUnits = 'pixels';
             textbox.FontSize = obj.FontSize;
             textbox.VerticalAlignment = 'bottom';
+            
+            % Compute virtual width.
+            currentWidth = obj.visibleWidth + ( textbox.Extent(3) + 20 - x );
+            obj.virtualWidth(obj.currentPanel) = ...
+                nanmax( [obj.virtualWidth(obj.currentPanel), currentWidth] );
+            
             
             buttonTypes = {'button', 'pushbutton', 'togglebutton'};
             if isa(config, 'struct') && any( strcmp(config.type, buttonTypes) )
@@ -2007,6 +2052,66 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 uic(i).Position(2) = uic(i).Position(2) + difference;
             end
             
+        end
+        
+        function moveElementsToRight(obj)
+        %moveElementsToRight Move elements of a panel to the right.
+        %
+        %   This method adjusts the positions of all components on a page
+        %   in order to correct for posision offsets if components are
+        %   wider than page
+            
+        %   Todo: Generalize the update of position property for custom 
+        %   axes components
+        
+            i = obj.currentPanel;
+            
+            if isnan(obj.virtualWidth(i)); return; end
+            
+            if obj.virtualWidth(i) < obj.visibleWidth
+                return % 
+            end
+            
+            difference = obj.visibleWidth - obj.virtualWidth(i);
+            
+            pixelPos = getpixelposition( obj.main.hPanel(i) );
+            
+            x0 = obj.Margins(1);
+
+            pixelPos(1) = x0 + difference;
+            setpixelposition( obj.main.hPanel(i), pixelPos);
+            
+            children = obj.main.hAxes(i).Children;
+            for j = 1:numel(children)
+                if isprop( children(j), 'Position')
+                    children(j).Position(1) = children(j).Position(1) - difference;
+                elseif isprop( children(j), 'XData')
+                    children(j).XData = children(j).XData - difference;
+                end
+            end
+            
+            children = obj.main.hPanel(i).Children;
+            for j = 1:numel(children)
+                if isa(children(j), 'matlab.graphics.axis.Axes'); continue; end
+                children(j).Position(1) = children(j).Position(1) - difference;
+            end
+            
+            if iscell(obj.hControls)
+                tmpControls = obj.hControls{i};
+            elseif isstruct(obj.hControls)
+                tmpControls = obj.hControls;
+            else
+                error('Please report')
+            end
+            
+            % Todo: Generalize!
+            tmpControls = struct2cell(tmpControls);
+            for j = 1:numel(tmpControls)
+                if isa(tmpControls{j}, 'uim.widget.slidebar')
+                    tmpControls{j}.Position(1) = tmpControls{j}.Position(1) - difference;
+                end
+            end
+                
         end
         
         function flipUpsideDown(obj, y, panelNum)
@@ -2635,7 +2740,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
             % Make sure all other tabs are not visible.
             set(obj.main.hPanel, 'Visible', 'off')
-            obj.main.hPanel(panelNum).Visible = 'on';
+            drawnow
             obj.currentPanel = panelNum;
             
 % %             if obj.isPageDisabled(panelNum)
@@ -2654,6 +2759,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Create panel if it is opened for the first time.
             if ~obj.isTabCreated(panelNum)
+                obj.main.hPanel(panelNum).Visible = 'on';
                 applify.AppWindow.switchJavaWarnings('off')
 
                  % Create components
@@ -2672,8 +2778,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.main.constructionCurtain.Visible = 'off';
                 
                 applify.AppWindow.switchJavaWarnings('on')
+            else
+                %obj.moveElementsToRight()
+                obj.adjustFigureWidthToComponents()
+                drawnow
+                pause(0.05)
             end
             
+            obj.main.hPanel(panelNum).Visible = 'on';
+
 
             % Update scrollbar.
             obj.updateScrollbar(panelNum)

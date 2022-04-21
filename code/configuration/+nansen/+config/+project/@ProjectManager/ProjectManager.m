@@ -82,6 +82,24 @@ classdef ProjectManager < handle
     
     methods
         
+        function setProject(obj)
+            
+            currentProject = obj.CurrentProject();
+            
+            projectNames = {obj.Catalog.Name};
+            if ~any(strcmp(currentProject, projectNames))
+                wasSuccess = obj.uiSelectProject(projectNames);
+                if ~wasSuccess
+                    error('Nansen:NoProjectSet', 'No project is set')
+                end
+            else
+                projectPath = nansen.localpath('Current Project');
+                if ~contains(path, projectPath)
+                    addpath(genpath(projectPath), '-end') % todo. dont brute force this..
+                end
+            end
+        end
+        
         function pStruct = createProjectInfo(obj, name, description, pathStr)
         %createProjectInfo Create a struct with info for a project
             
@@ -146,6 +164,45 @@ classdef ProjectManager < handle
             
             
             obj.addProject(projectConfig)
+        end
+        
+        function moveProject(obj, projectName, newLocation)
+            
+            project = obj.getProject(projectName);
+            if isempty(project); return; end
+            
+            currentLocation = fileparts(project.Path);
+            newPath = strrep(project.Path, currentLocation, newLocation);
+            
+            if contains(path, project.Path)
+                rmpath(genpath(project.Path))
+            end
+            
+            movefile(project.Path, newPath)
+            
+            IND = strcmp({obj.Catalog.Name}, projectName);
+            obj.Catalog(IND).Path = newPath;
+            
+            obj.saveCatalog()
+
+            currentProject = obj.CurrentProject;
+            if ~strcmp(projectName, currentProject)
+                obj.changeProject(projectName)
+            end
+
+            % Todo: make method for this... :
+            MTC = nansen.metadata.MetaTableCatalog.quickload();
+            for i = 1:size(MTC,1)
+                MTC{i, 'SavePath'} = strrep(MTC{i, 'SavePath'}, currentLocation, newLocation);
+                mtFilePath = fullfile( MTC{i, {'SavePath', 'FileName'}}{:} );
+                MT = load( mtFilePath );
+                MT.SavePath = MTC{i, 'SavePath'}{1};
+                save(mtFilePath, '-struct', 'MT')
+            end
+            nansen.metadata.MetaTableCatalog.quicksave(MTC)
+
+            obj.changeProject(currentProject)
+            
         end
         
         function disp(obj)
@@ -229,6 +286,9 @@ classdef ProjectManager < handle
                 
                 if deleteProjectFolder
                     folderPath = thisProject.Path;
+                    if contains(path, folderPath)
+                        rmpath(genpath(folderPath))
+                    end
                     utility.system.deleteFolder(folderPath)
                     fprintf('Deleted project data for project "%s"\n', name)
                 end
@@ -268,7 +328,9 @@ classdef ProjectManager < handle
             setpref('Nansen', 'CurrentProjectPath', projectEntry.Path)
                         
             % Add project to path...
-            addpath(genpath(projectEntry.Path))
+            if ~contains(path, projectEntry.Path)
+                addpath(genpath(projectEntry.Path))
+            end
             
             msg = sprintf('Current NANSEN project was changed to "%s"\n', name);
             if ~nargout
@@ -286,6 +348,23 @@ classdef ProjectManager < handle
                     nansenPreferences.localPath = containers.Map;
                 end
             end
+            
+        end
+        
+        function tf = uiSelectProject(obj, projectNames)
+            
+            if nargin < 2
+                projectNames = {obj.Catalog.Names};
+            end
+            
+            promptStr = 'Select a project to open:';
+            [ind, tf] = listdlg('ListString', projectNames, ...
+                'PromptString', promptStr, 'Name', 'Select Project');
+            
+            if ~tf; return; end
+            
+            projectName = projectNames{ind};
+            obj.changeProject(projectName);
             
         end
         

@@ -1,6 +1,10 @@
 classdef SciScanRaw < nansen.stack.data.VirtualArray & nansen.stack.utility.TwoPhotonRecording
+%SciScanRaw Virtual data adapter for a sciscan raw file
 
-    
+properties (Constant, Hidden)
+    FILE_PERMISSION = 'read'
+end
+
 properties (Access = private, Hidden)
     MemMap
 end
@@ -16,21 +20,18 @@ end
 methods % Structors
     
     function obj = SciScanRaw(filePath, varargin)
-        
+    %SciScanRaw Create a virtual data adapter for SciScan raw file  
         % Open folder browser if there are no inputs.
         if nargin < 1; filePath = uigetdir; end
                 
         obj@nansen.stack.utility.TwoPhotonRecording(varargin{:})
         obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
-    
     end
     
     function delete(obj)
-
         if ~isempty(obj.MemMap)
-            clear obj.MemMap
+            obj.MemMap = [];
         end
-
     end
     
 end
@@ -39,12 +40,13 @@ methods % Implementation of VirtualArray abstract methods
     
     function data = readData(obj, subs)
         data = obj.MemMap.Data.ImageArray(subs{:});
-        data = swapbytes(data); % SciScan data is saved with bigendian?
+        data = swapbytes(data); % SciScan data is saved with bigendian.
+        % Todo: is this always the case?
         
         if obj.PreprocessDataEnabled
             data = obj.processData(data);
         end
-        
+
     end
     
     function data = readFrames(obj, frameIndex)
@@ -71,7 +73,7 @@ methods (Access = protected) % Implementation of abstract methods
             filePath = filePath{1};
         end
     
-        % Find fileName from folderPath
+        
         if contains(filePath, '.raw')
             [folderPath, fileName, ext] = fileparts(filePath);
             fileName = strcat(fileName, ext);
@@ -80,7 +82,7 @@ methods (Access = protected) % Implementation of abstract methods
             [folderPath, fileName, ~] = fileparts(filePath);
             fileName = strcat(fileName, '.raw');
         
-        elseif isfolder(filePath)
+        elseif isfolder(filePath) % Find fileName from folderPath
             folderPath = filePath;
             listing = dir(fullfile(folderPath, '*.raw'));
             fileName = listing(1).name;
@@ -99,8 +101,30 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function getFileInfo(obj)
+    %getFileInfo Get file info and assign to properties
+    
+        S = obj.getSciScanRecordingInfo();
+        % obj.MetaData = obj.getSciScanRecordingInfo(); old...
         
-        obj.MetaData = obj.getSciScanRecordingInfo();
+        % Specify data dimension sizes
+        obj.MetaData.SizeX = S.xpixels;
+        obj.MetaData.SizeY = S.ypixels;
+        obj.MetaData.SizeZ = 1; % Todo: Add this from recording info.
+        obj.MetaData.SizeC = S.nChannels;
+        obj.MetaData.SizeT = S.nFrames;
+        
+        % Specify physical sizes
+        obj.MetaData.SampleRate = S.fps;
+        obj.MetaData.PhysicalSizeY = S.umPerPxY;
+        obj.MetaData.PhysicalSizeYUnit = 'micrometer';
+        obj.MetaData.PhysicalSizeX = S.umPerPxX;
+        obj.MetaData.PhysicalSizeXUnit = 'micrometer';  
+        
+        obj.MetaData.Class = S.dataType;
+        
+        % Necessary for image preprocessing
+        obj.MetaData.set('zoomFactor', S.zoomFactor)
+        obj.MetaData.set('xcorrect', S.xcorrect)
 
         obj.assignDataSize()
         
@@ -121,30 +145,26 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function assignDataSize(obj)
-                
-        numChannels = obj.MetaData.nChannels;
-        numPlanes = 1; % Todo: Add this from metadata.
-        numTimepoints = obj.MetaData.nFrames;
-        
+
         % Is this intentional??? I think so, see set dimensionorder...
-        obj.DataSize = [obj.MetaData.xpixels, obj.MetaData.ypixels];
+        obj.DataSize = [obj.MetaData.SizeX, obj.MetaData.SizeY];
         obj.DataDimensionArrangement = 'XY';
         
         % Add length of channels if there is more than one channel
-        if numChannels > 1
-            obj.DataSize = [obj.DataSize, numChannels];
+        if obj.MetaData.SizeC > 1
+            obj.DataSize = [obj.DataSize, obj.MetaData.SizeC];
             obj.DataDimensionArrangement(end+1) = 'C';
         end
         
         % Add length of planes if there is more than one plane
-        if numPlanes > 1
-            obj.DataSize = [obj.DataSize, numPlanes];
+        if obj.MetaData.SizeZ > 1
+            obj.DataSize = [obj.DataSize, obj.MetaData.SizeZ];
             obj.DataDimensionArrangement(end+1) = 'Z';
         end
         
         % Add length of sampling dimension.
-        if numTimepoints > 1
-            obj.DataSize = [obj.DataSize, numTimepoints];
+        if obj.MetaData.SizeT > 1
+            obj.DataSize = [obj.DataSize, obj.MetaData.SizeT];
             obj.DataDimensionArrangement(end+1) = 'T';
         end
 
@@ -210,6 +230,8 @@ methods % Subclass specific methods
         inifilepath = strrep(obj.FilePath, '.raw', '.ini');
         inistring = fileread(inifilepath);
 
+% %         L = dir(fullfile(fileparts(obj.FilePath), '*.ini'));
+% %         inistring = fileread(fullfile(L.folder,L.name));
         metadata = struct();
         
         % Get data acquisition parameters for recording
@@ -229,6 +251,14 @@ methods % Subclass specific methods
         metadata.umPerPxY = metadata.fovSizeY / metadata.ypixels;
         
         metadata.numFramesPerPlane = obj.readinivar(inistring,'frames.per.plane');
+        
+        fileformat = obj.readinivar(inistring,'file.format');
+        switch fileformat
+            case {0, 1} % Todo: Add all possibilities..
+                metadata.dataType = 'uint16';
+            otherwise
+                error('Not implemented yet, please report')
+        end
         
         
         % Test this, initially it was done as below, but maybe that was to

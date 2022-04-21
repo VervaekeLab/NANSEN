@@ -3,6 +3,8 @@ function toggleUicontrolLabel(h, strA, strB)
 %
 % Interchange strA and strB in text label of given handle h.
     
+    if isempty(h); return; end
+
     if contains(h.Text, strA)
         h.Text = strrep(h.Text, strA, strB);
     elseif contains(h.Text, strB)
