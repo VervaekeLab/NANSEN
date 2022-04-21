@@ -364,7 +364,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             end
         
             obj.UITable.DataTable = data;
-
+            obj.TaskTableData = data;
         end
 
         function updateTaskOrder(obj)
