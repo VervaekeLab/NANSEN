@@ -458,11 +458,25 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         
             import nansen.stack.utility.FrameCache
         
+            [h, w, ~] = size(imData);
+            if isequal([h,w], obj.StackSize(1:2))
+                permuteData = true;
+            else
+                permuteData = false;
+            end
+            
             % Create a static frame cache if it does not exist.
             if isempty(obj.StaticFrameCache)
-                dataSize = size(obj); % obj.StackSize;
+                dataSize = size(imData);
+                if permuteData
+                    dataSize = dataSize(obj.StackDimensionOrder);
+                end
                 dataType = obj.DataType;
                 obj.StaticFrameCache = FrameCache(dataSize, dataType, [], 'static');
+            end
+            
+            if permuteData
+                imData = ipermute(imData, obj.StackDimensionOrder);
             end
             
             obj.StaticFrameCache.submitStaticData(imData, frameIndices)
