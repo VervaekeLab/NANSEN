@@ -151,26 +151,26 @@ classdef Addons < handle
             % If some addons are present in default addon list and not in
             % current addon list, add from default to current.
             for iAddon = newAddons
-                next = numel(S) + 1;
+                appendIdx = numel(S) + 1;
                 
                 for jField = 1:numel(fieldNames)
                     thisField = fieldNames{jField};
-                    S(next).(thisField) = defaultAddonList(iAddon).(thisField);
+                    S(appendIdx).(thisField) = defaultAddonList(iAddon).(thisField);
                 end
                 
                 % Check if addon is found on matlab's path and update
                 % IsInstalled flag
-                if ismember(exist(S(next).FunctionName), [2,8])
-                    S(next).IsInstalled = true;
-                    S(next).DateInstalled = datestr(now);
+                if ismember(exist(S(appendIdx).FunctionName), [2,8])
+                    S(appendIdx).IsInstalled = true;
+                    S(appendIdx).DateInstalled = datestr(now);
                 else
-                    S(next).IsInstalled = false;
-                    S(next).DateInstalled = 'N/A';
+                    S(appendIdx).IsInstalled = false;
+                    S(appendIdx).DateInstalled = 'N/A';
                 end
                 
                 % Set this flag to false. This should change if an addon is
                 % installed, but not saved to the matlab search path.
-                S(next).AddToPathOnInit = false;
+                S(appendIdx).AddToPathOnInit = false;
 
             end
             

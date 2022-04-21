@@ -111,7 +111,7 @@ function S = getAddonList()
     S(i).WebUrl = 'https://github.com/phflot/flow_registration';
     S(i).DownloadUrl = 'https://github.com/phflot/flow_registration/archive/refs/heads/master.zip';
     S(i).HasSetupFile = true;
-    S(i).SetupFileName = 'set_path';
+    S(i).SetupFileName = 'nansen.wrapper.flowreg.install'; %'set_path';
     S(i).FunctionName = 'OF_Options';
     
     i = i + 1;
