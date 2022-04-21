@@ -272,9 +272,10 @@ classdef roiGroup < handle
                 obj.changeRoiSelection(nan, []) % Note: unselect all rois before executing undo!
             end
             
-            for i = fliplr(roiInd) % Delete from end to beginning.
-                obj.roiArray(i) = [];
-            end
+%             for i = fliplr(roiInd) % Delete from end to beginning.
+%                 obj.roiArray(i) = [];
+%             end
+            obj.roiArray(roiInd) = [];
             obj.roiCount = numel(obj.roiArray);
             
             % Update the appdata properties.
@@ -430,6 +431,42 @@ classdef roiGroup < handle
             obj.notify('roisChanged', eventData)
             
         end
+        
+    end
+    
+    methods % Methods for saving rois
+        
+        function [wasSuccess, savePath] = saveRois(obj, savePath)
+            
+            import nansen.dataio.fileadapter.roi.RoiGroup
+                        
+            if nargin < 2; savePath = ''; end
+            
+            fileObj = nansen.dataio.fileadapter.roi.RoiGroup(savePath);
+            if isempty(savePath)
+                wasSuccess = fileObj.uiput();
+                if ~wasSuccess; return; end
+            end
+            
+            fileObj.save(obj)
+            obj.markClean()
+            
+            wasSuccess = true;    
+            
+            if nargout == 1
+                clear savePath
+            elseif nargout == 0
+                clear wasSuccess savePath
+            end
+            
+            
+            saveMsg = sprintf('Rois Saved to %s', savePath);
+            obj.PrimaryApp.displayMessage(saveMsg, 2)
+                        
+            obj.roiFilePath = savePath;
+            
+        end
+        
         
     end
     

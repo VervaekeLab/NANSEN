@@ -28,13 +28,19 @@ classdef RoiSignalArray < handle
 %    - Make 2 classes? One for loaded signals, and one for "live" signals
 
 
+    % NOTE: Multiple channels are not implemented yet.
 
     % Todo
+    %   [ ] Improve performance when removing rois, should not rearrange
+    %   data, only indices for accessing data. 
+    
+    
     %   [ ] Generalize so that signalArray can be loaded from file
     %   [ ] Come up with better names for signals
     %   [ ] What parameters should be included?
     %   [ ] What parameters are used if none are given?
     %   [ ] Where to get settings from? A handle class?
+    %
     
     
     
@@ -70,10 +76,10 @@ classdef RoiSignalArray < handle
         RoiGroup
     end
     
-    properties % Info properties % Todo: Dependent? yes... (todo)
-        NumChannels = 1     % int : Number of channels
-        NumFrames = 0       % vector : 1 x numCh with number of frames per channel
-        NumRois = 0         % vecotr : 1 x numCh with number of rois per channel
+    properties (Dependent) % Info properties
+        NumChannels         % int : Number of channels
+        NumFrames           % vector : 1 x numCh with number of frames per channel
+        NumRois             % vector : 1 x numCh with number of rois per channel
     end
     
     
@@ -124,6 +130,30 @@ classdef RoiSignalArray < handle
             obj.onRoiGroupSet()
         end
         
+        function numRois = get.NumRois(obj)
+            if isempty(obj.RoiGroup)
+                numRois = 0;
+            else
+                numRois = obj.RoiGroup.roiCount;
+            end
+        end
+        
+        function numFrames = get.NumFrames(obj)
+            if isempty(obj.ImageStack)
+                numFrames = 0;
+            else
+                numFrames = obj.ImageStack.NumTimepoints;
+            end
+        end
+        
+        function numChannels = get.NumChannels(obj)
+            if isempty(obj.ImageStack)
+                numChannels = 1;
+            else
+                numChannels = obj.ImageStack.NumChannels;
+            end
+        end
+                
     end
     
     methods (Access = protected)
@@ -139,6 +169,8 @@ classdef RoiSignalArray < handle
             if nargin < 2 || isempty(channelInd)
                 channelInd = 1;
             end
+            
+            if obj.isVirtual; return; end
                         
             % Temp function for rounding up to the nearest given integer
             ceilN = @(x, int) ceil(x/int) * int;
@@ -182,6 +214,9 @@ classdef RoiSignalArray < handle
             % Set default values for options inputs.
             if nargin < 4 || isempty(chInd); chInd = 1; end
             if nargin < 5 || isempty(editFields); editFields = 'all'; end
+            
+            if obj.isVirtual; return; end
+
             
             % Get field names to modify
             fields = obj.SIGNAL_NAMES;
@@ -290,7 +325,11 @@ classdef RoiSignalArray < handle
     methods 
         
         function tf = isVirtual(obj)
-            tf = obj.ImageStack.IsVirtual;
+            if isempty(obj.ImageStack)
+                tf = true;
+            else
+                tf = obj.ImageStack.IsVirtual;
+            end
         end
         
         function signalData = getSignals(obj, roiInd, signalName, options, channelNum, forceUpdate)
@@ -349,18 +388,13 @@ classdef RoiSignalArray < handle
     methods (Access = private) % Listener callback methods
         
         function onImageStackSet(obj)
-            obj.NumChannels = obj.ImageStack.NumChannels; % Todo...
-            obj.NumFrames = obj.ImageStack.NumTimepoints;
-            
             if obj.NumRois > 0
                 obj.initializeSignalArray()
             end
         end
         
         function onRoiGroupSet(obj)
-            
-            obj.NumRois = obj.RoiGroup.roiCount;
-            
+                        
             if ~isempty(obj.RoisChangedListener)
                 delete(obj.RoisChangedListener)
             end
@@ -371,9 +405,9 @@ classdef RoiSignalArray < handle
             
             
             obj.Data = [];
-            obj.initializeSignalArray()
-            
-            
+            if ~obj.isVirtual
+                obj.initializeSignalArray()
+            end
         end
 
         function onRoisChanged(obj, src, evtData)
@@ -387,14 +421,14 @@ classdef RoiSignalArray < handle
             % Todo: 
             %   [ ] add handling of parameters struct
             
+            if obj.isVirtual; return; end
+            
+            
             % Make needed changes to the data
             switch evtData.eventType
                 case 'initialize'
-                    obj.NumRois = obj.RoiGroup.roiCount;
                     obj.initializeSignalArray()
-                
                 case 'append'
-                    obj.NumRois = obj.RoiGroup.roiCount;
                     if obj.NumRois > size(obj.Data(1).(obj.SIGNAL_NAMES{1}), 2)
                         obj.modifySignalArray(evtData.roiIndices, evtData.eventType)
                     end
@@ -416,8 +450,6 @@ classdef RoiSignalArray < handle
                         obj.updateSignals(evtData.roiIndices, 'all')
                     end
             end
-            
-            
         end
 
     end

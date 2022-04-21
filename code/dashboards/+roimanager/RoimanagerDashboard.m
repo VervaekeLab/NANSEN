@@ -638,7 +638,9 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             fileAdapter = nansen.dataio.fileadapter.imagestack.ImageStack();
             initPath = fileparts(obj.PrimaryApp.ImageStack.FileName);
-            fileAdapter.uiopen(initPath)
+            
+            fileAdapter.uiopen(initPath);
+            if isempty(fileAdapter.Filename); return; end
             
             imageStack = fileAdapter.load();
                 

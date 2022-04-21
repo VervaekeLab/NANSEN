@@ -11,12 +11,14 @@ fieldnames = {  'uid', 'shape', 'coordinates', 'pixelweights', ...
                 'imagesize', 'boundary', 'area', 'center', ...
                 'connectedrois', 'group', 'celltype', ...
                 'structure', 'layer', 'tags', 'enhancedImage'};
-for i = 1:nRois
-    for f = 1:numel(fieldnames)
-        if isfield(roiStruct, fieldnames{f})
-            roiArray(i).(fieldnames{f}) = roiStruct(i).(fieldnames{f});
-        end
+
+for f = 1:numel(fieldnames)
+    if isfield(roiStruct, fieldnames{f})    
+        [roiArray(:).(fieldnames{f})] = roiStruct.(fieldnames{f});
     end
+end
+    
+for i = 1:nRois
     
     % 2019-08-20 - Changed coordinates of rois with shape "mask"
     % from being a sparse logical to being a list of pixel

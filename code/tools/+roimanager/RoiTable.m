@@ -333,13 +333,14 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
 
                 if contains(lower(evtData.eventType), {'modify', 'reshape'})
                     roiInd = evtData.roiIndices;
+                    nRow = numel(roiInd);
                 else
                     % Need to update all labels if rois were added/removed
                     roiInd = 1:obj.RoiGroup.roiCount;
+                    nRow = size(newTable, 1); % Roigroup might update faster than table if rois are added quickly...
                 end
                 
                 roiLabels = obj.RoiGroup.getRoiLabels(roiInd);
-                nRow = size(newTable, 1); % Roigroup might update faster than table if rois are added quickly...
                 newTable{roiInd(1:nRow), 1} = roiLabels(1:nRow)';
             end
              

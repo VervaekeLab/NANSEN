@@ -115,8 +115,20 @@ classdef roiMap < roimanager.roiDisplay
     
     methods % Public methods inherited from roiDisplay
         
-        function addRois(obj)
-            % Todo
+        function addRois(obj, newRoi)
+            
+            % Todo: Dependent on settings.
+            newRoi = obj.addUserData(newRoi);
+            
+            obj.RoiGroup.addRois(newRoi)
+            
+            % Add roi to visible rois:
+            visibleRois = [obj.VisibleRois, obj.RoiGroup.roiCount];
+            obj.RoiGroup.changeVisibleRois(visibleRois)
+            
+            % Select roi.       
+            obj.selectRois(obj.RoiGroup.roiCount, 'normal')
+            
         end
         
         function removeRois(obj)
@@ -519,7 +531,7 @@ classdef roiMap < roimanager.roiDisplay
             colorCellArray = cell(nRois, 1);
             roiBoundaryCellArray = cell(2, nRois);
             centerPosArray = zeros(nRois, 3);
-
+            
             % Collect boundaries for all rois in a cell array
             for roiNo = 1:numel(roiArray)
                 colorCellArray{roiNo} = obj.getRoiColor(roiArray(roiNo));
@@ -534,6 +546,18 @@ classdef roiMap < roimanager.roiDisplay
             % handle also for rois that are not defined...
             [i, j] = find(cellfun(@(a) isempty(a), roiBoundaryCellArray));
             roiBoundaryCellArray(i, j) = {nan};
+            
+% %             % Todo: Develop methods for plotting in fewer handles. Need to
+% %             % have additional methods for moving rois from one handle to a
+% %             % next if rois are grouped by colors....
+% %             nans = repmat({nan}, 2, nRois);
+% %             roiBoundaryCellArray_ = cat(1, roiBoundaryCellArray, nans);
+% %             roiBoundaryCellArray_ = reshape(roiBoundaryCellArray_, 2, []);
+% %             
+% %             xCoords = cat(1, roiBoundaryCellArray_{1, :});
+% %             yCoords = cat(1, roiBoundaryCellArray_{2, :});
+% %             hLine_ = plot(obj.hAxes, xCoords, yCoords, 'LineStyle', '-', 'Marker', 'None');
+
 
             % Plot lines and add text objects for all rois
             % Use plot instead of line in order to plot all boundaries
@@ -1008,17 +1032,7 @@ classdef roiMap < roimanager.roiDisplay
                 end
             end
             
-            newRoi = obj.addUserData(newRoi);
-            %newRoi = obj.editRoiProperties(newRoi);
-            
-            obj.RoiGroup.addRois(newRoi)
-            
-            obj.selectRois(obj.RoiGroup.roiCount, 'normal')
-
-            % Add roi to visible rois:
-            visibleRois = [obj.VisibleRois, obj.RoiGroup.roiCount];
-            obj.RoiGroup.changeVisibleRois(visibleRois)
-            
+            obj.addRois(newRoi)
         end
         
         % todo: move to roimanager
@@ -1029,18 +1043,7 @@ classdef roiMap < roimanager.roiDisplay
             w = obj.displayApp.imWidth;
             
             newRoi = RoI('Circle', [x, y, r], [h, w]);
-            %newRoi = obj.editRoiProperties(newRoi);
-            newRoi = obj.addUserData(newRoi);
-            
-            obj.RoiGroup.addRois(newRoi)
-            
-            % Add roi to visible rois:
-            visibleRois = [obj.VisibleRois, obj.RoiGroup.roiCount];
-            obj.RoiGroup.changeVisibleRois(visibleRois)
-                     
-            obj.selectRois(obj.RoiGroup.roiCount, 'normal')
-
-            
+            obj.addRois(newRoi)
         end
         
         function createFreehandRoi(obj, x, y, thickness)
@@ -1062,16 +1065,7 @@ classdef roiMap < roimanager.roiDisplay
 
             % Create a RoI object
             newRoi = RoI('Mask', mask, imSize);
-            %newRoi = obj.editRoiProperties(newRoi);
-            newRoi = obj.addUserData(newRoi);
-
-            obj.RoiGroup.addRois(newRoi)
-            obj.selectRois(obj.RoiGroup.roiCount, 'normal')
-            
-            % Add roi to visible rois:
-            visibleRois = [obj.VisibleRois, obj.RoiGroup.roiCount];
-            obj.RoiGroup.changeVisibleRois(visibleRois)
-            
+            obj.addRois(newRoi)
         end
         
         % todo: move to roimanager
