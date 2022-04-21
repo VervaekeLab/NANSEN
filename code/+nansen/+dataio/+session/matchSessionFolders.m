@@ -15,34 +15,34 @@ function [sessionFolderListOut, sessionIDs] = matchSessionFolders(dataLocationMo
 
     import nansen.dataio.session.matchFolderListWithSessionID
     
-    dataLocationTypes = {dataLocationModel.Data.Name};
+    dataLocationNames = {dataLocationModel.Data.Name};
 
     % Todo: make an exception for this...
     msg = 'The folderlist with sessionfolders does not match the data location model';
-    assert(all(ismember(fieldnames(sessionFolderList), dataLocationTypes)), msg)
+    assert(all(ismember(fieldnames(sessionFolderList), dataLocationNames)), msg)
     
     % Initialize output
-    initPaths = repmat({''}, 1, numel(dataLocationTypes));
-    fieldValuePairs = cat(1, dataLocationTypes, initPaths);
+    initPaths = repmat({''}, 1, numel(dataLocationNames));
+    fieldValuePairs = cat(1, dataLocationNames, initPaths);
     sessionFolderListOut = struct(fieldValuePairs{:});
     
-    numSessions = numel(sessionFolderList.(dataLocationTypes{1}));
+    numSessions = numel(sessionFolderList.(dataLocationNames{1}));
     sessionIDs = cell(numSessions, 1);
     
     % Loop through data location types from the model
-    for i = 1:numel(sessionFolderList.(dataLocationTypes{1}))
+    for i = 1:numel(sessionFolderList.(dataLocationNames{1}))
                 
-        pathStr = sessionFolderList.(dataLocationTypes{1}){i};
+        pathStr = sessionFolderList.(dataLocationNames{1}){i};
         sessionID = dataLocationModel.getSessionID(pathStr);
 
-        sessionFolderListOut(i).(dataLocationTypes{1}) = pathStr;
+        sessionFolderListOut(i).(dataLocationNames{1}) = pathStr;
         sessionIDs{i} = sessionID;
 
-        for j = 2:numel(dataLocationTypes)
+        for j = 2:numel(dataLocationNames)
             
-            jSessionFolderList = sessionFolderList.(dataLocationTypes{j});
+            jSessionFolderList = sessionFolderList.(dataLocationNames{j});
             
-            isMatch = matchFolderListWithSessionID(jSessionFolderList, sessionID);
+            isMatch = matchFolderListWithSessionID(jSessionFolderList, sessionID, dataLocationNames{j});
 
             if sum(isMatch) == 0
                 pathStr = '';
@@ -53,7 +53,7 @@ function [sessionFolderListOut, sessionIDs] = matchSessionFolders(dataLocationMo
                 pathStr = jSessionFolderList{find(isMatch, 1, 'first')};
             end
             
-            sessionFolderListOut(i).(dataLocationTypes{j}) = pathStr;
+            sessionFolderListOut(i).(dataLocationNames{j}) = pathStr;
 
         end
         
@@ -64,6 +64,5 @@ function [sessionFolderListOut, sessionIDs] = matchSessionFolders(dataLocationMo
     end
     
     % Todo: Manually match folders which have multiple matches...
-    
     
 end
