@@ -229,6 +229,9 @@ classdef ProjectManager < handle
                 
                 if deleteProjectFolder
                     folderPath = thisProject.Path;
+                    if contains(path, folderPath)
+                        rmpath(genpath(folderPath))
+                    end
                     utility.system.deleteFolder(folderPath)
                     fprintf('Deleted project data for project "%s"\n', name)
                 end

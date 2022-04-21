@@ -200,6 +200,8 @@ classdef MetaTableCatalog < uim.handle
         function pathStr = getDefaultMetaTablePath()
             MT = nansen.metadata.MetaTableCatalog.quickload();
             
+            if isempty(MT); pathStr = ''; return; end
+            
             IND = find( MT.IsDefault );
             pathStr = fullfile(MT{IND, 'SavePath'}, MT{IND, 'FileName'});
             

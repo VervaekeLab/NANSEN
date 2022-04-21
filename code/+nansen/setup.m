@@ -3,6 +3,8 @@ matlabVersion = version;
 ind = strfind(matlabVersion, '.');
 versionAsNumber = strrep(matlabVersion(1:ind(2)+1), '.', '');
 
+nansen.addpath()
+
 if str2double(versionAsNumber) >= 960
     NansenSetupApp2 % Run app coded in appdesigner
 else

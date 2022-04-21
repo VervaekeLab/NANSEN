@@ -24,7 +24,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties (Constant)
-        Pages = {'Overview', 'File Viewer', 'Task Processor', 'Figures'}
+        Pages = {'Overview', 'File Viewer', 'Task Processor'}%, 'Figures'}
     end
     
     properties % Page modules
@@ -45,7 +45,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     properties (Hidden, Access = private) % Window
         MinimumFigureSize
-        IsIdle
+        IsIdle % todo: make dependent on app.ApplicationState 
         TableIsUpdating = false
         TaskInitializationListener
     end
@@ -73,6 +73,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         Timer
     end
     
+    properties (Access = private)
+        ApplicationState = 'Uninitialized';
+    end
+    
     
     methods % Structors
         function app = App()
@@ -93,12 +97,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.Figure.Visible = 'on';
             end
             
-            
             %Todo: Should be part of project manager...
-
             % Add project folder to path. 
             projectPath = nansen.localpath('Current Project');
-            addpath(genpath(projectPath), '-end') % todo. dont brute force this..
+            if ~contains(path, projectPath)
+                addpath(genpath(projectPath), '-end') % todo. dont brute force this..
+            end
             
             app.DataLocationModel = nansen.DataLocationModel;
             
@@ -127,6 +131,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 %             app.initialized = true;
             app.configFigureCallbacks() % Do this last
             app.setIdle()
+            
+            app.ApplicationState = 'idle';
             
             if nargout == 0
                 clear app
@@ -164,9 +170,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if ~isempty(app.Figure) && isvalid(app.Figure)
                 app.saveFigurePreferences()
+                delete(app.Figure)
             end
-            
-            
+
         end
         
         function onExit(app, h)
@@ -1845,6 +1851,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if nargin < 2 || isempty(loadPath)
                 loadPath = app.getDefaultMetaTablePath();
+            end
+            
+            if isempty(loadPath)
+                projectName = getpref('Nansen', 'CurrentProject');
+                if ~strcmp(app.ApplicationState, 'Uninitialized')
+                    message = sprintf('The configuration of the current project (%s) is not completed (metatable is missing)', projectName);
+                    title = 'Aborted';
+                    app.openMessageBox(message, title)
+                else
+                    delete(app)
+                end
+                error('Nansen:ProjectNotConfigured:MetatableMissing', ...
+                    'Can not start nansen because project "%s" is not configured.', projectName)
             end
             
             % Ask user to save current database (if any is open)
