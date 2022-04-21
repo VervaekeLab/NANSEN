@@ -32,13 +32,20 @@ function varargout = openRoiManager(sessionObj, varargin)
         
     %sessionObj.validateVariable('TwoPhotonSeries_Corrected')
 
+
+    filepath = fullfile(nansen.localpath('root'), 'docs', 'resources', 'nansen_roiman.png');
+    [jFrame, jLabel, C] = nansen.ui.showSplashScreen(filepath, 'RoiManager'); %#ok<ASGLU>
+    jLabel.setText('Retrieving Session Data')
+    
     sessionData = nansen.session.SessionData( sessionObj );
     sessionData.updateDataVariables()
 
     if ~isprop(sessionData, 'TwoPhotonSeries_Corrected')
         error('Did not find "TwoPhotonSeries_Corrected" for session.')
     end
-    
+
+    jLabel.setText('Opening Image Stack')
+
     imageStack = sessionData.TwoPhotonSeries_Corrected;
     imageStack.DynamicCacheEnabled = true;
     
@@ -50,6 +57,7 @@ function varargout = openRoiManager(sessionObj, varargin)
         if ~isfile(roiFilePath)
             return
         else
+            jLabel.setText('Loading rois')
             hRoimanager.loadRois(roiFilePath)
         end
         

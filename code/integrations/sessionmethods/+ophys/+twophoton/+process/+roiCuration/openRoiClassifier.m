@@ -1,5 +1,5 @@
-function varargout = classifyRois(sessionObject, varargin)
-%CLASSIFYROIS Summary of this function goes here
+function varargout = openRoiClassifier(sessionObject, varargin)
+%OPENROICLASSIFIER Open roi classifier on a session
 %   Detailed explanation goes here
 
 
@@ -33,30 +33,34 @@ function varargout = classifyRois(sessionObject, varargin)
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
 % Implementation of the method : Add your code here:    
     
-    
+
     sessionData = nansen.session.SessionData( sessionObject );
     sessionData.updateDataVariables()
     
-    varName = sessionData.uiSelectVariableName('RoiArray');
+    varName = sessionData.uiSelectVariableName('roiArray');
 
     if ~isempty(varName)
-        roiArray = sessionData.(varName{1});
+        roiData = sessionData.(varName{1});
     else
         return
     end
     
-    try
-        
-        roiGroup = getRoiGroup(sessionObject, roiArray, varName{1});
 
+    if ~isa(roiData, 'roimanager.roiGroup')
+        roiGroup = getRoiGroup(sessionObject, roiData, varName{1});
+    else
+        roiGroup = roiData;
+    end
+    
+    try
         if isempty(roiGroup)
             imageStack = sessionData.TwoPhotonSeries_Corrected;
             hClassifier = roiclassifier.openRoiClassifier(roiArray, imageStack);
         else
             hClassifier = roiclassifier.openRoiClassifier(roiGroup);
         end
-            
-        hClassifier.dataFilePath = sessionObject.getDataFilePath('RoiArray');
+
+        hClassifier.dataFilePath = sessionObject.getDataFilePath('RoiArray'); % todo: varName{1}
     
         % Todo: uiwait and then retrieve results and save when closing?
         
@@ -77,31 +81,12 @@ end
 
 function roiGroup = getRoiGroup(sessionObject, roiArray, roiVariableName)
 
-        roiGroup = [];
+        roiGroup = []; %#ok<NASGU>
         
         filePath = sessionObject.getDataFilePath(roiVariableName);
+        roiFileAdapter = nansen.dataio.fileadapter.roi.RoiGroup(filePath);
+        roiGroup = roiFileAdapter.load();
         
-        S = load(filePath);
-        
-        if isfield(S, 'roiImages')
-            roiArray = roiArray.setappdata('roiImages', S.roiImages);
-        else
-            return
-        end
-        
-        if isfield(S, 'roiStats')
-            roiArray = roiArray.setappdata('roiStats', S.roiStats);
-        else
-            return
-        end
-        
-        if isfield(S, 'roiClassification')
-            roiArray = roiArray.setappdata('roiClassification',  S.roiClassification);
-        else
-            roiClassification = zeros(1, numel(roiArray));
-            roiArray = roiArray.setappdata('roiClassification',  roiClassification);
-        end
-        
-        roiGroup = roimanager.roiGroup(roiArray);
+        % Todo: Create roi images and stats if they dont exist...
 
 end
