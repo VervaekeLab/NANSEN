@@ -82,6 +82,24 @@ classdef ProjectManager < handle
     
     methods
         
+        function setProject(obj)
+            
+            currentProject = obj.CurrentProject();
+            
+            projectNames = {obj.Catalog.Name};
+            if ~any(strcmp(currentProject, projectNames))
+                wasSuccess = obj.uiSelectProject(projectNames);
+                if ~wasSuccess
+                    error('Nansen:NoProjectSet', 'No project is set')
+                end
+            else
+                projectPath = nansen.localpath('Current Project');
+                if ~contains(path, projectPath)
+                    addpath(genpath(projectPath), '-end') % todo. dont brute force this..
+                end
+            end
+        end
+        
         function pStruct = createProjectInfo(obj, name, description, pathStr)
         %createProjectInfo Create a struct with info for a project
             
@@ -271,7 +289,9 @@ classdef ProjectManager < handle
             setpref('Nansen', 'CurrentProjectPath', projectEntry.Path)
                         
             % Add project to path...
-            addpath(genpath(projectEntry.Path))
+            if ~contains(path, projectEntry.Path)
+                addpath(genpath(projectEntry.Path))
+            end
             
             msg = sprintf('Current NANSEN project was changed to "%s"\n', name);
             if ~nargout
@@ -289,6 +309,21 @@ classdef ProjectManager < handle
                     nansenPreferences.localPath = containers.Map;
                 end
             end
+            
+        end
+        
+        function tf = uiselectProject(obj, projectNames)
+            
+            if nargin < 2
+                projectNames = {obj.Catalog.Names};
+            end
+            
+            [ind, tf] = listdlg('ListString', projectNames);
+            
+            if ~tf; return; end
+            
+            projectName = projectNames{ind};
+            obj.changeProject(projectName);
             
         end
         

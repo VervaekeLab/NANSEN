@@ -63,7 +63,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         DataLocationModel
         
-        MessagePanel
+        ProjectManager
+        
+        MessagePanel % Todo: Use HasDisplay mixin...
         MessageBox
     end
     
@@ -97,12 +99,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.Figure.Visible = 'on';
             end
             
-            %Todo: Should be part of project manager...
-            % Add project folder to path. 
-            projectPath = nansen.localpath('Current Project');
-            if ~contains(path, projectPath)
-                addpath(genpath(projectPath), '-end') % todo. dont brute force this..
-            end
+            app.ProjectManager = nansen.ProjectManager();
+            app.ProjectManager.setProject()
+            
             
             app.DataLocationModel = nansen.DataLocationModel;
             
