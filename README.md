@@ -1,7 +1,6 @@
 # NANSEN - Neuro ANalysis Software ENsemble
 
-A collection of apps and modules for processing, analysis and visualization 
-of two-photon imaging data for the systems neuroscience community.
+A collection of apps and modules for processing, analysis and visualization of two-photon imaging data.
 
 <img src="https://github.com/ehennestad/ehennestad.github.io/blob/main/images/app_overview.png?raw=true" alt="Imviewer instance" width="100%"/>
 
