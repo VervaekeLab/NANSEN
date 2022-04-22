@@ -1,5 +1,7 @@
  function [im, ul] = createSingleRoiImage(imArray, roiMask, frames, marg)
             
+    % Todo: remove.
+ 
     if nargin < 4; marg = 7; end      
 
     [imHeight, imWidth] = size(roiMask);

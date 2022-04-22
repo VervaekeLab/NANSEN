@@ -12,7 +12,7 @@ classdef extractSignals < nansen.session.SessionMethod
     end
     
     properties 
-        RequiredVariables = {'TwoPhotonSeries_Corrected', 'RoiArray'}
+        RequiredVariables = {'TwoPhotonSeries_Corrected', 'roiArray'}
     end
     
     
@@ -45,7 +45,8 @@ classdef extractSignals < nansen.session.SessionMethod
             sessionData.updateDataVariables()
             
             imageStack = sessionData.TwoPhotonSeries_Corrected;
-            roiArray = sessionData.RoiArray; 
+
+            roiArray = sessionData.roiArray; 
             
             extractF = @nansen.twophoton.roisignals.extractF;
             [signalArray, P] = extractF(imageStack, roiArray, 'verbose', true, obj.Parameters);

@@ -4886,6 +4886,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 end
 
             case 'n'
+                obj.changeImageDisplayMode('filter', 'none')
                 if contains( event.Modifier, 'shift' )
                     if ~isempty(obj.imageDisplayMode.binning) && ...
                         strcmp(obj.imageDisplayMode.binning, 'average')
@@ -4899,6 +4900,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 end
                 
             case 'm'
+                obj.changeImageDisplayMode('filter', 'none')
                 if contains( event.Modifier, 'shift' )
                     obj.changeImageDisplayMode('projection', 'minimum')
                 else

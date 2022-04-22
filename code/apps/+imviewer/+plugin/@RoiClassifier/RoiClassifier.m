@@ -10,11 +10,9 @@ classdef RoiClassifier < applify.mixin.AppPlugin
         Name = 'Roiclassifier'
     end
     
-    
     properties
         PrimaryAppName = 'Imviewer';
     end
-    
     
     properties
         ClassifierApp
@@ -67,12 +65,12 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                     [roiImages, roiStats] = roimanager.gatherRoiData(imageData, ...
                         roiArray, 'ImageTypes', imageTypes);
 
-
                     roiArray = roiArray.setappdata('roiImages', roiImages);
                     roiArray = roiArray.setappdata('roiStats', roiStats);
-                    roiArray = roiArray.setappdata('roiClassification', zeros(1, numel(roiArray)));
+                    %roiArray = roiArray.setappdata('roiClassification', zeros(1, numel(roiArray)));
                     
                     roiGroup.addRois(roiArray, [], 'replace')
+
                     
                     % Todo: set to appdata of roiarray...
 % %                     roiGroup.roiImages = roiImages;

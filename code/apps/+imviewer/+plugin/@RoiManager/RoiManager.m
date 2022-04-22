@@ -566,10 +566,9 @@ classdef RoiManager < applify.mixin.AppPlugin
             
              % Load roi array from selected file path.
             if exist(loadPath, 'file')
-                import( 'nansen.dataio.fileadapter.roi.RoiGroup' )
-                
+                fileObj = nansen.dataio.fileadapter.roi.RoiGroup(loadPath);
                 try
-                    loadedRoiGroup = RoiGroup(loadPath).load();
+                    loadedRoiGroup = fileObj.load();
                 catch ME
                     clear C % Reset message display
                     obj.PrimaryApp.displayMessage(['Error: ', ME.message])

@@ -50,7 +50,7 @@ classdef roiDisplay < uim.handle
     end
     
     
-    methods
+    methods % Todo: Should these be public?
         function addRois(obj)
             % Subclass should implement if subclass can add more rois to a
             % RoiGroup.

@@ -1068,6 +1068,11 @@ classdef OptionsManager < handle
     
     methods (Access = private) % Methods for file interaction
         
+        function tf = compareOptions(obj, optsA, optsB)
+            % Todo
+            tf = isequal(optsA, optsB);
+        end
+        
         function fileName = createFilename(obj)
         %createFilename Create a filename for the file containing presets
             
@@ -1216,7 +1221,9 @@ classdef OptionsManager < handle
                     opts = obj.getOptions(obj.OptionsName);
                     
                     assertMsg = 'Provided options already exist but are different from previously saved options, aborting...';
-                    assert(isequal(opts, obj.Options), assertMsg)
+                    
+                    isEqual = obj.compareOptions(opts, obj.Options);
+                    assert(isEqual, assertMsg)
                 end
             end
         end

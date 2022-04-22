@@ -115,11 +115,7 @@ methods
         obj.hFigure.WindowButtonMotionFcn = @obj.onMouseMotion;
     end
     
-    
     function delete(obj)
-        % Todo: Check if there are unsaved changes and let user abort or
-        % save changes before quitting.
-        
         delete(obj.hFigure)
         delete(obj.hTiledImageAxes)
         delete(obj.hScrollbar)
@@ -147,7 +143,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
         obj.hFigure.ButtonDownFcn = @obj.mousePressed;
 
         obj.hFigure.WindowScrollWheelFcn = @obj.scrollHandler;
-        obj.hFigure.CloseRequestFcn = @(s, e) obj.delete;
+        obj.hFigure.CloseRequestFcn = @(s, e) obj.onFigureCloseRequest;
     end
 
 
@@ -736,7 +732,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
     
 end
 
-
 methods (Abstract, Access = protected)
     
     preInitialization(obj)
@@ -748,7 +743,6 @@ methods (Abstract, Access = protected)
     onSelectedItemChanged(obj)
     
 end
-
 
 methods (Access = protected)
         
@@ -1587,7 +1581,6 @@ methods
 
 end
 
-
 methods (Access = protected)
     
         function onSettingsChanged(obj, name, val)
@@ -1664,18 +1657,21 @@ methods (Access = protected)
                 
         end
         
-    end
-
+        end
+        
+        function onFigureCloseRequest(obj)
+        % Todo: Check if there are unsaved changes and let user abort or
+        % save changes before quitting.
+            delete(obj)
+        end
 end
 
-
 methods (Static)
-    
     
     function S = getSettings()
         S = getSettings@clib.hasSettings('manualClassifier');
     end
-
+    
     function removeFocusFromControl(h)
         
         set(h, 'Enable', 'off');

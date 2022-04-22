@@ -7,6 +7,7 @@ function [roiArray, roiImages, roiStats] = finalizeRoiSegmentation(imArray, avgI
     
     % Todo: extract dff
 
+    import nansen.twophoton.roi.compute.computeRoiImages
     
     % Calculate average projection here if not given
     if nargin < 2; avgIm = mean(imArray, 3); end
@@ -49,7 +50,8 @@ function [roiArray, roiImages, roiStats] = finalizeRoiSegmentation(imArray, avgI
             dffS = nansen.twophoton.roisignals.computeDff(signalArrayS);
             
             % Add roi images to rois. Use to improve roi boundary estimate
-            donutImageStack = roimanager.autosegment.extractRoiImages(imArray, roiArrayS, dffS');
+            roiImages = computeRoiImages(imArray, roiArrayS, dffS);
+            %donutImageStack = roimanager.autosegment.extractRoiImages(imArray, roiArrayS, dffS');
             roiArrayS = roiArrayS.addImage(donutImageStack);
         end
     end

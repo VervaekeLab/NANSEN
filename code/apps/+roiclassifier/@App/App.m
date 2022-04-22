@@ -182,9 +182,10 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
             hControl = findobj(obj.hFigure, 'Tag', 'SelectionImage');
             numOptions = numel(hControl.String);
             
-            % Add a final option to show selected rois
-            label = sprintf('(%d) Current Frame', numOptions+1);
-            hControl.String{end+1} = label;
+% %             Down for maintenance...
+% %             % Add a final option to show selected rois
+% %             label = sprintf('(%d) Current Frame', numOptions+1);
+% %             hControl.String{end+1} = label;
             
         end
         
@@ -790,6 +791,15 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
         
         function onSettingsChanged(obj, name, value)
             onSettingsChanged@mclassifier.manualClassifier(obj, name, value)
+        end
+        
+        function onFigureCloseRequest(obj)
+                        
+            %wasAborted = obj.promptSaveRois();
+            %if wasAborted; return; end
+            
+            delete(obj)
+            
         end
         
     end

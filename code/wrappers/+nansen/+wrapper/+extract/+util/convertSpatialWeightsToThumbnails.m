@@ -1,5 +1,9 @@
 function imArray = convertSpatialWeightsToThumbnails(roiArray, spatialWeights, thumbnailSize)
 
+% Todo: % Adjust size based on average size of rois.
+% roiRadius = round( mean( sqrt( [roiArray.area] / pi ) ) );
+% thumbnailSize = 2*roiRadius + 1;
+
 thumbnailSize = [21, 21];
 r = floor(thumbnailSize/2);
 
@@ -22,7 +26,6 @@ for iRoi = 1:numRois
     if size(imChunk, 1) < thumbnailSize(1) || size(imChunk, 2) < thumbnailSize(2)
         imChunk = stack.reshape.imexpand(imChunk, thumbnailSize);
     end
-    
     
     imArray(:, :, iRoi) = imChunk;
 

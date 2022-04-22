@@ -27,6 +27,8 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
     
     properties (Access = protected) % Layout
         FigureSize =  [699, 229]
+        PanelSize = [699, 229];
+
         IsStandalone = false
     end
     
@@ -197,6 +199,7 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
             % Todo: Superclass...
             
             panelPosition = [ 20, 20, 699, 229];
+            %panelPosition = [20, 20, obj.PanelSize];
             
             hPanel = uipanel(hParent);
             hPanel.Position = panelPosition;

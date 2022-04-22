@@ -1,7 +1,7 @@
 function roiArray = getrois(sVar)
     % Function that loads roi array from sData or sessionID
     
-    if strcmp(sVar, fovmanager.utility.atlas.strfindsid(sVar)) % sVar is a session Id
+    if strcmp(sVar, fovmanager.utility.strfindsid(sVar)) % sVar is a session Id
         
         % Insert/replace code here:
         try
