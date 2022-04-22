@@ -205,6 +205,48 @@ classdef StylableTable < uiw.widget.Table
             
         end
         
+        function selectRowFromMouseEvent(obj, evtData)
+            
+            % Get row where mouse press ocurred.
+            row = evtData.Cell(1); col = evtData.Cell(2);
+
+            % Select row where mouse is pressed if it is not already
+            % selected
+            if ~ismember(row, obj.SelectedRows) 
+                if row > 0 && col > 0
+                    obj.SelectedRows = row;
+                else
+                    obj.SelectedRows = [];
+                    return
+                end
+            end
+                
+        end
+        
+        function position = getTableContextMenuPosition(obj, eventPosition)
+        %getTableContextMenuPosition Get cmenu position from event position
+        
+            % Get scroll positions in table
+            xScroll = obj.getHorizontalScrollOffset();
+            yScroll = obj.getVerticalScrollOffset();
+                        
+            % Get position where mouseclick occured (in figure)
+            clickPosX = eventPosition(1) - xScroll;
+            clickPosY = eventPosition(2) - yScroll;
+            
+            % Convert to position inside table
+            tablePosition = getpixelposition(obj, true);
+            tableLocationX = tablePosition(1);
+            tableLocationY = tablePosition(2);
+
+            tableHeight = tablePosition(4);
+            
+            positionX = clickPosX + tableLocationX + 1; % +1 because ad hoc...
+            positionY = tableHeight - clickPosY + tableLocationY; % +15 because ad hoc... size of table header?
+            
+            position = [positionX, positionY];
+            
+        end
     end
     
     methods % Set / get methods
@@ -340,7 +382,6 @@ classdef StylableTable < uiw.widget.Table
             hSpacing = double(obj.ShowVerticalLines)*0;
             vSpacing = double(obj.ShowHorizontalLines)*1;
             obj.JTable.IntercellSpacing = java.awt.Dimension(hSpacing, vSpacing);
-
             obj.JTable.ShowVerticalLines = obj.ShowVerticalLines;
             obj.JTable.ShowHorizontalLines = obj.ShowHorizontalLines;
         end

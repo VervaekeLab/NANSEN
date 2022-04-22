@@ -1,4 +1,5 @@
-function [sessionFolderListOut, sessionIDs] = matchSessionFolders(dataLocationModel, sessionFolderList)
+function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
+    matchSessionFolders(dataLocationModel, sessionFolderList)
 %MATCHSESSIONFOLDERS Match session folders across datalocations
 %   This function should match sessionfolders across different
 %   datalocations based on their sessionIDs. Therefore the key to this
@@ -25,44 +26,77 @@ function [sessionFolderListOut, sessionIDs] = matchSessionFolders(dataLocationMo
     initPaths = repmat({''}, 1, numel(dataLocationNames));
     fieldValuePairs = cat(1, dataLocationNames, initPaths);
     sessionFolderListOut = struct(fieldValuePairs{:});
+    blankList = sessionFolderListOut;
     
     numSessions = numel(sessionFolderList.(dataLocationNames{1}));
     sessionIDs = cell(numSessions, 1);
+
+    sessionFolderListCell = struct2cell(sessionFolderList);
+
+    matchCount = 0;
     
     % Loop through data location types from the model
     for i = 1:numel(sessionFolderList.(dataLocationNames{1}))
-                
-        pathStr = sessionFolderList.(dataLocationNames{1}){i};
-        sessionID = dataLocationModel.getSessionID(pathStr);
-
-        sessionFolderListOut(i).(dataLocationNames{1}) = pathStr;
-        sessionIDs{i} = sessionID;
-
+        
+        wasMatched = false;
+        
+        referencePathStr = sessionFolderList.(dataLocationNames{1}){i};
+        refrenceSessionID = dataLocationModel.getSessionID(referencePathStr);
+        
+        tmpList = blankList;
+        
         for j = 2:numel(dataLocationNames)
-            
-            jSessionFolderList = sessionFolderList.(dataLocationNames{j});
-            
-            isMatch = matchFolderListWithSessionID(jSessionFolderList, sessionID, dataLocationNames{j});
+
+            jSessionFolderList = sessionFolderListCell{j};
+            isMatch = matchFolderListWithSessionID(jSessionFolderList, ...
+                refrenceSessionID, dataLocationNames{j});
 
             if sum(isMatch) == 0
-                pathStr = '';
+                matchedPathStr = '';
             elseif sum(isMatch) == 1
-                pathStr = jSessionFolderList{isMatch};
+                matchIdx = find(isMatch);
+                matchedPathStr = jSessionFolderList{isMatch};
             else 
-                warning('Multiple session folders matched for session %s. Selected first one', sessionID)
-                pathStr = jSessionFolderList{find(isMatch, 1, 'first')};
+                warning('Multiple session folders matched for session %s. Selected first one', refrenceSessionID)
+                matchIdx = find(isMatch, 1, 'first');
+                matchedPathStr = jSessionFolderList{matchIdx};
             end
             
-            sessionFolderListOut(i).(dataLocationNames{j}) = pathStr;
+            if ~isempty(matchedPathStr)
+                wasMatched = true;
+                
+                % Clear path strings from the list when there is a match
+                sessionFolderListCell{1}{i} = '';
+                sessionFolderListCell{j}(matchIdx) = []; % Remove from list
 
+                % Add paths to the temp matched list.
+                tmpList.(dataLocationNames{1}) = referencePathStr;
+                tmpList.(dataLocationNames{j}) = matchedPathStr;
+            end
         end
         
+        if wasMatched
+            matchCount = matchCount + 1;
+            sessionFolderListOut(matchCount) = tmpList;
+            sessionIDs{matchCount} = refrenceSessionID;
+        end
+    end
+    
+    isPathEmpty = cellfun(@isempty, sessionFolderListCell{1});
+    sessionFolderListCell{1}(isPathEmpty) = []; 
+    unmatchedSessionFolderList = sessionFolderListCell;
+    
+    if all( cellfun(@isempty, unmatchedSessionFolderList) )
+        unmatchedSessionFolderList = [];
     end
 
     if nargout == 1
-        clear sessionIDs
+        clear sessionIDs unmatchedSessionFolderList
+    elseif nargout == 2
+        clear unmatchedSessionFolderList
     end
-    
-    % Todo: Manually match folders which have multiple matches...
-    
+        
 end
+
+
+
