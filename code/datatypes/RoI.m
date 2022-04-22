@@ -12,12 +12,17 @@ classdef RoI
 
 % Todo:
 
+properties (Constant, Hidden)
+    MaskWeightCutoff = 0
+end
+
 properties
     uid                         % Unique ID of RoI
     num                         % Number of RoI in list of RoIs. 
     shape                       % Alternatives: Polygon, Circle, Mask.
     coordinates                 % Corners, center and radius or pixel coordinates (x, y) (depends on shape)
-    imagesize                   % Size of image where RoI was created
+    pixelweights                %
+    imagesize                   % Size of image where RoI was created (y,x)
     center                      % Mean center of RoI in image in cartesian coordinates (x, y)
     area                        % Area or number of pixels of RoI
     boundary = cell(0)          % Boundary points of RoI (y, x)
@@ -33,6 +38,12 @@ properties
     enhancedImage = [];         % Enhanced ROI image for all ROIs can be added to the roiArray
 % %     enhancedImageMask = [];     % A small ROI mask which fits the enhancedImage can also be saved for all ROIs
 end
+
+% properties (Transient)
+%     Info
+%     ThumbnailImage
+%     Stats
+% end
 
 properties (Access = private, Hidden)
     ApplicationData struct = struct()
@@ -91,7 +102,7 @@ methods
             return
         end
         
-        if nargin < 3 && strcmp(shape, 'Mask')
+        if nargin < 3 && (strcmp(shape, 'Mask') || strcmp(shape, 'IMask'))
             [h, w, ~] = size(coordinates);
             imSize = [h, w];
         end
@@ -338,12 +349,11 @@ methods
     
     
     function obj = updateImage(obj, imageUpdateMethod, shift)
-    %updateImage   
+    %updateImage Update roi image(s) when roi is translated.
     
-    % Todo: The fact that I need to access roiImages from appdata here is
-    % pretty fucked up. Please god, show me the light!
+    % Is there a better way to do this? Should roi images be a transient
+    % property?
     
-        if isempty(obj.enhancedImage); return; end
         if nargin < 3; shift = [0, 0]; end 
 
         switch imageUpdateMethod
@@ -354,16 +364,19 @@ methods
                 dydx = -round(fliplr(shift));
                 dxdy = shift - round(shift);
                 
-                obj.enhancedImage = circshift(obj.enhancedImage, dydx);
-                obj.enhancedImage = imtranslate(obj.enhancedImage, dxdy);
+                if ~isempty(obj.enhancedImage)
+                    obj.enhancedImage = circshift(obj.enhancedImage, dydx);
+                    %obj.enhancedImage = imtranslate(obj.enhancedImage, dxdy);
+                end
                 
                 imData = getappdata(obj, 'roiImages');
                 if ~isempty(imData)
                     imageNames = fieldnames(imData);
                     for i = 1:numel(imageNames)
-                        imData.(imageNames{i}) = circshift(imData.(imageNames{i}), dydx);
-                        imData.(imageNames{i}) = imtranslate(imData.(imageNames{i}), dxdy);
-
+                        if ~isempty(imData.(imageNames{i}))
+                            imData.(imageNames{i}) = circshift(imData.(imageNames{i}), dydx);
+                            %imData.(imageNames{i}) = imtranslate(imData.(imageNames{i}), dxdy);
+                        end
                     end
                     obj = setappdata(obj, 'roiImages', imData);
                 end
@@ -416,7 +429,7 @@ methods
             boxSize = size(obj.enhancedImage);
         end
     
-        assert(all(mod(boxSize,2))~=0)
+        assert(all( mod(boxSize,2)) ~= 0)
     
         indX = (1:boxSize(2)) - ceil(boxSize(2)/2);
         indY = (1:boxSize(1)) - ceil(boxSize(1)/2);
@@ -569,16 +582,25 @@ methods
 % % Methods for checking various things related to position etc.
     
 
-    function ul = getUpperLeftCorner(obj, offset)
-        
+    function ul = getUpperLeftCorner(obj, offset, boxSize)
+    %getUpperLeftCorner Get coordinate of upper left corner of "local" box
+    
         if nargin < 2; offset = []; end
+    
+        if nargin < 3
+            boxSize = size(obj.enhancedImage);
+        end
         
         if ~isempty(offset)
             assert(offset >= 0, 'Offset can not be negative')
         end
         
+        if isempty(boxSize) || sum(boxSize) == 0
+            error('Box size is not defined')
+        end
+        
         if isempty(offset)
-            [I, J] = obj.getThumbnailCoords;
+            [I, J] = obj.getThumbnailCoords(boxSize);
             minX = min(I(:)); minY = min(J(:));
         else
             switch obj.shape
@@ -861,6 +883,14 @@ methods
                 % Get linear indices for where the mask is true.
                 ind = sub2ind(imsize, coordInt(keep, 2), coordInt(keep, 1));
                 mask(ind) = true;
+                
+            case 'IMask'
+                mask = false(imsize);
+                coordInt = round(self.coordinates);
+                
+                keep = self.pixelweights > self.MaskWeightCutoff;
+                ind = sub2ind(imsize, coordInt(keep, 2), coordInt(keep, 1));
+                mask(ind) = true;
 
         end
     end
@@ -964,15 +994,12 @@ methods
             end
         end
         
-        % Make sure we got data for each field....
-        data = cat(1, data{:});
-
-% %         C = cell(numel(data), 4);
-% %         
-% %         for i = 1:numel(data)
-% %             f = fieldnames(data{i});
-% %             C(i, 1:numel(f)) = f;
-% %         end
+        % concatenate data for rois into vector/qarray     
+        if iscell(data) && isstruct(data{1})
+            data = utility.struct.structcat(1, data{:});
+        else
+            data = cat(1, data{:});
+        end
     end
     
     function pixelIdxList = getPixelIdxList(obj)
@@ -993,7 +1020,7 @@ methods
                 X = round(X + x - x0 - 1); % Subtract 1 to account for pixel indices starting at 1??
                 Y = round(Y + y - y0 - 1);
                 pixelIdxList = sub2ind(imsize, Y, X);
-            case 'Mask'
+            case {'Mask', 'IMask'}
                 pixelIdxList = sub2ind(imsize, round(obj.coordinates(:,2)), round(obj.coordinates(:,1)));
             case 'Polygon'
                 pixelIdxList = find(obj.mask);
@@ -1111,6 +1138,10 @@ methods (Access = protected)
                 obj.center = obj.coordinates(1:2);
             case {'Polygon', 'Mask', 'Donut'}
                 obj.center = mean(obj.coordinates, 1);
+            case 'IMask'
+                % Todo: get center of mass based on pixel weights
+                obj.center = mean(obj.coordinates, 1);
+
 %             case {'Mask', 'Donut'}
 %                 [y, x] = find(obj.coordinates);
 %                 obj.center = [mean(x), mean(y)];
@@ -1148,6 +1179,23 @@ methods (Access = protected)
                 end
 
                 obj.coordinates = [x, y];
+                
+            case 'IMask' % intensity mask
+                assert( numel(size(coordinates)) == 2, 'Coordinates must be 2D')
+                
+                if ismatrix(coordinates) && size(coordinates,2) == 3
+                    x = coordinates(:, 1); y = coordinates(:, 2);
+                    obj.pixelweights = coordinates(:, 3);
+                elseif ismatrix % assume a mask was given.
+                    pixelsKeep = coordinates~=0;
+                    obj.pixelweights = coordinates(pixelsKeep);
+                    [y, x] = find(pixelsKeep);
+                else
+                    error('Unknown size of coordinates for intensity mask') 
+                end
+                
+                obj.coordinates = [x, y];
+
         end
         
     end
@@ -1161,7 +1209,14 @@ methods (Access = protected)
         switch obj.shape
             case 'Mask'
                 CC = struct('Connectivity', 8, 'ImageSize', obj.imagesize, 'NumObjects', 1);
-                CC.PixelIdxList = { sub2ind(obj.imagesize, round(obj.coordinates(:,2)), round(obj.coordinates(:,1))) };
+                keepX = round(obj.coordinates(:,1)) >= 1 & round(obj.coordinates(:,1)) <= obj.imagesize(2);
+                keepY = round(obj.coordinates(:,2)) >= 1 & round(obj.coordinates(:,2)) <= obj.imagesize(1);
+                keep = keepX & keepY;
+                CC.PixelIdxList = { sub2ind(obj.imagesize, round(obj.coordinates(keep,2)), round(obj.coordinates(keep,1))) };
+            case 'IMask'
+                pixelsKeep = obj.pixelweights > obj.MaskWeightCutoff;
+                CC = struct('Connectivity', 8, 'ImageSize', obj.imagesize, 'NumObjects', 1);
+                CC.PixelIdxList = { sub2ind(obj.imagesize, round(obj.coordinates(pixelsKeep,2)), round(obj.coordinates(pixelsKeep,1))) };
             otherwise
                 CC = bwconncomp(BW);
         end
@@ -1202,7 +1257,7 @@ methods (Access = protected)
                 A = pi*obj.coordinates(3)^2 ;
             case 'Polygon'
                 A = polyarea(obj.coordinates(:, 1), obj.coordinates(:, 2));
-            case {'Mask', 'Donut'}
+            case {'Mask', 'Donut', 'IMask'}
                 A = size(obj.coordinates, 1);
         end
         
