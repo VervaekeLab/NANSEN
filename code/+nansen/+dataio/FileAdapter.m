@@ -214,13 +214,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 versionFlag = '-v7';
             end
             
-            
             if isfile(obj.Filename)
                 save(obj.Filename, '-struct', 'S', '-append', versionFlag)
             else
                 save(obj.Filename, '-struct', 'S', versionFlag)
             end
-            
         end
         
     end
@@ -355,6 +353,29 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 obj.Filename_ = fullfile(folderPath, filename);
             end
             
+        end
+        
+        function tf = uiput(obj, initFolderPath)
+            
+            tf = false;
+            
+            if nargin < 2
+                initFolderPath = '';
+            end
+
+            fileFilter = obj.getFileFilter();
+            fileFilter = ['*.*'; fileFilter];
+            titleStr = sprintf( 'Pick a file for saving as %s', classname(obj) );
+            
+            [filename, folderPath] = uiputfile(fileFilter, titleStr, ...
+                initFolderPath);
+
+            if ~isequal(filename, 0)
+                obj.Filename_ = fullfile(folderPath, filename);
+                tf = true;
+            end
+            
+            if ~nargout; clear tf; end
         end
         
         function fileTypes = getFileTypes(obj)
@@ -507,6 +528,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             className = strsplit(builtin('class', obj), '.');
             cls = sprintf('FileAdapter (%s)', className{end});
         end
+        function className = classname(obj)
+            className = strsplit(builtin('class', obj), '.');
+            className = className{end};
+        end
+        
     end
     
     methods (Static)
