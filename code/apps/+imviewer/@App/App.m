@@ -503,8 +503,11 @@ methods % App initialization & creation
         drawnow
         obj.setFigureWindowBackgroundColor() %BG of java window. Set
         
+        
         if strcmp(obj.mode, 'standalone')
-            obj.addDragAndDropFunctionality()
+            try
+                obj.addDragAndDropFunctionality()
+            end
         end
         
 % because otherwise figure background appears white on resizing
