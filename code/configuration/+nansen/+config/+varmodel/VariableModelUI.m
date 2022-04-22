@@ -1,4 +1,4 @@
-classdef VariableModelUI < applify.apptable
+classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocationModel
 % Class interface for editing variable name and file settings in a uifigure
 
 %     Table specific:
@@ -14,7 +14,7 @@ classdef VariableModelUI < applify.apptable
     end
     
     properties
-        DataLocationModel % DatalocationModel handle
+        %DataLocationModel % DatalocationModel handle
         VariableModel
     end
     
@@ -228,12 +228,46 @@ classdef VariableModelUI < applify.apptable
     
     methods (Access = protected)
         
+        function onDataLocationModelSet(obj)
+            onDataLocationModelSet@nansen.config.mixin.HasDataLocationModel(obj)
+            obj.updateDataLocationDropdownItems();
+        end
+        
         function onDataLocationChanged(obj,src, ~)
                                 
             rowNumber = obj.getComponentRowNumber(src);
             obj.updateFileTypeDropdownItems(rowNumber)
             
             obj.IsDirty = true;
+        end
+        
+        function onDataLocationAdded(obj, ~, evt)
+        %onDataLocationAdded Callback for DataLocationModel event
+        %
+        %   This method is inherited from the HasDataLocationModel 
+        %   superclass and is triggered by the DataLocationAdded event on 
+        %   the DataLocationModel object
+        
+            obj.updateDataLocationDropdownItems()
+        end
+        
+        function onDataLocationRemoved(obj, ~, evt)
+        %onDataLocationRemoved Callback for DataLocationModel event
+        %
+        %   This method is inherited from the HasDataLocationModel 
+        %   superclass and is triggered by the DataLocationRemoved event on 
+        %   the DataLocationModel object
+            
+            obj.updateDataLocationDropdownItems()
+        end
+                
+        function onDataLocationNameChanged(obj, src, evt)
+        %onDataLocationNameChanged Callback for VariableModel event    
+            for i = 1:numel(obj.Data)
+                obj.Data(i).DataLocation = obj.VariableModel.Data(i).DataLocation;
+                hRow = obj.RowControls(i);
+                obj.setDataLocationSelectionDropdownValues(hRow, obj.Data(i))
+            end
         end
         
         function onStarButtonClicked(obj, src, ~)
@@ -381,15 +415,7 @@ classdef VariableModelUI < applify.apptable
                 @obj.onDataLocationNameChanged);
             
         end
-        
-        function onDataLocationNameChanged(obj, src, evt)
-        %onDataLocationNameChanged Callback for VariableModel event    
-            for i = 1:numel(obj.Data)
-                obj.Data(i).DataLocation = obj.VariableModel.Data(i).DataLocation;
-                hRow = obj.RowControls(i);
-                obj.setDataLocationSelectionDropdownValues(hRow, obj.Data(i))
-            end
-        end
+
     end
     
     methods
@@ -464,12 +490,12 @@ classdef VariableModelUI < applify.apptable
             end
         end
         
-        function set.DataLocationModel(obj, newModel)
-            
-            obj.DataLocationModel = newModel;
-            obj.updateDataLocationDropdownItems();
-
-        end
+% %         function set.DataLocationModel(obj, newModel)
+% %             
+% %             obj.DataLocationModel = newModel;
+% %             %obj.updateDataLocationDropdownItems();
+% % 
+% %         end
         
         function set.VariableModel(obj, newModel)
             obj.VariableModel = newModel;

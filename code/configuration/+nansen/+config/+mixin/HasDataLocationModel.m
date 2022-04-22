@@ -4,7 +4,7 @@ classdef HasDataLocationModel < handle
 %   This class assigns the DataLocationModel to a property on creation and
 %   provides callbacks for when changes are made to the DataLocationModel
     
-    properties (Access = protected) % Unsure about access...
+    properties (Access = public) % Unsure about access...
         DataLocationModel nansen.config.dloc.DataLocationModel
     end
     

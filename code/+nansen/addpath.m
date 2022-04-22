@@ -8,7 +8,8 @@ function addpath()
     currentpath = path;
     firstPathOnPath = regexp(currentpath, '.*?(?=:)', 'match', 'once');
 
-    nansenRootPath = nansen.localpath('root');
+    %nansenRootPath = nansen.localpath('root');
+    nansenRootPath = utility.path.getAncestorDir(nansen.rootpath, 1);
     if isequal(firstPathOnPath, nansenRootPath); return; end
     
     warning('off', 'MATLAB:rmpath:DirNotFound')
