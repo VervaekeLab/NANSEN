@@ -1,6 +1,6 @@
 function variableList = getVariableList()
 
-    NUM_VARS = 10; % Should be updated if variables are added.
+    NUM_VARS = 9; % Should be updated if variables are added.
 
     % Initialize struct array with default fields.
     variableList = nansen.config.varmodel.VariableModel.getBlankItem();

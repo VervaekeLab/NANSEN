@@ -375,6 +375,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         end
         
         function onAddNewVariableButtonPushed(obj, src, event)
+            
             numRows = obj.NumRows;
             rowData = obj.VariableModel.getBlankItem;
             rowData.IsCustom = true;
@@ -382,6 +383,10 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             % Fuck, this is ugly
             if ~isfield(rowData, 'Uuid')
                 rowData.Uuid = nansen.util.getuuid();
+            end
+            
+            if isempty(rowData.VariableName)
+                rowData.VariableName = obj.VariableModel.getNewName();
             end
             
             obj.VariableModel.insertItem(rowData)
