@@ -35,6 +35,7 @@ function virtualData = open(pathStr, varargin)
         case {'.tif', '.tiff'}
             
             imInfo = Tiff(pathStr{1});
+            virtualData = [];
             
             % Should file be opened using the custom ScanImageTiff adapter?
             try 
@@ -46,6 +47,7 @@ function virtualData = open(pathStr, varargin)
                 % Do nothing.
             end
             
+
             % Fall back to opening tiffs using a generic tiff-file adapter
             if isempty(virtualData)
                 if numFiles > 1

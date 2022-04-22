@@ -280,24 +280,6 @@ classdef PipelineCatalog < utility.data.StorableCatalog
             
         end
         
-        function name = getNewName(obj)
-            
-            prefix = 'UNNAMED';
-            
-            isUnnamed = contains(obj.ItemNames, prefix);
-            numUnnamed = sum(isUnnamed);
-            unnamedNames = sort(obj.ItemNames(isUnnamed));
-            
-            candidates = arrayfun(@(i) sprintf('%s_%d', prefix, i), ...
-                1:(numUnnamed+1), 'uni', 0);
-            
-            % Find candidate which is not in use...
-            candidates = setdiff(candidates, unnamedNames, 'stable');
-            
-            name = candidates{1};
-            
-        end
-        
     end
     
     

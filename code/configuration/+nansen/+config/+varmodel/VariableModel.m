@@ -281,7 +281,7 @@ classdef VariableModel < utility.data.StorableCatalog
         %   This method is used to make sure the datalocation name is
         %   up-to-date with the name of the data location model
             
-            isDirty = false;
+            %isDirty = false;
         
             dlUuid = dataLocationItem.Uuid;
             dlName = dataLocationItem.Name;
@@ -289,14 +289,12 @@ classdef VariableModel < utility.data.StorableCatalog
             for i = 1:numel(obj.Data)
                 if strcmp( obj.Data(i).DataLocationUuid, dlUuid )
                     obj.Data(i).DataLocation = dlName;
-                    isDirty = true;
+                    %isDirty = true;
                 end
             end
             
-            if isDirty
-                evtData = event.EventData;
-                obj.notify('DataLocationNameChanged', evtData);
-            end
+            evtData = event.EventData;
+            obj.notify('DataLocationNameChanged', evtData);
             
         end
         

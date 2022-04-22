@@ -258,11 +258,12 @@ classdef ProjectManagerUI < handle
             end
             
             try % Only available in newer matlab versions...
-                obj.setRowStyle('Current Project', find(isCurrent))
+                if any(isCurrent)
+                    obj.setRowStyle('Current Project', find(isCurrent))
 
-                s = uistyle('FontWeight', 'bold');
-                addStyle(obj.UIControls.ProjectTable, s, 'row', find(isCurrent));
-
+                    s = uistyle('FontWeight', 'bold');
+                    addStyle(obj.UIControls.ProjectTable, s, 'row', find(isCurrent));
+                end
                 if isempty(obj.UIControls.ProjectTable.UIContextMenu)
                     obj.createTableContextMenu()
                 end
