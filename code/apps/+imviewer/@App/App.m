@@ -3808,9 +3808,24 @@ methods % Misc, most can be outsourced
         
         obj.displayMessage('Updating image data')
         
-        %imData = obj.ImageStack.imageData(:, :, frameInd); %Todo!
+        
+        % Get data from all channels and planes... (Caching only works if
+        % all channels/planes are submitted)
+        if strcmp( opts.target, 'Add To Memory')
+            currChannel = obj.ImageStack.CurrentChannel;
+            obj.ImageStack.CurrentChannel = 1:obj.ImageStack.NumChannels;
+
+            currPlane = obj.ImageStack.CurrentPlane;
+            obj.ImageStack.CurrentPlane = 1:obj.ImageStack.NumPlanes;
+        end
+        
         imData = obj.ImageStack.getFrameSet(frameInd); %Todo!
 
+        if strcmp( opts.target, 'Add To Memory') % Reset...
+            obj.ImageStack.CurrentChannel = currChannel;
+            obj.ImageStack.CurrentPlane = currPlane;
+        end
+        
         obj.uiwidgets.msgBox.deactivateGlobalWaitbar()
         obj.clearMessage()
 
@@ -5335,7 +5350,8 @@ methods (Access = private) % Methods that runs when properties are set
         
         % Set brightness limits. Will trigger callback to set slider Low
         % and High value.
-        %obj.settings.ImageDisplay.imageBrightnessLimits = obj.ImageStack.DataIntensityLimits;
+        obj.settings_.ImageDisplay.brightnessSliderLimits = obj.ImageStack.DataTypeIntensityLimits;
+        obj.settings_.ImageDisplay.imageBrightnessLimits = obj.ImageStack.getDataIntensityLimits();
         
         
 % %         % If a "blank" stack is opened, need to readjust limits.
