@@ -1976,6 +1976,13 @@ methods % App update
             % limits...
             
             obj.imObj.CData = im;
+            if ~all(obj.ImageStack.DataXLim == 0)
+                obj.imObj.XData = obj.ImageStack.DataXLim;
+            end
+            if ~all(obj.ImageStack.DataYLim == 0)
+                obj.imObj.YData = obj.ImageStack.DataYLim;
+            end
+            
         end
         
         if isa(obj.ImageStack, 'nansen.stack.HighResolutionImage')
@@ -2307,16 +2314,13 @@ methods % Event/widget callbacks
             obj.imageDisplayMode.projection = 'none';
         end
         
-        
         if ~isempty(obj.imObj)% && i~=0
             
             obj.updateImage()
 
             if strcmp(obj.Visible, 'on')
-                
                 updateInfoText(obj)
                 updateImageDisplay(obj);
-
             end
         end
 
@@ -3812,19 +3816,14 @@ methods % Misc, most can be outsourced
         % Get data from all channels and planes... (Caching only works if
         % all channels/planes are submitted)
         if strcmp( opts.target, 'Add To Memory')
-            currChannel = obj.ImageStack.CurrentChannel;
-            obj.ImageStack.CurrentChannel = 1:obj.ImageStack.NumChannels;
-
-            currPlane = obj.ImageStack.CurrentPlane;
-            obj.ImageStack.CurrentPlane = 1:obj.ImageStack.NumPlanes;
+            subs = repmat({':'}, 1, ndims(obj.ImageStack.Data));
+            dim = obj.ImageStack.Data.getFrameIndexingDimension;
+            subs{dim} = frameInd;
+            imData = obj.ImageStack.Data(subs{:});
+        else
+            imData = obj.ImageStack.getFrameSet(frameInd); %Todo!
         end
         
-        imData = obj.ImageStack.getFrameSet(frameInd); %Todo!
-
-        if strcmp( opts.target, 'Add To Memory') % Reset...
-            obj.ImageStack.CurrentChannel = currChannel;
-            obj.ImageStack.CurrentPlane = currPlane;
-        end
         
         obj.uiwidgets.msgBox.deactivateGlobalWaitbar()
         obj.clearMessage()
@@ -5094,11 +5093,21 @@ methods (Access = protected)
             
         x = coords(1); y = coords(2);
         
-        val = obj.CurrentImage(y, x, :);
         
+        if ~all( obj.ImageStack.DataXLim == 0 )
+            x = x - obj.ImageStack.DataXLim(1) + 1;
+        end
+        if ~all( obj.ImageStack.DataYLim == 0 )
+            y = y - obj.ImageStack.DataYLim(1) + 1;
+        end
+        
+        try
+            val = obj.CurrentImage(y, x, :);
+        catch
+            val = nan;
+        end
         
         if numel(val) > 1; val = mean(val); end
-
         
         locationStr = sprintf('x=%1d, y=%1d', x, y);
         

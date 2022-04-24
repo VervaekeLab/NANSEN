@@ -25,7 +25,7 @@ function virtualData = open(pathStr, varargin)
 
     % Todo: Add a call to a function that checks whether data should be
     % loaded using a custom FileAdapter class.
-    virtualData = []; %openUsingCustomFileAdapter(pathStr);
+    virtualData = openUsingCustomFileAdapter(pathStr);
     if ~isempty(virtualData)
         return
     end
@@ -38,7 +38,7 @@ function virtualData = open(pathStr, varargin)
             virtualData = [];
             
             % Should file be opened using the custom ScanImageTiff adapter?
-            try 
+            try
                 softwareName = imInfo.getTag('Software');
                 if strcmp(softwareName(1:2), 'SI')
                     virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
@@ -46,7 +46,6 @@ function virtualData = open(pathStr, varargin)
             catch
                 % Do nothing.
             end
-            
 
             % Fall back to opening tiffs using a generic tiff-file adapter
             if isempty(virtualData)
@@ -111,7 +110,24 @@ function virtualData = open(pathStr, varargin)
 end
 
 
-% NEW VERSION:
+function virtualData = openUsingCustomFileAdapter(filePath)
+%openUsingCustomFileAdapter Get virtual data using file adapter based on name    
+    import nansen.dataio.fileadapter.imagestack.ImageStack
+    
+    if iscell(filePath); filePath = filePath{1}; end
+    
+    virtualDataClass = ImageStack.getVirtualDataClassNameFromFilename(filePath);
+    
+    if ~isempty(virtualDataClass)
+        virtualDataClassFcn = str2func(virtualDataClass);
+        virtualData = virtualDataClassFcn(filePath);
+    else
+        virtualData = [];
+    end
+end
+
+
+% NEW VERSION (tbd):
 
 % % virtualData = virtualStack(pathStr, varargin{:});
 % % 

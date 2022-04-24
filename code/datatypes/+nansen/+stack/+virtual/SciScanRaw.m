@@ -44,7 +44,7 @@ methods % Implementation of VirtualArray abstract methods
         % Todo: is this always the case?
         
         if obj.PreprocessDataEnabled
-            data = obj.processData(data);
+            data = obj.processData(data, subs);
         end
 
     end

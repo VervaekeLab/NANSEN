@@ -300,6 +300,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %       data = imageStack.getFrameSet(1:10, 1:3) will return an 
         %       array of size h x w x numPlanes x 3 x 10
         
+            % TODO: Generalize so that X and y can be on any dimension, not
+            % just 1 or 2.
         
             indexingSubs = obj.getDataIndexingStructure(frameInd);
             
@@ -335,6 +337,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     if isempty(imArray) % If cache is empty, get images directly from Data
                         numFrames = min([obj.NumTimepoints, 500]);
                         imArray = obj.getFrameSet(1:numFrames);
+                        doCropImage = false;
                     end
 
                 else
@@ -437,6 +440,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if ~obj.IsVirtual
                 error('Data can only be added to static cache for ImageStack with virtual data')
             end
+            
+            % Make sure data is same size as stack...
+            dataSize = obj.Data.StackSize;
+            tmpSize = size(imData);
+            
+%             if ~isequal(dataSize(3:end), tmpSize(3:end))
+%                 tmpInd = repmat({':'}, 1, ndims(obj.Data));
+%             end
             
             obj.Data.addToStaticCache(imData, frameIndices)
             
@@ -951,6 +962,16 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
     % - Methods for getting data specific information
         
+        function cLim = getDataIntensityLimits(obj)
+            
+            if isempty(obj.DataIntensityLimits)
+                obj.autoAssignDataIntensityLimits()
+            end
+            
+            cLim = obj.DataIntensityLimits;
+            
+        end
+    
         function length = getDimensionLength(obj, dimName)
         %getDimensionLength Get length of dimension given dimension label
         %
@@ -1223,8 +1244,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             subs(:) = {':'};
             
             for i = 1:numDims
-                
-                thisDim = obj.Data.DataDimensionArrangement(i);
+                % Get subs according to stack dimension arrangement
+                thisDim = obj.Data.StackDimensionArrangement(i);
                 
                 switch thisDim
                     case 'C'
@@ -1232,7 +1253,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         
                     case 'Z'
                         
-                        if i == numDims
+                        if ~contains(obj.Data.DataDimensionArrangement, 'T')
                             if ischar(frameInd) && strcmp(frameInd, 'all')
                                 subs{i} = 1:obj.NumPlanes;
                             else
@@ -1243,15 +1264,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         end
                         
                     case 'T'
-                        if i == numDims
-                            if ischar(frameInd) && strcmp(frameInd, 'all')
-                                subs{i} = 1:obj.NumTimepoints;
-                            else
-                                subs{i} = frameInd;
-                            end
-                        else
+                        if ischar(frameInd) && strcmp(frameInd, 'all')
                             subs{i} = 1:obj.NumTimepoints;
+                        else
+                            subs{i} = frameInd;
                         end
+
                         
                         % Make sure requested frame indices are in range.
                         if isnumeric(subs{i})
@@ -1283,7 +1301,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %             end
             
         end
-        
         
         function subs = getFullDataIndexingStructure(obj)
             
