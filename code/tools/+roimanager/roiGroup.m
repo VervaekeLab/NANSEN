@@ -164,7 +164,6 @@ classdef roiGroup < handle
             % Make sure roi images are initialized.
             newRois = obj.initializeRoiImages(newRois);
 
-
             % Add rois, either by appending or by inserting into array.
             switch mode
                 case 'initialize'
@@ -353,6 +352,8 @@ classdef roiGroup < handle
             evtData = roimanager.eventdata.RoiClsfChanged(roiInd, newClass);
             obj.roiClassification(roiInd) = newClass;
             obj.notify('classificationChanged', evtData)
+            
+            obj.isDirty_ = true;
         end
         
         function connectRois(obj, parentInd, childInd)

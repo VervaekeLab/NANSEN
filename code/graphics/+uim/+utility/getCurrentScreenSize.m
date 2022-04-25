@@ -6,6 +6,11 @@ function [screenSize, screenNumber] = getCurrentScreenSize(hFig)
 %   figure is located.
     
     MP = get(0, 'MonitorPosition');
+    if size(MP, 1) == 1
+        screenSize = MP;
+        screenNumber = 1;
+        return
+    end
     
     % Get coordinates for upper left corner of figure
     xPos = hFig.Position(1);

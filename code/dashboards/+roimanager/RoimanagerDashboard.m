@@ -83,13 +83,13 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             % 3) Roi table 
             jLabel.setText('Initializing roi table...')
-            h = roimanager.RoiTable(obj.hPanels(3), obj.roiGroup);
+            h = roimanager.RoiTable(obj.hPanels(3), obj.RoiGroup);
             h.KeyPressFcn = @(s, e) obj.onKeyPressed(s, e, 'roimanager');
             obj.addPanelResizeButton(obj.hPanels(3).Children(1))
             obj.AppModules(end+1) = h;
 
             % 4) Roi image display
-            obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), obj.roiGroup);
+            obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), obj.RoiGroup);
             obj.RoiThumbnailViewer.ImageStack = obj.StackViewer.ImageStack;
             obj.RoiThumbnailViewer.Dashboard = obj;
             

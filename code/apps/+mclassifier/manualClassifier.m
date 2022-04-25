@@ -112,7 +112,7 @@ methods
         obj.setTileCallbacks()
 
         % Activate mouse moving callback when everything is up and running
-        obj.hFigure.WindowButtonMotionFcn = @obj.onMouseMotion;
+        obj.createFigureInteractionCallbacks()
     end
     
     function delete(obj)
@@ -137,15 +137,18 @@ methods (Access = private, Hidden) % Gui Creation/construction
         obj.hFigure.Color = obj.guiColors.Background;
         obj.hFigure.NumberTitle = 'off';
         obj.hFigure.Name = 'Manual Classifier';
+        
+        obj.hFigure.CloseRequestFcn = @(s, e) obj.onFigureCloseRequest;
+    end
+
+    function createFigureInteractionCallbacks(obj)
         obj.hFigure.KeyPressFcn = @obj.keyPress;
         
         %obj.hFigure.WindowButtonDownFcn = @obj.mousePressed;
         obj.hFigure.ButtonDownFcn = @obj.mousePressed;
-
-        obj.hFigure.WindowScrollWheelFcn = @obj.scrollHandler;
-        obj.hFigure.CloseRequestFcn = @(s, e) obj.onFigureCloseRequest;
+        obj.hFigure.WindowScrollWheelFcn = @obj.scrollHandler; 
+        obj.hFigure.WindowButtonMotionFcn = @obj.onMouseMotion;
     end
-
 
     function configurePanels(obj)
     %configurePanels Configure gui panels and add axes/controls
@@ -1577,7 +1580,6 @@ methods
         end
 
     end
-
 
 end
 

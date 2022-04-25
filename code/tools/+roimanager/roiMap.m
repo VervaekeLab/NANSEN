@@ -1214,14 +1214,7 @@ classdef roiMap < roimanager.roiDisplay
                     i = obj.SelectedRois;
                     obj.RoiGroup.modifyRois(newRoi, i)
                 else
-                    obj.RoiGroup.addRois(newRoi)
-                    
-                    % Add roi to visible rois:
-                    visibleRois = [obj.VisibleRois, obj.RoiGroup.roiCount];
-                    obj.RoiGroup.changeVisibleRois(visibleRois)
-                    
-                    obj.selectRois(obj.RoiGroup.roiCount, 'normal')
-                    
+                    obj.addRois(newRoi)
                 end
                 
                 clear newRoi

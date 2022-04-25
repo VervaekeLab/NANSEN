@@ -29,7 +29,7 @@ function Sout = clearvalues(Sin, useZero)
             otherwise
                 try
                     if useZero
-                        newValue = cast(0, 'like', value);
+                        newValue = zeros(size(value), 'like', value);
                     else
                         newValue = cast([], 'like', value);
                     end

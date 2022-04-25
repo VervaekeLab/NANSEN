@@ -119,6 +119,15 @@ classdef VariableModel < utility.data.StorableCatalog
                 S = obj.getDefaultItem(varName);
                 S.IsCustom = true;              
             end
+
+            % Check if subfolder uses different fileseparator than current 
+            if contains(S.Subfolder, '/') && ~strcmp('/', filesep)
+                S.Subfolder = strrep(S.Subfolder, '/', filesep);
+            end
+            if contains(S.Subfolder, '\') && ~strcmp('\', filesep)
+                S.Subfolder = strrep(S.Subfolder, '\', filesep);
+            end
+            
         end
         
         function setGlobal(obj)
