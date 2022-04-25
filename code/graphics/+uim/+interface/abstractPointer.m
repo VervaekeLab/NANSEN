@@ -100,18 +100,18 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
         
     end
     
-    methods (Access = public) % These should not be public... Or there 
-        %should be one method that can be accessed from Pointermanager and
-        %one method that can be overridden by subclasses...
-        
-        function onPointerExitedAxes(obj)
-            % Subclasses may override
-        end
-        
-        function onPointerEnteredAxes(obj)
-            % Subclasses may override
-        end
-        
-    end
+% %     methods (Access = public) % These should not be public... Or there 
+% %         %should be one method that can be accessed from Pointermanager and
+% %         %one method that can be overridden by subclasses...
+% %         
+% %         function onPointerExitedAxes(obj)
+% %             % Subclasses may override
+% %         end
+% %         
+% %         function onPointerEnteredAxes(obj)
+% %             % Subclasses may override
+% %         end
+% %         
+% %     end
     
 end
