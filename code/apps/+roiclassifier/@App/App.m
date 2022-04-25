@@ -1,9 +1,7 @@
-classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
+classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager.RoiGroupFileIoAppMixin
     
     % todo, mouse tools are quite slow. should I use polygons instead of
     % patches?
-
-    % roiMap should be a superclass of roiclassifier...?
     
     % classify roi methods, listeners
     % select roi methods/listeners
@@ -13,16 +11,15 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
     % Why are superclass keyPress and onKeyPressed both activated on
     % keypress.....
     
-    
     % Todo: selectedItem is the same as roiDisplay's SelectedRois and 
     %  displayedItems is the same as roiDisplay's VisibleRois
     
     
 %   Inherited properties:
 %       RoiGroup            % RoiGroup object (roiDisplay)
+    
+    % Todo: roiFilePath = dataFilePath....
 
-
-   
     properties
         
 % %         classificationColors = { [0.174, 0.697, 0.492], ...
@@ -42,8 +39,8 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
     
     properties
         dataFilePath            % Filepath to load/save data from
+        roiFilePath
     end
-    
     
     % Properties holding roi data Implementation of abstract properties.
     properties (Dependent)
@@ -59,12 +56,12 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
         currentFrameNo
     end
     
-    properties (Access = private)
+    properties (SetAccess = protected)
         hSignalViewer 
-        roiGroup
-        
         pointerManager
-        
+    end
+    
+    properties (Access = private)
         WindowMouseMotionListener
         WindowMouseReleaseListener
         
@@ -196,7 +193,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
         function onKeyPressed(obj, src, event)
             
             wasCaptured = obj.pointerManager.onKeyPress([], event);
-        
+                        
             switch event.Key
                 
                 case {'z', 'Z'}
@@ -210,6 +207,11 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
                 end
                 
                 case ''
+                    
+                case 'o'
+                    if contains('command', event.Modifier) || contains('control', event.Modifier)
+                        obj.importRois()
+                    end
                     
                     
             end
@@ -395,57 +397,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
             
             obj.removeItems(roiInd)
         end
-        
-        % Methods for saving results.
-        function saveClassification(obj, ~, ~, varargin)
-        % saveClassification
-
-            % Get path for saving data to file.
-            if isempty(varargin)
-                savePath = obj.getSavePath();
-            else
-                error('Not implemented yet')
-            end
-
-            if isempty(savePath); return; end
-
-            % Todo: Save classification labels.
-            labels = obj.classificationLabels;
-
-            roiArray = obj.itemSpecs;
-            roiClassification = obj.itemClassification;
-            roiImages = obj.itemImages;
-            roiStats = obj.itemStats;
-
-            if exist(savePath, 'file')
-                save(savePath, 'roiArray', 'roiImages', 'roiStats', 'roiClassification', '-append')
-            else
-                save(savePath, 'roiArray', 'roiImages', 'roiStats', 'roiClassification')
-            end
-
-
-            % Save clean version:
-            roiArray(obj.itemClassification==2) = []; %#ok<*NASGU>
-
-            if ~isempty(roiImages)
-                roiImages(obj.itemClassification==2) = [];
-            end
-
-            if ~isempty(roiStats)
-                roiStats(obj.itemClassification==2) = [];
-            end
-
-            roiClassification(obj.itemClassification==2) = [];
-
-            savePath = strrep(savePath, '.mat', '_clean.mat');
-            save(savePath, 'roiArray', 'roiImages', 'roiStats', 'roiClassification')
-
-            fprintf('Saved classification results to %s\n', savePath)
-
-        end
-
-
-        
         
         function tf = isPointValid(obj, x, y)
             
@@ -670,17 +621,16 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
     end
         
     methods (Access = protected) % Other event and callback handlers
-
         
-        function onSelectedItemChanged(obj, roiIndices)
+        function onSelectedItemChanged(obj, roiIndices) %Roidisplay
         %onSelectedItemChanged Callback for selection in the classifier
         
             % Call the changeRoiSelection of roiGroup, which will trigger
             % the roiSelectionChanged event
             obj.RoiGroup.changeRoiSelection(obj.selectedItem, roiIndices, obj)
-        end
+        end 
         
-        function onRoiSelectionChanged(obj, evtData)
+        function onRoiSelectionChanged(obj, evtData) %Roidisplay
         %onRoiSelectionChanged Callback for event listener on roi selection
         %
         %   This event is triggered from the roiGroup and can therefore be
@@ -724,7 +674,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
             end
         end
         
-        function onRoiClassificationChanged(obj, evtData)
+        function onRoiClassificationChanged(obj, evtData) %Roidisplay
             
             tileNum = ismember(obj.displayedItems, evtData.roiIndices);
             
@@ -732,7 +682,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
             
         end
         
-        function onRoiGroupChanged(obj, evt)
+        function onRoiGroupChanged(obj, evt) %Roidisplay
             % Triggered on existing roiGroup events
             
             % Todo: also update text label. 
@@ -787,21 +737,21 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
             
             %obj.notify('mapUpdated')
             
-        end %function
+        end
         
         function onSettingsChanged(obj, name, value)
             onSettingsChanged@mclassifier.manualClassifier(obj, name, value)
         end
         
+
         function onFigureCloseRequest(obj)
                         
-            %wasAborted = obj.promptSaveRois();
-            %if wasAborted; return; end
+            wasAborted = obj.promptSaveRois();
+            if wasAborted; return; end
             
             delete(obj)
             
         end
-        
     end
     
     methods (Access = protected) % Gui update
@@ -882,7 +832,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
             
         end
         
-        
         function setRoiPixelIndices(obj)
         %setRoiPixelIndices Create 3D array with pixel ind for roi thumbs 
         %
@@ -906,7 +855,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
         end
         
         
-        % % % Methods for modifying roi objects.
+    % % % Methods for modifying roi objects.
     
         function shiftRoiImages(obj, roiInd, shift)
         % shiftRoiImages Shift roi images in the roiImage property
@@ -930,50 +879,121 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
         % tool, since it also has the drag to select many method. Maybe I
         % can disable that..., startMove, moveRoi, endMove, repositionRoi
         
-        
     end
     
-    
-    methods % Data methods
+    methods (Access = public)
         
-        function openFromFile(obj)
+        % Methods for saving results.
+        function saveClassification(obj, ~, ~, varargin)
+        % saveClassification
+
+            % Get path for saving data to file.
+            if isempty(varargin)
+                savePath = obj.getSavePath();
+            else
+                error('Not implemented yet')
+            end
+
+            if isempty(savePath); return; end
             
+            obj.saveRois(savePath)
+            
+            % Save clean version of rois....
+            % Todo: Show have setting for this, and default should be to
+            % not save...
+            keep = obj.itemClassification ~= 2;
+            
+            roiGroupStruct = struct;
+            roiGroupStruct.roiArray = obj.RoiGroup.roiArray(keep);
+            roiGroupStruct.roiImages = obj.RoiGroup.roiImages(keep);
+            roiGroupStruct.roiStats = obj.RoiGroup.roiStats(keep);
+            roiGroupStruct.roiClassification = obj.RoiGroup.roiClassification(keep);
+            
+            savePath = strrep(savePath, '.mat', '_clean.mat');
+
+            % Save roigroup using roigroup fileadapter
+            fileObj = nansen.dataio.fileadapter.roi.RoiGroup(savePath, '-w');
+            fileObj.save(roiGroupStruct);            
+            fprintf('Saved clean classification results to %s\n', savePath)
+            
+        end
+               
+    end
+    
+    methods (Access = public) % Load/save rois
+        
+        function rois = loadRois(obj, loadPath)
+        %loadRois Load rois and add them to app
+        
+            obj.hMessageBox.displayMessage('Loading Rois...')
+            C = onCleanup(@(s,e) obj.hMessageBox.clearMessage);
+           
+            try
+                rois = loadRois@roimanager.RoiGroupFileIoAppMixin(obj, loadPath);
+            catch ME
+                clear C % Reset message display
+                obj.hMessageBox.displayMessage(['Error: ', ME.message], [], 2)
+                if nargout; rois = []; end
+                return
+            end
+            doInitialization = ~isempty(obj.RoiGroup);
+            obj.RoiGroup = rois;
+            obj.RoiGroup.markClean()
+            
+            if doInitialization
+                obj.updateView([], [], 'Initialize')
+            end
             
         end
         
+        function saveRois(obj, initPath)
+        %saveRois Save rois with confirmation message in app.    
+            if nargin < 2; initPath = ''; end
+            saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
+            
+            saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);                        
+            obj.hMessageBox.displayMessage(saveMsg, [], 2)
+        end
         
-        
+    end
+
+    methods (Access = protected) % RoiGroupFileIoAppMixin methods
+
+        % Todo: Same as import rois??
         function tf = uiopenFromFile(obj, filePath)
     
             tf = false;
 
             if nargin < 2
-                [S, obj.dataFilePath] = applib.roimanager.fileio.uigetrois();
-                if isempty(S); return; end
-
+                fileObj = nansen.dataio.fileadapter.roi.RoiGroup();
+                fileObj.uiopen()
+                if isempty(fileObj.Filename); return; end
             else
-                S = load(filePath);
-                obj.dataFilePath = filePath;
+                fileObj = nansen.dataio.fileadapter.roi.RoiGroup(filePath);
             end
-
-
-            obj.RoiGroup = applib.roimanager.roiGroup(S);
             
+            doInitialization = ~isempty(obj.RoiGroup);
+            obj.RoiGroup = fileObj.load();
             
-% %             allowedFields = {'roiArray', 'roiImages', 'roiStats', 'roiClassification'};
-% % 
-% %             for i = 1:numel(allowedFields)
-% %                 if isfield(S, allowedFields{i})
-% %                     obj.(allowedFields{i}) = S.(allowedFields{i});
-% %                 end
-% %             end
+            if doInitialization
+                obj.updateView([], [], 'Initialize')
+            end
 
             tf = true;
 
         end
-
-%         function saveClassification(obj)
-%         end
+    
+        function initPath = getRoiInitPath(obj)
+        %getRoiInitPath Get path to start uigetfile or uiputfile
+        
+            if ~isempty(obj.roiFilePath)
+                initPath = obj.roiFilePath;
+            elseif isempty(obj.dataFilePath)
+                initPath = obj.dataFilePath;
+            else
+                initPath = '';
+            end
+        end
         
     end
     
@@ -1004,11 +1024,10 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay
         end
     end
     
-    
     methods (Static)
         
         function S = getSettings()
-            S = getSettings@clib.hasSettings('roiClassifier');
+            S = getSettings@applify.mixin.UserSettings('roiclassifier.App');
         end
         
     end

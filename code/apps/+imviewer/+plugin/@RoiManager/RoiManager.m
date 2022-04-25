@@ -1,4 +1,4 @@
-classdef RoiManager < applify.mixin.AppPlugin
+classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixin
 %imviewer.plugin.RoiManager Open the roimanager tool as a plugin in imviewer
     
     % Todo:
@@ -31,27 +31,24 @@ classdef RoiManager < applify.mixin.AppPlugin
         CreateContextMenu = true  % Boolean flag : Should contextmenu be created.
     end
     
-    properties 
-        %RoiManager  % Handle to roimanager class
-            
+    properties
         PrimaryAppName = 'imviewer'
-                
-        roiTools
-        roiGroup                % RM
+    end
+    
+    properties 
+        RoiGroup
+        roiFilePath             % RM
+    end
+    
+    properties (Access = protected)
+
         roiDisplay
-        
-        % Todo: Where should this be saved. need to rethink RoI
-        % specifications...
-        roiImages
-        roiStats
-        roiClassification
         
         secondaryGroups % Todo: merge this with roiGroup
         secondaryMaps % Todo: merge this with roiDisplay
         
         roiSignalArray          % RM
         
-        roiFilePath             % RM
         
         signalOptions           % ?
         deconvolutionOptions    % ?
@@ -67,9 +64,7 @@ classdef RoiManager < applify.mixin.AppPlugin
         KeyPressListener = event.listener.empty
         MapUpdateListener = event.listener.empty
         hMenu
-        
-        hImageRoiStatic % Come up with better name
-        
+                
         ImageStackChangedListener
         ImageDataChangedListener
 
@@ -109,7 +104,6 @@ classdef RoiManager < applify.mixin.AppPlugin
             % deleted?
             %
             % Check is roiGroup has unsaved changes, and save those
-            
         end
         
     end
@@ -148,7 +142,7 @@ classdef RoiManager < applify.mixin.AppPlugin
         function onConstruction(obj)
             % Todo?
             % Initialize a roi map and store in the roiDisplay property
-            obj.roiGroup = roimanager.roiGroup();
+            obj.RoiGroup = roimanager.roiGroup();
         end
         
         function onPluginActivated(obj)
@@ -164,10 +158,10 @@ classdef RoiManager < applify.mixin.AppPlugin
                 obj.createMenu()
             end
             
-            obj.roiGroup = roimanager.roiGroup();
-            obj.roiGroup.ParentApp = obj.PrimaryApp;
+            obj.RoiGroup = roimanager.roiGroup();
+            obj.RoiGroup.ParentApp = obj.PrimaryApp;
             
-            obj.roiDisplay = roimanager.roiMap(hImviewer, hAxes, obj.roiGroup);
+            obj.roiDisplay = roimanager.roiMap(hImviewer, hAxes, obj.RoiGroup);
             
             % Assign the Ancestor App of the roigroup to the app calling
             % for its creation.
@@ -195,7 +189,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                     % Todo: Change this to roi labels... Just for testing
                     obj.toggleShowRoiOutlines('', value)
                 case 'colorRoiBy'
-                    obj.roiDisplay.updateRoiColors(1:obj.roiGroup.roiCount)
+                    obj.roiDisplay.updateRoiColors(1:obj.RoiGroup.roiCount)
                     if strcmp(value, 'Activity Level')
                         obj.PrimaryApp.displayMessage('Not implemented yet')
                         pause(1.5)
@@ -210,7 +204,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             newGroupNumber = round( str2double(newGroupNumberStr) );
             if newGroupNumber == 1
                 newMap = obj.roiDisplay;
-                newGroup = obj.roiGroup;
+                newGroup = obj.RoiGroup;
             else
                 newMap = obj.secondaryMaps(newGroupNumber-1);
                 newGroup = obj.secondaryGroups(newGroupNumber-1);
@@ -247,36 +241,6 @@ classdef RoiManager < applify.mixin.AppPlugin
                 end
             end
             
-            
-        end
-        
-        function wasAborted = promptSaveRois(obj)
-            
-            wasAborted = true;
-                        
-            if obj.roiGroup.IsDirty
-            
-                message = 'Save changes to rois?';
-                title = 'Confirm Exit';
-
-                selection = questdlg(message, title, ...
-                    'Yes', 'No', 'Cancel', 'Yes');
-
-                switch selection
-
-                    case 'Yes'
-                        obj.saveRois()
-                        wasAborted = false;
-                    case 'No'
-                        wasAborted = false;
-                        
-                    otherwise
-                        % pass
-                end
-                
-            else
-                wasAborted = false;
-            end
             
         end
         
@@ -354,6 +318,27 @@ classdef RoiManager < applify.mixin.AppPlugin
         end
         
         
+    end
+    
+    methods (Access = protected) % RoiGroupFileIoAppMixin methods
+                   
+        function initPath = getRoiInitPath(obj)
+        %getRoiInitPath Get path to start uigetfile or uiputfile
+        
+            if ~isempty(obj.roiFilePath)
+                initPath = obj.roiFilePath;
+            else
+                initPath = obj.PrimaryApp.ImageStack.FileName;
+                initPath = fileparts(initPath);
+                [parentDir, name] = fileparts(initPath);
+                if strcmp(name, 'reg_tif') % suite2p
+                    initPath = parentDir;
+                elseif isfolder(fullfile(parentDir, 'roi_data')) % nansen
+                    initPath = fullfile(parentDir, 'roi_data');
+                end
+            end
+        end
+
     end
     
     methods (Access = private) % Initialization
@@ -545,49 +530,46 @@ classdef RoiManager < applify.mixin.AppPlugin
     
     methods % User methods.
         
+        function [initPath, fileName] = getInitPath(obj)
+            
+            if ~isempty(obj.roiFilePath)
+                initPath = obj.roiFilePath;
+            else
+                initPath = obj.PrimaryApp.filePath;
+            end
+
+            if exist(initPath, 'file') == 2
+                [initPath, fileName, ~] = fileparts(initPath);
+            end
+            
+            if ~exist('fileName', 'var')
+                fileName = 'unnamed';
+            end
         
-        function importRois(obj, initPath)
-            
-            if nargin < 2; initPath = ''; end
-            loadPath = obj.getRoiPath(initPath, 'load');
-            if isempty(loadPath); return; end
-            
-            obj.loadRois(loadPath)
-            
         end
-        
-        function loadRois(obj, loadPath)
-        %loadRois Load rois from file
+              
+        function rois = loadRois(obj, loadPath)
+        %loadRois Load rois and add them to app
         
             obj.PrimaryApp.displayMessage('Loading Rois...')
             C = onCleanup(@(s,e) obj.PrimaryApp.clearMessage);
-            
-            lastwarn('')
-            
-             % Load roi array from selected file path.
-            if exist(loadPath, 'file')
-                fileObj = nansen.dataio.fileadapter.roi.RoiGroup(loadPath);
-                try
-                    loadedRoiGroup = fileObj.load();
-                catch ME
-                    clear C % Reset message display
-                    obj.PrimaryApp.displayMessage(['Error: ', ME.message])
-                    return
-                end
-                obj.roiFilePath = loadPath;
-                
-            else
+           
+            try
+                rois = loadRois@roimanager.RoiGroupFileIoAppMixin(obj, loadPath);
+            catch ME
                 clear C % Reset message display
-                obj.PrimaryApp.displayMessage('Error: File does not exist', [], 2)
+                obj.PrimaryApp.displayMessage(['Error: ', ME.message], [], 2)
+                if nargout; rois = []; end
+                return
             end
             
-            %msg = lastwarn;
+             %msg = lastwarn;
             %if ~isempty(msg); obj.PrimaryApp.displayWarning(); end  %Todo
             
-            
             % Todo: Current group / Current channel / Current plane...
-            currentRoiGroup = obj.roiGroup;
-            
+            currentRoiGroup = obj.RoiGroup;
+            loadedRoiGroup = rois;
+            if ~nargout; clear rois; end
             
             % If rois already exist, determine how to add new ones
             if ~isempty(currentRoiGroup.roiArray)
@@ -603,8 +585,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             
             % Todo: Check that the imagesize of rois match the imagesize of
             % the loaded images, and take appropriate action if not!
-            
-            
+
             
             % If rois should be replaced, remove current rois. Also remove
             % overlapping rois if that is requested.
@@ -622,12 +603,24 @@ classdef RoiManager < applify.mixin.AppPlugin
                     loadedRoiGroup.removeRois(iA)
             end
                         
-            obj.roiGroup.addRois(loadedRoiGroup, [], addMode)
-            obj.roiGroup.markClean()
+            obj.RoiGroup.addRois(loadedRoiGroup, [], addMode)
+            
+            if strcmp(addMode, 'replace') || strcmp(addMode, 'initialize')
+                obj.RoiGroup.markClean()
+            end
         end
         
+        function saveRois(obj, initPath)
+        %saveRois Save rois with confirmation message in app.    
+            if nargin < 2; initPath = ''; end
+            saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
+            
+            saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);            
+            obj.PrimaryApp.displayMessage(saveMsg, 2)
+        end
+
         function addRois(obj, roiArray)
-            obj.roiGroup.addRois(roiArray, [], 'append')
+            obj.RoiGroup.addRois(roiArray, [], 'append')
         end
         
         function newGroup = createNewRoiGroup(obj)
@@ -683,108 +676,6 @@ classdef RoiManager < applify.mixin.AppPlugin
             mode = lower(mode);
             
         end
-                    
-        function saveRois(obj, initPath)
-           
-            if nargin < 2; initPath = ''; end
-            savePath = obj.getRoiPath(initPath, 'save');
-            if isempty(savePath); return; end
-            
-            S = struct;
-            S.roiArray = obj.roiGroup.roiArray;
-            
-            % Add extra variables if present...
-            varNames = {'roiImages', 'roiStats', 'roiClassification'};
-            
-            for i = 1:numel(varNames)
-                if ~isempty(obj.roiGroup.(varNames{i}))
-                    S.(varNames{i}) = obj.roiGroup.(varNames{i});
-                end
-            end
-
-            save(savePath, '-struct', 'S')
-            
-            saveMsg = sprintf('Rois Saved to %s', savePath);
-            obj.PrimaryApp.displayMessage(saveMsg, 2)
-                        
-            obj.roiFilePath = savePath;
-            
-            obj.roiGroup.markClean()
-        end
-        
-        function [initPath, fileName] = getInitPath(obj)
-            
-            if ~isempty(obj.roiFilePath)
-                initPath = obj.roiFilePath;
-            else
-                initPath = obj.PrimaryApp.filePath;
-            end
-
-            if exist(initPath, 'file') == 2
-                [initPath, fileName, ~] = fileparts(initPath);
-            end
-            
-            if ~exist('fileName', 'var')
-                fileName = 'unnamed';
-            end
-        
-        end
-        
-        function filePath = getRoiPath(obj, initPath, mode)
-            
-            filePath = '';
-            
-            if nargin < 2 || isempty(initPath)
-                if ~isempty(obj.roiFilePath)
-                    initPath = obj.roiFilePath;
-                else
-                    initPath = obj.PrimaryApp.ImageStack.FileName;
-                    initPath = fileparts(initPath);
-                    [parentDir, name] = fileparts(initPath);
-                    if strcmp(name, 'reg_tif') % suite2p
-                        initPath = parentDir;
-                    elseif isfolder(fullfile(parentDir, 'roi_data')) % nansen
-                        initPath = fullfile(parentDir, 'roi_data');
-                    end
-                end
-                
-                if exist(initPath, 'file') == 2
-                    [initPath, fileName, ext] = fileparts(initPath);
-                end
-
-            end
-            
-            fileSpec = {  '*', 'All Files (*.*)'; ...
-                           '*.mat', 'Mat Files (*.mat)'; ...
-                           '*.npy', 'Numpy Files (*.npy)' ...
-                            };
-            
-            switch mode
-                case 'load'
-                    [filename, filePath, ~] = uigetfile(fileSpec, ...
-                        'Load Roi File', initPath, 'MultiSelect', 'on');
-                    
-                case 'save'
-                    if exist('fileName', 'var') && ~isempty(fileName)
-                        if ~contains(fileName, '_rois')
-                            initPath = fullfile(initPath, strcat(fileName, '_rois.mat'));
-                        else
-                            initPath = fullfile(initPath, [fileName, ext]);
-                        end
-                    end
-                    [filename, filePath, ~] = uiputfile(fileSpec, ...
-                        'Save Roi File', initPath);
-            end
-            
-            if isequal(filename, 0) % User pressed cancel
-                filePath = '';
-            else
-                filePath = fullfile(filePath, filename);
-            end
-            
-            
-        end
-        
         
         % Todo: Should belong to roimap:
         function improveRois(obj)
@@ -903,7 +794,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             switch obj.settings.Autosegmentation.finalization
                 
                 case 'Add rois to current Roi Group'
-                    obj.roiGroup.addRois(foundRois);
+                    obj.RoiGroup.addRois(foundRois);
 
                 case 'Add rois to new Roi Group'
                     newGroup = obj.createNewRoiGroup();
@@ -980,7 +871,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             
             % % Get image stack and rois. Cancel if there are no rois
             imageStack = obj.StackViewer.imageStack;
-            roiArray = obj.roiGroup.roiArray;
+            roiArray = obj.RoiGroup.roiArray;
             
             if isempty(roiArray)
                 msg = 'Need some rois to extract signals from...';
@@ -1114,7 +1005,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                 %obj.SignalViewer.Theme = signalviewer.theme.Dark;
                 
                 % Add the roigroup reference to the signalviewer
-                obj.SignalViewer.RoiGroup = obj.roiGroup;
+                obj.SignalViewer.RoiGroup = obj.RoiGroup;
                 
                 % Create listener for signalviewer being destroyed
                 l = addlistener(obj.SignalViewer, 'ObjectBeingDestroyed', ...
@@ -1226,7 +1117,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                 end
             end
             
-            obj.roiSignalArray = RoiSignalArray(imageStack, obj.roiGroup);
+            obj.roiSignalArray = RoiSignalArray(imageStack, obj.RoiGroup);
             
         end %RM?
     
