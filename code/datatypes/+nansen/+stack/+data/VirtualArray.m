@@ -178,26 +178,53 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     methods % Methods for reading/writing data; subclasses can override
         
         function data = readData(obj, subs)
-            % Reads data using the readFrames methods of subclasses.
-
+        %readData Reads data using the readFrames methods of subclasses.
+        %
+        %   INPTUS
+        %       obj  : virtual array object
+        %       subs : subscripts with indices of which elements to read 
+        %              for each dimension of the stack. subscripts should
+        %              match the data dimension arrangement of the data.
+        %              Subscripts are a cell array according to the "()"
+        %              subscripts type, or "indexing by position"
+        %
+        %   OUTPUT: 
+        %       data : data which is read from file. Data should match the
+        %              subscripts.
+            
             % This function assumes that data is organized as YXCT or YXCZ
             if numel(subs) < numel(obj.DataSize)
                 assert(obj.DataSize(end)==1, 'Something unexpected')
                 subs{end+1} = 1;
             end
 
-            frameInd = subs{end};
+            % Get the subs (frame indices) for the frame indexing dimension
+            dim = obj.getFrameIndexingDimension();
+            frameInd = subs{dim};
 
             data = obj.readFrames(frameInd);
-            data = data(subs{1:end-1}, ':');
+            
+            % Index into the other dimensions
+            subs{dim} = ':';
+            data = data(subs{:});
         end
         
         function writeData(obj, subs, data)
+        %writeData Write data for given subs.
             
-            frameInd = subs{end};
+            dimX = getDataDimensionNumber('X');
+            dimY = getDataDimensionNumber('Y');
+            
+            assert(size(data, dimX) == obj.DataSize(dimX), ...
+                'Width of image data to write must match the width of the image frames')
+            assert(size(data, dimY) == obj.DataSize(dimY), ...
+                'Height of image data to write must match the height of the image frames')
+            
+                        
+            dim = obj.getFrameIndexingDimension();
+            frameInd = subs{dim};
+            
             obj.writeFrames(data, frameInd);
-
-            %error('Not implemented yet')
         end
         
         function readMetadata(obj)
@@ -257,30 +284,35 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             obj.MetaData.SizeT = obj.getDimLength('T');
         end
         
+        function numChannels = detectNumberOfChannels(obj)
+            numChannels = 1;
+        end
+        
+        function numPlanes = detectNumberOfPlanes(obj)
+            numPlanes = 1;
+        end
         
         function data = getData(obj, subs)
-             
-            % Todo, use readFrames, not readData. And resolve which
-            % frameindices to retrieve....
-            
+        %getData Get data corresponding to provided subs.
+        %        
+        %   Implementation of superclass method.
+        %
+        %   INPTUS
+        %       obj  : virtual array object
+        %       subs : subscripts with indices of which elements to read 
+        %              for each dimension of the stack. subscripts should
+        %              match the data dimension arrangement of the data.
+        %              Subscripts are a cell array according to the "()"
+        %              subscripts type, or "indexing by position"
+        %
+        %   OUTPUT: 
+        %       data : indexed data. Data should match the subscripts.
+        
             % Are any of these frames found in the cache?
             if obj.HasCachedData
                 data = obj.getDataUsingCache(subs);
             else
                 data = obj.readData(subs);
-                % data = obj.readFrames(subs);
-            end
-            
-            % This is a backup solution in case some virtualarray
-            % subclasses does not crop the first two dimension (because 
-            % the whole frame has to be read into memory). Todo: better
-            % design needed.
-            
-            isColon = all( cellfun(@(c) isequal(c, ':'), subs(1:2)) );
-            doCrop = ~all( size(data, [1,2]) == cellfun(@numel, subs(1:2)) );
-            if ~isColon && doCrop
-                subs(3:end) = {':'}; % Only subindex along x-y dimension here.
-                data = data(subs{1:ndims(data)});
             end
             
         end
@@ -304,6 +336,28 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             error('Linear indexing is not implemented for virtual data yet')
         end
         
+        function data = cropData(obj, data, subs)
+        %cropData Crops data along x- and/or y-dimension    
+
+            dimX = obj.getDataDimensionNumber('X');
+            dimY = obj.getDataDimensionNumber('Y');
+            
+            cropSubs = repmat({':'}, 1, ndims(obj));
+            imageSubs = subs([dimX, dimY]);
+            cropSubs([dimX, dimY]) = imageSubs;
+            
+            iscolon = @(sub) ischar(sub) && isequal(sub, ':');
+            isColon = all( cellfun(@(c) iscolon(c), imageSubs) );
+            
+            dataSize = size(data);
+            
+            doCrop = ~all( dataSize([dimX, dimY]) == cellfun(@numel, imageSubs) );
+            if ~isColon && doCrop
+                data = data(cropSubs{:});
+            end
+            
+        end
+        
     end
     
     methods (Access = private, Sealed)
@@ -320,8 +374,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             cacheLength = obj.DynamicCacheSize;
   
             obj.DynamicFrameCache = nansen.stack.utility.FrameCache(...
-                                        dataSize, dataType, cacheLength);
-
+                                        dataSize, dataType, cacheLength, ...
+                                        'LeadingDimension', obj.getFrameIndexingDimension());
         end
         
         function disableDynamicFrameCache(obj)
@@ -337,8 +391,21 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function data = getDataUsingCache(obj, subs)
-
-            sampleDim = numel(subs);
+        %getDataUsingCache Get data by fetching from cache and reading rest
+            
+            % Note: this function assumes that x and y are always along the
+            % two first dimensions.
+            
+            % Note2 : This function retrieves full size image frames and
+            % all channels / planes from cache and readData. This is in
+            % order to easily concatenate cached data with newly read data
+            % without worrying whether previously cached data were not
+            % complete along all dimensions...
+            
+            % Note3: Data is indexed before return statement, in order to 
+            % match the subscripts of the input.
+            
+            sampleDim = obj.getFrameIndexingDimension();
             frameIndices = subs{sampleDim};            
 
             % Get data from static or dynamic cache
@@ -364,14 +431,17 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             
             % Todo: What if data is in different order....
             if isequal(hitInd, frameIndices)
-                data = cachedData(subs{1:end-1}, ':');
+                cacheSubs = subs;
+                cacheSubs{sampleDim} = ':';
+                data = cachedData(cacheSubs{:});
                 return
             end
             
-            % Get all data for missing frames. Crop after submitting to
-            % cache (if necessary)
+            % Get all data (uncropped) for missing frames. Crop after 
+            % submitting to cache (if necessary)
             if ~isempty(missInd)
-                tmpSubs = [repmat({':'}, 1, sampleDim-1), missInd];
+                tmpSubs = repmat({':'}, 1, ndims(obj));
+                tmpSubs{sampleDim} = missInd;
                 uncachedData = obj.readData(tmpSubs);
             else
                 uncachedData = [];
@@ -386,7 +456,9 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             end
             
             if isequal(missInd, frameIndices)
-                data = uncachedData(subs{1:end-1}, ':');
+                tmpSubs = subs;
+                tmpSubs{sampleDim} = ':';
+                data = uncachedData(tmpSubs{:});
                 return
             end
                         
@@ -396,15 +468,23 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             % Reorder data to have same order as frameIndices
             dataFrameIndices = [hitInd, missInd];
             
+            % Make sure output gets cropped (if necessary) and frames are
+            % in the right order.
             if isequal(dataFrameIndices, frameIndices)
-                % pass
+                tmpSubs = subs;
+                tmpSubs(sampleDim) = {':'};
             else
                 [~, ~, iB] = intersect(frameIndices, dataFrameIndices);
-                tmpSubs = [ repmat({':'}, 1, sampleDim-1), {iB} ];
-                data = data(tmpSubs{:}) ;
+                tmpSubs = subs;
+                tmpSubs{sampleDim} = iB;
             end
             
-            data = data(subs{1:end-1}, ':');
+            iscolon = @(sub) ischar(sub) && strcmp(sub, ':');
+            
+            % Crop and/or rearrange frames..
+            if ~all(cellfun(@(sub) iscolon(sub), tmpSubs))
+                data = data(tmpSubs{:}) ;
+            end
             
         end
         
@@ -472,7 +552,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                     dataSize = dataSize(obj.StackDimensionOrder);
                 end
                 dataType = obj.DataType;
-                obj.StaticFrameCache = FrameCache(dataSize, dataType, [], 'static');
+                obj.StaticFrameCache = FrameCache(dataSize, dataType, [], ...
+                    'static', 'LeadingDimension', obj.getFrameIndexingDimension());
             end
             
             if permuteData

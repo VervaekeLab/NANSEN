@@ -325,11 +325,31 @@ classdef VariableModel < utility.data.StorableCatalog
     
     methods (Static)
         
-        function C = listFileAdapters()
+        function C = listFileAdapters(fileType)
             % Todo: Make external function for gathering this from the
             % path. All fileadapters should inherit from a common superclass.
-           
-            C = {'Default', 'ImageStack'};
+            
+            if nargin < 1; fileType = ''; end
+            if ~isempty(fileType); fileType = strrep(fileType, '.', ''); end
+            
+            fileAdapterList = nansen.dataio.listFileAdapters;
+            
+            if ~isempty(fileType)
+                validationFcn = @(extList) contains(fileType, extList);
+                keep = arrayfun(@(s) validationFcn(s.SupportedFileTypes), ...
+                    fileAdapterList);
+            else
+                keep = true(1, numel(fileAdapterList));
+            end
+            
+            C = fileAdapterList(keep);
+            
+            if isempty(C)
+                C(1).FileAdapterName = 'N/A';
+                C(1).FunctionName = '';
+                C(1).SupportedFileTypes = {};
+                C(1).DataType = '';
+            end
             
         end
         

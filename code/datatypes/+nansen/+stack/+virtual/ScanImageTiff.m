@@ -20,6 +20,7 @@ properties (Access = private, Hidden) % File Info
     NumTimepoints_
     
     FrameIndexMap   % Holds frame indices for interleaved dimensions (numC x numZ x numT)
+    % Todo: Replace with deinterleaver..
 end
 
 methods % Structors
@@ -195,6 +196,10 @@ end
 methods % Implementation of VirtualArray abstract methods
     
     function data = readData(obj, subs)
+    %readData Reads data from tiff file
+    %
+    %   See also nansen.stack.data.VirtualArray/readData
+    
         if ~isempty(obj.hTiffStack)
             data = obj.hTiffStack(subs{:});
         else
@@ -226,17 +231,21 @@ methods % Implementation of VirtualArray abstract methods
         % Preallocate data
         data = zeros(dataSize, obj.DataType);
         insertSub = arrayfun(@(n) 1:n, dataSize, 'uni', 0);
-
-%         if useWaitbar
-%             waitbar(0, 'Loading image frames')
-%             updateRate = round(dataSize(end)/50);
-%         end
         
-        %tic
+        global waitbar
+        useWaitbar = false;
+        if ~isempty(waitbar); useWaitbar = true; end
+        
+        if useWaitbar
+            waitbar(0, 'Loading image frames')
+            updateRate = round(dataSize(end)/50);
+        end
         
         frameInd = obj.FrameIndexMap(subs{3:end});
-        
+
         [m, n, p] = size(frameInd);
+        numFramesToLoad = m*n*p;
+
         count = 1;
         
         % Loop through frames and load into data.
@@ -251,34 +260,16 @@ methods % Implementation of VirtualArray abstract methods
 
                     count = count + 1;
             
-% %             if useWaitbar
-% %                 if mod(i, updateRate) == 0
-% %                     waitbar(i/stackSize(end), 'Loading image frames')
-% %                 end
-% %             end
+                    if useWaitbar
+                        if mod(count, updateRate) == 0
+                            waitbar(count/numFramesToLoad, 'Loading image frames')
+                        end
+                    end
                 end
             end
         end
         
-    end
-      
-    function dataSize = getOutSize(obj, subs)
-    %getOutSize Get size of data requested by subs...    
-        dataSize = zeros(1, numel(subs));
-        
-        for i = 1:numel(subs)
-            if ischar(subs{i}) && isequal(subs{i}, ':')
-                dataSize(i) = obj.StackSize(i);
-            else
-                thisDim = obj.StackDimensionArrangement(i);
-                if any( strcmp({'X', 'Y'}, thisDim) )
-                    dataSize(i) = obj.StackSize(i);
-                else
-                    dataSize(i) = numel(subs{i});
-                end
-            end
-        end
-
+        data = obj.cropData(data, subs);
     end
     
     function writeFrames(obj, frameIndex, data)
@@ -289,6 +280,30 @@ end
 
 
 methods (Access = private)
+    
+    function dataSize = getOutSize(obj, subs)
+    %getOutSize Get size of data requested by subs...
+    %
+    %   INPUT
+    %       subs : subscripts with indices for each dimension of data
+    %   OUTPUT
+    %       dataSize : size of data to read
+
+        dataSize = zeros(1, numel(subs));
+
+        for i = 1:numel(subs)
+            if ischar(subs{i}) && isequal(subs{i}, ':')
+                dataSize(i) = obj.DataSize(i);
+            else
+                thisDim = obj.DataDimensionArrangement(i);
+                if any( strcmp({'X', 'Y'}, thisDim) )
+                    dataSize(i) = obj.DataSize(i);
+                else
+                    dataSize(i) = numel(subs{i});
+                end
+            end
+        end
+    end
     
     function countNumFrames(obj)
     %countNumFrames 

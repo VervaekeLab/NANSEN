@@ -1,7 +1,13 @@
-function filePath = listFiles(filePathCellArray, filetype)
+function [filePath, filename] = listFiles(filePathCellArray, filetype)
+
+    narginchk(1,2)
 
     if nargin < 2
         filetype = '';
+    end
+    
+    if ~isa(filePathCellArray, 'cell')
+        filePathCellArray = {filePathCellArray};
     end
 
     L = [];
@@ -18,18 +24,21 @@ function filePath = listFiles(filePathCellArray, filetype)
         end
     end
 
-    filePath = fullfile({L.folder}, {L.name});
     keep = ~ strncmp({L.name}, '.', 1);
-    filePath = filePath(keep);
+    L = L(keep);
     
     if ~isempty(filetype) % Filter by filetype...
-        [~, ~, ext] = fileparts(filePath);
+        [~, ~, ext] = fileparts({L.name});
         keep = strcmp(ext, filetype);
-        filePath = filePath(keep);
+        L = L(keep);
     end
     
+    filePath = fullfile({L.folder}, {L.name});
     if isrow(filePath); filePath = filePath'; end
     
+    if nargout == 2
+        filename = {L.name};
+    end
 
     
 end

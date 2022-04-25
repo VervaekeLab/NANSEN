@@ -12,7 +12,13 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
     
     % % Use the folder structure to detect session folders.
     sessionFolders = listSessionFolders(dataLocationModel, 'all');
-    sessionFolders = matchSessionFolders(dataLocationModel, sessionFolders);
+    [sessionFolders, ~, sessionFoldersUnmatched] = matchSessionFolders(dataLocationModel, sessionFolders);
+    
+    % Check for unmatched session folders
+    if ~isempty(sessionFoldersUnmatched)
+        [sessionFolders] = nansen.manage.uiresolveUnmatchedSessions(...
+            sessionFolders, sessionFoldersUnmatched, hFigure);
+    end
     
     if isempty(sessionFolders)
         % Todo: Get exception

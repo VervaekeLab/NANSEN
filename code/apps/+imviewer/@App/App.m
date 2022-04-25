@@ -503,8 +503,11 @@ methods % App initialization & creation
         drawnow
         obj.setFigureWindowBackgroundColor() %BG of java window. Set
         
+        
         if strcmp(obj.mode, 'standalone')
-            obj.addDragAndDropFunctionality()
+            try
+                obj.addDragAndDropFunctionality()
+            end
         end
         
 % because otherwise figure background appears white on resizing
@@ -1976,6 +1979,13 @@ methods % App update
             % limits...
             
             obj.imObj.CData = im;
+            if ~all(obj.ImageStack.DataXLim == 0)
+                obj.imObj.XData = obj.ImageStack.DataXLim;
+            end
+            if ~all(obj.ImageStack.DataYLim == 0)
+                obj.imObj.YData = obj.ImageStack.DataYLim;
+            end
+            
         end
         
         if isa(obj.ImageStack, 'nansen.stack.HighResolutionImage')
@@ -2307,16 +2317,13 @@ methods % Event/widget callbacks
             obj.imageDisplayMode.projection = 'none';
         end
         
-        
         if ~isempty(obj.imObj)% && i~=0
             
             obj.updateImage()
 
             if strcmp(obj.Visible, 'on')
-                
                 updateInfoText(obj)
                 updateImageDisplay(obj);
-
             end
         end
 
@@ -3808,9 +3815,16 @@ methods % Misc, most can be outsourced
         
         obj.displayMessage('Updating image data')
         
-        %imData = obj.ImageStack.imageData(:, :, frameInd); %Todo!
-        imData = obj.ImageStack.getFrameSet(frameInd); %Todo!
-
+        
+        % Get data from all channels and planes... (Caching only works if
+        % all channels/planes are submitted)
+        if strcmp( opts.target, 'Add To Memory')
+            imData = obj.ImageStack.getFrameSet(frameInd, 'extended'); %Todo!
+        else
+            imData = obj.ImageStack.getFrameSet(frameInd); %Todo!
+        end
+        
+        
         obj.uiwidgets.msgBox.deactivateGlobalWaitbar()
         obj.clearMessage()
 
@@ -5081,11 +5095,21 @@ methods (Access = protected)
             
         x = coords(1); y = coords(2);
         
-        val = obj.CurrentImage(y, x, :);
         
+        if ~all( obj.ImageStack.DataXLim == 0 )
+            x = x - obj.ImageStack.DataXLim(1) + 1;
+        end
+        if ~all( obj.ImageStack.DataYLim == 0 )
+            y = y - obj.ImageStack.DataYLim(1) + 1;
+        end
+        
+        try
+            val = obj.CurrentImage(y, x, :);
+        catch
+            val = nan;
+        end
         
         if numel(val) > 1; val = mean(val); end
-
         
         locationStr = sprintf('x=%1d, y=%1d', x, y);
         
@@ -5337,7 +5361,8 @@ methods (Access = private) % Methods that runs when properties are set
         
         % Set brightness limits. Will trigger callback to set slider Low
         % and High value.
-        %obj.settings.ImageDisplay.imageBrightnessLimits = obj.ImageStack.DataIntensityLimits;
+        obj.settings_.ImageDisplay.brightnessSliderLimits = obj.ImageStack.DataTypeIntensityLimits;
+        obj.settings_.ImageDisplay.imageBrightnessLimits = obj.ImageStack.getDataIntensityLimits();
         
         
 % %         % If a "blank" stack is opened, need to readjust limits.

@@ -721,6 +721,7 @@ classdef messageBox < uim.mixin.isResizable
                         drawnow
                     end
                     
+                    p = min([p,1]);
                     obj.hWaitbar.Status = p;
 
                     if ~isempty(message)

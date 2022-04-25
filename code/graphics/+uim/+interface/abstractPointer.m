@@ -90,6 +90,14 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
             tf = ~any(any(diff([axLim(1:2); currentPoint; axLim(3:4)]) < 0));
         end
         
+        function onPointerExitedAxes(obj)
+            % Subclasses may override
+        end
+        
+        function onPointerEnteredAxes(obj)
+            % Subclasses may override
+        end
+        
     end
     
     methods (Access = public) % These should not be public... Or there 

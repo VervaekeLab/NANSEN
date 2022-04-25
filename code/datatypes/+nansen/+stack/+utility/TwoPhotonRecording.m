@@ -108,10 +108,10 @@ classdef TwoPhotonRecording < handle
     
     methods (Access = protected)
         
-        function data = processData(obj, data)
+        function data = processData(obj, data, subs)
             
             if obj.NumFlybackLines ~= 0
-                data = obj.removeFlybackLines(data);
+                data = obj.removeFlybackLines(data, subs);
             end
             
             if ~strcmp(obj.StretchCorrectionMethod, 'none')
@@ -126,18 +126,28 @@ classdef TwoPhotonRecording < handle
 
         end
         
-        function data = removeFlybackLines(obj, data)
+        function data = removeFlybackLines(obj, data, subs)
         %removeFlybackLines Remove flyback lines from data 
-        
-            firstLineToInclude = obj.NumFlybackLines + 1;
             
-            % Create subs
-            subs = repmat({':'}, 1, ndims(data));
-            yIdx = strfind(obj.DataDimensionArrangement, 'Y');
-            subs{yIdx} = firstLineToInclude:size(data,1);
+            firstLineToInclude = obj.NumFlybackLines + 1;
+                    
+            yDim = strfind(obj.DataDimensionArrangement, 'Y');
+            
+            ySubs = subs{yDim};
+            if ischar(ySubs) && isequal(ySubs, ':')
+                yIdx = firstLineToInclude : size(data, yDim);
+            elseif any(ySubs < firstLineToInclude)
+                yIdx = ySubs(ySubs >= firstLineToInclude);
+            else
+                return;
+            end
+            
+            % Update subs
+            tmpSubs = repmat({':'}, 1, ndims(data));
+            tmpSubs{yDim} = yIdx;
             
             % Get data without flyback lines
-            data = data(subs{:});
+            data = data(tmpSubs{:});
         end
         
         function data = correctResonanceStretch(obj, data)

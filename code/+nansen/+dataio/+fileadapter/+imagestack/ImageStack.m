@@ -86,6 +86,11 @@ classdef ImageStack < nansen.dataio.FileAdapter
         %   Name of the class to be used for creating a virtual data
         %   object depends on the filetype of the file adapter
         
+            % Check if a virtual data class exists based on the filename
+            className = obj.getVirtualDataClassNameFromFilename(obj.Filename);
+            if ~isempty(className); return; end
+            
+            % Otherwise, get a "generic" data adapter based on the filetype
             switch obj.FileType
 
                 case 'h5'
@@ -104,6 +109,32 @@ classdef ImageStack < nansen.dataio.FileAdapter
                     error('Nansen:DataIO:FileTypeNotSupported', ...
                         'File type "%s" can not be opened as an ImageStack', ...
                         obj.FileType)
+            end
+        end
+    end 
+        
+    methods (Static)
+        
+        function className = getVirtualDataClassNameFromFilename(filename)
+
+            className = '';
+            
+            % Todo: Make function for getting list of virtual data classes
+            
+            virtualDataClasses = { ...
+                'nansen.stack.virtual.TiffMultiPartMultiChannel', ...
+                'nansen.stack.virtual.Suite2pCorrected' ...
+                };
+            
+            for i = 1:numel(virtualDataClasses)
+                
+                thisClassName = virtualDataClasses{i};
+                fileNameExpression = eval([thisClassName, '.FilenameExpression']);
+                
+                if ~isempty( regexp(filename, fileNameExpression, 'once') )
+                    className = thisClassName;
+                end
+            
             end
         end
         

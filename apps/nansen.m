@@ -11,6 +11,12 @@ function hApp = nansen(varargin)
                 disp(ME.message)
             case 'Nansen:NoProjectsAvailable'
                 disp(ME.message)
+            case 'MATLAB:class:InvalidSuperClass'
+                if contains(ME.message, 'uiw.abstract.AppWindow')
+                    
+                    error('The Widgets Toolbox is required for running Nansen. Please run nansen.setup to install external toolboxes.')
+                end
+                
             otherwise
                 disp(getReport(ME, 'extended'))
         end
