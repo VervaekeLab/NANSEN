@@ -3819,10 +3819,7 @@ methods % Misc, most can be outsourced
         % Get data from all channels and planes... (Caching only works if
         % all channels/planes are submitted)
         if strcmp( opts.target, 'Add To Memory')
-            subs = repmat({':'}, 1, ndims(obj.ImageStack.Data));
-            dim = obj.ImageStack.Data.getFrameIndexingDimension;
-            subs{dim} = frameInd;
-            imData = obj.ImageStack.Data(subs{:});
+            imData = obj.ImageStack.getFrameSet(frameInd, 'extended'); %Todo!
         else
             imData = obj.ImageStack.getFrameSet(frameInd); %Todo!
         end

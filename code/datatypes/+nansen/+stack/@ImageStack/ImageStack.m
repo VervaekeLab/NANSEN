@@ -252,7 +252,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
     % - Methods for accessing data using frame indices
         
-        function imArray = getFrameSet(obj, frameInd)
+        function imArray = getFrameSet(obj, frameInd, mode)
         %getFrameSet Get set of image frames from image stack
         %
         %   imArray = imageStack.getFrameSet(indN) gets the frames
@@ -302,8 +302,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
             % TODO: Generalize so that X and y can be on any dimension, not
             % just 1 or 2.
+            
+            if nargin < 3; mode = 'standard'; end
         
-            indexingSubs = obj.getDataIndexingStructure(frameInd);
+            switch mode
+                case 'standard'
+                    indexingSubs = obj.getDataIndexingStructure(frameInd);
+                case 'extended'
+                    indexingSubs = obj.getFullDataIndexingStructure(frameInd);
+            end
             
             doCropImage = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(1:2)));
             
@@ -1229,10 +1236,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %   the frames are taken from the last dimension of data (assuming
         %   the last dimension is time (T) or depth (Z). 
         %
-        %   Subs for the image X- and Y- dimensions are set to ':' while 
-        %   subs for channels are set based on the CurrentChannel property.
-        %   If the stack is 5D, containing both time and depth, the planes
-        %   will be selected according to the CurrentPlane property.
+        %   Subs for the image X- and Y- dimensions based on the values of
+        %   the properties DataXLim and DataYLim, while subs for channels
+        %   are set based on the CurrentChannel property. If the stack is 
+        %   5D, containing both time and depth, the planes will be selected 
+        %   according to the CurrentPlane property.
         % 
         %   Note, if frameInd is equal to 'all', the subs of the last
         %   dimension will be equivalent to ':'
@@ -1302,15 +1310,49 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
-        function subs = getFullDataIndexingStructure(obj)
+        function subs = getFullDataIndexingStructure(obj, frameInd)
+        %getFullDataIndexingStructure Get cell of subs for indexing data
+        %
+        %   Returns a cell array of subs for retrieving data given a list
+        %   of frameInd. frameInd is a list of frames to retrieve, where
+        %   the frames are taken from the last dimension of data (assuming
+        %   the last dimension is time (T) or depth (Z). If frameInd is
+        %   empty, all frames along that dimension are selected
+        %
+        %   Subs for all the dimensions except for the T (or Z) will be set
+        %   based on the length of that dimension. So, in contrast to the
+        %   method getDataIndexingStructure, DataXLim, DataYLim,
+        %   CurrentChannel and CurrentPlane is not considered.
+
+            if nargin < 2; frameInd = []; end
             
-            numDims = numel(obj.Data.DataDimensionArrangement);
+            numDims = numel(obj.Data.StackDimensionArrangement);
             
             % Initialize list of subs
             subs = cell(1, numDims);
             for i = 1:numDims
-                thisDim = obj.Data.DataDimensionArrangement(i);
-                subs{i} = 1:obj.getDimensionLength(thisDim); 
+                thisDim = obj.Data.StackDimensionArrangement(i);
+                
+                switch thisDim
+                    case 'Z'
+                        if ~contains(obj.Data.StackDimensionArrangement, 'T')
+                            if isempty(frameInd) || (ischar(frameInd) && strcmp(frameInd, 'all'))
+                                subs{i} = 1:obj.NumTimepoints;
+                            else
+                                subs{i} = frameInd;
+                            end
+                        else
+                        	subs{i} = 1:obj.getDimensionLength(thisDim); 
+                        end
+                    case 'T'
+                        if isempty(frameInd) || (ischar(frameInd) && strcmp(frameInd, 'all'))
+                            subs{i} = 1:obj.NumTimepoints;
+                        else
+                            subs{i} = frameInd;
+                        end
+                    otherwise
+                        subs{i} = 1:obj.getDimensionLength(thisDim); 
+                end
             end
             
         end
