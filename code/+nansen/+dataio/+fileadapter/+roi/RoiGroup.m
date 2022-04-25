@@ -71,7 +71,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             roiGroupStruct.roiImages = images;
 
             roiGroup = roimanager.roiGroup(roiGroupStruct);
-            
+            roiGroup.markClean()
         end
         
         function writeData(obj, data, varName)
@@ -82,7 +82,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                           
             if isa(data, 'RoI')
                 [rois, images, stats, clsf] = obj.unpackFromRoiArray(data);
-            elseif isa(data, 'roimanager.RoiGroup')
+            elseif isa(data, 'roimanager.roiGroup')
                 [rois, images, stats, clsf] = obj.unpackFromRoiGroup(data);
             elseif obj.isRoigroupStruct(data)
                 [rois, images, stats, clsf] = obj.unpackFromStruct(data);
@@ -252,22 +252,27 @@ classdef RoiGroup < nansen.dataio.FileAdapter
         
     end
     
-    methods (Access = private) % Methods for writing
+    methods (Access = private) % Methods for writing %Todo: simplify...
 
         function [rois, images, stats, clsf] = unpackFromRoiArray(obj, data)
-            
-
+            rois = data.roiArray;
+            images = data.roiImages;
+            stats = data.roiStats;
+            clsf = data.roiClassification;
         end
         
         function [rois, images, stats, clsf] = unpackFromRoiGroup(obj, data)
-            
-            
+            rois = data.roiArray;
+            images = data.roiImages;
+            stats = data.roiStats;
+            clsf = data.roiClassification;
         end
         
         function [rois, images, stats, clsf] = unpackFromStruct(obj, data)
-            
-            
-            
+            rois = data;
+            images = rois.getappdata('roiImages');
+            stats = rois.getappdata('roiStats');
+            clsf = rois.getappdata('roiClassification');
         end
     
     end
@@ -311,6 +316,10 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                     end
                 end
             else
+                if all( isfield(data, {'stat', 'ops', 'iscell'}) )
+                    tf = true;
+                end
+                
                 % What if someone renamed their files...?
             end
         end

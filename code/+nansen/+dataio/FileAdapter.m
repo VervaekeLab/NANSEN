@@ -215,7 +215,9 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             end
             
             if isfile(obj.Filename)
+                warning('off', 'MATLAB:save:versionWithAppend')
                 save(obj.Filename, '-struct', 'S', '-append', versionFlag)
+                warning('on', 'MATLAB:save:versionWithAppend')
             else
                 save(obj.Filename, '-struct', 'S', versionFlag)
             end

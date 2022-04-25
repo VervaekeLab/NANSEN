@@ -207,7 +207,8 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             
             switch typeName
                 case {'RoiGroup', 'RoiArray', 'roiArray'}
-                    varNames = {'roiArrayQuickyAuto', 'roiArrayExtractAuto', 'RoiArray', 'roiArray'};
+                    tf = strcmp(fileAdapters, 'RoiGroup');
+                    varNames = {dataFilePathModel.VariableList(tf).VariableName};
                     
                 otherwise
                     tf = strcmp(fileAdapters, typeName);
