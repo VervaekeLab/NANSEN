@@ -634,23 +634,26 @@ classdef FileViewer < handle
         %   Open user dialog to get information and add an item for this
         %   file to the variable model.
         
+            import nansen.config.varmodel.VariableModel
+        
             nodeHandle = obj.CurrentNode;
 
             % Get information about file's path and data location
             [folder, fileName, ext] = fileparts(nodeHandle.UserData.filePath);
             currentDataLocation = obj.TabGroup.SelectedTab.Title;
             
-            dataLocationRoot = obj.CurrentSessionObj.getDataLocationRootDir();
-                        
-            % Todo? Use this as template...
-            % S = nansen.config.varmodel.VariableModel.getBlankItem();
-                        
+            sObj = obj.CurrentSessionObj;
+            fileAdapterList = VariableModel.listFileAdapters(ext);
+            
+            fileName = strrep(fileName, sObj.sessionID, '');
+            
             % Create a struct with fields that are required from user
             S = struct();
             S.VariableName = '';
             S.FileNameExpression = fileName;
-            S.FileAdapter = 'Default';
-            S.FileAdapter_ = nansen.config.varmodel.VariableModel.listFileAdapters();
+            S.FileAdapter_ = {fileAdapterList.FileAdapterName};
+            S.FileAdapter = fileAdapterList(1).FileAdapterName;
+            S.Favorite = false;
             
             % Open user dialog:
             [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable');
@@ -658,15 +661,36 @@ classdef FileViewer < handle
             if wasAborted; return; end
             
             % Add other fields that are required for the variable model.
-            S.IsDefaultVariable = false;
-            S.DataLocation = currentDataLocation;
-            S.FileType = ext;
-            S.Subfolder = strrep(folder, dataLocationRoot, '');
             
             % Add the new item to the current variable model.
-            % Todo: Get variable model from teh sessionobject/dataiomodel
-            VM = nansen.config.varmodel.VariableModel();
-            VM.insertItem(S)
+            % Todo: Get variable model from the sessionobject/dataiomodel
+
+            
+            varItem = VariableModel.getDefaultItem(S.VariableName);
+            varItem.IsCustom = true;
+            varItem.IsFavorite = S.Favorite;
+            varItem.DataLocation = currentDataLocation;
+            varItem.FileNameExpression = S.FileNameExpression;
+            varItem.FileAdapter = S.FileAdapter;
+            
+            dloc = sObj.getDataLocation(currentDataLocation);
+            varItem.DataLocationUuid = dloc.Uuid;
+            varItem.FileType = ext;
+
+            sessionFolder = sObj.getSessionFolder(currentDataLocation);
+            varItem.Subfolder = strrep(folder, sessionFolder, '');
+            if strncmp(varItem.Subfolder, filesep, 1)
+                varItem.Subfolder = varItem.Subfolder(2:end);
+            end
+            
+            fileAdapterIdx = strcmp({fileAdapterList.FileAdapterName}, S.FileAdapter);
+            varItem.DataType = fileAdapterList(fileAdapterIdx).DataType;
+            
+            VM = VariableModel();
+            VM.insertItem(varItem)
+            
+            % Todo: Display error message if variable already exists.
+            % And/or ask if variable should be replaced?
             
         end
         
