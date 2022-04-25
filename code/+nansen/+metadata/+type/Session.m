@@ -482,9 +482,31 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         end
         
         function data = loadData(obj, varName, varargin)
-        %loadData Loads data for given variable 
+        %loadData Loads data for given variable
         %
-        % See also nansen.metadata.type.Session/getDataFilePath
+        %   sessionObj.loadData(varName) loads data for the specified 
+        %       variable
+        %
+        %    sessionObj.loadData(varName, data, Name, Value, ...) loads data
+        %       from the specified variable using options given as name-
+        %       value pairs. The name value pairs only take effect if the
+        %       specified variable does not exist in the Variable Model.
+        %       
+        %       Note: When ever a variable already exists, it can be loaded
+        %       and saved without specifying the options.
+        %   
+        %   The following options can be set using name value pairs:
+        %
+        %   PARAMETERS:
+        %       
+        %       DataLocation        : Specifies the data location the variable should be loaded from 
+        %       Subfolder           : Loads the variable from the given subfolder in the session folder.
+        %       FileNameExpression  : Expression for detecting file containing variable
+        %       FileType            : Load variable from a file of given type
+        %       FileAdapter         : FileAdapter to use for loading variable
+        %
+        %   See also nansen.metadata.type.Session/getDataFilePath
+        %   nansen.config.varmodel.VariableModel/getBlankItem
         
             % TODO:
             %   [v] Implement file adapters.
@@ -498,15 +520,21 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 
                 switch variableInfo.FileAdapter
                     
+                    case 'N/A'
+                        error('Nansen:Session:LoadData', ...
+                            'No file adapter is available for variable "%s"', varName)
+                    
                     case 'Default'
+                        
+                        % todo: Use mat for matfile, imagestack for tiff
+                        % files etc.
+                        
                         S = load(filePath, varName);
                         if isfield(S, varName)
                             data = S.(varName);
                         else
                             S = load(filePath);
                             data = S;
-        %                 else
-        %                     error('File does not hold specified variable')
                         end
                         
                     otherwise
@@ -545,6 +573,27 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         
         function saveData(obj, varName, data, varargin)
         %saveData Saves data for given variable 
+        %        
+        %   sessionObj.saveData(varName, data) saves data to the specified 
+        %       variable 
+        %
+        %   sessionObj.saveData(varName, data, Name, Value, ...) saves data
+        %       to the specified variable using options given as name-
+        %       value pairs. The name value pairs only take effect if the
+        %       specified variable does not exist in the Variable Model.
+        %       
+        %       Note: When ever a variable already exists, it can be loaded
+        %       and saved without specifying the options.
+        %   
+        %   The following options can be set using name value pairs
+        %
+        %   PARAMETERS:
+        %       
+        %       DataLocation        : Specifies the data location the variable should be saved to
+        %       Subfolder           : Saves the variable in the given subfolder in the session folder.
+        %       FileType            : Save variable to a file of given type
+        %       FileAdapter         : FileAdapter to use for variable
+        %
         %
         % See also nansen.metadata.type.Session/getDataFilePath
         
@@ -556,9 +605,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             obj.assertValidFileAdapter(variableInfo, 'save')
             fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
             
-            
             switch variableInfo.FileAdapter
-                    
+                case 'N/A'
+                    error('Nansen:Session:SaveData', ...
+                            'No file adapter is available for variable "%s"', varName)
                 case 'Default'
                     S.(varName) = data;
 
@@ -650,9 +700,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         %       
         %       DataLocation        : Specifies which data location the variable belongs to
         %       Subfolder           : If file is in a subfolder of sessionfolder.
-        %       FileNameExpression
-        %       FileType
-        %       FileAdapter
+        %       FileNameExpression  : Expression for detecting file containing variable
+        %       FileType            : File type for file containing variable
+        %       FileAdapter         : FileAdapter to use for variable
         %
         %   EXAMPLES:
         %
