@@ -133,7 +133,11 @@ classdef Deinterleaver < handle
     methods (Access = private)
         function setupDeinterleavingMap(obj)
             map = 1:obj.NumFrames;
-            obj.Map = reshape(map, obj.Size);
+            if numel(obj.Size) > 1
+                obj.Map = reshape(map, obj.Size);
+            else
+                obj.Map = map;
+            end
         end
         
         function subs = replaceColonSubs(obj, subs)

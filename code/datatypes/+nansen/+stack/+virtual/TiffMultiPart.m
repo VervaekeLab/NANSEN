@@ -198,7 +198,8 @@ methods (Access = protected)
         if nSamplesPerPixel > 1
             numChannels = nSamplesPerPixel;
             obj.ChannelMode = 'multisample';
-            return
+        else
+            numChannels = 1;
         end
         
     end
