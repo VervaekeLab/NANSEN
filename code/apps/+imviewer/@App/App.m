@@ -4932,7 +4932,12 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 
             case 'm'
                 if contains( event.Modifier, 'shift' )
-                    obj.changeImageDisplayMode('projection', 'minimum')
+                    if ~isempty(obj.imageDisplayMode.binning) && ...
+                        strcmp(obj.imageDisplayMode.binning, 'maximum')
+                        obj.changeImageDisplayMode('binning', 'none')
+                    else
+                        obj.changeImageDisplayMode('binning', 'maximum')
+                    end
                 else
                     obj.changeImageDisplayMode('projection', 'maximum')
                 end
