@@ -1,4 +1,4 @@
-function [roiImageData, roiStats] = gatherRoiData(imArray, roiArray, varargin)
+function [roiImageData, roiStats] = gatherRoiData(imArray, roiData, varargin)
 %roimanager.gatherRoiImages Gather set of roi image thumbnails and roistats
 %
 %   
@@ -27,6 +27,14 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiArray, varargin)
     params.ImageTypes = {'Activity Weighted Mean', 'Diff Surround', 'Top 99th Percentile', 'Local Correlation'};
     
     params = utility.parsenvpairs(params, [], varargin{:});
+    
+    if isa(roiData, 'roimanager.roiGroup')
+        roiArray = roiData.roiArray;
+    elseif isa(roiData, 'RoI')
+        roiArray = roiData;
+    else
+        error('Roi input is not valid.')
+    end
     
     
     % Add average images of roi

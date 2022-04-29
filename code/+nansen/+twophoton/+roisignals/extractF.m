@@ -1,4 +1,4 @@
-function [signalArray, P] = extractF(imageData, roiArray, varargin)
+function [signalArray, P] = extractF(imageData, roiData, varargin)
 %extractF Extract RoI signals from an image stack in chunkwise manner
 %
 %   signals = extractF(imageStack, roiArray) extracts signals for rois in
@@ -61,6 +61,15 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
     % Parse potential parameters from input arguments
     params = utility.parsenvpairs(P, V, varargin{:});
 
+    
+    % Validate roidata
+    if isa(roiData, 'roimanager.roiGroup')
+        roiArray = roiData.roiArray;
+    elseif isa(roiData, 'RoI')
+        roiArray = roiData;
+    else
+        error('Unknown data type for roiData input')
+    end
     
     % Validate the input image data. If ImageStack, all is good, if 
     % numeric, an ImageStack object is returned, otherwise throws error.

@@ -53,7 +53,7 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     end
     
     try
-        if isempty(roiGroup)
+        if isempty(roiGroup.roiImages)
             imageStack = sessionData.TwoPhotonSeries_Corrected;
             hClassifier = roiclassifier.openRoiClassifier(roiGroup, imageStack);
         else
