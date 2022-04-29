@@ -817,10 +817,10 @@ methods
                         oldMask = obj(i).mask;
                         newMask = false(imageSize);
                         
-                        if all(shift > 0) % Equivalent to padding
+                        if all(shift >= 0) % Equivalent to padding
                             newMask(1+shiftPre(1):end-shiftPost(1), ...
                                     1+shiftPre(2):end-shiftPost(2)) = oldMask;
-                        elseif all(shift < 0) % Equivalent to cropping
+                        elseif all(shift <= 0) % Equivalent to cropping
                             newMask = oldMask(1+shiftPre(1):end-shiftPost(1), ...
                                               1+shiftPre(2):end-shiftPost(2) );
                         else
@@ -1263,7 +1263,7 @@ methods (Access = protected)
         
         obj.area = round(A);
     end
-
+    
     
 end
 

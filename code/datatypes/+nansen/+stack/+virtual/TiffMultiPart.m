@@ -198,7 +198,8 @@ methods (Access = protected)
         if nSamplesPerPixel > 1
             numChannels = nSamplesPerPixel;
             obj.ChannelMode = 'multisample';
-            return
+        else
+            numChannels = 1;
         end
         
     end
@@ -445,6 +446,9 @@ methods (Static)
                 [folder, ~, ext] = fileparts(filepath);
             end
             L = dir(fullfile(folder, ['*', ext]));
+            
+            keep = ~ strncmp({L.name}, '.', 1);
+            L = L(keep);
             
             % If many files are found and all filenames are same length
             if numel(L) > 1 && numel( unique(cellfun(@numel, {L.name})) ) == 1

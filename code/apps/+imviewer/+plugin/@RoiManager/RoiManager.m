@@ -585,7 +585,13 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
             
             % Todo: Check that the imagesize of rois match the imagesize of
             % the loaded images, and take appropriate action if not!
-
+% %             imSize = [obj.imHeight, obj.imWidth] %<- Todo...
+% %             if ~assertImageSize(loadedRoiGroup.roiArray, imSize)
+% %                 for i = 1:numel(loadedRoiGroup.roiArray)
+% %                     loadedRoiGroup.roiArray(i).imagesize = imSize;
+% %                 end
+% %             end
+            
             
             % If rois should be replaced, remove current rois. Also remove
             % overlapping rois if that is requested.
