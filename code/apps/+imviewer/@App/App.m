@@ -1496,7 +1496,7 @@ methods % App initialization & creation
         hAppbar.addButton('Icon', obj.ICONS.maximize, 'Type', 'pushbutton', ...
             'Padding', [0,0,0,0], 'Style', uim.style.buttonSymbol, ...
             'ButtonDownFcn', @obj.toggleResize, ... %maximizeWindow
-            'Tooltip', 'Maximize Window');
+            'Tooltip', 'Maximize Window', 'Tag', 'Maximize Window');
         
         hAppbar.addButton('Icon', obj.ICONS.pin, 'Type', 'togglebutton', ...
             'Padding', [0,0,0,0], 'Style', uim.style.buttonSymbol, ...
@@ -1950,6 +1950,10 @@ methods % App update
             im = adjustMultichannelImage(obj, im);
         end
         
+        if isempty(im)
+            im = zeros(obj.imHeight, obj.imWidth);
+        end
+
         
         % Create or update the image object
         if isempty(obj.imObj) 
@@ -1977,7 +1981,6 @@ methods % App update
         else
             % if reso is very high, replace subpart of image and set image
             % limits...
-            
             obj.imObj.CData = im;
             if ~all(obj.ImageStack.DataXLim == 0)
                 obj.imObj.XData = obj.ImageStack.DataXLim;
@@ -3562,16 +3565,19 @@ methods % Misc, most can be outsourced
 %         persistent blockCalls  % Reject calling this function again until it is finished
 %         if any(blockCalls), return, end
 %         blockCalls = true;
-        
-        
+                
         % Hackety hack because toolbar icons are very slow to update when
         % they are visible...
         obj.hideToolbars()
         
+        
+        interruptibleState = obj.Figure.Interruptible;
+        busyActionState = obj.Figure.BusyAction;
+        
         % Make resizable and turn off resizeability when finished.
-        obj.Figure.Resize = 'on';
-% %         obj.Figure.Interruptible = 'off'; % Not sure if this has any function. But idea is to prevent another resize if one is ongoing...
-% %         obj.Figure.BusyAction = 'cancel';
+        %obj.Figure.Resize = 'off';
+        obj.Figure.Interruptible = 'off'; % Not sure if this has any function. But idea is to prevent another resize if one is ongoing...
+        obj.Figure.BusyAction = 'cancel';
         
 % %         C = onCleanup(@(s,e) set(obj.Figure, 'Resize', 'off'));
                 
@@ -3594,14 +3600,19 @@ methods % Misc, most can be outsourced
                 deltaSize = newFigureSize - oldFigurePosition(3:4);
                 newFigureLocation = oldFigurePosition(1:2) - deltaSize(1:2)./2;
                 newFigurePosition =  [newFigureLocation, newFigureSize];
-                
+                obj.updateMaximizeButtonIcon('restore')
+
             case 'maximize'
                 newFigureSize = getMaximumFigureSize(obj);
                 newFigurePosition = [screenSize(1:2), newFigureSize];
                 keepAspectRatio = false;
+                
+                obj.updateMaximizeButtonIcon()
+                
             case 'restore'
                 [newFigurePosition, ~] = obj.initializeFigurePosition();
-                
+                obj.updateMaximizeButtonIcon('restore')
+
             case 'manual'
                 newFigureSize = oldFigurePosition(3:4) +  incr;
                 
@@ -3642,8 +3653,11 @@ methods % Misc, most can be outsourced
                      
 
         % % blockCalls = false;
-
-        obj.Figure.Resize = 'off';
+        %obj.Figure.Resize = 'off';
+        
+        obj.Figure.Interruptible = interruptibleState; % Not sure if this has any function. But idea is to prevent another resize if one is ongoing...
+        obj.Figure.BusyAction = busyActionState;
+        
 
     end
     
@@ -4850,7 +4864,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             case 'leftarrow'
                 if contains( event.Modifier, {'alt', 'ctrl','control'})
                     xLim = get(obj.uiaxes.imdisplay, 'XLim');
-                    obj.moveImage([obj.settings.panFactor * diff(xLim), 0])
+                    obj.moveImage([obj.settings.Interaction.panFactor * diff(xLim), 0])
                 elseif contains(event.Modifier, {'shift'})
                     obj.changeFrame(struct('Value', -5), [], 'keypress');
                 else
@@ -4859,7 +4873,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             case 'rightarrow'
                 if contains( event.Modifier, {'alt', 'ctrl', 'control'})
                     xLim = get(obj.uiaxes.imdisplay, 'XLim');
-                    obj.moveImage([-obj.settings.panFactor * diff(xLim), 0])
+                    obj.moveImage([-obj.settings.Interaction.panFactor * diff(xLim), 0])
                 elseif contains(event.Modifier, {'shift'})
                     obj.changeFrame(struct('Value', 5), [], 'keypress');
                 else
@@ -4868,7 +4882,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             case 'uparrow'
                 if contains( event.Modifier, {'alt', 'ctrl', 'control'})
                     yLim = get(obj.uiaxes.imdisplay, 'YLim');
-                    obj.moveImage([0, -obj.settings.panFactor * diff(yLim)])
+                    obj.moveImage([0, -obj.settings.Interaction.panFactor * diff(yLim)])
                 elseif contains( event.Modifier, 'shift')
                     if strcmp(obj.Figure.Resize, 'off')
                         obj.resizeWindow([], [],'maximize')
@@ -4881,7 +4895,11 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             case 'downarrow'
                 if contains( event.Modifier, {'alt', 'ctrl', 'control'})
                     yLim = get(obj.uiaxes.imdisplay, 'YLim');
-                    obj.moveImage([0, obj.settings.panFactor * diff(yLim)])
+                    obj.moveImage([0, obj.settings.Interaction.panFactor * diff(yLim)])
+                elseif contains( event.Modifier, 'shift')
+                    if strcmp(obj.Figure.Resize, 'off')
+                        obj.resizeWindow([], [],'restore')
+                    end
                 else
                     if strcmp(obj.Figure.Resize, 'off')
                         obj.resizeWindow([], [], 'shrink')
@@ -5253,6 +5271,10 @@ methods (Access = protected)
     
     function toggleResize(obj, src, ~)
         
+        if nargin < 2
+            src = '';
+        end
+        
         switch src.Tooltip
 
             case 'Maximize Window'
@@ -5286,7 +5308,23 @@ methods (Access = protected)
         end
 
     end
-
+    
+    function updateMaximizeButtonIcon(obj, state)
+        
+        if nargin < 2; state = 'maximize'; end
+        
+        appbarButtons = obj.uiwidgets.Appbar.Children;
+        isMatch = strcmp({appbarButtons.Tag}, 'Maximize Window');
+        
+        switch state
+            case 'maximize'
+                appbarButtons(isMatch).Icon = obj.ICONS.minimize;
+            case 'restore'
+                appbarButtons(isMatch).Icon = obj.ICONS.maximize;
+        end
+    end
+        
+    
 end
 
 methods (Access = private) % Methods that runs when properties are set
@@ -5412,22 +5450,7 @@ methods (Static)
             screenSize = get(0, 'ScreenSize');
             
         else
-
-            figurePosition = hFigure.Position;
-
-            MP = get(0, 'MonitorPosition');
-            xPos = figurePosition(1);
-            yPos = figurePosition(2) + figurePosition(4);
-
-            % Get screenSize for monitor where figure is located.
-            for i = 1:size(MP, 1)
-                if xPos >= MP(i, 1) && xPos <= sum(MP(i, [1,3]))
-                    if yPos >= MP(i, 2) && yPos <= sum(MP(i, [2,4]))
-                        screenSize = MP(i,:);
-                        break
-                    end
-                end
-            end
+            [screenSize, screenNum] = uim.utility.getCurrentScreenSize(hFigure);
         end
         
         if ismac

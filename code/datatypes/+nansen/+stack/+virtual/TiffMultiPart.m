@@ -447,6 +447,9 @@ methods (Static)
             end
             L = dir(fullfile(folder, ['*', ext]));
             
+            keep = ~ strncmp({L.name}, '.', 1);
+            L = L(keep);
+            
             % If many files are found and all filenames are same length
             if numel(L) > 1 && numel( unique(cellfun(@numel, {L.name})) ) == 1
                 filepath = fullfile({L.folder}, {L.name});
