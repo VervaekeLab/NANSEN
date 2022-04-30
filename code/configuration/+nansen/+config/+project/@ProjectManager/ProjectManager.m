@@ -63,7 +63,7 @@ classdef ProjectManager < handle
         end
         
         function P = get.CurrentProject(obj)
-            P = getpref('Nansen', 'CurrentProject');
+            P = getpref('Nansen', 'CurrentProject', []);
         end
         
         function numProjects = get.NumProjects(obj)
