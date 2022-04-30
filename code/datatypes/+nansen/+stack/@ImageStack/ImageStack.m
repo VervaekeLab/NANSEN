@@ -251,8 +251,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     methods % User methods
         
     % - Methods for accessing data using frame indices
-        
-        function imArray = getFrameSet(obj, frameInd, mode)
+    
+        function imArray = getFrameSet(obj, frameInd, mode, varargin)
         %getFrameSet Get set of image frames from image stack
         %
         %   imArray = imageStack.getFrameSet(indN) gets the frames
@@ -303,11 +303,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % TODO: Generalize so that X and y can be on any dimension, not
             % just 1 or 2.
             
-            if nargin < 3; mode = 'standard'; end
+            if nargin < 3 || isempty(mode); mode = 'standard'; end
         
             switch mode
                 case 'standard'
-                    indexingSubs = obj.getDataIndexingStructure(frameInd);
+                    indexingSubs = obj.getDataIndexingStructure(frameInd, varargin);
                 case 'extended'
                     indexingSubs = obj.getFullDataIndexingStructure(frameInd);
             end
@@ -389,7 +389,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 end
                 
                 % Only apply subindexing if necessary
-                if doCropImage
+                if doCropImage && ~isempty(imArray)
                     indexingSubs(3:end) = {':'};
                     imArray = imArray(indexingSubs{:});
                 end
@@ -1228,7 +1228,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
-        function subs = getDataIndexingStructure(obj, frameInd)
+        function subs = getDataIndexingStructure(obj, frameInd, varargin)
         %getDataIndexingStructure Get cell of subs for indexing data
         %
         %   Returns a cell array of subs for retrieving data given a list
@@ -1246,7 +1246,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %   dimension will be equivalent to ':'
             
             numDims = ndims(obj.Data);
-                        
+            
+            S = utility.nvpairs2struct(varargin{:});
+            
             % Initialize list of subs
             subs = cell(1, numDims);
             subs(:) = {':'};
@@ -1291,12 +1293,16 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         % Todo: Generalize and do this for all dimensions
                     
                     case 'X'
-                        if ~all(obj.DataXLim==0)
+                        if isfield(S, 'X')
+                            subs{i} = S.X;
+                        elseif ~all(obj.DataXLim==0)
                             subs{i} = obj.DataXLim(1):obj.DataXLim(2);
                         end
                         
                     case 'Y'
-                        if ~all(obj.DataYLim==0)
+                        if isfield(S, 'Y')
+                            subs{i} = S.Y;
+                        elseif ~all(obj.DataYLim==0)
                             subs{i} = obj.DataYLim(1):obj.DataYLim(2);
                         end
                 end

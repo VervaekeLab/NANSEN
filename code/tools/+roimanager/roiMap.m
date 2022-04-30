@@ -1097,24 +1097,22 @@ classdef roiMap < roimanager.roiDisplay
             
             [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, pad);
             
-            oldXLim = obj.displayApp.ImageStack.DataXLim;
-            oldYLim = obj.displayApp.ImageStack.DataYLim;
-            
-            % Todo: This is a bit sketchy, what if getFrameSet method
-            % fails and data limits are not reset...
-            obj.displayApp.ImageStack.DataXLim = [S(1), L(1)];
-            obj.displayApp.ImageStack.DataYLim = [S(2), L(2)];
+            xInd = S(1):L(1);
+            yInd = S(2):L(2);
 
-            imChunk = obj.displayApp.ImageStack.getFrameSet('cache');
+            imChunk = obj.displayApp.ImageStack.getFrameSet('cache', '', ...
+                'X', xInd, 'Y', yInd);
             
-            obj.displayApp.ImageStack.DataXLim = oldXLim;
-            obj.displayApp.ImageStack.DataYLim = oldYLim;
-            
-            if size(imChunk, 3) < 10
+            chunkSize = size(imChunk);
+            if chunkSize(end) < 10
                 obj.displayApp.displayMessage('Please load some frames into memory in order to improve rois')
                 error('Not enough frames available for improving rois')
             end
 
+            if ndims(imChunk)>3
+                imChunk = squeeze( mean(imChunk, 3) );
+            end
+            
             %imData = obj.displayApp.ImageStack.getCompleteFrameSet('all');
             %imChunk = roimanager.imtools.getPixelChunk(imData, S, L);
             

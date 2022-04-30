@@ -9,6 +9,7 @@ function S = nvpairs2struct(varargin)
 %       pairs are not given, default values are used.
 
 if isempty(varargin); S = struct(); return; end
+if numel(varargin) == 1 && isempty(varargin{1}); S = struct; return; end
 
 % If varargin was directly passed from another function's inputs to this 
 % function's input, the cell array must be unpacked.
@@ -16,7 +17,6 @@ if numel(varargin) == 1 && isa(varargin{1}, 'cell')
     varargin = varargin{1};
 end
 
-    
 names = varargin(1:2:end);
 values = varargin(2:2:end);
 
