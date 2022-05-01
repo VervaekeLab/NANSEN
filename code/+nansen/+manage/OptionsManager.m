@@ -464,9 +464,9 @@ classdef OptionsManager < handle
 
             if sEditor.wasCanceled
                 optsStruct = sEditor.dataOrig;
-                optsName = sEditor.currentOptionsName;
             else
                 optsStruct = sEditor.dataEdit;
+                optsName = sEditor.currentOptionsName;
             end
             
             obj.Options = optsStruct;
