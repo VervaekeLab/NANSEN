@@ -232,15 +232,15 @@ classdef MetaTable < handle
             % Get MetaTable variables which will be saved to file.
             S = obj.toStruct('metatable_file');
             
+            % Sort MetaTable entries based on the entry ID.
+            obj.sort()
+            
             % Synch with master if this is a dummy MetaTable.
             if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
                 obj.synchToMaster(S)
                 S.MetaTableEntries = {};
             end
-            
-            % Sort MetaTable entries based on the entry ID.
-            obj.sort()
-            
+
             % Save metatable variables to file
             save(obj.filepath, '-struct', 'S')
             fprintf('MetaTable saved to %s\n', obj.filepath)
@@ -406,6 +406,11 @@ classdef MetaTable < handle
             end
             if nargin < 3 % Get all rows
                 rowIndices = 1:size(obj.entries, 1);
+            end
+            
+            if isempty(obj.entries)
+                T = obj.entries;
+                return
             end
         
             % Todo: implement better way for detecting variables that have
@@ -677,9 +682,11 @@ classdef MetaTable < handle
         end
         
         function sort(obj)
-            [~, ind] = sort(obj.entries.(obj.SchemaIdName));
-            obj.entries = obj.entries(ind, :);
-            obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            if ~isempty(obj.entries)
+                [~, ind] = sort(obj.entries.(obj.SchemaIdName));
+                obj.entries = obj.entries(ind, :);
+                obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            end
 
         end
         
@@ -982,13 +989,16 @@ classdef MetaTable < handle
         %   This method is static because the expected input is a
         %   MetaTableCatalog entry (which is a struct)
             
+            filename = matlab.lang.makeValidName(S.MetaTableName);
+            filename = utility.string.camel2snake(filename);
+
             if S.IsMaster
                 nameExtension = 'master_metatable';
             else
                 nameExtension = 'dummy_metatable';
             end
             
-            filename = sprintf('%s_%s.mat', S.MetaTableName, nameExtension);
+            filename = sprintf('%s_%s.mat', filename, nameExtension);
             
         end
         

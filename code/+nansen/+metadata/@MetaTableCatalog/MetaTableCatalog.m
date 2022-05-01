@@ -7,8 +7,6 @@ classdef MetaTableCatalog < uim.handle
 %
 %   See also MetaTable
 
-%   Q:
-%       a) Should it subclass from StorableCatalog?
 %
 %   Todo:
 %       [ ] Subclass from StorableCatalog.
@@ -46,11 +44,13 @@ classdef MetaTableCatalog < uim.handle
                 fileValues = obj.Table{i, {'SavePath', 'FileName'}};
                 filePath = fullfile(fileValues{:});
                 
-                S = load(filePath);
-                if strcmp(S.MetaTableClass, 'nansen.metadata.schema.vlab.TwoPhotonSession')
-                    S.MetaTableClass = 'nansen.metadata.type.Session';
+                if isfile(filePath)
+                    S = load(filePath);
+                    if strcmp(S.MetaTableClass, 'nansen.metadata.schema.vlab.TwoPhotonSession')
+                        S.MetaTableClass = 'nansen.metadata.type.Session';
+                    end
+                    save(filePath, '-struct', 'S')
                 end
-                save(filePath, '-struct', 'S')
             end
         end
         
@@ -320,8 +320,8 @@ classdef MetaTableCatalog < uim.handle
                 isPresent = false;
             else
                 % Check if entry matches any entries in the MetaTableCatalog
-                isKeyMatched = contains(MT.MetaTableKey, S.MetaTableKey);
-                isNameMatched = contains(MT.MetaTableName, S.MetaTableName);
+                isKeyMatched = strcmp(MT.MetaTableKey, S.MetaTableKey);
+                isNameMatched = strcmp(MT.MetaTableName, S.MetaTableName);
                 
                 isPresent = isKeyMatched & isNameMatched;
             end

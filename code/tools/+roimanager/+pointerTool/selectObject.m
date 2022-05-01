@@ -117,6 +117,11 @@ classdef selectObject < uim.interface.abstractPointer & ...
                         '↓', '↑', '←', '→'}
                     
                     shift = obj.keyname2shift(strrep(event.Key, 'arrow', ''));
+                    
+                    if strcmp(event.Modifier, 'shift')
+                        shift = shift*5;
+                    end
+
                     obj.hObjectMap.moveRoi(shift)
                     
                     

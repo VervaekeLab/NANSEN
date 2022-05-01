@@ -4,6 +4,8 @@ function metaTable = fixMetaTableDataLocations(metaTable, dataLocationModel)
 
     entries = table2struct(metaTable.entries);
     
+    if isempty(metaTable.entries); return; end
+    
     if ~isfield(entries(1), 'DataLocation'); return; end
     if isfield(entries(1).DataLocation, 'Uuid'); return; end
 
