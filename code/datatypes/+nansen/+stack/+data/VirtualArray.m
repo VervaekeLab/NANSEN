@@ -212,8 +212,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         function writeData(obj, subs, data)
         %writeData Write data for given subs.
             
-            dimX = getDataDimensionNumber('X');
-            dimY = getDataDimensionNumber('Y');
+            dimX = obj.getDataDimensionNumber('X');
+            dimY = obj.getDataDimensionNumber('Y');
             
             assert(size(data, dimX) == obj.DataSize(dimX), ...
                 'Width of image data to write must match the width of the image frames')
