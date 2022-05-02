@@ -14,6 +14,10 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         ToolboxOptions  % Options that are in the format of original toolbox
         OriginalStack   % To store original ImageStack if SourceStack is downsampled
         Results         % Cell array to store temporary results (from each subpart)
+        
+        RoiArray
+        RoiImages
+        RoiStats
     end
     
     properties (Access = private)
@@ -123,14 +127,17 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
            
             if ~isfile(obj.getDataFilePath(obj.ROI_VARIABLE_NAME))
                 obj.mergeResults()
-                
+                                
                 roiArray = obj.getRoiArray();
                 
+                % Todo: Get roiImages and roiStats
+                obj.collectRoiData()
+
                 obj.saveData(obj.ROI_VARIABLE_NAME, roiArray, ...
                     'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
                 
-                % Todo: Get roiImages and roiStats
-                
+                % Todo: Save as roigroup:
+
             end
         end
         
@@ -180,6 +187,28 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             dsFactor = obj.Options.TemporalDownsamplingFactor;
         end
         
+        function collectRoiData(obj)
+            
+            roiArray = obj.getRoiArray();
+            
+            N = obj.SourceStack.chooseChunkLength();
+            imArray = obj.SourceStack.getFrameSet(1:N);
+                    
+            signalOpts = struct('createNeuropilMask', true);
+            signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArray, signalOpts);
+            dff = nansen.twophoton.roisignals.computeDff(signalArray);
+        
+            imageTypes = {'Activity Weighted Mean', 'Diff Surround', 'Top 99th Percentile', 'Local Correlation'};
+            roiImages = computeRoiImages(imArray, roiArray, dff', 'ImageType', imageTypes);
+            
+            obj.roiImages = roiImages;
+            
+            
+            
+            
+            
+            
+        end
     end
     
     methods (Static)

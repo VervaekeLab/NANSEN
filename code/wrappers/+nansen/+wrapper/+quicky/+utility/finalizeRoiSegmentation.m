@@ -50,9 +50,9 @@ function [roiArray, roiImages, roiStats] = finalizeRoiSegmentation(imArray, avgI
             dffS = nansen.twophoton.roisignals.computeDff(signalArrayS);
             
             % Add roi images to rois. Use to improve roi boundary estimate
-            roiImages = computeRoiImages(imArray, roiArrayS, dffS);
+            roiImageArray = computeRoiImages(imArray, roiArrayS, dffS');
             %donutImageStack = roimanager.autosegment.extractRoiImages(imArray, roiArrayS, dffS');
-            roiArrayS = roiArrayS.addImage(donutImageStack);
+            roiArrayS = roiArrayS.addImage(roiImageArray);
         end
     end
     
@@ -78,12 +78,11 @@ function [roiArray, roiImages, roiStats] = finalizeRoiSegmentation(imArray, avgI
 
     %%% Improve roi estimate for active cells.
     fprintf('Improving estimates for temporally active cells...\n')
-    imdata = roimanager.autosegment.extractRoiImages(imArray, roiArrayT, dffT', 'ImageType', 'correlation');
-    roiArrayT = roiArrayT.addImage(imdata);
+    roiImageArray = roimanager.autosegment.extractRoiImages(imArray, roiArrayT, dffT', 'ImageType', 'correlation');
+    roiArrayT = roiArrayT.addImage(roiImageArray);
     [roiArrayT1, ~] = roimanager.binarize.improveMaskEstimate2(roiArrayT);
     
     
-
     % Merge overlapping rois in the activity based roi Array.
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
     
@@ -128,6 +127,11 @@ function [roiArray, roiImages, roiStats] = finalizeRoiSegmentation(imArray, avgI
         signalOpts = struct('createNeuropilMask', true);
         signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArray, signalOpts);
         dff = nansen.twophoton.roisignals.computeDff(signalArray);
+        
+        imageTypes = {'Activity Weighted Mean', 'Diff Surround', 'Top 99th Percentile', 'Local Correlation'};
+        roiImageArray = computeRoiImages(imArray, roiArray, dff', 'ImageType', imageTypes);
+    
+        
         
         roiImA = roimanager.autosegment.extractRoiImages(imArray, roiArray, dff');
         roiImB = roimanager.autosegment.extractRoiImages(imArray, roiArray, dff', 'ImageType', 'peak dff');

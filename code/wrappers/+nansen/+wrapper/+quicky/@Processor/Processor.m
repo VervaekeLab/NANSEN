@@ -159,7 +159,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
         function onCompletion(obj)
             onCompletion@nansen.processing.RoiSegmentation(obj)
-
         end
         
     end
@@ -182,12 +181,12 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             avgIm = mean( cat(3, obj.Results.meanFovImage ), 3);
 
-            [roiArray, roiImages, roiStats] = nansen.wrapper.quicky.utility.finalizeRoiSegmentation(imArray, avgIm, roiArrayT);
+            [roiArray, ~, ~] = nansen.wrapper.quicky.utility.finalizeRoiSegmentation(imArray, avgIm, roiArrayT);
             % Todo: save all...
             
             obj.RoiArray = roiArray;
-            obj.RoiImages = roiImages;
-            obj.RoiStats = roiStats;
+            %obj.RoiImages = roiImages;
+            %obj.RoiStats = roiStats;
             
             obj.displayFinishCurrentStep()
             
