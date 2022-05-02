@@ -36,9 +36,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     
     properties (Access = private)
         MergedResults
-        RoiArray
-        RoiImages
-        RoiStats
+        %RoiArray
+        %RoiImages
+        %RoiStats
     end
     
     
