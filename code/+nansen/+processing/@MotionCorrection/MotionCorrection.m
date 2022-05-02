@@ -544,7 +544,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function initializeCorrectionStats(obj, numFrames)
         %initializeCorrectionStats Initialize struct to store stats
         
-        
         %   Save rigid shifts (x and y)
         %   Save rms movement of frames    
 
@@ -571,7 +570,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         end
 
         % Todo: This should be an external function!
-        function S = getImageStats(obj)
+        function S = getImageStats(obj, ~)
             
             % Check if image stats already exist for this session
             filePath = obj.getDataFilePath('ImageStats', '-w', ...

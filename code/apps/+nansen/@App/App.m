@@ -366,11 +366,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % % % % Create a "MANAGE" menu
             m = uimenu(app.Figure, 'Text', 'Metatable');
             
-            mitem = uimenu(m, 'Text', 'New Metatable...', 'Enable', 'off');
+            mitem = uimenu(m, 'Text', 'New Metatable...', 'Enable', 'on');
             mitem.MenuSelectedFcn = @app.MenuCallback_CreateMetaTable;
             
-            mitem = uimenu(m, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Database', 'Enable', 'off');
-            %app.updateRelatedInventoryLists(mitem)
+            
+            mitem = uimenu(m, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Metatable', 'Enable', 'on');
+            app.updateRelatedInventoryLists(mitem)
 
             
             % % % Create menu items for METATABLE loading and saving % % %
@@ -1294,7 +1295,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             projectName = getpref('Nansen', 'CurrentProject');
-            titleStr = sprintf('%s | %s | %s (%s)', app.AppName, projectName, fileName, status);
+            titleStr = sprintf('%s | Project: %s | Metatable: %s (%s)', app.AppName, projectName, fileName, status);
             app.Figure.Name = titleStr;
         
         end
@@ -2463,10 +2464,147 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         
-        function MenuCallback_CreateMetaTable(app, src, evt)
+        function updateRelatedInventoryLists(app, mItem)
             
+            if nargin < 2
+                mItem(1) = findobj(app.Figure, 'Tag', 'Open Metatable');
+                mItem(2) = findobj(app.Figure, 'Tag', 'Add to Metatable');
+            else
+                
+            end
+
+            names = app.MetaTable.getAssociatedMetaTables('same_class');
+
             
+            for i = 1:numel(mItem)
+                delete(mItem(i).Children)
+                
+                switch mItem(i).Tag
+                    case 'Open Metatable'
+                        for j = 1:numel(names)
+                            uimenu(mItem(i), 'Text', names{j}, 'Callback', @app.MenuCallback_OpenMetaTable)
+                        end
+                        
+                    case 'Add to Metatable'
+                        namesTmp = cat(1, {'New Metatable...'}, names);
             
+                        for j = 1:numel(namesTmp)
+                            if j == 2
+                                uimenu(mItem(i), 'Text', namesTmp{j}, 'Callback', @app.addSessionToMetatable, 'Separator', 'on')
+                            else
+                                uimenu(mItem(i), 'Text', namesTmp{j}, 'Callback', @app.addSessionToMetatable)
+                            end
+                        end
+                end
+            end
+        end
+        
+        function addSessionToMetatable(app, src, ~)
+            
+            % Find session ids of currently highlighted rows
+            sessionEntries = app.getSelectedMetaObjects;
+            
+            switch src.Text
+                
+                case 'New Metatable...'
+                    % Add session to new database
+                    metaTable = app.MenuCallback_CreateMetaTable();
+                otherwise
+                    
+                    MT = nansen.metadata.MetaTableCatalog();
+                    
+                    % Master inventories are tagged with ' (master)'.
+                    % Remove tag before continuing
+                    name = strrep(src.Text, ' (master)', '');
+                    
+                    % Find database entry with selected name
+                    isMatch = strcmp(MT.Table.MetaTableName, name);
+
+                    % Get database filepath
+                    filePath = MT.Table{isMatch, {'SavePath','FileName'} };
+                    filePath = fullfile(filePath{:});
+                    
+                    % Open database
+                    metaTable = nansen.metadata.MetaTable.open(filePath);
+
+            end
+
+            metaTable.addEntries(sessionEntries)
+            metaTable.save()
+            
+            if isvalid(src) % Might get deleted in MenuCallback_CreateMetaTable
+                if strcmp( src.Text, 'New Metatable...')
+                    app.updateRelatedInventoryLists()
+                end
+            end
+                
+        end
+
+        function metatable = MenuCallback_CreateMetaTable(app, src, evt)
+            
+            S = struct();
+            S.MetaTableName = '';
+            S.MakeDefault = false;
+            S.AddSelectedSessions = true;
+            S.OpenMetaTable = true;
+            
+            [S, wasAborted] = tools.editStruct(S, [], 'New Metatable Collection', 'Prompt', 'Configure new metatable');
+            if wasAborted; return; end
+            
+            S_ = struct;
+            S_.MetaTableName = S.MetaTableName;
+            S_.IsDefault = S.MakeDefault;
+            S_.IsMaster = false;
+            
+            projectRootDir = getpref('Nansen', 'CurrentProjectPath');
+            S_.SavePath = fullfile(projectRootDir, 'Metadata Tables');
+
+            MT = nansen.metadata.MetaTableCatalog.quickload();
+            isMaster = MT.IsMaster; %#ok<PROP>
+            
+            S_.MetaTableKey = MT{isMaster, 'MetaTableKey'}{1};
+            S_.MetaTableClass = MT{isMaster, 'MetaTableClass'}{1};
+            
+            metatable = nansen.metadata.MetaTable();
+            metatable.archive(S_)
+            
+            if S.AddSelectedSessions
+                sessionEntries = app.getSelectedMetaObjects;
+                metatable.addEntries(sessionEntries)
+                metatable.save()
+            end
+            
+            if S.OpenMetaTable
+                app.loadMetaTable(metatable.filepath)
+            end
+            
+            app.updateRelatedInventoryLists()
+            
+            if ~nargout
+                clear metatable
+            end
+        end
+        
+        function MenuCallback_OpenMetaTable(app, src, ~)
+            MT = nansen.metadata.MetaTableCatalog;
+            
+            % Master inventories are tagged with ' (master)'.
+            % Remove tag before continuing
+            name = strrep(src.Text, ' (master)', '');
+
+            % Find database entry with selected name
+            isMatch = strcmp(MT.Table.MetaTableName, name);
+
+            % Get database filepath
+            filePath = MT.Table{isMatch, {'SavePath', 'FileName'} };
+            filePath = fullfile(filePath{:});
+            
+            if ~contains(filePath, '.mat')
+                filePath = strcat(filePath, '.mat');
+            end
+            
+            % Todo: Wrap this into a separate method
+            app.loadMetaTable(filePath)
         end
         
         function onUpdateSessionListMenuClicked(app, src, evt)
