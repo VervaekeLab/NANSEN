@@ -131,12 +131,17 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 roiArray = obj.getRoiArray();
                 
                 % Todo: Get roiImages and roiStats
-                obj.collectRoiData()
-
-                obj.saveData(obj.ROI_VARIABLE_NAME, roiArray, ...
-                    'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
+                obj.getRoiAppData()
+    
+                roiGroupStruct = struct();
+                roiGroupStruct.roiArray = roiArray;
+                roiGroupStruct.roiImages = obj.RoiImages;
+                roiGroupStruct.roiStats = obj.RoiStats;
+                roiGroupStruct.roiClassification = zeros(numel(roiArray), 1);
                 
-                % Todo: Save as roigroup:
+                % Save as roigroup:
+                obj.saveData(obj.ROI_VARIABLE_NAME, roiGroupStruct, ...
+                    'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
 
             end
         end
@@ -187,27 +192,22 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             dsFactor = obj.Options.TemporalDownsamplingFactor;
         end
         
-        function collectRoiData(obj)
-            
+        function getRoiAppData(obj)
+        %getRoiAppData 
+                        
+            obj.displayStartCurrentStep()
+
             roiArray = obj.getRoiArray();
             
             N = obj.SourceStack.chooseChunkLength();
             imArray = obj.SourceStack.getFrameSet(1:N);
-                    
-            signalOpts = struct('createNeuropilMask', true);
-            signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArray, signalOpts);
-            dff = nansen.twophoton.roisignals.computeDff(signalArray);
-        
-            imageTypes = {'Activity Weighted Mean', 'Diff Surround', 'Top 99th Percentile', 'Local Correlation'};
-            roiImages = computeRoiImages(imArray, roiArray, dff', 'ImageType', imageTypes);
             
-            obj.roiImages = roiImages;
+            [roiImages, roiStats] = nansen.twophoton.roi.getRoiAppData(imArray, roiArray);
+            obj.RoiImages = roiImages;
+            obj.RoiStats = roiStats;
             
-            
-            
-            
-            
-            
+            obj.displayFinishCurrentStep()
+
         end
     end
     

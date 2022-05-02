@@ -1005,8 +1005,11 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             obj.DataLocation(dlIdx).Subfolders = subfolders;
             
+            newValue = obj.DataLocationModel.reduceDataLocationInfo( obj.DataLocation );
+            
+            
             eventData = uiw.event.EventData('Property', 'DataLocation', ...
-                'NewValue', obj.DataLocation);
+                'NewValue', newValue);%obj.DataLocation);
             %eventData = obj.getPropertyChangedEventData('DataLocation');
             obj.notify('PropertyChanged', eventData)
             

@@ -1,9 +1,5 @@
-function [roiArray, roiImages, roiStats] = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
-    
-    % Todo: 
-    % Calculate temporal stats.
-    % Calculate spatial stats. For donut, for disk.
-    % Create a roidata file containing images, and stats.
+function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
+%finalizeRoiSegmentation Finalize roi segmentation
     
     % Todo: extract dff
 
@@ -109,58 +105,7 @@ function [roiArray, roiImages, roiStats] = finalizeRoiSegmentation(imArray, avgI
     else
         roiArray = roiArrayT;
     end
-    
-    % Finalize Results.
-    fprintf('Finalizing results...\n')
-    
-    
-    % Create roi image data stuct with different images for each roi.
-    
-    % Todo: This shoudl not be part of this function.......
-    %[roiImageData, roiStats] = roimanager.gatherRoiData(imArray, roiArray, varargin)
-    if nargout >= 2
-        
-        fprintf('Creating Roi Images...\n')
-        
-        % Add average images of roi
-        %dff = autosegment.extractDff(imArray, roiArray, 'unique roi');
-        signalOpts = struct('createNeuropilMask', true);
-        signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArray, signalOpts);
-        dff = nansen.twophoton.roisignals.computeDff(signalArray);
-        
-        imageTypes = {'Activity Weighted Mean', 'Diff Surround', 'Top 99th Percentile', 'Local Correlation'};
-        roiImageArray = computeRoiImages(imArray, roiArray, dff', 'ImageType', imageTypes);
-    
-        
-        
-        roiImA = roimanager.autosegment.extractRoiImages(imArray, roiArray, dff');
-        roiImB = roimanager.autosegment.extractRoiImages(imArray, roiArray, dff', 'ImageType', 'peak dff');
-        roiImC = roimanager.autosegment.extractRoiImages(imArray, roiArray, dff', 'ImageType', 'correlation');
-%         roiImD = extractRoiImages(imArray, roiArray, dff, 'ImageType', 'enhanced correlation');
-        
-        roiArray = roiArray.addImage(roiImA);
-        
-        diskW = nanmean(cat(3, roiArray.enhancedImage), 3);
-        
-        try
-            ringW = nanmean(roiImA(:, :, 1:numel(roiArrayS)), 3);
-        catch
-            ringW = diskW;
-        end
-        
-        roiImA = arrayfun(@(i) roiImA(:, :, i), 1:size(roiImA,3), 'uni', 0);
-        roiImB = arrayfun(@(i) roiImB(:, :, i), 1:size(roiImB,3), 'uni', 0);
-        roiImC = arrayfun(@(i) roiImC(:, :, i), 1:size(roiImC,3), 'uni', 0);
-%         roiImD = arrayfun(@(i) roiImD(:, :, i), 1:size(roiImD,3), 'uni', 0);
 
-        roiImages = struct('enhancedAverage', roiImA, 'peakDff', roiImB, 'correlation', roiImC);%, 'enhancedCorrelation', roiImD);
-    end
-    
-    if nargout >= 3
-        fprintf('Calculating Roi Stats...\n')
-        roiStats = roimanager.autosegment.calculateRoiStats(roiArray, roiImages, dff, ringW, diskW);
-    end
-    
     
     t2 = toc(tBegin);
     nRois = numel(roiArray);

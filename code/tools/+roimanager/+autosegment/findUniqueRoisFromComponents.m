@@ -206,8 +206,14 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
         end
         
         if mod(numel(roisOut), 10)==0
-            str = sprintf('Detected %d rois...\n', numel(roisOut));
+            
+            if exist('str', 'var')
+                fprintf( char(8*ones(1,length(str))));
+            end
+            
+            str = sprintf('Detected %d rois...', numel(roisOut));
             fprintf(str)
+            
         end
         
         nIter = nIter+1;

@@ -43,7 +43,11 @@ function stats = dffprops(dff, varargin)
     if getAll || get('DffSnr') || get('DffActivityLevel') || get('DffStdSnr')
         noiseLevel =  zeros(nRois, 1);
         for i = 1:nRois
-            noiseLevel(i) = real(GetSn( dff(:, i)) );
+            if all(isnan(dff(:, i)))
+                noiseLevel(i) = nan;
+            else
+                noiseLevel(i) = real(GetSn( dff(:, i)) );
+            end
         end
         stats.DffNoiseStd = noiseLevel; % Submit as column vec
     end
@@ -52,8 +56,12 @@ function stats = dffprops(dff, varargin)
         % Get SNR of all Rois.
         signalToNoise = zeros(nRois, 1);
         for i = 1:nRois
-            noiseVector = ones(nSamples, 1) * noiseLevel(i);
-            signalToNoise(i) = snr(dff(:, i), noiseVector);
+            if ~isnan(noiseLevel(i))
+                noiseVector = ones(nSamples, 1) * noiseLevel(i);
+                signalToNoise(i) = snr(dff(:, i), noiseVector);
+            else
+                signalToNoise(i) = nan;
+            end
         end
         stats.DffSnr = signalToNoise; % Submit as column vec
     end

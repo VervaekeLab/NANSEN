@@ -255,10 +255,10 @@ classdef RoiGroup < nansen.dataio.FileAdapter
     methods (Access = private) % Methods for writing %Todo: simplify...
 
         function [rois, images, stats, clsf] = unpackFromRoiArray(obj, data)
-            rois = data.roiArray;
-            images = data.roiImages;
-            stats = data.roiStats;
-            clsf = data.roiClassification;
+            rois = data;
+            images = rois.getappdata('roiImages');
+            stats = rois.getappdata('roiStats');
+            clsf = rois.getappdata('roiClassification');
         end
         
         function [rois, images, stats, clsf] = unpackFromRoiGroup(obj, data)
@@ -269,10 +269,10 @@ classdef RoiGroup < nansen.dataio.FileAdapter
         end
         
         function [rois, images, stats, clsf] = unpackFromStruct(obj, data)
-            rois = data;
-            images = rois.getappdata('roiImages');
-            stats = rois.getappdata('roiStats');
-            clsf = rois.getappdata('roiClassification');
+            rois = data.roiArray;
+            images = data.roiImages;
+            stats = data.roiStats;
+            clsf = data.roiClassification;
         end
     
     end
@@ -350,6 +350,10 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             end
         end
         
+        function tf = isRoigroupStruct(data)
+            fields = {'roiArray', 'roiImages', 'roiStats', 'roiClassification'};
+            tf = isstruct(data) && all( isfield(data, fields) );
+        end
         
     end
 end

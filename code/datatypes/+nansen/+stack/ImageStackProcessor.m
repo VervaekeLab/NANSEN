@@ -343,6 +343,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
             if obj.NumParts > 1 && isempty(partsToProcess)
                 obj.printTask(sprintf('All parts of imagestack have already been processed for method: %s',  class(obj)))
+                obj.displayFinishCurrentStep()
                 return
             end
             

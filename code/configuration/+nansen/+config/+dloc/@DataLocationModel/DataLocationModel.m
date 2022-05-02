@@ -492,8 +492,13 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
         end
         
-        function dlStruct = reduceDataLocationInfo(obj, dlStruct)
-            
+        function dlStruct = reduceDataLocationInfo(~, dlStruct)
+            fieldsToRemove = {'Name', 'Type', 'RootPath'};
+            for i = 1:numel(fieldsToRemove)
+                if isfield(dlStruct, fieldsToRemove{i})
+                    dlStruct = rmfield(dlStruct, fieldsToRemove{i});
+                end
+            end
         end
     end
     
