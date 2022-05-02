@@ -473,6 +473,17 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
     end
     
+        methods (Access = protected) % Pre- and processing methods for imagedata
+
+        function Y = preprocessImageData(obj, Y)
+            % Subclasses may override
+        end
+
+        function Y = postprocessImageData(obj, Y)
+            % Subclasses may override
+        end
+    end
+    
     methods (Access = private)
         
         function partsToProcess = getPartsToProcess(obj, frameInd)
