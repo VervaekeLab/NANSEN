@@ -29,7 +29,7 @@ function [screenSize, screenNumber] = getCurrentScreenSize(hFig)
     else
         screenSize = get(0, 'ScreenSize');
         screenNumber = 1;
-        warning('Could not detect which screen reference window is on, placing window on main screen...')
+        warning('Could not resolve which screen figure is on, using main screen...')
         %screenSize = [];
     end
 
