@@ -686,30 +686,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
         newMousePointAx = get(obj.hTiledImageAxes.Axes, 'CurrentPoint');
         newMousePointAx = newMousePointAx(1, 1:2);
         
-        
 %         obj.lastMousePress = newMousePointAx;
-        
-        
-%         if ~isempty(obj.roiTools) && obj.roiTools.captureClicks && ~isnan(tileNum)
-% 
-%             switch obj.roiTools.mouseMode
-%                 case {'magicwand', 'circle', 'Autodetect', 'CircleSelect', 'CrosshairSelect'}
-%                     
-%                     currentRoiInd = obj.displayedItems(tileNum);
-%                     roiData = obj.prepareRoiData(currentRoiInd, tileNum);
-%                     
-%                     modifiedRoi = obj.roiTools.requestRoi(src, event, roiData);
-%                     
-%                     if ~isempty(modifiedRoi)
-%                         obj.updateRois(modifiedRoi, currentRoiInd, 'reshape')
-%                     end
-%                     
-%                 case {'polydraw'}
-%                     
-%                     
-%             end
-% 
-%         end
 
 
         % Note: If this callback is a ButtonDownFcn and not a
@@ -1458,21 +1435,6 @@ methods
                 case 'open'
                     
                     obj.changeSelectedItem('tile', tileNum)
-
-%                     % Quick adhoc, just for testing:
-%                     event = struct;
-%                     event.EventName = 'KeyPress';
-%                     event.Key = 'i';
-%                     
-%                     currentRoiInd = obj.selectedItem;
-%                     roiData = obj.prepareRoiData(currentRoiInd);
-% 
-%                     modifiedRoi = obj.roiTools.requestRoi([], event, roiData);
-% 
-%                     if ~isempty(modifiedRoi)
-%                         obj.updateRois(modifiedRoi, currentRoiInd, 'reshape')
-%                     end
-
                     
                 otherwise
 %                     obj.startMove(src, event, tileNum)
