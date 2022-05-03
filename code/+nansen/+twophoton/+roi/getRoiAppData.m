@@ -1,5 +1,23 @@
 function [roiImages, roiStats] = getRoiAppData(imArray, roiArray, varargin)
 %getRoiAppData Get roi app data, i.e roi images and roistats
+%
+%   [roiImages, roiStats] = getRoiAppData(imArray, roiArray) returns struct
+%   arrays of roiImages and roiStats given an imageArray and a roiArray.
+%
+%   Output:
+%       roiImages : 1 x numRois struct array where each value is a
+%           thumbnail image. Contains the following fields:
+%               'Activity Weighted Mean'
+%               'Diff Surround'
+%               'Top 99th Percentile' 
+%               'Local Correlation'
+%           see nansen.twophoton.roi.compute.computeRoiImages for details
+%       
+%       roiStats  : 1 x numRois struct array where each value is a
+%           measurement on the roi's image or the roi's signal
+%           see nansen.twophoton.roi.stats.dffprops and 
+%           nansen.twophoton.roi.stats.imageprops for details
+
 
     import nansen.twophoton.roi.compute.computeRoiImages
     
@@ -14,7 +32,7 @@ function [roiImages, roiStats] = getRoiAppData(imArray, roiArray, varargin)
     
     % Compute rois images
     imageTypes = {'Activity Weighted Mean', 'Diff Surround', 'Top 99th Percentile', 'Local Correlation'};
-    roiImageStruct = computeRoiImages(imArray, roiArray, signalArray, 'ImageType', imageTypes);
+    roiImageStruct = computeRoiImages(imArray, roiArray, signalArray, 'ImageType', imageTypes); % imported function
     
     % Compute roi stats
     dff = nansen.twophoton.roisignals.computeDff(signalArray);

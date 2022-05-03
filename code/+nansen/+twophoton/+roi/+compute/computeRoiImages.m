@@ -4,7 +4,6 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 %   Inputs
 %       imArray    : image array (nRows x nCols x nFrames)
 %       roiArray   : array of rois (nRois x 1)
-%       dff        : Signalarray (nRois x nFrames)
 %       roiSignals : Signalarray (nFrames x nSubRegions x nRois)
 %
 %   Parameters
@@ -15,8 +14,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 %                                         within the roi.
 %           - 'Diff Surround'           : Difference of activity weighted
 %                                         mean of roi interior and roi
-%                                         surround. NB: Might produce
-%                                         artifical signals
+%                                         surround.
 %           - 'Top 99th Percentile'     : Mean projection of frames where
 %                                         the roi signal is within the top
 %                                         99th percentile.
@@ -30,11 +28,10 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 %        
 %   OUTPUTS:
 %
-%       roiImageStack : array or struct
-
-
-    % Todo: 
-    %   [ ] Dff should be nFrames x nRois!
+%       roiImageStack : array or struct. If only one image is requested,
+%           roiImageStack is a 3D array, otherwise it is a struct where
+%           each field is the name of the image and each value is a 3D
+%           array.
 
     
     import nansen.twophoton.roi.compute.getPixelCorrelationImage
@@ -210,7 +207,6 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
                     currentRoiIm = mean(dffStack(:, :, frameInd), 3);
 
                 case 'diff surround'
-                    %f = extractF(imArray, roiArray(iRoi));
                     f = roiSignals(:, :, iRoi);
                     froi = smooth(f(:,1));
                     fpil = smooth(f(:,2));
@@ -223,7 +219,6 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 
                 case 'diff surround orig'
                     % NB : can show signal when there is none
-                    %f = extractF(imArray, roiArray(iRoi));
                     f = roiSignals(:, :, iRoi);
                     
                     % Normalize each column of f:
