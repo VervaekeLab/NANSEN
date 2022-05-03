@@ -1,10 +1,11 @@
-function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
+function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargin)
 %computeRoiImages Compute roi images for rois
 %
 %   Inputs
-%       imArray  : image array (nRows x nCols x nFrames)
-%       roiArray : array of rois (nRois x 1)
-%       dff      : Signalarray (nRois x nFrames)
+%       imArray    : image array (nRows x nCols x nFrames)
+%       roiArray   : array of rois (nRois x 1)
+%       dff        : Signalarray (nRois x nFrames)
+%       roiSignals : Signalarray (nFrames x nSubRegions x nRois)
 %
 %   Parameters
 %       BoxSize   : size of extracted image [h, w]
@@ -39,6 +40,8 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
     import nansen.twophoton.roi.compute.getPixelCorrelationImage
     import nansen.twophoton.roisignals.extractF
 
+    global fprintf % Use global fprintf if available
+    if isempty(fprintf); fprintf = str2func('fprintf'); end
 
     % % Set default parameters and parse name value pairs.
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -46,10 +49,12 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
     def = struct();
     def.BoxSize             = [21, 21];
     def.ImageType           = 'Activity Weighted Mean';
+    def.dffFcn              = 'dffClassic';
     def.AutoAdjust          = true;
     def.SubtractBaseline    = true;
     def.Debug               = false;
     def.MinNumFrames        = 50;
+    def.Verbose             = true;
     
     opt = utility.parsenvpairs(def, [], varargin);
 
@@ -57,17 +62,19 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
     boxSize = opt.BoxSize;
     assert(all( mod(boxSize, 2) == 1), 'Boxsize should be odd')
     
+    if ~opt.Verbose; fprintf = @(x) false; end
     
     % % Check size of input data and check that they correspond
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     
     % Get number of frames and number of rois.
     numRois = numel(roiArray);
-    signalSize = size(dff);
-    numFrames = signalSize(signalSize~=numRois & signalSize~=1);
-
-    [numRows, numCols, ~] = size(imArray);
-    assert(numFrames == size(imArray,3), 'Number of frames not matching')
+    [numTimepoints, ~, numRois_] = size(roiSignals);
+    
+    assert(numRois == numRois_, 'roiSignal must have same number or rois as roiarray')
+    
+    [numRows, numCols, numFrames] = size(imArray);
+    assert(numFrames == numTimepoints, 'Number of frames not matchingnumber of timepoints')
     
 
     % % Prepare for computing images
@@ -90,6 +97,14 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
 
     centerCoords = round(cat(1, roiArray.center));
 
+    % % Extract roisignals if necessary
+    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+    % Compute dff.
+    dffOpts = struct('dffFcn', opt.dffFcn);
+    dff = nansen.twophoton.roisignals.computeDff(roiSignals, dffOpts);
+
+    
     % % Loop through all images to compute and all provided rois
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     
@@ -125,23 +140,23 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
             if contains(imageType, 'enhanced')
                 % Set activity threshold. Todo: Optimize this based on more
                 % informed methods.
-                val = prctile(dff(iRoi, :), [5, 50]);
+                val = prctile(dff(:, iRoi), [5, 50]);
                 thresh = val(2) + val(2)-val(1);
 
-                frameInd = dff(iRoi, :) > thresh; 
+                frameInd = dff(:, iRoi) > thresh; 
                 frameInd = imdilate(frameInd, ones(1,5) );
 
             elseif contains(imageType, 'top 99th percentile')
-                [~, descendingFrameInd] = sort(dff(iRoi, :), 'descend');
+                [~, descendingFrameInd] = sort(dff(:, iRoi), 'descend');
                 nFramesSubset =  round(numFrames .* 0.01);
                 frameInd = descendingFrameInd(1:nFramesSubset);
 
             elseif contains(imageType, 'peak')
                 % Find the frame number of peak dff
-                [~, frameInd] = max(dff(iRoi, :));
+                [~, frameInd] = max(dff(:, iRoi));
 
             elseif contains(imageType, 'weighted')
-                W = getWeights( normalizearray(dff(iRoi, :)) );
+                W = getWeights( normalizearray(dff(:, iRoi)) );
                 
             else
                 % pass...
@@ -149,7 +164,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
 
             % Try to use at least minimum number of frames
             if sum(frameInd) < opt.MinNumFrames
-                [~, sortedFrameInd] = sort(dff(iRoi, :), 'descend');
+                [~, sortedFrameInd] = sort(dff(:, iRoi), 'descend');
                 nFramesSubset = min( [opt.MinNumFrames, numel(sortedFrameInd)]);
                 frameInd = sortedFrameInd(1:nFramesSubset);
             end
@@ -195,7 +210,8 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
                     currentRoiIm = mean(dffStack(:, :, frameInd), 3);
 
                 case 'diff surround'
-                    f = extractF(imArray, roiArray(iRoi));
+                    %f = extractF(imArray, roiArray(iRoi));
+                    f = roiSignals(:, :, iRoi);
                     froi = smooth(f(:,1));
                     fpil = smooth(f(:,2));
 
@@ -207,7 +223,8 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
 
                 case 'diff surround orig'
                     % NB : can show signal when there is none
-                    f = extractF(imArray, roiArray(iRoi));
+                    %f = extractF(imArray, roiArray(iRoi));
+                    f = roiSignals(:, :, iRoi);
                     
                     % Normalize each column of f:
                     f_ = (f - min(f)) ./ (max(f)-min(f));
@@ -238,7 +255,18 @@ function roiImageStack = computeRoiImages(imArray, roiArray, dff, varargin)
             roiImageStack{jImage}(isValidY, isValidX, iRoi) = currentRoiIm;
             
         end
+        
+        % Display message indicating progress
+        if mod(iRoi, 10)==0
+            if exist('str', 'var')
+                fprintf( char(8*ones(1,length(str))));
+            end
+            
+            str = sprintf('Created images for %d/%d rois...', iRoi, numRois);
+            fprintf(str)
+        end
     end
+    fprintf(newline)
     
     if numImages == 1
         roiImageStack = roiImageStack{1};

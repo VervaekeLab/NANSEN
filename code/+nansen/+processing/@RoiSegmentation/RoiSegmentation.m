@@ -129,10 +129,14 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 obj.mergeResults()
                                 
                 roiArray = obj.getRoiArray();
+                obj.RoiArray = roiArray;
                 
                 % Todo: Get roiImages and roiStats
+                obj.displayStartCurrentStep()
                 obj.getRoiAppData()
-    
+                obj.displayFinishCurrentStep()
+                
+                
                 roiGroupStruct = struct();
                 roiGroupStruct.roiArray = roiArray;
                 roiGroupStruct.roiImages = obj.RoiImages;
@@ -193,21 +197,17 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         end
         
         function getRoiAppData(obj)
-        %getRoiAppData 
-                        
-            obj.displayStartCurrentStep()
+        %getRoiAppData Get roi application data (roiImages & roiStats)
 
-            roiArray = obj.getRoiArray();
+            roiArray = obj.RoiArray;
             
+            obj.printTask('Loading image data for creation of roi images')
             N = obj.SourceStack.chooseChunkLength();
             imArray = obj.SourceStack.getFrameSet(1:N);
             
             [roiImages, roiStats] = nansen.twophoton.roi.getRoiAppData(imArray, roiArray);
             obj.RoiImages = roiImages;
             obj.RoiStats = roiStats;
-            
-            obj.displayFinishCurrentStep()
-
         end
     end
     

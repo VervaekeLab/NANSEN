@@ -19,7 +19,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
 % optimized for 100ks of components and one optimized for 1-10ks of
 % components
 
-    global fprintf % Use highjacked fprintf if available
+    global fprintf % Use global fprintf if available
     if isempty(fprintf); fprintf = str2func('fprintf'); end
     
     % Get the roimanager as a local package (2 folders up)

@@ -43,7 +43,7 @@ function stats = dffprops(dff, varargin)
     if getAll || get('DffSnr') || get('DffActivityLevel') || get('DffStdSnr')
         noiseLevel =  zeros(nRois, 1);
         for i = 1:nRois
-            if all(isnan(dff(:, i)))
+            if any(isnan(dff(:, i))) || any(isinf(dff(:, i)))
                 noiseLevel(i) = nan;
             else
                 noiseLevel(i) = real(GetSn( dff(:, i)) );

@@ -59,12 +59,12 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiData, varargin)
     toc
     
     tic
-    imageData = computeRoiImages(imArray, roiArray, dff', ...
+    imageData = computeRoiImages(imArray, roiArray, signalArray, ...
         'ImageType', params.ImageTypes);
     toc
 
     % Collect output as a struct array.
-    nvPairs = cat(1, params.ImageTypes, roiImages);
+    nvPairs = cat(1, params.ImageTypes, imageData);
     roiImageData = struct(nvPairs{:});
     
     

@@ -117,6 +117,14 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             dsFactor = 10;
         end
 
+        function runPreInitialization(obj)
+            runPreInitialization@nansen.processing.RoiSegmentation(obj)
+            
+            obj.NumSteps = obj.NumSteps + 1;
+            descr = 'Compute roi images & roi stats';
+            obj.StepDescription = [obj.StepDescription, descr];
+        end
+        
         function saveResults(obj)
             tempResults = obj.Results;
             obj.saveData('ExtractResultsTemp', tempResults) 
@@ -146,6 +154,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             roiArray = nansen.wrapper.extract.convert2rois(...
                 struct('spatial_weights', obj.SpatialWeights));
         end
+        
+        function getRoiAppData(obj)
+            getRoiAppData@nansen.processing.RoiSegmentation(obj)
+            obj.addSpatialWeightsToRoiImages()
+        end
 
     end
     
@@ -169,6 +182,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
             
             if isfile(filePath)
+                obj.printTask('Loading previously saved results...')
                 obj.Results = obj.loadData('ExtractResultsTemp');
             end
             
@@ -190,7 +204,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 tExtracor.runMethod()
             end
             
-            obj.createRoiClassificationData()
+            %obj.createRoiClassificationData()
             
         end
         
@@ -226,17 +240,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             % Add spatial weights...
             
-            spatialWeights = obj.loadData('ExtractSpatialWeightsAuto');
-            imArray = nansen.wrapper.extract.util.convertSpatialWeightsToThumbnails(...
-                roiArray, spatialWeights);
-            
-            imCellArray = arrayfun(@(i) stack.makeuint8(imArray(:,:,i)), 1:numel(roiArray), 'uni', 0);
-            
-            [roiImages(:).SpatialWeights] = deal(imCellArray{:});
-            
-            fieldNames = fieldnames(roiImages);
-            fieldNames = ['SpatialWeights', setdiff(fieldNames, 'SpatialWeights', 'stable')' ];
-            roiImages = orderfields(roiImages, fieldNames);
+           
             
             % Add area as a statistical value
             [roiStats(:).Area] = deal(roiArray.area);
@@ -249,6 +253,41 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             %tic; S = load(filePath); toc
             
+        end
+        
+        function addSpatialWeightsToRoiImages(obj)
+        %addSpatialWeightsToRoiImages Add spatial weights to roi images
+        %
+            
+            % Get initial data.
+            spatialWeights = obj.loadData('ExtractSpatialWeightsAuto');
+            
+            roiArray = obj.RoiArray;
+            roiImages = obj.RoiImages;
+            numRois = numel(roiArray);
+            
+            % Get spatial weigths as uin8 roi thumbnail images.
+            imArray = nansen.wrapper.extract.util.convertSpatialWeightsToThumbnails(...
+                roiArray, spatialWeights);
+            
+            getuint8im = @(idx) stack.makeuint8(imArray(:,:,idx));
+            imCellArray = arrayfun(@(i) getuint8im(i), 1:numRois, 'uni', 0);
+            
+            % Add to roiImages
+            if ~isempty(obj.RoiImages)
+                [roiImages(:).SpatialWeights] = deal(imCellArray{:});
+            else
+                roiImages = struct;
+                [roiImages(1:numRois).SpatialWeights] = deal(imCellArray{:});
+            end
+            
+            % Reorder fields so that spatial weights are the first one.
+            fieldNames = fieldnames(roiImages);
+            newFieldnameOrder = ['SpatialWeights', ...
+                setdiff(fieldNames, 'SpatialWeights', 'stable')' ];
+            
+            obj.RoiImages = orderfields(roiImages, newFieldnameOrder);
+
         end
         
         function mergeSpatialComponents(obj)

@@ -395,11 +395,11 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                 return
             end
             
-            f = extractF(imArray, roiObj);
-            dff = computeDff(f, 'dffFcn', 'dffRoiMinusDffNpil');
+            roiSignals = extractF(imArray, roiObj);
             
-            im = computeRoiImages(imArray, roiObj, dff', ...
-                'ImageType', obj.CurrentImageToShow);
+            im = computeRoiImages(imArray, roiObj, roiSignals, ...
+                'ImageType', obj.CurrentImageToShow, ...
+                'dffFcn', 'dffRoiMinusDffNpil');
         end
         
         function setCurrentImageToShow(obj, name)

@@ -43,11 +43,9 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
             % and roi images for improving estimates
             signalOpts = struct('createNeuropilMask', true);
             signalArrayS = nansen.twophoton.roisignals.extractF(imArray, roiArrayS, signalOpts);
-            dffS = nansen.twophoton.roisignals.computeDff(signalArrayS);
             
             % Add roi images to rois. Use to improve roi boundary estimate
-            roiImageArray = computeRoiImages(imArray, roiArrayS, dffS');
-            %donutImageStack = roimanager.autosegment.extractRoiImages(imArray, roiArrayS, dffS');
+            roiImageArray = computeRoiImages(imArray, roiArrayS, signalArrayS);
             roiArrayS = roiArrayS.addImage(roiImageArray);
         end
     end
