@@ -121,6 +121,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             runPreInitialization@nansen.processing.RoiSegmentation(obj)
             
             obj.NumSteps = obj.NumSteps + 1;
+            descr = 'Combine temporary results from each part';
+            obj.StepDescription = [obj.StepDescription, descr];
+            
+            obj.NumSteps = obj.NumSteps + 1;
             descr = 'Compute roi images & roi stats';
             obj.StepDescription = [obj.StepDescription, descr];
         end
@@ -132,7 +136,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 
         function mergeResults(obj)
         %mergeResults Merge results from each processing part
-                        
+              
+            obj.displayStartCurrentStep()
+
             % Combine spatial segments
             if numel(obj.Results) > 1
                 %obj.mergeSpatialComponents()
@@ -147,6 +153,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true)
             
             obj.SpatialWeights = spatialWeights;
+            
+            obj.displayFinishCurrentStep()
         end
 
         function roiArray = getRoiArray(obj)
