@@ -132,7 +132,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 roiGroupStruct.roiArray = obj.RoiArray;
                 roiGroupStruct.roiImages = obj.RoiImages;
                 roiGroupStruct.roiStats = obj.RoiStats;
-                roiGroupStruct.roiClassification = zeros(numel(roiArray), 1);
+                roiGroupStruct.roiClassification = zeros(numel(obj.RoiArray), 1);
                 
                 % Save as roigroup.
                 obj.saveData(obj.ROI_VARIABLE_NAME, roiGroupStruct, ...

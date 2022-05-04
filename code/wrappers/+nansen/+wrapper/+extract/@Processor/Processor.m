@@ -121,7 +121,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             runPreInitialization@nansen.processing.RoiSegmentation(obj)
             
             obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Combine temporary results from each part';
+            descr = 'Combine temporary results from each subpart of stack';
             obj.StepDescription = [obj.StepDescription, descr];
             
             obj.NumSteps = obj.NumSteps + 1;
