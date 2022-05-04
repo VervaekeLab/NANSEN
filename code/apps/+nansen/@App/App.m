@@ -842,7 +842,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.BatchProcessor = nansen.TaskProcessor(pvPairs{:});
             addlistener(app.BatchProcessor, 'TaskAdded', @app.onTaskAddedEventTriggered);
-           
+            addlistener(app.BatchProcessor, 'Status', 'PostSet', @app.onTaskProcessorStatusChanged);
+            
             app.BatchProcessor.updateSessionObjectListeners(app)
 
         end
@@ -1125,6 +1126,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         end
  
+        function onTaskProcessorStatusChanged(app, src, evt)
+        %onTaskProcessorStatusChanged Callback for TaskProcessor Status
+            if strcmp( evt.AffectedObject.Status, 'busy' )
+                app.setBusy('Initializing task processor...')
+            else
+                app.setIdle()
+            end
+        end
+        
     %%% Methods for side panel
         
         function showSidePanel(app)
@@ -1329,8 +1339,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 statusStr = sprintf(' Status: %s', statusStr );
             end
             app.h.StatusField.String = statusStr;
-
-            finishup = onCleanup(@app.setIdle);
+            
+            if nargout
+                finishup = onCleanup(@app.setIdle);
+            end
             
             drawnow
         end

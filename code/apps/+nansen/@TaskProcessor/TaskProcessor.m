@@ -30,8 +30,11 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         NumArchivedTasks
     end
     
-    properties (SetAccess = private) % Properties keeping track of tasks and status
+    properties (SetAccess = private, SetObservable) % Taskprocessor status
     	Status      % Status of processor (typically busy or idle)
+    end
+    
+    properties (SetAccess = private) % Properties keeping track of tasks and status
         TaskQueue   % A list of tasks present in the queue
         TaskHistory % A list of tasks present in the history
     end
@@ -47,7 +50,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     end
     
     
-    events 
+    events
         TaskAdded
         TaskRemoved
         TaskStateChanged
@@ -68,7 +71,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             if obj.RunTasksOnStartup
                 obj.setTaskStatus('Initialize', 1:obj.NumQueuedTasks)
             else
-                obj.setTaskStatus('Queue', 1:obj.NumQueuedTasks)
+                obj.setTaskStatus('Uninitialized', 1:obj.NumQueuedTasks)
             end
             
             obj.createTimer()
@@ -122,7 +125,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         %   tf = promptQuit(obj) returns true if user wants to quit,
         %   otherwise false
         
-            % No need to ask user if processor is idle.
+            % Not necessary to ask user if processor is idle.
             if strcmp(obj.Status, 'idle')
                 tf = true; 
                 return
@@ -344,7 +347,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         
         function sortTasksByState(obj)
             
-            TASK_STATUS_ORDER = {'Running', 'Pending', 'Paused', 'Queued'};
+            TASK_STATUS_ORDER = {'Running', 'Pending', 'Paused', 'Uninitialized'};
             
             currentTaskStatus = {obj.TaskQueue.status};
             
@@ -406,7 +409,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 
                 case 'running'
                     % Do nothing
-                    obj.Status = 'busy';
+                    obj.Status = 'running';
                     
                 case 'finished'
                     obj.finishTask()
@@ -425,6 +428,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 case 'Pending' %'Queued'
                     
                     % Assign the job to the cluster
+                    obj.Status = 'busy';
                     p = gcp();
                     F = parfeval(p, @task.method, 0, task.args{:});                    
                     obj.runningTask = F;
@@ -434,7 +438,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                     eventData = uiw.event.EventData('TaskIdx', 1, 'NewState', 'Running');
                     obj.notify('TaskStateChanged', eventData)
                                         
-                    obj.Status = 'busy';
+                    obj.Status = 'running';
                     
             end
             
@@ -542,8 +546,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 case {'Pause', 'Paused'}
                     newState = 'Paused';
                     
-                case {'Queue', 'Queued'}
-                    newState = 'Queued';
+                case {'Queue', 'Uninitialized'}
+                    newState = 'Uninitialized';
                     
                 case 'Cancel'
                     assertMessage = 'Can only cancel a running task.';
@@ -564,8 +568,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
             % Rearrange columns according to task states.
             obj.sortTasksByState()
-            
-            
         end
 
         function removeTask(obj, taskIdx, tableType)
@@ -598,7 +600,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             newTask.name = name;
             newTask.method = func;
             newTask.methodName = utility.string.varname2label( func2str(func) );
-            newTask.status = 'Queued';
+            newTask.status = 'Uninitialized';
             newTask.numOut = numOut;
             newTask.args = args;
             newTask.timeCreated = datestr(now, 'yyyy.mm.dd HH:MM:SS');

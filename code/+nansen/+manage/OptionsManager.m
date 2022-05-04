@@ -250,6 +250,11 @@ classdef OptionsManager < handle
     
     methods (Static)
         
+        function name = unformatName(name)
+            name = nansen.manage.OptionsManager.unformatDefaultName(name);
+            name = nansen.manage.OptionsManager.unformatPresetName(name);
+        end
+        
         function name = formatDefaultName(name)
         %formatDefaultName Format default options name for display
             %name = strcat('>', name, '<');
@@ -456,6 +461,8 @@ classdef OptionsManager < handle
             elseif nargin == 2
                 optsStruct = obj.getOptions(optsName);
             end
+            
+            optsName = obj.unformatName(optsName);
             
             sEditor = obj.openOptionsEditor(optsName, optsStruct);
             sEditor.waitfor()
