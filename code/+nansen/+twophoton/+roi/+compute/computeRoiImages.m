@@ -94,10 +94,8 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 
     centerCoords = round(cat(1, roiArray.center));
 
-    % % Extract roisignals if necessary
+    % % Compute dffs
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
-    % Compute dff.
     dffOpts = struct('dffFcn', opt.dffFcn);
     dff = nansen.twophoton.roisignals.computeDff(roiSignals, dffOpts);
 
@@ -208,8 +206,8 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 
                 case 'diff surround'
                     f = roiSignals(:, :, iRoi);
-                    froi = smooth(f(:,1));
-                    fpil = smooth(f(:,2));
+                    froi = smoothdata(f(:,1));
+                    fpil = smoothdata(f(:,2));
 
                     fdiff = normalizearray( froi - fpil );
                     W = getWeights(fdiff);
