@@ -81,6 +81,9 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
         function tf = checkIfPartIsFinished(obj, partNumber)
         %checkIfPartIsFinished Check if specified part is completed        
             frameIndices = obj.FrameIndPerPart{partNumber};
+            if isempty(obj.ImageStats) || ~isfield( obj.ImageStats, 'meanValue' )
+                obj.initializeImageStats('reset')
+            end
             tf = all( ~isnan(obj.ImageStats.meanValue(frameIndices) ) );
         end
         
@@ -88,15 +91,25 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
     
     methods (Access = private) 
 
-        function S = initializeImageStats(obj)
+        function S = initializeImageStats(obj, mode)
         %initializeImageStats Create new or load existing struct.
         %
-
+        %   S = initializeImageStats(obj) initializes a struct of image
+        %   stats.
+        %
+        %   S = initializeImageStats(obj, mode) initializes image stats
+        %   using specified mode. mode can be 'initialize' (default) or 
+        %   'reset'
+        
+            if nargin < 2
+                mode = 'initialize';
+            end
+        
             % Check if image stats already exist for this datalocation
             filePath = obj.getDataFilePath('ImageStats', '-w', ...
                 'Subfolder', 'raw_image_info', 'IsInternal', true);
             
-            if isfile(filePath)
+            if isfile(filePath) && ~strcmp(mode, 'reset')
                 S = obj.loadData('ImageStats');
             else
                 
@@ -128,6 +141,10 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
             end
             
             obj.ImageStats = S;
+            
+            if ~nargout 
+                clear S
+            end
 
         end
         
