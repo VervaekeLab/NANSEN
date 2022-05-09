@@ -34,6 +34,10 @@ classdef MetaTableColumnFilter < handle
         MetaTableChangedListener
     end
     
+    events
+        FilterUpdated
+    end
+    
     
     methods % Constructor
         
@@ -49,10 +53,10 @@ classdef MetaTableColumnFilter < handle
             %obj.ComponentPanel = appRef.hLayout.SidePanel;
             
             % Add listener on metatable property set
-            l = addlistener(uiTable, 'MetaTable', 'PostSet', @(s,e) obj.onMetaTableChanged);
-            obj.MetaTableChangedListener = l;
+            %l = addlistener(uiTable, 'MetaTable', 'PostSet', @(s,e) obj.onMetaTableChanged);
+            %obj.MetaTableChangedListener = l;
             
-            if ~isempty(obj.MetaTableUi.MetaTable)
+            if isa(obj.MetaTableUi.MetaTable, 'table')
                 obj.onMetaTableChanged()
             end
         end
@@ -71,20 +75,13 @@ classdef MetaTableColumnFilter < handle
         
         function onMetaTableChanged(obj)
         %onMetaTableChanged Make necessary updates to property values.
+            obj.deleteFilterControls()
+            obj.reinitializeFilterControlProperties()
+        end
         
-            % Get the variable names of the metatable
-            varNames = obj.MetaTableUi.MetaTable.Properties.VariableNames;
-            numColumns = numel(varNames);
-            
-            if ~isempty(obj.hColumnFilterPopups)
-                cellfun(@(c) delete(c), obj.hColumnFilterPopups)
-            end
-            
-            obj.hColumnFilterPopups = cell(numColumns,1);
-            
-            obj.columnFilterType = repmat({'N/A'}, numColumns, 1);
-            obj.isColumnFilterActive = false(numColumns,1);
-            obj.isColumnFilterDirty = false(numColumns,1);
+        function onMetaTableUpdated(obj)
+        %onMetaTableUpdated Callback for when metatable is updated    
+            obj.updateColumnFilter()
         end
         
         function openFilterControl(obj, columnIdx)
@@ -92,9 +89,10 @@ classdef MetaTableColumnFilter < handle
         
             if ~isempty(obj.hColumnFilterPopups{columnIdx})
                 if obj.isColumnFilterDirty(columnIdx)
-                    obj.refreshFilterControls(columnIdx)
                     obj.isColumnFilterDirty(columnIdx) = false;
                 end
+                obj.refreshFilterControls(columnIdx)
+
                 if strcmp(obj.PopupLocation, 'header')
                     pos = obj.getDropdownPosition(columnIdx);
                     obj.hColumnFilterPopups{columnIdx}.Position(1:2) = pos(1:2);
@@ -104,6 +102,25 @@ classdef MetaTableColumnFilter < handle
             else
                 obj.initializeColumnFilterControl(columnIdx);
             end
+        end
+        
+        function deleteFilterControls(obj)
+            if ~isempty(obj.hColumnFilterPopups)
+                cellfun(@(c) delete(c), obj.hColumnFilterPopups)
+            end
+        end
+        
+        function reinitializeFilterControlProperties(obj)
+            % Get the variable names of the metatable
+            varNames = obj.MetaTableUi.MetaTable.Properties.VariableNames;
+            numColumns = numel(varNames);
+            
+            obj.hColumnFilterPopups = cell(numColumns,1);
+            
+            obj.columnFilterType = repmat({'N/A'}, numColumns, 1);
+            obj.isColumnFilterActive = false(numColumns,1);
+            obj.isColumnFilterDirty = false(numColumns,1);
+            
         end
         
         function initializeColumnFilterControl(obj, columnIdx)
@@ -193,23 +210,41 @@ classdef MetaTableColumnFilter < handle
             rowIdx = find( all(obj.MetaTableUi.DataFilterMap, 2) );
             
             % Need table column data.
-            columnData = obj.MetaTable(rowIdx, columnIdx);
+            columnData = obj.MetaTable(:, columnIdx);
             
             switch obj.columnFilterType{columnIdx}
                 case 'multiSelection'
                     uniqueColumnData = unique(columnData);
                     filterChoices = cat(1, 'Show All', uniqueColumnData);
+                     
+                    % Need to store current width because setting the
+                    % string propery will resize the width of the control.
+                    width = obj.hColumnFilterPopups{columnIdx}.Position(3);
                     
+                    % Store currently selected values
+                    oldValue = obj.hColumnFilterPopups{columnIdx}.Value;
+                    oldString = obj.hColumnFilterPopups{columnIdx}.String(oldValue);
+
                     obj.hColumnFilterPopups{columnIdx}.String = filterChoices;
-                    obj.hColumnFilterPopups{columnIdx}.Value = 1;
+                    
+                    % Reset selection:
+                    [~, iA] = intersect(filterChoices, oldString, 'stable');
+                    obj.hColumnFilterPopups{columnIdx}.Value = iA;
+                    
+                    % Reset width to original value
+                    obj.hColumnFilterPopups{columnIdx}.Position(3) = width;
             end
         end
         
-        function onColumnFilterUpdated(obj, src, evt, columnIdx)
-        %onColumnFilterUpdated Update table data when column filter changes
+        function onColumnFilterValueChanged(obj, src, evt, columnIdx, skipNotify)
+        %onColumnFilterValueChanged Update table data when column filter changes
         
         % Todo: make widgets specifications (which widget to use) part of
         % the table variable class specification
+        
+            if nargin < 5
+                skipNotify = false; % Todo: Should make another method, so that this is not needed
+            end
         
             %colInd = obj.getCurrentColumnSelection();
             T = obj.MetaTable;
@@ -293,30 +328,37 @@ classdef MetaTableColumnFilter < handle
                     obj.MetaTableUi.DataFilterMap(:, columnIdx) = TF;
                     
             end
+                        
+            if ~skipNotify
+                evtData = event.EventData;
+                obj.notify('FilterUpdated', evtData)
+            end
             
-            obj.MetaTableUi.updateTableView()
             obj.isColumnFilterDirty(:) = true;
+        end
+        
+        function updateColumnFilter(obj)
+        %updateColumnFilter Update the column filter.   
+            [numRows, numColumns] = size(obj.MetaTable); 
+            obj.MetaTableUi.DataFilterMap = true(numRows, numColumns);
             
-% % %             keepRows = all(obj.MetaTableUi.DataFilterMap, 2);
-% % %             T = T(keepRows, :);
-% % %             
-% % %             % Todo: should not have to do this every time...
-% % %             %T = obj.formatTableData(T);
-% % %             
-% % %             obj.hTableView.Data = table2cell(T);
-% % %             
-% % %             % Matlab uitable automatically resets rowheight when Data
-% % %             % property is updated....
-% % %             obj.refreshRowHeight();
-% % %             
-% % %             %obj.refreshTableModel()
+            % (mis)use the onColumnFilterValueChanged to update the filters
+            % and add the optional flag for skipping event notification. 
+            for i = 1:numColumns
+                if ~isempty(obj.hColumnFilterPopups{i})
+                    obj.onColumnFilterValueChanged([],[],i,true)
+                end
+            end
         end
         
         function resetFilters(obj)
-            
+        %resetFilters Reset all filters (and filter controls)
+        
             obj.MetaTableUi.DataFilterMap = [];
             obj.isColumnFilterDirty(:) = true;
-            obj.MetaTableUi.updateTableView()
+            
+            evtData = event.EventData;
+            obj.notify('FilterUpdated', evtData)
             
             % Reset filter controls
             for i = 1:numel(obj.hColumnFilterPopups)
@@ -371,7 +413,7 @@ classdef MetaTableColumnFilter < handle
             h.Units = 'pixels';
             %h.Position = pos;
             
-            h.Callback = @(s,e,i) obj.onColumnFilterUpdated(s,e,columnIdx);
+            h.Callback = @(s,e,i) obj.onColumnFilterValueChanged(s,e,columnIdx);
                         
             obj.hColumnFilterPopups{columnIdx} = h;
             
@@ -394,7 +436,7 @@ classdef MetaTableColumnFilter < handle
             h.Position(2) = position(2) + position(4) - h.Position(4);
             h.Position(3) = max([75, position(3) * 1.25]);
             
-            h.Callback = @(s,e,i) obj.onColumnFilterUpdated(s,e,columnIdx);
+            h.Callback = @(s,e,i) obj.onColumnFilterValueChanged(s,e,columnIdx);
             h.giveFocus()
         end
         
@@ -410,7 +452,7 @@ classdef MetaTableColumnFilter < handle
             
             if h.Position(3) < 200; h.Position(3) = 200; end
             
-            h.Callback = @(s,e,i) obj.onColumnFilterUpdated(s,e,columnIdx);
+            h.Callback = @(s,e,i) obj.onColumnFilterValueChanged(s,e,columnIdx);
         end
         
         function h = createRangeSelector(obj, dataRange, columnIdx)
@@ -425,7 +467,7 @@ classdef MetaTableColumnFilter < handle
             h.Position(3) = max([position(3), 200]);
             h.Position(2) = position(2) - 10;
             
-            h.Callback = @(s,e,i) obj.onColumnFilterUpdated(s,e,columnIdx);
+            h.Callback = @(s,e,i) obj.onColumnFilterValueChanged(s,e,columnIdx);
         end
         
         function h = createDateIntervalSelector(obj, columnIdx)
@@ -435,7 +477,7 @@ classdef MetaTableColumnFilter < handle
             position(2) = position(2) - 210; %230 is height of date panel...
             h = uics.DateRangeSelector('Parent', hParent);
             h.Position(1:2) = position(1:2);
-            h.Callback = @(s,e,i) obj.onColumnFilterUpdated(s,e,columnIdx);
+            h.Callback = @(s,e,i) obj.onColumnFilterValueChanged(s,e,columnIdx);
         end
         
         function position = getDropdownPosition(obj, columnIdx)

@@ -68,10 +68,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         MetaTableVariableAttributes % Struct with attributes of metatable variables.
     end
     
-    properties %(Access = private)
+    properties (SetAccess = private)
         ColumnModel             % Class instance for updating columns based on user preferences.
         ColumnFilter            % Class instance for filtering data based on column variables.
-        
+    end
+    
+    properties %(Access = private)
         DisplayedRows % Rows of the original metatable which are currently displayed (not implemented yet)
         DisplayedColumns % Columns of the original metatable which are currently displayed (not implemented yet)
         
@@ -85,6 +87,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         DataFilterMap = []  % Boolean "map" (numRows x numColumns) with false for cells that is outside filter range
         ExternalFilterMap = [] % Boolean vector with rows that are "filtered" externally. Todo: Formalize this better.
+        FilterChangedListener event.listener
         
         ColumnWidthChangedListener
         ColumnsRearrangedListener
@@ -107,7 +110,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     methods % Structors
         
         function obj = MetaTableViewer(varargin)
-            
+        %MetaTableViewer Construct for MetaTableViewer
+        
             % Take care of input arguments.
             obj.parseInputs(varargin)
             
@@ -123,9 +127,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
             
             obj.ColumnFilter = nansen.ui.MetaTableColumnFilter(obj, obj.AppRef);
-
         end
-        
+       
         function delete(obj)
             if ~isempty(obj.HTable) && isvalid(obj.HTable)
                 columnWidths = obj.HTable.ColumnWidth;
@@ -162,6 +165,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
        
+        function set.ColumnFilter(obj, newValue)
+            obj.ColumnFilter = newValue;
+            if ~isempty(newValue)
+                obj.onColumnFilterSet()
+            end
+        end
+            
         function set.ShowIgnoredEntries(obj, newValue)
             
             assert(islogical(newValue), 'Value for ShowIgnoredEntries must be a boolean')
@@ -264,7 +274,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         function updateVisibleRows(obj, rowInd)
 
-            [numRows, numColumns] = size(obj.MetaTable);
+            [numRows, ~] = size(obj.MetaTable);
             obj.ExternalFilterMap = false(numRows, 1);
             obj.ExternalFilterMap(rowInd) = true;
             
@@ -278,7 +288,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             % Note: If [] is provided as 2nd arg, the table is not reset.
             % This might be used in some cases where the table should be
-            % kept, but the fluchTable flag is provided.
+            % kept, but the flushTable flag is provided.
             
             if nargin >= 2 && ~(isnumeric(newTable) && isempty(newTable))
                 obj.MetaTable = newTable;
@@ -293,11 +303,16 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             if flushTable % Empty table, gives smoother update in some cases
                 obj.HTable.Data = {};
+                obj.DataFilterMap = []; % reset data filter map
+                obj.ColumnFilter.onMetaTableChanged()
+            else
+                if ~isempty(obj.ColumnFilter)
+                    obj.ColumnFilter.onMetaTableUpdated()
+                end
             end
             
             drawnow
             obj.updateColumnLayout()
-            obj.DataFilterMap = []; % reset data filter map
             obj.updateTableView()
             
             drawnow
@@ -308,6 +323,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         function replaceTable(obj, newTable)
             obj.MetaTable = newTable;
+            obj.ColumnFilter.onMetaTableChanged()
             obj.updateTableView()
         end
         
@@ -665,7 +681,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             % Table data should already be formatted
 
-            
             %[~, uiTableRowIdx] = intersect(rows, 1:numRows, 'stable');
             [~, uiTableColIdx] = intersect(1:numColumns, columns, 'stable');
             
@@ -673,8 +688,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.HTable.Visible = 'on';
             drawnow
             
-            evtdata = uiw.event.EventData('RowIndices', rows, 'Type', 'RoiTableFilter');
-            obj.notify('TableUpdated', evtdata)
         end
         
         function changeColumnNames(obj, newNames)
@@ -730,6 +743,34 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             obj.MetaTableVariableAttributes = S;
                         
+        end
+        
+        function onColumnFilterSet(obj)
+        %onColumnFilterSet Callback for property value set.    
+            if ~isempty(obj.FilterChangedListener)
+                delete(obj.FilterChangedListener)
+            end
+            
+            obj.FilterChangedListener = addlistener(obj.ColumnFilter, ...
+                'FilterUpdated', @obj.onFilterUpdated);
+        end
+        
+        function onFilterUpdated(obj, src, evt)
+        %onFilterUpdated Callback for table filter update events
+            
+            obj.updateTableView()
+            
+            if ~isempty(obj.ExternalFilterMap)
+                visibleRows = find( obj.ExternalFilterMap );
+            else
+                visibleRows = 1:size(obj.MetaTableCell, 1);
+            end
+            
+            rows = obj.getCurrentRowSelection(); 
+            rows = intersect(rows, visibleRows, 'stable');
+            
+            evtdata = uiw.event.EventData('RowIndices', rows, 'Type', 'TableFilterUpdate');
+            obj.notify('TableUpdated', evtdata)
         end
         
         function rowInd = getCurrentRowSelection(obj)
