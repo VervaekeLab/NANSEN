@@ -71,7 +71,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     assert(numRois == numRois_, 'roiSignal must have same number or rois as roiarray')
     
     [numRows, numCols, numFrames] = size(imArray);
-    assert(numFrames == numTimepoints, 'Number of frames not matchingnumber of timepoints')
+    assert(numFrames == numTimepoints, 'Number of frames not matching number of timepoints')
     
 
     % % Prepare for computing images
@@ -120,7 +120,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
         % Get image array chunk centered on roi center point
         imArrayChunk = double( imArray(tmpY, tmpX, :) );
         if opt.SubtractBaseline
-            imArrayChunk = imArrayChunk - median(imArrayChunk(:));
+            imArrayChunk = imArrayChunk - mean(imArrayChunk(:));
         end
         
         for jImage = 1:numImages
@@ -259,7 +259,8 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
             fprintf(str)
         end
     end
-    fprintf(newline)
+    
+    if exist('str', 'var'); fprintf(newline); end
     
     if numImages == 1
         roiImageStack = roiImageStack{1};

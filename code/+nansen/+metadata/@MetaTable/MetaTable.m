@@ -454,7 +454,11 @@ classdef MetaTable < handle
                 try % Since we dont know if the function exists, use try/catch
                     tmpObj = typeDef{jColumn}( thisValue );
                     str = tmpObj.getCellDisplayString();
-                catch
+                catch ME
+                    if contains(ME.message, 'rgb2hsv')
+                        warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
+                    end
+                    
                     % Todo: have a better backup if there is no typeDef for column
                     % i.e a general struct viewer...
                     str = repmat({''}, numRows, 1);
