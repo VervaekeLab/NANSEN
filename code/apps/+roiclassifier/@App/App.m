@@ -441,33 +441,59 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             if tileNum > numel(obj.displayedItems); return; end
             
             tileCenter = obj.hTiledImageAxes.getTileCenter(tileNum);
-            
+            tileCenter = obj.hTiledImageAxes.getTileCenterAxesCoords(tileNum);
+
             roiInd = obj.displayedItems(tileNum);
             IM = obj.getRoiImage(roiInd);
             imSize = size(IM);
             
+            % Find the distance between the mouse pointer position and the
+            % center of the current image tile. Correct by 0.5 to go from
+            % axes coordinates to image pixel coordinates. 
+          
+            %Calculate the center offset of the mouse pointer in the
+            % current image. 
             
-            centerOffset = [x, y] - tileCenter;
+            centerOffset = [x, y] - tileCenter + 0.5;
             
             %centerOffset = round(centerOffset);
             %IM = circshift(IM, -fliplr(centerOffset));
             IM = imtranslate(IM, -centerOffset);
             
+            
+% %             persistent f ax hIm
+% %             if isempty(f) || ~isvalid(f)
+% %                 f = figure('Position', [300,300,300,300], 'MenuBar', 'none'); 
+% %                 ax = axes(f, 'Position',[0,0,1,1]);
+% %             else
+% %                 cla(ax)
+% %             end
+% % 
+% %             hIm = imagesc(ax, IM); hold on
+% %             plot(ax, size(IM,2)/2+0.5, size(IM,1)/2+0.5, 'xw')
+            
             switch autodetectionMode
                 case 1
                     %Todo: specify local center... This function should use local
                     %center, not assume to start in center of small image.
-                    [roiMask_, ~] = roimanager.binarize.findRoiMaskFromImage(IM, imSize/2, imSize, 'output', 'mask', 'us', 4);
-                    correction = -[0.5,0];
+                    %[roiMask_, ~] = roimanager.binarize.findRoiMaskFromImage(IM, imSize/2, imSize, 'output', 'mask', 'us', 4);
+                        
+                    roiMask_ = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+
+                    %roiMask = false(imSize);
+                    %roiMask_ = flufinder.utility.placeLocalRoiMaskInFovMask(roiMask_, [x,y], roiMask);
+                    
+% %                     hIm.AlphaData = 1-roiMask_.*0.5;
+                    
                 case {2, 3, 4}
                     roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r(1)*2);
-                    correction = -[1,0.5];
             end
             
             roiMask_ = imtranslate(roiMask_, round(centerOffset)); % + correction);
             %roiMask_ = circshift(roiMask_, centerOffset);
             
             if ~nargout                
+                
                 roiObject = obj.RoiGroup.roiArray(roiInd);
                 [I, J] = roiObject.getThumbnailCoords(imSize);
                 mask = false(roiObject.imagesize);
@@ -489,10 +515,10 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 % persistent hImage
                 
                 roiMask = false(round(fliplr(obj.hTiledImageAxes.axesRange)));
-                xInd = round( (1:imSize(2)) - imSize(2)/2 + tileCenter(1)+0.5);
-                yInd = round( (1:imSize(1)) - imSize(1)/2 + tileCenter(2)+0.5);
+                xInd = round( (1:imSize(2)) - imSize(2)/2 + tileCenter(1)-0.5); % Todo: Why subtract 0.5
+                yInd = round( (1:imSize(1)) - imSize(1)/2 + tileCenter(2)-0.5);
                 roiMask(yInd, xInd) = roiMask_;
-                roiMask = imtranslate(roiMask, [-1,0]);
+                %roiMask = imtranslate(roiMask, [-1,0]);
       
                 
 % %                 if isempty(hImage)
@@ -510,6 +536,15 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             
         end
         
+        function newRoi = autodetectRoi2(obj, x, y, r, autodetectionMode, doReplace)
+            if nargin < 5; autodetectionMode = 1; end
+            
+            if ~nargout
+                obj.autodetectRoi(x, y, r, autodetectionMode, doReplace);
+            else
+                newRoi = obj.autodetectRoi(x, y, r, autodetectionMode, doReplace);
+            end
+        end
         % todo: move to roimanager
         function createCircularRoi(obj, x, y, r)
             
@@ -816,9 +851,9 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             % Get boundary coordinates for all rois. Shift boundary to origo
             % and resize according to upsampling factor.
             boundaryX = arrayfun(@(i) (obj.itemSpecs(i).boundary{1}(:,2) - ...
-                obj.itemSpecs(i).center(1)).* upsampling(1), roiInd, 'uni', 0) ;
+                round(obj.itemSpecs(i).center(1))).* upsampling(1), roiInd, 'uni', 0) ;
             boundaryY = arrayfun(@(i) (obj.itemSpecs(i).boundary{1}(:,1) - ...
-                obj.itemSpecs(i).center(2)).* upsampling(2), roiInd, 'uni', 0) ;
+                round(obj.itemSpecs(i).center(2))).* upsampling(2), roiInd, 'uni', 0) ;
 
             % Send to plotter method in TiledImageAxes Object
             obj.hTiledImageAxes.updateTilePlot(boundaryX, boundaryY, tileNum)
