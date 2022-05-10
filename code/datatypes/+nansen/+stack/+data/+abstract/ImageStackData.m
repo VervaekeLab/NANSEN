@@ -177,9 +177,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                     data = permute(data, obj.StackDimensionOrder);
                     
                     [varargout{:}] = data;
-
             end
-        
         end
         
         function obj = subsasgn(obj, s, data)
@@ -365,19 +363,37 @@ classdef ImageStackData < uim.mixin.assignProperties
 
         end
         
+        function dim = getDataDimensionNumber(obj, dimensionName)
+            dim = strfind(obj.DataDimensionArrangement, dimensionName);
+        end
+        
         function dimLength = getDimLength(obj, dimensionName)
         %getDimLength Get length of dimension given by letter
         %
         %   dimLength = getDimLength(obj, dimensionName) where
         %   dimensionName is 'X', 'Y', 'C', 'Z' or 'T'.
         
-            ind = strfind(obj.DataDimensionArrangement, dimensionName);
+            ind = obj.getDataDimensionNumber(dimensionName);
             
             if isempty(ind)
                 dimLength = 1;
             else
                 dimLength = obj.DataSize(ind);
             end
+        end
+        
+        function dim = getFrameIndexingDimension(obj)
+            
+            if contains(obj.DataDimensionArrangement, 'Z')
+                if contains(obj.DataDimensionArrangement, 'T')
+                    dim = strfind(obj.DataDimensionArrangement, 'T');
+                else
+                    dim = strfind(obj.DataDimensionArrangement, 'Z');
+                end
+            else
+                dim = strfind(obj.DataDimensionArrangement, 'T');
+            end
+            
         end
         
         function subs = rearrangeSubs(obj, subs)

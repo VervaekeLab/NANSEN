@@ -79,9 +79,7 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
             eventData = uim.event.ToggleEvent(0);
             obj.notify('ToggledPointerTool', eventData)
         end
-        
-        
-        
+
         function tf = isPointerInsideAxes(obj, currentPoint)
             
             if nargin < 2
@@ -94,6 +92,14 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
 
             % Check if mousepoint is within axes limits.
             tf = ~any(any(diff([axLim(1:2); currentPoint; axLim(3:4)]) < 0));
+        end
+        
+        function onPointerExitedAxes(obj)
+            % Subclasses may override
+        end
+        
+        function onPointerEnteredAxes(obj)
+            % Subclasses may override
         end
         
     end

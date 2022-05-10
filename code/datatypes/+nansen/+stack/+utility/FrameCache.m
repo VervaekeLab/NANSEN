@@ -32,9 +32,11 @@ classdef FrameCache < handle %< utility.class.StructAdapter
 %           of the dimensions... Not Urgent, Not Important
 %       [ ] Swap names for cachelength and num frames...
 
+
     properties        
         Mode = 'dynamic'        % 'dynamic' or 'static'
         CacheLength = 1000      % Length of the number of frames in cache (in total)
+        LeadingDimension
     end
     
     % Dependent
@@ -77,6 +79,8 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             
             % Will assign mode if any of the varargin is 'static' or 'dynamic'
             obj.getModeFromVarargin(varargin{:});
+            
+            obj.getLeadingDimFromVarargin(varargin{:})
                         
             % Initialize
             if strcmp(obj.Mode, 'dynamic')
@@ -117,8 +121,8 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         function subs = getCacheSubs(obj, frameIndices)
                 
             subs = cell(1, max([3, ndims(obj.Data)]));
-            subs(1:end-1) = {':'};
-            subs{end} = frameIndices;
+            subs(:) = {':'};
+            subs{obj.LeadingDimension} = frameIndices;
 
         end
         
@@ -225,6 +229,19 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             
             if ~nargout
                 clear varargout
+            end
+            
+        end
+        
+        function getLeadingDimFromVarargin(obj, varargin)
+           
+            nvPairs = utility.getnvpairs(varargin);
+            nvPairs = utility.nvpairs2struct(nvPairs);
+            
+            if isfield(nvPairs, 'LeadingDimension')
+                obj.LeadingDimension = nvPairs.LeadingDimension;
+            else
+                obj.LeadingDimension = numel(obj.DataSize);
             end
             
         end

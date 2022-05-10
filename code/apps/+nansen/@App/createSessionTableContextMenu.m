@@ -25,6 +25,7 @@ function createSessionTableContextMenu(app)
     % Create a context menu
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Open Session Folder');
     
+    
     % Get available datalocations from a session object
     if contains('DataLocation', app.MetaTable.entries.Properties.VariableNames )
         if ~isempty(app.MetaTable.entries)
@@ -41,8 +42,8 @@ function createSessionTableContextMenu(app)
     end
     
     % % Todo... Create method for adding session to other databases....
-    %m0 = uimenu(hContextMenu, 'Text', 'Add to Database', 'Tag', 'Add to Database', 'Separator', 'on');
-    %app.updateRelatedInventoryLists(m0)
+    m0 = uimenu(hContextMenu, 'Text', 'Add to Metatable', 'Tag', 'Add to Metatable');
+    app.updateRelatedInventoryLists(m0)
 
     
     c = c + 1;

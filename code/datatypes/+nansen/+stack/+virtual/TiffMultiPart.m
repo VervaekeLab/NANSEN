@@ -1,31 +1,40 @@
 classdef TiffMultiPart < nansen.stack.data.VirtualArray
-%
+%TiffMultiPart Create virtual data for tiff stacks from multiple files
 %
 %   Works for set (data split across multiple files) of multipage tiff files.
 
-    % Todo: work with many parts
-    % [ ] implement writable...
-    % [ ] Create a property for keeping a list of multiple filepaths.
-    %     FilePath property should be reserved for a single filepath.
-    % [ ] Detect if other files are located in same location
+
+    % Todo:
+    % [ ] Implement writable...
+    % [ ] Test that multi plane/ multi channel works with any kind of
+    %     dimension arrangement
     
     
 properties (Constant, Hidden)
     FILE_PERMISSION = 'write'
 end
 
-properties (Access = private, Hidden)
+properties (Access = protected, Hidden)
     tiffObj Tiff
     fileSize    
 end
 
-properties (Access = private, Hidden) % File Info
+properties (Access = protected)
+    FrameDeinterleaver
+    InterleavedDimensions
+end
+
+properties (Access = protected, Hidden) % File Info
     NumFrames % Channels x Timepoints x nPlanes
     FilePathList = {} % Keep list of all filepaths if multiple tiff files are open.
     
     numFiles
     numFramesPerFile
     frameIndexInfo
+end
+
+properties (Access = protected)
+    ChannelMode = '' % multisample, interleaved, multipart
 end
 
 
@@ -71,6 +80,15 @@ methods (Access = protected) % Implementation of abstract methods
             obj.tiffObj = Tiff(obj.FilePath, 'r+');
         end
         
+        % Make sure lists are column vectors
+        if isrow(obj.FilePathList)
+            obj.FilePathList = obj.FilePathList';
+        end
+        
+        if isrow(obj.tiffObj)
+            obj.tiffObj = obj.tiffObj';
+        end
+        
     end
     
     function getFileInfo(obj)
@@ -86,40 +104,62 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function createMemoryMap(obj)
-        % Skip. Tiff objects are creating in assignFilePath method
+        % Tiff objects for each file was already assigned in
+        % assignFilePath, here we just assign the mapping from frame number
+        % to file part
+        
+        obj.createFrameIndexMap()
+        
+        if strcmp(obj.ChannelMode, 'multisample')
+            % Todo: Test that this works
+            dims = 4:numel(obj.DataSize);
+        else
+            dims = 3:numel(obj.DataSize);
+        end
+        
+        obj.InterleavedDimensions = dims;
+        obj.FrameDeinterleaver = nansen.stack.Deinterleaver(...
+            obj.DataDimensionArrangement(dims), obj.DataSize(dims));
+        
     end
     
     function assignDataSize(obj)
                         
         % Get image dimensions and create empty array
-        obj.DataSize(1) = obj.tiffObj(1).getTag('ImageLength');
-        obj.DataSize(2) = obj.tiffObj(1).getTag('ImageWidth');
-        numChannels = obj.tiffObj(1).getTag('SamplesPerPixel');
+        stackSize(1) = obj.tiffObj(1).getTag('ImageLength');
+        stackSize(2) = obj.tiffObj(1).getTag('ImageWidth');
         
-        obj.DataDimensionArrangement = 'YX';
+        % Need to assign this before counting number of frames
+        obj.DataSize = stackSize;
+        
+        stackSize(3) = obj.detectNumberOfChannels();
+        stackSize(4) = obj.detectNumberOfPlanes();
 
-        obj.countNumFrames();
-        numPlanes = 1; % Todo: Add this from metadata.
-        numTimepoints = obj.NumFrames;
+        numFrames = obj.countNumFrames();
+        stackSize(5) = numFrames / stackSize(3) / stackSize(4);
         
-        % Add length of channels if there is more than one channel
-        if numChannels > 1
-            obj.DataSize = [obj.DataSize, numChannels];
-            obj.DataDimensionArrangement(end+1) = 'C';
+        % Find singleton dimensions.
+        isSingleton = stackSize == 1;
+        
+        % Get arrangement of dimensions of data
+        try
+            dataDimensionArrangement = obj.DATA_DIMENSION_ARRANGEMENT;
+        catch
+            dataDimensionArrangement = obj.DEFAULT_DIMENSION_ARRANGEMENT;
         end
         
-        % Add length of planes if there is more than one plane
-        if numPlanes > 1
-            obj.DataSize = [obj.DataSize, numPlanes];
-            obj.DataDimensionArrangement(end+1) = 'Z';
-        end
+        % Get order of dimensions of data
+        [~, ~, dimensionOrder] = intersect( obj.DEFAULT_DIMENSION_ARRANGEMENT, ...
+            dataDimensionArrangement, 'stable' );
         
-        % Add length of sampling dimension.
-        if numTimepoints >= 1
-            obj.DataSize = [obj.DataSize, numTimepoints];
-            obj.DataDimensionArrangement(end+1) = 'T';
-        end
-
+        % Rearrange beased on dimension order
+        isSingleton_(dimensionOrder) = isSingleton;
+        dataSize(dimensionOrder) = stackSize;
+        
+        % Assign size and dimension arrangement for data excluding
+        % singleton dimension.
+        obj.DataSize = dataSize(~isSingleton_);
+        obj.DataDimensionArrangement = dataDimensionArrangement(~isSingleton_);
     end
     
     function assignDataType(obj)
@@ -149,19 +189,126 @@ methods (Access = protected) % Implementation of abstract methods
     
 end
 
+methods (Access = protected)
+    
+    function numChannels = detectNumberOfChannels(obj)
+        
+        nSamplesPerPixel = obj.tiffObj(1).getTag('SamplesPerPixel');
+        
+        if nSamplesPerPixel > 1
+            numChannels = nSamplesPerPixel;
+            obj.ChannelMode = 'multisample';
+        else
+            numChannels = 1;
+        end
+        
+    end
+    
+    function numFrames = countNumFrames(obj)
+    %countNumFrames 
+    %
+    % Making some assumptions here to speed things up. 
+    %   1) Number of frames depends on filesize (file not compressed)
+    %   2) If there are many files, files with same filesize have same
+    %   frame number
+        
+        import nansen.stack.utility.findNumTiffDirectories
+        obj.numFramesPerFile = [];
+        
+        for i = 1:size(obj.FilePathList, 1)
+            skipCount = false;
+           
+            % Estimate number of frames based on file size.
+            n = obj.estimateNumberOfFrames(i);
+            
+            if i > 1
+                if obj.fileSize(i) == obj.fileSize(i-1)
+                    obj.numFramesPerFile(i) = obj.numFramesPerFile(i-1);
+                    n = obj.numFramesPerFile(i);
+                    skipCount = true;
+                end
+            end
+
+            if ~skipCount
+                n = findNumTiffDirectories(obj.tiffObj(i), 1, 10000);
+            end
+
+            obj.numFramesPerFile(i) = n;
+        end
+        
+        % Todo: Add support for z dimension
+        if size(obj.FilePathList, 2) > 1
+            numRepeat = size(obj.FilePathList, 2);
+            obj.numFramesPerFile = repmat(obj.numFramesPerFile, 1, numRepeat);
+        end
+        
+        numFrames = sum(obj.numFramesPerFile);
+        obj.NumFrames = numFrames;
+        
+    end
+    
+    function n = estimateNumberOfFrames(obj, fileNum)
+    %estimateNumberOfFrames based on fileSize
+        
+        if nargin < 2; fileNum = 1; end
+    
+        L = dir(obj.FilePathList{fileNum});
+        obj.fileSize(fileNum) = L.bytes;
+        
+        bytesPerSample = obj.tiffObj(fileNum).getTag('BitsPerSample') ./ 8;
+        bytesPerFrame = obj.DataSize(1) .* obj.DataSize(2) .* bytesPerSample;
+        
+        samplesPerPixel = obj.tiffObj(fileNum).getTag('SamplesPerPixel');
+        
+     	n = floor( obj.fileSize(fileNum) ./ bytesPerFrame ./ samplesPerPixel );
+        
+        n = max([n, 1]); % Ad hoc, for single compressed tiffs, saved using imwrite.
+    end
+    
+    function createFrameIndexMap(obj)
+    %createFrameIndexMap Create a mapping from frame number to file part    
+        
+        obj.frameIndexInfo = struct('frameNum', [], 'fileNum', [], 'frameInFile', []);
+
+        count = 0;
+        
+        for i = 1:numel(obj.FilePathList)
+            
+            n = obj.numFramesPerFile(i);
+            currentInd = count + (1:n);
+            
+            obj.frameIndexInfo.frameNum(currentInd) = currentInd; % Not really needed.
+            obj.frameIndexInfo.fileNum(currentInd) = i;
+            obj.frameIndexInfo.frameInFile(currentInd) = 1:n;
+            
+            count = count + n;
+        end
+    end
+    
+end
 
 
-methods % Implementation of abstract methods
+methods % Implementation of abstract methods for readin/writing
     
     function data = readData(obj, subs)
-        
+    %readData Reads data from multipart tiff file
+    %
+    %   See also nansen.stack.data.VirtualArray/readData
+    
         % Special case for single frame image
         if ndims(obj) == 2 %#ok<ISMAT>
             frameInd = 1;
         else
-            frameInd = subs{end};
+            dims = obj.InterleavedDimensions;
+            frameInd = obj.FrameDeinterleaver.Map(subs{dims});
         end
+       
         data = obj.readFrames(frameInd);
+        
+        % Deinterleave frames:
+        data = obj.FrameDeinterleaver.deinterleaveData(data, subs);
+        % Crop frames:
+        data = obj.cropData(data, subs);
     end
 
     function data = readFrames(obj, frameInd)
@@ -169,18 +316,21 @@ methods % Implementation of abstract methods
         global waitbar
         useWaitbar = false;
         if ~isempty(waitbar); useWaitbar = true; end
-        
-        % Determine size of requested data
-        stackSize = obj.DataSize;
-        stackSize(end) = numel(frameInd);
 
+        % Determine size of requested data
+        if strcmp(obj.ChannelMode, 'multisample')
+            dataSize = [obj.DataSize(1:3), numel(frameInd)];
+        else
+            dataSize = [obj.DataSize(1:2), numel(frameInd)];
+        end
+        
         % Preallocate data
-        data = zeros(stackSize, obj.DataType);
-        insertSub = repmat({':'}, 1, numel(stackSize));
+        data = zeros(dataSize, obj.DataType);
+        insertSub = arrayfun(@(n) 1:n, dataSize, 'uni', 0);
         
         if useWaitbar
             waitbar(0, 'Loading image frames')
-            updateRate = round(stackSize(end)/50);
+            updateRate = round(dataSize(end)/50);
         end
         
         % Loop through frames and load into data.
@@ -200,7 +350,7 @@ methods % Implementation of abstract methods
             
             if useWaitbar
                 if mod(i, updateRate) == 0
-                    waitbar(i/stackSize(end), 'Loading image frames')
+                    waitbar(i/dataSize(end), 'Loading image frames')
                 end
             end
 
@@ -212,8 +362,6 @@ methods % Implementation of abstract methods
         %error('Not implemented yet')
         obj.writeFrameSet(data, frameIndices)
     end
-    
-    
     
     function writeFrameSet(obj, data, frameIndices, subs)
         
@@ -262,110 +410,6 @@ methods % Implementation of abstract methods
 end
 
 
-methods % Override superclass methods
-    
-    function assignDataClass(obj)
-        % Todo: what if it is int? What if single or double?    
-    
-        sampleFormat = obj.tiffObj(1).getTag('SampleFormat');
-        bitsPerSample = obj.tiffObj(1).getTag('BitsPerSample');
-        
-        switch sampleFormat
-            case 1
-                obj.DataType = sprintf('uint%d', bitsPerSample);
-            case 2
-                obj.DataType = sprintf('int%d', bitsPerSample);
-            case 3
-                if bitsPerSample == 32
-                    obj.DataType = 'single';
-                elseif bitsPerSample == 64
-                    obj.DataType = 'double';
-                else
-                    error('Sampleformat is not supported')
-                end
-                
-            otherwise
-                error('Tiff file is not supported')
-        end
-
-    
-    end
-    
-end
-
-
-methods
-    
-    function countNumFrames(obj)
-    %countNumFrames 
-    %
-    % Making some assumptions here to speed things up. 
-    %   1) Number of frames depends on filesize (file not compressed)
-    %   2) If there are many files, files with same filesize have same
-    %   frame number
-        
-        import nansen.stack.utility.findNumTiffDirectories
-    
-        obj.NumFrames = 0;
-        
-        obj.frameIndexInfo = struct('frameNum', [], 'fileNum', [], 'frameInFile', []);
-        
-        for i = 1:obj.numFiles
-            skipCount = false;
-            
-            % Get number of frames
-            %initialFrame = obj.tiffObj(i).currentDirectory();
-
-            % Todo: Add safety margin...
-            n = obj.estimateNumberOfFrames(i);
-            
-            if i > 1
-                if obj.fileSize(i) == obj.fileSize(i-1)
-                    obj.numFramesPerFile(i) = obj.numFramesPerFile(i-1);
-                    n = obj.numFramesPerFile(i);
-                    skipCount = true;
-                end
-            end
-
-            if ~skipCount
-                n = findNumTiffDirectories(obj.tiffObj(i), 1, 10000);
-            end
-            
-            currentInd = obj.NumFrames + (1:n);
-            
-            obj.frameIndexInfo.frameNum(currentInd) = currentInd;
-            obj.frameIndexInfo.fileNum(currentInd) = i;
-            obj.frameIndexInfo.frameInFile(currentInd) = 1:n;
-
-            obj.NumFrames = obj.NumFrames + n;
-            obj.numFramesPerFile(i) = n;
-            %obj.tiffObj(i).setDirectory(initialFrame);
-            
-        end
-        
-    end
-    
-    function n = estimateNumberOfFrames(obj, fileNum)
-    %estimateNumberOfFrames based on fileSize
-        
-        if nargin < 2; fileNum = 1; end
-    
-        L = dir(obj.FilePathList{fileNum});
-        obj.fileSize(fileNum) = L.bytes;
-        
-        bytesPerSample = obj.tiffObj(fileNum).getTag('BitsPerSample') ./ 8;
-        bytesPerFrame = obj.DataSize(1) .* obj.DataSize(2) .* bytesPerSample;
-        
-        samplesPerPixel = obj.tiffObj(fileNum).getTag('SamplesPerPixel');
-        
-     	n = floor( obj.fileSize(fileNum) ./ bytesPerFrame ./ samplesPerPixel );
-        
-        n = max([n, 1]); % Ad hoc, for single compressed tiffs, saved using imwrite.
-    end
-    
-end
-
-
 methods (Static)
 
     function createFile(filePath, varargin)
@@ -403,6 +447,10 @@ methods (Static)
             end
             L = dir(fullfile(folder, ['*', ext]));
             
+            keep = ~ strncmp({L.name}, '.', 1);
+            L = L(keep);
+            
+            % If many files are found and all filenames are same length
             if numel(L) > 1 && numel( unique(cellfun(@numel, {L.name})) ) == 1
                 filepath = fullfile({L.folder}, {L.name});
             end

@@ -44,7 +44,8 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
         refrenceSessionID = dataLocationModel.getSessionID(referencePathStr);
         
         tmpList = blankList;
-        
+        tmpList.(dataLocationNames{1}) = referencePathStr;
+
         for j = 2:numel(dataLocationNames)
 
             jSessionFolderList = sessionFolderListCell{j};
@@ -75,8 +76,12 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
             end
         end
         
+        matchCount = matchCount + 1;
+
         if wasMatched
-            matchCount = matchCount + 1;
+            sessionFolderListOut(matchCount) = tmpList;
+            sessionIDs{matchCount} = refrenceSessionID;
+        else
             sessionFolderListOut(matchCount) = tmpList;
             sessionIDs{matchCount} = refrenceSessionID;
         end

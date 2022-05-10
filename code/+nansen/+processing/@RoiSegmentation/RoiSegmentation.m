@@ -168,6 +168,10 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             
         end
         
+        function saveResults(obj)
+            % Subclasses may override
+        end
+        
         function mergeResults(obj)
             % Subclasses may override
         end

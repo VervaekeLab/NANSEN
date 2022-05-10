@@ -214,6 +214,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                     obj.hChannelForeground(i).PickableParts = 'none';
                     obj.hChannelForeground(i).HitTest = 'off';
                     obj.hChannelForeground(i).Tag = 'ButtonForeground';
+                    set(obj.hChannelForeground(i), 'Visible', 'off')
                     obj.setPointerBehavior(obj.hChannelForeground(i))
                 else
                     set(obj.hChannelForeground(i), 'XData', X+x0, 'YData', Y+y0)
@@ -245,6 +246,8 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                     obj.hChannelForeground(channelNum).Color = ones(1,3)*0.8;
                 end
             end
+            set(obj.hChannelForeground, 'Visible', 'off')
+
             
         end
         
