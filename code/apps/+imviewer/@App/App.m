@@ -2888,29 +2888,32 @@ methods % Misc, most can be outsourced
         
         while obj.isPlaying
 
-            if obj.currentFrameNo >= obj.nFrames - (obj.playbackspeed+1)
-                obj.currentFrameNo = 1;
-                initialFrame = 1;
-                tBegin = tic;
-            elseif currentPlaybackSpeed ~= obj.playbackspeed
+            if currentPlaybackSpeed ~= obj.playbackspeed
                 currentPlaybackSpeed = obj.playbackspeed;
                 initialFrame = obj.currentFrameNo;
                 tBegin = tic;
             end
             
             t1 = tic;
-
+            
             elapsedTime = toc(tBegin);
             elapsedFrames = round( elapsedTime ./ dt .* obj.playbackspeed );
 
+            newFrame = initialFrame + elapsedFrames;
             
+            if newFrame >= obj.nFrames
+                obj.currentFrameNo = 1;
+                initialFrame = 1;
+                tBegin = tic;
+            end
+            
+
             if obj.playbackspeed >= 1
                 src.Value = obj.playbackspeed;
             else
                 src.Value = 1;
             end
-            
-            newFrame = initialFrame + elapsedFrames;
+
             obj.changeFrame(struct('String', num2str(newFrame)), [], 'playvideo')
             drawnow
             
@@ -2920,8 +2923,6 @@ methods % Misc, most can be outsourced
             else
                 pause(dt - t2)
             end
-            
-
         end
         
     end
@@ -4465,6 +4466,27 @@ methods (Access = private) % Housekeeping and internal
         obj.displayMessage('The plane montage view is experimental, and some things will not work as expected')
     end
 
+    function changeVolumeDisplayMode(obj)
+        
+        newMode = obj.settings.ImageDisplay.VolumeDisplayMode;
+
+        if obj.ImageStack.NumChannels == 1 && ~strcmp(newMode, 'Single Plane')
+            obj.displayMessage('This stack does not have multiple planes.')
+            return
+        end
+        
+        switch newMode
+            case 'Single Plane'
+                obj.currentPlane = 1;
+            case {'Plane Projection', 'Plane Montage'}
+                if strcmp(newMode, 'Plane Montage')
+                    obj.configureZPlaneMontageView()
+                end
+
+                obj.currentPlane = 1:obj.ImageStack.NumPlanes;
+        end
+    end
+    
 end
 
 methods (Access = protected) % Event callbacks
@@ -4551,28 +4573,8 @@ methods (Access = protected) % Event callbacks
                 obj.uiwidgets.Toolbar.Location = value;
                 
             case 'VolumeDisplayMode'
-                
-                if obj.ImageStack.NumChannels == 1 && ~strcmp(value, 'Single Plane')
-                    obj.displayMessage('This stack does not have multiple planes.')
-                    return
-                end
-                
                 obj.settings.ImageDisplay.VolumeDisplayMode = value;
-                switch value
-                    case 'Single Plane'
-                        obj.currentPlane = 1;
-                    case {'Plane Projection', 'Plane Montage'}
-                        if strcmp(value, 'Plane Montage')
-                            obj.configureZPlaneMontageView()
-                        end
-                        
-                        obj.currentPlane = 1:obj.ImageStack.NumPlanes;
-                        
-                end
-                %obj.updateImage()
-                %obj.updateImageDisplay()
-                
-                %obj.changeVolumeDisplayMode()
+                obj.changeVolumeDisplayMode()
         end
     end
 
