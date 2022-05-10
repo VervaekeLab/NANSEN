@@ -3838,7 +3838,6 @@ methods % Misc, most can be outsourced
             imData = obj.ImageStack.getFrameSet(frameInd); %Todo!
         end
         
-        
         obj.uiwidgets.msgBox.deactivateGlobalWaitbar()
         obj.clearMessage()
 
@@ -4627,7 +4626,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         y = mousePoint(2);
         
         
-        if x > 1 && x < obj.imWidth && y > 1 && y < obj.imHeight
+        if x >= 1 && x <= obj.imWidth && y >= 1 && y <= obj.imHeight
             % Get pixelvalue for text display
             pixelValueStr = obj.getPixelValueAtCoordsAsString([x, y]);
             obj.textStrings.CursorPoint = pixelValueStr;
