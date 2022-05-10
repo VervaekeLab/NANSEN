@@ -109,9 +109,9 @@ methods (Access = protected) % Implementation of abstract methods
         % Specify data dimension sizes
         obj.MetaData.SizeX = S.xpixels;
         obj.MetaData.SizeY = S.ypixels;
-        obj.MetaData.SizeZ = 1; % Todo: Add this from recording info.
+        obj.MetaData.SizeZ = S.nPlanes;
         obj.MetaData.SizeC = S.nChannels;
-        obj.MetaData.SizeT = S.nFrames;
+        obj.MetaData.SizeT = S.nFrames/S.nPlanes;
         
         % Specify physical sizes
         obj.MetaData.SampleRate = S.fps;
@@ -131,6 +131,8 @@ methods (Access = protected) % Implementation of abstract methods
         obj.assignDataType()
         
     end
+    
+    
     
     function createMemoryMap(obj)
         
@@ -239,6 +241,16 @@ methods % Subclass specific methods
         metadata.ypixels = obj.readinivar(inistring,'y.pixels');
         metadata.fps = obj.readinivar(inistring,'frames.p.sec');
         metadata.dt = 1/metadata.fps;
+        
+        metadata.isPiezoActive = obj.readinivar(inistring, 'piezo.active');
+        if metadata.isPiezoActive
+            metadata.nPlanes =  obj.readinivar(inistring, 'frames.per.z.cycle');
+        else
+            metadata.nPlanes = 1;
+        end
+        
+        % Todo: Read number of planes for zstacks...
+
         metadata.nFrames = obj.readinivar(inistring, 'no.of.frames.acquired');
 
         % Get spatial parameters for recording
@@ -280,7 +292,7 @@ methods % Subclass specific methods
 %         metadata.channelColor = {};
         for ch = 1:4
             chExpr = sprintf('save.ch.%d', ch);
-            if strcmp(strtrim(obj.readinivar(inistring, chExpr)), 'TRUE')
+            if obj.readinivar(inistring, chExpr) % save channel n = true/false
                 metadata.nChannels = metadata.nChannels + 1;
                 metadata.channelNumbers(end+1) = ch;
 %                 metadata.channelNames{end+1} = ['Ch', num2str(ch)];
@@ -313,13 +325,20 @@ methods (Static)
 
             for i=2:length(s2)
                 if sum(size(strtrim(s2{i})))
-                    varvalue = regexprep(s2{i}, ',', '.');
-                    varvalue = str2num(varvalue);
-                    if ~isempty(varvalue)
-                        break
+                    
+                    varvalue = strtrim(s2{i});
+                    varvalue = regexprep(varvalue, ',', '.');
+                    
+                    if any( strcmp(varvalue, {'TRUE', 'FALSE'}) )
+                        varvalue = eval(lower(varvalue));
                     else
-                        varvalue=s2{i};
-                        break
+                        varvalue = str2num(varvalue);
+                        if ~isempty(varvalue)
+                            break
+                        else
+                            varvalue=s2{i};
+                            break
+                        end
                     end
                 end
             end
