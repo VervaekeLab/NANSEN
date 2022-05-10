@@ -483,7 +483,6 @@ methods % App initialization & creation
         % obj.addTaskbar()
 % %         obj.openThumbnailSelector()
 
-        
         % Manually set moving avg to false when opening stack
         obj.settings.showMovingAvg = false;
     
@@ -492,13 +491,7 @@ methods % App initialization & creation
 % % %          start(t)
                  
         obj.clearMessage()
-        obj.addLandingPage()
-        
-        % This should happen after all components are created...
-        uicc.bringTooltipToFront()
-        
         obj.Panel.SizeChangedFcn = @obj.resizePanel;
-        
         
         drawnow
         obj.setFigureWindowBackgroundColor() %BG of java window. Set
@@ -506,9 +499,13 @@ methods % App initialization & creation
         
         if strcmp(obj.mode, 'standalone')
             try
+                obj.addLandingPage()
                 obj.addDragAndDropFunctionality()
             end
         end
+        
+        % This should happen after all components are created...
+        uicc.bringTooltipToFront()
         
 % because otherwise figure background appears white on resizing
         
