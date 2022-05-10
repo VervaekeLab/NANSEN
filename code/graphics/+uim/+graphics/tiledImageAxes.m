@@ -101,6 +101,8 @@ properties (Access = private, Hidden)
     hTilePlot           % Handle for line/patch object belonging to a tile
         
     hTileOutline        % Handle for tile outline
+    
+    debug = false
 end
 
 
@@ -231,15 +233,62 @@ methods (Access = private) % Methods for setting up gui
             @(s,e) obj.onAxesPositionChanged);
         obj.axesPositionChangedListener = el;
         
+        if obj.debug
+            obj.showAxesGrid()
+        end
     end
 
+    function showAxesGrid(obj)
+    %showAxesGrid Show XGrid of axes (for debugging)
+    
+        obj.Axes.Visible = 'on';
+        obj.Axes.XAxis.Visible = 'on';
+
+        obj.Axes.XAxis.Color = 'r';%ones(1,3).*0.5;%'r';
+        obj.Axes.XAxis.TickDirection = 'out';
+        
+        obj.Axes.XMinorTick = 'on';
+        
+        obj.Axes.XGrid = 'on';
+        obj.Axes.XMinorGrid = 'on';
+        obj.Axes.GridAlpha = 0.5;
+        obj.Axes.MinorGridAlpha = 0.25;
+        obj.Axes.MinorGridLineStyle = '--';
+        
+        obj.Axes.Layer = 'top';
+    end
+    
     function updateAxesLimits(obj)
     %updateAxesLimits % Update axes limits based on grid configuration
     
         if isempty(obj.hAxes); return; end % Skip during initialization
+        
+        numOriginalPixelsX = obj.pixelWidth ./ obj.scaleFactor(1);
+        numOriginalPixelsY = obj.pixelHeight ./ obj.scaleFactor(2);
 
-        obj.hAxes.XLim = ([1, obj.pixelWidth+1] ) ./ obj.scaleFactor;
-        obj.hAxes.YLim = ([1, obj.pixelHeight+1] ) ./ obj.scaleFactor;
+        % Set x- and y- limits according to the size of the original
+        % (unscaled) image data (in pixel coordinates).
+        obj.hAxes.XLim = ([0, numOriginalPixelsX] + 0.5 );
+        obj.hAxes.YLim = ([0, numOriginalPixelsY] + 0.5 );
+        obj.hAxes.XTick = obj.hAxes.XLim(1):5:obj.hAxes.XLim(2);
+
+        % Place image data so that it fills the axes limits. This way, the
+        % coordinates of the original data is kept.
+        if ~isempty(obj.hImage)
+            pixelSize = 1 ./ obj.scaleFactor;
+            
+            % Find positions where to place corner pixels of image in order
+            % to fill out the x-limits and y-limits. Should be offset from
+            % the limits by half a pixel size (scaled pixel units).
+            xA = obj.hAxes.XLim(1) + pixelSize(1)/2;
+            xB = obj.hAxes.XLim(2) - pixelSize(1)/2;
+            
+            yA = obj.hAxes.YLim(1) + pixelSize(2)/2;
+            yB = obj.hAxes.YLim(2) - pixelSize(2)/2;
+            
+            obj.hImage.XData = [xA, xB] ;
+            obj.hImage.YData = [yA, yB];
+        end
         
         % Update axesRange property.
         obj.axesRange = [range(obj.hAxes.XLim), range(obj.hAxes.YLim)];
@@ -291,8 +340,9 @@ methods (Access = private) % Methods for setting up gui
         
         % % Initialize/Update image object.
         if isempty(obj.hImage)
-            obj.hImage = image(imdata, 'Parent', obj.hAxes);
+            obj.hImage = image(imdata, 'Parent', obj.hAxes);            
             obj.hImage.Visible = obj.Visible;
+            obj.updateAxesLimits()
             
             % Add context menu to image.
             obj.hImage.UIContextMenu = uicontextmenu(obj.hFigure);
@@ -301,8 +351,6 @@ methods (Access = private) % Methods for setting up gui
             obj.hImage.CData = imdata;
         end
         
-        obj.hImage.XData = obj.Axes.XLim;
-        obj.hImage.YData = obj.Axes.YLim;
 
         obj.hImage.AlphaData = zeros(obj.pixelHeight, obj.pixelWidth);
 
@@ -323,6 +371,7 @@ methods (Access = private) % Methods for setting up gui
         set(obj.hTileOutline, 'EdgeColor', ones(1,3)*0.7); 
         set(obj.hTileOutline, 'FaceAlpha', 0.05); 
         set(obj.hTileOutline, 'LineWidth', obj.tileLineWidth);
+        set(obj.hTileOutline, 'Clipping', 'off')
         
         tileTags = arrayfun(@(i) num2str(i), 1:obj.nTiles, 'uni', 0);
         set(obj.hTileOutline, {'Tag'}, tileTags')
@@ -337,13 +386,21 @@ methods (Access = private) % Methods for setting up gui
         [xData, yData] = deal(cell(numel(obj.tileIndices), 1));
         
         for i = 1:numel(obj.tileIndices)
+
             upperLeft = obj.tileIndices{i}(1);
             [y0, x0] = ind2sub(fullSize, upperLeft);
             
+            pixelSize = 1 ./ obj.scaleFactor;
+            %x0 = x0 - pixelSize(1)/2;
+            %y0 = y0 - pixelSize(2)/2;
+
             bbox = [x0, y0, obj.imageSize(2), obj.imageSize(1)];
             bbox = bbox ./ repmat(obj.scaleFactor, 1, 2);
-            coords = obj.bbox2points(bbox);
+            bbox(1:2) = bbox(1:2) - pixelSize/2;
             
+            coords = obj.bbox2points(bbox) ;
+            coords = coords + (obj.scaleFactor-1).*pixelSize/2; % dont understand this...
+
             % Calculate and update position 
             xData{i} = coords(:, 1);
             yData{i} = coords(:, 2);
@@ -354,7 +411,7 @@ methods (Access = private) % Methods for setting up gui
         end
         
         set(obj.hTileOutline, {'XData'}, xData, {'YData'}, yData)
-        
+        set(obj.hTileOutline, 'LineWidth', 3)
         
         % % Initialize/update text and plot handles
         
@@ -641,6 +698,32 @@ methods
         pos = tileCenter ./ obj.scaleFactor;
         
     end
+
+    function pos = getTileCenterAxesCoords(obj, tileNum)
+        
+        %Position of tile center.
+        
+        pad = obj.pixelPadding ./ obj.scaleFactor;
+        origImSize = obj.imageSize ./ obj.scaleFactor;
+        
+        iRow = ceil( tileNum / obj.nCols );
+        iCol = mod(tileNum-1, obj.nCols)+1;
+        
+        pos = zeros(1,2);
+        pos(1) = origImSize(2)*(iCol-1) + pad(1)*(iCol-1) + origImSize(2)/2;
+        pos(2) = origImSize(1)*(iRow-1) + pad(2)*(iRow-1) + origImSize(1)/2;
+        
+        pos = pos + 0.5;
+        
+        return
+        fullSize = [obj.pixelHeight, obj.pixelWidth];
+        
+        [y, x] = ind2sub(fullSize, obj.tileIndices{tileNum} );
+        tileCenter = [mean(x(:)), mean(y(:))];
+        
+        pos = tileCenter ./ obj.scaleFactor;
+        
+    end
     
     
 % % Methods to set properties
@@ -745,6 +828,13 @@ methods
             imdata = imresize(imdata, obj.imageSize);
             obj.imageSize_ = [h, w];
             obj.updateScaleFactor()
+            
+            numOriginalPixelsX = obj.pixelWidth ./ obj.scaleFactor(1);
+            numOriginalPixelsY = obj.pixelHeight ./ obj.scaleFactor(2);
+        
+            %obj.hAxes.XLim = ([0, numOriginalPixelsX] + 0.5 );
+            %obj.hAxes.YLim = ([0, numOriginalPixelsY] + 0.5 );
+            
         end
         
         
@@ -759,14 +849,6 @@ methods
             end 
         end
         obj.hImage.AlphaData([obj.tileIndices{tileNum}]) = 1;
-        
-%         The slow loopy way....        
-%         tic 
-%         for i = tileNum
-%             obj.hImage.CData(obj.tileIndices{i}) = imdata(:, :, i);
-%             obj.hImage.AlphaData(obj.tileIndices{i}) = 1;
-%         end
-%         toc
         
     end
    
@@ -824,6 +906,9 @@ methods
             x = x ./ obj.scaleFactor(1);
             y = y ./ obj.scaleFactor(2);
             tileCenter = [mean(x(:)), mean(y(:))];
+            
+            tileCenter = obj.getTileCenter( tileNum(i) );
+            tileCenter = obj.getTileCenterAxesCoords( tileNum(i) );
             
             % Calculate and update position 
             xData{i} = xData{i} + tileCenter(1);
@@ -1010,6 +1095,8 @@ methods (Access = private) % Internal gui management
     function onTileStyleChanged(obj)
         if ~isempty(obj.hTileOutline)
             set(obj.hTileOutline, 'LineWidth', obj.tileLineWidth)
+            %set(obj.hTileOutline, 'LineWidth', 1); % Todo: remove
+
         end
     end
     
