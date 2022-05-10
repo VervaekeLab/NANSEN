@@ -114,8 +114,8 @@ classdef roiDisplay < uim.handle
                 newValue = transpose(newValue);
             end
             
+            newValue = unique(newValue);
             obj.VisibleRois = newValue;
-            
         end
         
     end
@@ -124,6 +124,37 @@ classdef roiDisplay < uim.handle
         function onRoiGroupSet(obj)
             % Subclasses may implement
         end
+        
+        function updateVisibleRois(obj, roiInd, eventType)
+                                
+            visibleRois = obj.VisibleRois;
+
+            switch eventType
+                
+                case 'initialize'
+                    visibleRois = 1:numel(roiInd);
+                
+                case {'insert', 'append'}
+                    for i = sort(roiInd, 'ascend')
+                        visibleRois(visibleRois>=i) = visibleRois(visibleRois>=i) + 1;
+                    end
+                    visibleRois = [visibleRois, roiInd];
+
+                case 'remove'
+                    
+                    for i = sort(roiInd, 'descend')
+                        if ismember(i, visibleRois)
+                            visibleRois(visibleRois==i)=[];
+                        end
+                        visibleRois(visibleRois>i) = visibleRois(visibleRois>i)-1;
+                    end
+
+            end
+            
+            obj.VisibleRois = visibleRois;
+
+        end
+        
     end
     
     methods (Access = private)

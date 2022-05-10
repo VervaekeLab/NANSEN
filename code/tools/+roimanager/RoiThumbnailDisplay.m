@@ -68,7 +68,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             obj.Parent = hParent;
             obj.createImageDisplayAxes()
             
-            %obj.initializePointerManager
+            obj.initializePointerManager
             
             obj.createFigureInteractionListeners()
             
@@ -138,7 +138,9 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             obj.PointerManager.currentPointerTool.activate();
             
             obj.PointerManager.pointers.autoDetect.UpdateRoiFcn = @obj.updateRoiEstimate;
-            
+            obj.PointerManager.pointers.autoDetect.ButtonDownFcn = @obj.updateRoiEstimate;
+            obj.PointerManager.pointers.autoDetect.hObjectMap = obj;
+
         end
         
         function createFigureInteractionListeners(obj)
@@ -257,6 +259,11 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             
             obj.hRoiImage = imshow(imageData, [0, 255], ...
                 'Parent', obj.hAxes, 'InitialMagnification', 'fit');
+            obj.hRoiImage.HitTest = 'off';
+            obj.hRoiImage.PickableParts = 'none';
+            
+            uistack(obj.hRoiImage, 'bottom')
+            
             % set(obj.hRoiImage, 'ButtonDownFcn', @obj.mousePress)
             
             if ~ishold(obj.hAxes)  
@@ -321,7 +328,11 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             
             ul = roiObj.getUpperLeftCorner([], imageSize);
             roiBoundary = fliplr(roiObj.boundary{1}); % yx -> xy
-            roiBoundary = (roiBoundary - ul + [1,1]) * usFactor;
+            %roiBoundary = (roiBoundary - ul + [1,1]) * usFactor;
+            roiBoundary = (roiBoundary - ul + [0.5,0.5]) * usFactor;
+            % Todo: Whats the correct pixel offset? Does it depend on
+            % magnification factor?
+
             
             if isempty(obj.hRoiOutline)
                 obj.hRoiOutline = plot(obj.hAxes, roiBoundary(:,1), roiBoundary(:,2), ...
@@ -471,10 +482,25 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             outputType = 'coords';
             [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, ...
                 [x, y], imSize, 'output', outputType, 'us', 1);
- 
             roiMask = roiMask{1};
+
+            roiMask = flufinder.binarize.findSomaMaskByEdgeDetection(IM, ...
+            'us', 1);
+            roiMask = circshift( roiMask, -round(centerOffset) );
+ 
             newRoi = RoI('Mask', roiMask, imSize);%roiMask;
 
+            if ~nargout
+                i = obj.VisibleRois;
+                currentRoi = obj.RoiGroup.roiArray(i);
+                fovMask = false(currentRoi.imagesize);
+                roiMask = imresize(roiMask, 1/obj.SpatialUpsampling);
+                roiMask = flufinder.utility.placeLocalRoiMaskInFovMask(roiMask, currentRoi.center, fovMask);
+                newRoi = RoI('Mask', roiMask);
+                
+                obj.RoiGroup.modifyRois(newRoi, i)
+            end
+            
         end
         
     end
@@ -556,7 +582,12 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         end
     end
     
-    methods 
+    methods
+        
+        function tf = hittest(obj, src, evt)
+            tf = ~isempty(obj.VisibleRois);
+        end
+        
         function onKeyPressed(obj, src, evt)
             
             if ~isempty(obj.PointerManager)

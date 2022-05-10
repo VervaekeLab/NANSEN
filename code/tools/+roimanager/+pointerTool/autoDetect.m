@@ -131,12 +131,13 @@ classdef autoDetect < uim.interface.abstractPointer
             r = obj.circleToolCoords(3);
             r(2) = obj.extendedRadius;
 
+            isRoiSelected = obj.hObjectMap.hittest(src, evt);
+            
             % Todo: Call a buttonDownFcn instead.
             if ~isempty(obj.ButtonDownFcn)
-                error('NotImplementedYet')
+                obj.ButtonDownFcn(x, y, r, obj.mode, isRoiSelected)
             else
-                isRoiSelected = obj.hObjectMap.hittest(src, evt);
-                obj.hObjectMap.autodetectRoi(x, y, r, obj.mode, isRoiSelected);
+                obj.hObjectMap.autodetectRoi2(x, y, r, obj.mode, isRoiSelected);
             end
             
         end
@@ -281,7 +282,8 @@ classdef autoDetect < uim.interface.abstractPointer
             if ~isempty(obj.UpdateRoiFcn)
                 newRoi = obj.UpdateRoiFcn(x, y, r, obj.mode, false);
             else
-                newRoi = obj.hObjectMap.autodetectRoi(x, y, r, obj.mode, false);
+%                 newRoi = obj.hObjectMap.autodetectRoi(x, y, r, obj.mode, false);
+                newRoi = obj.hObjectMap.autodetectRoi2(x, y, r, obj.mode, false);
             end
             
             obj.plotTempRoi(newRoi)
@@ -491,19 +493,6 @@ classdef autoDetect < uim.interface.abstractPointer
                 B = hRoi.Boundary{1};
             end
             
-% %             % Standardize output B, so that boundary property is a cell of two
-% %             % column vectors, where the first is y-coordinates and the seconds
-% %             % is x-coordinates. Should ideally be an nx2 matrix of x and y.
-% %             if numel(B) > 1
-% %                 B = cellfun(@(b) vertcat(b, nan(1,2)), B, 'uni', 0);
-% %                 B = vertcat(B{:});
-% %                 B(end, :) = []; % Just remove the last nans...
-% %             elseif isempty(B)
-% %                 B = [nan, nan];
-% %             else
-% %                 B = B{1};
-% %             end
-            
             X = B(:, 2);
             Y = B(:, 1);
             
@@ -517,6 +506,21 @@ classdef autoDetect < uim.interface.abstractPointer
                 obj.hTempRoi.FaceAlpha = 0.15;
             end
             obj.hTempRoi.Visible = 'on';
+            
+            % Debugging:
+% % %             if isempty(hRoi);return;end
+% % %             persistent f ax hIm
+% % %             if isempty(f) || ~isvalid(f)
+% % %                 f = figure('Position', [300,300,300,300], 'MenuBar', 'none'); 
+% % %                 ax = axes(f, 'Position',[0,0,1,1]);
+% % %             else
+% % %                 cla(ax)
+% % %             end
+% % % 
+% % %             hIm = imagesc(ax, hRoi.mask); hold on
+% % %             plot(ax, X, Y)
+            
+
         end
         
         function deactivateWhenScrolling(obj)

@@ -18,7 +18,7 @@ classdef selectObject < uim.interface.abstractPointer & ...
     
     properties
         activeMode = ''       % Used for switching between different behaviors (selecting rois or moving rois) while mouse is pressed
-        hObjectMap
+        hObjectMap % todo: rename to roidisplay
         objectDisplacement = [0,0]
     end
 
@@ -138,6 +138,8 @@ classdef selectObject < uim.interface.abstractPointer & ...
             obj.isButtonDown = true;
             obj.isActive = true;
 
+            if isempty(  obj.hObjectMap ); return; end
+            
             isRoiSelected = obj.hObjectMap.hittest(src, event);
             
             currentPoint = obj.hAxes.CurrentPoint(1, 1:2);

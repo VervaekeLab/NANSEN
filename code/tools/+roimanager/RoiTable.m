@@ -239,7 +239,14 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                         
             % Get the roi id from the current table and replace:
             tableRowData(1, 1) = obj.roiTable(rowIdx, 1);
-            obj.roiTable(rowIdx, :) = tableRowData;
+            
+            if size(obj.roiTable, 2) == size(tableRowData, 2)
+                obj.roiTable(rowIdx, :) = tableRowData;
+            else
+                [~, iA, iC] = intersect(obj.roiTable.Properties.VariableNames, ...
+                    tableRowData.Properties.VariableNames, 'stable')
+                obj.roiTable(rowIdx, iA) = tableRowData;                
+            end
             
             % Count number of columns and get column indices
             colIdx = 1:size(tableRowData, 2);
@@ -307,7 +314,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     T = obj.rois2table(evtData.roiArray);
                     ind = evtData.roiIndices;
                     newTable = utility.insertRowInTable(oldTable, T, ind);
-                    
+                
+                case 'replace'
+                    newTable = obj.rois2table(evtData.roiArray);
+
                 case {'modify', 'reshape'}
                     T = obj.rois2table(evtData.roiArray);
                     
@@ -328,6 +338,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     
             end
             
+            obj.updateVisibleRois(evtData.roiIndices, evtData.eventType)
+            %obj.UITable.updateVisibleRows(obj.VisibleRois)
+
+            
             % Update the values of the roi ids / roi labels
             if obj.RoiGroup.roiCount ~= 0 
 
@@ -346,6 +360,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
              
             % Update table data and uitable.
             obj.roiTable = newTable;
+            %newTable = newTable(obj.VisibleRois, :);
             obj.UITable.refreshTable(newTable)
             
         end
@@ -382,8 +397,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             if isempty(obj.UITable); return; end
             
             obj.VisibleRois = evtData.NewVisibleInd;
-            if ~strcmp(evtData.Type, 'RoiTableFilter')
+            if ~strcmp(evtData.Type, 'TableFilterUpdate')
                 obj.UITable.updateVisibleRows(obj.VisibleRois)
+                obj.UITable.resetColumnFilters()
             end
             
         end
