@@ -596,11 +596,28 @@ classdef FileViewer < handle
                     
                 case 'Load Data to Workspace'
                     % Todo: Use the sessionObject loadData and fileAdapters
-                    S = load(nodeHandle.UserData.filePath);
-                    varNames = fieldnames(S);
-                    for i = 1:numel(S)
-                        assignin('base', varNames{i}, S.(varNames{i}))
+                    
+                    [~, ~, fileExt] = fileparts(nodeHandle.UserData.filePath);
+
+                    switch fileExt
+
+                        case {'.ini', '.tif', '.avi', '.raw'}
+                            imageStack = nansen.stack.ImageStack(nodeHandle.UserData.filePath);
+                            assignin('base', 'imageStack', imageStack)
+                            
+                        case '.mat'
+                            S = load(nodeHandle.UserData.filePath);
+                            varNames = fieldnames(S);
+                            for i = 1:numel(S)
+                                assignin('base', varNames{i}, S.(varNames{i}))
+                            end
+                            
+                        otherwise 
+                            errordlg('Can not load files of type %s to workspace', fileExt)
+                            
                     end
+
+
                     
                 case 'Create New Variable from File'
                     
