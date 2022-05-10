@@ -24,6 +24,10 @@ S.ImageDisplay.colorMap_     = {'Viridis', 'Magma', 'Gray', 'Copper', 'Bone', ..
                                 'Nissl', 'BuPu', 'GnBu', 'Greens', 'PuBuGn', 'YlOrRd', ...
                                 'thermal', 'haline', 'solar', 'ice', 'deep', 'dense', ...
                                 'algae','matter','turbid','speed', 'amp','tempo' }; % Colormap alternatives
+                            
+S.ImageDisplay.VolumeDisplayMode = 'Single Plane';
+S.ImageDisplay.VolumeDisplayMode_ = {'Single Plane', 'Plane Projection', 'Plane Montage'};
+%S.ImageDisplayVolumeMontageSize = [1, 1];
 
 
 % S.ImageStack.DataDimensionOrder = '';

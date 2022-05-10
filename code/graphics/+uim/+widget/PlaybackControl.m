@@ -1007,6 +1007,9 @@ classdef PlaybackControl < uim.mixin.assignProperties
             
             if obj.NumPlanes > 1 && ~isempty(obj.hPlaneSwitcher)
                 dx = dx + 20;
+                if ~isempty(obj.hChannelIndicator)
+                    obj.hChannelIndicator.Position(1) = 80+30;
+                end
             end
             
             % Set axes positions in pixels

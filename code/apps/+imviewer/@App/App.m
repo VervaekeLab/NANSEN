@@ -189,7 +189,10 @@ properties (Access = private, Hidden = true) % Internal states/settings
     % modifier = struct('shift', false, 'alt', false, 'control', false)
     DeleteImageStackOnQuit
     DownsampleDisplayedImage = true
-    
+    ZMontageTileIndices % todo: This should be a separate class...
+    ZMontageHeight
+    ZMontageWidth
+                        
     prevMousePoint
     scrollHistory = zeros(5,1)
     mouseDown = false
@@ -426,6 +429,8 @@ methods % App initialization & creation
             obj.Figure.Position = figurePosition;
             obj.Panel.Position(3:4) = figurePosition(3:4); %Todo: Set this automatically through callbacks
         end
+        
+        obj.settings_.ImageDisplay.VolumeDisplayMode = 'Single Plane';
         
         obj.createUiAxes(axesSize)
         
@@ -1478,6 +1483,7 @@ methods % App initialization & creation
 % %             'ButtonDownFcn', @obj.toggleHelp, 'Tooltip', 'Show Tips', ...
 % %             'Type', 'togglebutton');
         
+
         hAppbar.addButton('Icon', obj.ICONS.import, ...
             'Padding', [0,0,1,0], 'Style', uim.style.buttonSymbol, ...
             'Type', 'pushbutton', 'Tooltip', 'Load Frames', ...
@@ -1920,8 +1926,14 @@ methods % App update
         end
         
         
+        % Determine how multiple planes should be displayed.
+        
+        if obj.ImageStack.NumPlanes > 1 && numel(obj.ImageStack.CurrentPlane) > 1
+            im = obj.prepareMultiplaneImageForDisplay(im);
+        end
+        
         % Todo: Make method to determine if colormap of channel coloring
-        % shouldbe applied. Use this method also in changeBrightness
+        % should be applied. Use this method also in changeBrightness
         
         displayChannelColors = false;
         
@@ -1986,6 +1998,21 @@ methods % App update
                 obj.imObj.YData = obj.ImageStack.DataYLim;
             end
             
+        end
+        
+        % Todo: Only do this when dimsplay mode changes.
+        if strcmp( obj.settings.ImageDisplay.VolumeDisplayMode, 'Plane Montage')
+            % Update image display x- & y-limits to keep axes tight..
+            obj.uiaxes.imdisplay.XLim = [0, size(im, 2)] + 0.5;
+            obj.uiaxes.imdisplay.YLim = [0, size(im, 1)] + 0.5;            
+            obj.imObj.XData = [1, size(im, 2)];
+            obj.imObj.YData = [1, size(im, 1)];
+        else
+            % Update image display x- & y-limits to keep axes tight..
+            obj.uiaxes.imdisplay.XLim = [0, obj.imWidth] + 0.5;
+            obj.uiaxes.imdisplay.YLim = [0, obj.imHeight] + 0.5;
+            obj.imObj.XData = [1, obj.imWidth];
+            obj.imObj.YData = [1, obj.imHeight];
         end
         
         if isa(obj.ImageStack, 'nansen.stack.HighResolutionImage')
@@ -2406,9 +2433,13 @@ methods % Event/widget callbacks
     
     function onPlaneChanged(obj) %#ok<MANU>
         if ~obj.isConstructed; return; end
-        obj.textStrings.CurrentPlane = sprintf('z=%d/%d', obj.currentPlane, obj.ImageStack.NumPlanes);
+        if numel(obj.currentPlane)==1
+            obj.textStrings.CurrentPlane = sprintf('z=%d/%d', obj.currentPlane, obj.ImageStack.NumPlanes);
+        else
+            obj.textStrings.CurrentPlane = 'z=All';
+        end
+        
         obj.uiwidgets.playback.CurrentPlane = obj.currentPlane;
-
         obj.ImageStack.CurrentPlane = obj.currentPlane;
             
         if ~isempty(obj.imObj)
@@ -2540,6 +2571,7 @@ methods % Event/widget callbacks
         if obj.ImageStack.NumChannels > 1
             if ~isempty(obj.imObj)
                 imdata = obj.DisplayedImage;
+                imdata = obj.prepareMultiplaneImageForDisplay(imdata);
                 imdata = obj.setChColors(imdata);
                 obj.imObj.CData = obj.adjustMultichannelImage(imdata);
             end
@@ -2843,7 +2875,6 @@ methods % Misc, most can be outsourced
     %   % As it is now, theres a big jump...
     
         obj.isPlaying = true;
-        
         
         dt = 1 / obj.ImageStack.getSampleRate;
         if isnan(dt)
@@ -3461,6 +3492,11 @@ methods % Misc, most can be outsourced
         if nargin < 2
             xLimNew = obj.uiaxes.imdisplay.XLim;
             yLimNew = obj.uiaxes.imdisplay.YLim;
+        end
+        
+        if strcmp(obj.settings.ImageDisplay.VolumeDisplayMode, 'Plane Montage')
+            % Ad hoc temp solution...
+            return
         end
         
         xRange = range(xLimNew);
@@ -4353,7 +4389,7 @@ methods % Misc, most can be outsourced
 
 end
 
-methods (Access = private) % Housekeeping
+methods (Access = private) % Housekeeping and internal
     
     function turnOffModernAxesToolbar(obj, hAxes)
         
@@ -4373,6 +4409,62 @@ methods (Access = private) % Housekeeping
         stackOpts.UseDynamicCache = obj.settings.VirtualData.useDynamicCache;
         stackOpts.DynamicCacheSize = obj.settings.VirtualData.dynamicCacheSize;
     end
+    
+    function imageOut = prepareMultiplaneImageForDisplay(obj, imageIn)
+        
+        dimZ = obj.ImageStack.getDimensionNumber('Z');
+        
+        switch obj.settings.ImageDisplay.VolumeDisplayMode
+            
+            case 'Plane Projection' 
+                imageOut = squeeze(mean(imageIn, dimZ)) ;
+                imageOut = cast(imageOut, obj.ImageStack.DataType);
+
+            case 'Plane Montage'
+                dimZ = obj.ImageStack.getDimensionNumber('Z');
+                numPlanes = size(imageIn, dimZ);
+                tileNum = 1:numPlanes;
+
+                if numel(obj.currentChannel) == 1
+                    imageOut = zeros(obj.ZMontageHeight, obj.ZMontageWidth, obj.ImageStack.DataType);
+                    imageOut([obj.ZMontageTileIndices{tileNum}]) = imageIn;
+                else
+                    imageOut = zeros(obj.ZMontageHeight, obj.ZMontageWidth, numel(obj.currentChannel), obj.ImageStack.DataType);
+
+                    for i = 1:numel(obj.currentChannel)
+                        tmpIm = imageOut(:,:,i);
+                        tmpIm([obj.ZMontageTileIndices{tileNum}]) = imageIn(:, :, i, :);
+                        imageOut(:, :, i) = tmpIm;
+                    end 
+                end
+            otherwise
+                imageOut = imageIn;
+                
+        end
+    end
+
+    function configureZPlaneMontageView(obj)
+        % Configure montage view for multiple planes.
+        % This should be moved to a separate class.
+        
+        numPlanes = obj.ImageStack.NumPlanes;
+        imageSize = obj.ImageStack.FrameSize;
+        [nRows, nCols] = imviewer.utility.findgridsize(numPlanes, 1, 1);
+        obj.ZMontageTileIndices = ...
+            imviewer.utility.setTileIndices(nRows, nCols, imageSize, 10);
+
+        pixelPadding = 10;
+        pixelWidth = nCols .* imageSize(2);
+        pixelWidth = pixelWidth + pixelPadding .* (nCols-1);          
+        pixelHeight = nRows .* imageSize(1);
+        pixelHeight = pixelHeight + pixelPadding .* (nRows-1);
+
+        obj.ZMontageHeight = pixelHeight;
+        obj.ZMontageWidth = pixelWidth;
+
+        obj.displayMessage('The plane montage view is experimental, and some things will not work as expected')
+    end
+
 end
 
 methods (Access = protected) % Event callbacks
@@ -4458,11 +4550,32 @@ methods (Access = protected) % Event callbacks
             case 'imageToolbarLocation'
                 obj.uiwidgets.Toolbar.Location = value;
                 
+            case 'VolumeDisplayMode'
                 
+                if obj.ImageStack.NumChannels == 1 && ~strcmp(value, 'Single Plane')
+                    obj.displayMessage('This stack does not have multiple planes.')
+                    return
+                end
+                
+                obj.settings.ImageDisplay.VolumeDisplayMode = value;
+                switch value
+                    case 'Single Plane'
+                        obj.currentPlane = 1;
+                    case {'Plane Projection', 'Plane Montage'}
+                        if strcmp(value, 'Plane Montage')
+                            obj.configureZPlaneMontageView()
+                        end
+                        
+                        obj.currentPlane = 1:obj.ImageStack.NumPlanes;
+                        
+                end
+                %obj.updateImage()
+                %obj.updateImageDisplay()
+                
+                %obj.changeVolumeDisplayMode()
         end
     end
 
-    
     function onThemeChanged(obj)
 
         % Todo: Apply changes to toolbars and widgets as well!
@@ -5331,7 +5444,6 @@ end
 
 methods (Access = private) % Methods that runs when properties are set
     
-    
     function onImageStackSet(obj)
                 
         obj.setTempProperties()
@@ -5358,7 +5470,6 @@ methods (Access = private) % Methods that runs when properties are set
         end
         
     end
-    
     
     function configureSpatialDownsampling(obj)
         

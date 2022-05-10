@@ -334,6 +334,13 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     try
                         if obj.Data.HasCachedData
                             imArray = obj.Data.getCachedFrames();
+% % %                             dimT = obj.getDimensionNumber('T');
+                            
+% % %                             % Todo: method...
+% % %                             indexingSubsTmp = indexingSubs;
+% % %                             indexingSubsTmp(1:2) = {':'};
+% % %                             indexingSubsTmp(dimT) = {':'};
+% % %                             selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubsTmp));
                         else
                             imArray = [];
                         end
@@ -352,10 +359,18 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 end
                 
                 % Only apply subindexing if necessary
-                if doCropImage
-                    indexingSubs(3:end) = {':'};
-                    imArray = imArray(indexingSubs{:});
+                if doCropImage % todo: method
+                    indexingSubsTmp = indexingSubs;
+                    indexingSubsTmp(3:end) = {':'};
+                    imArray = imArray(indexingSubsTmp{:});
                 end
+                
+% % %                 if selectFrameSubset % todo: method
+% % %                     indexingSubsTmp = indexingSubs;
+% % %                     indexingSubsTmp(1:2) = {':'};
+% % %                     indexingSubsTmp(dimT) = {':'};
+% % %                     imArray = imArray(indexingSubsTmp{:});
+% % %                 end
                 
             % Case 2: All frames (along last dimension) are requested.
             % Should return all
@@ -698,6 +713,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 (isfield(obj.Projections, projectionName) && obj.IsVirtual && ~obj.isDirty.(projectionName))
             
                 projectionImage = obj.Projections.(projectionName);
+                projectionImage = obj.getProjectionSubSelection(projectionImage);
                 return 
             end
             
@@ -715,6 +731,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             else
                 obj.isDirty.(projectionName) = false;
             end
+            
+            projectionImage = obj.getProjectionSubSelection(projectionImage);
+
         end
         
         function projectionImage = getProjection(obj, projectionName, frameInd, dim)
@@ -969,6 +988,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
     % - Methods for getting data specific information
         
+        function dimNum = getDimensionNumber(obj, dimName)
+            dimNum = strfind(obj.Data.StackDimensionArrangement, dimName);
+        end
+        
         function cLim = getDataIntensityLimits(obj)
             
             if isempty(obj.DataIntensityLimits)
@@ -990,7 +1013,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 case {'C', 'Channel'}
                     length = obj.NumChannels;
                 case {'Z', 'Plane'}
-                    length = obj.Planes;
+                    length = obj.NumPlanes;
                 case {'X', 'Width', 'ImageWidth'}
                     length = obj.ImageWidth;
                 case {'Y', 'Height', 'ImageHeight'}
@@ -1187,7 +1210,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     end
 
     methods (Access = private) % Internal methods
-       
+        
+        function projectionImage = getProjectionSubSelection(obj, projectionImage)
+            indexingSubs = obj.getDataIndexingStructure(1);
+            projectionImage = projectionImage(indexingSubs{:});
+        end
+        
     % - Methods for getting the indices according to the dimension order
         
         function [indC, indZ, indT] = getFrameInd(obj, varargin)
@@ -1428,10 +1456,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
     % - Methods for getting dimension lengths
-        
-        function dimNum = getDimensionNumber(obj, dimName)
-            dimNum = strfind(obj.Data.StackDimensionArrangement, dimName);
-        end
         
         function dimLength = getStackDimensionLength(obj, dimLabel)
             
