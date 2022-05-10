@@ -138,23 +138,48 @@ methods
         if nargin < 3; imageUpdateMethod = 'resetImage'; end
     
         nRois = numel(obj);
+        dydx = fliplr(shift);
 
         for i = nRois:-1:1
 
             switch obj(i).shape
                 case {'Polygon', 'Mask', 'Donut'}
                     obj(i).coordinates = obj(i).coordinates + shift;
+% %                 case 'Mask'
+% %                     obj(i).translateMaskSubPixel(shift);
                 case 'Circle'
                     obj(i).coordinates = obj(i).coordinates + [shift, 0];
             end
 
             % Update boundary and center
-            dydx = fliplr(shift);
             obj(i).boundary = cellfun(@(b) b+dydx, obj(i).boundary, 'uni', 0);
             obj(i).center = obj(i).center + shift;
             obj(i) = obj(i).updateImage(imageUpdateMethod, shift);
 
         end
+        
+    end
+    
+    
+    function obj = translateMaskSubPixel(obj, shift)
+        
+        % This is not a good idea. if repreated many times, mask will tend
+        % to reshape into a rectangle
+        
+        Bx = obj.boundary{1}(:,2);
+        By = obj.boundary{1}(:,1);
+        
+        Bx = Bx - obj.center(1);
+        By = By - obj.center(2);
+        
+        [theta, rad] = cart2pol(Bx, By);
+        [Bx, By] = pol2cart(theta, rad+0.5);
+        
+        Bx = Bx + obj.center(1) + shift(1);
+        By = By + obj.center(2) + shift(2);
+        
+        shiftedMask = poly2mask(Bx, By, obj.imagesize(1), obj.imagesize(2));
+        obj = obj.setCoordinates(shiftedMask);
         
     end
     
@@ -359,10 +384,11 @@ methods
         switch imageUpdateMethod
             case 'resetImage' % Reset the roi image
                 obj.enhancedImage = [];
+                
             case 'shiftImage'
                 % Shift image opposite direction of roi..
                 dydx = -round(fliplr(shift));
-                dxdy = shift - round(shift);
+                dxdy = -round(shift);
                 
                 if ~isempty(obj.enhancedImage)
                     obj.enhancedImage = circshift(obj.enhancedImage, dydx);
@@ -849,26 +875,9 @@ methods
                 y = self.coordinates(:, 2);
                 mask = poly2mask(x, y, imsize(1), imsize(2));
             case 'Circle'
-                BW = false(imsize);
-                
-                x = self.coordinates(1);
-                y = self.coordinates(2);
-                r = self.coordinates(3);
-
-% %                 [xx, yy] = meshgrid((1:imsize(2)) - x, (1:imsize(1)) - y);
-% %                 mask = (xx.^2 + yy.^2) < r^2 ;
-                
-                [xx, yy] = meshgrid((-r:r) - mod(x,1), (-r:r) - mod(y,1));
-                mask = (xx.^2 + yy.^2) < r^2 ;
-                [X,Y] = find(mask);
-                x0 = mean(X);
-                y0 = mean(Y);
-                
-                X = round(X + x - x0 - 1); % Subtract 1 to account for pixel indices starting at 1??
-                Y = round(Y + y - y0 - 1);
-                ind = sub2ind(imsize, Y, X);
-                BW(ind) = true;
-                mask = BW;
+                mask = false(imsize);
+                ind = self.getPixelIdxList();
+                mask(ind) = true;
                 
             case {'Mask', 'Donut'}
 
@@ -1010,16 +1019,21 @@ methods
                 x = obj.coordinates(1);
                 y = obj.coordinates(2);
                 r = obj.coordinates(3);
-
+                
+                % Create small local mask with radius r
                 [xx, yy] = meshgrid((-r:r) - mod(x,1), (-r:r) - mod(y,1));
                 localMask = (xx.^2 + yy.^2) < r^2 ;
                 [X,Y] = find(localMask);
+                
+                % Compute mask coordinates of local mask in full mask
                 x0 = mean(X);
                 y0 = mean(Y);
                 
-                X = round(X + x - x0 - 1); % Subtract 1 to account for pixel indices starting at 1??
-                Y = round(Y + y - y0 - 1);
+                X = round(X + x - x0 );
+                Y = round(Y + y - y0 );
+                [X, Y] = obj.validateCoordinates(X,Y);
                 pixelIdxList = sub2ind(imsize, Y, X);
+                
             case {'Mask', 'IMask'}
                 pixelIdxList = sub2ind(imsize, round(obj.coordinates(:,2)), round(obj.coordinates(:,1)));
             case 'Polygon'
@@ -1063,11 +1077,18 @@ methods
         end
         
     end
-    
+   
+    function [X, Y] = validateCoordinates(obj, X, Y)
+    %validateCoordinates Make sure coordinates are within image bounds    
+        isValidX = X >= 1 & X <= obj.imagesize(2);
+        isValidY = Y >= 1 & Y <= obj.imagesize(1);
+        
+        X = X (isValidX & isValidY);
+        Y = Y (isValidX & isValidY);
+    end
     
     
 % % Methods for getting old property values
-
 
     function group = get.Group(self)
         if isempty(self.Group)
@@ -1213,17 +1234,23 @@ methods (Access = protected)
                 keepY = round(obj.coordinates(:,2)) >= 1 & round(obj.coordinates(:,2)) <= obj.imagesize(1);
                 keep = keepX & keepY;
                 CC.PixelIdxList = { sub2ind(obj.imagesize, round(obj.coordinates(keep,2)), round(obj.coordinates(keep,1))) };
+                bboxOffset = 0.5;
+                correctionOffset = -0.5;
+                correctionOffset = -0.5;
             case 'IMask'
                 pixelsKeep = obj.pixelweights > obj.MaskWeightCutoff;
                 CC = struct('Connectivity', 8, 'ImageSize', obj.imagesize, 'NumObjects', 1);
                 CC.PixelIdxList = { sub2ind(obj.imagesize, round(obj.coordinates(pixelsKeep,2)), round(obj.coordinates(pixelsKeep,1))) };
+
             otherwise
                 CC = bwconncomp(BW);
+                bboxOffset = 0.5;
+                correctionOffset = -0.5;
         end
         
         stats = regionprops(CC, 'BoundingBox');
-        xInd = stats.BoundingBox(1) + (1:stats.BoundingBox(3)) - 0.5;
-        yInd = stats.BoundingBox(2) + (1:stats.BoundingBox(4)) - 0.5;
+        xInd = stats.BoundingBox(1) + (1:stats.BoundingBox(3)) - bboxOffset;
+        yInd = stats.BoundingBox(2) + (1:stats.BoundingBox(4)) - bboxOffset;
 
         BWsmall = BW(round(yInd), round(xInd));
         B = bwboundaries(BWsmall);
@@ -1244,7 +1271,7 @@ methods (Access = protected)
         end
         
         B = B + fliplr( stats.BoundingBox(1:2) );
-        
+        B = B + [correctionOffset, correctionOffset];
         obj.boundary = {B};
 
     end
