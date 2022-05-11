@@ -1,4 +1,6 @@
 # NANSEN - Neuro ANalysis Software ENsemble
+[![Twitter](https://img.shields.io/twitter/follow/NeuroNansen?style=social)](https://twitter.com/NeuroNansen)
+[![YouTube](https://img.shields.io/youtube/channel/views/UCKOzL-MVWgy7oOMo6x_GSkQ?style=social)](https://www.youtube.com/channel/UCKOzL-MVWgy7oOMo6x_GSkQ)
 
 A collection of apps and modules for processing, analysis and visualization of two-photon imaging data. Check out the introduction to Nansen on [YouTube](https://youtu.be/BrTENBn4wFs)
 
