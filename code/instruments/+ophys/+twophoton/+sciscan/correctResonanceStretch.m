@@ -86,6 +86,8 @@ if destretchLookup(lookupIdx).XCorrection ~= xcorrect
     % warning('Correcting stretch beased on a different value of the SciScan parameter x.correct. Result might be suboptimal.')
 end
 
+stackSize = size(im);
+im = reshape(im, stackSize(1), stackSize(2), []);
 
 % prevstr=[];
 switch method
@@ -186,6 +188,11 @@ end
 % Todo move this to load SciScanStack
 % Make image square
 % new_im = new_im((1:newWidth) + floor((height-newWidth)/2), :, :);
+
+% Restore original size (but make sure to update the length of the
+% dimension that was destretched)
+stackSize(2) = size(new_im, 2);
+new_im = reshape(new_im, stackSize);
 
 % Remove singleton dimension...
 new_im = squeeze(new_im);
