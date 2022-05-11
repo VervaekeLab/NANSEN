@@ -563,10 +563,18 @@ classdef Addons < handle
             rmdir(folderPath)
                 
             % Remove the master postfix from foldername
-            newName = strrep(L.name, '-master', '');
+            if contains(L.name, '-master')
+                newName = strrep(L.name, '-master', '');
+            elseif contains(L.name, '-main')
+                newName = strrep(L.name, '-main', '');
+            else
+                folderPath = fullfile(rootDir, L.name);
+                return
+            end
+            
+            % Rename folder to remove main/master tag
             renamedDir = fullfile(rootDir, newName);
             movefile(newDir, renamedDir)
-
             folderPath = renamedDir;
             
         end
