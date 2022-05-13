@@ -1322,8 +1322,8 @@ classdef roiMap < roimanager.roiDisplay
             newRois = originalRois; % Preallocate...
             for i = 1:numel(originalRois)
                 center = originalRois(i).center;
-                r = sqrt( originalRois(i).area / pi);
-                tmpRoi = obj.autodetectRoi(center(1), center(2), r, 1, false);
+                r = round ( sqrt( originalRois(i).area / pi) );
+                tmpRoi = obj.autodetectRoi2(center(1), center(2), r, 1, false);
                 
                 newRois(i) = originalRois(i).reshape('Mask', tmpRoi.mask);
             end
