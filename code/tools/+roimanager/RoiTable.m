@@ -209,6 +209,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 case '⌫'
                     obj.removeRois()
                     return
+                    
+                case 'a'
+                    disp('a')
+                    
             end
             
             if ~isempty(obj.KeyPressFcn)
@@ -380,14 +384,16 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             % implemented.
             
             currentRowSelection = obj.UITable.getSelectedEntries();
-            
+            if iscolumn(currentRowSelection)
+                currentRowSelection = transpose(currentRowSelection);
+            end
             newRowSelection = evtData.NewIndices;
             
             % Only set new selection if its different than current 
             % selection to prevent an infinite loop. Feel like this will
             % come back and bite me hard...
-            if ~all( ismember(currentRowSelection, newRowSelection) )
-                %~isequal( sort(currentRowSelection), sort(newRowSelection) )
+            if ~isequal( sort(currentRowSelection), sort(newRowSelection) )
+                %~all( ismember(currentRowSelection, newRowSelection) )
                 
                 obj.UITable.setSelectedEntries(newRowSelection);
                 obj.SelectedRois = newRowSelection;
