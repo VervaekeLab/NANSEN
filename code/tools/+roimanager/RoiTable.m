@@ -380,13 +380,14 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             % implemented.
             
             currentRowSelection = obj.UITable.getSelectedEntries();
+            
             newRowSelection = evtData.NewIndices;
             
             % Only set new selection if its different than current 
             % selection to prevent an infinite loop. Feel like this will
             % come back and bite me hard...
-            if ~isequal( sort(currentRowSelection), sort(newRowSelection) )
-                
+            if ~all( ismember(currentRowSelection, newRowSelection) )
+                %~isequal( sort(currentRowSelection), sort(newRowSelection) )
                 
                 obj.UITable.setSelectedEntries(newRowSelection);
                 obj.SelectedRois = newRowSelection;
