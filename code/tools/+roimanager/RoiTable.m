@@ -115,7 +115,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             roiIdxToRemove = obj.SelectedRois;
             
             obj.UITable.HTable.Enable = 'off';
-            obj.RoiGroup.changeRoiSelection([], [])
+            % Important:  Change roi selection to first element in list
+            % which is slected. Then, after rois are removed, "next" row in
+            % table is selected
+            obj.RoiGroup.changeRoiSelection([], roiIdxToRemove(1))
             
             obj.RoiGroup.removeRois(roiIdxToRemove);
             newSelection = obj.UITable.getSelectedEntries();
