@@ -78,6 +78,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     properties (SetAccess = protected) % Source and target stacks for processing
         SourceStack nansen.stack.ImageStack % The image stack to use as source
         TargetStack nansen.stack.ImageStack % The image stack to use as target (optional)
+        ImageArray                          % Store a (sub)set of images that are loaded to memory
     end
     
     properties % User preferences
@@ -477,15 +478,17 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
         end
         
-        function imArray = loadImageData(obj, varargin)
+        function imArray = getImageArray(obj, N)
         %loadImageData Load set of image frames from ImageStack        
             
             % Todo: add options for how many frames to load.
             obj.printTask('Loading image data from disk')
             
-            N = obj.SourceStack.chooseChunkLength();
-            imArray = obj.SourceStack.getFrameSet(1:N);
+            if nargin < 2 || isempty(N)
+                N = obj.SourceStack.chooseChunkLength();
+            end
             
+            imArray = obj.SourceStack.getFrameSet(1:N);
             obj.SourceStack.addToStaticCache(imArray, 1:N)
             
             obj.printTask('Finished loading data')

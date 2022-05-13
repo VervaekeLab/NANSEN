@@ -1242,7 +1242,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     
                     colorMapHsv = repmat(baseColorHsv, numSeries, 1); 
                     colorMapHsv(:, 3) = linspace(0.5, 1, numSeries);
-                    colorMap = hsv2rgb(colorMapHsv);
+                    colorMap = flipud( hsv2rgb(colorMapHsv) );
                     
                     hNew = line(obj.ax, sampleIdx, thisData, ...
                         'Visible', 'on', 'Color', colors(colorInd,:) );

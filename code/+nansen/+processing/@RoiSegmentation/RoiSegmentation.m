@@ -14,7 +14,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         ToolboxOptions  % Options that are in the format of original toolbox
         OriginalStack   % To store original ImageStack if SourceStack is downsampled
         Results         % Cell array to store temporary results (from each subpart)
-        
+                
         RoiArray        % Store roi array
         RoiImages       % Store roi images
         RoiStats        % Store roi stats
@@ -118,8 +118,11 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         %onCompletion Run when processor is done with all parts
            
             if ~isfile(obj.getDataFilePath(obj.ROI_VARIABLE_NAME))
+                
                 obj.mergeResults()
-                                
+                
+                obj.finalizeResults()
+                
                 obj.RoiArray = obj.getRoiArray();
                 
                 % Get roiImages and roiStats, i.e roi application data
@@ -183,6 +186,10 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             % Subclasses may override
         end
         
+        function finalizeResults(obj)
+            % Subclasses may override
+        end
+                
         function dsFactor = getTemporalDownsamplingFactor(obj)
             dsFactor = obj.Options.TemporalDownsamplingFactor;
         end
@@ -193,11 +200,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             import nansen.twophoton.roi.getRoiAppData
         
             roiArray = obj.RoiArray;
-            
-            obj.printTask('Loading image data from disk for creation of roi images')
-            N = obj.SourceStack.chooseChunkLength();
-            imArray = obj.SourceStack.getFrameSet(1:N);
-            obj.printTask('Finished loading data')
+            imArray = obj.getImageArray();
             
             obj.printTask('Computing roi images and stats')
             [roiImages, roiStats] = getRoiAppData(imArray, roiArray);       % Imported function
@@ -221,7 +224,8 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         %downsampleStack Downsample stack in the time dimension
         
             downsampledStack = obj.SourceStack.downsampleT(dsFactor, [], ...
-                'Verbose', true, 'UseTransientVirtualStack', false);
+                'Verbose', true, 'UseTransientVirtualStack', false, ...
+                'SaveToFile', true);
             
             % Store original stack and assign the downsampled stack as
             % source stack. Original stack might be needed later.

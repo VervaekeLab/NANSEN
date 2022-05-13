@@ -186,8 +186,11 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % sessionID, taskName and optionsName
             
             if nargin < 7; comments = ''; end
-            
             newTask = obj.createTaskItem(name, func, numOut, args, optsName, comments);
+            
+            if obj.isTaskOnQueue(newTask)
+                error('Task is already present on queue.')
+            end
             
             % Add to items of the task queue.
             if isempty(obj.TaskQueue)
@@ -203,9 +206,20 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             if obj.RunTasksWhenQueued
                 obj.setTaskStatus('Initialize', obj.NumQueuedTasks)
             end
-
+            
         end
 
+        function tf = isTaskOnQueue(obj, taskStruct)
+            
+            isMatched = @(fn) strcmp({obj.TaskQueue.(fn)}, taskStruct.(fn));
+            
+            nameMatched = any( isMatched('name') );
+            methodMatched = any( isMatched('methodName') );
+            
+            tf = nameMatched & methodMatched;
+            
+        end
+        
         function diary = getCurrentDiary(obj)
             if isempty(obj.runningTask)
                 diary = '';

@@ -82,6 +82,10 @@ classdef RoiSignalArray < handle
         NumRois             % vector : 1 x numCh with number of rois per channel
     end
     
+    properties (Access = protected)
+        NumFrames_ = 0      % needed for subclass where signals are extracted
+    end
+    
     
     
     properties (Access = private)
@@ -140,9 +144,15 @@ classdef RoiSignalArray < handle
         
         function numFrames = get.NumFrames(obj)
             if isempty(obj.ImageStack)
-                numFrames = 0;
+                numFrames = obj.NumFrames_;
             else
                 numFrames = obj.ImageStack.NumTimepoints;
+            end
+        end
+        
+        function set.NumFrames(obj, newValue)
+            if isempty(obj.ImageStack)
+                obj.NumFrames_ = newValue;
             end
         end
         

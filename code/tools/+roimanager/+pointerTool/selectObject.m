@@ -5,16 +5,11 @@ classdef selectObject < uim.interface.abstractPointer & ...
         exitMode = 'default';
     end
     
-    
     properties
-        
         anchorPoint = [nan, nan]        	% defined in clib.hasDraggableRectangle
         previousPoint = [nan, nan] 
-
         isButtonDown = false
-        
     end
-    
     
     properties
         activeMode = ''       % Used for switching between different behaviors (selecting rois or moving rois) while mouse is pressed
@@ -22,11 +17,9 @@ classdef selectObject < uim.interface.abstractPointer & ...
         objectDisplacement = [0,0]
     end
 
-
-
+    
     methods
                
-        
         function obj = selectObject(hAxes, hObjectMap)
             obj.hAxes = hAxes;
             obj.hFigure = ancestor(hAxes, 'figure');
@@ -37,16 +30,13 @@ classdef selectObject < uim.interface.abstractPointer & ...
             
         end
         
-        
         function set.hObjectMap(obj, newValue)
             obj.hObjectMap = newValue;
         end
         
-
         function setPointerSymbol(obj)
             setptr(obj.hFigure, 'arrow');
         end
-        
         
         function wasCaptured = onKeyPress(obj, src, event)
             wasCaptured = true;
@@ -131,7 +121,6 @@ classdef selectObject < uim.interface.abstractPointer & ...
         
         end
         
-        
         function onButtonDown(obj, src, event)
         %onButtonDown Callback for handling button down events in a roiMap.  
                     
@@ -167,7 +156,6 @@ classdef selectObject < uim.interface.abstractPointer & ...
             
         end
         
-        
         function onButtonMotion(obj, ~, ~)
             if isempty(obj.previousPoint); return; end
             if obj.isButtonDown && obj.isActive
@@ -191,7 +179,6 @@ classdef selectObject < uim.interface.abstractPointer & ...
                 
             end
         end
-        
         
         function onButtonUp(obj, src, evt)
             if ~obj.isButtonDown; return; end % Button is released from a different component, i.e a toolbar button

@@ -1,5 +1,4 @@
-function roiStat = calculateRoiStats(roiArray, roiImageData, dff, ringKernel, diskKernel)
-
+function roiStat = computeRoiStats(roiArray, roiImageData, dff, ringKernel, diskKernel)
 
 
 boxSize = size(roiImageData(1).enhancedAverage);

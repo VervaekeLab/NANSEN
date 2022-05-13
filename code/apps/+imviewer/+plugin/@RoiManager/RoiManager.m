@@ -727,6 +727,8 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
             global fprintf
             fprintf = @(varargin) obj.PrimaryApp.updateMessage(varargin{:});
 
+            obj.PrimaryApp.uiwidgets.msgBox.activateGlobalWaitbar()
+
             
             % Prepare data
             Y = obj.prepareImagedata(obj.settings.Autosegmentation);
@@ -773,6 +775,9 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
 
                     
             end
+            
+            obj.PrimaryApp.uiwidgets.msgBox.deactivateGlobalWaitbar()
+
             
             
             mask = mean(Y,3) == 0;

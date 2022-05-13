@@ -117,6 +117,10 @@ methods (Access = protected) % Implementation of abstract methods
             dims = 3:numel(obj.DataSize);
         end
         
+        if isempty(dims)
+            return
+        end
+        
         obj.InterleavedDimensions = dims;
         obj.FrameDeinterleaver = nansen.stack.Deinterleaver(...
             obj.DataDimensionArrangement(dims), obj.DataSize(dims));
@@ -306,7 +310,10 @@ methods % Implementation of abstract methods for readin/writing
         data = obj.readFrames(frameInd);
         
         % Deinterleave frames:
-        data = obj.FrameDeinterleaver.deinterleaveData(data, subs);
+        if ~isempty(obj.FrameDeinterleaver)
+            data = obj.FrameDeinterleaver.deinterleaveData(data, subs);
+        end
+        
         % Crop frames:
         data = obj.cropData(data, subs);
     end

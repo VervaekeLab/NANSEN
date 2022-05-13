@@ -13,7 +13,6 @@ classdef RoiSignalArrayExtracted < nansen.roisignals.RoiSignalArray
             end
             
             obj.RoiGroup = roiGroup;
-            obj.NumRois = roiGroup.roiCount;
             
             if obj.NumRois > 0
                 obj.initializeSignalArray()

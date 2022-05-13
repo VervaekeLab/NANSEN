@@ -1158,7 +1158,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function frameSize = get.FrameSize(obj)
-         frameSize = [obj.ImageHeight, obj.ImageWidth];
+            frameSize = [obj.ImageHeight, obj.ImageWidth];
         end
         
         function clim = get.DataTypeIntensityLimits(obj)
