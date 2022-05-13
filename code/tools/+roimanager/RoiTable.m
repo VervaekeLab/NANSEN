@@ -185,6 +185,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             oldSelection = obj.SelectedRois;
             newSelection = obj.UITable.getSelectedEntries();
             
+            if iscolumn(newSelection)
+                newSelection = transpose(newSelection);
+            end
+            
             obj.RoiGroup.changeRoiSelection(oldSelection, newSelection);
             
         end
