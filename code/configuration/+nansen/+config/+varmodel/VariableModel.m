@@ -107,10 +107,16 @@ classdef VariableModel < utility.data.StorableCatalog
             
             S = obj.getItem(varName);
             
-            % Check if alias exists?
+            % Check if varname exists as alias:
             if isempty(S)
-                S = obj.getVariableInfoFromAlias(varName);
+                S = obj.getVariableInfoFromField(varName, 'Alias');
             end
+            
+            % Check if varname exists as filename:
+            if isempty(S)
+                S = obj.getVariableInfoFromField(varName, 'FilenameExpression');
+            end
+            
             
             isExistingEntry = ~isempty(S);
             
@@ -236,12 +242,12 @@ classdef VariableModel < utility.data.StorableCatalog
     
     methods (Access = private)
         
-        function S = getVariableInfoFromAlias(obj, varName)
-        %getVariableInfoFromAlias Get variable info from alias    
+        function S = getVariableInfoFromField(obj, varName, fieldName)
+        %getVariableInfoFromField Get variable info from fieldname of Data    
             S = struct.empty;
             
-            aliases = {obj.Data.Alias};
-            isMatch = strcmp(aliases, varName);
+            names = {obj.Data.(fieldName)};
+            isMatch = strcmp(names, varName);
             
             if any(isMatch) && sum(isMatch) == 1
                 S = obj.Data(isMatch);
