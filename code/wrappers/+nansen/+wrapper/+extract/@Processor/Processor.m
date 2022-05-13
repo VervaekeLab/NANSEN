@@ -144,12 +144,17 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 %obj.mergeSpatialComponents()
                 obj.mergeSpatialComponentsLiberal()
                 spatialWeights = obj.MergedResults.spatial_weights;
+                summary = obj.MergedResults;
             else
                 spatialWeights = obj.Results{1}.spatial_weights;
+                summary = obj.Results{1};
             end
 
             % Save (merged) results as spatial weights and roiarray
             obj.saveData('ExtractSpatialWeightsAuto', spatialWeights, ...
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true)
+            
+            obj.saveData('ExtractSegmentationSummary', summary, ...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true)
             
             obj.SpatialWeights = spatialWeights;
@@ -202,7 +207,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             onCompletion@nansen.processing.RoiSegmentation(obj)
             
             if ~isfile(obj.getDataFilePath('ExtractTemporalWeights'))
-
+            
+                if isempty(obj.MergedResults)
+                    obj.mergeResults()
+                end
+                
                 % Get temporal segments %Todo: Should just be a separate method...
                 tExtracor = nansen.wrapper.extract.ProcessorT(...
                     obj.OriginalStack, obj.Options, obj.MergedResults);
