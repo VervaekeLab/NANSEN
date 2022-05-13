@@ -81,6 +81,13 @@ classdef MetaTableColumnFilter < handle
         
         function onMetaTableUpdated(obj)
         %onMetaTableUpdated Callback for when metatable is updated    
+            
+            % Reset filter controls if number of columns have changed
+            numCols = size(obj.MetaTable, 2);
+            if numCols ~= numel( obj.hColumnFilterPopups )
+                obj.onMetaTableChanged
+            end
+            
             obj.updateColumnFilter()
         end
         
@@ -115,7 +122,7 @@ classdef MetaTableColumnFilter < handle
             varNames = obj.MetaTableUi.MetaTable.Properties.VariableNames;
             numColumns = numel(varNames);
             
-            obj.hColumnFilterPopups = cell(numColumns,1);
+            obj.hColumnFilterPopups = cell(numColumns, 1);
             
             obj.columnFilterType = repmat({'N/A'}, numColumns, 1);
             obj.isColumnFilterActive = false(numColumns,1);
