@@ -46,7 +46,7 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
     
     showPlot = false;
 
-
+    % Todo: redefine parameters.
     params = struct();
     params.SpatialUpsamplingFactor = 4;
     params.DetectNucleusBoundary = true;
@@ -68,7 +68,7 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
     
     % Unroll the image for easier circular edge detection...
     unrolled = stack.reshape.imunroll(im);
-    [maxRadius, numAngles, ~] = size(unrolled);
+    [~, numAngles, ~] = size(unrolled);
 
     % Assign angules for each radial line in polar image
     thetaDeg = 0 : (360 / numAngles) : 360;
@@ -85,8 +85,13 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
 
     % Allocate array for roi masks and initalize struct for stats
     mask = zeros([imSizeSmall(1:2), numImages], 'logical');
-    stat = initializeStats();
-    results = struct;
+    
+    if nargout == 2
+        returnStats = true; 
+        stat = initializeStats();
+    else
+        returnStats = false;
+   end
     
     for i = 1:numImages
         
@@ -119,7 +124,6 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
             innerBoundarySmooth = zeros(size(tmpGradient, 2), 1);
         end
         
-        
         [outerBoundary, outerBoundaryStats] = findEdge(tmpGradient, 'fall');
         if isempty(outerBoundary); continue; end
             
@@ -133,15 +137,11 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
         outerBoundarySmooth( outerBoundarySmooth<lb ) = lb;
         outerBoundarySmooth( outerBoundarySmooth>ub ) = ub;
         
-        
-        %centerLine = mean([innerBoundarySmooth', outerBoundarySmooth'], 2); % For stats
-        
-
+                
         if showPlot
             showDetectedEdges(grad, tmpUnrolled, innerBoundary, ...
                 outerBoundary, innerBoundarySmooth, outerBoundarySmooth)              %#ok<UNRCH> % Local function
         end
-
 
         % Scale back (spatial down sample)
         innerRadius = innerBoundarySmooth ./ upSampleFactor;
@@ -158,6 +158,19 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
         % Create mask
         mask(:, :, i) = poly2mask(X, Y, imSizeSmall(1), imSizeSmall(2));
 
+    
+        
+        if returnStats
+            args = {im, tmpUnrolled, innerBoundarySmooth, outerBoundarySmooth, ...
+                imSizeUs, thetaRad};
+            
+            stat(i) = getStats(args{:});
+            if params.DetectNucleusBoundary
+                stat(i).innerStrength = innerBoundaryStats.EdgeValue;
+            end
+            stat(i).outerStrength = outerBoundaryStats.EdgeValue;
+        end
+    
     end
 
     
@@ -169,6 +182,7 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
 
 end
 
+% % % Local functions
 
 function [edgeCoords, stat] = findEdge(grad, polarity)
 
@@ -336,115 +350,58 @@ function stat = initializeStats()
         'ridgeFraction', {});
 end
 
-function stat = computeStats(tmpUnrolled)
+function stat = getStats(im, tmpUnrolled, innerBoundarySmooth, ...
+    outerBoundarySmooth, imSizeUs, theta)
+    
+    stat = struct;
     
     % Create some stat values:
     imCenter = fliplr( imSizeUs(1:2)./2 );
     x = imCenter(1); y = imCenter(2);
 
 
-    [X, Y] = pol2cart(deg2rad(theta(1:end-1)), outerBoundarySmooth);
-    stat(i).outerEdge = [x+X', y-Y'];
+    [X, Y] = pol2cart(deg2rad(theta), outerBoundarySmooth);
+    stat.outerEdge = [x+X', y-Y'];
 
     maskSoma = poly2mask(x+X-0.25, y-Y-0.25,  imSizeUs(1), imSizeUs(2));
 
-    [X, Y] = pol2cart(deg2rad(theta(1:end-1)), edgeCoordsInnS);
-    stat(i).innerEdge = [x+X', y-Y'];
+    [X, Y] = pol2cart(deg2rad(theta), innerBoundarySmooth);
+    stat.innerEdge = [x+X', y-Y'];
 
-    maskNucl = poly2mask(x+X-0.25, y-Y-0.25,  size(im,1),  size(im,2));
+    maskNucl = poly2mask(x+X-0.25, y-Y-0.25,  imSizeUs(2),  imSizeUs(2));
 
 
-    stat(i).nucleusValue = median(mean(im(maskNucl)));
-    stat(i).donutValue = median(mean(im(maskSoma &~ maskNucl)));
-    stat(i).surroundValue = median(mean(im(~maskSoma)));
+    stat.nucleusValue = median(mean(im(maskNucl)));
+    stat.donutValue = median(mean(im(maskSoma &~ maskNucl)));
+    stat.surroundValue = median(mean(im(~maskSoma)));
 
-    stat(i).innerStrength = statInn.EdgeValue;
-    stat(i).outerStrength = outerBoundaryStats.EdgeValue;
+    stat.innerStrength = 0;
+    stat.outerStrength = 0;
+
+    centerLine = mean([innerBoundarySmooth', outerBoundarySmooth'], 2); % For stats
 
 
     indCenter = sub2ind(size(tmpUnrolled), round(centerLine), (1:size(tmpUnrolled,2))');
-    indInner = sub2ind(size(tmpUnrolled), round(edgeCoordsInnS)', (1:size(tmpUnrolled,2))');
+    indInner = sub2ind(size(tmpUnrolled), round(innerBoundarySmooth)', (1:size(tmpUnrolled,2))');
     indOuter = sub2ind(size(tmpUnrolled), round(outerBoundarySmooth)', (1:size(tmpUnrolled,2))');
 
     VAL = double(tmpUnrolled(indCenter));
 
-    stat(i).uniformity = mean(VAL) ./ std(VAL);
-    stat(i).variance = std(VAL);
+    stat.uniformity = mean(VAL) ./ std(VAL);
+    stat.variance = std(VAL);
 
     tf = ( VAL > mean(VAL)-std(VAL) &  VAL < mean(VAL)+std(VAL) );
-    stat(i).uniformity = sum(tf) ./ numel(VAL);
+    stat.uniformity = sum(tf) ./ numel(VAL);
 
-
-    isRidge = tmpUnrolled(indCenter) > tmpUnrolled(indInner) & tmpUnrolled(indCenter) > tmpUnrolled(indOuter);
-    stat(i).ridgeFraction = mean(isRidge);
+    if all(innerBoundarySmooth==0)
+        stat.ridgeFraction = nan;
+    else
+        isRidge = tmpUnrolled(indCenter) > tmpUnrolled(indInner) & tmpUnrolled(indCenter) > tmpUnrolled(indOuter);
+        stat.ridgeFraction = mean(isRidge);
+    end
 
 end
 
 function tf = isSignificantBoundary(innerBoundaryStats)
     tf = innerBoundaryStats.EdgeValue2 > 1.5; % Ad hoc cutoff value...
 end
-
-% % % Older version of code
-
-% % v = 0;
-% % 
-% %     if v==1
-% % 
-% %         [maxval, maxind] = max(double(unrolled));
-% %         outerRadius = maxind + upSampleFactor;
-% % 
-% %     elseif v==2
-% % 
-% %         % Look for edges.
-% %         grad = diff(double(unrolled));
-% % 
-% %         [~, outerBndA1] = min(grad);
-% %         [~, outerBndA2] = min(grad .* double(unrolled(2:end,:))); % Weighted by brightess....
-% %         [~, innerBnd] = max(grad);
-% %         
-% %         outerBndA = outerBndA1;
-% %         outerBndB = outerBndA2;
-% %         
-% % %          isoutlier(outerBnd1, 'movmedian', 40)
-% % %         TF = isoutlier(outerBndA1, 'gesd', 'ThresholdFactor', 1)
-% % 
-% % %         outerBndA( outerBndA > median(outerBndA) + std(outerBndA)) = nan;
-% %         outerBndA = filloutliers(outerBndA, 'linear', 'gesd', 'ThresholdFactor', 1);
-% %         outerBndB = filloutliers(outerBndB, 'linear', 'gesd', 'ThresholdFactor', 1);
-% %         
-% %         % Choose the one with smallest std...
-% %         if false %std(outerBndA) > std(outerBndB)
-% %             outerBndA = outerBndB;
-% %         else
-% %             
-% %         end
-% % 
-% %         % Remove outliers and smooth data for the outer boundary
-% %         baseline = utility.circularsmooth(outerBndA, 10, 'movmedian');
-% %         outerBnd2 = outerBndA - baseline;
-% %         outerBnd2 = filloutliers(outerBnd2, 'pchip', 'gesd', 'ThresholdFactor', 1);
-% % 
-% %         outerBnd1 = outerBnd2 + baseline;
-% %         outerBnd1 = utility.circularsmooth(outerBnd1, 5, 'movmean');
-% % 
-% %         % Remove outliers and smooth data for the inner boundary
-% %         baseline = utility.circularsmooth(innerBnd, 10, 'movmedian');
-% %         innerBnd2 = innerBnd - baseline;
-% %         innerBnd2 = filloutliers(innerBnd2, 'pchip', 'gesd', 'ThresholdFactor', 1);
-% %         innerBnd1 = innerBnd2 + baseline;
-% %         %innerBnd1 = utility.circularsmooth(innerBnd1, 5, 'movmean');
-% % 
-% %         if showPlot
-% %             figure('Position', [300,300,300,300]); axes('Position', [0,0,1,1]);
-% %             imagesc(unrolled); hold on
-% %             imagesc(grad); hold on
-% %             plot(1:size(unrolled,2), outerBndA1, 'ow')
-% %             plot(1:size(unrolled,2), outerBnd1, 'r')
-% %             plot(1:size(unrolled,2), innerBnd, 'or')
-% %             plot(1:size(unrolled,2), innerBnd1, 'r')
-% %         end
-% % 
-% %         innerRadius = innerBnd1 + upSampleFactor;
-% %         outerRadius = outerBnd1 + upSampleFactor;
-% %     end 
-

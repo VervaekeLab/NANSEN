@@ -10,7 +10,7 @@ function imageArray = removeBackground(imageArray, varargin)
 %
 %   Optional name/value pairs:
 %
-%   FilterSize : "Size" (standard deviation/sigma) of the gaussian kernel
+%   SpatialFilterSize : "Size" (standard deviation/sigma) of the gaussian kernel
    
     
     assert( ndims(imageArray) == 3, 'Image array must be 3D')
@@ -18,13 +18,20 @@ function imageArray = removeBackground(imageArray, varargin)
         'Image array must be single or double')
     
     params = struct();
-    params.FilterType = 'gaussian'; % todo...
-    params.FilterSize = 20;
+    params.SpatialFilterType = 'gaussian'; % todo...
+    params.SpatialFilterSize = 20;
     
     params = utility.parsenvpairs(params, [], varargin{:});
     
     % Smooth using a big gaussian kernel, to wash out cell-sized objects
-    bgArray = stack.process.filter2.gauss2d(imageArray, params.FilterSize);
+    switch params.SpatialFilterType
+        case 'gaussian'
+            sigma = params.SpatialFilterSize;
+            bgArray = stack.process.filter2.gauss2d(imageArray, sigma);
+        otherwise
+            error('Filter type "%s" is not implemented', params.SpatialFilterType)
+            
+    end
 
     % Subtract background (smoothed version)
     imageArray = imageArray - bgArray;

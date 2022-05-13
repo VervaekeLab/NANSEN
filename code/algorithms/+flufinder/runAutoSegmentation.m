@@ -1,4 +1,4 @@
-function [roiArray, results] = runAutoSegmentation(imArray, varargin)
+function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
     
     % option for what to return:
     %   roiarray, or spatial segments... Should depend on whether
@@ -6,6 +6,9 @@ function [roiArray, results] = runAutoSegmentation(imArray, varargin)
     
     % todo
     %   [ ] extended results
+    
+    %[params, validators] = flufinder.getDefaultOptions();
+    %params = utility.parsenvpairs(params, validators, varargin{:});
     
     params = struct(); 
     params.RoiType = 'soma';
@@ -28,6 +31,8 @@ function [roiArray, results] = runAutoSegmentation(imArray, varargin)
     
     tBegin = tic; % Start timer
 
+    % Initialize appendix
+    summary = struct;
     
     % % Preprocess image data
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -53,7 +58,7 @@ function [roiArray, results] = runAutoSegmentation(imArray, varargin)
     % % Binarize image data
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fprintf('Binarizing image data...\n')
-    % bwArray = flufinder.module.binarizeImages(imArray)
+    % bwArray = flufinder.module.binarizeImages(imArray, params)
     
     optsNames = {'RoiDiameter', 'BwThresholdPercentile'};
     bwOpts = utility.struct.substruct(params, optsNames);
@@ -73,32 +78,9 @@ function [roiArray, results] = runAutoSegmentation(imArray, varargin)
     fprintf('Detecting binary components...\n')
     
     S = flufinder.detect.getBwComponentStats(BW, params);
-
     roiArrayT = flufinder.detect.findUniqueRoisFromComponents(imageSize, S);
-    
-    roiArrayT = flufinder.utility.mergeOverlappingRois(roiArrayT);
-    
-    
-    % % Detect rois from a shape-based kernel convolution
-    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    
-    if params.UseShapeDetection
-        fprintf('Searching for %s-shaped cells...\n', ...
-            params.MorphologicalShape)
-        averageImage = mean(imArray, 3);
-        roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
         
-        if ~isempty(roiArrayS)
-            roiArrayS = roimanager.utilities.mergeOverlappingRois(roiArrayS);
-            %roiArrayS = roimanager.utilities.removeRoisOnBoundary(roiArrayS);
-
-            % Remove candidates that are overlapping...
-            [~, iB] = roimanager.utilities.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
-            roiArrayT(iB) = [];
-        end
-    end
     
-        
     % % Improve estimates of rois which were detected based on activity
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     import nansen.twophoton.roi.compute.computeRoiImages
@@ -114,20 +96,31 @@ function [roiArray, results] = runAutoSegmentation(imArray, varargin)
 % % % 
 % % %     
 % % %     roiArrayT = flufinder.module.improveRoiMasks(roiArrayT, roiImages);
-% % % 
     
-    % % Check overlapping rois...
+    
+    
+    % % Detect rois from a shape-based kernel convolution
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if params.UseShapeDetection && ~isempty(roiArrayS)
-        [~, iB] = flufinder.utility.findOverlappingRois(roiArrayS, ...
-            roiArrayT, 0.75);
-        roiArrayT(iB) = [];
+    if params.UseShapeDetection
+        fprintf('Searching for %s-shaped cells...\n', ...
+            params.MorphologicalShape)
+        averageImage = mean(imArray, 3);
         
-        % Combine Rois from two different methods
-        roiArray = [roiArrayS, roiArrayT];
+        roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
+        roiArray = flufinder.utility.combineRoiArrays(roiArrayT, roiArrayS, opts);
     else
         roiArray = roiArrayT;
     end
+    
+    
+    
+    %roiArrayS = roimanager.utilities.removeRoisOnBoundary(roiArrayS);
+
+    % Remove small rois:
+% %     areas = [roiArrayT.area];
+% %     keep = areas > 50 & areas < 200;
+% %     roiArray = roiArray(keep);
+    
     
     
     % % Display elapsed time and number of rois detected.
@@ -135,4 +128,8 @@ function [roiArray, results] = runAutoSegmentation(imArray, varargin)
     fprintf('Autosegmentation finished. Found %d rois in %d seconds.\n', ...
         numel(roiArray), round(toc(tBegin)) )
     
+    
+    if nargout == 1
+        clear summary
+    end
 end

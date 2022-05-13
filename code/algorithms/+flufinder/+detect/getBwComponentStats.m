@@ -1,4 +1,4 @@
-function S = getBwComponentStats(BW, varargin)
+function [S, CC] = getBwComponentStats(BW, varargin)
 %getBwComponentStats Get stats of components in a 3D logical (BW) array
 %
 %   S = getBwComponentStats(BW, varargin) returns a struct containing stats
@@ -38,5 +38,13 @@ function S = getBwComponentStats(BW, varargin)
 %     minAreaToConsider = prctile([S.Area], 1); % pi*8^2
 %     ignoreInd = [S.Area] < minAreaToConsider;
 %     S(ignoreInd) = [];
-    
+
+    if nargout == 1
+        clear CC
+    else
+        CCArray = cat(1, CC{:});
+        CC = CC{1};
+        CC.NumObjects = sum([CCArray.NumObjects]);
+        CC.PixelIdxList = cat(2, CCArray.PixelIdxList);
+    end
 end

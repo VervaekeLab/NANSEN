@@ -16,16 +16,16 @@ function [roiArray, roiImages, roiStats] = autosegmentAxon(imArray, varargin)
     % Binarize stack
     t1=tic;
     fprintf('Binarizing images... ')    
-    BW = roimanager.autosegment.binarizeStack(imArray, [], 'axon');
+    BW = roimanager.autosegment.binarizeStack(imArray, 'RoiType', 'axon');
     t2 = toc(t1);
     fprintf(sprintf('Elapsed time is %.2f seconds.\n', t2))
     
     % Search for candidates based on activity in the binary stack
-    S = roimanager.autosegment.getAllComponents(BW, param);
+    S = flufinder.detect.getBwComponentStats(BW, param);
     
     t1=tic;
     fprintf('Searching for unique candidates... ')
-    roiArrayT = roimanager.autosegment.findUniqueRoisFromComponents(stackSize, S, 'filterByArea', false, 'nRoisToFind', param.MaxNumRois); %, 'roiClass', 'axon');
+    roiArrayT = flufinder.detect.findUniqueRoisFromComponents(stackSize, S, 'filterByArea', false, 'nRoisToFind', param.MaxNumRois); %, 'roiClass', 'axon');
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
     t2 = toc(t1);
     fprintf('Elapsed time is %.2f seconds.\n', t2)

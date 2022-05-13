@@ -1,4 +1,4 @@
-function BW = getRoiMaskFromImage(im, roiType, roiDiameter)
+function [BW, stats] = getRoiMaskFromImage(im, roiType, roiDiameter)
 %getRoiMaskFromImage Get a binary mask from a roi image
 %
 %   BW = getRoiMaskFromImage(im, roiType) get a roi mask for given roi type
@@ -25,14 +25,19 @@ function BW = getRoiMaskFromImage(im, roiType, roiDiameter)
         case 'soma'
             % Remove very small components and fill holes.
             BW = bwareaopen(BW, round(A/10)); % < than 1/10th of roi area
-            BW = imfill(BW, 'holes');
             
         case 'axon'
-            BW = imdilate(BW, ones(3,3));
+            BW = bwareaopen(BW, round(A/10));
+            %BW = imdilate(BW, ones(3,3));
+    end
+
+    BW = imfill(BW,'holes');
+    BW = flufinder.utility.pickLargestComponent(BW);
+    
+    if nargout == 2
+        stats = getStats(im, BW);
     end
     
-    BW = flufinder.utility.pickLargestComponent(BW);
-
 end
 
 function T = getThreshold(im, roiType)
@@ -51,4 +56,16 @@ function T = getThreshold(im, roiType)
             T = graythresh(im);
             %T = max(im(:)) / 3;
     end
+end
+
+function stats = getStats(im, mask)
+
+    stats = struct;
+    
+    roiBrightness = nanmedian(nanmedian( im(mask) ));
+    pilBrightness = nanmedian(nanmedian( im(~mask) ));
+
+    stats.dff = (roiBrightness-pilBrightness+1) ./ (pilBrightness+1);
+    stats.val = roiBrightness;
+    
 end

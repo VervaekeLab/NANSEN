@@ -17,8 +17,11 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
 
     
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
+        
+    % Remove candidates very close to edge of the image
+    roiArrayT = roimanager.utilities.removeRoisOnBoundary(roiArrayT);
     
-
+    
     if opt.RingConvolutionSearch
         % Search for ring shaped candidates (spatial footprint only)
         fprintf('Searching for ring-shaped cells...\n')
@@ -50,12 +53,7 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
         end
     end
     
-    
-    % Remove candidates very close to edge of the image
-    roiArrayT = roimanager.utilities.removeRoisOnBoundary(roiArrayT);
-    
-    
-    
+
     fprintf('Extracting signals for temporally active cells...\n')
     
     signalOpts = struct('createNeuropilMask', true);

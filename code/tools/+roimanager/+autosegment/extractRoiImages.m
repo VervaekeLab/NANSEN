@@ -23,7 +23,7 @@ opt = utility.parsenvpairs(def, [], varargin);
 % Get the roimanager as a local package (1 folder up)
 %rootPath = fileparts(fileparts(mfilename('fullpath')));
 %roitools = tools.path2module(rootPath);
-import roimanager.imenhance.*
+import nansen.twophoton.roi.compute.getPixelCorrelationImage
 
 boxSize = opt.BoxSize;
 assert(all(mod(boxSize,2)==1), 'Boxsize should be odd')

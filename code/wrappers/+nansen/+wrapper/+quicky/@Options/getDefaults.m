@@ -7,14 +7,16 @@ function [P, V] = getDefaults()
 
 % - - - - - - - - Specify parameters and default values - - - - - - - - 
 
-    P = quickr.getOptions();
-    V = struct();
+    [P, V] = flufinder.getDefaultOptions();
+
+    %P = quickr.getOptions();
+    %V = struct();
 
 
 % - - - - - Adapt output to how many outputs are requested - - - - - -
 
 if nargout == 0
-    displayParameterTable(mfilename('fullpath'))
+    displayParameterTable(which('flufinder.getDefaultOptions'))
     clear P V
 elseif nargout == 1
     clear V

@@ -31,7 +31,8 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
         'numCandidateAbort', 1, ...
         'nRoisToFind', 1000, ...
         'roiClass', 'soma', ...
-        'roiDiameter', 12 );
+        'roiDiameter', 12, ...
+        'PercentOverlapForMerge', 80);
     
     opt = utility.parsenvpairs(def, [], varargin);
 
@@ -230,5 +231,11 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
     
     warning('on', 'stats:linkage:NonMonotonicTree')
     fprintf(newline)
+    
+    overlap = opt.PercentOverlapForMerge ./ 100;
+    overlap = 0.8;
+    roisOut = flufinder.utility.mergeOverlappingRois(roisOut, overlap);
+    roisOut = roisOut.addTag('bw_threshold_segment');
+    
     
 end

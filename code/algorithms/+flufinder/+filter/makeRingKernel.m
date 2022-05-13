@@ -5,22 +5,26 @@ function kernel = makeRingKernel(im, varargin)
 %
 %   kernel = makeRingKernel(im, name, value, ...)
 
+    % Todo: Should sigma be radius dependent?
 
     def = struct();
     def.InnerRadius = 3;
     def.OuterRadius = 5; 
     def.Sigma       = 1;
-    def.BoxSize     = [21,21];
     
     opt = utility.parsenvpairs(def, [], varargin);
 
+    % Compute kernel size
+    kernelSize = (2*opt.OuterRadius + 2*ceil(2*opt.Sigma) + 1) .* [1,1];
+    
     imOrig = im;
-
+    
+    % Todo: This is very ad hoc, could be much improved
     nuc = prctile(imOrig(:), 5);
     bg = prctile(imOrig(:), 50);
     fg = prctile(imOrig(:), 99);
 
-    se1 = strel('rect', opt.BoxSize);
+    se1 = strel('rect', kernelSize);
     se2 = strel('disk', opt.InnerRadius);
     se3 = strel('disk', opt.OuterRadius);
 
@@ -40,6 +44,6 @@ function kernel = makeRingKernel(im, varargin)
     kernel = m1+m2+m3;
     kernel = single(kernel);
 
-    kernel = stack.process.filter2.gauss2d(single(kernel), 1);
+    kernel = stack.process.filter2.gauss2d(single(kernel), opt.Sigma);
 
 end

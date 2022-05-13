@@ -9,7 +9,8 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     def.InnerRadius = 3;
     def.OuterRadius = 5; 
     def.Sigma       = 1;
-    def.BoxSize     = [21,21];
+    def.PercentOverlapForMerge = 75; % todo.
+
     
 
     im = double(im);
@@ -19,11 +20,7 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     im = im ./ max(im(:));
 
     
-    filterKernel = flufinder.filter.makeRingKernel(im, varargin{:});
-
-    % Why is is cropped?
-    windowSmall = stack.reshape.imcropcenter(filterKernel, [19,19]);
-
+    filterWindow = flufinder.filter.makeRingKernel(im, varargin{:});
     
     % C = conv2(imOrig,window, 'same') ;
     % C = C./max(C(:));
@@ -35,7 +32,7 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     %   Does smaller/bigger window size influence the computation time?
 
 
-    B = nlfilter(im, size(windowSmall), @(Y) corr2(Y, windowSmall)); % <- faster
+    B = nlfilter(im, size(filterWindow), @(Y) corr2(Y, filterWindow)); % <- faster
     B = B ./ max(B(:));
 
 
@@ -77,6 +74,8 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
 
     nKeep = sum(keep);
 
+    % Todo: Use specialized function for getting crop indices
+    
     %% extract "box" around remaining centroids.
     boxSize = [21,21];
     assert(all(mod(boxSize,2)==1), 'Boxsize should be odd')
@@ -117,15 +116,23 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     centerCoords = centerCoords(keep2, :);
 
     [masks, s] = flufinder.binarize.findSomaMaskByEdgeDetection(imdata, centerCoords, size(im));
-
+    
+    % Todo: place in fov sized mask
+    
+    
     if showResults
         nIms = size(imdata,3);
         masks = zeros([size(im), nIms], 'logical');
 
         for i = 1:nIms
             center = centerCoords(i, :);
-            [masks(:, :, i), s(i)] = findRoiMaskFromImage(imdata(:,:,i), center, size(masks));
-
+            [maskSmall, s(i)] = flufinder.binarize.findSomaMaskByEdgeDetection(imdata(:,:,i));
+            
+            
+            masks(S(2):L(2), S(1):L(1), i) = roiMaskSmall;
+            
+            
+            
             if showResults
                 f = figure('Position', [1,1,  size(imdata,2)*4, size(imdata,1)*4], 'Visible', 'off'); 
                 ax = axes('Position', [0,0,1,1], 'Parent', f);
@@ -178,6 +185,13 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     for i = 1:size(masks, 3)
         roisOut(end+1) = RoI('Mask', masks(:, :, i), size(im));
     end
+    
+    % Merge overlapping rois before returning
+    overlap = def.PercentOverlapForMerge ./ 100;
+    overlap = 0.8;
+    roisOut = flufinder.utility.mergeOverlappingRois(roisOut);
+    roisOut = roisOut.addTag('shape_segment');
+
 
     if nargout==2
         statOut = s;

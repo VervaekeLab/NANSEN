@@ -474,19 +474,10 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             
             switch autodetectionMode
                 case 1
-                    %Todo: specify local center... This function should use local
-                    %center, not assume to start in center of small image.
-                    %[roiMask_, ~] = roimanager.binarize.findRoiMaskFromImage(IM, imSize/2, imSize, 'output', 'mask', 'us', 4);
-                        
                     roiMask_ = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
 
-                    %roiMask = false(imSize);
-                    %roiMask_ = flufinder.utility.placeLocalRoiMaskInFovMask(roiMask_, [x,y], roiMask);
-                    
-% %                     hIm.AlphaData = 1-roiMask_.*0.5;
-                    
                 case {2, 3, 4}
-                    roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r(1)*2);
+                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r(1)*2);
             end
             
             roiMask_ = imtranslate(roiMask_, round(centerOffset)); % + correction);
@@ -495,15 +486,15 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             if ~nargout                
                 
                 roiObject = obj.RoiGroup.roiArray(roiInd);
+                
+                % Place detected roimask in fov-sized mask
                 [I, J] = roiObject.getThumbnailCoords(imSize);
                 mask = false(roiObject.imagesize);
                 mask(J, I) = roiMask_;
-                %mask = imtranslate(mask);
                 
                 % Using the reshape method to retain appdata. Note: reshape
                 % will circshift the existing images, not make new ones.
                 newRoi = roiObject.reshape('Mask', mask, 'shiftImage');
-
                 obj.RoiGroup.modifyRois(newRoi, roiInd)
                 
                 clear newRoi

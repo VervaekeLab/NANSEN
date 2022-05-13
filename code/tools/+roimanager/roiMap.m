@@ -1142,7 +1142,7 @@ classdef roiMap < roimanager.roiDisplay
 
             
             % Get samples where activity is highest
-            IND = roimanager.signalanalysis.findActiveSamplePoints(signal);
+            IND = nansen.twophoton.roisignals.analyze.findActiveSamplePoints(signal);
             if isempty(IND)
                 [~, IND] = max(signal);
             end
@@ -1151,53 +1151,44 @@ classdef roiMap < roimanager.roiDisplay
             % Make image & Detect mask
             switch autodetectionMode
                 case 1
-                    % Todo: specify local center... This function should use local
-                    % center, not assume to start in center of small image.
-                    
-                    IM = mean(imChunk(:, :, IND), 3);            
-                    outputType = 'coords';
-                    
-                    switch 2
-                        case 1
-                            [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, [x, y], imSize, 'output', outputType, 'us', 4);
-                            if strcmp(outputType, 'coords')
-                                roiMask = roiMask{1};
-                            end
-                        case 2
-                    
-                        roiMask_ = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
-                        roiMask = false(imSize);
-                        roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
-                    end
+
+                    IM = mean(imChunk(:, :, IND), 3);                                
+
+                    [roiMaskSmall, s] = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+                    roiMask = false(imSize);
+                    roiMask(S(2):L(2), S(1):L(1)) = roiMaskSmall;
                     
                 case 2
                     IM = max(imChunk(:, :, IND), [], 3);
-                    roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
+                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
                     
                 case 3
-                    
 %                     IND = obj.displayApp.currentFrameNo;
 %                     IM = imChunk(:, :, IND);
                     IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
                     IM = stack.makeuint8(single(IM));
-                    roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2, 'ExtentedRadius', r*4);
+                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2, 'ExtentedRadius', r*4);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
+                
                 case 4
-                    
                     [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, rExtended);
                     IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
                     IM = stack.makeuint8(single(IM));
-                    roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
+                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
+                
                 case 5
-                    %Todo: specify local center... This function should use local
-                    %center, not assume to start in center of small image.
-                    IM = mean(imChunk(:, :, IND), 3);            
-                    [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, [x, y], imSize);
+                    % Todo: Use current image?
+                    % IM = mean(imChunk(:, :, IND), 3); 
+                    IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
+
+                    roiMaskSmall = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+                    roiMask = false(imSize);
+                    roiMask(S(2):L(2), S(1):L(1)) = roiMaskSmall;
             end
             
             
@@ -1298,7 +1289,6 @@ classdef roiMap < roimanager.roiDisplay
             roiMask = false(imSize);
             roiMask = flufinder.utility.placeLocalRoiMaskInFovMask(roiMask_, [x,y], roiMask);
             
-
             if obj.debug
                 obj.displayRoiImageForAutoDetection(roiImage)
             end

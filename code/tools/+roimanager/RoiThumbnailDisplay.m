@@ -479,10 +479,6 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             centerOffset = imSize/2 - [y,x]; %./obj.SpatialUpsampling;
             IM = circshift( IM, round(centerOffset) );
             %IM = imtranslate(IM, fliplr( round(centerOffset) ));
-            outputType = 'coords';
-            [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, ...
-                [x, y], imSize, 'output', outputType, 'us', 1);
-            roiMask = roiMask{1};
 
             roiMask = flufinder.binarize.findSomaMaskByEdgeDetection(IM, ...
             'us', 1);

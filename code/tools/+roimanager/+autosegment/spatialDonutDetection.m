@@ -24,9 +24,7 @@ im = im ./ max(im(:));
 im(im<0)=0;
 im(im>1)=1;
 
-window = roimanager.autosegment.createRingshapedKernel(im, varargin{:});
-% window = createRingshapedKernel(im, 'InnerRadius', 4, 'OuterRadius', 6);
-
+window = flufinder.filter.makeRingKernel(im, varargin{:});
 windowSmall = stack.reshape.imcropcenter(window, [19,19]);
 
 % C = conv2(imOrig,window, 'same') ;
@@ -120,7 +118,7 @@ keep2 = err>0.1;
 imdata = imdata(:, :, keep2);
 centerCoords = centerCoords(keep2, :);
 
-
+% note: replaced by : flufinder.binarize.findSomaMaskByEdgeDetection
 [masks, s] = roimanager.binarize.findRoiMaskFromImage(imdata, centerCoords, size(im));
 
 if showResults
@@ -129,6 +127,7 @@ if showResults
     
     for i = 1:nIms
         center = centerCoords(i, :);
+        % note: replaced by : flufinder.binarize.findSomaMaskByEdgeDetection
         [masks(:, :, i), s(i)] = findRoiMaskFromImage(imdata(:,:,i), center, size(masks));
 
         if showResults

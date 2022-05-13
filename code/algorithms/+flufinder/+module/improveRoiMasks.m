@@ -1,4 +1,4 @@
-function [roiArrayOut, statOut] = improveRoiMasks(roiArrayIn, roiImageArray, roiType)
+function [roiArrayOut, summary] = improveRoiMasks(roiArrayIn, roiImageArray, roiType)
 %improveRoiMasks Improve roi masks based on images of rois
 %
 %   [roiArrayOut, statOut] = improveRoiMasks(roiArrayIn, roiImageArray, roiType)
@@ -35,7 +35,7 @@ function [roiArrayOut, statOut] = improveRoiMasks(roiArrayIn, roiImageArray, roi
                 
                 %mask = findSomaMaskByEdgeDetection(roiImage, roiArrayIn(i).center, roiArrayIn(i).imagesize);
                 
-                [mask, s] = roimanager.roidetection.binarizeSomaImage(roiImage);
+                [mask, s] = flufinder.binarize.findSomaMaskByThresholding(roiImage);
 
         end
         

@@ -23,24 +23,24 @@ function imageArray = removeStaticBackground(imageArray, varargin)
     
     % Set default parameters and parse name/value pairs from varargin
     params = struct();
-    params.Percentile = 25;
+    params.PrctileForBaseline = 25;
     
     params = utility.parsenvpairs(params, [], varargin{:});
     
-    if numel(params.Percentile) == 1
-        params.Percentile = [0, params.Percentile];
+    if numel(params.PrctileForBaseline) == 1
+        params.PrctileForBaseline = [0, params.PrctileForBaseline];
     end
     
     % Assign and validate percentile interval
-    percentileInterval = params.Percentile(1):params.Percentile(2);
-    assert(all(percentileInterval >= 0 & percentileInterval <= 100), ...
+    prctInterval = params.PrctileForBaseline(1):params.PrctileForBaseline(2);
+    assert(all(prctInterval >= 0 & prctInterval <= 100), ...
         'Percentile values must be between 0 and 100')
     
     % Sort pixel values along the 3rd (frame) dimension
     sortedPixelValues = sort(imageArray, 3);
     
     % Create background from mean of lower end of pixel values. 
-    pixelIdxKeep = round( numFrames .* percentileInterval ./ 100 );
+    pixelIdxKeep = round( numFrames .* prctInterval ./ 100 );
     pixelIdxKeep(pixelIdxKeep<1) = [];
     sortedPixelValuesLow = sortedPixelValues(:, :, pixelIdxKeep);
     staticBackgroundImage = mean(sortedPixelValuesLow, 3);
