@@ -46,7 +46,7 @@ classdef extractSignals < nansen.session.SessionMethod
             
             imageStack = sessionData.TwoPhotonSeries_Corrected;
 
-            roiArray = sessionData.roiArray; 
+            roiArray = sessionData.RoiArray;
             
             extractF = @nansen.twophoton.roisignals.extractF;
             [signalArray, P] = extractF(imageStack, roiArray, 'verbose', true, obj.Parameters);

@@ -259,11 +259,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 end
             end
             
-            if numel(varNames) == 1
-                return
-            end
-            
-            
             msg = 'Select a data variable:';
             [indx, tf] = listdlg('ListString', varNames, ...
                 'PromptString', msg, 'SelectionMode', selectionMode);
