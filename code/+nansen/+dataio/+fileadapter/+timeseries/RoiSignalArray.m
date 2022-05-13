@@ -69,6 +69,10 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
             
             metaS = obj.Metadata;
             dataS = load(obj.Filename, varargin{:});
+            if isempty(dataS)
+                dataS = load(obj.Filename);
+            end
+            
             varNames = fieldnames(dataS);
             
             if isempty(varNames)

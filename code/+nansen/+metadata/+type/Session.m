@@ -538,7 +538,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                         end
                         
                     otherwise
-                        data = fileAdapterFcn(filePath).load();
+                        data = fileAdapterFcn(filePath).load(varName);
                         % data = fileAdapterFcn(filePath).load(varName); %Todo
 
                 end
