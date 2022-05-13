@@ -368,7 +368,7 @@ function stat = getStats(im, tmpUnrolled, innerBoundarySmooth, ...
     [X, Y] = pol2cart(deg2rad(theta), innerBoundarySmooth);
     stat.innerEdge = [x+X', y-Y'];
 
-    maskNucl = poly2mask(x+X-0.25, y-Y-0.25,  imSizeUs(2),  imSizeUs(2));
+    maskNucl = poly2mask(x+X-0.25, y-Y-0.25,  imSizeUs(1),  imSizeUs(2));
 
 
     stat.nucleusValue = median(mean(im(maskNucl)));
