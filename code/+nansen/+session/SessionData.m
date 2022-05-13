@@ -540,7 +540,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             S = struct;
             S.ShowDefaultVariables = true;
             S.ShowUserVariables = true;
-            S.ShowInternalVariables = true;
+            S.ShowInternalVariables = false;
             S.ShowFavouriteVariables = true;
             
         end
