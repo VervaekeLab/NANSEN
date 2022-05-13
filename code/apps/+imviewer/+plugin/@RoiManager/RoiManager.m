@@ -210,7 +210,7 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
                 newGroup = obj.secondaryGroups(newGroupNumber-1);
             end
             
-            obj.PointerManager.pointers.selectObject.hObjectMap = newMap;
+            obj.PointerManager.pointers.selectObject.RoiDisplay = newMap;
            
             obj.roiSignalArray.RoiGroup = newGroup;
             obj.SignalViewer.RoiGroup = newGroup;
@@ -368,7 +368,7 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
             % Add roimanager pointer tools.
             for i = 1:numel(pointerNames)
                 obj.PointerManager.initializePointers(hAxes, pointerRefs{i})
-                obj.PointerManager.pointers.(pointerNames{i}).hObjectMap = hMap;
+                obj.PointerManager.pointers.(pointerNames{i}).RoiDisplay = hMap;
             end
 
             % Set default tool.

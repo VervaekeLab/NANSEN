@@ -272,6 +272,27 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
         
+        function updateTableRow(obj, rowIdx, tableRowData)
+        %updateTableRow Update data of specified table row                      
+            % Count number of columns and get column indices
+            colIdx = 1:size(tableRowData, 2);
+            
+            if isa(tableRowData, 'table')
+                newData = table2cell(tableRowData);
+            elseif isa(tableRowData, 'cell')
+                %pass
+            else
+                error('Table row data is in the wrong format')
+            end
+            
+            % Refresh cells of ui table...
+            obj.updateCells(rowIdx, colIdx, newData)
+        end        
+        
+        function appendTableRow(obj, rowData)
+            % Would be neat, but havent found a way to do it.
+        end
+        
         function updateVisibleRows(obj, rowInd)
 
             [numRows, ~] = size(obj.MetaTable);
@@ -481,7 +502,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             obj.HTable.CellEditCallback = @obj.onCellValueEdited;
             obj.HTable.JTable.getTableHeader().setReorderingAllowed(true);
-            
+            obj.JTable = obj.HTable.JTable;
+
             % Listener that detects if column widths change if user drags
             % column headers edges to resize columns.
             obj.ColumnWidthChangedListener = listener(obj.HTable, ...
@@ -623,8 +645,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.HTable.ColumnFormat = dataTypes;
             obj.HTable.ColumnFormatData = colFormatData;
 
-            
-            
             % Set column names. Do this last because this will control that
             % the correct number of columns are shown.
             obj.HTable.ColumnName = columnLabels;

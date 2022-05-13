@@ -6,8 +6,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     %       showing/hiding the signal viewer panel
     %   [ ] Bug when creating rois and modifying them before the
     %       roisignalarray is initalized.
-    %   [ ] Register roitable as a modular app, so that keypresses are
+    %   [v] Register roitable as a modular app, so that keypresses are
     %       passed on...
+    %   [ ] Create a reset method for reseting all roi-related data, i.e
+    %       roimap, roitable etc. 
     
     properties
         ApplicationName = 'Roimanager'
@@ -107,6 +109,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             % Load settings.... Needs to be done after figure is visible
             % due to the way controls are drawn.
             obj.initializeSettingsPanel()
+           
+            % Todo: Need to set appmodules and reference them in a way
+            % where it doesnt matter which order they are added.
+            obj.AppModules(end+1) = obj.RoiThumbnailViewer;
             
         end
         

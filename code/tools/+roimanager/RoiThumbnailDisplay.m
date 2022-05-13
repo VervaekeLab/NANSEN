@@ -1,4 +1,4 @@
-classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
+classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
 %RoiThumbnailDisplay Widget for displaying a roi thumbnail image
 %
 %   This widget is created in a container (figure, panel, tab) and is
@@ -11,17 +11,18 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
 %   imagestack.
 
     % Todo: 
-    %  [v] get image: get from roi appdata or set to roi appdata.
-
-
-    properties (Constant, Hidden)
-        IMAGE_TYPES = {'Activity Weighted Mean', 'Diff Surround', ...
-            'Top 99th Percentile', 'Local Correlation'};
+    %  [ ] get image: get from roi appdata or set to roi appdata.
+    
+    properties (Constant)
+        AppName = 'Roi Thumbnail Display';
+    end
+    
+    properties (Constant) % Inherited from applify.HasTheme via ModularApp
+        DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
     end
     
     properties
         Dashboard   % Handle for dashboard where thumbnail display is present
-        Parent      % Parent container (typically a uipanel)
     end
     
     properties % Preference-like properties
@@ -33,6 +34,11 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
     properties
         ImageStack  % Handle of an ImageStack object. Necessary for creating roi images.
         PointerManager
+    end
+    
+    properties (Constant, Hidden)
+        IMAGE_TYPES = {'Activity Weighted Mean', 'Diff Surround', ...
+            'Top 99th Percentile', 'Local Correlation'};
     end
     
     properties (Access = private) % Handles to graphical objects
@@ -62,16 +68,16 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         %   displayObj = RoiThumbnailDisplay(hParent, roiGroup) creates a
         %   thumbnail display object in the container specified by hParent.
         %   
-        
+            obj@applify.ModularApp(hParent);
             obj@roimanager.roiDisplay(roiGroup)
             
-            obj.Parent = hParent;
             obj.createImageDisplayAxes()
             
             obj.initializePointerManager
             
-            obj.createFigureInteractionListeners()
+            %obj.createFigureInteractionListeners()
             
+            obj.isConstructed = true;
         end
         
         function delete(obj)
@@ -91,19 +97,19 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         function createImageDisplayAxes(obj)
         %createImageDisplayAxes Create axes for image display    
         
-            if isa(obj.Parent, 'matlab.graphics.axis.Axes')
-                obj.hAxes = obj.Parent;
-                obj.Parent = obj.Parent.Parent;
+            if isa(obj.Panel, 'matlab.graphics.axis.Axes')
+                obj.hAxes = obj.Panel;
+                obj.Panel = obj.Panel.Parent;
             else
                 % Create axes.
-                obj.hAxes = axes('Parent', obj.Parent);
+                obj.hAxes = axes('Parent', obj.Panel);
                 obj.hAxes.Position = [0.05, 0.05, 0.9, 0.9];
             end
             
             obj.hAxes.XTick = []; 
             obj.hAxes.YTick = [];
             obj.hAxes.Tag = 'Roi Thumbnail Display';
-            obj.hAxes.Color = obj.Parent.BackgroundColor;
+            obj.hAxes.Color = obj.Panel.BackgroundColor;
             obj.hAxes.Visible = 'off';
             obj.hAxes.PickableParts = 'all'; % In order to respond to pointer
             
@@ -127,19 +133,19 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
 % %             % Add roimanager pointer tools.
 % %             for i = 1:numel(pointerNames)
 % %                 obj.PointerManager.initializePointers(hAxes, pointerRefs{i})
-% %                 obj.PointerManager.pointers.(pointerNames{i}).hObjectMap = hMap;
+% %                 obj.PointerManager.pointers.(pointerNames{i}).RoiDisplay = hMap;
 % %             end
 
             % Set default tool.
             obj.PointerManager.defaultPointerTool = obj.PointerManager.pointers.selectObject;
             obj.PointerManager.currentPointerTool = obj.PointerManager.pointers.selectObject;
             
-            %obj.PointerManager.pointers.autoDetect.hObjectMap = obj;
+            %obj.PointerManager.pointers.autoDetect.RoiDisplay = obj;
             obj.PointerManager.currentPointerTool.activate();
             
             obj.PointerManager.pointers.autoDetect.UpdateRoiFcn = @obj.updateRoiEstimate;
             obj.PointerManager.pointers.autoDetect.ButtonDownFcn = @obj.updateRoiEstimate;
-            obj.PointerManager.pointers.autoDetect.hObjectMap = obj;
+            obj.PointerManager.pointers.autoDetect.RoiDisplay = obj;
 
         end
         
@@ -186,9 +192,9 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                 'FontSize', 11, 'HorizontalTextAlignment', 'left', ...
                 'BarVisibility', 'off', 'TextVisibility', 'hit' };
 
-            uicc = getappdata(obj.Parent, 'UIComponentCanvas');
+            uicc = getappdata(obj.Panel, 'UIComponentCanvas');
             if isempty(uicc)
-                uicc = uim.UIComponentCanvas(obj.Parent);
+                uicc = uim.UIComponentCanvas(obj.Panel);
             end
             
             pageNames = obj.IMAGE_TYPES;
@@ -204,14 +210,14 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         end
         
         function createCountourToggleButton(obj)
-%             uicc = getappdata(obj.Parent, 'UIComponentCanvas');
+%             uicc = getappdata(obj.Panel, 'UIComponentCanvas');
 %             if isempty(uicc)
-%                 uicc = uim.UIComponentCanvas(obj.Parent);
+%                 uicc = uim.UIComponentCanvas(obj.Panel);
 %             end
             
             ICONS = uim.style.iconSet(imviewer.plugin.RoiManager.getIconPath);
 
-            hButton = uim.control.Button_(obj.Parent, 'Icon', ICONS.circle, ...
+            hButton = uim.control.Button_(obj.Panel, 'Icon', ICONS.circle, ...
                 'IconSize', [15, 15], ...
                 'Mode', 'togglebutton', ...
                 'Size', [20, 20], 'SizeMode', 'auto', ...
@@ -329,7 +335,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             ul = roiObj.getUpperLeftCorner([], imageSize);
             roiBoundary = fliplr(roiObj.boundary{1}); % yx -> xy
             %roiBoundary = (roiBoundary - ul + [1,1]) * usFactor;
-            roiBoundary = (roiBoundary - ul + [0.5,0.5]) * usFactor;
+            roiBoundary = (roiBoundary - ul + [1,1]) * usFactor - [0.5, 0.5];
             % Todo: Whats the correct pixel offset? Does it depend on
             % magnification factor?
 
@@ -457,6 +463,32 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         
     end
     
+    methods (Access = protected) % Inherited from applify.ModularApp
+
+        % use for when restoring figure size from maximized
+        function pos = initializeFigurePosition(obj)
+            initPos = initializeFigurePosition@applify.ModularApp(obj);
+            pos = obj.getPreference('Position', initPos);
+        end
+
+        function resizePanel(obj, src, evt)
+            
+            posAxes = getpixelposition(obj.hAxes);
+            posPanel = getpixelposition(obj.Panel);
+            obj.hImageSelector.Margin(1:2) = posAxes(1:2)+[10,5];
+            obj.hCountourToggleButton.Margin(1) = posAxes(1)+10;
+            obj.hCountourToggleButton.Margin(4) = posPanel(4) - sum(posAxes([2,4])) + 5;
+
+        end
+        
+        function onThemeChanged(obj)
+            onThemeChanged@applify.ModularApp(obj)
+            if isa(obj.Parent, 'matlab.ui.container.Panel')
+                obj.Panel.BackgroundColor = obj.Parent.BackgroundColor;
+            end
+        end
+    end
+    
     methods (Access = private)
         
         function updateEstimatedRoi(obj)
@@ -470,8 +502,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
         
         % Todo implement modes (combine with roiMap method):
         function newRoi = updateRoiEstimate(obj, x, y, r, autodetectionMode, doReplace)
-            
-            IM = obj.CurrentImage;
+                      IM = obj.CurrentImage;
             if isempty(IM); newRoi = RoI.empty; return; end
             
             imSize = size(IM);
@@ -584,11 +615,17 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
             tf = ~isempty(obj.VisibleRois);
         end
         
+    end
+    
+    methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
+        
         function onKeyPressed(obj, src, evt)
-            
-            if ~isempty(obj.PointerManager)
-                wasCaptured = obj.PointerManager.onKeyPress(src, evt);
-                if wasCaptured; return; end
+                
+            if obj.isMouseInApp
+                if ~isempty(obj.PointerManager)
+                    wasCaptured = obj.PointerManager.onKeyPress(src, evt);
+                    if wasCaptured; return; end
+                end
             end
             
             switch evt.Character
@@ -603,6 +640,7 @@ classdef RoiThumbnailDisplay < handle & roimanager.roiDisplay
                     obj.hImageSelector.changePage(imageIdx)
             end
         end
+        
     end
     
 end

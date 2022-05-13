@@ -154,7 +154,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             for i = 1:numel(pointerNames)
                 pointerRef = str2func(strjoin({pointerRoot, pointerNames{i}}, '.'));
                 obj.pointerManager.initializePointers(hAxes, pointerRef)
-                obj.pointerManager.pointers.(pointerNames{i}).hObjectMap = hMap;
+                obj.pointerManager.pointers.(pointerNames{i}).RoiDisplay = hMap;
             end
             
             % Set default tool.

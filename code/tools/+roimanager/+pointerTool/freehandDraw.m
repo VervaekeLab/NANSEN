@@ -1,4 +1,5 @@
-classdef freehandDraw < uim.interface.abstractPointer
+classdef freehandDraw < uim.interface.abstractPointer & ...
+        roimanager.pointerTool.RoiDisplayInputHandler
     
         
     properties (Constant)
@@ -13,7 +14,6 @@ classdef freehandDraw < uim.interface.abstractPointer
 
         isButtonDown = false
         
-        hObjectMap
     end
     
     
@@ -24,18 +24,14 @@ classdef freehandDraw < uim.interface.abstractPointer
     
     methods
         
-        function obj = freehandDraw(hAxes, hObjectMap)
+        function obj = freehandDraw(hAxes, hRoiDisplay)
             obj.hAxes = hAxes;
             obj.hFigure = ancestor(hAxes, 'figure');
             
             if nargin >= 2  
-                obj.hObjectMap = hObjectMap;
+                obj.RoiDisplay = hRoiDisplay;
             end
             
-        end
-        
-        function set.hObjectMap(obj, newValue)
-            obj.hObjectMap = newValue;
         end
         
         function deactivate(obj)
@@ -178,7 +174,7 @@ classdef freehandDraw < uim.interface.abstractPointer
             end
                 
             %Todo: Add thickness as input
-            obj.hObjectMap.createFreehandRoi(xUs, yUs);
+            obj.RoiDisplay.createFreehandRoi(xUs, yUs);
 
             obj.resetTempLine()
                 

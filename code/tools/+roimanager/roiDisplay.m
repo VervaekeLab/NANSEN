@@ -1,8 +1,48 @@
 classdef roiDisplay < uim.handle
-%roiDisplay Abstract class for displaying rois and keeping them up to date
-% if the underlying roi group is changed.
+%roiDisplay Superclass implementing a display interface for a RoiGroup.
+%
+%   This class will listen to events on a RoiGroup object and trigger
+%   callback methods that can be implemented by subclasses. Furthermore,
+%   the class handles selection and visibility of rois in the roidisplay
+%   and lets subclasses implement methods for adding and/or removing rois.
 %
 %
+%   Methods that may be implemented by a subclass:
+%
+%       onRoiGroupChanged          : handle changes that should occur on 
+%                                    the roi display if the one or more 
+%                                    rois are modified
+%
+%       onRoiClassificationChanged : handle changes that should occur on
+%                                    the roi display if classification of
+%                                    one or more rois are changed
+%
+%       onRoiSelectionChanged      : handle changes on the roi display
+%                                    when one or more rois are selected or
+%                                    deselected
+%
+%       onVisibleRoisChanged       : handle changes on the roi display
+%                                    when the visibility of one or more
+%                                    rois are changed
+%                                     
+%       addRois                    : handle changes on the roi display 
+%                                    when rois are added to RoiGroup
+%
+%       removeRois                 : handle changes on the roi display
+%                                    when rois are removed from RoiGroup
+%
+%       onRoiGroupSet              : handle changes on the roi display
+%                                    when a RoiGroup is set.
+%                                   
+
+
+%   TODO: 
+%       [ ] selectRois should be a method of the roidisplay
+%       [ ] hittest (or similar name) should be a method of the roi display
+%       [ ] Should have a onRoisSelected method 
+
+
+
 
 % Work in progress.
     
@@ -37,13 +77,23 @@ classdef roiDisplay < uim.handle
         VisibleRoisChangedListener event.listener
     end
     
-    methods (Abstract, Access = protected) % RoiGroup event callbacks
-        onRoiGroupChanged(obj, evtData)
-        onRoiSelectionChanged(obj, evtData)
-        onRoiClassificationChanged(obj, evtData)
-    end
-    
-    methods (Access = protected)
+    methods (Access = protected) % RoiGroup event callbacks
+        
+        % These methods will be invoked when each of the corresponding
+        % events of the roiGroup is triggered.
+        
+        function onRoiGroupChanged(obj, evtData)
+            % Subclasses may override
+        end
+        
+        function onRoiSelectionChanged(obj, evtData)
+            % Subclasses may override
+        end
+        
+        function onRoiClassificationChanged(obj, evtData)
+            % Subclasses may override
+        end
+        
         function onVisibleRoisChanged(obj, evtData)
             % Subclasses may override
         end
@@ -121,6 +171,7 @@ classdef roiDisplay < uim.handle
     end
     
     methods (Access = protected)
+        
         function onRoiGroupSet(obj)
             % Subclasses may implement
         end
@@ -197,6 +248,5 @@ classdef roiDisplay < uim.handle
         end
         
     end
-    
     
 end

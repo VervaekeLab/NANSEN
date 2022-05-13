@@ -1254,7 +1254,7 @@ classdef roiMap < roimanager.roiDisplay
             
             % ad hoc for solution for setting an extended radius in mode 4
             if numel(r) > 1; rExtended = r(2); end
-            r = r(1);
+            r = round( r(1) );
             
             % Get image data from imviewer app.
             imSize = [obj.displayApp.imHeight, obj.displayApp.imWidth];
@@ -1613,7 +1613,7 @@ classdef roiMap < roimanager.roiDisplay
             
         end
         
-        function wasInRoi = hittest(obj, src, event)
+        function [wasInRoi, roiInd] = hittest(obj, src, event)
         %hittest Check if a mouseclick happened on a roi.
         
             %currentPoint = round( obj.hAxes.CurrentPoint(1, 1:2) );
@@ -1621,14 +1621,14 @@ classdef roiMap < roimanager.roiDisplay
             currentPoint = min([currentPoint; obj.FovSize]);
 
             [wasInRoi, roiInd] = obj.isPointInRoi(currentPoint(1), currentPoint(2));
-            
-            %roiInd
-            
+                        
             hFig = ancestor(obj.hAxes, 'figure');
             obj.selectRois(roiInd, hFig.SelectionType, true)
             
             if ~nargout
-                clear wasInRoi
+                clear wasInRoi roiInd
+            elseif nargout == 1
+                clear roiInd
             end
 
         end

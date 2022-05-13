@@ -1,4 +1,5 @@
-classdef autoDetect < uim.interface.abstractPointer
+classdef autoDetect < uim.interface.abstractPointer & ...
+        roimanager.pointerTool.RoiDisplayInputHandler
     
     % TODO: Fix so that crosshairs are plotted based on the maximum
     % size/limits of the parent axes.
@@ -11,7 +12,6 @@ classdef autoDetect < uim.interface.abstractPointer
         xLimOrig
         yLimOrig
         
-        hObjectMap
         hImageStack
         hImage
         
@@ -131,13 +131,13 @@ classdef autoDetect < uim.interface.abstractPointer
             r = obj.circleToolCoords(3);
             r(2) = obj.extendedRadius;
 
-            isRoiSelected = obj.hObjectMap.hittest(src, evt);
+            isRoiSelected = obj.RoiDisplay.hittest(src, evt);
             
             % Todo: Call a buttonDownFcn instead.
             if ~isempty(obj.ButtonDownFcn)
                 obj.ButtonDownFcn(x, y, r, obj.mode, isRoiSelected)
             else
-                obj.hObjectMap.autodetectRoi2(x, y, r, obj.mode, isRoiSelected);
+                obj.RoiDisplay.autodetectRoi2(x, y, r, obj.mode, isRoiSelected);
             end
             
         end
@@ -217,7 +217,7 @@ classdef autoDetect < uim.interface.abstractPointer
                     end
 
                 
-                case {'g', 'h'}
+                case '§' %{'g', 'h'} % Todo: reconsider this.... Use alt + mouse?
                     if ~isempty(obj.hCircle) && strcmp(obj.hCircle.Visible, 'off')
                         obj.showCircle()
                         obj.hideCircleIn(2, true)
@@ -253,6 +253,13 @@ classdef autoDetect < uim.interface.abstractPointer
                 otherwise
                     wasCaptured = false;
             end
+            
+            if wasCaptured
+                return
+            else % Pass on to roi keypress handler
+                wasCaptured = obj.roiKeypressHandler(src, event);
+            end
+            
         end
         
         function onKeyRelease(obj, src, event)
@@ -275,15 +282,15 @@ classdef autoDetect < uim.interface.abstractPointer
             
             x = currentPoint(1);
             y = currentPoint(2);
-            r = obj.circleToolCoords(3);
+            r = round( obj.circleToolCoords(3) );
             
             r(2) = obj.extendedRadius;
             
             if ~isempty(obj.UpdateRoiFcn)
                 newRoi = obj.UpdateRoiFcn(x, y, r, obj.mode, false);
             else
-%                 newRoi = obj.hObjectMap.autodetectRoi(x, y, r, obj.mode, false);
-                newRoi = obj.hObjectMap.autodetectRoi2(x, y, r, obj.mode, false);
+%                 newRoi = obj.RoiDisplay.autodetectRoi(x, y, r, obj.mode, false);
+                newRoi = obj.RoiDisplay.autodetectRoi2(x, y, r, obj.mode, false);
             end
             
             obj.plotTempRoi(newRoi)
@@ -434,8 +441,8 @@ classdef autoDetect < uim.interface.abstractPointer
             
             
             % Todo: Have these sizes as internal property?
-% %             axLimOrig = [1,obj.hObjectMap.displayApp.imWidth; ...
-% %                 1,obj.hObjectMap.displayApp.imHeight];
+% %             axLimOrig = [1,obj.RoiDisplay.displayApp.imWidth; ...
+% %                 1,obj.RoiDisplay.displayApp.imHeight];
 % %             ps = 10 / axLimOrig(2a) * range(hAx.XLim); 
             
             

@@ -201,7 +201,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         end
         
         function onKeyPressedInTable(obj, src, evt)
-            
+        %onKeyPressedInTable Handle keypress that occur in table
+        
             switch evt.Key
                 case {'↓', '↑', '←', '→', 'leftarrow', 'rightarrow', ...
                         'uparrow', 'downarrow'} % arrowkeys
@@ -214,9 +215,14 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     return
                     
                 case 'a'
-                    disp('a')
+                    % Don't want to pass this on. Command+a (on mac) raises 
+                    % a key event with eventdata where modified is empty, 
+                    % so can not prevent autodetection tool from being 
+                    % activated. 
+                    return
                     
             end
+            
             
             if ~isempty(obj.KeyPressFcn)
                 obj.KeyPressFcn(src, evt)
@@ -255,24 +261,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 obj.roiTable(rowIdx, :) = tableRowData;
             else
                 [~, iA, iC] = intersect(obj.roiTable.Properties.VariableNames, ...
-                    tableRowData.Properties.VariableNames, 'stable')
+                    tableRowData.Properties.VariableNames, 'stable');
                 obj.roiTable(rowIdx, iA) = tableRowData;                
             end
             
-            % Count number of columns and get column indices
-            colIdx = 1:size(tableRowData, 2);
-            
-            if isa(tableRowData, 'table')
-                newData = table2cell(tableRowData);
-            elseif isa(tableRowData, 'cell')
-                %pass
-            else
-                error('Table row data is in the wrong format')
-            end
-            
-            % Refresh cells of ui table...
-            obj.UITable.updateCells(rowIdx, colIdx, newData)
-                        
+            obj.UITable.updateTableRow(rowIdx, tableRowData)
+    
         end
         
     end
@@ -320,7 +314,6 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     else
                         newTable = cat(1, oldTable, T);
                     end
-                    
                 case 'insert'
                     T = obj.rois2table(evtData.roiArray);
                     ind = evtData.roiIndices;
