@@ -199,6 +199,18 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 
         end
         
+        function d = openProgressDialog(obj, title)
+            
+            switch title
+                case 'Update Model'
+                    message = 'Updating paths of session folders for data locations...';
+            end
+            
+            d = uiprogressdlg(obj.Figure, 'Title', title,...
+                'Message', message, 'Indeterminate','on');
+            
+        end
+        
     end
     
     methods % Get methods
@@ -443,7 +455,11 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                     case 'Yes'
                         for i = 2:3
                             if ~isempty(obj.UIModule{i})
+                                d = uiprogressdlg(obj.Figure, 'Title','Updading Model',...
+                                    'Message', 'Updating paths for session folders of Daralocations...', ...
+                                    'Indeterminate','on');
                                 obj.UIModule{i}.updateDataLocationModel()
+                                close(d)
                                 obj.UIModule{i}.markClean()
                             end
                         end

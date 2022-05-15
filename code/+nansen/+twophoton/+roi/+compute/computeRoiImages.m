@@ -250,7 +250,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
         end
         
         % Display message indicating progress
-        if mod(iRoi, 10)==0
+        if mod(iRoi, 10)==0 || iRoi == numRois
             if exist('str', 'var')
                 fprintf( char(8*ones(1,length(str))));
             end

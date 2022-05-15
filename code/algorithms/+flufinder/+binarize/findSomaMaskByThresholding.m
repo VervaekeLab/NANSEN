@@ -72,7 +72,7 @@ function [roiMask, stats] = findSomaMaskByThresholding(im, varargin)
     roiMask = bwareaopen(roiMask, minRoiArea);
     roiMask = imfill(roiMask, 'holes');
 
-    if opt.showResults
+    if opt.ShowResults
         plotResults(imOrig, im, roiMask)
     end
     

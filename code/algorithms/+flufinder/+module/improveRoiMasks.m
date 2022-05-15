@@ -28,19 +28,19 @@ function [roiArrayOut, summary] = improveRoiMasks(roiArrayIn, roiImageArray, roi
         
         switch roiType
             case 'axon'
-                mask = getRoiMaskFromImage(roiImage, roiType, roiDiameter);
+                roiMaskSmall = getRoiMaskFromImage(roiImage, roiType, roiDiameter);
             case 'soma'
                 % Todo: switch method
                 % mask = findSomaMaskByThresholding(roiImage);
                 
                 %mask = findSomaMaskByEdgeDetection(roiImage, roiArrayIn(i).center, roiArrayIn(i).imagesize);
                 
-                [mask, s] = flufinder.binarize.findSomaMaskByThresholding(roiImage);
+                roiMaskSmall = flufinder.binarize.findSomaMaskByThresholding(roiImage);
 
         end
         
         % Skip roi if mask came back empty.
-        if sum(mask)==0
+        if sum(roiMaskSmall)==0
             keep(i) = false;
             continue
         end
