@@ -38,6 +38,8 @@ classdef autoDetect < uim.interface.abstractPointer & ...
         keyReleaseListener
         scrollListener
         hTempRoi
+        
+        AxesLimitChangeListener event.listener
     end
     
     
@@ -300,6 +302,24 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             centerPointX = obj.hAxes.XLim(1) + diff(obj.hAxes.XLim)/2;
             centerPointY = obj.hAxes.YLim(1) + diff(obj.hAxes.YLim)/2;
             centerPoint = [centerPointX, centerPointY];
+        end
+        
+        function addAxesLimitChangeListener(obj)
+            obj.AxesLimitChangeListener = listener(obj.hAxes, ...
+                {'XLim', 'YLim'}, 'PostSet', @obj.updateAxesLimitValues);
+        end
+        
+        function removeAxesLimitChangeListener(obj)
+            if ~isempty(obj.AxesLimitChangeListener)
+                delete( obj.AxesLimitChangeListener )
+                obj.AxesLimitChangeListener = event.listener.empty;
+            end
+        end
+        
+        function updateAxesLimitValues(obj, ~, ~)
+            obj.xLimOrig = obj.hAxes.XLim;
+            obj.yLimOrig = obj.hAxes.YLim;
+            obj.plotCrosshair()
         end
         
     end

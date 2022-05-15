@@ -161,6 +161,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             obj.pointerManager.defaultPointerTool = obj.pointerManager.pointers.selectObject;
             obj.pointerManager.currentPointerTool = obj.pointerManager.pointers.selectObject;
             
+            obj.pointerManager.pointers.autoDetect.addAxesLimitChangeListener()
 
         end
         
