@@ -20,7 +20,7 @@ classdef SciScan2PSeries < nansen.dataio.FileAdapter
 
     methods (Access = protected)
         
-        function imageStack = readData(obj)
+        function imageStack = readData(obj, ~)
         %readData Read data from a sciscan file to a virtual ImageStack
             virtualData = nansen.stack.virtual.SciScanRaw(obj.Filename);
             imageStack = nansen.stack.ImageStack(virtualData);
