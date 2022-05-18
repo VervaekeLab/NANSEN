@@ -4,18 +4,21 @@ function [S, CC] = getBwComponentStats(BW, varargin)
 %   S = getBwComponentStats(BW, varargin) returns a struct containing stats
 %   for all connected components in a 3D logical (BW) array.
     
+%   Todo. Count number of segments that are ignored and return in summary?
+
+
     assert(ndims(BW)==3, 'Array must be a 3D')
     assert(islogical(BW), 'Array must be logical')
 
     params = struct;
-    params.MinDiameter = 6;
-    params.MaxDiameter = 18;
+    params.MinimumDiameter = 6;
+    params.MaximumDiameter = 18;
     
     params = utility.parsenvpairs(params, [], varargin{:});
     
     getArea = @(d) pi * (d/2)^2;
-    minArea = getArea(params.MinDiameter); % Todo
-    maxArea = getArea(params.MaxDiameter); % Todo
+    minArea = getArea(params.MinimumDiameter); % Todo
+    maxArea = getArea(params.MaximumDiameter); % Todo
 
     numFrames = size(BW, 3);
     
@@ -31,11 +34,11 @@ function [S, CC] = getBwComponentStats(BW, varargin)
     S = cat(1, S{:});
 
     % Filter out big components. Overlapping rois are just a mess anyway
-    maxAreaToConsider = prctile([S.Area], 99); % pi*8^2
+    maxAreaToConsider = prctile([S.Area], 99); % pi*maxR^2
     ignoreInd = [S.Area] > maxAreaToConsider;
     S(ignoreInd) = [];
     
-%     minAreaToConsider = prctile([S.Area], 1); % pi*8^2
+%     minAreaToConsider = prctile([S.Area], 1); % pi*minR^2
 %     ignoreInd = [S.Area] < minAreaToConsider;
 %     S(ignoreInd) = [];
 

@@ -10,5 +10,5 @@ function [signalArray, roiArray] = removeIsNanDff(signalArray, roiArray)
     discard = isnan(sum(dff, 1));
     
     roiArray(discard) = [];
-    signalArray(:, discard) = [];
+    signalArray(:, :, discard) = [];
 end

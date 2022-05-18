@@ -5,72 +5,37 @@ function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
     %   segmentation is run on full recording or it is divided in subparts.
     
     % todo
-    %   [ ] extended results
+    %   [ ] summary/results
     
-    %[params, validators] = flufinder.getDefaultOptions();
-    %params = utility.parsenvpairs(params, validators, varargin{:});
-    
-    params = struct(); 
-    params.RoiType = 'soma';
-    params.RoiDiameter = 12;
-    params.BackgroundBinningSize = 5;
-    params.BackgroundSmoothingSigma = 20;
-    params.BwThresholdPercentile = 92;
-    
-    params.UseShapeDetection = true;
-    params.MorphologicalShape = 'ring';
-    
-    
-    params.PercentOverlapForMerge = 75; % todo.
-    
-    params = utility.parsenvpairs(params, [], varargin{:});
-    
+    global fprintf % Use global fprintf if available
+    if isempty(fprintf); fprintf = str2func('fprintf'); end
+
+    % Get default options and update based on optional name-value pairs.
+    [params, validators] = flufinder.getDefaultOptions('ungrouped');
+    params = utility.parsenvpairs(params, validators, varargin{:});
     
     stackSize = size(imArray);
     imageSize = stackSize(1:2);
     
     tBegin = tic; % Start timer
 
-    % Initialize appendix
+    % Initialize struct for summary
     summary = struct;
+    summary.MeanImageOriginal = mean(imArray, 3);
+    
     
     % % Preprocess image data
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fprintf('Preprocessing image data...\n')
-    % imArray = flufinder.module.preprocessImages(imArray, params)
+    imArray = flufinder.module.preprocessImages(imArray, params);
     
-    imArray = single(imArray);
-
-    % Create a temporally downsampled stack (binned by maximum)
-    imArray = stack.process.framebin.max(imArray, 5);
-    
-    % Preprocess (subtract dynamic background)
-    %optsNames = {'FilterSize'};
-    %opts = utility.struct.substruct(params, optsNames);
-    opts = {'FilterSize', 20};
-    imArray = flufinder.preprocess.removeBackground(imArray, opts{:});
-    
-    % Preprocess (subtract static background)
-    opts = {'Percentile', 25};
-    imArray = flufinder.preprocess.removeStaticBackground(imArray, opts{:});
+    summary.MeanImageProcessed = mean(imArray, 3);
     
     
     % % Binarize image data
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fprintf('Binarizing image data...\n')
-    % bwArray = flufinder.module.binarizeImages(imArray, params)
-    
-    optsNames = {'RoiDiameter', 'BwThresholdPercentile'};
-    bwOpts = utility.struct.substruct(params, optsNames);
-    
-    switch params.RoiType
-        case 'soma'
-            BW = flufinder.binarize.binarizeSomaStack(imArray, bwOpts);
-        case 'axon'
-            BW = flufinder.binarize.binarizeAxonStack(imArray, bwOpts);
-        otherwise 
-            error('Unsupported roi type.')
-    end
+    BW = flufinder.module.binarizeImages(imArray, params);
 
     
     % % Detect binary components based on brightness values of pixels
@@ -106,8 +71,8 @@ function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
             params.MorphologicalShape)
         averageImage = mean(imArray, 3);
         
-        roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
-        roiArray = flufinder.utility.combineRoiArrays(roiArrayT, roiArrayS, opts);
+        roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, params);
+        roiArray = flufinder.utility.combineRoiArrays(roiArrayT, roiArrayS, params);
     else
         roiArray = roiArrayT;
     end

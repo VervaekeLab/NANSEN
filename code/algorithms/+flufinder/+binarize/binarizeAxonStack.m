@@ -9,7 +9,7 @@ function BW = binarizeAxonStack(imageArray, varargin)
     
     % Define default parameters and parse name value pairs
     params = struct();
-    params.BwThresholdPercentile = 95;
+    params.PrctileForBinarization = 95;
     params.RoiDiameter = 5;
 
     params = utility.parsenvpairs(params, [], varargin{:});
@@ -18,10 +18,10 @@ function BW = binarizeAxonStack(imageArray, varargin)
     if useWaitbar; waitbar(0, 'Please wait while binarizing images'); end
     
     roiAreaPixels = pi .*  (params.RoiDiameter./2) .^ 2;
-    minAreaPixels = round(roiAreaPixels) ./ 4;
+    minAreaPixels = round(roiAreaPixels ./ 4);
     
     
-    T = prctile( imageArray(:), params.BwThresholdPercentile );
+    T = prctile( imageArray(:), params.PrctileForBinarization );
     BW = false(size(imageArray));
     
     % Loop through frames, binarize and apply binary operations

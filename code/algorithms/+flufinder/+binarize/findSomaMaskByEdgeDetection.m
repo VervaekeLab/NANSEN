@@ -203,18 +203,20 @@ function [edgeCoords, stat] = findEdge(grad, polarity)
     stdCoord = std(edgeCoords);    
 
 
-    % Find big jumps in coords
-
-
     if showPlot
-        figure('Position', [300,300,300,300]); axes('Position', [0,0,1,1]);
-        imagesc(grad); hold on
-        plot(1:size(grad,2), edgeCoords, 'ow')
+        persistent f ax hIm
+        if isempty(f) || ~isvalid(f)
+            f = figure('Position', [300,300,300,300]); 
+            ax = axes('Position', [0,0,1,1]);
+        end
+        imagesc(ax, grad); hold on
+        plot(ax, 1:size(grad,2), edgeCoords, 'ow')
         p = polyfit(1:size(grad,2), edgeCoords, 2);
         y = polyval(p, 1:size(grad,2));
-        plot(1:size(grad,2), y, 'w')
+        plot(ax, 1:size(grad,2), y, 'w')
     end
-
+    
+    % Find big jumps in coords
     cunt = 0;
     while true
         
@@ -307,33 +309,16 @@ function gradientImageOut = updateGradientImage(gradientImage, boundary)
     %h = min([size(newIm,1), offset*upSampleFactor ]);% why 3??????? parameterize
     
     
-    upperRadius = ceil( mean(boundary) .* 1.5 );
+    upperRadius = ceil( mean(boundary) .* 1.2 );
+    %upperRadius % todo: adapt....
     h = min([size(newIm, 1), upperRadius ]);
     
     gradientImageOut = newIm(1:h, :);
 end
 
-function showDetectedEdges(grad, tmpUnrolled, edgeCoordsInn, ...
-    edgeCoordsOut, edgeCoordsInnS, edgeCoordsOutS)
 
-    persistent f ax hIm
-    if isempty(f) || ~isvalid(f)
-        f = figure('Position', [300,300,300,300]); axes('Position', [0,0,1,1]);
-        ax = axes(f, 'Position',[0,0,1,1]);
-    else
-        cla(ax)
-    end
-
-    h = imagesc(ax, grad); hold on
-
-    plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsInn, 'ow')
-    plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsOut, 'or')
-    plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsInnS, 'w')
-    plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsOutS, 'r')
-
-%     plot(1:size(unrolled,2), innerBnd, 'or')
-%     plot(1:size(unrolled,2), innerBnd1, 'r')
-
+function tf = isSignificantBoundary(innerBoundaryStats)
+    tf = innerBoundaryStats.EdgeValue2 > 1.5; % Ad hoc cutoff value...
 end
 
 function stat = initializeStats()
@@ -402,6 +387,26 @@ function stat = getStats(im, tmpUnrolled, innerBoundarySmooth, ...
 
 end
 
-function tf = isSignificantBoundary(innerBoundaryStats)
-    tf = innerBoundaryStats.EdgeValue2 > 1.5; % Ad hoc cutoff value...
+function showDetectedEdges(grad, tmpUnrolled, edgeCoordsInn, ...
+    edgeCoordsOut, edgeCoordsInnS, edgeCoordsOutS)
+
+    persistent f ax hIm
+    if isempty(f) || ~isvalid(f)
+        f = figure('Position', [300,300,300,300]); axes('Position', [0,0,1,1]);
+        ax = axes(f, 'Position',[0,0,1,1]);
+    else
+        cla(ax)
+    end
+
+    h = imagesc(ax, grad); hold on
+
+    plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsInn, 'ow')
+    plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsOut, 'or')
+    plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsInnS, 'w')
+    plot(ax, 1:size(tmpUnrolled, 2), edgeCoordsOutS, 'r')
+
+%     plot(1:size(unrolled,2), innerBnd, 'or')
+%     plot(1:size(unrolled,2), innerBnd1, 'r')
+
 end
+

@@ -13,7 +13,7 @@ function BW = binarizeSomaStack(imageArray, varargin)
     % Define default parameters and parse name value pairs
     params = struct();
     params.RoiDiameter = 12;
-    params.BwThresholdPercentile = 92;
+    params.PrctileForBinarization = 92;
     %params.ThresholdMethod = 'all'; % 'single frame', 'all frames'
 
     
@@ -33,7 +33,7 @@ function BW = binarizeSomaStack(imageArray, varargin)
     nhoodLarge = strel('disk', round(params.RoiDiameter/3) );
 
     % Get pixel value for bw threshold 
-    T = prctile(imageArray(:), params.BwThresholdPercentile);
+    T = prctile(imageArray(:), params.PrctileForBinarization);
 
     % Loop through frames and binarize each frame individually.
     for i = 1:size(imageArray, 3)

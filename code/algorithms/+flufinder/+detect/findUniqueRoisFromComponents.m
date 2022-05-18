@@ -1,4 +1,4 @@
-function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
+function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargin)
 %findUniqueRoisFromComponents Find unique rois from component stats
 %
 %   roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
@@ -22,46 +22,34 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
     global fprintf % Use global fprintf if available
     if isempty(fprintf); fprintf = str2func('fprintf'); end
 
-% % %     params = struct;
-% % %     params.debug = false;
+    % Default parameters
+    defaults = struct();
+    defaults.RoiType = 'Soma';
+    defaults.RoiDiameter = 12;
+    defaults.FilterByArea = false;
+    defaults.NumObservationsRequired = 1;
+    defaults.MaxNumRois = 1000;
+    defaults.PercentOverlapForMerge = 80;
+    defaults.Debug = false;
     
-    def = struct(...
-        'debug', false, ...
-        'filterByArea', false, ...
-        'numCandidateAbort', 1, ...
-        'nRoisToFind', 1000, ...
-        'roiClass', 'soma', ...
-        'roiDiameter', 12, ...
-        'PercentOverlapForMerge', 80);
-    
-    opt = utility.parsenvpairs(def, [], varargin);
+    params = utility.parsenvpairs(defaults, [], varargin);
 
     warning('off', 'stats:linkage:NonMonotonicTree')
-
+    
     imageSize = imageSize(1:2); % In case imageSize is size of stack   
 
     % Assign output
     roisOut = RoI.empty(0,1);
+    summary = struct;
 
-    if opt.filterByArea
-        % Get rid of obviously large outliers to minimize overlapping candidates:
-        medianArea = median([S.Area]);
-        medianRadius = sqrt(medianArea/pi);
-
-        areaCutoff = pi * (1.5*medianRadius)^2;
-        keep = [S.Area] < areaCutoff;
-        S = S(keep);
-
-        % Use a 2 STD cutoff for the rest:
-        areaCutoff = median([S.Area])+2*std([S.Area]);
-        keep = [S.Area] < areaCutoff;
-        S = S(keep);
+    if params.FilterByArea % Note: Pretty ad hoc method..
+        S = flufinder.detect.refineComponentsByArea(S);
     end
-    
+
     
     % Compute two vectors to quickly identify overlapping components later
-    allPixelIndices = cat(1, S.PixelIdxList); 
-    regionInd = zeros(size(allPixelIndices));
+    allPixelIndices = cat(1, S.PixelIdxList); % 1D vector with pixel indices for all components
+    regionInd = zeros(size(allPixelIndices)); % 1D vector with component number for all pixels
     
     lastInd = 0;
     for i = 1:numel(S)
@@ -72,7 +60,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
     
     % Boolean for all remaining components that wasn't taken care of yet
     remaining = true(numel(S), 1);
-
+    
     
     % Create a "sum projection" image of all components. 
     uniquePixelList = unique(allPixelIndices);
@@ -82,6 +70,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
     [N,E] = histcounts(allPixelIndices, uniquePixelList);
     componentImage(E(1:end-1)) = N;
     
+    summary.ComponentImageInit = componentImage;
     %imviewer(componentImage) % Todo: return this as part of summary
     
     mask = false(imageSize);
@@ -90,7 +79,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
     nIter = 0;
     finished = false;
     
-    if opt.debug
+    if params.Debug
         allIndividualComponents = zeros([imageSize, 0]);
     end
     
@@ -137,7 +126,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
         end
         
         
-        if numel(containsPeak) <= opt.numCandidateAbort
+        if numel(containsPeak) < params.NumObservationsRequired
             finished = true;
         end
         
@@ -150,7 +139,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
                 currentComponentImage(S(containsPeak(i)).PixelIdxList)+1;
         end
         
-        if opt.debug
+        if params.Debug
             allIndividualComponents(:,:,end+1) = currentComponentImage;
         end
         
@@ -167,7 +156,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
         
         % Find roi mask from this image:
         maskSmall = flufinder.binarize.getRoiMaskFromImage(imSmall, ...
-            opt.roiClass, opt.roiDiameter);
+            params.RoiType, params.RoiDiameter);
         
         mask(yInd, xInd) = maskSmall;
 
@@ -210,7 +199,7 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
         if sum(remaining) == 0; finished = true; end
         if sum(componentImage) <= 0; finished = true; end
         
-        if numel(roisOut) == opt.nRoisToFind
+        if numel(roisOut) >= params.MaxNumRois
              finished = true; 
         end
         
@@ -226,16 +215,18 @@ function roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
         end
         
         nIter = nIter+1;
-        
     end
+    
+    summary.ComponentImageFinished = componentImage;
     
     warning('on', 'stats:linkage:NonMonotonicTree')
     fprintf(newline)
     
-    overlap = opt.PercentOverlapForMerge ./ 100;
-    overlap = 0.8;
+    overlap = params.PercentOverlapForMerge ./ 100;
     roisOut = flufinder.utility.mergeOverlappingRois(roisOut, overlap);
     roisOut = roisOut.addTag('bw_threshold_segment');
     
-    
+    if nargout == 1
+        clear summary
+    end
 end

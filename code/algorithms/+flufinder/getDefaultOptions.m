@@ -1,4 +1,4 @@
-function [P, V] = getDefaultOptions()
+function [P, V] = getDefaultOptions(mode)
 %getDefaultOptions Get parameters for flufinder autosegmentation
 %
 %   P = flufinder.getDefaultOptions() returns a struct (P) with default 
@@ -23,59 +23,60 @@ function [P, V] = getDefaultOptions()
 
     % - - - - - - - - Specify parameters and default values - - - - - - - - 
 
-    % Names                         Values (default)      Description
-    P                               = struct();
+    % Names                             Values (default)      Description
+    P                                   = struct();
     
-    P.RoiDiameter                   = 12;                 % Expected diameter of rois in pixels
-    P.MinimumDiameter               = 4;                  % Minimum allowed roi diameter in pixels
-    P.MaximumDiameter               = 16;                 % Maximum allowed roi diameter in pixels
-    
-    P.MaxNumRois                    = 300;                % Maximum number of rois to detect
-
-    P.MorphologicalStructure        = 'Soma';             % Morphological structure to detect. Alternatives: 'Soma' (default), 'Axonal Bouton'.
-    
-    P.MorphologicalSearch           = true;               % Boolean flag. Do a morphological search, i.e use a convolutional filter to detect specific shapes
-    P.MorphologicalShape            = 'ring';             % Type of shape to use for morphological search. Alternatives: 'ring' (default), 'disk'.
-    P.MorphologicalSearchFrequency  = 1;                  % I.e Do this for an average of each chunk, or only once, or something in between??
-    
-    % Background subtraction
-    P.TemporalDownsamplingFactor    = 10;                 % Temporal downsampling for pixel background subtraction
-    P.TemporalDownsamplingMethod    = 'maximum';          % Method for downsampling. Alternatives: 'maximum' (default) or 'average'
-    P.SpatialFilterType             = 'gaussian';         % todo...
-    P.SpatialFilterSize             = 20;                 % "Size" (standard deviation/sigma) of the gaussian kernel for creating background image % todo: sigma = (size - 1) / 4 
-    P.PrctileForBaseline            = 25;                 % For background when computing Dff stack..
-    
+    P.General.RoiDiameter               = 12;                 % Expected diameter of rois in pixels
+%     P.NucleusDiameter                 = 6;                  % Todo
+    P.General.RoiType                   = 'Soma';             % Morphological structure to detect. Alternatives: 'Soma' (default), 'Axonal Bouton'.
+        
     % Binarization
-    P.PrctileForThresholding        = 93;                 % Percentile of pixel values to use for thresholding grayscale images to BW
+    P.Detection.PrctileForBinarization  = 93;                 % Percentile of pixel values to use for thresholding grayscale images to BW
+    P.Detection.NumObservationsRequired = 2;                  % Number of times a component should be observed in order to detect.
+    P.Detection.MaxNumRois              = 300;                % Maximum number of rois to detect
+
+    % Image stack preprocessing
+    P.Preprocessing.BinningMethod       = 'maximum';          % Method for fram binning. Alternatives: 'maximum' (default) or 'average' (not implemented)
+    P.Preprocessing.BinningSize         = 5;
+    P.Preprocessing.SpatialFilterType   = 'gaussian';         % todo...
+    P.Preprocessing.SmoothingSigma      = 20;                 % "Size" (standard deviation/sigma) of the gaussian kernel for creating background image
+    P.Preprocessing.PrctileForBaseline  = 25;                 % For background when computing Dff stack..
     
+    % Morphological shape detection
+    P.Detection.UseShapeDetection       = true;
+    P.Detection.MorphologicalShape      = 'ring';             % Type of shape to use for morphological search. Alternatives: 'ring' (default), 'disk'.
+    P.Detection.InnerRadius             = 3;                  % Inner diameter of ring
+    P.Detection.OuterRadius             = 5;                  % Outer diameter of ring/disk
+
+    % Curation of results
+    P.Curation.MinimumDiameter          = 4;                  % Minimum allowed roi diameter in pixels
+    P.Curation.MaximumDiameter          = 16;                 % Maximum allowed roi diameter in pixels
+    P.Curation.PercentOverlapForMerge   = 75;                 % todo.
     
-    params = struct(); 
-    params.RoiType = 'soma';
-    params.RoiDiameter = 12;
-    params.BackgroundBinningSize = 5;
-    params.BackgroundSmoothingSigma = 20;
-    params.BwThresholdPercentile = 92;
-    
-    params.UseShapeDetection = true;
-    params.MorphologicalShape = 'ring';
-    
-    
-    params.PercentOverlapForMerge = 75; % todo.
-    
-    
+    P.Preview.Show = 'Preprocessed';
+    P.Preview.Show_ = {'Preprocessed', 'Binarized', 'Static Background'};
 
     % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
-    P.MorphologicalStructure_       = {'Soma', 'Axonal Bouton'};
-    P.MorphologicalShape_           = {'ring', 'disk'};
-    P.TemporalDownsamplingMethod_   = {'maximum', 'average'};
-    P.SpatialFilterType_            = {'gaussian'};
+    P.General.RoiType_                  = {'Soma', 'Axonal Bouton'};
+    P.General.RoiDiameter_              = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 20, 'nTicks', 19, 'TooltipPrecision', 0, 'TooltipUnits', 'pixels'}});
+    P.Detection.MorphologicalShape_     = {'ring', 'disk'};
+    P.Preprocessing.BinningMethod_      = {'maximum', 'average'};
+    P.Preprocessing.SpatialFilterType_  = {'gaussian'};
+    P.Preprocessing.PrctileForBaseline_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 100, 'nTicks', 99, 'TooltipPrecision', 0}});
+    P.Detection.PrctileForBinarization_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 100, 'nTicks', 99, 'TooltipPrecision', 0}});
+    
     
     % - - - - Specify validation/assertion test for each parameter - - - -
     
     V                           = struct();
-    V.SpatialFilterSize         = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0 && round(x)==x && mod(x,2)==1,  ...
-                                    'Value must be a scalar, non-negative, odd integer number' );
+    V.Detection.MaxNumRois      = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0,  ...
+                                    'Value must be a scalar, non-negative, integer number' );
     
+    if nargin == 1 && strcmp(mode, 'ungrouped')
+        P = nansen.wrapper.abstract.OptionsAdapter.ungroupOptions(P);
+        V = nansen.wrapper.abstract.OptionsAdapter.ungroupOptions(V);
+    end
+                                
     if nargout == 0
         displayParameterTable(mfilename('fullpath'))
         

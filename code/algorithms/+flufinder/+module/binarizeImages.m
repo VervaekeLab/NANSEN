@@ -8,16 +8,13 @@ function BW = binarizeImages(imArray, params)
 %       imArray : 3D array of images
 %       params  : Struct of parameters for thresholding
 
-    optsNames = {'RoiDiameter', 'BwThresholdPercentile'};
+    optsNames = {'RoiDiameter', 'PrctileForBinarization'};
     bwOpts = utility.struct.substruct(params, optsNames);
-    
-    % Todo: Decide on parameter name
-    params.RoiType = params.MorphologicalStructure;
     
     switch lower( params.RoiType )
         case 'soma'
             BW = flufinder.binarize.binarizeSomaStack(imArray, bwOpts);
-        case 'axon'
+        case 'axonal bouton'
             BW = flufinder.binarize.binarizeAxonStack(imArray, bwOpts);
         otherwise 
             error('Unsupported roi type.')

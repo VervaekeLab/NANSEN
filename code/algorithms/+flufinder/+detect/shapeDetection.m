@@ -3,29 +3,36 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
 
     showResults = false; % For debugging
     
-    def.Shape = 'ring'; % 'ring' or 'disk' or 'custom'
-    def.ShapeKernel = [];
+    defaults.Shape = 'ring'; % 'ring' or 'disk' or 'custom'
+    defaults.ShapeKernel = [];
     
-    def.InnerRadius = 3;
-    def.OuterRadius = 5; 
-    def.Sigma       = 1;
-    def.PercentOverlapForMerge = 75; % todo.
+    defaults.InnerRadius = 3;
+    defaults.OuterRadius = 5; 
+    defaults.Sigma       = 1;
+    defaults.PercentOverlapForMerge = 75; % todo.
 
+    options = utility.parsenvpairs(defaults, [], varargin{:});
     
-
     im = double(im);
 
     % Normalize image to values between 0 and 1.
     im = im - min(im(:));
     im = im ./ max(im(:));
 
-    
-    filterWindow = flufinder.filter.makeRingKernel(im, varargin{:});
+    switch options.Shape
+        case 'ring'
+            filterWindow = flufinder.filter.makeRingKernel(im, varargin{:});
+        case 'disk'
+            filterWindow = flufinder.filter.makeDiskKernel(im, varargin{:});
+    end
     
     % C = conv2(imOrig,window, 'same') ;
     % C = C./max(C(:));
 
-    %% Create a donut correlation image
+    
+    %% Filter image using the selected shape/filter kernel and use the 
+    % filtered image to detect components.
+    
 
     % Todo:
     %   Does smaller/bigger window size giver better/worse results
@@ -38,7 +45,7 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
 
 
     %% Binarize the donut correlation image
-    BW = B.^2 > 0.2;  % BW2 = B > sqrt(0.2);
+    BW = B > sqrt(0.2); % Ad hoc threshold
     % imviewer(cat(3, im, BW))
 
     BW = bwareaopen(BW, 5);
@@ -50,17 +57,18 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     CC = bwconncomp(BW);
 
     stat = regionprops(CC, 'Centroid');
-
+    stat2 = regionprops(CC, B, {'MaxIntensity', 'MeanIntensity'});
+    
     centerCoords = cat(1, stat(:).Centroid);
     % plot(gca, centerCoords(:,1), centerCoords(:,2), 'x')
 
-    if ~isempty(rois)
-        masks = arrayfun(@(roi) roi.mask, rois, 'uni', 0);
-        masks = cat(3, masks{:});
-        masks = max(masks, [], 3) ~= 0;
-    else
+% %     if ~isempty(rois)
+% %         masks = arrayfun(@(roi) roi.mask, rois, 'uni', 0);
+% %         masks = cat(3, masks{:});
+% %         masks = max(masks, [], 3) ~= 0;
+% %     else
         masks = false(size(im));
-    end
+% %     end
 
     centerInd = sub2ind(size(masks),round(centerCoords(:,2)), round(centerCoords(:,1)) );
     keep = masks(centerInd) == 0;
@@ -71,7 +79,8 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     keep = keep & all(centerCoords < fliplr(size(masks))-15, 2);
 
     centerCoords = round( centerCoords(keep, :) );
-
+    stat2 = stat2(keep);
+    
     nKeep = sum(keep);
 
     % Todo: Use specialized function for getting crop indices
@@ -89,6 +98,10 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
         tmpY = indY + centerCoords(i, 2);
         imdata(:, :, i) = im(tmpY, tmpX);
     end
+    
+% % %     [~, indMax] = sort([stat2.MaxIntensity], 'descend');
+% % %     imdataSortedMax = imdata(:, :, indMax);
+% % %     imdataSortedMaxUS = imresize(imdataSortedMax, 4);
 
     imdataUS = imresize(imdata, 4);
 
@@ -100,13 +113,12 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
 
 
     meanImUS = mean(imdataUS, 3);
-    meanImUS = imresize(filterKernel, 4);
+    %meanImUS = imresize(filterWindow, 4);
     err = zeros(size(imdata,3), 1);
 
     for i = 1:size(imdata,3)
         %err(i) = corr_err(meanImUS, imdataUS(:,:,i) );
         err(i) = corr2(meanImUS, imdataUS(:,:,i) );
-
     end
 
 
@@ -115,10 +127,16 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     imdata = imdata(:, :, keep2);
     centerCoords = centerCoords(keep2, :);
 
-    [masks, s] = flufinder.binarize.findSomaMaskByEdgeDetection(imdata, centerCoords, size(im));
+    [masksSmall, s] = flufinder.binarize.findSomaMaskByEdgeDetection(imdata, centerCoords, size(im));
+    
     
     % Todo: place in fov sized mask
+    masks = zeros([size(im), size(masksSmall,3)], 'logical');
     
+    for i = 1:size(masksSmall,3)
+        masks(:, :, i) = flufinder.utility.placeLocalRoiMaskInFovMask(...
+            masksSmall(:, :, i), centerCoords(i,:), masks(:, :, i));
+    end
     
     if showResults
         nIms = size(imdata,3);
@@ -127,7 +145,6 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
         for i = 1:nIms
             center = centerCoords(i, :);
             [maskSmall, s(i)] = flufinder.binarize.findSomaMaskByEdgeDetection(imdata(:,:,i));
-            
             
             masks(S(2):L(2), S(1):L(1), i) = roiMaskSmall;
             
@@ -187,11 +204,11 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     end
     
     % Merge overlapping rois before returning
-    overlap = def.PercentOverlapForMerge ./ 100;
-    overlap = 0.8;
-    roisOut = flufinder.utility.mergeOverlappingRois(roisOut);
+    overlap = options.PercentOverlapForMerge ./ 100;
+    roisOut = flufinder.utility.mergeOverlappingRois(roisOut, overlap);
     roisOut = roisOut.addTag('shape_segment');
 
+    
 
     if nargout==2
         statOut = s;

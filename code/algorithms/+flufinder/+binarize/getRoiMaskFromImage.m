@@ -3,7 +3,7 @@ function [BW, stats] = getRoiMaskFromImage(im, roiType, roiDiameter)
 %
 %   BW = getRoiMaskFromImage(im, roiType) get a roi mask for given roi type
 %   from an image. Simple thresholding with some postprocessing depending
-%   on the given roiType. roiType can be 'soma' or 'axon'
+%   on the given roiType. roiType can be 'soma' or 'axonal bouton'
 %
 %   BW = getRoiMaskFromImage(im, roiType, roiDiameter) additionally
 %   specifies the expected roi diameter (in pixels)
@@ -20,13 +20,13 @@ function [BW, stats] = getRoiMaskFromImage(im, roiType, roiDiameter)
     BW = imbinarize(im, T);
     
     % Postprocess mask
-    switch roiType
+    switch lower( roiType )
         
         case 'soma'
             % Remove very small components and fill holes.
             BW = bwareaopen(BW, round(A/10)); % < than 1/10th of roi area
             
-        case 'axon'
+        case 'axonal bouton'
             BW = bwareaopen(BW, round(A/10));
             %BW = imdilate(BW, ones(3,3));
     end
@@ -43,7 +43,7 @@ end
 function T = getThreshold(im, roiType)
 %getThreshold Get threshold for binarization based on roi type.
 
-    switch roiType
+    switch lower( roiType )
         
         case 'soma'
             L = prctile(im(:), 50); % lower value
@@ -51,10 +51,8 @@ function T = getThreshold(im, roiType)
 
             T = L + (U-L)/2; % mid-value is threshold
             
-        case 'axon'
-            % Very subjective...
+        case 'axonal bouton'
             T = graythresh(im);
-            %T = max(im(:)) / 3;
     end
 end
 
