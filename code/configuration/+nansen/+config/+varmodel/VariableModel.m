@@ -114,7 +114,7 @@ classdef VariableModel < utility.data.StorableCatalog
             
             % Check if varname exists as filename:
             if isempty(S)
-                S = obj.getVariableInfoFromField(varName, 'FilenameExpression');
+                S = obj.getVariableInfoFromField(varName, 'FileNameExpression');
             end
             
             
