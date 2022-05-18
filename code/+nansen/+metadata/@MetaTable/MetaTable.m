@@ -1032,8 +1032,6 @@ classdef MetaTable < handle
             columnValues = repmat(initValue, numTableRows, 1);
             
             T{:, variableName} = columnValues;
-
-            
         end
         
     end

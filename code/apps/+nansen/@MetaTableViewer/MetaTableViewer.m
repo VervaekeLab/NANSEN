@@ -91,6 +91,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         ColumnWidthChangedListener
         ColumnsRearrangedListener
+        MouseDraggedInHeaderListener
         
         ColumnPressedTimer
     end
@@ -120,13 +121,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             obj.createUiTable()
             
+            obj.ColumnFilter = nansen.ui.MetaTableColumnFilter(obj, obj.AppRef);
+            
             if ~isempty(obj.MetaTableCell)
                 obj.refreshTable()
                 obj.HTable.Visible = 'on'; % Make table visible
                 drawnow
             end
-            
-            obj.ColumnFilter = nansen.ui.MetaTableColumnFilter(obj, obj.AppRef);
         end
        
         function delete(obj)
@@ -512,6 +513,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.ColumnsRearrangedListener = listener(obj.HTable, ...
                 'ColumnsRearranged', @obj.onColumnsRearranged);
             
+            obj.MouseDraggedInHeaderListener = listener(obj.HTable, ...
+                'MouseDraggedInHeader', @obj.onMouseDraggedInTableHeader);
+            
             obj.HTable.Theme = uim.style.tableLight;
             
         end
@@ -688,26 +692,32 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             if isempty(obj.ColumnModel); return; end % On construction...
                         
-            [numRows, numColumns] = size(obj.MetaTableCell);
+            [numRows, numColumns] = size(obj.MetaTableCell); %#ok<ASGLU>
 
             if nargin < 2; visibleRows = 1:numRows; end
             
-            % Todo: Get based on user selection of which columns to display
-            columns = obj.getCurrentColumnSelection();
+            % Get based on user selection of which columns to display
+            visibleColumns = obj.getCurrentColumnSelection();
             
-            % Todo: Get based on filter states
-            rows = obj.getCurrentRowSelection(); 
-            rows = intersect(rows, visibleRows, 'stable');
+            % Get visible rows based on filter states
+            filteredRows = obj.getCurrentRowSelection(); 
+            visibleRows = intersect(filteredRows, visibleRows, 'stable');
             
-            % Table data should already be formatted
 
-            %[~, uiTableRowIdx] = intersect(rows, 1:numRows, 'stable');
-            [~, uiTableColIdx] = intersect(1:numColumns, columns, 'stable');
+            % Get subset of data from metatable that should be put in the
+            % uitable. 
+            tableDataView = obj.MetaTableCell(visibleRows, visibleColumns);
+
+            % Rearrange columns according to current state of the java 
+            % column model
+            [javaColIndex, ~] = obj.ColumnModel.getColumnModelIndexOrder();
+            javaColIndex = javaColIndex(1:numel(visibleColumns));
+            tableDataView(:, javaColIndex) = tableDataView;
             
-            obj.HTable.Data = obj.MetaTableCell(rows, uiTableColIdx);
+            % Assign updated table data to the uitable property
+            obj.HTable.Data = tableDataView;
             obj.HTable.Visible = 'on';
             drawnow
-            
         end
         
         function changeColumnNames(obj, newNames)
@@ -864,18 +874,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
 
-        function onMouseReleasedFromHeader(obj, src, evt)
-                        
-            if ~isempty(obj.ColumnPressedTimer)
-                stop(obj.ColumnPressedTimer)
-                delete(obj.ColumnPressedTimer)
-                obj.ColumnPressedTimer = [];
-                
-                % Mouse was released before 1 second passed.
-                obj.HTable.JTable.getModel().setSortable(1)
-            end            
-        end
-        
         function onMousePressedInHeader(obj, src, evt)
             
             buttonNum = get(evt, 'Button');
@@ -915,6 +913,35 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.openColumnContextMenu(clickPosX, clickPosY);
             end
 
+        end
+        
+        function onMouseDraggedInTableHeader(obj, src, evt)
+            
+            if ~isempty( obj.ColumnPressedTimer )
+                % Simulate mouse release to cancel the timer
+                obj.onMouseReleasedFromHeader([], [])
+            end
+            
+            dPos = (evt.MousePointCurrent -  evt.MousePointStart);
+            dS = sqrt(sum(dPos.^2));
+            
+            if dS > 10
+                if ~isempty(obj.ColumnFilter)  
+                    obj.ColumnFilter.hideFilters();
+                end
+            end
+        end
+        
+        function onMouseReleasedFromHeader(obj, src, evt)
+                        
+            if ~isempty(obj.ColumnPressedTimer)
+                stop(obj.ColumnPressedTimer)
+                delete(obj.ColumnPressedTimer)
+                obj.ColumnPressedTimer = [];
+                
+                % Mouse was released before 1 second passed.
+                obj.HTable.JTable.getModel().setSortable(1)
+            end            
         end
         
         function onMousePressedInTable(obj, src, evt)

@@ -1,10 +1,9 @@
 classdef MetaTableColumnFilter < handle
 %MetaTableColumnFilter Provides filtering functionality to the MetaTableViewer    
     
-    
     % Todo: 
-    %   [ ] Better method for setting position of filter controls
-    %   [ ] Prevent filter controls from appearing if column is dragged...
+    %   [ ] Better method(s) for setting position of filter controls
+    
     properties
         AppReference
         ComponentPanel 
