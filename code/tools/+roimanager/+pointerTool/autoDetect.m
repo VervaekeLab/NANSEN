@@ -454,9 +454,9 @@ classdef autoDetect < uim.interface.abstractPointer & ...
         end
         
         function plotCrosshair(obj, center)
-%             drawnow limitrate
-%             drawnow
             
+            if isempty(obj.circleToolCoords); return; end
+
             hAx = obj.hAxes;
             
             
@@ -466,7 +466,6 @@ classdef autoDetect < uim.interface.abstractPointer & ...
 % %             ps = 10 / axLimOrig(2a) * range(hAx.XLim); 
             
             
-            %imSize = size(obj.hImage.CData);
             axLimOrig = [obj.xLimOrig; obj.yLimOrig];
             
             if nargin < 2 && ~obj.isPointerInsideAxes()
