@@ -400,8 +400,8 @@ methods
                     imageNames = fieldnames(imData);
                     for i = 1:numel(imageNames)
                         if ~isempty(imData.(imageNames{i}))
-                            imData.(imageNames{i}) = circshift(imData.(imageNames{i}), dydx);
-                            %imData.(imageNames{i}) = imtranslate(imData.(imageNames{i}), dxdy);
+                            %imData.(imageNames{i}) = circshift(imData.(imageNames{i}), dydx);
+                            imData.(imageNames{i}) = imtranslate(imData.(imageNames{i}), dxdy);
                         end
                     end
                     obj = setappdata(obj, 'roiImages', imData);
