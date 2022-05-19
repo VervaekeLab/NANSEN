@@ -110,6 +110,18 @@ classdef roiDisplay < uim.handle
             % Subclass should implement if subclass can remove rois from a
             % RoiGroup.
         end
+        
+        function classifyRois(obj, classification, roiInd)
+        %ClassifyRois Change classification state for selected rois
+            if nargin < 3 
+                roiInd = obj.SelectedRois;
+            end
+            
+            newClass = repmat(classification, size(roiInd));
+            
+            obj.RoiGroup.setRoiClassification(roiInd, newClass)
+        end
+        
     end
     
     methods % Constructor
