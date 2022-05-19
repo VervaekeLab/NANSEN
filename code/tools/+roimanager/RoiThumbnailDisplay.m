@@ -526,6 +526,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
                 newRoi = RoI('Mask', roiMask);
                 
                 obj.RoiGroup.modifyRois(newRoi, i)
+                clear newRoi
             end
             
         end
