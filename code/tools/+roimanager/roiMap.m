@@ -1796,15 +1796,6 @@ classdef roiMap < roimanager.roiDisplay
             
         end
         
-        function classifyRois(obj, classification)
-            
-            roiInd = obj.SelectedRois;
-            newClass = repmat(classification, size(roiInd));
-            obj.RoiGroup.setRoiClassification(...
-                roiInd, newClass)
-                        
-        end
-        
         function zoomInOnRoi(obj, i, forceZoom)
             
             if nargin < 3; forceZoom = false; end
