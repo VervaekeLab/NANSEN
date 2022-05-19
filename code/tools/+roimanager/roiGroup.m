@@ -45,6 +45,7 @@ classdef roiGroup < handle
     end
     
     properties
+        NextRoiSelectionMode = 'Next in list'
         VisibleClassification = 'All'   % (Todo: Not implemented. Should this be implemented here on the roigroup or on the roidisplays?)
         isActive = true                 % Active (true/false) indicates whether rois should be kept in memory as an object or a struct array.
     end
@@ -241,8 +242,9 @@ classdef roiGroup < handle
                 iRoi = modifiedRois(cnt);
                 obj.roiArray(i) = obj.roiArray(i).reshape(iRoi.shape, iRoi.coordinates);
                 obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiImages', getappdata(modifiedRois(cnt), 'roiImages') );
-                obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiStats', getappdata(modifiedRois(cnt), 'roiStats') );
-                
+                obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiStats', getappdata(origRois(cnt), 'roiStats') );
+                obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiClassification', getappdata(origRois(cnt), 'roiClassification') );
+
                 cnt = cnt+1;
             end
             
@@ -330,6 +332,92 @@ classdef roiGroup < handle
             roiLabels = strcat(tags, nums); 
             
         end
+
+        
+        function roiInd = getNextRoiInd(obj, currentRoiInd, direction, selectionMode)
+            % currentRoiInd is a number of the current roi
+            % direction can be 'forward' or 'backward'
+            
+            if nargin < 3 || isempty(direction)
+                direction = 'forward';
+            end
+            
+            %ch = obj.activeChannel;
+
+            if nargin < 4 || isempty(selectionMode)
+            	selectionMode = obj.NextRoiSelectionMode;
+            end
+            
+            if strcmp(selectionMode, 'None')
+                roiInd = []; return
+            end
+            
+            currentRoi = obj.roiArray(currentRoiInd);
+
+            if contains(selectionMode, 'with same classification')
+            % Limit roi candidates for selection to rois that have the same
+            % tag as current roi.
+            
+                thisClsf = getappdata(currentRoi, 'roiClassification');
+                allClsf = getappdata(obj.roiArray, 'roiClassification');
+                
+                roiIndCandidates = find(allClsf == thisClsf);
+            
+            elseif strcmp(selectionMode, 'Next unclassified roi')
+                allClsf = getappdata(obj.roiArray, 'roiClassification');
+                roiIndCandidates = find(allClsf == 0);
+            else
+                roiIndCandidates = 1:obj.roiCount;
+            end
+            
+            if iscolumn(roiIndCandidates)
+                roiIndCandidates = transpose(roiIndCandidates);
+            end
+                
+            roiIndCandidates = unique( [roiIndCandidates, currentRoiInd] );
+            
+            if contains(selectionMode, 'Closest')
+            % Sort list of candidates by their distance from current roi
+                
+                centerCoords = cat(1, obj.roiArray.center);
+                
+                deltaX = currentRoi.center(1) - centerCoords(:,1);
+                deltaY = currentRoi.center(2) - centerCoords(:,2);
+
+                % Absolute distance:
+                distance = hypot(deltaX, deltaY);
+                distance = distance(roiIndCandidates);
+                
+                % Add a direction to the distance metric. Go from left to
+                % right, but split in two rows. %TODO Add a 1 dimensional
+                % metric, so that each roi is connected to one other along
+                % a 1D space.
+                sgnX = sign( centerCoords(roiIndCandidates,1) - currentRoi.center(1));
+                
+                distance = sgnX .* distance;
+                
+                [~, sortInd] = sort(distance);
+                roiIndCandidates = roiIndCandidates(sortInd);
+                roiIndCandidates = transpose(roiIndCandidates); % make row vector
+            end
+            
+            
+            if strcmp(direction, 'backward')
+                roiIndCandidates = fliplr(roiIndCandidates);
+            end
+            
+            
+            % Select the next roi among candidates.
+            matchInd = find(roiIndCandidates == currentRoiInd);
+
+            if matchInd == numel(roiIndCandidates)
+                roiInd = roiIndCandidates(1); % Go to beginning...
+            else
+                roiInd = roiIndCandidates(matchInd+1);
+            end
+            
+        end
+
         
         function changeRoiSelection(obj, oldSelection, newSelection, origin)
         %changeRoiSelection Method to notify a roiSelectionChanged event
