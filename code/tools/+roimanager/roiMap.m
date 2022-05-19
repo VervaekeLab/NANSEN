@@ -236,6 +236,9 @@ classdef roiMap < roimanager.roiDisplay
             selectedRoiIdx = setdiff(newIndices, obj.SelectedRois);
             deselectedRoiIdx = setdiff(obj.SelectedRois, newIndices);
             
+            % Make sure we dont have ant roi indices out side of range.
+            deselectedRoiIdx(deselectedRoiIdx > obj.RoiGroup.roiCount) = [];
+            
             if ~isempty(deselectedRoiIdx)
                 colorCellArray = cell(numel(deselectedRoiIdx), 1);
                 c = 1;
