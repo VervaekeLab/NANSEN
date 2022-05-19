@@ -330,7 +330,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             [numRows, ~] = size(obj.MetaTable);
             obj.ExternalFilterMap = false(numRows, 1);
             obj.ExternalFilterMap(rowInd) = true;
-            
+                        
             obj.updateTableView(rowInd)
         end
         
@@ -750,6 +750,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Assign updated table data to the uitable property
             obj.HTable.Data = tableDataView;
             obj.HTable.Visible = 'on';
+            obj.HTable.JTable.requestFocus()
+
             drawnow
         end
         
