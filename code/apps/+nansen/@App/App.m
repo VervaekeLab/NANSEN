@@ -1586,6 +1586,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             updateFcn = str2func(updateFcnName);
             
             updatedValues = cell(numSessions, 1);
+            skipRow = [];
             
             for iSession = 1:numSessions
                 try % Todo: Use error handling here. What if some conditions can not be met...
@@ -1602,13 +1603,26 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
                     updatedValues{iSession} = newValue;
                     
-                catch
-                    
+                catch ME
+                    skipRow = [skipRow, iSession];
                 end
+                
                 if numSessions > 5
                     waitbar(iSession/numSessions, h)
                 end
             end
+            
+            updatedValues(skipRow) = [];
+            rows(skipRow) = [];
+            
+            if ~isempty(skipRow)
+                sessionIDs = strjoin({sessionObj(skipRow).sessionID}, newline);
+                messageStr = sprintf( 'Failed to update %s for the following sessions:\n\n%s\n', varName, sessionIDs);
+                errorMessage = sprintf('\nThe following error message was caught:\n%s', ME.message);
+                app.openMessageBox([messageStr, errorMessage], 'Update failed')
+            end
+            
+            if isempty(rows); return; end
             
             % Update values in the metatable..
             app.MetaTable.editEntries(rows, varName, updatedValues);
