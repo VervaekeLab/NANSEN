@@ -32,9 +32,10 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         %FlowRegistration Create an instance of the FlowRegistration plugin
 
             obj@imviewer.ImviewerPlugin(varargin{:})
-                        
-            obj.initializeGaussianFilter()
-            obj.editSettings()
+               
+            if ~ obj.PartialConstruction
+                obj.openControlPanel()
+            end
             
             if ~nargout; clear obj; end
 
@@ -47,6 +48,11 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
     end
     
     methods
+        
+        function openControlPanel(obj)
+            obj.initializeGaussianFilter()
+            obj.editSettings()
+        end
         
         function runTestAlign(obj)
             

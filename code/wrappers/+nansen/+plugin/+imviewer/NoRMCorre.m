@@ -50,11 +50,13 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
                         
             obj@imviewer.ImviewerPlugin(varargin{:})
             
-            obj.plotGrid()
-            obj.editSettings()
+            if ~ obj.PartialConstruction
+                obj.openControlPanel()
+            end
             
-            if ~nargout; clear obj; end
-
+            if ~nargout
+                clear obj
+            end
         end
         
         function delete(obj)
@@ -105,12 +107,16 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
     
     methods % Methods for running normcorre motion correction
         
+        function openControlPanel(obj)
+            obj.plotGrid()
+            obj.editSettings()
+        end
+        
         function run(obj)
         %RUN Superclass method for running the plugin algorithm
             obj.runAlign()
         end
         
-
         function runTestAlign(obj)
         %runTestAlign Run test correction and open results in new window
         

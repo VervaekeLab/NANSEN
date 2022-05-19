@@ -161,6 +161,9 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             obj.pointerManager.defaultPointerTool = obj.pointerManager.pointers.selectObject;
             obj.pointerManager.currentPointerTool = obj.pointerManager.pointers.selectObject;
             
+            % Because the classifier app changes the extreme limits of the
+            % axes when the image resolution or number of tiles is changed,
+            % the autodetection tool must listen for axes limit changes.
             obj.pointerManager.pointers.autoDetect.addAxesLimitChangeListener()
 
         end

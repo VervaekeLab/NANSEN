@@ -8,7 +8,7 @@ function BW = binarizeSomaStack(imageArray, varargin)
 
 
     % Validate inputs
-    assert(ndims(imageArray) == 3, 'Image array must be 3D')
+    assert(ismember( ndims(imageArray), [2,3]), 'Image array must be 2D or 3D')
     
     % Define default parameters and parse name value pairs
     params = struct();

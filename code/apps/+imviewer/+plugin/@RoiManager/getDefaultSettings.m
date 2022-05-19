@@ -8,6 +8,7 @@ function S = getDefaultSettings()
 
     S.ExperimentInfo = getExperimentSettings();
     S.RoiDisplayPreferences = roimanager.roiDisplayParameters();
+    %S.RoiSelectionPreferences = getSelectionSettings();
     S.SignalExtraction = nansen.twophoton.roisignals.extract.getDefaultParameters();
     S.DffOptions = nansen.twophoton.roisignals.computeDff();
     S.Autosegmentation = nansen.twophoton.roimasks.autosegmentationOptions();
@@ -31,4 +32,15 @@ function S = getExperimentSettings()
     S.SaveRois = false;
     S.SaveRois_ = struct('type', 'button', 'args', {{'String', 'Save Rois...', 'FontWeight', 'bold', 'ForegroundColor', [0.1840    0.7037    0.4863]}});
 
+end
+
+function S = getSelectionSettings()
+
+    S = struct();
+    
+    S.SelectNextRoiOnClassify = false;
+    S.NextRoiSelectionMode = 'Next in list';
+    S.NextRoiSelectionMode_ = {'None', 'Next in list', 'Next in list with same classification', 'Closest distance', 'Closest distance with same classification'};
+
+    
 end

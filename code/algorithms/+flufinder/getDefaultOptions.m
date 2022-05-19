@@ -53,8 +53,8 @@ function [P, V] = getDefaultOptions(mode)
     P.Curation.MaximumDiameter          = 16;                 % Maximum allowed roi diameter in pixels
     P.Curation.PercentOverlapForMerge   = 75;                 % todo.
     
-    P.Preview.Show = 'Preprocessed';
-    P.Preview.Show_ = {'Preprocessed', 'Binarized', 'Static Background'};
+% %     P.Preview.Show = 'Preprocessed';
+% %     P.Preview.Show_ = {'Preprocessed', 'Binarized', 'Static Background'};
 
     % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
     P.General.RoiType_                  = {'Soma', 'Axonal Bouton'};

@@ -68,7 +68,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     methods (Access = protected) % Implementation of RoiSegmentation methods
         
         function opts = getToolboxSpecificOptions(obj, varargin)
-        %getToolboxSpecificOptions Get EXTRACT options from parameters or file
+        %getToolboxSpecificOptions Get options from parameters or file
         %
         %   OPTS = getToolboxSpecificOptions(OBJ, STACKSIZE) return a
         %   struct of parameters for the EXTRACT pipeline.
@@ -79,9 +79,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             %stackSize = varargin{1};
             
             import nansen.wrapper.quicky.Options
-            opts = Options.convert(obj.Options);%, stackSize);
+            opts = Options.convert(obj.Options);
             
-                
             optionsVarname = 'QuickyOptions';
 
             % Initialize options (Load from session if options already
@@ -146,21 +145,21 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             % get images:
         %     roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
         %        'ImageType', {'Activity Weighted Mean', 'Local Correlation'});
-            roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
-                'ImageType', 'Activity Weighted Mean');
+%             roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
+%                 'ImageType', 'Local Correlation');
 
-            roiArrayT = flufinder.module.improveRoiMasks(roiArrayT, roiImages);
+            %roiArrayT = flufinder.module.improveRoiMasks(roiArrayT, roiImages, opts.RoiType);
             
             
             % % Detect rois from a shape-based kernel convolution
             % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-            if options.UseShapeDetection
+            if opts.UseShapeDetection
                 fprintf('Searching for %s-shaped cells...\n', ...
-                    params.MorphologicalShape)
+                    opts.MorphologicalShape)%MorphologicalShape)
                 averageImage = mean(imArray, 3);
 
                 roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
-                roiArray = flufinder.utility.combineRoiArrays(roiArrayT, roiArrayS, opts);
+                roiArray = flufinder.utility.combineRoiArrays(roiArrayS, roiArrayT, opts);
             else
                 roiArray = roiArrayT;
             end

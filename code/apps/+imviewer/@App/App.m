@@ -1738,6 +1738,16 @@ methods % App update
         obj.infoField.String = infoStr;
     end
     
+    function showExternalImage(obj, image, imageName)
+        obj.DisplayedImage = image;
+        obj.updateImageDisplay()
+        
+        if nargin == 3 && ~isempty(imageName)
+            obj.textStrings.CurrentFrame = imageName;
+            obj.updateInfoText()
+        end
+    end
+    
     function updateImage(obj)
     %UPDATEIMAGE get updated image for display    
     %
@@ -2077,7 +2087,7 @@ methods % App update
         if isempty(message) || isequal(message, newline)
             obj.uiwidgets.msgBox.clearMessage()
         else
-            obj.uiwidgets.msgBox.displayMessage(message)
+            obj.displayMessage(message)
         end
 
     end
@@ -2091,6 +2101,9 @@ methods % App update
             target = 'statusLine';
         end
         
+        message = strrep(message, char(8), '');
+        if isempty(strtrim(message)); return; end
+
         switch target
             case 'messageBox'
                 obj.uiwidgets.msgBox.displayMessage(message, msgDuration)
@@ -2133,7 +2146,7 @@ methods % App update
             
         % Create the plugin
         hPlugin = pluginFcn(obj, pluginOptions, varargin{:});
-
+        
         if ~nargout
             clear(hPlugin)
         end
@@ -3818,7 +3831,7 @@ methods % Misc, most can be outsourced
     end
     
     
-    function loadImageFrames(obj, frameInd, opts)
+    function imData = loadImageFrames(obj, frameInd, opts)
         
         if nargin < 3
             opts = obj.settings.VirtualData;
@@ -3861,6 +3874,10 @@ methods % Misc, most can be outsourced
                 obj.replaceStack(imviewer.ImageStack(imData), false)
                 obj.ImageStack.FileName = filePath; 
 
+        end
+        
+        if ~nargout
+            clear imData
         end
 
     end
