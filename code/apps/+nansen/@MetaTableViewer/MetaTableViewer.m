@@ -59,6 +59,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         DeleteColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
         UpdateColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
+        EditColumnFcn = []      % This should be internalized, but for now it is assigned from session browser/nansen
     end
     
     properties (SetAccess = private, SetObservable = true)
@@ -592,7 +593,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Update column data');
             hTmp.Separator = 'on';
             hTmp.Tag = 'Update Column';
-              hSubMenu = uimenu(hTmp, 'Label', 'Update selected rows');
+              hSubMenu = uimenu(hTmp, 'Label', 'Edit tablevar function');
+              hSubMenu.Tag = 'Edit tablevar function';
+              hSubMenu = uimenu(hTmp, 'Label', 'Update selected rows', 'Separator', 'on');
               hSubMenu.Tag = 'Update selected rows';
               hSubMenu = uimenu(hTmp, 'Label', 'Update all rows');
               hSubMenu.Tag = 'Update all rows';
@@ -1238,6 +1241,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                             hTmp.Enable = 'on';
                             if ~isempty(obj.UpdateColumnFcn) 
                                 % Children are reversed from creation
+                                hTmp.Children(3).Callback = @(s,e,name) obj.EditColumnFcn(currentColumnName);
                                 hTmp.Children(2).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'SelectedRows');
                                 hTmp.Children(1).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'AllRows');
                             end

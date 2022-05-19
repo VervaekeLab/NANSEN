@@ -310,10 +310,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function createMenu(app)
         %createMenu Create menu components for the main gui.
     
-        
+        import nansen.metadata.utility.getPublicSessionInfoVariables
+
         % % % % Create a nansen main menu
             m = uimenu(app.Figure, 'Text', 'Nansen');
-            
             
             % % % % % % Create PROJECTS menu items  % % % % % % 
             
@@ -390,7 +390,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             mitem = uimenu(m, 'Text','New Table Variable...', 'Separator', 'on');
             mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
+            
+            % Menu with submenus for editing table variable definition:
+            mitem = uimenu(m, 'Text','Edit Table Variable Definition');            
+            columnVariables = getPublicSessionInfoVariables(app.MetaTable);
 
+            for iVar = 1:numel(columnVariables)
+                hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
+                hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
+            end
+            
+            
+            
 % %             menuAlternatives = {'Enter values manually...', 'Get values from function...', 'Get values from dropdown...'};
 % %             for i = 1:numel(menuAlternatives)
 % %                 hSubmenuItem = uimenu(mitem, 'Text', menuAlternatives{i});
@@ -398,7 +409,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %             end
             
             mitem = uimenu(m, 'Text','Manage Variables...', 'Enable', 'off');
-            mitem.MenuSelectedFcn = @app.onCreateNewPipelineMenuItemClicked;
+            mitem.MenuSelectedFcn = [];
             
             
 
@@ -531,15 +542,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem.Callback = @(src, event) app.menuCallback_DetectSessions;
             
             
-            % Keep in case it will be useful:
-            
-% %             mitem = uimenu(hMenu, 'Text','Edit Table Variable Definition');            
-% %             columnVariables = getPublicSessionInfoVariables(app.MetaTable);
-% % 
-% %             for iVar = 1:numel(columnVariables)
-% %                 hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
-% %                 hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
-% %             end
+
 % %             
 % %             mitem = uimenu(hMenu, 'Text','Remove Table Variable...');
 % %             
@@ -826,6 +829,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             h.UpdateColumnFcn = @app.updateTableVariable;
             h.DeleteColumnFcn = @app.removeTableVariable;
+            h.EditColumnFcn = @app.editTableVariableFunction;
 
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
@@ -1029,9 +1033,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onDataLocationModelChanged(app, src, evt)
-        %onDataLocationModelChanged Event callback for datalocation model               
+        %onDataLocationModelChanged Event callback for datalocation model
+        
+            d = src.openProgressDialog('Update Model');
+        
             app.MetaTable = nansen.manage.updateSessionDatalocations(...
                 app.MetaTable, app.DataLocationModel);
+            
+            close(d)
         end
         
     % % Get meta objects from table selections
@@ -1247,6 +1256,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.SessionTaskMenu.Mode = 'TaskQueue';
                 case 'e'
                     app.SessionTaskMenu.Mode = 'Edit';
+                case 'r'
+                    app.SessionTaskMenu.Mode = 'Restart';
                     
                 case 'w'
                     app.sendToWorkspace()
@@ -1261,7 +1272,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             switch evt.Key
-                case {'shift', 'q', 'e'}
+                case {'shift', 'q', 'e', 'r'}
                     app.SessionTaskMenu.Mode = 'Default';
                     
             end
@@ -1525,6 +1536,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             import nansen.metadata.utility.getTableVariableUserFunctionPath
             
             varName = src.Text;
+            
+            % Todo: Conditional, other variables does not have a function
+            app.editTableVariableFunction(varName)
+            
+        end
+        
+        function editTableVariableFunction(app, tableVariableName)
+                    
+            import nansen.metadata.utility.getTableVariableUserFunctionPath
+            
+            varName = tableVariableName;
             filepath = getTableVariableUserFunctionPath(varName, 'session');
             edit(filepath)
             
@@ -2078,6 +2100,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             returnToIdle = app.setBusy(functionName); %#ok<NASGU>
                            
             app.SessionTaskMenu.Mode = 'Default';
+            drawnow
 
             % Get configuration attributes for session method. 
             try
@@ -2124,6 +2147,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             [opts, optsName] = mConfig.OptionsManager.getOptions(optsName);
                 
             switch evt.Mode
+                case 'Restart'
+                    app.runTasksWithDefaults(sessionMethod, sessionObj, opts, optsName, true)
+                
                 case 'Default'
                     app.runTasksWithDefaults(sessionMethod, sessionObj, opts, optsName)
 
@@ -2170,9 +2196,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
-        function runTasksWithDefaults(app, sessionMethod, sessionObj, opts, ~)
+        function runTasksWithDefaults(app, sessionMethod, sessionObj, opts, ~, restart)
         %runTasksWithDefaults Run session method with default options
             
+            if nargin < 6; restart = false; end
+        
             % Get task name
             taskName = nansen.session.SessionMethod.getMethodName(sessionMethod);
                         
@@ -2195,7 +2223,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 % Run the task
                 try
-                    sessionMethod(sessionObj{i}, opts);
+                    if restart
+                        app.runTaskWithReset(sessionMethod, sessionObj{i}, opts)
+                    else
+                        sessionMethod(sessionObj{i}, opts);
+                    end
+
                     sessionObj{i}.updateProgress(sessionMethod, 'Completed')
                     newTask.status = 'Completed';
                     diary off
@@ -2315,6 +2348,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
+        function runTaskWithReset(app, sessionMethod, sessionObj, opts)
+            
+            sMethod = sessionMethod();
+            
+            if isa(sMethod, 'nansen.session.SessionMethod')
+                sMethod = sessionMethod(sessionObj, opts);
+                sMethod.RedoIfCompleted = true;
+                sMethod.runMethod()
+            else
+                sessionMethod(sessionObj, opts);
+                warning('Session method does not have reset mode')
+            end
+        end
+        
         function createBatchList2(app, mode)
             
             figName = sprintf( 'List of %s Tasks', mode);

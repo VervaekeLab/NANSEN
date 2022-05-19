@@ -37,7 +37,7 @@ classdef SessionTaskMenu < handle
     %       getting task attributes
     
     properties (Constant, Hidden)
-        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit'}
+        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Restart'}
     end
     
     properties
@@ -368,6 +368,7 @@ classdef SessionTaskMenu < handle
                 h.Text = strrep(h.Text, '...', '');
                 h.Text = strrep(h.Text, ' (q)', '');
                 h.Text = strrep(h.Text, ' (e)', '');
+                h.Text = strrep(h.Text, ' (r)', '');
                 h.Enable = 'on';
 
                 % Append token to text
@@ -389,7 +390,10 @@ classdef SessionTaskMenu < handle
                         
                     case 'Edit'
                         h.Text = [h.Text, ' (e)'];
-
+                        
+                    case 'Restart'
+                        h.Text = [h.Text, ' (r)'];
+                        
                  end
             end
            
