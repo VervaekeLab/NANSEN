@@ -66,6 +66,13 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;
             obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressedInTable;
             
+            % Load and set column model settings from preferences.
+            tableColumnSettings = obj.getPreference('TableColumnSettings', []);
+            if ~isempty(tableColumnSettings)
+                obj.UITable.ColumnModel.settings = tableColumnSettings;
+                obj.UITable.refreshTable([], true)
+            end
+            
             if roiGroup.roiCount > 0
                 obj.updateRoiLabels()
             end
@@ -87,6 +94,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     obj.savePreferences();
                 end
             end
+            
+            tableColumnSettings = obj.UITable.ColumnModel.settings;
+            obj.setPreference('TableColumnSettings', tableColumnSettings);
+            obj.savePreferences();
             
             if ~isempty(obj.WindowMousePressListener)
                 delete(obj.WindowMousePressListener)
@@ -127,6 +138,29 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                         
             obj.UITable.HTable.Enable = 'on';
 
+        end
+        
+        function classifyRois(obj, classificationIdx, currentRoiInd)
+            
+            if nargin < 3 || isempty(currentRoiInd)
+                currentRoiInd = obj.SelectedRois;
+            end
+            
+            if isempty(currentRoiInd); return; end
+
+            lastSelectedRoiInd = currentRoiInd(end);
+            nextRoiInd = obj.RoiGroup.getNextRoiInd(lastSelectedRoiInd, 'forward', 'Next unclassified roi');
+
+            % Unselect current roi to prevent "flickering" when
+            % classifying roi (if sorting is enabled, rows might
+            % move around when classification is changed): 
+            obj.RoiGroup.changeRoiSelection(currentRoiInd, []);
+
+            classifyRois@roimanager.roiDisplay(obj, classificationIdx, currentRoiInd);
+
+            % Reselect the next roi which is unclassified.
+            obj.RoiGroup.changeRoiSelection(currentRoiInd, nextRoiInd);
+                    
         end
         
         function updateRoiLabels(obj)
@@ -196,7 +230,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
         end
         
-        function onTableUpdated(obj, src, evt)            
+        function onTableUpdated(obj, src, evt)
             obj.RoiGroup.changeVisibleRois(evt.RowIndices, evt.Type);
         end
         
@@ -207,7 +241,32 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 case {'↓', '↑', '←', '→', 'leftarrow', 'rightarrow', ...
                         'uparrow', 'downarrow'} % arrowkeys
                     if isempty(evt.Modifier) || ~strcmp(evt.Modifier, 'alt')
+                        return
+                        
+                        % Testing different selection modes
+                        currentRoiInd = obj.SelectedRois(end);
+                        if any( strcmp({'uparrow', '↑'}, evt.Key) )
+                            dir = 'backward';
+                        elseif any( strcmp({'downarrow', '↓'}, evt.Key) )
+                            dir = 'forward';
+                        else
+                            return
+                        end
+                        nextRoiInd = obj.RoiGroup.getNextRoiInd(currentRoiInd, dir);
+                        obj.RoiGroup.changeRoiSelection(currentRoiInd, nextRoiInd);
                         return % Reserved for moving up and down in table
+                    end
+                    
+                case {'0', '1', '2', '3', 'return', '⏎'}
+                    if isempty(evt.Modifier)
+                        if strcmp(evt.Key, '⏎')
+                            classificationIdx = 1;
+                        else
+                            classificationIdx = str2double(evt.Key);
+                        end
+
+                        obj.classifyRois(classificationIdx)
+                        return
                     end
                     
                 case '⌫'
@@ -243,10 +302,19 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             S = orderfields(S, ['ID', setdiff(fieldnames(S), 'ID', 'stable')' ]);
             
             if ~isempty(roiArray)
+                
+                roiClassification = getappdata(roiArray, 'roiClassification');
+                if ~isempty(roiClassification)
+                    roiClassification = roimanager.ManualClassification.index2labels(roiClassification);
+                    roiClassification = struct('Classification', roiClassification);
+                    S = utility.struct.mergestruct(S, roiClassification);
+                end
+                
                 roiStats = getappdata(roiArray, 'roiStats');
                 if ~isempty(roiStats)
                     S = utility.struct.mergestruct(S, roiStats);
                 end
+
             end
             
             roiTable = struct2table(S, 'AsArray', true);
@@ -412,6 +480,19 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         end
 
         function onRoiClassificationChanged(obj, evtData)
+            
+            roiArray = evtData.Source.roiArray(evtData.roiIndices);
+            T = obj.rois2table(roiArray);
+
+            % Update cells of modified entries.
+            if numel(evtData.roiIndices) >= 1
+                for i = 1:numel( evtData.roiIndices )
+                    obj.updateTableRow( evtData.roiIndices(i), T(i,:) );
+                end
+                    
+            elseif numel(evtData.roiIndices) == 0
+                return
+            end
             
         end
         
