@@ -241,6 +241,35 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 rowIdxVisible = rowIdxVisible(obj.HTable.RowSortIndex);
             end
             
+            tableDataView = newData(:, colIdxVisible);
+
+            % Rearrange columns according to current state of the java 
+            % column model
+            [javaColIndex, ~] = obj.ColumnModel.getColumnModelIndexOrder();
+            javaColIndex = javaColIndex(1:numel(colIdxVisible));
+            tableDataView(:, javaColIndex) = tableDataView;
+            
+            [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
+            [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
+            
+            for i = 1:numel(uiTableRowIdx)
+                for j = 1:numel(uiTableColIdx)
+                    iRow = uiTableRowIdx(i);
+                    jCol = uiTableColIdx(j);
+                    thisValue = tableDataView(i, j);
+                    obj.HTable.setCell(iRow, jCol, thisValue)
+                end
+            end
+            
+            drawnow
+            return
+            
+            % Assign updated table data to the uitable property
+            obj.HTable.Data = tableDataView;
+            
+            
+            
+            
             [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
             [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
             
@@ -251,9 +280,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 columnIndexOrder = obj.ColumnModel.getColumnModelIndexOrder();
                 uiTableColIdx = columnIndexOrder(uiTableColIdx);
             end
-            
+            columnIndexOrder = obj.ColumnModel.getColumnModelIndexOrder();
+
             % Rearrange data table columns...
-            [~, ~, dataTableColIdx] = intersect(colIdxVisible, colIdx);
+            [~, ~, dataTableColIdx] = intersect(colIdxVisible, columnIndexOrder);
                         
             % Only continue with those columns that are visible
             newData = newData(:, dataTableColIdx);
