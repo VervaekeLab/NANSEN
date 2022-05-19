@@ -485,10 +485,13 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             T = obj.rois2table(roiArray);
 
             % Update cells of modified entries.
-            if numel(evtData.roiIndices) >= 1
-                for i = 1:numel( evtData.roiIndices )
-                    obj.updateTableRow( evtData.roiIndices(i), T(i,:) );
-                end
+            if numel(evtData.roiIndices) == 1
+                obj.updateTableRow( evtData.roiIndices, T );
+                
+            elseif numel(evtData.roiIndices) > 1
+                colIdx = strcmp(obj.roiTable.Properties.VariableNames, 'Classification');
+                obj.roiTable(evtData.roiIndices, colIdx) = T(:, colIdx);
+                obj.UITable.refreshTable(obj.roiTable)
                     
             elseif numel(evtData.roiIndices) == 0
                 return
