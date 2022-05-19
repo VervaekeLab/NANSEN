@@ -7,6 +7,16 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
 %
 %       hPlugin = AppPlugin(hApp, options) additionally provides options to
 %       use. Options can be a struct or an OptionsManager object.
+%
+%       hPlugin = AppPlugin(hApp, options, flags) specifies flags to set
+%       mode of plugin.
+%           Flags: 
+%               '-p' : create plugin using partial construction, i.e
+%                      create, but do not open the control panel
+%
+%        hPlugin = AppPlugin(hApp, options, property, value, ...) specifies
+%        property, value pairs to be set on construction
+%       
 
 
     % Not quite sure yet what to add here.
@@ -47,9 +57,13 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         PrimaryAppName              % What is this used for exatly? Maybe remove?
     end
     
+    properties (SetAccess = protected)
+        PartialConstruction = false % Do a partial construction, i.e skip the opening of options editor on construction
+    end
+    
     properties
         RunMethodOnFinish = true    % Should we run method when settings/options are "saved"?
-        Modal = true
+        Modal = true                % Is figure modal or not
         DataIoModel                 % Store a data i/o model object if it is provided.
         OptionsManager              % Store optionsmanager handle if plugin is provided with an optionsmanager on construction
     end
@@ -71,9 +85,9 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     methods % Constructor
         
         function obj = AppPlugin(hApp, options, varargin)
-
+            
             if nargin > 2
-                obj.assignPVPairs(varargin{1:end})
+                obj.parseVarargin(varargin{1:end})
             end
             
             if ~nargin || isempty(hApp); return; end
@@ -102,6 +116,8 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         
         function delete(obj)
             
+            obj.PrimaryApp.removePlugin(obj.Name)
+
             % Delete menu items
             if ~isempty(obj.MenuItem)
                 structfun(@delete, obj.MenuItem)
@@ -112,6 +128,10 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     end
     
     methods (Access = public)
+        
+        function openControlPanel(obj)
+            obj.editSettings()
+        end
         
         function run(obj)
             % Subclasses may override
@@ -193,6 +213,19 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         function onPluginActivated(obj)
         %onPluginActivated Run subroutines when plugin is activated.
             obj.createSubMenu()
+        end
+        
+        function parseVarargin(obj, varargin)
+        %parseVarargin Parser for varargin that are passed on construction    
+            
+            % Look for flag of whether to open plugin's options panel on
+            % construction
+            if ischar(varargin{1}) && isequal(varargin{1}, '-p')
+                obj.PartialConstruction = true;
+                varargin(1) = [];
+            end
+            
+            obj.assignPVPairs(varargin{:})
         end
         
         function assignOptions(obj, options)

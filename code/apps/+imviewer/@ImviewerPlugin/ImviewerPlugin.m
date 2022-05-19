@@ -4,6 +4,8 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
     % Abstract class providing properties and methods that gives plugin
     % functionality for imviewer.
     
+    
+    
     properties
         PrimaryAppName = 'imviewer'     % Name of primary app
     end
@@ -17,7 +19,8 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
     end
     
     
-    methods
+    methods % Constructor
+        
         function obj = ImviewerPlugin(h, varargin)
             
             % Make sure the given handle is an instance of imviewer.App 
@@ -29,7 +32,7 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
             obj.PrimaryApp = h;
             obj.Axes = h.Axes;
             
-            obj.assignDataIoModel()
+            obj.assignDataIoModel() % todo: superclass?
             
         end
         
@@ -47,6 +50,23 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
         
         function imviewerObj = get.ImviewerObj(obj)
             imviewerObj = obj.PrimaryApp;
+        end
+        
+    end
+    
+    methods (Access = protected)
+        
+        function showImageInImviewer(obj, image, imageName)
+            obj.PrimaryApp.showExternalImage(image, imageName)
+        end
+        
+        function setImviewerUpdateFunction(obj, fcnHandle)
+            obj.PrimaryApp.ImageProcessingFcn = fcnHandle;
+        end
+        
+        function updateImviewerDisplay(obj)
+            obj.PrimaryApp.updateImage()
+            obj.PrimaryApp.updateImageDisplay()
         end
     end
     
