@@ -4,7 +4,7 @@ classdef ManualClassification
         Unclassified(0)
         Accepted(1)
         Rejected(2)
-        Undecided(3)
+        Unresolved(3)
     end
     
     properties
@@ -13,7 +13,7 @@ classdef ManualClassification
     end
        
     methods
-        
+
         function obj = ManualClassification(classificationIndex)
             
             obj.Index = classificationIndex;
@@ -30,6 +30,21 @@ classdef ManualClassification
             end
             
         end
+        
+    end
+    
+    methods (Static)
+            
+        function labels = index2labels(indexVector)
+            
+            enums = enumeration('roimanager.ManualClassification');
+            labels = cell(1, numel(indexVector));
+            
+            for i = 1:numel(enums)
+                labels(indexVector == enums(i).Index) = {char(enums(i))};
+            end 
+        end
+        
     end
     
 end
