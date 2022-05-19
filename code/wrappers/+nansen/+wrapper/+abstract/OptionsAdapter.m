@@ -96,6 +96,37 @@ classdef OptionsAdapter < handle
             
         end
 
+        function S = removeUiSpecifications(S)
+            
+            fieldNames = fieldnames(S);
+            discard = endsWith(fieldNames, '_');
+            
+            S = rmfield(S, fieldNames(discard));
+            
+        end
+        
+        function S = ungroupOptions(S)
+        
+            SOut = struct();
+            
+            fieldsTopLevel = fieldnames(S);
+            
+            for i = 1:numel(fieldsTopLevel)
+                if ~isa( S.(fieldsTopLevel{i}), 'struct' )
+                    SOut.(fieldsTopLevel{i}) = S.(fieldsTopLevel{i});
+                else
+
+                    % Pull config fields out of substructs.
+                    configNames = fieldnames(S.(fieldsTopLevel{i}));
+                    for j = 1:numel(configNames)
+                        SOut.(configNames{j}) = S.(fieldsTopLevel{i}).(configNames{j});
+                    end
+                end
+            end
+            
+            S = SOut;
+            
+        end
     end
 
 end

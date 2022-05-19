@@ -25,13 +25,16 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
         
         function SOut = convert(S)
             
-            % Most config fields are just placed in substructs, but some
-            % fields where renamed before placing in a substruct called
-            % CellFind. 
+            import nansen.wrapper.abstract.OptionsAdapter
             
             if nargin < 1
                 S = nansen.wrapper.quicky.Options.getDefaults();
             end
+            
+            S = OptionsAdapter.ungroupOptions(S);
+            
+            % Remove fields with ui specifications
+            S = OptionsAdapter.removeUiSpecifications(S);
             
             SOut = S;
 
