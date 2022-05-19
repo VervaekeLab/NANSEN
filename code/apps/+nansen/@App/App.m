@@ -372,18 +372,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             mitem = uimenu(m, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Metatable', 'Enable', 'on');
             app.updateRelatedInventoryLists(mitem)
-
+            app.updateMetaTableMenu(mitem);
+            
+            mitem = uimenu(m, 'Text','Make Current Metatable Default');
+            mitem.MenuSelectedFcn = @app.onSetDefaultMetaTableMenuItemClicked;
+             
+            mitem = uimenu(m, 'Text','Manage Metatables...', 'Enable', 'off');
+            mitem.MenuSelectedFcn = [];
             
             % % % Create menu items for METATABLE loading and saving % % %
             
-            mitem = uimenu(m, 'Text','Load Metatable...', 'Enable', 'off');
-            mitem.MenuSelectedFcn = @app.menuCallback_LoadDb;
-            mitem = uimenu(m, 'Text','Refresh Metatable', 'Enable', 'off');
-            mitem.MenuSelectedFcn = @(src, event) app.reloadExperimentInventory;
-            mitem = uimenu(m, 'Text','Save Metatable', 'Enable', 'off');
-            mitem.MenuSelectedFcn = @app.saveExperimentInventory;
-            mitem = uimenu(m, 'Text','Save Metatable As', 'Enable', 'off');
-            mitem.MenuSelectedFcn = @app.saveExperimentInventory;
+% %             mitem = uimenu(m, 'Text','Load Metatable...', 'Enable', 'off');
+% %             mitem.MenuSelectedFcn = @app.menuCallback_LoadDb;
+% %             mitem = uimenu(m, 'Text','Refresh Metatable', 'Enable', 'off');
+% %             mitem.MenuSelectedFcn = @(src, event) app.reloadExperimentInventory;
+% %             mitem = uimenu(m, 'Text','Save Metatable', 'Enable', 'off');
+% %             mitem.MenuSelectedFcn = @app.saveExperimentInventory;
+% %             mitem = uimenu(m, 'Text','Save Metatable As', 'Enable', 'off');
+% %             mitem.MenuSelectedFcn = @app.saveExperimentInventory;
             
                 
             % % Section with menu items for creating table variables
@@ -498,6 +504,26 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
 
+        end
+        
+        function updateMetaTableMenu(app, mItem)
+            
+            if nargin < 2
+                mItem = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Open Metatable');
+            end
+            
+            if isempty(mItem); return; end
+            set(mItem.Children, 'Checked', 'off')
+
+            for i = 1:numel(mItem.Children)
+                mSubItem = mItem.Children(i);
+                thisName = strrep(mSubItem.Text, ' (master)', '');
+                thisName = strrep(thisName, ' (default)', '');
+                
+                if strcmp( thisName, app.MetaTable.getName() )
+                    mSubItem.Checked = 'on';
+                end
+            end
         end
         
         function createSessionMenu(app, hMenu, updateFlag)
@@ -996,14 +1022,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UiMetaTableViewer.resetTable()
             app.UiMetaTableViewer.refreshTable(table.empty, true)
             
+            
             drawnow
             disp('Changing project is a work in progress. Some things might not work as expected.')
             
             
             % Need to reassign data location model before loading metatable
             app.DataLocationModel = nansen.DataLocationModel;
+                      
+            app.updateRelatedInventoryLists()
             app.loadMetaTable()
-            
+
             drawnow
                         
             app.SessionTaskMenu.refresh()
@@ -1956,6 +1985,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.updateFigureTitle();
             end
             
+            app.updateMetaTableMenu()
+            
         end
         
         function saveMetaTable(app, src, ~)
@@ -2547,7 +2578,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             names = app.MetaTable.getAssociatedMetaTables('same_class');
-
             
             for i = 1:numel(mItem)
                 delete(mItem(i).Children)
@@ -2664,7 +2694,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Master inventories are tagged with ' (master)'.
             % Remove tag before continuing
             name = strrep(src.Text, ' (master)', '');
-
+            name = strrep(src.Text, ' (default)', '');
+            
             % Find database entry with selected name
             isMatch = strcmp(MT.Table.MetaTableName, name);
 
@@ -2678,6 +2709,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Todo: Wrap this into a separate method
             app.loadMetaTable(filePath)
+        end
+        
+        function onSetDefaultMetaTableMenuItemClicked(app, src, evt)
+            app.MetaTable.setDefault()
+            app.updateRelatedInventoryLists()
         end
         
         function onUpdateSessionListMenuClicked(app, src, evt)

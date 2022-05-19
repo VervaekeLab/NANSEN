@@ -706,9 +706,9 @@ classdef MetaTable < handle
 
             if isempty(MT); return; end
             
-            isClass = contains(MT.MetaTableClass, className);
-            isKey = contains(MT.MetaTableKey, obj.MetaTableKey);
-            isName = contains(MT.MetaTableName, obj.MetaTableName);
+            isClass = strcmp(MT.MetaTableClass, className);
+            isKey = strcmp(MT.MetaTableKey, obj.MetaTableKey);
+            isName = strcmp(MT.MetaTableName, obj.MetaTableName);
             
             MT(isClass, 'IsDefault') = {false};
             MT(isClass&isKey&isName, 'IsDefault') = {true};
@@ -758,15 +758,18 @@ classdef MetaTable < handle
             assert(~isempty(mtTmp), 'No master MetaTable for this MetaTable class')
 
             MetaTableNames = mtTmp.MetaTableName;
+            
+            promptString = sprintf('Select a master MetaTable');
+            
             [ind, ~] = listdlg( 'ListString', MetaTableNames, ...
                                 'SelectionMode', 'multiple', ...
-                                'Name', ...
-                                'Select MetaTable to Use as Master' );
+                                'Name', 'Select Table', ...
+                                'PromptString', promptString);
 
             if isempty(ind); error('You need link to a master MetaTable'); end
             
             obj.MetaTableKey = mtTmp.('MetaTableKey'){ind};
-            
+            obj.save()
         end
         
         function synchToMaster(obj, S)
@@ -806,7 +809,10 @@ classdef MetaTable < handle
             % Get filepath to master MetaTable file and load MetaTable
             masterFilePath = obj.getMasterMetaTableFile();
             
-            if isempty(masterFilePath); return; end
+            if isempty(masterFilePath)
+                obj.linkToMaster()
+                masterFilePath = obj.getMasterMetaTableFile();
+            end
             
             sMaster = load(masterFilePath);
             
@@ -877,7 +883,7 @@ classdef MetaTable < handle
 
             % Add master to name for master MetaTable
             names(MT.IsMaster) = strcat(names(MT.IsMaster), ' (master)');
-            
+            names(MT.IsDefault) = strcat(names(MT.IsDefault), ' (default)');
             
             % Sort names alphabetically..
             names(~MT.IsMaster) = sort(names(~MT.IsMaster));
