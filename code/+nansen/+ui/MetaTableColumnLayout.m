@@ -618,6 +618,15 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 
         end
         
+        function onSettingsSet(obj, newSettings)
+        %onSettingsSet Update value of settings when property value is set
+        
+        % Override superclass methods. In contrast to the superclass
+        % this subclass does not have to invoke the onSettingsChanged when
+        % settings are set...
+            obj.settings_ = newSettings;
+        end
+        
         function onSettingsChanged(obj, src, event)
         %onSettingsChanged Callback for when settings are changed. 
         %
