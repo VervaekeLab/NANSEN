@@ -1160,7 +1160,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             [~, varNames] = obj.ColumnModel.getColumnNames();
             currentColumnName = varNames{colNumber};
-            currentColumnName
             
             isMatch = strcmp( {obj.MetaTableVariableAttributes.Name}, currentColumnName );
             if any(isMatch)
