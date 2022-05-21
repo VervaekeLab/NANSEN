@@ -84,6 +84,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function app = App()
             
             nansen.addpath()
+            nansen.validate()
             
             % Call constructor explicitly to provide the nansen.Preferences
             app@uiw.abstract.AppWindow('Preferences', nansen.Preferences, 'Visible', 'off')
@@ -179,6 +180,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
                 doExit = app.BatchProcessor.promptQuit();
+                if ~doExit; return; end
+            end
+            
+            if ~app.IsIdle
+                doExit = app.promptQuitIfBusy();
                 if ~doExit; return; end
             end
 
@@ -516,6 +522,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             set(mItem.Children, 'Checked', 'off')
 
             for i = 1:numel(mItem.Children)
+                % Add checkmark if menu item name corresponds with current
+                % metatable name.
                 mSubItem = mItem.Children(i);
                 thisName = strrep(mSubItem.Text, ' (master)', '');
                 thisName = strrep(thisName, ' (default)', '');
@@ -543,11 +551,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
           % --- Section with menu items for session methods/tasks
-            mitem = uimenu(hMenu, 'Text', 'Create Session Method...');
+            mitem = uimenu(hMenu, 'Text', 'New Session Method...');
             mitem.MenuSelectedFcn = @app.onCreateSessionMethodMenuClicked;
             
+            mitem = uimenu(hMenu, 'Text', 'New Data Variable...', 'Enable', 'off');
+            mitem.MenuSelectedFcn = [];
+            
           % --- Section with menu items for creating pipeline
-            mitem = uimenu(hMenu, 'Text', 'Create New Pipeline...', 'Enable', 'on', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'New Pipeline...', 'Enable', 'on', 'Separator', 'on');
             mitem.MenuSelectedFcn = @app.onCreateNewPipelineMenuItemClicked;
 
             mitem = uimenu(hMenu, 'Text', 'Edit Pipeline', 'Enable', 'on');
@@ -1488,7 +1499,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             import nansen.metadata.utility.createFunctionForCustomTableVar
             import nansen.metadata.utility.createClassForCustomTableVar
             
-            
             inputModeSelection = {...
                 'Enter values manually', ...
                 'Get values from function', ...
@@ -2041,6 +2051,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
 
+        function doExit = promptQuitIfBusy(app)
+            
+            % Prepare inputs for the question dialog
+            qstring = 'The app is busy with something. Do you want to quit anyway?';
+            
+            title = 'Confirm Quit?';
+            alternatives = {'Yes', 'No'};
+            default = 'Yes';
+            
+            %answer = questdlg(qstring, title, alternatives{:}, default);
+            answer = app.openQuestionDialog(qstring, title, alternatives{:}, default);
+            doExit = strcmp(answer, 'Yes'); 
+        end
     end
     
     methods (Access = protected) % Callbacks
@@ -2615,20 +2638,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 otherwise
                     
                     MT = nansen.metadata.MetaTableCatalog();
-                    
-                    % Master inventories are tagged with ' (master)'.
-                    % Remove tag before continuing
-                    name = strrep(src.Text, ' (master)', '');
-                    
-                    % Find database entry with selected name
-                    isMatch = strcmp(MT.Table.MetaTableName, name);
-
-                    % Get database filepath
-                    filePath = MT.Table{isMatch, {'SavePath','FileName'} };
-                    filePath = fullfile(filePath{:});
-                    
-                    % Open database
-                    metaTable = nansen.metadata.MetaTable.open(filePath);
+                    metaTable = MT.getMetaTable(src.Text);
 
             end
 
@@ -2689,26 +2699,26 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function MenuCallback_OpenMetaTable(app, src, ~)
+            
+            metaTableName = src.Text;
+            
+            % Get selected metatable item
             MT = nansen.metadata.MetaTableCatalog;
-            
-            % Master inventories are tagged with ' (master)'.
-            % Remove tag before continuing
-            name = strrep(src.Text, ' (master)', '');
-            name = strrep(src.Text, ' (default)', '');
-            
-            % Find database entry with selected name
-            isMatch = strcmp(MT.Table.MetaTableName, name);
+            mtItem = MT.getEntry(metaTableName);
 
             % Get database filepath
-            filePath = MT.Table{isMatch, {'SavePath', 'FileName'} };
-            filePath = fullfile(filePath{:});
+            filePath = fullfile(mtItem.SavePath, mtItem.FileName);
             
             if ~contains(filePath, '.mat')
                 filePath = strcat(filePath, '.mat');
             end
             
+            returnToIdle = app.setBusy('Opening table...');
+
             % Todo: Wrap this into a separate method
             app.loadMetaTable(filePath)
+            
+            
         end
         
         function onSetDefaultMetaTableMenuItemClicked(app, src, evt)

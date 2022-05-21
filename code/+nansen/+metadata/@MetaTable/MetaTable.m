@@ -493,13 +493,16 @@ classdef MetaTable < handle
         
         % Todo: Make method for adding multiple variable ine one go, i.e
         % allow variableName and initValue to be cell arrays.
+
+            if ~obj.IsMaster % Add to master metatable
+                % Get filepath to master MetaTable file and load MetaTable
+                masterFilePath = obj.getMasterMetaTableFile();
+                masterMT = nansen.metadata.MetaTable.open(masterFilePath);
+                masterMT.addTableVariable(variableName, initValue);
+                masterMT.save();
+            end
         
             obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
-        
-% %             numTableRows = size(obj.entries, 1);
-% %             columnValues = repmat(initValue, numTableRows, 1);
-% %             
-% %             obj.entries{:, variableName} = columnValues;
 
         end
 

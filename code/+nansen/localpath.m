@@ -87,7 +87,10 @@ function pathStr = localpath(pathKeyword, projectName)
             folderPath = fullfile(projectRootDir, 'Metadata Tables');
             
         case 'Custom Metatable Variable'
-            folderPath = fullfile(projectRootDir, 'Metadata Tables', '+tablevar');
+            [~, projectName] = fileparts(projectRootDir);
+
+            folderPath = fullfile(projectRootDir, 'Metadata Tables', ...
+                ['+', projectName], '+tablevar');
             
         case 'Data Variable Template Folder'
             initPath = nansen.localpath('nansen_root');

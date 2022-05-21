@@ -86,7 +86,7 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
             continue
         end
         
-        thisFcn = str2func(strjoin({'tablevar', 'session', thisName}, '.'));
+        thisFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
         
         initValue = thisFcn();
         
