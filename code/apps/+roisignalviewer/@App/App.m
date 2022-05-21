@@ -680,6 +680,8 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             
          % todo, need append and replace.
                
+            if obj.RoiSignalArray.isVirtual; return; end
+         
             persistent yMaxLeft yMaxRight
          
             if nargin < 4

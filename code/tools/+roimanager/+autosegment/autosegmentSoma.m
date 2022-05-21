@@ -34,13 +34,13 @@ function [roiArray, roiImages, roiStats] = autosegmentSoma(imArray, avgIm, varar
     
     % Binarize stack
     fprintf(sprintf('Binarizing images...\n'))
-    BW = roimanager.autosegment.binarizeStack(imArray, []);
+    BW = roimanager.autosegment.binarizeStack(imArray);
     
     
     % Search for candidates based on activity in the binary stack
     param = [];
-    S = roimanager.autosegment.getAllComponents(BW, param);
-    roiArrayT = roimanager.autosegment.findUniqueRoisFromComponents(stackSize(1:2), S);
+    S = flufinder.detect.getBwComponentStats(BW, param);
+    roiArrayT = flufinder.detect.findUniqueRoisFromComponents(stackSize(1:2), S);
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
     
 

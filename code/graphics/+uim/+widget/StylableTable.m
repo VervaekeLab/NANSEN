@@ -20,9 +20,12 @@ classdef StylableTable < uiw.widget.Table
         ShowColumnHeader = true
         
         UseDefaultHeader = true
-        
         HeaderPressedCallback = []
         HeaderReleasedCallback = []
+    end
+    
+    properties (SetAccess = private)
+        ColumnArrangement
     end
     
     properties %(Access = protected, Dependent)
@@ -41,12 +44,17 @@ classdef StylableTable < uiw.widget.Table
     
         % Following properties are used to detect if column header is
         % changed via the user interface by mouse drag actions.
-        WasMouseDraggedInHeader = false;
         OldColumnWidth = []
         OldColumnOrder = {}
     end
     
+    properties (Access = private)
+        MousePointStart = []
+        WasMouseDraggedInHeader = false;
+    end
+    
     events
+        MouseDraggedInHeader
         ColumnWidthChanged % Event listener for if column width changes (if user drags column headers to resize)
         ColumnsRearranged % Event listener for if columns are rearranged (if user drags column headers to rearrange)
         %HorizontalScroll
@@ -192,8 +200,8 @@ classdef StylableTable < uiw.widget.Table
         function columnNames = getColumnOrder(obj)
 
             % Todo: Move to columnlayout class...
-            
-            jTableHeader = obj.JTable.getTableHeader();
+            %jTableHeader = obj.JTable.getTableHeader();
+            jTableHeader = obj.JTableHeader;
             jColumnModel = jTableHeader.getColumnModel();
             numColumns = jColumnModel.getColumnCount;
             
@@ -447,11 +455,28 @@ classdef StylableTable < uiw.widget.Table
         
         function onMouseDraggedInHeader(obj, src, evt)
         %onMouseDraggedInHeader Used to test if column widths are changed
-            if ~obj.WasMouseDraggedInHeader
+            
+            persistent allowInterrupt
+            if isempty(allowInterrupt); allowInterrupt = true; end
+            
+            if ~allowInterrupt; return; end
+            allowInterrupt = false; %#ok<NASGU>
+            
+            jPoint = get(evt, 'Point');
+            mPoint = [jPoint.x, jPoint.y];
+            
+            if ~obj.WasMouseDraggedInHeader % Mouse just started dragging!
+                obj.MousePointStart = mPoint;
+                obj.OldColumnWidth = obj.ColumnWidth; % Should be set before dragging starts. For very fast drags, this assignment is finished only after drag is completed
                 obj.WasMouseDraggedInHeader = true;
-                obj.OldColumnWidth = obj.ColumnWidth;
-                obj.OldColumnOrder = obj.getColumnOrder();
             end
+            
+            eventData = uiw.event.EventData('MousePointStart', ...
+                obj.MousePointStart, 'MousePointCurrent', mPoint);
+            obj.notify('MouseDraggedInHeader', eventData)
+            
+            allowInterrupt = true;
+
         end
         
         function onMouseReleasedFromHeader(obj, src, evt)
@@ -462,15 +487,19 @@ classdef StylableTable < uiw.widget.Table
                 % Need to check if columns are rearranged before checking if
                 % columns are resized. If columns of different sizes are
                 % rearranged, it will appear as columns have been resized.
-                currentColumnOrder = obj.getColumnOrder();
-                if ~isequal(obj.OldColumnOrder, currentColumnOrder) % (1)
+                currentColumnArrangement = obj.getColumnOrder();
+
+                if ~isequal(obj.ColumnArrangement , currentColumnArrangement) % (1)
                     obj.notify('ColumnsRearranged', event.EventData)
-                
+                    obj.ColumnArrangement = currentColumnArrangement; 
+
                 elseif any(obj.ColumnWidth ~= obj.OldColumnWidth)   % (2)
                     obj.updateColumnHeaderWidth()
                     obj.notify('ColumnWidthChanged', event.EventData)
+
+                else
+                    %disp('Nothing Changed')
                 end
-                
                 obj.WasMouseDraggedInHeader = false;
             else
                 if ~isempty(obj.HeaderReleasedCallback)
@@ -479,6 +508,21 @@ classdef StylableTable < uiw.widget.Table
             end
         end
 
+    end
+    
+    methods (Access = protected) % Override uiw.widget.Table method
+        
+        function onTableModelChanged(obj, ~, e)
+            % This method is reimplemented in order to store the column
+            % arrangment of the table model, which is needed to detect
+            % whether columns are rearranged when mouse is dragged in table
+            % header.
+            
+            onTableModelChanged@uiw.widget.Table(obj, [], e)
+            obj.ColumnArrangement = obj.getColumnOrder;
+            % disp('table model changed')
+        end
+        
     end
     
 end

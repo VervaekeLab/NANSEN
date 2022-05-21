@@ -6,8 +6,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     %       showing/hiding the signal viewer panel
     %   [ ] Bug when creating rois and modifying them before the
     %       roisignalarray is initalized.
-    %   [ ] Register roitable as a modular app, so that keypresses are
+    %   [v] Register roitable as a modular app, so that keypresses are
     %       passed on...
+    %   [ ] Create a reset method for reseting all roi-related data, i.e
+    %       roimap, roitable etc. 
     
     properties
         ApplicationName = 'Roimanager'
@@ -83,13 +85,13 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             % 3) Roi table 
             jLabel.setText('Initializing roi table...')
-            h = roimanager.RoiTable(obj.hPanels(3), obj.roiGroup);
+            h = roimanager.RoiTable(obj.hPanels(3), obj.RoiGroup);
             h.KeyPressFcn = @(s, e) obj.onKeyPressed(s, e, 'roimanager');
             obj.addPanelResizeButton(obj.hPanels(3).Children(1))
             obj.AppModules(end+1) = h;
 
             % 4) Roi image display
-            obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), obj.roiGroup);
+            obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), obj.RoiGroup);
             obj.RoiThumbnailViewer.ImageStack = obj.StackViewer.ImageStack;
             obj.RoiThumbnailViewer.Dashboard = obj;
             
@@ -107,6 +109,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             % Load settings.... Needs to be done after figure is visible
             % due to the way controls are drawn.
             obj.initializeSettingsPanel()
+           
+            % Todo: Need to set appmodules and reference them in a way
+            % where it doesnt matter which order they are added.
+            obj.AppModules(end+1) = obj.RoiThumbnailViewer;
             
         end
         
@@ -277,7 +283,11 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             %valueChangedFcn{i} = @obj.onRoiDisplayPreferencesChanged;
             obj.initializeRoiDisplaySettings()
             
-
+% %             i = i+1; % Not urgent, might also not provide any benefit..
+% %             structs{i} = obj.settings.RoiSelectionPreferences;
+% %             names{i} = 'Roi Selection';
+% %             callbacks{i} = @obj.onRoiSelectionPreferencesChanged;
+            
             i = i+1;
             structs{i} = obj.settings.Autosegmentation();
             % Todo: Add field for preset selection.
@@ -416,6 +426,21 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
 
         end
         
+        function onRoiSelectionPreferencesChanged(obj, name, value)
+                    
+            obj.settings.RoiSelectionPreferences.(name) = value;
+            
+            switch name
+                
+                case 'SelectNextRoiOnClassify'
+                    %obj.RoiGroup.NextRoiSelectionMode = value;
+                    
+                case 'NextRoiSelectionMode'
+                    obj.RoiGroup.NextRoiSelectionMode = value;
+            end
+            
+        end
+        
         function onAutosegmentationOptionsChanged(obj, name, value)
             
             % Update the value in settings.
@@ -446,9 +471,11 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
 
                     switch lower(methodName)
                         case 'extract'
-                            hPlugin = nansen.plugin.imviewer.EXTRACT(obj.AppModules(1));
+                            hPlugin = nansen.plugin.imviewer.EXTRACT(obj.AppModules(1), S, '-p');
                             callbackFcn = @hPlugin.changeSetting;
-                            hPlugin.settings = S;
+                        case {'flufinder', 'quicky'}
+                            hPlugin = nansen.plugin.imviewer.FluFinder(obj.AppModules(1), S, '-p');
+                            callbackFcn = @hPlugin.changeSetting;
                         otherwise
                             hPlugin = [];
                             callbackFcn = [];
@@ -460,9 +487,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                     'FontName', 'helvetica', 'LabelPosition', 'Over', ...
                     'Title', titleStr, 'TabMode', 'sidebar-popup', ...
                     'showPresetInHeader', true, 'Callback', callbackFcn);
-                
-
-                           
+                    
+                       
                     % Change panel title
                     obj.hPanels(1).Title = titleStr;
                     
@@ -517,9 +543,9 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             switch lower(methodName)
                 case 'quicky'
-                    h = nansen.OptionsManager('quickr.getOptions');
-                    S = quickr.getOptions();
-
+                    %h = nansen.OptionsManager('flufinder.getDefaultOptions');
+                    S = flufinder.getDefaultOptions();
+                    
                 case 'extract'
                     S = nansen.wrapper.extract.Options.getDefaults();
 

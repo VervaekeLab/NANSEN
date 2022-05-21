@@ -1,4 +1,5 @@
-classdef autoDetect < uim.interface.abstractPointer
+classdef autoDetect < uim.interface.abstractPointer & ...
+        roimanager.pointerTool.RoiDisplayInputHandler
     
     % TODO: Fix so that crosshairs are plotted based on the maximum
     % size/limits of the parent axes.
@@ -11,7 +12,6 @@ classdef autoDetect < uim.interface.abstractPointer
         xLimOrig
         yLimOrig
         
-        hObjectMap
         hImageStack
         hImage
         
@@ -38,6 +38,8 @@ classdef autoDetect < uim.interface.abstractPointer
         keyReleaseListener
         scrollListener
         hTempRoi
+        
+        AxesLimitChangeListener event.listener
     end
     
     
@@ -131,12 +133,13 @@ classdef autoDetect < uim.interface.abstractPointer
             r = obj.circleToolCoords(3);
             r(2) = obj.extendedRadius;
 
+            isRoiSelected = obj.RoiDisplay.hittest(src, evt);
+            
             % Todo: Call a buttonDownFcn instead.
             if ~isempty(obj.ButtonDownFcn)
-                error('NotImplementedYet')
+                obj.ButtonDownFcn(x, y, r, obj.mode, isRoiSelected)
             else
-                isRoiSelected = obj.hObjectMap.hittest(src, evt);
-                obj.hObjectMap.autodetectRoi(x, y, r, obj.mode, isRoiSelected);
+                obj.RoiDisplay.autodetectRoi2(x, y, r, obj.mode, isRoiSelected);
             end
             
         end
@@ -216,7 +219,7 @@ classdef autoDetect < uim.interface.abstractPointer
                     end
 
                 
-                case {'g', 'h'}
+                case '§' %{'g', 'h'} % Todo: reconsider this.... Use alt + mouse?
                     if ~isempty(obj.hCircle) && strcmp(obj.hCircle.Visible, 'off')
                         obj.showCircle()
                         obj.hideCircleIn(2, true)
@@ -252,6 +255,13 @@ classdef autoDetect < uim.interface.abstractPointer
                 otherwise
                     wasCaptured = false;
             end
+            
+            if wasCaptured
+                return
+            else % Pass on to roi keypress handler
+                wasCaptured = obj.roiKeypressHandler(src, event);
+            end
+            
         end
         
         function onKeyRelease(obj, src, event)
@@ -274,14 +284,15 @@ classdef autoDetect < uim.interface.abstractPointer
             
             x = currentPoint(1);
             y = currentPoint(2);
-            r = obj.circleToolCoords(3);
+            r = round( obj.circleToolCoords(3) );
             
             r(2) = obj.extendedRadius;
             
             if ~isempty(obj.UpdateRoiFcn)
                 newRoi = obj.UpdateRoiFcn(x, y, r, obj.mode, false);
             else
-                newRoi = obj.hObjectMap.autodetectRoi(x, y, r, obj.mode, false);
+%                 newRoi = obj.RoiDisplay.autodetectRoi(x, y, r, obj.mode, false);
+                newRoi = obj.RoiDisplay.autodetectRoi2(x, y, r, obj.mode, false);
             end
             
             obj.plotTempRoi(newRoi)
@@ -291,6 +302,24 @@ classdef autoDetect < uim.interface.abstractPointer
             centerPointX = obj.hAxes.XLim(1) + diff(obj.hAxes.XLim)/2;
             centerPointY = obj.hAxes.YLim(1) + diff(obj.hAxes.YLim)/2;
             centerPoint = [centerPointX, centerPointY];
+        end
+        
+        function addAxesLimitChangeListener(obj)
+            obj.AxesLimitChangeListener = listener(obj.hAxes, ...
+                {'XLim', 'YLim'}, 'PostSet', @obj.updateAxesLimitValues);
+        end
+        
+        function removeAxesLimitChangeListener(obj)
+            if ~isempty(obj.AxesLimitChangeListener)
+                delete( obj.AxesLimitChangeListener )
+                obj.AxesLimitChangeListener = event.listener.empty;
+            end
+        end
+        
+        function updateAxesLimitValues(obj, ~, ~)
+            obj.xLimOrig = obj.hAxes.XLim;
+            obj.yLimOrig = obj.hAxes.YLim;
+            obj.plotCrosshair()
         end
         
     end
@@ -425,19 +454,18 @@ classdef autoDetect < uim.interface.abstractPointer
         end
         
         function plotCrosshair(obj, center)
-%             drawnow limitrate
-%             drawnow
             
+            if isempty(obj.circleToolCoords); return; end
+
             hAx = obj.hAxes;
             
             
             % Todo: Have these sizes as internal property?
-% %             axLimOrig = [1,obj.hObjectMap.displayApp.imWidth; ...
-% %                 1,obj.hObjectMap.displayApp.imHeight];
+% %             axLimOrig = [1,obj.RoiDisplay.displayApp.imWidth; ...
+% %                 1,obj.RoiDisplay.displayApp.imHeight];
 % %             ps = 10 / axLimOrig(2a) * range(hAx.XLim); 
             
             
-            %imSize = size(obj.hImage.CData);
             axLimOrig = [obj.xLimOrig; obj.yLimOrig];
             
             if nargin < 2 && ~obj.isPointerInsideAxes()
@@ -491,19 +519,6 @@ classdef autoDetect < uim.interface.abstractPointer
                 B = hRoi.Boundary{1};
             end
             
-% %             % Standardize output B, so that boundary property is a cell of two
-% %             % column vectors, where the first is y-coordinates and the seconds
-% %             % is x-coordinates. Should ideally be an nx2 matrix of x and y.
-% %             if numel(B) > 1
-% %                 B = cellfun(@(b) vertcat(b, nan(1,2)), B, 'uni', 0);
-% %                 B = vertcat(B{:});
-% %                 B(end, :) = []; % Just remove the last nans...
-% %             elseif isempty(B)
-% %                 B = [nan, nan];
-% %             else
-% %                 B = B{1};
-% %             end
-            
             X = B(:, 2);
             Y = B(:, 1);
             
@@ -517,6 +532,21 @@ classdef autoDetect < uim.interface.abstractPointer
                 obj.hTempRoi.FaceAlpha = 0.15;
             end
             obj.hTempRoi.Visible = 'on';
+            
+            % Debugging:
+% % %             if isempty(hRoi);return;end
+% % %             persistent f ax hIm
+% % %             if isempty(f) || ~isvalid(f)
+% % %                 f = figure('Position', [300,300,300,300], 'MenuBar', 'none'); 
+% % %                 ax = axes(f, 'Position',[0,0,1,1]);
+% % %             else
+% % %                 cla(ax)
+% % %             end
+% % % 
+% % %             hIm = imagesc(ax, hRoi.mask); hold on
+% % %             plot(ax, X, Y)
+            
+
         end
         
         function deactivateWhenScrolling(obj)

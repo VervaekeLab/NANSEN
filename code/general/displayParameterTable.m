@@ -12,7 +12,7 @@ function displayParameterTable(mFilePath)
     packageName = strrep(packageName, 'nansen.', '');
     packageName = strrep(packageName, '.getOptions', '');
 
-    fprintf('\nDefault parameters and descriptions: for %s\n\n', packageName)
+    fprintf('\nDefault parameters and descriptions for: %s\n\n', packageName)
     disp(T)
     
 end

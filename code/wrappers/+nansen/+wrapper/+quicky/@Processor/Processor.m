@@ -36,13 +36,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     
     properties (Access = private)
         MergedResults
-        RoiArray
-        RoiImages
-        RoiStats
     end
     
     
-    methods % Constructor 
+    methods % Constructor
         
         function obj = Processor(varargin)
         %nansen.wrapper.quicky.Processor Construct quicky processor
@@ -71,7 +68,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     methods (Access = protected) % Implementation of RoiSegmentation methods
         
         function opts = getToolboxSpecificOptions(obj, varargin)
-        %getToolboxSpecificOptions Get EXTRACT options from parameters or file
+        %getToolboxSpecificOptions Get options from parameters or file
         %
         %   OPTS = getToolboxSpecificOptions(OBJ, STACKSIZE) return a
         %   struct of parameters for the EXTRACT pipeline.
@@ -82,9 +79,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             %stackSize = varargin{1};
             
             import nansen.wrapper.quicky.Options
-            opts = Options.convert(obj.Options);%, stackSize);
+            opts = Options.convert(obj.Options);
             
-                
             optionsVarname = 'QuickyOptions';
 
             % Initialize options (Load from session if options already
@@ -97,9 +93,12 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             runPreInitialization@nansen.processing.RoiSegmentation(obj)
             
             obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Combining and refining detected components...';
+            descr = 'Combine and refine detected components';
             obj.StepDescription = [obj.StepDescription, descr];
             
+            obj.NumSteps = obj.NumSteps + 1;
+            descr = 'Compute roi images & roi stats';
+            obj.StepDescription = [obj.StepDescription, descr];
         end
         
         function saveResults(obj)
@@ -109,11 +108,64 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
         function mergeResults(obj)
         %mergeResults Merge results from each processing part
+                    
+            import flufinder.detect.findUniqueRoisFromComponents
             
+            obj.displayStartCurrentStep()
+
             % Combine spatial segments
-            if numel(obj.Results) >= 1
-                obj.mergeSpatialComponents()
+            obj.Results = cat(1, obj.Results{:});
+            S = cat(1, obj.Results.spatialComponents );
+                
+            imageSize = obj.SourceStack.FrameSize;
+            roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
+
+            obj.RoiArray = roiArrayT;
+            
+            obj.displayFinishCurrentStep()
+        end
+        
+        function finalizeResults(obj)
+        %finalizeResults Finalize the results using flufinder's pipeline
+
+            import nansen.twophoton.roi.compute.computeRoiImages
+        
+            opts = obj.ToolboxOptions;
+            roiArrayT = obj.RoiArray;
+            imArray = obj.getImageArray();
+            
+            %avgIm = mean( cat(3, obj.Results(1).meanFovImage ), 3);
+
+            % % Improve estimates of rois which were detected based on activity
+            % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            
+            fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
+            [fMean, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
+
+            % get images:
+        %     roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
+        %        'ImageType', {'Activity Weighted Mean', 'Local Correlation'});
+%             roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
+%                 'ImageType', 'Local Correlation');
+
+            %roiArrayT = flufinder.module.improveRoiMasks(roiArrayT, roiImages, opts.RoiType);
+            
+            
+            % % Detect rois from a shape-based kernel convolution
+            % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            if opts.UseShapeDetection
+                fprintf('Searching for %s-shaped cells...\n', ...
+                    opts.MorphologicalShape)%MorphologicalShape)
+                averageImage = mean(imArray, 3);
+
+                roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
+                roiArray = flufinder.utility.combineRoiArrays(roiArrayS, roiArrayT, opts);
+            else
+                roiArray = roiArrayT;
             end
+            
+            obj.RoiArray = roiArray;
+            
         end
 
         function roiArray = getRoiArray(obj)
@@ -125,28 +177,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     
     methods (Access = protected) % Implementation of ImageStackProcessor methods
 
-        function result = segmentPartition(obj, Y)
-            
-            options = obj.ToolboxOptions; %todo...
-            
-            % Binarize stack
-            fprintf(sprintf('Binarizing images...\n'))
-            BW = roimanager.autosegment.binarizeStack(Y, []);
-    
-            % Search for candidates based on activity in the binary stack
-            param = [];
-            S = roimanager.autosegment.getAllComponents(BW, param);
-            
-            result.spatialComponents = S;
-            result.meanFovImage = mean(Y, 3);
-                        
-        end
-
         function onInitialization(obj)
             
             onInitialization@nansen.processing.RoiSegmentation(obj)
             
-            global fprintf; fprintf = str2func('fprintf');
+            %global fprintf; fprintf = str2func('fprintf');
             
             filePath = obj.getDataFilePath('QuickyResultsTemp', '-w',...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
@@ -157,44 +192,39 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
         end
 
+        function Y = preprocessImageData(obj, Y)
+            % Subclasses may override
+            % Todo: 
+            % Y_ = flufinder.preprocessImages(Y, options);
+            %
+            %   Need to save mean of original to summary/results 
+
+        end
+
+        function results = segmentPartition(obj, Y)
+        %segmentPartition Run segmentation on subpart of image stack  
+            options = obj.ToolboxOptions; %todo...
+            
+            % Preprocess and binarize stack
+            fprintf(sprintf('Binarizing images and detecting components...\n'))
+            
+            Y_ = flufinder.module.preprocessImages(Y, options);
+            BW = flufinder.module.binarizeImages(Y_, options);
+            
+            [S, CC] = flufinder.detect.getBwComponentStats(BW, options);
+
+            results.spatialComponents = S;
+            results.meanFovImage = mean(Y, 3);
+            results.meanFovImagePreprocessed = mean(Y_, 3);
+            results.componentMatrix = labelmatrix(CC);          
+        end
+        
         function onCompletion(obj)
             onCompletion@nansen.processing.RoiSegmentation(obj)
-
         end
         
     end
     
-    methods (Access = private)
-        
-        function mergeSpatialComponents(obj)
-            
-            obj.displayStartCurrentStep()
-
-            obj.Results = cat(1, obj.Results{:});
-            S = cat(1, obj.Results.spatialComponents );
-                
-            stackSize = [obj.SourceStack.ImageHeight, obj.SourceStack.ImageWidth];
-            
-            roiArrayT = roimanager.autosegment.findUniqueRoisFromComponents(stackSize(1:2), S);
-
-            N = obj.SourceStack.chooseChunkLength();
-            imArray = obj.SourceStack.getFrameSet(1:N);
-            
-            avgIm = mean( cat(3, obj.Results.meanFovImage ), 3);
-
-            [roiArray, roiImages, roiStats] = nansen.wrapper.quicky.utility.finalizeRoiSegmentation(imArray, avgIm, roiArrayT);
-            % Todo: save all...
-            
-            obj.RoiArray = roiArray;
-            obj.RoiImages = roiImages;
-            obj.RoiStats = roiStats;
-            
-            obj.displayFinishCurrentStep()
-            
-        end
-        
-    end
-
     methods (Static) % Method in external file.
         options = getDefaultOptions()
         

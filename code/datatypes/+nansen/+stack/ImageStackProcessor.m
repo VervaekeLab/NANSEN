@@ -62,6 +62,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %     there are additional results (not just processed imagedata), it is
 %     also saved (see e.g. RoiSegmentation)
 %
+%       
+%     Display/logging
+%     [ ] Create a task stack, i.e a struct that holds all the substeps that
+%         can be run. Right now, this is done in a very opaque way...
 %     [ ] Add logging/progress messaging 
 %     [v] Created print task method.
 %     [v] Method for logging when method finished.
@@ -74,6 +78,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     properties (SetAccess = protected) % Source and target stacks for processing
         SourceStack nansen.stack.ImageStack % The image stack to use as source
         TargetStack nansen.stack.ImageStack % The image stack to use as target (optional)
+        ImageArray                          % Store a (sub)set of images that are loaded to memory
     end
     
     properties % User preferences
@@ -112,7 +117,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     
 % - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - 
 
-    methods (Static)
+    methods (Static) % Method to get default options
         function S = getDefaultOptions()
             S.Run.frameInterval = [];
             %S.Run.frameInterval_ = 'transient';
@@ -173,13 +178,13 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
     end
 
-    methods 
+    methods % Set/get methods
         function numFramesPerPart = get.NumFramesPerPart(obj)
             numFramesPerPart = obj.Options.Run.numFramesPerPart;
         end
     end
     
-    methods
+    methods % User accessible methods
         
         function wasSuccess = preview(obj)
         %PREVIEW Open preview of data and options for method.
@@ -333,7 +338,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         end
         
         function processParts(obj)
-            
+        %processParts Process all parts in sequence.
+        
             obj.displayStartCurrentStep()
 
             IND = obj.FrameIndPerPart;
@@ -343,6 +349,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
             if obj.NumParts > 1 && isempty(partsToProcess)
                 obj.printTask(sprintf('All parts of imagestack have already been processed for method: %s',  class(obj)))
+                obj.displayFinishCurrentStep()
                 return
             end
             
@@ -471,9 +478,25 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
         end
         
+        function imArray = getImageArray(obj, N)
+        %loadImageData Load set of image frames from ImageStack        
+            
+            % Todo: add options for how many frames to load.
+            obj.printTask('Loading image data from disk')
+            
+            if nargin < 2 || isempty(N)
+                N = obj.SourceStack.chooseChunkLength();
+            end
+            
+            imArray = obj.SourceStack.getFrameSet(1:N);
+            obj.SourceStack.addToStaticCache(imArray, 1:N)
+            
+            obj.printTask('Finished loading data')
+            
+        end
     end
     
-        methods (Access = protected) % Pre- and processing methods for imagedata
+    methods (Access = protected) % Pre- and processing methods for imagedata
 
         function Y = preprocessImageData(obj, Y)
             % Subclasses may override
@@ -482,6 +505,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         function Y = postprocessImageData(obj, Y)
             % Subclasses may override
         end
+        
     end
     
     methods (Access = private)
@@ -538,6 +562,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     methods (Access = protected) % Methods for printing commandline output
         
         function addProcessingStep(obj, description, position)
+            
             % Placeholder / Todo
             switch position
                 case 'beginning'
@@ -612,7 +637,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         end
         
     end
-    
     
     methods (Static)
         function printTask(varargin)

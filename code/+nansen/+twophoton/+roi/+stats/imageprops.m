@@ -35,7 +35,7 @@ function stats = imageprops(roiImageArray, roiArray, varargin)
 
     if getAll || get('RoiSalience')
         salience = nansen.twophoton.roi.stats.roiSalience(roiArray, ...
-            roiImageArray.Top10thPercentile);
+            roiImageArray.Top99thPercentile);
         stats.RoiSalience = salience;
         
         % Todo: This should be improved for soma with a dark nucleus!

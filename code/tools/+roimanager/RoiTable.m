@@ -66,6 +66,13 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;
             obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressedInTable;
             
+            % Load and set column model settings from preferences.
+            tableColumnSettings = obj.getPreference('TableColumnSettings', []);
+            if ~isempty(tableColumnSettings)
+                obj.UITable.ColumnModel.settings = tableColumnSettings;
+                obj.UITable.refreshTable([], true)
+            end
+            
             if roiGroup.roiCount > 0
                 obj.updateRoiLabels()
             end
@@ -87,6 +94,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     obj.savePreferences();
                 end
             end
+            
+            tableColumnSettings = obj.UITable.ColumnModel.settings;
+            obj.setPreference('TableColumnSettings', tableColumnSettings);
+            obj.savePreferences();
             
             if ~isempty(obj.WindowMousePressListener)
                 delete(obj.WindowMousePressListener)
@@ -115,7 +126,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             roiIdxToRemove = obj.SelectedRois;
             
             obj.UITable.HTable.Enable = 'off';
-            obj.RoiGroup.changeRoiSelection([], [])
+            % Important:  Change roi selection to first element in list
+            % which is slected. Then, after rois are removed, "next" row in
+            % table is selected
+            obj.RoiGroup.changeRoiSelection([], roiIdxToRemove(1))
             
             obj.RoiGroup.removeRois(roiIdxToRemove);
             newSelection = obj.UITable.getSelectedEntries();
@@ -124,6 +138,29 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                         
             obj.UITable.HTable.Enable = 'on';
 
+        end
+        
+        function classifyRois(obj, classificationIdx, currentRoiInd)
+            
+            if nargin < 3 || isempty(currentRoiInd)
+                currentRoiInd = obj.SelectedRois;
+            end
+            
+            if isempty(currentRoiInd); return; end
+
+            lastSelectedRoiInd = currentRoiInd(end);
+            nextRoiInd = obj.RoiGroup.getNextRoiInd(lastSelectedRoiInd, 'forward', 'Next unclassified roi');
+
+            % Unselect current roi to prevent "flickering" when
+            % classifying roi (if sorting is enabled, rows might
+            % move around when classification is changed): 
+            obj.RoiGroup.changeRoiSelection(currentRoiInd, []);
+
+            classifyRois@roimanager.roiDisplay(obj, classificationIdx, currentRoiInd);
+
+            % Reselect the next roi which is unclassified.
+            obj.RoiGroup.changeRoiSelection(currentRoiInd, nextRoiInd);
+                    
         end
         
         function updateRoiLabels(obj)
@@ -185,27 +222,66 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             oldSelection = obj.SelectedRois;
             newSelection = obj.UITable.getSelectedEntries();
             
+            if iscolumn(newSelection)
+                newSelection = transpose(newSelection);
+            end
+            
             obj.RoiGroup.changeRoiSelection(oldSelection, newSelection);
             
         end
         
-        function onTableUpdated(obj, src, evt)            
+        function onTableUpdated(obj, src, evt)
             obj.RoiGroup.changeVisibleRois(evt.RowIndices, evt.Type);
         end
         
         function onKeyPressedInTable(obj, src, evt)
-            
+        %onKeyPressedInTable Handle keypress that occur in table
+        
             switch evt.Key
                 case {'↓', '↑', '←', '→', 'leftarrow', 'rightarrow', ...
                         'uparrow', 'downarrow'} % arrowkeys
                     if isempty(evt.Modifier) || ~strcmp(evt.Modifier, 'alt')
+                        return
+                        
+                        % Testing different selection modes
+                        currentRoiInd = obj.SelectedRois(end);
+                        if any( strcmp({'uparrow', '↑'}, evt.Key) )
+                            dir = 'backward';
+                        elseif any( strcmp({'downarrow', '↓'}, evt.Key) )
+                            dir = 'forward';
+                        else
+                            return
+                        end
+                        nextRoiInd = obj.RoiGroup.getNextRoiInd(currentRoiInd, dir);
+                        obj.RoiGroup.changeRoiSelection(currentRoiInd, nextRoiInd);
                         return % Reserved for moving up and down in table
+                    end
+                    
+                case {'0', '1', '2', '3', 'return', '⏎'}
+                    if isempty(evt.Modifier)
+                        if strcmp(evt.Key, '⏎')
+                            classificationIdx = 1;
+                        else
+                            classificationIdx = str2double(evt.Key);
+                        end
+
+                        obj.classifyRois(classificationIdx)
+                        return
                     end
                     
                 case '⌫'
                     obj.removeRois()
                     return
+                    
+                case 'a'
+                    % Don't want to pass this on. Command+a (on mac) raises 
+                    % a key event with eventdata where modified is empty, 
+                    % so can not prevent autodetection tool from being 
+                    % activated. 
+                    return
+                    
             end
+            
             
             if ~isempty(obj.KeyPressFcn)
                 obj.KeyPressFcn(src, evt)
@@ -226,10 +302,19 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             S = orderfields(S, ['ID', setdiff(fieldnames(S), 'ID', 'stable')' ]);
             
             if ~isempty(roiArray)
+                
+                roiClassification = getappdata(roiArray, 'roiClassification');
+                if ~isempty(roiClassification)
+                    roiClassification = roimanager.ManualClassification.index2labels(roiClassification);
+                    roiClassification = struct('Classification', roiClassification);
+                    S = utility.struct.mergestruct(S, roiClassification);
+                end
+                
                 roiStats = getappdata(roiArray, 'roiStats');
                 if ~isempty(roiStats)
                     S = utility.struct.mergestruct(S, roiStats);
                 end
+
             end
             
             roiTable = struct2table(S, 'AsArray', true);
@@ -239,22 +324,17 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                         
             % Get the roi id from the current table and replace:
             tableRowData(1, 1) = obj.roiTable(rowIdx, 1);
-            obj.roiTable(rowIdx, :) = tableRowData;
             
-            % Count number of columns and get column indices
-            colIdx = 1:size(tableRowData, 2);
-            
-            if isa(tableRowData, 'table')
-                newData = table2cell(tableRowData);
-            elseif isa(tableRowData, 'cell')
-                %pass
+            if size(obj.roiTable, 2) == size(tableRowData, 2)
+                obj.roiTable(rowIdx, :) = tableRowData;
             else
-                error('Table row data is in the wrong format')
+                [~, iA, iC] = intersect(obj.roiTable.Properties.VariableNames, ...
+                    tableRowData.Properties.VariableNames, 'stable');
+                obj.roiTable(rowIdx, iA) = tableRowData;                
             end
             
-            % Refresh cells of ui table...
-            obj.UITable.updateCells(rowIdx, colIdx, newData)
-                        
+            obj.UITable.updateTableRow(rowIdx, tableRowData)
+    
         end
         
     end
@@ -302,12 +382,14 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     else
                         newTable = cat(1, oldTable, T);
                     end
-                    
                 case 'insert'
                     T = obj.rois2table(evtData.roiArray);
                     ind = evtData.roiIndices;
                     newTable = utility.insertRowInTable(oldTable, T, ind);
-                    
+                
+                case 'replace'
+                    newTable = obj.rois2table(evtData.roiArray);
+
                 case {'modify', 'reshape'}
                     T = obj.rois2table(evtData.roiArray);
                     
@@ -328,6 +410,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     
             end
             
+            obj.updateVisibleRois(evtData.roiIndices, evtData.eventType)
+            %obj.UITable.updateVisibleRows(obj.VisibleRois)
+
+            
             % Update the values of the roi ids / roi labels
             if obj.RoiGroup.roiCount ~= 0 
 
@@ -346,6 +432,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
              
             % Update table data and uitable.
             obj.roiTable = newTable;
+            %newTable = newTable(obj.VisibleRois, :);
             obj.UITable.refreshTable(newTable)
             
         end
@@ -361,13 +448,16 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             % implemented.
             
             currentRowSelection = obj.UITable.getSelectedEntries();
+            if iscolumn(currentRowSelection)
+                currentRowSelection = transpose(currentRowSelection);
+            end
             newRowSelection = evtData.NewIndices;
             
             % Only set new selection if its different than current 
             % selection to prevent an infinite loop. Feel like this will
             % come back and bite me hard...
             if ~isequal( sort(currentRowSelection), sort(newRowSelection) )
-                
+                %~all( ismember(currentRowSelection, newRowSelection) )
                 
                 obj.UITable.setSelectedEntries(newRowSelection);
                 obj.SelectedRois = newRowSelection;
@@ -382,13 +472,30 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             if isempty(obj.UITable); return; end
             
             obj.VisibleRois = evtData.NewVisibleInd;
-            if ~strcmp(evtData.Type, 'RoiTableFilter')
+            if ~strcmp(evtData.Type, 'TableFilterUpdate')
                 obj.UITable.updateVisibleRows(obj.VisibleRois)
+                obj.UITable.resetColumnFilters()
             end
             
         end
 
         function onRoiClassificationChanged(obj, evtData)
+            
+            roiArray = evtData.Source.roiArray(evtData.roiIndices);
+            T = obj.rois2table(roiArray);
+
+            % Update cells of modified entries.
+            if numel(evtData.roiIndices) == 1
+                obj.updateTableRow( evtData.roiIndices, T );
+                
+            elseif numel(evtData.roiIndices) > 1
+                colIdx = strcmp(obj.roiTable.Properties.VariableNames, 'Classification');
+                obj.roiTable(evtData.roiIndices, colIdx) = T(:, colIdx);
+                obj.UITable.refreshTable(obj.roiTable)
+                    
+            elseif numel(evtData.roiIndices) == 0
+                return
+            end
             
         end
         

@@ -59,6 +59,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         DeleteColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
         UpdateColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
+        EditColumnFcn = []      % This should be internalized, but for now it is assigned from session browser/nansen
     end
     
     properties (SetAccess = private, SetObservable = true)
@@ -68,10 +69,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         MetaTableVariableAttributes % Struct with attributes of metatable variables.
     end
     
-    properties %(Access = private)
+    properties (SetAccess = private)
         ColumnModel             % Class instance for updating columns based on user preferences.
         ColumnFilter            % Class instance for filtering data based on column variables.
-        
+    end
+    
+    properties %(Access = private)
         DisplayedRows % Rows of the original metatable which are currently displayed (not implemented yet)
         DisplayedColumns % Columns of the original metatable which are currently displayed (not implemented yet)
         
@@ -85,9 +88,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         DataFilterMap = []  % Boolean "map" (numRows x numColumns) with false for cells that is outside filter range
         ExternalFilterMap = [] % Boolean vector with rows that are "filtered" externally. Todo: Formalize this better.
+        FilterChangedListener event.listener
         
         ColumnWidthChangedListener
         ColumnsRearrangedListener
+        MouseDraggedInHeaderListener
         
         ColumnPressedTimer
     end
@@ -107,7 +112,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     methods % Structors
         
         function obj = MetaTableViewer(varargin)
-            
+        %MetaTableViewer Construct for MetaTableViewer
+        
             % Take care of input arguments.
             obj.parseInputs(varargin)
             
@@ -116,16 +122,15 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             obj.createUiTable()
             
+            obj.ColumnFilter = nansen.ui.MetaTableColumnFilter(obj, obj.AppRef);
+            
             if ~isempty(obj.MetaTableCell)
                 obj.refreshTable()
                 obj.HTable.Visible = 'on'; % Make table visible
                 drawnow
             end
-            
-            obj.ColumnFilter = nansen.ui.MetaTableColumnFilter(obj, obj.AppRef);
-
         end
-        
+       
         function delete(obj)
             if ~isempty(obj.HTable) && isvalid(obj.HTable)
                 columnWidths = obj.HTable.ColumnWidth;
@@ -162,6 +167,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
        
+        function set.ColumnFilter(obj, newValue)
+            obj.ColumnFilter = newValue;
+            if ~isempty(newValue)
+                obj.onColumnFilterSet()
+            end
+        end
+            
         function set.ShowIgnoredEntries(obj, newValue)
             
             assert(islogical(newValue), 'Value for ShowIgnoredEntries must be a boolean')
@@ -230,6 +242,35 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 rowIdxVisible = rowIdxVisible(obj.HTable.RowSortIndex);
             end
             
+            tableDataView = newData(:, colIdxVisible);
+
+            % Rearrange columns according to current state of the java 
+            % column model
+            [javaColIndex, ~] = obj.ColumnModel.getColumnModelIndexOrder();
+            javaColIndex = javaColIndex(1:numel(colIdxVisible));
+            tableDataView(:, javaColIndex) = tableDataView;
+            
+            [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
+            [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
+            
+            for i = 1:numel(uiTableRowIdx)
+                for j = 1:numel(uiTableColIdx)
+                    iRow = uiTableRowIdx(i);
+                    jCol = uiTableColIdx(j);
+                    thisValue = tableDataView(i, j);
+                    obj.HTable.setCell(iRow, jCol, thisValue)
+                end
+            end
+            
+            drawnow
+            return
+            
+            % Assign updated table data to the uitable property
+            obj.HTable.Data = tableDataView;
+            
+            
+            
+            
             [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
             [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
             
@@ -240,9 +281,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 columnIndexOrder = obj.ColumnModel.getColumnModelIndexOrder();
                 uiTableColIdx = columnIndexOrder(uiTableColIdx);
             end
-            
+            columnIndexOrder = obj.ColumnModel.getColumnModelIndexOrder();
+
             % Rearrange data table columns...
-            [~, ~, dataTableColIdx] = intersect(colIdxVisible, colIdx);
+            [~, ~, dataTableColIdx] = intersect(colIdxVisible, columnIndexOrder);
                         
             % Only continue with those columns that are visible
             newData = newData(:, dataTableColIdx);
@@ -262,12 +304,33 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
         
+        function updateTableRow(obj, rowIdx, tableRowData)
+        %updateTableRow Update data of specified table row                      
+            % Count number of columns and get column indices
+            colIdx = 1:size(tableRowData, 2);
+            
+            if isa(tableRowData, 'table')
+                newData = table2cell(tableRowData);
+            elseif isa(tableRowData, 'cell')
+                %pass
+            else
+                error('Table row data is in the wrong format')
+            end
+            
+            % Refresh cells of ui table...
+            obj.updateCells(rowIdx, colIdx, newData)
+        end        
+        
+        function appendTableRow(obj, rowData)
+            % Would be neat, but havent found a way to do it.
+        end
+        
         function updateVisibleRows(obj, rowInd)
 
-            [numRows, numColumns] = size(obj.MetaTable);
+            [numRows, ~] = size(obj.MetaTable);
             obj.ExternalFilterMap = false(numRows, 1);
             obj.ExternalFilterMap(rowInd) = true;
-            
+                        
             obj.updateTableView(rowInd)
         end
         
@@ -278,7 +341,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             % Note: If [] is provided as 2nd arg, the table is not reset.
             % This might be used in some cases where the table should be
-            % kept, but the fluchTable flag is provided.
+            % kept, but the flushTable flag is provided.
             
             if nargin >= 2 && ~(isnumeric(newTable) && isempty(newTable))
                 obj.MetaTable = newTable;
@@ -293,11 +356,16 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             if flushTable % Empty table, gives smoother update in some cases
                 obj.HTable.Data = {};
+                obj.DataFilterMap = []; % reset data filter map
+                obj.ColumnFilter.onMetaTableChanged()
+            else
+                if ~isempty(obj.ColumnFilter)
+                    obj.ColumnFilter.onMetaTableUpdated()
+                end
             end
             
             drawnow
             obj.updateColumnLayout()
-            obj.DataFilterMap = []; % reset data filter map
             obj.updateTableView()
             
             drawnow
@@ -308,6 +376,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         function replaceTable(obj, newTable)
             obj.MetaTable = newTable;
+            obj.ColumnFilter.onMetaTableChanged()
             obj.updateTableView()
         end
         
@@ -465,7 +534,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             obj.HTable.CellEditCallback = @obj.onCellValueEdited;
             obj.HTable.JTable.getTableHeader().setReorderingAllowed(true);
-            
+            obj.JTable = obj.HTable.JTable;
+
             % Listener that detects if column widths change if user drags
             % column headers edges to resize columns.
             obj.ColumnWidthChangedListener = listener(obj.HTable, ...
@@ -473,6 +543,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             obj.ColumnsRearrangedListener = listener(obj.HTable, ...
                 'ColumnsRearranged', @obj.onColumnsRearranged);
+            
+            obj.MouseDraggedInHeaderListener = listener(obj.HTable, ...
+                'MouseDraggedInHeader', @obj.onMouseDraggedInTableHeader);
             
             obj.HTable.Theme = uim.style.tableLight;
             
@@ -520,7 +593,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Update column data');
             hTmp.Separator = 'on';
             hTmp.Tag = 'Update Column';
-              hSubMenu = uimenu(hTmp, 'Label', 'Update selected rows');
+              hSubMenu = uimenu(hTmp, 'Label', 'Edit tablevar function');
+              hSubMenu.Tag = 'Edit tablevar function';
+              hSubMenu = uimenu(hTmp, 'Label', 'Update selected rows', 'Separator', 'on');
               hSubMenu.Tag = 'Update selected rows';
               hSubMenu = uimenu(hTmp, 'Label', 'Update all rows');
               hSubMenu.Tag = 'Update all rows';
@@ -607,8 +682,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.HTable.ColumnFormat = dataTypes;
             obj.HTable.ColumnFormatData = colFormatData;
 
-            
-            
             % Set column names. Do this last because this will control that
             % the correct number of columns are shown.
             obj.HTable.ColumnName = columnLabels;
@@ -652,29 +725,34 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             if isempty(obj.ColumnModel); return; end % On construction...
                         
-            [numRows, numColumns] = size(obj.MetaTableCell);
+            [numRows, numColumns] = size(obj.MetaTableCell); %#ok<ASGLU>
 
             if nargin < 2; visibleRows = 1:numRows; end
             
-            % Todo: Get based on user selection of which columns to display
-            columns = obj.getCurrentColumnSelection();
+            % Get based on user selection of which columns to display
+            visibleColumns = obj.getCurrentColumnSelection();
             
-            % Todo: Get based on filter states
-            rows = obj.getCurrentRowSelection(); 
-            rows = intersect(rows, visibleRows, 'stable');
+            % Get visible rows based on filter states
+            filteredRows = obj.getCurrentRowSelection(); 
+            visibleRows = intersect(filteredRows, visibleRows, 'stable');
             
-            % Table data should already be formatted
 
+            % Get subset of data from metatable that should be put in the
+            % uitable. 
+            tableDataView = obj.MetaTableCell(visibleRows, visibleColumns);
+
+            % Rearrange columns according to current state of the java 
+            % column model
+            [javaColIndex, ~] = obj.ColumnModel.getColumnModelIndexOrder();
+            javaColIndex = javaColIndex(1:numel(visibleColumns));
+            tableDataView(:, javaColIndex) = tableDataView;
             
-            %[~, uiTableRowIdx] = intersect(rows, 1:numRows, 'stable');
-            [~, uiTableColIdx] = intersect(1:numColumns, columns, 'stable');
-            
-            obj.HTable.Data = obj.MetaTableCell(rows, uiTableColIdx);
+            % Assign updated table data to the uitable property
+            obj.HTable.Data = tableDataView;
             obj.HTable.Visible = 'on';
+            obj.HTable.JTable.requestFocus()
+
             drawnow
-            
-            evtdata = uiw.event.EventData('RowIndices', rows, 'Type', 'RoiTableFilter');
-            obj.notify('TableUpdated', evtdata)
         end
         
         function changeColumnNames(obj, newNames)
@@ -730,6 +808,34 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             obj.MetaTableVariableAttributes = S;
                         
+        end
+        
+        function onColumnFilterSet(obj)
+        %onColumnFilterSet Callback for property value set.    
+            if ~isempty(obj.FilterChangedListener)
+                delete(obj.FilterChangedListener)
+            end
+            
+            obj.FilterChangedListener = addlistener(obj.ColumnFilter, ...
+                'FilterUpdated', @obj.onFilterUpdated);
+        end
+        
+        function onFilterUpdated(obj, src, evt)
+        %onFilterUpdated Callback for table filter update events
+            
+            obj.updateTableView()
+            
+            if ~isempty(obj.ExternalFilterMap)
+                visibleRows = find( obj.ExternalFilterMap );
+            else
+                visibleRows = 1:size(obj.MetaTableCell, 1);
+            end
+            
+            rows = obj.getCurrentRowSelection(); 
+            rows = intersect(rows, visibleRows, 'stable');
+            
+            evtdata = uiw.event.EventData('RowIndices', rows, 'Type', 'TableFilterUpdate');
+            obj.notify('TableUpdated', evtdata)
         end
         
         function rowInd = getCurrentRowSelection(obj)
@@ -803,18 +909,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
 
-        function onMouseReleasedFromHeader(obj, src, evt)
-                        
-            if ~isempty(obj.ColumnPressedTimer)
-                stop(obj.ColumnPressedTimer)
-                delete(obj.ColumnPressedTimer)
-                obj.ColumnPressedTimer = [];
-                
-                % Mouse was released before 1 second passed.
-                obj.HTable.JTable.getModel().setSortable(1)
-            end            
-        end
-        
         function onMousePressedInHeader(obj, src, evt)
             
             buttonNum = get(evt, 'Button');
@@ -854,6 +948,35 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.openColumnContextMenu(clickPosX, clickPosY);
             end
 
+        end
+        
+        function onMouseDraggedInTableHeader(obj, src, evt)
+            
+            if ~isempty( obj.ColumnPressedTimer )
+                % Simulate mouse release to cancel the timer
+                obj.onMouseReleasedFromHeader([], [])
+            end
+            
+            dPos = (evt.MousePointCurrent -  evt.MousePointStart);
+            dS = sqrt(sum(dPos.^2));
+            
+            if dS > 10
+                if ~isempty(obj.ColumnFilter)  
+                    obj.ColumnFilter.hideFilters();
+                end
+            end
+        end
+        
+        function onMouseReleasedFromHeader(obj, src, evt)
+                        
+            if ~isempty(obj.ColumnPressedTimer)
+                stop(obj.ColumnPressedTimer)
+                delete(obj.ColumnPressedTimer)
+                obj.ColumnPressedTimer = [];
+                
+                % Mouse was released before 1 second passed.
+                obj.HTable.JTable.getModel().setSortable(1)
+            end            
         end
         
         function onMousePressedInTable(obj, src, evt)
@@ -1120,6 +1243,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                             hTmp.Enable = 'on';
                             if ~isempty(obj.UpdateColumnFcn) 
                                 % Children are reversed from creation
+                                hTmp.Children(3).Callback = @(s,e,name) obj.EditColumnFcn(currentColumnName);
                                 hTmp.Children(2).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'SelectedRows');
                                 hTmp.Children(1).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'AllRows');
                             end

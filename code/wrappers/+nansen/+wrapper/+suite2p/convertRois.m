@@ -13,6 +13,10 @@ function [roiArray, classification, stats, images] = convertRois(S)
     imageSize = [S.ops.Ly, S.ops.Lx];
     roiArray = nansen.wrapper.suite2p.getRoiArray(S.stat, imageSize);
     
+    if isa(S.stat, 'cell'); S.stat = cat(1, S.stat{:}); end
+    assert(isa(S.stat, 'struct'), 'Expected suite2p "stat" to be a struct array')
+    
+    
     % Initialize classification using manual classification label.
     % Todo: implement enum?
     classification = S.iscell(:,1);

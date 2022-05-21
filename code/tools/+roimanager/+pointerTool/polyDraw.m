@@ -1,15 +1,10 @@
-classdef polyDraw < uim.interface.abstractPointer
+classdef polyDraw < uim.interface.abstractPointer & ...
+        roimanager.pointerTool.RoiDisplayInputHandler
     
     
     properties (Constant)
         exitMode = 'default';
     end
-    
-    
-    properties 
-        hObjectMap
-    end
-    
     
     properties % Properties related to displaying polygon during creation
         
@@ -61,9 +56,6 @@ classdef polyDraw < uim.interface.abstractPointer
                 obj.addImpoint(x, y);
                 obj.drawPolygonOutline();
             end
-            
-            
-            
         end
         
         
@@ -99,7 +91,7 @@ classdef polyDraw < uim.interface.abstractPointer
                     
                 case 'f'
                     [x, y] = obj.getPolygonVertices();
-                    obj.hObjectMap.createPolygonRoi(x, y);
+                    obj.RoiDisplay.createPolygonRoi(x, y);
                     obj.removeTmpRoi();
 
                 case 'backspace'

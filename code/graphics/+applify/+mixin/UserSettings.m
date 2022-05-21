@@ -318,20 +318,7 @@ classdef (Abstract) UserSettings < uim.handle
             if numel(S) >= 2 && contains(S(2).name, internalMethods)
                 obj.settings_ = newSettings; % Update settings and return
             else
-                
-                subs = obj.settingsSubs;
-                                
-                % Trigger onSettingsChanged for each field that changed.
-                for i = 1:numel(subs)
-                   oldValue = subsref( obj.settings_, subs{i});
-                   newValue = subsref( newSettings, subs{i});
-                    
-                    if ~isequal( oldValue, newValue )
-                        obj.settings_ = subsasgn(obj.settings_, subs{i}, newValue);
-                        thisName = subs{i}(end).subs; % Note: Only using the last name for identifier. Not ideal, but it done because of legacy...
-                        obj.onSettingsChanged(thisName, newValue)
-                    end
-                end
+                obj.onSettingsSet(newSettings)
             end
         end
         
@@ -350,7 +337,28 @@ classdef (Abstract) UserSettings < uim.handle
     end
     
     methods (Access = protected)
+        
+        function onSettingsSet(obj, newSettings)
+        %onSettingsSet Callback when settings is set from external source
             
+        % Sets the settings_ property and invokes the onSettingsChanged for
+        % each field in settings.
+        
+            subs = obj.settingsSubs;
+
+            % Trigger onSettingsChanged for each field that changed.
+            for i = 1:numel(subs)
+               oldValue = subsref( obj.settings_, subs{i});
+               newValue = subsref( newSettings, subs{i});
+
+                if ~isequal( oldValue, newValue )
+                    obj.settings_ = subsasgn(obj.settings_, subs{i}, newValue);
+                    thisName = subs{i}(end).subs; % Note: Only using the last name for identifier. Not ideal, but it done because of legacy...
+                    obj.onSettingsChanged(thisName, newValue)
+                end
+            end
+        end
+        
         % Is this needed somewhere?
         function updateSettingsValue(obj, name, value)
             % Temp solution to deal with settings struct with two levels.

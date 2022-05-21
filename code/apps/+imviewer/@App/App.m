@@ -1741,6 +1741,16 @@ methods % App update
         obj.infoField.String = infoStr;
     end
     
+    function showExternalImage(obj, image, imageName)
+        obj.DisplayedImage = image;
+        obj.updateImageDisplay()
+        
+        if nargin == 3 && ~isempty(imageName)
+            obj.textStrings.CurrentFrame = imageName;
+            obj.updateInfoText()
+        end
+    end
+    
     function updateImage(obj)
     %UPDATEIMAGE get updated image for display    
     %
@@ -2101,7 +2111,7 @@ methods % App update
         if isempty(message) || isequal(message, newline)
             obj.uiwidgets.msgBox.clearMessage()
         else
-            obj.uiwidgets.msgBox.displayMessage(message)
+            obj.displayMessage(message)
         end
 
     end
@@ -2115,6 +2125,9 @@ methods % App update
             target = 'statusLine';
         end
         
+        message = strrep(message, char(8), '');
+        if isempty(strtrim(message)); return; end
+
         switch target
             case 'messageBox'
                 obj.uiwidgets.msgBox.displayMessage(message, msgDuration)
@@ -2157,7 +2170,7 @@ methods % App update
             
         % Create the plugin
         hPlugin = pluginFcn(obj, pluginOptions, varargin{:});
-
+        
         if ~nargout
             clear(hPlugin)
         end
@@ -3852,7 +3865,7 @@ methods % Misc, most can be outsourced
     end
     
     
-    function loadImageFrames(obj, frameInd, opts)
+    function imData = loadImageFrames(obj, frameInd, opts)
         
         if nargin < 3
             opts = obj.settings.VirtualData;
@@ -3871,7 +3884,6 @@ methods % Misc, most can be outsourced
         else
             imData = obj.ImageStack.getFrameSet(frameInd); %Todo!
         end
-        
         
         obj.uiwidgets.msgBox.deactivateGlobalWaitbar()
         obj.clearMessage()
@@ -3896,6 +3908,10 @@ methods % Misc, most can be outsourced
                 obj.replaceStack(imviewer.ImageStack(imData), false)
                 obj.ImageStack.FileName = filePath; 
 
+        end
+        
+        if ~nargout
+            clear imData
         end
 
     end
@@ -4739,7 +4755,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         y = mousePoint(2);
         
         
-        if x > 1 && x < obj.imWidth && y > 1 && y < obj.imHeight
+        if x >= 1 && x <= obj.imWidth && y >= 1 && y <= obj.imHeight
             % Get pixelvalue for text display
             pixelValueStr = obj.getPixelValueAtCoordsAsString([x, y]);
             obj.textStrings.CursorPoint = pixelValueStr;
@@ -5030,6 +5046,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 end
 
             case 'n'
+                obj.changeImageDisplayMode('filter', 'none')
                 if contains( event.Modifier, 'shift' )
                     if ~isempty(obj.imageDisplayMode.binning) && ...
                         strcmp(obj.imageDisplayMode.binning, 'average')
@@ -5043,6 +5060,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 end
                 
             case 'm'
+                obj.changeImageDisplayMode('filter', 'none')
                 if contains( event.Modifier, 'shift' )
                     if ~isempty(obj.imageDisplayMode.binning) && ...
                         strcmp(obj.imageDisplayMode.binning, 'maximum')

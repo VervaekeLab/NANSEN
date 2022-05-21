@@ -44,7 +44,7 @@ function variableModel = initializeDataVariableModel(filePath, modules)
         % Insert variable specifications to the model
         for j = 1:numel(variableList)
             
-            if strcmp(variableList(j).DataLocation, 'DEFAULT')
+            if useDefaultDataLocation(variableList(j).DataLocation)
                 variableList(j).DataLocation = defaultDataLocationItem.Name;
                 variableList(j).DataLocationUuid = defaultDataLocationItem.Uuid;
             end
@@ -60,4 +60,8 @@ function variableModel = initializeDataVariableModel(filePath, modules)
         clear variableModel
     end
     
+end
+
+function tf = useDefaultDataLocation(dataLocationName)
+    tf = strcmp(dataLocationName, 'DEFAULT') || isempty(dataLocationName);
 end

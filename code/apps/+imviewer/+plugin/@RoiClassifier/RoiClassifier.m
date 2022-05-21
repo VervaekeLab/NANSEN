@@ -10,11 +10,9 @@ classdef RoiClassifier < applify.mixin.AppPlugin
         Name = 'Roiclassifier'
     end
     
-    
     properties
         PrimaryAppName = 'Imviewer';
     end
-    
     
     properties
         ClassifierApp
@@ -42,7 +40,7 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                 
                 % Todo: move to on plugin activated???
                 % Get roi group
-                roiGroup = h.roiGroup;
+                roiGroup = h.RoiGroup;
 
                 %TODO: Make sure roigroup has images and stat, otherwise generate
                 % it
@@ -59,20 +57,27 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                     
                     
                     frameIdx = 1:min([5000, imviewerApp.ImageStack.NumTimepoints]);
+                    
+                    
+                    imviewerApp.displayMessage('Please wait. Loading image frames. This might take a minute')
                     imageData = imviewerApp.ImageStack.getFrameSet(frameIdx);
                     
                     imviewerApp.displayMessage('Please wait. Creating thumbnail images of rois and calculating statistics. This might take a minute')
 
-                    imageTypes = {'enhancedAverage', 'peakDff', 'correlation', 'enhancedCorrelation'};
-                    [roiImages, roiStats] = roimanager.gatherRoiData(imageData, ...
-                        roiArray, 'ImageTypes', imageTypes);
+                    
+                    import('nansen.twophoton.roi.getRoiAppData')
+                    [roiImages, roiStats] = getRoiAppData(imageData, roiArray);       % Imported function
 
+% %                     imageTypes = {'enhancedAverage', 'peakDff', 'correlation', 'enhancedCorrelation'};
+% %                     [roiImages, roiStats] = roimanager.gatherRoiData(imageData, ...
+% %                         roiArray, 'ImageTypes', imageTypes);
 
                     roiArray = roiArray.setappdata('roiImages', roiImages);
                     roiArray = roiArray.setappdata('roiStats', roiStats);
-                    roiArray = roiArray.setappdata('roiClassification', zeros(1, numel(roiArray)));
+                    %roiArray = roiArray.setappdata('roiClassification', zeros(1, numel(roiArray)));
                     
                     roiGroup.addRois(roiArray, [], 'replace')
+
                     
                     % Todo: set to appdata of roiarray...
 % %                     roiGroup.roiImages = roiImages;

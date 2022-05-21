@@ -21,6 +21,10 @@ classdef roiGroup < handle
 %   applications.
 
 
+%   Todo: Better solution to visible rois. Specifically: Now, everytime a
+%   roi is added or removed the filtering for visible rois is reset.
+
+
     properties
         ParentApp = [] % Used for storing undo/redo commands.
         FovImageSize = []
@@ -40,13 +44,16 @@ classdef roiGroup < handle
         roiStats  struct % Struct array
     end
     
-    properties 
+    properties
+        NextRoiSelectionMode = 'Next in list'
+        VisibleClassification = 'All'   % (Todo: Not implemented. Should this be implemented here on the roigroup or on the roidisplays?)
         isActive = true                 % Active (true/false) indicates whether rois should be kept in memory as an object or a struct array.
     end
     
     properties (Dependent, SetAccess = private)
         IsDirty
     end
+    
     properties (Access = private)
         isDirty_ = false    % Internal flag for whether roigroup has unsaved changes
     end
@@ -164,7 +171,6 @@ classdef roiGroup < handle
             % Make sure roi images are initialized.
             newRois = obj.initializeRoiImages(newRois);
 
-
             % Add rois, either by appending or by inserting into array.
             switch mode
                 case 'initialize'
@@ -176,7 +182,13 @@ classdef roiGroup < handle
                 case 'replace'
                     assert(numel(obj.roiArray)==numel(newRois), 'The number of rois must be the same as the number which is replaced')
                     obj.roiArray = newRois;
+                    roiInd = 1:numel(obj.roiArray);
             end
+            
+
+            % Update roicount. This should happen before plot, update listbox 
+            % and modify signal array:
+            obj.roiCount = numel(obj.roiArray); %obj.roiCount + nRois;
             
             try
                 obj.assignAppdata()
@@ -186,12 +198,9 @@ classdef roiGroup < handle
             end
             
             if strcmp(mode, 'replace')
-                return %Todo, make sure this is not misused. I.e what if rois that are replaced are different...
+                %return %Todo, make sure this is not misused. I.e what if rois that are replaced are different...
             end
             
-            % Update roicount. This should happen before plot, update listbox 
-            % and modify signal array:
-            obj.roiCount = numel(obj.roiArray); %obj.roiCount + nRois;
             
             % Notify that rois have changed
             % fprintf('\nIndex pre event notification: %d\n', roiInd) % debug 
@@ -230,10 +239,12 @@ classdef roiGroup < handle
             cnt = 1;
             for i = roiInd
                 % Todo: Clean up this mess!
-                obj.roiArray(i) = obj.roiArray(i).reshape('Mask', modifiedRois(cnt).mask);
+                iRoi = modifiedRois(cnt);
+                obj.roiArray(i) = obj.roiArray(i).reshape(iRoi.shape, iRoi.coordinates);
                 obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiImages', getappdata(modifiedRois(cnt), 'roiImages') );
-                obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiStats', getappdata(modifiedRois(cnt), 'roiStats') );
-                
+                obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiStats', getappdata(origRois(cnt), 'roiStats') );
+                obj.roiArray(i) = setappdata(obj.roiArray(i), 'roiClassification', getappdata(origRois(cnt), 'roiClassification') );
+
                 cnt = cnt+1;
             end
             
@@ -278,6 +289,8 @@ classdef roiGroup < handle
             obj.roiArray(roiInd) = [];
             obj.roiCount = numel(obj.roiArray);
             
+            
+            
             % Update the appdata properties.
             obj.assignAppdata()
 
@@ -319,6 +332,92 @@ classdef roiGroup < handle
             roiLabels = strcat(tags, nums); 
             
         end
+
+        
+        function roiInd = getNextRoiInd(obj, currentRoiInd, direction, selectionMode)
+            % currentRoiInd is a number of the current roi
+            % direction can be 'forward' or 'backward'
+            
+            if nargin < 3 || isempty(direction)
+                direction = 'forward';
+            end
+            
+            %ch = obj.activeChannel;
+
+            if nargin < 4 || isempty(selectionMode)
+            	selectionMode = obj.NextRoiSelectionMode;
+            end
+            
+            if strcmp(selectionMode, 'None')
+                roiInd = []; return
+            end
+            
+            currentRoi = obj.roiArray(currentRoiInd);
+
+            if contains(selectionMode, 'with same classification')
+            % Limit roi candidates for selection to rois that have the same
+            % tag as current roi.
+            
+                thisClsf = getappdata(currentRoi, 'roiClassification');
+                allClsf = getappdata(obj.roiArray, 'roiClassification');
+                
+                roiIndCandidates = find(allClsf == thisClsf);
+            
+            elseif strcmp(selectionMode, 'Next unclassified roi')
+                allClsf = getappdata(obj.roiArray, 'roiClassification');
+                roiIndCandidates = find(allClsf == 0);
+            else
+                roiIndCandidates = 1:obj.roiCount;
+            end
+            
+            if iscolumn(roiIndCandidates)
+                roiIndCandidates = transpose(roiIndCandidates);
+            end
+                
+            roiIndCandidates = unique( [roiIndCandidates, currentRoiInd] );
+            
+            if contains(selectionMode, 'Closest')
+            % Sort list of candidates by their distance from current roi
+                
+                centerCoords = cat(1, obj.roiArray.center);
+                
+                deltaX = currentRoi.center(1) - centerCoords(:,1);
+                deltaY = currentRoi.center(2) - centerCoords(:,2);
+
+                % Absolute distance:
+                distance = hypot(deltaX, deltaY);
+                distance = distance(roiIndCandidates);
+                
+                % Add a direction to the distance metric. Go from left to
+                % right, but split in two rows. %TODO Add a 1 dimensional
+                % metric, so that each roi is connected to one other along
+                % a 1D space.
+                sgnX = sign( centerCoords(roiIndCandidates,1) - currentRoi.center(1));
+                
+                distance = sgnX .* distance;
+                
+                [~, sortInd] = sort(distance);
+                roiIndCandidates = roiIndCandidates(sortInd);
+                roiIndCandidates = transpose(roiIndCandidates); % make row vector
+            end
+            
+            
+            if strcmp(direction, 'backward')
+                roiIndCandidates = fliplr(roiIndCandidates);
+            end
+            
+            
+            % Select the next roi among candidates.
+            matchInd = find(roiIndCandidates == currentRoiInd);
+
+            if matchInd == numel(roiIndCandidates)
+                roiInd = roiIndCandidates(1); % Go to beginning...
+            else
+                roiInd = roiIndCandidates(matchInd+1);
+            end
+            
+        end
+
         
         function changeRoiSelection(obj, oldSelection, newSelection, origin)
         %changeRoiSelection Method to notify a roiSelectionChanged event
@@ -338,9 +437,33 @@ classdef roiGroup < handle
 
         function changeVisibleRois(obj, newSelection, eventType)
             if nargin < 3; eventType = []; end
+            
+            % Filter selection by current classification state
+            %newSelection = obj.filterByCurrentClassification(newSelection);
+            
             eventData = uiw.event.EventData('NewVisibleInd', newSelection, ...
                 'Type', eventType);
             obj.notify('VisibleRoisChanged', eventData)
+        end
+        
+        function ind = filterByCurrentClassification(obj, ind)
+            
+            clsf = obj.roiClassification;
+                        
+            switch obj.VisibleClassification % Todo: Should read cases from some config...
+                case 'All'
+                    isVisibleRoi = clsf >= 0;
+                case 'Unclassified'
+                    isVisibleRoi = clsf == 0;
+                case 'Accepted'
+                    isVisibleRoi = clsf == 1;
+                case 'Rejected'
+                    isVisibleRoi = clsf == 2;
+                case 'Unresolved'
+                    isVisibleRoi = clsf == 3;
+            end
+            
+            ind = intersect(ind, find(isVisibleRoi));
 
         end
         
@@ -353,6 +476,8 @@ classdef roiGroup < handle
             evtData = roimanager.eventdata.RoiClsfChanged(roiInd, newClass);
             obj.roiClassification(roiInd) = newClass;
             obj.notify('classificationChanged', evtData)
+            
+            obj.isDirty_ = true;
         end
         
         function connectRois(obj, parentInd, childInd)
@@ -471,6 +596,13 @@ classdef roiGroup < handle
     end
     
     methods
+        
+        function set.VisibleClassification(obj, newValue)
+            
+            
+            
+        end
+        
         function isDirty = get.IsDirty(obj)
             if obj.roiCount == 0
                 isDirty = false;
@@ -478,6 +610,36 @@ classdef roiGroup < handle
                 isDirty = obj.isDirty_;
             end
         end
+        
+        function tf = validateForClassification(obj)
+            
+            %temporary to get things up and running
+            
+            tf = false(1,3);
+            
+            fields = {'roiImages', 'roiStats', 'roiClassification'};
+            
+            for i = 1:numel(fields)
+            
+                D = obj.roiArray.getappdata(fields{i});
+                
+                if numel(D) == obj.roiCount
+                    obj.(fields{i}) = D;
+                    tf(i) = true;
+                end
+                
+            end
+            
+            if isempty(obj.roiClassification)
+                obj.roiClassification = zeros(size(obj.roiArray));
+                obj.roiArray = setappdata(obj.roiArray, 'roiClassification', ...
+                    obj.roiClassification);
+                tf(3) = true;
+            end
+            
+            tf = all(tf);
+        end
+        
     end
     
     methods (Access = private)
@@ -528,35 +690,6 @@ classdef roiGroup < handle
             obj.roiArray = setappdata(obj.roiArray, 'roiImages', S.roiImages);
             obj.roiArray = setappdata(obj.roiArray, 'roiStats', S.roiStats);
             
-        end
-        
-        function tf = validateForClassification(obj)
-            
-            %temporary to get things up and running
-            
-            tf = false(1,3);
-            
-            fields = {'roiImages', 'roiStats', 'roiClassification'};
-            
-            for i = 1:numel(fields)
-            
-                D = obj.roiArray.getappdata(fields{i});
-                
-                if numel(D) == obj.roiCount
-                    obj.(fields{i}) = D;
-                    tf(i) = true;
-                end
-                
-            end
-            
-            if isempty(obj.roiClassification)
-                obj.roiClassification = zeros(size(obj.roiArray));
-                obj.roiArray = setappdata(obj.roiArray, 'roiClassification', ...
-                    obj.roiClassification);
-                tf(3) = true;
-            end
-            
-            tf = all(tf);
         end
         
     end

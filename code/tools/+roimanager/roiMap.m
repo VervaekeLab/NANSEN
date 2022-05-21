@@ -77,6 +77,8 @@ classdef roiMap < roimanager.roiDisplay
         VisibleClassification = 'All'
         IsVisibleRoi = []
         IsConstructed = false
+        
+        debug = false
     end
     
     
@@ -122,19 +124,15 @@ classdef roiMap < roimanager.roiDisplay
             
             obj.RoiGroup.addRois(newRoi)
             
-            % Add roi to visible rois:
-            visibleRois = [obj.VisibleRois, obj.RoiGroup.roiCount];
-            obj.RoiGroup.changeVisibleRois(visibleRois)
-            
             % Select roi.       
             obj.selectRois(obj.RoiGroup.roiCount, 'normal')
-            
         end
         
         function removeRois(obj)
         %removeRois Remove selected rois
            IND = obj.SelectedRois;
            obj.deselectRois(IND)
+           
            obj.RoiGroup.removeRois(IND);
         end
         
@@ -164,13 +162,16 @@ classdef roiMap < roimanager.roiDisplay
                     %obj.updateRoiMaskAll(evt.roiIndices, evt.eventType)
                     obj.updateRoiIndexMap(evt.roiIndices, evt.eventType)
                     
-                case {'modify', 'reshape'}
+                case {'modify', 'reshape', 'replace'}
                     for i = evt.roiIndices
                         obj.updateRoiPlot(i)
                     end
-                    %obj.updateLinkPlot(evt.roiIndices)
-
-                    %obj.updateRoiMaskAll(evt.roiIndices, evt.eventType)
+                    
+                    if strcmp(obj.EnableLinkedRois, 'on')
+                        obj.updateLinkPlot(evt.roiIndices)
+                    end
+                    
+                    %obj.updateRoiMaskAll(evt.roiIndices, evt.eventType)    % Replaced by updateRoiMaskAll (keep for reference)
                     obj.updateRoiIndexMap()
                     
                 case 'remove'
@@ -205,9 +206,13 @@ classdef roiMap < roimanager.roiDisplay
                     
             end %switch
             
+            % Make sure visible roi indices are updated if rois are added
+            % or removed
+            obj.updateVisibleRois(evt.roiIndices, evt.eventType)            
             
             % Todo: Make a good system for when this should be invoked...
-            %obj.showClassifiedCells() % Todo: Rename or make a method for this..
+            obj.showClassifiedCells() % Todo: Rename or make a method for this..
+            
             obj.updateStaticFovImage()
             obj.notify('mapUpdated')
             
@@ -230,6 +235,9 @@ classdef roiMap < roimanager.roiDisplay
 
             selectedRoiIdx = setdiff(newIndices, obj.SelectedRois);
             deselectedRoiIdx = setdiff(obj.SelectedRois, newIndices);
+            
+            % Make sure we dont have ant roi indices out side of range.
+            deselectedRoiIdx(deselectedRoiIdx > obj.RoiGroup.roiCount) = [];
             
             if ~isempty(deselectedRoiIdx)
                 colorCellArray = cell(numel(deselectedRoiIdx), 1);
@@ -368,6 +376,10 @@ classdef roiMap < roimanager.roiDisplay
             if obj.roiOutlineVisible
                 isVisibleRoi = false(1, numel(obj.roiPlotHandles));            
                 isVisibleRoi( obj.VisibleRois ) = true;
+                
+                if numel(isVisibleRoi) > numel(obj.roiPlotHandles)
+                    isVisibleRoi = isVisibleRoi(1:numel(obj.roiPlotHandles));
+                end
                 
                 set(obj.roiPlotHandles(isVisibleRoi), 'Visible', 'on')
                 set(obj.roiPlotHandles(~isVisibleRoi), 'Visible', 'off')
@@ -950,7 +962,7 @@ classdef roiMap < roimanager.roiDisplay
             % Get new rois that are moved versions of original ones.
             newRois = originalRois;
             for i = 1:numel(originalRois)
-                newRois(i) = originalRois(i).move(shift);
+                newRois(i) = originalRois(i).move(shift, 'shiftImage');
                 newRois(i) = obj.addUserData(newRois(i));
             end
             
@@ -1091,30 +1103,28 @@ classdef roiMap < roimanager.roiDisplay
             if numel(r) > 1; rExtended = r(2); end
             r = r(1);
             
-
+            
             % Get image data from imviewer app.
             imSize = [obj.displayApp.imHeight, obj.displayApp.imWidth];
             
             [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, pad);
             
-            oldXLim = obj.displayApp.ImageStack.DataXLim;
-            oldYLim = obj.displayApp.ImageStack.DataYLim;
-            
-            % Todo: This is a bit sketchy, what if getFrameSet method
-            % fails and data limits are not reset...
-            obj.displayApp.ImageStack.DataXLim = [S(1), L(1)];
-            obj.displayApp.ImageStack.DataYLim = [S(2), L(2)];
+            xInd = S(1):L(1);
+            yInd = S(2):L(2);
 
-            imChunk = obj.displayApp.ImageStack.getFrameSet('cache');
+            imChunk = obj.displayApp.ImageStack.getFrameSet('cache', '', ...
+                'X', xInd, 'Y', yInd);
             
-            obj.displayApp.ImageStack.DataXLim = oldXLim;
-            obj.displayApp.ImageStack.DataYLim = oldYLim;
-            
-            if size(imChunk, 3) < 10
+            chunkSize = size(imChunk);
+            if chunkSize(end) < 10
                 obj.displayApp.displayMessage('Please load some frames into memory in order to improve rois')
                 error('Not enough frames available for improving rois')
             end
 
+            if ndims(imChunk)>3
+                imChunk = squeeze( mean(imChunk, 3) );
+            end
+            
             %imData = obj.displayApp.ImageStack.getCompleteFrameSet('all');
             %imChunk = roimanager.imtools.getPixelChunk(imData, S, L);
             
@@ -1124,6 +1134,7 @@ classdef roiMap < roimanager.roiDisplay
             
             % Get signal from pixel chunk
             mask = roimanager.roitools.getCircularMask(size(imChunk), x_, y_, r);
+
             nFrames = size(imChunk, 3);
             
             mask_ = reshape(mask, 1, []);
@@ -1134,77 +1145,67 @@ classdef roiMap < roimanager.roiDisplay
 
             
             % Get samples where activity is highest
-            IND = roimanager.signalanalysis.findActiveSamplePoints(signal);
+            IND = nansen.twophoton.roisignals.analyze.findActiveSamplePoints(signal);
             if isempty(IND)
                 [~, IND] = max(signal);
             end
             
             
             % Make image & Detect mask
-          
             switch autodetectionMode
                 case 1
-                    % Todo: specify local center... This function should use local
-                    % center, not assume to start in center of small image.
-                    
-                    IM = mean(imChunk(:, :, IND), 3);            
-                    outputType = 'coords';
-                    
-                    [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, [x, y], imSize, 'output', outputType, 'us', 4);
-                    if strcmp(outputType, 'coords')
-                        roiMask = roiMask{1};
-                    end
+
+                    IM = mean(imChunk(:, :, IND), 3);                                
+
+                    [roiMaskSmall, s] = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+                    roiMask = false(imSize);
+                    roiMask(S(2):L(2), S(1):L(1)) = roiMaskSmall;
                     
                 case 2
                     IM = max(imChunk(:, :, IND), [], 3);
-                    roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
+                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
                     
                 case 3
-                    
 %                     IND = obj.displayApp.currentFrameNo;
 %                     IM = imChunk(:, :, IND);
                     IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
                     IM = stack.makeuint8(single(IM));
-                    roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2, 'ExtentedRadius', r*4);
+                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2, 'ExtentedRadius', r*4);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
+                
                 case 4
-                    
                     [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, rExtended);
                     IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
                     IM = stack.makeuint8(single(IM));
-                    roiMask_ = roimanager.roidetection.binarizeSomaImage(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
+                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
+                
                 case 5
-                    %Todo: specify local center... This function should use local
-                    %center, not assume to start in center of small image.
-                    IM = mean(imChunk(:, :, IND), 3);            
-                    [roiMask, ~] = roimanager.binarize.findRoiMaskFromImage(IM, [x, y], imSize);
+                    % Todo: Use current image?
+                    % IM = mean(imChunk(:, :, IND), 3); 
+                    IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
+
+                    roiMaskSmall = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+                    roiMask = false(imSize);
+                    roiMask(S(2):L(2), S(1):L(1)) = roiMaskSmall;
             end
             
-% % %             if isempty(obj.smallRoiDisplay)
-% % %                 obj.smallRoiDisplay = imviewer(IM);
-% % %                 obj.smallRoiDisplay.resizeWindow([], [], 'down')
-% % %                 obj.smallRoiDisplay.resizeWindow([], [], 'down')
-% % %                 obj.smallRoiDisplay.resizeWindow([], [], 'down')
-% % %                 obj.smallRoiDisplay.fig.Position(1:2) = [sum(obj.displayApp.fig.Position([1,3])), obj.displayApp.fig.Position(4)];
-% % % 
-% % %             else
-% % %                 obj.smallRoiDisplay.image = IM;
-% % %                 obj.smallRoiDisplay.updateImageDisplay()
-% % %             end
-
+            
              
             % Get roi settings from flufinder
-            
-            
             % run autodetect method from roi autodetection toolbox
             % roiMask = flufinder.autodetect(pixelChunk, refPoint, imSize, autodetectionMethod);
             
             
+            if obj.debug
+                obj.displayRoiImageForAutoDetection(IM)
+                obj.displayFovWithRoiMaskOverlay(roiMask, S, L)
+            end
+
             if ~nargout
                 
                 newRoi = RoI('Mask', roiMask, imSize);
@@ -1214,14 +1215,7 @@ classdef roiMap < roimanager.roiDisplay
                     i = obj.SelectedRois;
                     obj.RoiGroup.modifyRois(newRoi, i)
                 else
-                    obj.RoiGroup.addRois(newRoi)
-                    
-                    % Add roi to visible rois:
-                    visibleRois = [obj.VisibleRois, obj.RoiGroup.roiCount];
-                    obj.RoiGroup.changeVisibleRois(visibleRois)
-                    
-                    obj.selectRois(obj.RoiGroup.roiCount, 'normal')
-                    
+                    obj.addRois(newRoi)
                 end
                 
                 clear newRoi
@@ -1235,6 +1229,95 @@ classdef roiMap < roimanager.roiDisplay
             % select roi            
         end
         
+        function newRoi = autodetectRoi2(obj, x, y, r, autodetectionMode, doReplace)
+              
+            % work in progress: 
+            %   use more external functions
+            %   works close to edges
+            %   ~10% slower
+            
+            % use more external functions
+            
+            if nargin < 6; doReplace = false; end
+            
+            switch autodetectionMode
+                case 1
+                    % continue
+                otherwise
+                    if nargout == 1
+                        newRoi = obj.autodetectRoi(obj, x, y, r, autodetectionMode, doReplace);
+                    else
+                        obj.autodetectRoi(obj, x, y, r, autodetectionMode, doReplace);
+                    end
+                    return
+            end
+            
+
+            pad = 5; % TODO:= Retrieve from settings/preferences
+            
+            % ad hoc for solution for setting an extended radius in mode 4
+            if numel(r) > 1; rExtended = r(2); end
+            r = round( r(1) );
+            
+            % Get image data from imviewer app.
+            imSize = [obj.displayApp.imHeight, obj.displayApp.imWidth];
+            
+            imSizeSmall = [1, 1] .* (2*(r+pad)+1);
+            %tmpRoi = RoI('Circle', [x, y, r], imSize);
+            
+            imArray = obj.displayApp.ImageStack.getFrameSet('cache');
+            [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, pad, 'boundaryMethod', 'none');
+            imChunk = roimanager.imtools.getPixelChunk(imArray, S, L);
+                       
+
+            % Get x- and y-coordinate for the image subset.
+            x_ = x - S(1)+1; 
+            y_ = y - S(2)+1;
+            tmpRoiSmall = RoI('Circle', [x_, y_, r], imSizeSmall);
+            
+            %roiSignals2 = nansen.twophoton.roisignals.extractF(imChunk, tmpRoiSmall);
+            % Get signal from pixel chunk
+            mask = roimanager.roitools.getCircularMask(size(imChunk), x_, y_, r);
+            roiData.Masks = mask;
+            roiData.xInd = 1:size(imChunk,2);
+            roiData.yInd = 1:size(imChunk,1);
+            
+            roiSignals = nansen.twophoton.roisignals.extract.extractSingleRoi(imChunk, roiData);
+            
+            roiImage = nansen.twophoton.roi.compute.computeRoiImages(imChunk, tmpRoiSmall, roiSignals, ...
+                'ImageType', 'Activity Weighted Mean', 'BoxSize', imSizeSmall);
+
+            roiMask_ = flufinder.binarize.findSomaMaskByEdgeDetection(roiImage);
+
+            roiMask = false(imSize);
+            roiMask = flufinder.utility.placeLocalRoiMaskInFovMask(roiMask_, [x,y], roiMask);
+            
+            if obj.debug
+                obj.displayRoiImageForAutoDetection(roiImage)
+            end
+            
+            %roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
+            
+            if ~nargout
+                
+                newRoi = RoI('Mask', roiMask, imSize);
+                newRoi = obj.addUserData(newRoi);
+                
+                if doReplace
+                    i = obj.SelectedRois;
+                    obj.RoiGroup.modifyRois(newRoi, i)
+                else
+                    obj.addRois(newRoi)
+                end
+                
+                clear newRoi
+                
+            else
+                newRoi = RoI('Mask', roiMask, imSize);%roiMask;
+            end
+            
+        end
+        
         function improveRois(obj)
                     
             % Get selected rois
@@ -1242,8 +1325,8 @@ classdef roiMap < roimanager.roiDisplay
             newRois = originalRois; % Preallocate...
             for i = 1:numel(originalRois)
                 center = originalRois(i).center;
-                r = sqrt( originalRois(i).area / pi);
-                tmpRoi = obj.autodetectRoi(center(1), center(2), r, 1, false);
+                r = round ( sqrt( originalRois(i).area / pi) );
+                tmpRoi = obj.autodetectRoi2(center(1), center(2), r, 1, false);
                 
                 newRois(i) = originalRois(i).reshape('Mask', tmpRoi.mask);
             end
@@ -1297,16 +1380,12 @@ classdef roiMap < roimanager.roiDisplay
         function updateRoiMaskAll(obj, roiInd, action)
         %UPDATEROIMASKALL update a mask containing all rois in the FOV.
             
-            
             if isempty(obj.roiMaskAll)
                 obj.roiMaskAll = {};
-                
                 %obj.roiMaskAll = cat(3, obj.RoiGroup.roiArray(:).mask);
                 %return
             end
-            
-            
-                        
+      
             obj.roiMaskAll = {};
 
             roiInd = sort(roiInd, 'descend');
@@ -1370,6 +1449,7 @@ classdef roiMap < roimanager.roiDisplay
 % % %             end
             
             if obj.RoiGroup.roiCount == 0
+                obj.roiIndexMap = [];
                 return
             end
 
@@ -1424,6 +1504,9 @@ classdef roiMap < roimanager.roiDisplay
                 classificationToShow = strrep(label, 'Show ', '');
             end
             
+% %             obj.RoiGroup.VisibleClassification = classificationToShow;
+% %             return
+            
             clsf = obj.RoiGroup.roiClassification;
             
             %set(obj.roiPlotHandles, 'Visible', 'on')
@@ -1444,20 +1527,6 @@ classdef roiMap < roimanager.roiDisplay
             obj.VisibleClassification = classificationToShow;
             
             obj.RoiGroup.changeVisibleRois( find(isVisibleRoi) );
-            return
-            
-            indHide = ~isVisibleRoi;
-            
-            %numel(obj.roiPlotHandles)
-            %numel(isVisibleRoi)
-            
-            % If rois are added quickly, some plothandles might not be
-            % valid (initialized) yet. Only update handles that isgraphics.
-            isValidRoi = isgraphics(obj.roiPlotHandles)';
-            
-            set(obj.roiPlotHandles(isVisibleRoi & isValidRoi), 'Visible', 'on')
-            set(obj.roiPlotHandles(indHide), 'Visible', 'off')
-            
             
         end
         
@@ -1547,7 +1616,7 @@ classdef roiMap < roimanager.roiDisplay
             
         end
         
-        function wasInRoi = hittest(obj, src, event)
+        function [wasInRoi, roiInd] = hittest(obj, src, event)
         %hittest Check if a mouseclick happened on a roi.
         
             %currentPoint = round( obj.hAxes.CurrentPoint(1, 1:2) );
@@ -1555,14 +1624,14 @@ classdef roiMap < roimanager.roiDisplay
             currentPoint = min([currentPoint; obj.FovSize]);
 
             [wasInRoi, roiInd] = obj.isPointInRoi(currentPoint(1), currentPoint(2));
-            
-            %roiInd
-            
+                        
             hFig = ancestor(obj.hAxes, 'figure');
             obj.selectRois(roiInd, hFig.SelectionType, true)
             
             if ~nargout
-                clear wasInRoi
+                clear wasInRoi roiInd
+            elseif nargout == 1
+                clear roiInd
             end
 
         end
@@ -1730,15 +1799,6 @@ classdef roiMap < roimanager.roiDisplay
             
         end
         
-        function classifyRois(obj, classification)
-            
-            roiInd = obj.SelectedRois;
-            newClass = repmat(classification, size(roiInd));
-            obj.RoiGroup.setRoiClassification(...
-                roiInd, newClass)
-                        
-        end
-        
         function zoomInOnRoi(obj, i, forceZoom)
             
             if nargin < 3; forceZoom = false; end
@@ -1876,4 +1936,39 @@ classdef roiMap < roimanager.roiDisplay
         
     end
 
+    methods (Access = private) % debugging
+        
+        function displayRoiImageForAutoDetection(obj, roiImage)
+            
+            persistent f ax hIm
+            if isempty(f) || ~isvalid(f)
+                f = figure('Position', [300,300,300,300], 'MenuBar', 'none'); 
+                ax = axes(f, 'Position',[0,0,1,1]);
+            else
+                cla(ax)
+            end
+
+            hIm = imagesc(ax, roiImage); hold on
+        end
+        
+        function displayFovWithRoiMaskOverlay(obj, roiMask, S, L)
+            
+            persistent f ax hIm
+            if isempty(f) || ~isvalid(f)
+                f = figure('Position', [300,300,500,500], 'MenuBar', 'none'); 
+                ax = axes(f, 'Position',[0,0,1,1]);
+            else
+                cla(ax)
+            end
+            
+            IM = obj.displayApp.ImageStack.getProjection('average');
+            hIm = imagesc(ax, IM); hold on
+            hIm.AlphaData = 1-roiMask.*0.5;
+            
+            ax.XLim = [S(1),L(1)];
+            ax.YLim = [S(2),L(2)]; 
+        end
+
+    end
+    
 end

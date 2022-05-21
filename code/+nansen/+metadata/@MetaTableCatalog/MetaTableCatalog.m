@@ -144,6 +144,31 @@ classdef MetaTableCatalog < uim.handle
             
         end
         
+        function entry = getEntry(obj, entryName)
+            
+            metaTableNames = obj.Table.MetaTableName;
+            
+            entryName = strrep(entryName, ' (master)', '');
+            entryName = strrep(entryName, ' (default)', '');
+                    
+            ind = find( strcmp(metaTableNames, entryName) );
+            
+            entry = table2struct(obj.Table(ind, :));
+            
+        end
+        
+        function metaTable = getMetaTable(obj, entryName)
+                                
+            item = obj.getEntry(entryName);
+            
+            % Get database filepath
+            filePath = fullfile(item.SavePath, item.FileName);
+                    
+            % Open database
+            metaTable = nansen.metadata.MetaTable.open(filePath);
+            
+        end
+        
         function updatePath(obj, newFilepath)
         %updatePath Update path for all entries in the catalog.
         
@@ -176,8 +201,7 @@ classdef MetaTableCatalog < uim.handle
         end
         
     end
-    
-    
+     
     methods (Static)
         
         function pathString = getFilePath()

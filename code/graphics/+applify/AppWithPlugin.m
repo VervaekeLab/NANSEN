@@ -35,7 +35,13 @@ classdef AppWithPlugin < uim.handle
             
         end 
 
-        function deletePlugin(obj)
+        function removePlugin(obj, pluginName)
+            if ~isvalid(obj); return; end
+            isMatch = strcmp( {obj.Plugins.Name}, pluginName);
+            obj.Plugins(isMatch) = [];
+        end
+
+        function deletePlugin(obj, pluginName)
             
             isMatch = strcmp( {obj.Plugins.Name}, pluginName);
 

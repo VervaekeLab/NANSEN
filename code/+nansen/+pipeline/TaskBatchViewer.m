@@ -117,8 +117,16 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             
             for rowNum = selectedRowIdx
                 thisTask = app.PipelineStruct.TaskList(rowNum);
-                app.initQueuableTask(thisTask, rowNum)
+                try
+                    app.initQueuableTask(thisTask, rowNum)
+                catch ME
+                    selectedRowIdx = setdiff(selectedRowIdx, rowNum, 'stable');
+                    msgbox(ME.message)
+                end
             end
+            
+            app.PipelineStruct.TaskList(selectedRowIdx) = [];
+            app.onPipelineSet()
             
         end
     end

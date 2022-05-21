@@ -1,16 +1,11 @@
-classdef circleSelect < uim.interface.abstractPointer
+classdef circleSelect < uim.interface.abstractPointer & ...
+        roimanager.pointerTool.RoiDisplayInputHandler
     
     
     properties (Constant)
         exitMode = 'default';
     end
-    
-    
-    properties 
-        hObjectMap
-    end
-    
-    
+
     properties % Properties related to displaying circle during creation
         circleToolCoords
         hCircle        % Line handle for temporary lines of roi circle
@@ -57,7 +52,7 @@ classdef circleSelect < uim.interface.abstractPointer
             y = currentPoint(2);
             r = obj.circleToolCoords(3);
             
-            obj.hObjectMap.createCircularRoi(x, y, r);
+            obj.RoiDisplay.createCircularRoi(x, y, r);
             
         end
         
@@ -71,7 +66,7 @@ classdef circleSelect < uim.interface.abstractPointer
             
             % Hide circle tool if pointer is not in a "valid" position.
             x = round(currentPoint(1)); y = round(currentPoint(2));            
-            tf = obj.hObjectMap.isPointValid(x, y);
+            tf = obj.RoiDisplay.isPointValid(x, y);
             
             if tf == 0 && prevValue ~= 0
                 obj.hideCircle()
@@ -110,9 +105,14 @@ classdef circleSelect < uim.interface.abstractPointer
                 otherwise
                     wasCaptured = false;
             end
+            
+            if wasCaptured
+                return
+            else % Pass on to roi keypress handler
+                wasCaptured = obj.roiKeypressHandler(src, event);
+            end
         end
-        
-        
+
     end
     
     methods

@@ -30,7 +30,14 @@ function hClassifier = openRoiClassifier(varargin)
         end
         
     elseif isa(varargin{1}, 'roimanager.roiGroup')
-        roiGroup = varargin{1};
+        if nargin >= 2 && ~isempty(varargin{2}) && isa(varargin{2}, 'nansen.stack.ImageStack') 
+            roiData = roiclassifier.prepareRoiData(varargin{1:2});
+        
+        else
+            roiGroup = varargin{1};
+        end
+        
+        
     end
     
     

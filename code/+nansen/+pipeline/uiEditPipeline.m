@@ -18,6 +18,8 @@ function h = uiEditPipeline(pipelineName)
     smCatalog.refresh()
     smCatalog.addOptionsAlternative()
     
+    %smCatalog.verifyPipeline(pipelineStruct) %Todo.
+    
     h = nansen.pipeline.PipelineBuilderUI(pipelineStruct, smCatalog);
     
     if ~nargout

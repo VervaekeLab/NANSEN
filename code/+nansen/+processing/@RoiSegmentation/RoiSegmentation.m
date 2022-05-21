@@ -14,6 +14,10 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         ToolboxOptions  % Options that are in the format of original toolbox
         OriginalStack   % To store original ImageStack if SourceStack is downsampled
         Results         % Cell array to store temporary results (from each subpart)
+                
+        RoiArray        % Store roi array
+        RoiImages       % Store roi images
+        RoiStats        % Store roi stats
     end
     
     properties (Access = private)
@@ -80,9 +84,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 
              % Reset source stack if method is re-initialized
             if obj.IsInitialized
-                if ~isempty(obj.OriginalStack)
-                    obj.SourceStack = obj.OriginalStack;
-                end
+                obj.resetSourceStack()
             end
 
             % Get downsampled stack if required
@@ -90,21 +92,15 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             if dsFactor > 1
                 
                 obj.displayStartCurrentStep()
-                downsampledStack = obj.SourceStack.downsampleT(dsFactor, [], ...
-                    'Verbose', true, 'UseTransientVirtualStack', false);
-            
-                obj.OriginalStack = obj.SourceStack;
-                obj.SourceStack = downsampledStack;
+                obj.downsampleStack(dsFactor)
                 obj.displayFinishCurrentStep()
                 
                 % Redo the splitting
                 obj.configureImageStackSplitting()
-
             end
             
-            % Initialize results.
+            % Initialize cell array for results.
             obj.Results = cell(obj.NumParts, 1);
-
         end
                 
         function Y = processPart(obj, Y, ~)
@@ -122,15 +118,29 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         %onCompletion Run when processor is done with all parts
            
             if ~isfile(obj.getDataFilePath(obj.ROI_VARIABLE_NAME))
+                
                 obj.mergeResults()
                 
-                roiArray = obj.getRoiArray();
+                obj.finalizeResults()
                 
-                obj.saveData(obj.ROI_VARIABLE_NAME, roiArray, ...
+                obj.RoiArray = obj.getRoiArray();
+                
+                % Get roiImages and roiStats, i.e roi application data
+                obj.displayStartCurrentStep()
+                obj.getRoiAppData()
+                obj.displayFinishCurrentStep()
+                
+                % Assemble final results in a roigroup struct.
+                roiGroupStruct = struct();
+                roiGroupStruct.roiArray = obj.RoiArray;
+                roiGroupStruct.roiImages = obj.RoiImages;
+                roiGroupStruct.roiStats = obj.RoiStats;
+                roiGroupStruct.roiClassification = zeros(numel(obj.RoiArray), 1);
+                
+                % Save as roigroup.
+                obj.saveData(obj.ROI_VARIABLE_NAME, roiGroupStruct, ...
                     'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
-                
-                % Todo: Get roiImages and roiStats
-                
+
             end
         end
         
@@ -176,8 +186,51 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             % Subclasses may override
         end
         
+        function finalizeResults(obj)
+            % Subclasses may override
+        end
+                
         function dsFactor = getTemporalDownsamplingFactor(obj)
             dsFactor = obj.Options.TemporalDownsamplingFactor;
+        end
+        
+        function getRoiAppData(obj)
+        %getRoiAppData Get roi application data (roiImages & roiStats)
+        
+            import nansen.twophoton.roi.getRoiAppData
+        
+            roiArray = obj.RoiArray;
+            imArray = obj.getImageArray();
+            
+            obj.printTask('Computing roi images and stats')
+            [roiImages, roiStats] = getRoiAppData(imArray, roiArray);       % Imported function
+            obj.RoiImages = roiImages;
+            obj.RoiStats = roiStats;
+            obj.printTask('Finished roi images and stats')
+            
+        end
+    end
+    
+    methods (Access = private)
+        
+        function resetSourceStack(obj)
+        %resetSourceStack Reset source stack if original stack is present    
+            if ~isempty(obj.OriginalStack)
+                obj.SourceStack = obj.OriginalStack;
+            end
+        end
+        
+        function downsampleStack(obj, dsFactor)
+        %downsampleStack Downsample stack in the time dimension
+        
+            downsampledStack = obj.SourceStack.downsampleT(dsFactor, [], ...
+                'Verbose', true, 'UseTransientVirtualStack', false, ...
+                'SaveToFile', true);
+            
+            % Store original stack and assign the downsampled stack as
+            % source stack. Original stack might be needed later.
+            obj.OriginalStack = obj.SourceStack;
+            obj.SourceStack = downsampledStack;
         end
         
     end

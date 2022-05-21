@@ -33,10 +33,14 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         %   extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
         
             obj@imviewer.ImviewerPlugin(varargin{:})
-                        
-            obj.plotGrid()
-            obj.editSettings()
             
+            if not( obj.PartialConstruction )
+                obj.openControlPanel()
+            end
+            
+            if ~nargout
+                clear obj
+            end
         end
         
         function delete(obj)
@@ -55,6 +59,33 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         
         %onMousePressed(src, evt)
 
+    end
+    
+    methods
+        
+        function openControlPanel(obj, mode)
+            obj.plotGrid()
+            obj.editSettings()
+        end
+        
+        function loadSettings(~)
+            % This class does not have to load settings
+        end
+        function saveSettings(~)
+            % This class does not have to save settings
+        end
+        
+        function changeSetting(obj, name, value)
+            obj.onSettingsChanged(name, value)
+        end
+
+        function showTip(obj, message)
+            
+            msgTime = max([1.5, numel(message)./30]);
+            obj.PrimaryApp.displayMessage(message, [], msgTime)
+
+        end
+        
     end
     
     methods (Access = protected)
@@ -112,27 +143,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         function getPluginIcon()
             
         end
-    end
-    
-    methods
-        function loadSettings(~)
-            % This class does not have to load settings
-        end
-        function saveSettings(~)
-            % This class does not have to save settings
-        end
-        
-        function changeSetting(obj, name, value)
-            obj.onSettingsChanged(name, value)
-        end
-
-        function showTip(obj, message)
-            
-            msgTime = max([1.5, numel(message)./30]);
-            obj.PrimaryApp.displayMessage(message, [], msgTime)
-
-        end
-        
     end
     
     methods (Access = private)

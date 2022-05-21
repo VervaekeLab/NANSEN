@@ -454,7 +454,11 @@ classdef MetaTable < handle
                 try % Since we dont know if the function exists, use try/catch
                     tmpObj = typeDef{jColumn}( thisValue );
                     str = tmpObj.getCellDisplayString();
-                catch
+                catch ME
+                    if contains(ME.message, 'rgb2hsv')
+                        warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
+                    end
+                    
                     % Todo: have a better backup if there is no typeDef for column
                     % i.e a general struct viewer...
                     str = repmat({''}, numRows, 1);
@@ -489,13 +493,16 @@ classdef MetaTable < handle
         
         % Todo: Make method for adding multiple variable ine one go, i.e
         % allow variableName and initValue to be cell arrays.
+
+            if ~obj.IsMaster % Add to master metatable
+                % Get filepath to master MetaTable file and load MetaTable
+                masterFilePath = obj.getMasterMetaTableFile();
+                masterMT = nansen.metadata.MetaTable.open(masterFilePath);
+                masterMT.addTableVariable(variableName, initValue);
+                masterMT.save();
+            end
         
             obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
-        
-% %             numTableRows = size(obj.entries, 1);
-% %             columnValues = repmat(initValue, numTableRows, 1);
-% %             
-% %             obj.entries{:, variableName} = columnValues;
 
         end
 
@@ -706,9 +713,9 @@ classdef MetaTable < handle
 
             if isempty(MT); return; end
             
-            isClass = contains(MT.MetaTableClass, className);
-            isKey = contains(MT.MetaTableKey, obj.MetaTableKey);
-            isName = contains(MT.MetaTableName, obj.MetaTableName);
+            isClass = strcmp(MT.MetaTableClass, className);
+            isKey = strcmp(MT.MetaTableKey, obj.MetaTableKey);
+            isName = strcmp(MT.MetaTableName, obj.MetaTableName);
             
             MT(isClass, 'IsDefault') = {false};
             MT(isClass&isKey&isName, 'IsDefault') = {true};
@@ -758,15 +765,18 @@ classdef MetaTable < handle
             assert(~isempty(mtTmp), 'No master MetaTable for this MetaTable class')
 
             MetaTableNames = mtTmp.MetaTableName;
+            
+            promptString = sprintf('Select a master MetaTable');
+            
             [ind, ~] = listdlg( 'ListString', MetaTableNames, ...
                                 'SelectionMode', 'multiple', ...
-                                'Name', ...
-                                'Select MetaTable to Use as Master' );
+                                'Name', 'Select Table', ...
+                                'PromptString', promptString);
 
             if isempty(ind); error('You need link to a master MetaTable'); end
             
             obj.MetaTableKey = mtTmp.('MetaTableKey'){ind};
-            
+            obj.save()
         end
         
         function synchToMaster(obj, S)
@@ -806,7 +816,10 @@ classdef MetaTable < handle
             % Get filepath to master MetaTable file and load MetaTable
             masterFilePath = obj.getMasterMetaTableFile();
             
-            if isempty(masterFilePath); return; end
+            if isempty(masterFilePath)
+                obj.linkToMaster()
+                masterFilePath = obj.getMasterMetaTableFile();
+            end
             
             sMaster = load(masterFilePath);
             
@@ -877,7 +890,7 @@ classdef MetaTable < handle
 
             % Add master to name for master MetaTable
             names(MT.IsMaster) = strcat(names(MT.IsMaster), ' (master)');
-            
+            names(MT.IsDefault) = strcat(names(MT.IsDefault), ' (default)');
             
             % Sort names alphabetically..
             names(~MT.IsMaster) = sort(names(~MT.IsMaster));
@@ -1032,8 +1045,6 @@ classdef MetaTable < handle
             columnValues = repmat(initValue, numTableRows, 1);
             
             T{:, variableName} = columnValues;
-
-            
         end
         
     end

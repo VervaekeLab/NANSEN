@@ -77,8 +77,14 @@ function hDffPlugin = openDeconvolutionExplorer(sessionObj)
     
     
     % Create roi group
-    roiGroup = roimanager.roiGroup(roiArray);
-
+    if isa(roiArray, 'RoI')
+        roiGroup = roimanager.roiGroup(roiArray);
+    elseif isa(roiArray, 'roimanager.roiGroup')
+        roiGroup = roiArray;
+    else
+        error('Invalid rois')
+    end
+    
     % Open roitable app
     hTableViewer = roimanager.RoiTable(roiGroup);
     hTableViewer.SelectionMode = 'single';

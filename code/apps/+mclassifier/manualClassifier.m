@@ -112,14 +112,10 @@ methods
         obj.setTileCallbacks()
 
         % Activate mouse moving callback when everything is up and running
-        obj.hFigure.WindowButtonMotionFcn = @obj.onMouseMotion;
+        obj.createFigureInteractionCallbacks()
     end
     
-    
     function delete(obj)
-        % Todo: Check if there are unsaved changes and let user abort or
-        % save changes before quitting.
-        
         delete(obj.hFigure)
         delete(obj.hTiledImageAxes)
         delete(obj.hScrollbar)
@@ -141,15 +137,18 @@ methods (Access = private, Hidden) % Gui Creation/construction
         obj.hFigure.Color = obj.guiColors.Background;
         obj.hFigure.NumberTitle = 'off';
         obj.hFigure.Name = 'Manual Classifier';
+        
+        obj.hFigure.CloseRequestFcn = @(s, e) obj.onFigureCloseRequest;
+    end
+
+    function createFigureInteractionCallbacks(obj)
         obj.hFigure.KeyPressFcn = @obj.keyPress;
         
         %obj.hFigure.WindowButtonDownFcn = @obj.mousePressed;
         obj.hFigure.ButtonDownFcn = @obj.mousePressed;
-
-        obj.hFigure.WindowScrollWheelFcn = @obj.scrollHandler;
-        obj.hFigure.CloseRequestFcn = @(s, e) obj.delete;
+        obj.hFigure.WindowScrollWheelFcn = @obj.scrollHandler; 
+        obj.hFigure.WindowButtonMotionFcn = @obj.onMouseMotion;
     end
-
 
     function configurePanels(obj)
     %configurePanels Configure gui panels and add axes/controls
@@ -687,30 +686,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
         newMousePointAx = get(obj.hTiledImageAxes.Axes, 'CurrentPoint');
         newMousePointAx = newMousePointAx(1, 1:2);
         
-        
 %         obj.lastMousePress = newMousePointAx;
-        
-        
-%         if ~isempty(obj.roiTools) && obj.roiTools.captureClicks && ~isnan(tileNum)
-% 
-%             switch obj.roiTools.mouseMode
-%                 case {'magicwand', 'circle', 'Autodetect', 'CircleSelect', 'CrosshairSelect'}
-%                     
-%                     currentRoiInd = obj.displayedItems(tileNum);
-%                     roiData = obj.prepareRoiData(currentRoiInd, tileNum);
-%                     
-%                     modifiedRoi = obj.roiTools.requestRoi(src, event, roiData);
-%                     
-%                     if ~isempty(modifiedRoi)
-%                         obj.updateRois(modifiedRoi, currentRoiInd, 'reshape')
-%                     end
-%                     
-%                 case {'polydraw'}
-%                     
-%                     
-%             end
-% 
-%         end
 
 
         % Note: If this callback is a ButtonDownFcn and not a
@@ -736,7 +712,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
     
 end
 
-
 methods (Abstract, Access = protected)
     
     preInitialization(obj)
@@ -748,7 +723,6 @@ methods (Abstract, Access = protected)
     onSelectedItemChanged(obj)
     
 end
-
 
 methods (Access = protected)
         
@@ -1461,21 +1435,6 @@ methods
                 case 'open'
                     
                     obj.changeSelectedItem('tile', tileNum)
-
-%                     % Quick adhoc, just for testing:
-%                     event = struct;
-%                     event.EventName = 'KeyPress';
-%                     event.Key = 'i';
-%                     
-%                     currentRoiInd = obj.selectedItem;
-%                     roiData = obj.prepareRoiData(currentRoiInd);
-% 
-%                     modifiedRoi = obj.roiTools.requestRoi([], event, roiData);
-% 
-%                     if ~isempty(modifiedRoi)
-%                         obj.updateRois(modifiedRoi, currentRoiInd, 'reshape')
-%                     end
-
                     
                 otherwise
 %                     obj.startMove(src, event, tileNum)
@@ -1584,9 +1543,7 @@ methods
 
     end
 
-
 end
-
 
 methods (Access = protected)
     
@@ -1664,18 +1621,21 @@ methods (Access = protected)
                 
         end
         
-    end
-
+        end
+        
+        function onFigureCloseRequest(obj)
+        % Todo: Check if there are unsaved changes and let user abort or
+        % save changes before quitting.
+            delete(obj)
+        end
 end
 
-
 methods (Static)
-    
     
     function S = getSettings()
         S = getSettings@clib.hasSettings('manualClassifier');
     end
-
+    
     function removeFocusFromControl(h)
         
         set(h, 'Enable', 'off');
