@@ -6,7 +6,7 @@ properties (Constant, Hidden)
 end
 
 properties (Access = private, Hidden)
-    MemMap memmapfile        % A matlab memorymap for the binary raw file
+    MemMap                   % A matlab memorymap for the binary raw file
 end
 
 
