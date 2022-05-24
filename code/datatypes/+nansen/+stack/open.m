@@ -34,7 +34,11 @@ function virtualData = open(pathStr, varargin)
         
         case {'.tif', '.tiff'}
             
-            imInfo = Tiff(pathStr{1});
+            if isfile(pathStr{1})
+                imInfo = Tiff(pathStr{1});
+            else
+                imInfo = struct;
+            end
             virtualData = [];
             
             % Should file be opened using the custom ScanImageTiff adapter?
@@ -131,7 +135,7 @@ end
 
 % % virtualData = virtualStack(pathStr, varargin{:});
 % % 
-% % obj = imviewer.ImageStack(virtualData);
+% % obj = nansen.stack.ImageStack(virtualData);
 % % 
 % % % This should be done within the imagestack constructor
 % % obj.filePath = pathStr{1};
