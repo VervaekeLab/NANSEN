@@ -392,6 +392,18 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             
         end
         
+        function subs = frameind2subs(obj, frameInd)
+        %frameind2subs Get data subs for the given frame ind
+        
+        % Todo: Adapt to work for subsindexing along channel/plane frame
+        % dimensions.
+        
+            numDims = ndims(obj);
+            subs = cell(1, numDims);
+            subs(1:end-1) = {':'};
+            subs{end} = frameInd;
+        end
+        
     end
     
     methods (Access = private, Sealed)
