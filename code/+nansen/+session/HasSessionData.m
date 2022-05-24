@@ -91,6 +91,16 @@ classdef HasSessionData < uim.handle
         
         
         function n = numArgumentsFromSubscript(obj, s, indexingContext)
+            if strcmp(s(1).type, '.')
+                if strcmp(s(1).subs, 'Data')
+                    for i = 1:numel(obj)
+                        if ~obj(i).Data.IsInitialized
+                            obj(i).Data.initialize();
+                        end
+                    end
+                end
+            end
+            
             n = builtin('numArgumentsFromSubscript', obj, s, indexingContext);
         end
 
