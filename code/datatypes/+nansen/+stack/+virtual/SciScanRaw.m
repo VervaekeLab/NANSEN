@@ -150,25 +150,28 @@ methods (Access = protected) % Implementation of abstract methods
 
         % Is this intentional??? I think so, see set dimensionorder...
         obj.DataSize = [obj.MetaData.SizeX, obj.MetaData.SizeY];
-        obj.DataDimensionArrangement = 'XY';
-        
+        dataDimensionArrangement = 'XY';
+
         % Add length of channels if there is more than one channel
         if obj.MetaData.SizeC > 1
             obj.DataSize = [obj.DataSize, obj.MetaData.SizeC];
-            obj.DataDimensionArrangement(end+1) = 'C';
+            dataDimensionArrangement(end+1) = 'C';
         end
         
         % Add length of planes if there is more than one plane
         if obj.MetaData.SizeZ > 1
             obj.DataSize = [obj.DataSize, obj.MetaData.SizeZ];
-            obj.DataDimensionArrangement(end+1) = 'Z';
+            dataDimensionArrangement(end+1) = 'Z';
         end
         
         % Add length of sampling dimension.
         if obj.MetaData.SizeT > 1
             obj.DataSize = [obj.DataSize, obj.MetaData.SizeT];
-            obj.DataDimensionArrangement(end+1) = 'T';
+            dataDimensionArrangement(end+1) = 'T';
         end
+        
+        % Assign to property (will trigger internal update on virtual data)
+        obj.DataDimensionArrangement = dataDimensionArrangement;
 
     end
     
