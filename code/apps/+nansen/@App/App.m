@@ -84,7 +84,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function app = App()
             
             nansen.addpath()
-            nansen.validate()
             
             % Call constructor explicitly to provide the nansen.Preferences
             app@uiw.abstract.AppWindow('Preferences', nansen.Preferences, 'Visible', 'off')
@@ -104,6 +103,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.assertProjectsAvailable()
             app.ProjectManager.setProject()
             
+            nansen.validate()
+
             
             app.DataLocationModel = nansen.DataLocationModel;
             
