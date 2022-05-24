@@ -305,6 +305,10 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 obj.MetaData.Size = obj.DataSize;
             end
             
+            if isempty(obj.MetaData.Class)
+                obj.MetaData.Class = obj.DataType;
+            end
+            
             % The size of the data will be configured on the obj and the
             % length of individual dimensions are retrieved from the 
             % getDimLength method:
