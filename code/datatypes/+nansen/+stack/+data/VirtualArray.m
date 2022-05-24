@@ -1,5 +1,12 @@
 classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
 %VirtualArray ImageStackData superclass for mapping data to virtual array
+%
+%   Abstract class for creation of virtual data adapters for files
+%   containing ImageStack data.
+%
+%   
+%   
+
 
 % Note: 
 %   Since data is stored in one way, and the virtual array allows data to
@@ -85,9 +92,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     methods % Structors
         
         function obj = VirtualArray(filePath, varargin)
+        %VirtualArray Constructor for VirtualArray class
         
-            %obj@nansen.stack.data.abstract.ImageStackData()
-            
             [nvPairs, varargin] = utility.getnvpairs(varargin{:});
 
             if ~isa(filePath, 'cell'); filePath = {filePath}; end
@@ -99,6 +105,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             % argument and one datatype argument.
             if ischar(filePath{1}) && ~isfile(filePath{1}) && ~isempty(varargin)
                 obj.createFile(filePath{1}, varargin{:})
+                obj.setDataSizeOnCreation(varargin{1})
+                
                 obj.FileAccessMode = 'create';
                 % TODO: ASSIGN size properties, but leave actual file
                 % empty, so that it can be written to later by appending
@@ -109,7 +117,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             obj.parseInputs(nvPairs{:})
             
             % Make sure transient is turned off if existing stack was
-            % opened
+            % opened (In case property was set to true using name-value pairs). 
             if obj.IsTransient && strcmp(obj.FileAccessMode, 'open')
                 obj.IsTransient = false;
             end
@@ -210,17 +218,22 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function writeData(obj, subs, data)
-        %writeData Write data for given subs.
+        %writeData Write data using the writeFrames method of subclasses.
+        %
+        %   The default behavior of writeData for the virtual array is to
+        %   assume that subclasses implement a writeFrameSet method, where
+        %   data is provided as full frames (i.e. it is not possible to 
+        %   write cropped data to the files).
+        %
+        %   Subclasses where it is possible to write cropped data should
+        %   override the writeData method.
             
-            dimX = obj.getDataDimensionNumber('X');
-            dimY = obj.getDataDimensionNumber('Y');
-            
-            assert(size(data, dimX) == obj.DataSize(dimX), ...
-                'Width of image data to write must match the width of the image frames')
-            assert(size(data, dimY) == obj.DataSize(dimY), ...
-                'Height of image data to write must match the height of the image frames')
-            
-                        
+        %   Todo: This should also work with deinterleaved data, or if 
+        %   writing a subset of channels and/or planes.
+        
+            % Check that data has a valid frame size (i.e not cropped)
+            obj.validateFrameSize(data)
+   
             dim = obj.getFrameIndexingDimension();
             frameInd = subs{dim};
             
@@ -232,7 +245,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function writeMetadata(obj)
-        %writeMetadata Write metadata for stack.    
+        %writeMetadata Write metadata for stack.
             if strcmp(obj.FILE_PERMISSION, 'write') && ~obj.IsTransient
                 obj.MetaData.writeToFile()
             else
@@ -259,11 +272,23 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     
     methods (Access = protected) % Subclasses can override
         
+        function validateFrameSize(obj, data)
+            
+            dimX = obj.getDataDimensionNumber('X');
+            dimY = obj.getDataDimensionNumber('Y');
+            
+            assert(size(data, dimX) == obj.DataSize(dimX), ...
+                'Width of image data to write must match the width of the image frames')
+            assert(size(data, dimY) == obj.DataSize(dimY), ...
+                'Height of image data to write must match the height of the image frames')
+            
+        end
+        
         function obj = assignFilePath(obj, filePath, ~)
             obj.FilePath = filePath;
         end
         
-        function initializeMetaData(obj)
+        function initializeMetaData(obj, varargin)
         %initializeMetaData Initialize metadata for imagestack data    
             if strcmp(obj.FILE_PERMISSION, 'write')
                 obj.MetaData = nansen.stack.metadata.StackMetadata(obj.FilePath);
@@ -275,13 +300,22 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         function updateMetadata(obj)
         %updateMetadata General update of metadata after initialization    
             
-        % The size of the data will be configured on the obj and should be 
-        % retrieved from the getDimLength method:
+            % Add the DataSize if MetaData.Size is empty.
+            if isempty(obj.MetaData.Size)
+                obj.MetaData.Size = obj.DataSize;
+            end
+            
+            % The size of the data will be configured on the obj and the
+            % length of individual dimensions are retrieved from the 
+            % getDimLength method:
             obj.MetaData.SizeX = obj.getDimLength('X');
             obj.MetaData.SizeY = obj.getDimLength('Y');
             obj.MetaData.SizeC = obj.getDimLength('C');
             obj.MetaData.SizeZ = obj.getDimLength('Z');
             obj.MetaData.SizeT = obj.getDimLength('T');
+            
+            % Save updated metadata
+            obj.writeMetadata()
         end
         
         function numChannels = detectNumberOfChannels(obj)
@@ -361,6 +395,18 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     end
     
     methods (Access = private, Sealed)
+        
+        function setDataSizeOnCreation(obj, dataArray)
+        %setDataSizeOnCreation Set the DataSize property if array is created
+        
+            if isvector(dataArray)
+                % Case 1: Virtual array is created based on a size input
+                obj.DataSize = dataArray;
+            else
+                % Case 2: Virtual array is created based on a data array
+                obj.DataSize = size(dataArray);
+            end
+        end
         
         function initializeDynamicFrameCache(obj)
         %initializeDynamicFrameCache Initializes a dynamic frame cache
@@ -591,6 +637,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             error('No method is defined for creating new files for %s', 'N/A')
             %Todo: get name of caller...
         end
+       
     end
     
 end
