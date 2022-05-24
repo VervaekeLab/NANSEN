@@ -95,7 +95,8 @@ classdef Deinterleaver < handle
         %              comes from. (first two dimensions not required)
         %   
         
-            if numel(subs) == obj.NumDimensions + 2
+            if numel(subs) >= obj.NumDimensions + 2
+                % (Assume the first two dimensions were not included)
                 subs = subs(3:end);
             end
             

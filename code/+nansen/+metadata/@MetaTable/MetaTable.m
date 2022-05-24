@@ -616,7 +616,11 @@ classdef MetaTable < handle
         %editEntries Edit entries given some parameters.
             
             if isa( obj.entries{rowInd, varName}, 'cell')
-                obj.entries{rowInd, varName} = newValue;
+                try
+                    obj.entries{rowInd, varName} = newValue;
+                catch % Todo: Better way?
+                    obj.entries{rowInd, varName} = {newValue};
+                end
             elseif isa(newValue, 'cell')
                 obj.entries{rowInd, varName} = cat(1, newValue{:});
             else

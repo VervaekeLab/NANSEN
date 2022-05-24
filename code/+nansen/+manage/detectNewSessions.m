@@ -59,6 +59,9 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 
     newSessionArray = sessionArray(iA);
     
+    sessionArray = validateDataLocationStruct(metaTable, ...
+        sessionArray, dataLocationModel); % local function
+    
     % Check for duplicate session IDs
     sessionIDs = {newSessionArray.sessionID};
     if numel(sessionIDs) ~= numel(unique(sessionIDs))
@@ -73,3 +76,29 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
     
             
 end
+
+
+function sessionArray = validateDataLocationStruct(metaTable, sessionArray, dataLocationModel)
+    
+    % Make sure data location format is the same for the new sessions
+    % Todo: This should not be necessary, just make sure from the get-go
+    % that all datalocations structs are "extended"
+    dataLocationOriginal = metaTable.entries{1, 'DataLocation'};
+    fieldsOriginal = fieldnames(dataLocationOriginal);
+    dataLocationNew = sessionArray(1).DataLocation;
+    fieldNamesNew = fieldnames(dataLocationNew);
+    
+    if numel(fieldsOriginal) ~= numel(fieldNamesNew)
+        if numel(fieldNamesNew) > numel(fieldsOriginal)
+            for i = 1:numel(sessionArray)
+                sessionArray(i).DataLocation = ...
+                    dataLocationModel.reduceDataLocationInfo(...
+                    sessionArray(i).DataLocation);
+            end
+        else
+            error('Not implemented yet. Please report')
+        end
+        
+    end
+end
+

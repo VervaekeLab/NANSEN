@@ -334,6 +334,13 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     try
                         if obj.Data.HasCachedData
                             imArray = obj.Data.getCachedFrames();
+% % %                             dimT = obj.getDimensionNumber('T');
+                            
+% % %                             % Todo: method...
+% % %                             indexingSubsTmp = indexingSubs;
+% % %                             indexingSubsTmp(1:2) = {':'};
+% % %                             indexingSubsTmp(dimT) = {':'};
+% % %                             selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubsTmp));
                         else
                             imArray = [];
                         end
@@ -343,7 +350,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     
                     if isempty(imArray) % If cache is empty, get images directly from Data
                         numFrames = min([obj.NumTimepoints, 500]);
-                        imArray = obj.getFrameSet(1:numFrames);
+                        imArray = obj.getFrameSet(1:numFrames, mode);
                         doCropImage = false;
                     end
 
@@ -352,10 +359,18 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 end
                 
                 % Only apply subindexing if necessary
-                if doCropImage
-                    indexingSubs(3:end) = {':'};
-                    imArray = imArray(indexingSubs{:});
+                if doCropImage % todo: method
+                    indexingSubsTmp = indexingSubs;
+                    indexingSubsTmp(3:end) = {':'};
+                    imArray = imArray(indexingSubsTmp{:});
                 end
+                
+% % %                 if selectFrameSubset % todo: method
+% % %                     indexingSubsTmp = indexingSubs;
+% % %                     indexingSubsTmp(1:2) = {':'};
+% % %                     indexingSubsTmp(dimT) = {':'};
+% % %                     imArray = imArray(indexingSubsTmp{:});
+% % %                 end
                 
             % Case 2: All frames (along last dimension) are requested.
             % Should return all
@@ -423,7 +438,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             dimensionLength = cellfun(@numel, indexingSubs(isDimensionSubset));
            
             % Assign imArray to indexes of Data
-            assert(isequal(dimensionLength, size(imageArray, find(isDimensionSubset)) ), ...
+            
+            assert(prod(dimensionLength) == prod(size(imageArray, find(isDimensionSubset)) ), ...
                 'Frame indices and data size does not match')
             obj.Data(indexingSubs{:}) = imageArray;
            
@@ -522,11 +538,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     % - Methods for getting image stack metadata
         
         function sampleRate = getSampleRate(obj)
-            sampleRate = obj.Data.MetaData.SampleRate;
+            sampleRate = obj.Data.MetaData.SampleRate ./ obj.NumPlanes;
         end
         
         function timeStep = getTimeStep(obj)
-            timeStep = obj.Data.MetaData.TimeIncrement;
+            timeStep = obj.Data.MetaData.TimeIncrement .* obj.NumPlanes;
         end
         
         function frameTimes = getFrameTimes(obj, frameIndex)
@@ -538,7 +554,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if ~isempty(obj.MetaData.FrameTimes)
                 frameTimes = obj.MetaData.FrameTimes(frameIndex);
             else
-                frameTimes = (frameIndex-1) .* seconds(obj.MetaData.TimeIncrement);
+                frameTimes = (frameIndex-1) .* seconds(obj.getTimeStep());
                 if ~isempty(obj.MetaData.StartTime) % Todo.
                     frameTimes = frameTimes + obj.MetaData.StartTime;
                 end
@@ -698,6 +714,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 (isfield(obj.Projections, projectionName) && obj.IsVirtual && ~obj.isDirty.(projectionName))
             
                 projectionImage = obj.Projections.(projectionName);
+                projectionImage = obj.getProjectionSubSelection(projectionImage);
                 return 
             end
             
@@ -715,6 +732,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             else
                 obj.isDirty.(projectionName) = false;
             end
+            
+            projectionImage = obj.getProjectionSubSelection(projectionImage);
+
         end
         
         function projectionImage = getProjection(obj, projectionName, frameInd, dim)
@@ -728,7 +748,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
             if nargin < 3 || isempty(frameInd); frameInd = 'all'; end
             
-            tmpStack = obj.getFrameSet(frameInd);
+            tmpStack = obj.getFrameSet(frameInd, 'extended');
 
             % Todo: Handle different datatypes..
             %       i.e cast output to original type. Some functions
@@ -740,6 +760,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if nargin < 4 || isempty(dim)
                 % Dim should be minimum 3, but would be 2 for single frame
                 dim = max([3, ndims(tmpStack)]);
+                dim = obj.getDimensionNumber('T');
             else
                 error('Not implemented yet')
             end
@@ -969,6 +990,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
     % - Methods for getting data specific information
         
+        function dimNum = getDimensionNumber(obj, dimName)
+            dimNum = strfind(obj.Data.StackDimensionArrangement, dimName);
+        end
+        
         function cLim = getDataIntensityLimits(obj)
             
             if isempty(obj.DataIntensityLimits)
@@ -990,7 +1015,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 case {'C', 'Channel'}
                     length = obj.NumChannels;
                 case {'Z', 'Plane'}
-                    length = obj.Planes;
+                    length = obj.NumPlanes;
                 case {'X', 'Width', 'ImageWidth'}
                     length = obj.ImageWidth;
                 case {'Y', 'Height', 'ImageHeight'}
@@ -1029,9 +1054,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function set.Data(obj, newValue)
-            obj.Data = newValue;
-            if ~isempty(newValue)
-                obj.onDataSet()
+            
+            if isequal(obj.Data, newValue)
+                obj.Data = newValue;
+            else % Trigger onDataSet to update internal properties
+                obj.Data = newValue;
+                if ~isempty(newValue)
+                    obj.onDataSet()
+                end
             end
         end
         
@@ -1187,7 +1217,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     end
 
     methods (Access = private) % Internal methods
-       
+        
+        function projectionImage = getProjectionSubSelection(obj, projectionImage)
+            indexingSubs = obj.getDataIndexingStructure(1);
+            projectionImage = projectionImage(indexingSubs{:});
+        end
+        
     % - Methods for getting the indices according to the dimension order
         
         function [indC, indZ, indT] = getFrameInd(obj, varargin)
@@ -1434,10 +1469,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
     % - Methods for getting dimension lengths
-        
-        function dimNum = getDimensionNumber(obj, dimName)
-            dimNum = strfind(obj.Data.StackDimensionArrangement, dimName);
-        end
         
         function dimLength = getStackDimensionLength(obj, dimLabel)
             

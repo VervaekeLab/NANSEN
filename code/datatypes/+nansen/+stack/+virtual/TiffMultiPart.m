@@ -14,6 +14,10 @@ properties (Constant, Hidden)
     FILE_PERMISSION = 'write'
 end
 
+properties (Hidden)
+    SaveMetadata = false;   % Boolean flag specifying if Metadata should be saved. Default = false
+end
+
 properties (Access = protected, Hidden)
     tiffObj Tiff
     fileSize    
@@ -58,9 +62,11 @@ end
 methods (Access = protected) % Implementation of abstract methods
         
     function obj = assignFilePath(obj, pathString, varargin)
-
-        % Todo: resolve if there are files from multiple channels or planes
-        
+    %assignFilePath Assign the provided pathString to FilePath property
+    %
+    %   This methods counts the number of provided filepaths and creates a
+    %   Tiff object for each file.
+            
         if isa(pathString, 'cell')
             obj.numFiles = numel(pathString);
             obj.FilePathList = pathString;
@@ -92,7 +98,8 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function getFileInfo(obj)
-        
+    %getFileInfo Get file info
+    
         if isempty(obj.tiffObj)
             error('Something unexpected has happened')
         end
@@ -124,11 +131,24 @@ methods (Access = protected) % Implementation of abstract methods
         obj.InterleavedDimensions = dims;
         obj.FrameDeinterleaver = nansen.stack.Deinterleaver(...
             obj.DataDimensionArrangement(dims), obj.DataSize(dims));
-        
     end
     
     function assignDataSize(obj)
-                        
+        
+        % Set DataSize from MetaData if available.
+        if ~isempty(obj.MetaData.Size)
+            obj.DataSize = obj.MetaData.Size;
+        end
+        
+        % Todo: Get DataDimensionArrangement?
+        
+        if ~isempty(obj.DataSize)
+            obj.countNumFrames()            
+            return
+        end
+        
+        % Autodetect DataSize from the tiff objects and the tiff files:
+        
         % Get image dimensions and create empty array
         stackSize(1) = obj.tiffObj(1).getTag('ImageLength');
         stackSize(2) = obj.tiffObj(1).getTag('ImageWidth');
@@ -246,9 +266,8 @@ methods (Access = protected)
             obj.numFramesPerFile = repmat(obj.numFramesPerFile, 1, numRepeat);
         end
         
-        numFrames = sum(obj.numFramesPerFile);
-        obj.NumFrames = numFrames;
-        
+        obj.NumFrames = sum(obj.numFramesPerFile);
+        if nargout; numFrames = obj.NumFrames; end
     end
     
     function n = estimateNumberOfFrames(obj, fileNum)
@@ -317,7 +336,22 @@ methods % Implementation of abstract methods for readin/writing
         % Crop frames:
         data = obj.cropData(data, subs);
     end
-
+    
+    function writeData(obj, subs, data)
+        
+        obj.validateFrameSize(data)
+        
+        % Special case for single frame image
+        if ndims(obj) == 2 %#ok<ISMAT>
+            frameInd = 1;
+        else
+            dims = obj.InterleavedDimensions;
+            frameInd = obj.FrameDeinterleaver.Map(subs{dims});
+        end
+        
+        obj.writeFrames(data, frameInd)
+    end
+    
     function data = readFrames(obj, frameInd)
              
         global waitbar
@@ -409,9 +443,14 @@ methods % Implementation of abstract methods for readin/writing
         
     end
 
-    function writeMetadata(~)
+    function writeMetadata(obj)
         % Pass. This class will most likely be used to open generic tiffs,
         % and we don't want to drop metadata files all over the place.
+        
+        if obj.SaveMetadata
+            writeMetadata@nansen.stack.data.VirtualArray(obj)
+        end
+        
     end
     
 end
@@ -441,6 +480,8 @@ methods (Static)
             error('Not enough input arguments')
         end
         
+        [imHeight, imWidth, n] = size(imArray); % Save as interleaved
+        imArray = reshape(imArray, imHeight, imWidth, n);
         nansen.stack.utility.mat2tiffstack( imArray, filePath )
     end
     

@@ -200,6 +200,10 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
                 obj.drawPlaneSwitcherSlidebar()
                 return
             end
+            
+            if numel(obj.CurrentPlane) > 1
+                return
+            end
                 
             if strcmp(obj.hPlaneSwitcherSlidebar.Visible, 'on')
                 obj.hPlaneSwitcherSlidebar.Visible = 'off';
@@ -260,6 +264,11 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
         
         function onCurrentPlaneChanged(obj)
             % Todo: update slidebar value
+            if numel(obj.CurrentPlane) > 1
+                return
+            else
+                obj.hPlaneSwitcherSlidebar.Value = obj.CurrentPlane;
+            end
         end
         
     end

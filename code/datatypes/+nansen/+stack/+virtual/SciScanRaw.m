@@ -2,12 +2,13 @@ classdef SciScanRaw < nansen.stack.data.VirtualArray & nansen.stack.utility.TwoP
 %SciScanRaw Virtual data adapter for a sciscan raw file
 
 properties (Constant, Hidden)
-    FILE_PERMISSION = 'read'
+    FILE_PERMISSION = 'read' % SciScan files should only be read from
 end
 
 properties (Access = private, Hidden)
-    MemMap
+    MemMap                   % A matlab memorymap for the binary raw file
 end
+
 
 methods (Static)
     
@@ -39,6 +40,10 @@ end
 methods % Implementation of VirtualArray abstract methods
     
     function data = readData(obj, subs)
+    %readData Read data from SciScan raw file
+    %
+    % Override readData of VirtualArray to read data from memorymap
+    
         data = obj.MemMap.Data.ImageArray(subs{:});
         data = swapbytes(data); % SciScan data is saved with bigendian.
         % Todo: is this always the case?
@@ -46,16 +51,23 @@ methods % Implementation of VirtualArray abstract methods
         if obj.PreprocessDataEnabled
             data = obj.processData(data, subs);
         end
-
     end
     
-    function data = readFrames(obj, frameIndex)
+    function data = readFrameSet(obj, frameIndex)
+        % Todo
+    end
+    
+    function data = readFrames(obj, frameIndex) % Todo: Remove
         subs = repmat({':'}, 1, ndims(obj));
         subs{end} = frameIndex;
         data = obj.readData(subs);
     end
+    
+    function writeFrameSet(obj, frameIndex, data) %#ok<INUSD>
+        error('Writing to a raw image data file is not supported')
+    end
        
-    function writeFrames(obj, frameIndex, data)
+    function writeFrames(obj, frameIndex, data) %#ok<INUSD>
         error('Writing to a raw image data file is not supported')
     end
     
@@ -104,14 +116,13 @@ methods (Access = protected) % Implementation of abstract methods
     %getFileInfo Get file info and assign to properties
     
         S = obj.getSciScanRecordingInfo();
-        % obj.MetaData = obj.getSciScanRecordingInfo(); old...
         
         % Specify data dimension sizes
         obj.MetaData.SizeX = S.xpixels;
         obj.MetaData.SizeY = S.ypixels;
-        obj.MetaData.SizeZ = 1; % Todo: Add this from recording info.
+        obj.MetaData.SizeZ = S.nPlanes;
         obj.MetaData.SizeC = S.nChannels;
-        obj.MetaData.SizeT = S.nFrames;
+        obj.MetaData.SizeT = S.nFrames/S.nPlanes;
         
         % Specify physical sizes
         obj.MetaData.SampleRate = S.fps;
@@ -129,11 +140,11 @@ methods (Access = protected) % Implementation of abstract methods
         obj.assignDataSize()
         
         obj.assignDataType()
-        
     end
     
     function createMemoryMap(obj)
-        
+    %createMemoryMap Create a memory map for the binary file
+    
         % Create a memory map from the file
         mapFormat = {obj.DataType, obj.DataSize, 'ImageArray'}; % 'frames'
         obj.MemMap = memmapfile(obj.FilePath, 'Format', mapFormat);
@@ -141,37 +152,39 @@ methods (Access = protected) % Implementation of abstract methods
         if obj.PreprocessDataEnabled
             obj.updateDataSize() % Preprocessing might change the frame size
         end
-
     end
     
     function assignDataSize(obj)
-
+    %assignDataSize Assign DataSize (and DataDimensionArrangement)
+    
         % Is this intentional??? I think so, see set dimensionorder...
         obj.DataSize = [obj.MetaData.SizeX, obj.MetaData.SizeY];
-        obj.DataDimensionArrangement = 'XY';
-        
+        dataDimensionArrangement = 'XY';
+
         % Add length of channels if there is more than one channel
         if obj.MetaData.SizeC > 1
             obj.DataSize = [obj.DataSize, obj.MetaData.SizeC];
-            obj.DataDimensionArrangement(end+1) = 'C';
+            dataDimensionArrangement(end+1) = 'C';
         end
         
         % Add length of planes if there is more than one plane
         if obj.MetaData.SizeZ > 1
             obj.DataSize = [obj.DataSize, obj.MetaData.SizeZ];
-            obj.DataDimensionArrangement(end+1) = 'Z';
+            dataDimensionArrangement(end+1) = 'Z';
         end
         
         % Add length of sampling dimension.
         if obj.MetaData.SizeT > 1
             obj.DataSize = [obj.DataSize, obj.MetaData.SizeT];
-            obj.DataDimensionArrangement(end+1) = 'T';
+            dataDimensionArrangement(end+1) = 'T';
         end
-
+        
+        % Assign to property (will trigger internal update on virtual data)
+        obj.DataDimensionArrangement = dataDimensionArrangement;
     end
     
     function assignDataType(obj)
-        
+    %assignDataType Assign data type of acquired image data.    
         % Todo: Load image data class from metadata.
 
         % obj.DataType = obj.MetaData.fileformat?
@@ -190,7 +203,6 @@ methods
         if obj.PreprocessDataEnabled
             obj.updateDataSize() % Preprocessing might change the frame size
         end
-        
     end
     
     function disablePreprocessing(obj)
@@ -201,7 +213,6 @@ methods
         obj.CorrectBidirectionalOffset = false;
                
         obj.updateDataSize()
-        
     end
     
 end
@@ -225,7 +236,7 @@ methods % Subclass specific methods
     
     function metadata = getSciScanRecordingInfo(obj)
         
-        % Todo: get number of planes for zstacks or volume imaging.
+        % Todo: get number of planes for zstacks.
         
         inifilepath = strrep(obj.FilePath, '.raw', '.ini');
         inistring = fileread(inifilepath);
@@ -239,6 +250,16 @@ methods % Subclass specific methods
         metadata.ypixels = obj.readinivar(inistring,'y.pixels');
         metadata.fps = obj.readinivar(inistring,'frames.p.sec');
         metadata.dt = 1/metadata.fps;
+        
+        metadata.isPiezoActive = obj.readinivar(inistring, 'piezo.active');
+        if metadata.isPiezoActive
+            metadata.nPlanes =  obj.readinivar(inistring, 'frames.per.z.cycle');
+        else
+            metadata.nPlanes = 1;
+        end
+        
+        % Todo: Read number of planes for zstacks...
+
         metadata.nFrames = obj.readinivar(inistring, 'no.of.frames.acquired');
 
         % Get spatial parameters for recording
@@ -280,7 +301,7 @@ methods % Subclass specific methods
 %         metadata.channelColor = {};
         for ch = 1:4
             chExpr = sprintf('save.ch.%d', ch);
-            if strcmp(strtrim(obj.readinivar(inistring, chExpr)), 'TRUE')
+            if obj.readinivar(inistring, chExpr) % save.ch.n = true/false
                 metadata.nChannels = metadata.nChannels + 1;
                 metadata.channelNumbers(end+1) = ch;
 %                 metadata.channelNames{end+1} = ['Ch', num2str(ch)];
@@ -313,13 +334,20 @@ methods (Static)
 
             for i=2:length(s2)
                 if sum(size(strtrim(s2{i})))
-                    varvalue = regexprep(s2{i}, ',', '.');
-                    varvalue = str2num(varvalue);
-                    if ~isempty(varvalue)
-                        break
+                    
+                    varvalue = strtrim(s2{i});
+                    varvalue = regexprep(varvalue, ',', '.');
+                    
+                    if any( strcmp(varvalue, {'TRUE', 'FALSE'}) )
+                        varvalue = eval(lower(varvalue));
                     else
-                        varvalue=s2{i};
-                        break
+                        varvalue = str2num(varvalue);
+                        if ~isempty(varvalue)
+                            break
+                        else
+                            varvalue=s2{i};
+                            break
+                        end
                     end
                 end
             end
@@ -335,7 +363,6 @@ methods (Static)
         if isa(pathStr, 'cell')
             pathStr = pathStr{1};
         end
-    
     
         % Check that pathStr starts with a datestr
         [folderPath, fileName, ext] = fileparts(pathStr);
@@ -395,10 +422,8 @@ methods (Hidden) % Temp read performance plot
         if mod(i, 1000)==0
             figure; plot(T); i = 1; disp(mean(T))
         end
-        
     end
     
 end
-
 
 end

@@ -34,7 +34,11 @@ function virtualData = open(pathStr, varargin)
         
         case {'.tif', '.tiff'}
             
-            imInfo = Tiff(pathStr{1});
+            if isfile(pathStr{1})
+                imInfo = Tiff(pathStr{1});
+            else
+                imInfo = struct;
+            end
             virtualData = [];
             
             % Should file be opened using the custom ScanImageTiff adapter?
@@ -42,6 +46,8 @@ function virtualData = open(pathStr, varargin)
                 softwareName = imInfo.getTag('Software');
                 if strcmp(softwareName(1:2), 'SI')
                     virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
+                elseif contains(softwareName, 'Prairie View')
+                    virtualData = nansen.stack.virtual.PrairieViewTiffs(pathStr, varargin{:}, nvPairs{:});
                 end
             catch
                 % Do nothing.
@@ -131,7 +137,7 @@ end
 
 % % virtualData = virtualStack(pathStr, varargin{:});
 % % 
-% % obj = imviewer.ImageStack(virtualData);
+% % obj = nansen.stack.ImageStack(virtualData);
 % % 
 % % % This should be done within the imagestack constructor
 % % obj.filePath = pathStr{1};
