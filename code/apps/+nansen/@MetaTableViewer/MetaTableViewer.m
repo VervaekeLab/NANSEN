@@ -223,6 +223,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         function updateCells(obj, rowIdx, colIdx, newData)
         %updateCells Update subset of cells...
+
         
             obj.MetaTableCell(rowIdx, colIdx) = newData;
             
@@ -231,6 +232,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             % Get based on user selection of which columns to display
             colIdxVisible = obj.getCurrentColumnSelection();
+            
+            if numel(colIdx) > 1 && numel(colIdx) ~= numel(colIdxVisible)
+                error('Function does not support replacing subset of columns, please report.')
+            end
             
             % Get based on filter states
             rowIdxVisible = obj.getCurrentRowSelection();
@@ -242,13 +247,20 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 rowIdxVisible = rowIdxVisible(obj.HTable.RowSortIndex);
             end
             
-            tableDataView = newData(:, colIdxVisible);
+            if size(newData, 2) == numel(colIdxVisible)
+                tableDataView = newData(:, colIdxVisible);
+            else
+                tableDataView = newData;
+            end
 
             % Rearrange columns according to current state of the java 
             % column model
             [javaColIndex, ~] = obj.ColumnModel.getColumnModelIndexOrder();
             javaColIndex = javaColIndex(1:numel(colIdxVisible));
-            tableDataView(:, javaColIndex) = tableDataView;
+            
+            if size(tableDataView, 2) == numel(javaColIndex)
+                tableDataView(:, javaColIndex) = tableDataView;
+            end
             
             [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
             [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
