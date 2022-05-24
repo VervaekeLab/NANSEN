@@ -2,7 +2,8 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
 %computeImageStats Compute pixel statistics for imagestack
 %
 %   Mean, limits and percentiles of all pixels for stack.
-      
+
+    
     properties (Constant)
         MethodName = 'Compute Image Stats'
         IsManual = false        % Does method require manual supervision
@@ -11,6 +12,8 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
     end
     
     properties %Options
+        %ChannelMode = 'serial'  % Compute values for each channel individually
+        %PlaneMode = 'serial'    % Compute values for each plane individually
         %pLevels = [0.05, 0.005];
     end
     
@@ -61,17 +64,6 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
     
     methods (Access = protected) % Implement methods from ImageStackProcessor
         
-% % %         function openSourceStack(obj)
-% % %              
-% % %             % Get filepath for raw 2p-images
-% % %             DATANAME = 'TwoPhotonSeries_Original';
-% % %             filePath = obj.SessionObjects.getDataFilePath(DATANAME);
-% % %             
-% % %             % Initialize file reference for raw 2p-images
-% % %             obj.SourceStack = imviewer.stack.open(filePath);
-% % %             
-% % %         end
-% % %         
         function Y = processPart(obj, Y)
             obj.updateImageStats(Y)
             obj.saveImageStats() % Save results for every part
@@ -80,11 +72,15 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
         
         function tf = checkIfPartIsFinished(obj, partNumber)
         %checkIfPartIsFinished Check if specified part is completed        
+            
             frameIndices = obj.FrameIndPerPart{partNumber};
-            if isempty(obj.ImageStats) || ~isfield( obj.ImageStats, 'meanValue' )
+            i = obj.CurrentChannel;
+            j = obj.CurrentPlane;
+            
+            if isempty(obj.ImageStats{i,j}) || ~isfield( obj.ImageStats{i,j}, 'meanValue' )
                 obj.initializeImageStats('reset')
             end
-            tf = all( ~isnan(obj.ImageStats.meanValue(frameIndices) ) );
+            tf = all( ~isnan(obj.ImageStats{i,j}.meanValue(frameIndices) ) );
         end
         
     end
@@ -111,9 +107,12 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
             
             if isfile(filePath) && ~strcmp(mode, 'reset')
                 S = obj.loadData('ImageStats');
+                if ~isa(S, 'cell') % Stats were saved before multichannel/multiplance 
+                    S = {S};
+                end
             else
                 
-                numFrames = obj.SourceStack.NumFrames;
+                numFrames = obj.SourceStack.NumTimepoints;
 
                 nanArray = nan(numFrames, 1);
                     
@@ -135,7 +134,9 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
                 S.prctileU2 = nanArray;
                 
                 S.pctSaturatedValues = nanArray;
-
+                
+                S = obj.repeatStructPerDimension(S);
+                
                 obj.saveData('ImageStats', S);
                 
             end
@@ -145,7 +146,6 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
             if ~nargout 
                 clear S
             end
-
         end
         
         function updateImageStats(obj, Y)
@@ -155,7 +155,9 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
             if obj.checkIfPartIsFinished(obj.CurrentPart)
                 return
             end
-        
+            
+            i = obj.CurrentChannel;
+            j = obj.CurrentPlane;
             IND = obj.CurrentFrameIndices;
 
             Y = single(Y);
@@ -163,24 +165,23 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
             % Reshape to 2D array where all pixels from each image is 1D
             Y_ = reshape(Y, [], size(Y, 3));
             
-            obj.ImageStats.meanValue(IND) = nanmean( Y_ );
-            obj.ImageStats.medianValue(IND) = nanmedian( Y_ );
-            obj.ImageStats.minimumValue(IND) = min( Y_ );
-            obj.ImageStats.maximumValue(IND) = max( Y_ );
+            obj.ImageStats{i,j}.meanValue(IND) = nanmean( Y_ );
+            obj.ImageStats{i,j}.medianValue(IND) = nanmedian( Y_ );
+            obj.ImageStats{i,j}.minimumValue(IND) = min( Y_ );
+            obj.ImageStats{i,j}.maximumValue(IND) = max( Y_ );
             
-            pLevels = obj.ImageStats.percentileValues;
+            pLevels = obj.ImageStats{i,j}.percentileValues;
 
             % Collect different stats.
             prctValues = prctile(Y_, pLevels)';
             if iscolumn(prctValues); prctValues = prctValues'; end % If size(Y, 3)==1. 
             
-            obj.ImageStats.prctileL1(IND) = prctValues(:, 1);
-            obj.ImageStats.prctileL2(IND) = prctValues(:, 2);
-            obj.ImageStats.prctileU1(IND) = prctValues(:, 3);
-            obj.ImageStats.prctileU2(IND) = prctValues(:, 4);
+            obj.ImageStats{i,j}.prctileL1(IND) = prctValues(:, 1);
+            obj.ImageStats{i,j}.prctileL2(IND) = prctValues(:, 2);
+            obj.ImageStats{i,j}.prctileU1(IND) = prctValues(:, 3);
+            obj.ImageStats{i,j}.prctileU2(IND) = prctValues(:, 4);
             
-            obj.ImageStats.pctSaturatedValues(IND) = mean(Y_ == obj.SaturationValue, 1);
-                        
+            obj.ImageStats{i,j}.pctSaturatedValues(IND) = mean(Y_ == obj.SaturationValue, 1);
         end
         
         function saveImageStats(obj)
@@ -191,10 +192,8 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
             % Save updated image stats to data location
             S = obj.ImageStats;
             obj.saveData('ImageStats', S)
-            
         end
 
     end
     
-
 end
