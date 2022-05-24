@@ -49,7 +49,7 @@ classdef TwoPhotonRecording < handle
         function obj = TwoPhotonRecording(varargin)
             
             obj.assignNvPairs(varargin{:})
-
+            
         end
         
         function assignNvPairs(obj, varargin)
@@ -94,7 +94,7 @@ classdef TwoPhotonRecording < handle
             
             % Todo: Make sure value is valid.
             obj.StretchCorrectionMethod = newValue;
-
+            obj.onStretchCorrectionMethodSet()
         end
         
         function set.NumFlybackLines(obj, newValue)
@@ -191,6 +191,22 @@ classdef TwoPhotonRecording < handle
             % Should this be done before or after destretching? I thought
             % before....
             % [data, bidirBatchSize, colShifts] = correctLineOffsets(data, 100);
+            
+        end
+
+    end
+    
+    methods (Access = private)
+        
+        function onStretchCorrectionMethodSet(obj)
+            
+            if strcmp(obj.StretchCorrectionMethod, 'none')
+                return
+            end
+            
+            warning('on', 'SciScan:StretchProfileMissing')
+            testData = obj.readFrames(1); %#ok<MCNPN> % subclass method
+            warning('off', 'SciScan:StretchProfileMissing')
             
         end
         

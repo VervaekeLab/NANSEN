@@ -4568,8 +4568,8 @@ methods (Access = protected) % Event callbacks
                     if isempty(value); value = 0; end
                     
                     obj.displayMessage('Updating cache size...')
-                    obj.ImageStack.Data.updateCacheSize(value); % Todo: test
-                    bytes = obj.ImageStack.imageData.getCacheByteSize(); % Todo
+                    obj.ImageStack.Data.DynamicCacheSize = value; % Todo: test
+                    bytes = obj.ImageStack.Data.getCacheByteSize(); % Todo
                     
                     if bytes > 1e9
                         msg = sprintf('Cache uses ~%.1f GB of memory', round(bytes/1e9, 1));

@@ -351,7 +351,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     
                     if isempty(imArray) % If cache is empty, get images directly from Data
                         numFrames = min([obj.NumTimepoints, 500]);
-                        imArray = obj.getFrameSet(1:numFrames);
+                        imArray = obj.getFrameSet(1:numFrames, mode);
                         doCropImage = false;
                     end
 
@@ -448,7 +448,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             dimensionLength = cellfun(@numel, indexingSubs(isDimensionSubset));
            
             % Assign imArray to indexes of Data
-            assert(isequal(dimensionLength, size(imageArray, find(isDimensionSubset)) ), ...
+            
+            assert(prod(dimensionLength) == prod(size(imageArray, find(isDimensionSubset)) ), ...
                 'Frame indices and data size does not match')
             obj.Data(indexingSubs{:}) = imageArray;
            
@@ -547,11 +548,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     % - Methods for getting image stack metadata
         
         function sampleRate = getSampleRate(obj)
-            sampleRate = obj.Data.MetaData.SampleRate;
+            sampleRate = obj.Data.MetaData.SampleRate ./ obj.NumPlanes;
         end
         
         function timeStep = getTimeStep(obj)
-            timeStep = obj.Data.MetaData.TimeIncrement;
+            timeStep = obj.Data.MetaData.TimeIncrement .* obj.NumPlanes;
         end
         
         function frameTimes = getFrameTimes(obj, frameIndex)
@@ -563,7 +564,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if ~isempty(obj.MetaData.FrameTimes)
                 frameTimes = obj.MetaData.FrameTimes(frameIndex);
             else
-                frameTimes = (frameIndex-1) .* seconds(obj.MetaData.TimeIncrement);
+                frameTimes = (frameIndex-1) .* seconds(obj.getTimeStep());
                 if ~isempty(obj.MetaData.StartTime) % Todo.
                     frameTimes = frameTimes + obj.MetaData.StartTime;
                 end
@@ -757,7 +758,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
             if nargin < 3 || isempty(frameInd); frameInd = 'all'; end
             
-            tmpStack = obj.getFrameSet(frameInd);
+            tmpStack = obj.getFrameSet(frameInd, 'extended');
 
             % Todo: Handle different datatypes..
             %       i.e cast output to original type. Some functions
@@ -769,6 +770,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if nargin < 4 || isempty(dim)
                 % Dim should be minimum 3, but would be 2 for single frame
                 dim = max([3, ndims(tmpStack)]);
+                dim = obj.getDimensionNumber('T');
             else
                 error('Not implemented yet')
             end
@@ -1062,9 +1064,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function set.Data(obj, newValue)
-            obj.Data = newValue;
-            if ~isempty(newValue)
-                obj.onDataSet()
+            
+            if isequal(obj.Data, newValue)
+                obj.Data = newValue;
+            else % Trigger onDataSet to update internal properties
+                obj.Data = newValue;
+                if ~isempty(newValue)
+                    obj.onDataSet()
+                end
             end
         end
         

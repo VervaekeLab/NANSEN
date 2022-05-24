@@ -1,5 +1,5 @@
 function validate()
-    
+%validate Make changes to files/userdata if nansen has been upgraded    
     
     pm = nansen.ProjectManager();
     
