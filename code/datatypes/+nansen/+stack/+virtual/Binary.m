@@ -21,7 +21,7 @@ properties (Constant, Hidden)
 end
 
 properties (Access = private, Hidden)
-    MemMap memmapfile               % A matlab memorymap for a binary file
+    MemMap                          % A matlab memorymap for a binary file
 end
 
 methods % Structors

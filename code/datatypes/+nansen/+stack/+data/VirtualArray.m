@@ -562,6 +562,13 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     end
     
     methods (Sealed)
+
+        function numBytes = getCacheByteSize(obj)
+            arraySize = obj.DynamicFrameCache.DataSize;
+            arrayClass = obj.DynamicFrameCache.DataType;
+            numBytes = nansen.stack.ImageStack.getImageDataByteSize(...
+                arraySize, arrayClass);
+        end
         
         % % % Methods for getting all cached data
 

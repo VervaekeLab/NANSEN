@@ -46,6 +46,8 @@ function virtualData = open(pathStr, varargin)
                 softwareName = imInfo.getTag('Software');
                 if strcmp(softwareName(1:2), 'SI')
                     virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
+                elseif contains(softwareName, 'Prairie View')
+                    virtualData = nansen.stack.virtual.PrairieViewTiffs(pathStr, varargin{:}, nvPairs{:});
                 end
             catch
                 % Do nothing.
