@@ -1652,6 +1652,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             for iSession = 1:numSessions
                 try % Todo: Use error handling here. What if some conditions can not be met...
                     newValue = updateFcn(sessionObj(iSession));
+                    
                     if isa(newValue, 'nansen.metadata.abstract.TableVariable')
                         if isequal(newValue.Value, newValue.DEFAULT_VALUE)
                             return
@@ -1660,6 +1661,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         end
                     end
                     
+                    if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
                     if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
                     
                     updatedValues{iSession} = newValue;
