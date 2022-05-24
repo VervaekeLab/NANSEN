@@ -313,6 +313,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             doCropImage = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(1:2)));
+            selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(3:end-1)));
             
             % Todo: make another keyword, like 'all' or 'cache' but return
             % a chunk also if cache is empty
@@ -365,12 +366,13 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     imArray = imArray(indexingSubsTmp{:});
                 end
                 
-% % %                 if selectFrameSubset % todo: method
-% % %                     indexingSubsTmp = indexingSubs;
-% % %                     indexingSubsTmp(1:2) = {':'};
-% % %                     indexingSubsTmp(dimT) = {':'};
-% % %                     imArray = imArray(indexingSubsTmp{:});
-% % %                 end
+                if selectFrameSubset % todo: method
+                    dimT = obj.getDimensionNumber('T');
+                    indexingSubsTmp = indexingSubs;
+                    indexingSubsTmp(1:2) = {':'};
+                    indexingSubsTmp(dimT) = {':'};
+                    imArray = imArray(indexingSubsTmp{:});
+                end
                 
             % Case 2: All frames (along last dimension) are requested.
             % Should return all
@@ -384,6 +386,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     if doCropImage
                         indexingSubs(3:end) = {':'};
                         imArray = imArray(indexingSubs{:});
+                    end
+                    
+                    if selectFrameSubset % todo: method
+                        dimT = obj.getDimensionNumber('T');
+                        indexingSubsTmp = indexingSubs;
+                        indexingSubsTmp(1:2) = {':'};
+                        indexingSubsTmp(dimT) = {':'};
+                        imArray = imArray(indexingSubsTmp{:});
                     end
                 end
                 
