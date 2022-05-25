@@ -866,6 +866,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
             
             h.UpdateColumnFcn = @app.updateTableVariable;
+            h.ResetColumnFcn = @app.resetTableVariable;
             h.DeleteColumnFcn = @app.removeTableVariable;
             h.EditColumnFcn = @app.editTableVariableFunction;
 
@@ -1592,10 +1593,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
-        function updateTableVariable(app, src, evt)
+        function resetTableVariable(app, src, evt)
+            app.updateTableVariable(src, evt, true)
+        end
+        
+        function updateTableVariable(app, src, evt, reset)
         %updateTableVariable Update a table variable for selected sessions   
         %
         %   This function is a callback for the context menu
+        
+            if nargin < 4
+                reset = false;
+            end
         
             if ischar(src) % For manual calls: If the value of src is the name of the variable, evt should be the update mode.
                 varName = src;
@@ -1605,8 +1614,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 updateMode = 'SelectedRows';
             end
 
-            % Todo: add case for all rows that are empty, and all rows een
-            % if they have values..
+            % Todo: add case for all rows that are empty
+            % Todo: add case for all visible rows...
             
             switch updateMode
                 case 'SelectedRows'
@@ -1628,7 +1637,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             numSessions = numel(sessionObj);
             
-            if numSessions > 5
+            if numSessions > 5 && ~reset
                 h = waitbar(0, 'Please wait while updating values');
             end
             
@@ -1650,30 +1659,37 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             updatedValues = cell(numSessions, 1);
             skipRow = [];
             
-            for iSession = 1:numSessions
-                try % Todo: Use error handling here. What if some conditions can not be met...
-                    newValue = updateFcn(sessionObj(iSession));
-                    
-                    if isa(newValue, 'nansen.metadata.abstract.TableVariable')
-                        if isequal(newValue.Value, newValue.DEFAULT_VALUE)
-                            return
-                        else
-                            newValue = newValue.Value;
+            if reset
+                [updatedValues{:}] = deal(updateFcn());
+                
+            else
+            
+                for iSession = 1:numSessions
+                    try % Todo: Use error handling here. What if some conditions can not be met...
+                        newValue = updateFcn(sessionObj(iSession));
+
+                        if isa(newValue, 'nansen.metadata.abstract.TableVariable')
+                            if isequal(newValue.Value, newValue.DEFAULT_VALUE)
+                                return
+                            else
+                                newValue = newValue.Value;
+                            end
                         end
+
+                        if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
+                        if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
+
+                        updatedValues{iSession} = newValue;
+
+                    catch ME
+                        skipRow = [skipRow, iSession];
                     end
-                    
-                    if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
-                    if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
-                    
-                    updatedValues{iSession} = newValue;
-                    
-                catch ME
-                    skipRow = [skipRow, iSession];
+
+                    if numSessions > 5
+                        waitbar(iSession/numSessions, h)
+                    end
                 end
                 
-                if numSessions > 5
-                    waitbar(iSession/numSessions, h)
-                end
             end
             
             updatedValues(skipRow) = [];
@@ -1693,18 +1709,30 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
 
             % Need to keep selected entries before refreshing table. 
-            selectedEntries = app.UiMetaTableViewer.getSelectedEntries();                    
+            if numSessions < 20
+                % Unfortunately, this is very slow for many rows.
+                colIdx = find(strcmp(app.MetaTable.entries.Properties.VariableNames, varName));
+                if isa(updatedValues{1}, 'cell')
+                    updatedValues = cat(1, updatedValues{:});
+                end
+                app.UiMetaTableViewer.updateCells(rows, colIdx, updatedValues)
+                
+            else % Update whole table
+                selectedEntries = app.UiMetaTableViewer.getSelectedEntries(); 
+            
+                app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+                % Make sure selection is preserved.
+                app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
+            end
 
-            app.UiMetaTableViewer.refreshTable(app.MetaTable)
-            
-            % Make sure selection is preserved.
-            app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
-            
-            if numSessions > 5
+            if numSessions > 5 && ~reset
                 delete(h)
             end
             
         end
+        
+        
         
         function copySessionIdToClipboard(app)
             
