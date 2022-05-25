@@ -59,6 +59,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         DeleteColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
         UpdateColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
+        ResetColumnFcn = []     % This should be internalized, but for now it is assigned from session browser/nansen
         EditColumnFcn = []      % This should be internalized, but for now it is assigned from session browser/nansen
     end
     
@@ -220,103 +221,58 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function resetColumnFilters(obj)
             obj.ColumnFilter.resetFilters()
         end
-        
-  function updateCells(obj, rowIdx, colIdx, newData)
+                
+        function updateCells(obj, rowIdxData, colIdxData, newData)
         %updateCells Update subset of cells...
-
         
-            obj.MetaTableCell(rowIdx, colIdx) = newData;
+            % Note: The uiw.widget.Table setCell method takes the java 
+            % table model's row order into account when inserting data into
+            % cells, but not the column order. That's why the rearrangement
+            % of rows and columns below are not equivalent
             
-            % Todo: Need to find the corresponding cell in the viewable
-            % table...
+            % Place new data in the cell representation of the metatable.
+            obj.MetaTableCell(rowIdxData, colIdxData) = newData;
             
-            % Get based on user selection of which columns to display
-            colIdxVisible = obj.getCurrentColumnSelection();
-            
-            if numel(colIdx) > 1 && numel(colIdx) ~= numel(colIdxVisible)
-                error('Function does not support replacing subset of columns, please report.')
-            end
-            
-            % Get based on filter states
+            % Get indices of visible rows based on data filter states
             rowIdxVisible = obj.getCurrentRowSelection();
             
-            % Get the row taking the table sorting into account:
-            %dataInd = get(obj.HTable.JTable.Model, 'Indexes');
-
+            % Get indices of visible columns based on user selection of which columns to display
+            colIdxVisible = obj.getCurrentColumnSelection();
+            
+            % Rearrange rows taking the table sorting into account:
             if ~isempty(obj.HTable.RowSortIndex)
                 rowIdxVisible = rowIdxVisible(obj.HTable.RowSortIndex);
             end
-            
-            if size(newData, 2) == numel(colIdxVisible)
-                tableDataView = newData(:, colIdxVisible);
-            else
-                tableDataView = newData;
-            end
 
-            % Rearrange columns according to current state of the java 
-            % column model
-            [javaColIndex, ~] = obj.ColumnModel.getColumnModelIndexOrder();
-            javaColIndex = javaColIndex(1:numel(colIdxVisible));
+            % Get the current order of column indices from java's column model
+            [colIdxJava, ~] = obj.ColumnModel.getColumnModelIndexOrder();
             
-            if size(tableDataView, 2) == numel(javaColIndex)
-                tableDataView(:, javaColIndex) = tableDataView;
-            end
-            
-            [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
-            [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
-            
-            for i = 1:numel(uiTableRowIdx)
-                for j = 1:numel(uiTableColIdx)
-                    iRow = uiTableRowIdx(i);
-                    jCol = uiTableColIdx(j);
-                    thisValue = tableDataView(i, j);
-                    obj.HTable.setCell(iRow, jCol, thisValue)
-                end
-            end
-            
-            drawnow
-            return
-            
-            % Assign updated table data to the uitable property
-            obj.HTable.Data = tableDataView;
-            
-            
-            
-            
-            [~, uiTableRowIdx] = intersect(rowIdxVisible, rowIdx, 'stable');
-            [~, uiTableColIdx] = intersect(colIdxVisible, colIdx, 'stable');
-            
-            
-            % This is ad hoc, seems to work, but need to understand
-            % better what is going on here (todo)!
-            if numel(colIdx) == 1
-                columnIndexOrder = obj.ColumnModel.getColumnModelIndexOrder();
-                uiTableColIdx = columnIndexOrder(uiTableColIdx);
-            end
-            columnIndexOrder = obj.ColumnModel.getColumnModelIndexOrder();
-
-            % Rearrange data table columns...
-            [~, ~, dataTableColIdx] = intersect(colIdxVisible, columnIndexOrder);
+            %Todo: Is it still a possibility that these are not the same length?
+            %colIdxVisible = colIdxVisible(colIdxJava); 
                         
-            % Only continue with those columns that are visible
-            newData = newData(:, dataTableColIdx);
-
-            for i = 1:numel(uiTableRowIdx)
-                for j = 1:numel(uiTableColIdx)
-                    iRow = uiTableRowIdx(i);
-                    jCol = uiTableColIdx(j);
-                    thisValue = newData(i, j);
+            % Get the indices for where to insert data in the uitable, i.e
+            % find which index of the visible data that corresponds with 
+            % the index of the actual data.
+            [~, rowIdxUiTable, rowIdxDataSubset] = intersect(rowIdxVisible, rowIdxData, 'stable');
+            [~, colIdxUiTable, colIdxDataSubset] = intersect(colIdxVisible, colIdxData, 'stable');
+            
+            % Insert data into the table model cell by cell
+            for i = 1:numel(rowIdxUiTable)
+                for j = 1:numel(colIdxUiTable)
+                    % Get indices for current uitable cell
+                    iRow = rowIdxUiTable(i);
+                    jCol = colIdxJava( colIdxUiTable(j) ); % Reorder based on the underlying column order of the java model because this is not done internally in setCell
+                    % Get value of data for current cell
+                    thisValue = newData(rowIdxDataSubset(i), colIdxDataSubset(j));
+                    % Insert value
                     obj.HTable.setCell(iRow, jCol, thisValue)
                 end
             end
             
-            %obj.HTable.setCell(uiTableRowIdx, uiTableColIdx, newData)
-            %obj.HTable.Data(uiTableRowIdx, uiTableColIdx) = newData;
             drawnow
-            
         end
-        
-        function updateTableRow(obj, rowIdx, tableRowData)
+
+        function updateTableRow(obj, rowIdxData, tableRowData)
         %updateTableRow Update data of specified table row                      
             % Count number of columns and get column indices
             colIdx = 1:size(tableRowData, 2);
@@ -330,9 +286,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
             
             % Refresh cells of ui table...
-            obj.updateCells(rowIdx, colIdx, newData)
+            obj.updateCells(rowIdxData, colIdx, newData)
         end        
-        
+
         function appendTableRow(obj, rowData)
             % Would be neat, but havent found a way to do it.
         end
@@ -605,13 +561,20 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Update column data');
             hTmp.Separator = 'on';
             hTmp.Tag = 'Update Column';
-              hSubMenu = uimenu(hTmp, 'Label', 'Edit tablevar function');
-              hSubMenu.Tag = 'Edit tablevar function';
-              hSubMenu = uimenu(hTmp, 'Label', 'Update selected rows', 'Separator', 'on');
+
+              hSubMenu = uimenu(hTmp, 'Label', 'Update selected rows');
               hSubMenu.Tag = 'Update selected rows';
               hSubMenu = uimenu(hTmp, 'Label', 'Update all rows');
               hSubMenu.Tag = 'Update all rows';
-                
+              
+              hSubMenu = uimenu(hTmp, 'Label', 'Reset selected rows', 'Separator', 'on');
+              hSubMenu.Tag = 'Reset selected rows';
+              hSubMenu = uimenu(hTmp, 'Label', 'Reset all rows');
+              hSubMenu.Tag = 'Reset all rows';
+
+              hSubMenu = uimenu(hTmp, 'Label', 'Edit tablevar function', 'Separator', 'on');
+              hSubMenu.Tag = 'Edit tablevar function';
+                           
             hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Delete this column');
             hTmp.Tag = 'Delete Column';
             
@@ -624,7 +587,41 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     end
     
     methods (Access = {?nansen.MetaTableViewer, ?nansen.ui.MetaTableColumnLayout, ?nansen.ui.MetaTableColumnFilter})
-           
+          
+        function updateTableView(obj, visibleRows)
+
+            if isempty(obj.ColumnModel); return; end % On construction...
+                        
+            [numRows, numColumns] = size(obj.MetaTableCell); %#ok<ASGLU>
+
+            if nargin < 2; visibleRows = 1:numRows; end
+            
+            % Get based on user selection of which columns to display
+            visibleColumns = obj.getCurrentColumnSelection();
+            
+            % Get visible rows based on filter states
+            filteredRows = obj.getCurrentRowSelection(); 
+            visibleRows = intersect(filteredRows, visibleRows, 'stable');
+            
+
+            % Get subset of data from metatable that should be put in the
+            % uitable. 
+            tableDataView = obj.MetaTableCell(visibleRows, visibleColumns);
+
+            % Rearrange columns according to current state of the java 
+            % column model
+            [javaColIndex, ~] = obj.ColumnModel.getColumnModelIndexOrder();
+            javaColIndex = javaColIndex(1:numel(visibleColumns));
+            tableDataView(:, javaColIndex) = tableDataView;
+            
+            % Assign updated table data to the uitable property
+            obj.HTable.Data = tableDataView;
+            obj.HTable.Visible = 'on';
+            obj.HTable.JTable.requestFocus()
+
+            drawnow
+        end
+        
         function updateColumnLayout(obj) %protected
         %updateColumnLayout Update the columnlayout based on user settings
         
@@ -731,40 +728,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         
             obj.HTable.ColumnEditable = allowEdit;
             
-        end
-        
-        function updateTableView(obj, visibleRows)
-
-            if isempty(obj.ColumnModel); return; end % On construction...
-                        
-            [numRows, numColumns] = size(obj.MetaTableCell); %#ok<ASGLU>
-
-            if nargin < 2; visibleRows = 1:numRows; end
-            
-            % Get based on user selection of which columns to display
-            visibleColumns = obj.getCurrentColumnSelection();
-            
-            % Get visible rows based on filter states
-            filteredRows = obj.getCurrentRowSelection(); 
-            visibleRows = intersect(filteredRows, visibleRows, 'stable');
-            
-
-            % Get subset of data from metatable that should be put in the
-            % uitable. 
-            tableDataView = obj.MetaTableCell(visibleRows, visibleColumns);
-
-            % Rearrange columns according to current state of the java 
-            % column model
-            [javaColIndex, ~] = obj.ColumnModel.getColumnModelIndexOrder();
-            javaColIndex = javaColIndex(1:numel(visibleColumns));
-            tableDataView(:, javaColIndex) = tableDataView;
-            
-            % Assign updated table data to the uitable property
-            obj.HTable.Data = tableDataView;
-            obj.HTable.Visible = 'on';
-            obj.HTable.JTable.requestFocus()
-
-            drawnow
         end
         
         function changeColumnNames(obj, newNames)
@@ -1255,9 +1218,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                             hTmp.Enable = 'on';
                             if ~isempty(obj.UpdateColumnFcn) 
                                 % Children are reversed from creation
-                                hTmp.Children(3).Callback = @(s,e,name) obj.EditColumnFcn(currentColumnName);
-                                hTmp.Children(2).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'SelectedRows');
-                                hTmp.Children(1).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'AllRows');
+                                hTmp.Children(1).Callback = @(s,e,name) obj.EditColumnFcn(currentColumnName);
+                                hTmp.Children(2).Callback = @(name, mode) obj.ResetColumnFcn(currentColumnName, 'AllRows');
+                                hTmp.Children(3).Callback = @(name, mode) obj.ResetColumnFcn(currentColumnName, 'SelectedRows');
+                                hTmp.Children(4).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'AllRows');
+                                hTmp.Children(5).Callback = @(name, mode) obj.UpdateColumnFcn(currentColumnName, 'SelectedRows');
                             end
                         else
                             hTmp.Enable = 'off';
