@@ -1816,7 +1816,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 varName = src.Text;
             end
 
-            
             % Create a dialog here.
             message = sprintf( ['This will delete the data of column ', ...
                 '%s from the table. The associated tablevar function ', ...
@@ -1845,24 +1844,26 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Refresh session context menu...
             app.updateSessionInfoDependentMenus()
-            
-
         end
         
-        function checkIfMetaTableComplete(app, metaTable)
+        function metaTable = checkIfMetaTableComplete(app, metaTable)
         %checkIfMetaTableComplete Check if user-defined variables are
         %missing from the table.
         
         % Todo: Add to metatable class? Eller muligens BaseSchema??? Kan
         % man legge inn dynamiske konstante egenskaper?
         
-            tableVarNames = app.MetaTable.entries.Properties.VariableNames;
+            if nargin < 2
+                metaTable = app.MetaTable;
+            end
+        
+            tableVarNames = metaTable.entries.Properties.VariableNames;
             
             variableAttributes = nansen.metadata.utility.getMetaTableVariableAttributes('session');
             referenceVarNames = {variableAttributes.Name};
             customVarNames = referenceVarNames([variableAttributes.IsCustom]);
         
-            app.MetaTable = addMissingVarsToMetaTable(app, app.MetaTable, 'session');
+            metaTable = addMissingVarsToMetaTable(app, metaTable, 'session');
         
 
 
@@ -1895,6 +1896,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Find the difference between those and the userVarNames
             missingVarNames = setdiff(tableCustomVarNames, customVarNames);
             
+            
+            % Display a prompt to the user if any table variables have been
+            % removed. If user does not want to removed those variables,
+            % create a dummy function for that table var.
+            
             for iVarName = 1:numel(missingVarNames)
                 thisName = missingVarNames{iVarName};
 
@@ -1908,7 +1914,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 switch answer
                     case 'Yes'
-                        app.MetaTable.removeTableVariable(thisName)
+                        metaTable.removeTableVariable(thisName)
                     case {'Cancel', 'No', ''}
                         
                         % Todo (Is it necessary): Maybe if the variable is
@@ -1918,7 +1924,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
                         % Get table row as struct in order to check data
                         % type. (Some data is within a cell array in the table)
-                        tableRow = app.MetaTable.entries(1, :);
+                        tableRow = metaTable.entries(1, :);
                         rowAsStruct = table2struct(tableRow);
                         
                         % Create dummy function
@@ -1931,13 +1937,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
                         nansen.metadata.utility.createClassForCustomTableVar(S)
                 end
-                
             end
-                
-                % Display a warning to the user if any variables will be
-                % removed. If user does not want to removed those variables,
-                % create a dummy function for that table var.
 
+            if nargin < 2; app.MetaTable = metaTable; end
+            if ~nargout; clear metaTable; end
         end
         
         function metaTable = addMissingVarsToMetaTable(app, metaTable, metaTableType)
@@ -2002,17 +2005,27 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             try
                 % Load existing or create new experiment inventory 
                 if exist(loadPath, 'file') == 2
-                    app.MetaTable = nansen.metadata.MetaTable.open(loadPath);
-                    %app.experimentInventoryPath = loadPath;
+                    metaTable = nansen.metadata.MetaTable.open(loadPath);
                 else % Todo: do i need this...?
-                    app.MetaTable = nansen.metadata.MetaTable;
-                    %app.experimentInventoryPath = app.experimentInventory.filepath;
+                    metaTable = nansen.metadata.MetaTable;
                 end
-
-                app.checkIfMetaTableComplete()
+            
+                % Checks if metatable matches with custom table variables
+                metaTable = app.checkIfMetaTableComplete(metaTable);
                 
                 % Temp fix. Todo: remove
-                app.MetaTable = nansen.metadata.temp.fixMetaTableDataLocations(app.MetaTable, app.DataLocationModel);
+                metaTable = nansen.metadata.temp.fixMetaTableDataLocations(metaTable, app.DataLocationModel);
+                
+                % Update data location paths based on the local
+                % DataLocation model and make sure paths are according to
+                % operating system.
+                if any(strcmp(metaTable.entries.Properties.VariableNames, 'DataLocation'))
+                    dataLocationStructs = metaTable.entries.DataLocation;
+                    dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
+                    metaTable.entries.DataLocation = dataLocationStructs;
+                end
+                
+                app.MetaTable = metaTable;
                 
 % %                 if app.initialized % todo
 % %                     app.updateRelatedInventoryLists()
