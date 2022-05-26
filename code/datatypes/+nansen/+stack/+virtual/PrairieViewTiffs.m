@@ -187,7 +187,7 @@ methods (Access = protected) % Implementation of abstract methods
         
         % Get arrangement of dimensions of data
         try
-            dataDimensionArrangement = obj.DATA_DIMENSION_ARRANGEMENT;
+            dataDimensionArrangement = 'YXTCZ';
         catch
             dataDimensionArrangement = obj.DEFAULT_DIMENSION_ARRANGEMENT;
         end
