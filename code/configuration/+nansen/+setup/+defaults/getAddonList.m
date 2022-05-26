@@ -14,19 +14,6 @@ function S = getAddonList()
 
 
     i = 1;
-    S(i).Name = 'GUI Layout Toolbox';
-    S(i).Description = 'Layout manager for MATLAB graphical user interfaces';
-    S(i).IsRequired = true;
-    S(i).Type = 'General';
-    S(i).Source = 'FileExchange';
-    S(i).WebUrl = 'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox';
-    S(i).DownloadUrl = 'https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5af5a78-4a80-11e4-9553-005056977bd0/df368ddb-983a-439f-86cb-04e375916c75/packages/zip';
-    %S(i).DownloadUrl = 'https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5af5a78-4a80-11e4-9553-005056977bd0/2.3.5/packages/mltbx'; % MATLAB TOOLBOX
-    S(i).HasSetupFile = false;
-    S(i).SetupFileName = '';
-    S(i).FunctionName = 'uix.BoxPanel';
-        
-    i = i + 1;
     S(i).Name = 'Widgets Toolbox';
     S(i).Description = 'Additional app building components';
     S(i).IsRequired = true;
@@ -41,6 +28,19 @@ function S = getAddonList()
     S(i).HasSetupFile = false;
     S(i).SetupFileName = 'nansen.config.path.addUiwidgetsJarToJavaClassPath';
     S(i).FunctionName = 'uiw.abstract.AppWindow';
+    
+% %     i = i + 1; % Comment out because its not used.
+% %     S(i).Name = 'GUI Layout Toolbox';
+% %     S(i).Description = 'Layout manager for MATLAB graphical user interfaces';
+% %     S(i).IsRequired = true;
+% %     S(i).Type = 'General';
+% %     S(i).Source = 'FileExchange';
+% %     S(i).WebUrl = 'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox';
+% %     S(i).DownloadUrl = 'https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5af5a78-4a80-11e4-9553-005056977bd0/df368ddb-983a-439f-86cb-04e375916c75/packages/zip';
+% %     %S(i).DownloadUrl = 'https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5af5a78-4a80-11e4-9553-005056977bd0/2.3.5/packages/mltbx'; % MATLAB TOOLBOX
+% %     S(i).HasSetupFile = false;
+% %     S(i).SetupFileName = '';
+% %     S(i).FunctionName = 'uix.BoxPanel';
     
     i = i + 1;
     S(i).Name = 'YAML-Matlab';
@@ -125,5 +125,17 @@ function S = getAddonList()
     S(i).HasSetupFile = false;
     S(i).SetupFileName = '';
     S(i).FunctionName = 'globalSEUDOWrapper.m';
+    
+% %     i = i + 1 % Not implemented yet
+% %     S(i).Name = 'PatchWarp';
+% %     S(i).Description = 'Image processing pipeline to correct motion artifacts and complex image distortions in neuronal calcium imaging data.';
+% %     S(i).IsRequired = false;
+% %     S(i).Type = 'Neuroscience';
+% %     S(i).Source = 'Github';
+% %     S(i).WebUrl = 'https://github.com/ryhattori/PatchWarp';
+% %     S(i).DownloadUrl = 'https://github.com/ryhattori/PatchWarp/archive/refs/heads/main.zip';
+% %     S(i).HasSetupFile = false;
+% %     S(i).SetupFileName = '';
+% %     S(i).FunctionName = 'patchwarp.m';
 
 end
