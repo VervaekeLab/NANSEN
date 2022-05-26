@@ -145,7 +145,9 @@ classdef ProjectManager < handle
 
         end
         
-        function addExistingProject(obj, filePath)
+        function projectName = addExistingProject(obj, filePath)
+            
+            projectName = ''; %#ok<NASGU>
             
             S = load(filePath, 'ProjectConfiguration');
             projectConfig = S.ProjectConfiguration;
@@ -162,8 +164,10 @@ classdef ProjectManager < handle
             
             % Todo: Update datalocation filepaths (if they are not detected)...
             
-            
             obj.addProject(projectConfig)
+            
+            projectName = projectConfig.Name;
+            if ~nargout; clear projectName; end
         end
         
         function moveProject(obj, projectName, newLocation)
@@ -430,7 +434,8 @@ classdef ProjectManager < handle
                 if any(isMatch)
                     pathStr = S.projectCatalog(isMatch).Path;
                 else
-                    error('Project with name ''%s'' was not found', projectName);
+                    pathStr = '';
+                    warning('Project with name ''%s'' was not found', projectName);
                 end
                 
             elseif strcmp(location, 'local')

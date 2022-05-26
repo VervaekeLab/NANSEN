@@ -63,6 +63,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         DataLocationModel
         
+        CurrentProjectName  % Current project which is open in the app
         ProjectManager
         
         MessagePanel % Todo: Use HasDisplay mixin...
@@ -84,7 +85,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function app = App()
             
             nansen.addpath()
-            nansen.validate()
             
             % Call constructor explicitly to provide the nansen.Preferences
             app@uiw.abstract.AppWindow('Preferences', nansen.Preferences, 'Visible', 'off')
@@ -103,7 +103,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.ProjectManager = nansen.ProjectManager();
             app.assertProjectsAvailable()
             app.ProjectManager.setProject()
-            
+            app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
+
+            nansen.validate()
+
             
             app.DataLocationModel = nansen.DataLocationModel;
             
@@ -379,10 +382,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Metatable', 'Enable', 'on');
             app.updateRelatedInventoryLists(mitem)
             app.updateMetaTableMenu(mitem);
-            
+
             mitem = uimenu(m, 'Text','Make Current Metatable Default');
             mitem.MenuSelectedFcn = @app.onSetDefaultMetaTableMenuItemClicked;
-             
+            
+            mitem = uimenu(m, 'Text','Reload Metatable');
+            mitem.MenuSelectedFcn = @(src, event) app.reloadMetaTable;
+            mitem = uimenu(m, 'Text','Save Metatable', 'Enable', 'on');
+            mitem.MenuSelectedFcn = @app.saveMetaTable;
+
+            
             mitem = uimenu(m, 'Text','Manage Metatables...', 'Enable', 'off');
             mitem.MenuSelectedFcn = [];
             
@@ -865,6 +874,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
             
             h.UpdateColumnFcn = @app.updateTableVariable;
+            h.ResetColumnFcn = @app.resetTableVariable;
             h.DeleteColumnFcn = @app.removeTableVariable;
             h.EditColumnFcn = @app.editTableVariableFunction;
 
@@ -1023,20 +1033,38 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uicontrol(app.h.StatusField)
         end
         
+        function promptOpenProject(app, projectName)
+            
+            prompt = sprintf('Do you want to open the project "%s"', projectName);
+            title = 'Open Project?';
+            answer = app.openQuestionDialog(prompt, title);
+            
+            switch answer
+                case 'Yes'
+                    app.changeProject(projectName)
+            end
+        end
+        
+        function changeProject(app, newProjectName)
+        %changeProject Change project to specified project
+        
+            if ~app.MetaTable.isClean()
+                wasCanceled = app.promptToSaveCurrentMetaTable();
+                if wasCanceled; return; end
+            end
+
+            projectManager = nansen.ProjectManager;
+            projectManager.changeProject(newProjectName)
+
+            % Todo: Update session table!
+            app.onProjectChanged()
+        end
         
         function onProjectChanged(app, varargin)
             app.TableIsUpdating = true;
             
-            % Todo: Remove. TEMP:
-            %h = nansen.metadata.MetaTableCatalog();
-            
             app.UiMetaTableViewer.resetTable()
             app.UiMetaTableViewer.refreshTable(table.empty, true)
-            
-            
-            drawnow
-            disp('Changing project is a work in progress. Some things might not work as expected.')
-            
             
             % Need to reassign data location model before loading metatable
             app.DataLocationModel = nansen.DataLocationModel;
@@ -1053,7 +1081,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Make sure project list is displayed correctly
             % Indicating current project
             app.updateProjectList()
-            
 
             % Update file viewer
             delete(app.UiFileViewer); app.UiFileViewer = [];
@@ -1063,13 +1090,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %             tabIdx = strcmp({hTabs.Title}, 'File Viewer');
 % %             app.UiFileViewer = nansen.FileViewer(hTabs(tabIdx));
                         
-            % Close DL Model Editr app if it is open:
+            % Close DL Model Editor app if it is open:
             if ~isempty( app.DLModelApp )
                 delete(app.DLModelApp); app.DLModelApp = [];
             end
 
             app.TableIsUpdating = false;
-
+            app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
         end
         
         function onDataLocationModelChanged(app, src, evt)
@@ -1348,7 +1375,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function updateFigureTitle(app)
             [~, fileName] = fileparts(app.MetaTable.filepath);
-            
+            fileName = app.MetaTable.getName();
+
             if app.IsIdle
                 status = 'idle';
             else
@@ -1591,10 +1619,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
-        function updateTableVariable(app, src, evt)
+        function resetTableVariable(app, src, evt)
+            app.updateTableVariable(src, evt, true)
+        end
+        
+        function updateTableVariable(app, src, evt, reset)
         %updateTableVariable Update a table variable for selected sessions   
         %
         %   This function is a callback for the context menu
+        
+            if nargin < 4
+                reset = false;
+            end
         
             if ischar(src) % For manual calls: If the value of src is the name of the variable, evt should be the update mode.
                 varName = src;
@@ -1604,8 +1640,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 updateMode = 'SelectedRows';
             end
 
-            % Todo: add case for all rows that are empty, and all rows een
-            % if they have values..
+            % Todo: add case for all rows that are empty
+            % Todo: add case for all visible rows...
             
             switch updateMode
                 case 'SelectedRows'
@@ -1627,7 +1663,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             numSessions = numel(sessionObj);
             
-            if numSessions > 5
+            if numSessions > 5 && ~reset
                 h = waitbar(0, 'Please wait while updating values');
             end
             
@@ -1649,30 +1685,37 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             updatedValues = cell(numSessions, 1);
             skipRow = [];
             
-            for iSession = 1:numSessions
-                try % Todo: Use error handling here. What if some conditions can not be met...
-                    newValue = updateFcn(sessionObj(iSession));
-                    
-                    if isa(newValue, 'nansen.metadata.abstract.TableVariable')
-                        if isequal(newValue.Value, newValue.DEFAULT_VALUE)
-                            return
-                        else
-                            newValue = newValue.Value;
+            if reset
+                [updatedValues{:}] = deal(updateFcn());
+                
+            else
+            
+                for iSession = 1:numSessions
+                    try % Todo: Use error handling here. What if some conditions can not be met...
+                        newValue = updateFcn(sessionObj(iSession));
+
+                        if isa(newValue, 'nansen.metadata.abstract.TableVariable')
+                            if isequal(newValue.Value, newValue.DEFAULT_VALUE)
+                                return
+                            else
+                                newValue = newValue.Value;
+                            end
                         end
+
+                        if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
+                        if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
+
+                        updatedValues{iSession} = newValue;
+
+                    catch ME
+                        skipRow = [skipRow, iSession];
                     end
-                    
-                    if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
-                    if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
-                    
-                    updatedValues{iSession} = newValue;
-                    
-                catch ME
-                    skipRow = [skipRow, iSession];
+
+                    if numSessions > 5
+                        waitbar(iSession/numSessions, h)
+                    end
                 end
                 
-                if numSessions > 5
-                    waitbar(iSession/numSessions, h)
-                end
             end
             
             updatedValues(skipRow) = [];
@@ -1692,18 +1735,30 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
 
             % Need to keep selected entries before refreshing table. 
-            selectedEntries = app.UiMetaTableViewer.getSelectedEntries();                    
+            if numSessions < 20
+                % Unfortunately, this is very slow for many rows.
+                colIdx = find(strcmp(app.MetaTable.entries.Properties.VariableNames, varName));
+                if isa(updatedValues{1}, 'cell')
+                    updatedValues = cat(1, updatedValues{:});
+                end
+                app.UiMetaTableViewer.updateCells(rows, colIdx, updatedValues)
+                
+            else % Update whole table
+                selectedEntries = app.UiMetaTableViewer.getSelectedEntries(); 
+            
+                app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+                % Make sure selection is preserved.
+                app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
+            end
 
-            app.UiMetaTableViewer.refreshTable(app.MetaTable)
-            
-            % Make sure selection is preserved.
-            app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
-            
-            if numSessions > 5
+            if numSessions > 5 && ~reset
                 delete(h)
             end
             
         end
+        
+        
         
         function copySessionIdToClipboard(app)
             
@@ -1787,7 +1842,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 varName = src.Text;
             end
 
-            
             % Create a dialog here.
             message = sprintf( ['This will delete the data of column ', ...
                 '%s from the table. The associated tablevar function ', ...
@@ -1816,24 +1870,26 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Refresh session context menu...
             app.updateSessionInfoDependentMenus()
-            
-
         end
         
-        function checkIfMetaTableComplete(app, metaTable)
+        function metaTable = checkIfMetaTableComplete(app, metaTable)
         %checkIfMetaTableComplete Check if user-defined variables are
         %missing from the table.
         
         % Todo: Add to metatable class? Eller muligens BaseSchema??? Kan
         % man legge inn dynamiske konstante egenskaper?
         
-            tableVarNames = app.MetaTable.entries.Properties.VariableNames;
+            if nargin < 2
+                metaTable = app.MetaTable;
+            end
+        
+            tableVarNames = metaTable.entries.Properties.VariableNames;
             
             variableAttributes = nansen.metadata.utility.getMetaTableVariableAttributes('session');
             referenceVarNames = {variableAttributes.Name};
             customVarNames = referenceVarNames([variableAttributes.IsCustom]);
         
-            app.MetaTable = addMissingVarsToMetaTable(app, app.MetaTable, 'session');
+            metaTable = addMissingVarsToMetaTable(app, metaTable, 'session');
         
 
 
@@ -1866,6 +1922,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Find the difference between those and the userVarNames
             missingVarNames = setdiff(tableCustomVarNames, customVarNames);
             
+            
+            % Display a prompt to the user if any table variables have been
+            % removed. If user does not want to removed those variables,
+            % create a dummy function for that table var.
+            
             for iVarName = 1:numel(missingVarNames)
                 thisName = missingVarNames{iVarName};
 
@@ -1879,7 +1940,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 switch answer
                     case 'Yes'
-                        app.MetaTable.removeTableVariable(thisName)
+                        metaTable.removeTableVariable(thisName)
                     case {'Cancel', 'No', ''}
                         
                         % Todo (Is it necessary): Maybe if the variable is
@@ -1889,7 +1950,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
                         % Get table row as struct in order to check data
                         % type. (Some data is within a cell array in the table)
-                        tableRow = app.MetaTable.entries(1, :);
+                        tableRow = metaTable.entries(1, :);
                         rowAsStruct = table2struct(tableRow);
                         
                         % Create dummy function
@@ -1902,13 +1963,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
                         nansen.metadata.utility.createClassForCustomTableVar(S)
                 end
-                
             end
-                
-                % Display a warning to the user if any variables will be
-                % removed. If user does not want to removed those variables,
-                % create a dummy function for that table var.
 
+            if nargin < 2; app.MetaTable = metaTable; end
+            if ~nargout; clear metaTable; end
         end
         
         function metaTable = addMissingVarsToMetaTable(app, metaTable, metaTableType)
@@ -1973,17 +2031,27 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             try
                 % Load existing or create new experiment inventory 
                 if exist(loadPath, 'file') == 2
-                    app.MetaTable = nansen.metadata.MetaTable.open(loadPath);
-                    %app.experimentInventoryPath = loadPath;
+                    metaTable = nansen.metadata.MetaTable.open(loadPath);
                 else % Todo: do i need this...?
-                    app.MetaTable = nansen.metadata.MetaTable;
-                    %app.experimentInventoryPath = app.experimentInventory.filepath;
+                    metaTable = nansen.metadata.MetaTable;
                 end
-
-                app.checkIfMetaTableComplete()
+            
+                % Checks if metatable matches with custom table variables
+                metaTable = app.checkIfMetaTableComplete(metaTable);
                 
                 % Temp fix. Todo: remove
-                app.MetaTable = nansen.metadata.temp.fixMetaTableDataLocations(app.MetaTable, app.DataLocationModel);
+                metaTable = nansen.metadata.temp.fixMetaTableDataLocations(metaTable, app.DataLocationModel);
+                
+                % Update data location paths based on the local
+                % DataLocation model and make sure paths are according to
+                % operating system.
+                if any(strcmp(metaTable.entries.Properties.VariableNames, 'DataLocation'))
+                    dataLocationStructs = metaTable.entries.DataLocation;
+                    dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
+                    metaTable.entries.DataLocation = dataLocationStructs;
+                end
+                
+                app.MetaTable = metaTable;
                 
 % %                 if app.initialized % todo
 % %                     app.updateRelatedInventoryLists()
@@ -2008,8 +2076,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 app.h.StatusField.String = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
                 app.clearStatusIn(5)
+            else
+                error('Can not save metatable because access is read only')
             end
 
+        end
+        
+        function reloadMetaTable(app)
+            currentTablePath = app.MetaTable.filepath;
+            app.loadMetaTable(currentTablePath)
         end
         
         function wasCanceled = promptToSaveCurrentMetaTable(app)
@@ -2024,12 +2099,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return 
             end
             
-            projectName = getpref('Nansen', 'CurrentProject');
-
             % Prepare inputs for the question dialog
             qstring = sprintf(['The session table for project "%s" has ', ...
                 'unsaved changes. Do you want to save changes to the ', ...
-                'table?'], projectName);
+                'table?'], app.CurrentProjectName);
             
             title = 'Save changes to table?';
             alternatives = {'Save', 'Don''t Save', 'Cancel'};
@@ -2543,27 +2616,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                     
                 case 'Add Existing...'
-                    ProjectManagerUI().addExistingProject()
+                    [success, projectName] = ProjectManagerUI().addExistingProject();
+                    
+                    if success
+                        app.promptOpenProject(projectName)
+                    end
+                    
             end
             
             app.updateProjectList()
 
         end
         
-        function onChangeProjectMenuClicked(app, src, evt)
+        function onChangeProjectMenuClicked(app, src, ~)
         %onChangeProjectMenuClicked Let user change current project
-        
-            if ~app.MetaTable.isClean()
-                wasCanceled = app.promptToSaveCurrentMetaTable();
-                if wasCanceled; return; end
-            end
-        
-            projectManager = nansen.ProjectManager;
-            projectManager.changeProject(src.Text)
-            
-            % Todo: Update session table!
-            app.onProjectChanged()
-            
+            app.changeProject(src.Text)
         end
         
         function onManageProjectsMenuClicked(app, src, evt)
@@ -2584,14 +2651,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateProjectList()
             
         end
-    
+        
         function MenuCallback_CloseAll(app, ~, ~)
             state = get(app.Figure, 'HandleVisibility');
             set(app.Figure, 'HandleVisibility', 'off')
             close all
             set(app.Figure, 'HandleVisibility', state)
         end
-        
         
         function updateRelatedInventoryLists(app, mItem)
             
@@ -2709,7 +2775,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mtItem = MT.getEntry(metaTableName);
 
             % Get database filepath
-            filePath = fullfile(mtItem.SavePath, mtItem.FileName);
+            rootDir = fileparts(nansen.metadata.MetaTableCatalog.getFilePath());
+            filePath = fullfile(rootDir, mtItem.FileName);
             
             if ~contains(filePath, '.mat')
                 filePath = strcat(filePath, '.mat');

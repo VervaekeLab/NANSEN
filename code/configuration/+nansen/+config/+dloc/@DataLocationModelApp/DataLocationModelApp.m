@@ -211,6 +211,57 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             
         end
         
+        function doAbort = promptSaveChanges(obj)
+        %promptSaveChanges Prompt user if UI changes should be saved.
+        
+            % Initialize output (assume user is not going to abort)
+            doAbort = false;    
+            
+            % Todo: Should compare to a backup of model instead!
+            % Check if any modules have made changes to the model
+            isDirty = false(1,3);
+            for i = 1:numel(obj.UIModule)
+                if ~isempty(obj.UIModule{i})
+                    isDirty(i) = obj.UIModule{i}.IsDirty;
+                end
+            end
+            
+            % Ask user if changes should be saved
+            if any(isDirty)
+                message = 'Save changes to Data Locations?';
+                title = 'Confirm Save';
+
+                selection = uiconfirm(obj.Figure, message, title, ...
+                    'Options', {'Yes', 'No', 'Cancel'}, ...
+                    'DefaultOption', 1, 'CancelOption', 3);
+                
+                switch selection
+                    case 'Yes'
+                        for i = 2:3
+                            if ~isempty(obj.UIModule{i})
+                                d = uiprogressdlg(obj.Figure, 'Title','Updading Model',...
+                                    'Message', 'Updating paths for session folders of Daralocations...', ...
+                                    'Indeterminate','on');
+                                obj.UIModule{i}.updateDataLocationModel()
+                                close(d)
+                                obj.UIModule{i}.markClean()
+                            end
+                        end
+                        obj.DataLocationModel.save()
+                        obj.UIModule{1}.markClean()
+                        evtData = event.EventData;
+                        obj.notify('DataLocationModelChanged', evtData)
+
+                    case 'No'
+                        obj.DataLocationModel.restore(obj.DataBackup)
+                        
+                    otherwise
+                        doAbort = true; % User decided to abort.
+                        return
+                end
+            end
+        end
+        
     end
     
     methods % Get methods
@@ -234,7 +285,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             else
                 delete(obj.Figure)
             end
-            
         end
         
         % Override superclass (ConfigurationApp) method
@@ -252,7 +302,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                 end
                 hideApp@nansen.config.abstract.ConfigurationApp(obj)
             end
-            
         end
         
         % Override applyTheme from HasTheme mixin
@@ -265,7 +314,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             %set(hTabs, 'BackgroundColor', S.FigureBgColor)
             
             set(obj.ControlPanels, 'BackgroundColor', S.ControlPanelsBgColor)
-        
         end
        
     end
@@ -384,7 +432,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             obj.enterTab( evt.NewValue )
             
         end
-
         
         function enterTab(obj, uiTab)
             % Prepare new tab on selection
@@ -423,61 +470,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                     end
             end
         end
-    end
-    
-    methods (Access = private) 
-        
-        function doAbort = promptSaveChanges(obj)
-        %promptSaveChanges Prompt user if UI changes should be saved.
-        
-            % Initialize output (assume user is not going to abort)
-            doAbort = false;    
-            
-            % Todo: Should compare to a backup of model instead!
-            % Check if any modules have made changes to the model
-            isDirty = false(1,3);
-            for i = 1:numel(obj.UIModule)
-                if ~isempty(obj.UIModule{i})
-                    isDirty(i) = obj.UIModule{i}.IsDirty;
-                end
-            end
-            
-            % Ask user if changes should be saved
-            if any(isDirty)
-                message = 'Save changes to Data Locations?';
-                title = 'Confirm Save';
-
-                selection = uiconfirm(obj.Figure, message, title, ...
-                    'Options', {'Yes', 'No', 'Cancel'}, ...
-                    'DefaultOption', 1, 'CancelOption', 3);
-                
-                switch selection
-                    case 'Yes'
-                        for i = 2:3
-                            if ~isempty(obj.UIModule{i})
-                                d = uiprogressdlg(obj.Figure, 'Title','Updading Model',...
-                                    'Message', 'Updating paths for session folders of Daralocations...', ...
-                                    'Indeterminate','on');
-                                obj.UIModule{i}.updateDataLocationModel()
-                                close(d)
-                                obj.UIModule{i}.markClean()
-                            end
-                        end
-                        obj.DataLocationModel.save()
-                        obj.UIModule{1}.markClean()
-                        evtData = event.EventData;
-                        obj.notify('DataLocationModelChanged', evtData)
-
-                    case 'No'
-                        obj.DataLocationModel.restore(obj.DataBackup)
-                        
-                    otherwise
-                        doAbort = true; % User decided to abort.
-                        return
-                end
-            end
-        end
-        
     end
     
 end

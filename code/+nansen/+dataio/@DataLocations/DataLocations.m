@@ -1,6 +1,8 @@
 classdef DataLocations < utility.data.ObjectCatalog
-    %DATALOCATIONS Interface for detecting path of data/session folders
-    
+%DATALOCATIONS Interface for detecting path of data/session folders
+  
+
+% Todo: Adapt from nansen.config.dloc.DataLocationModel
     
     % TODOS:
     %   [x] Combine code from getSubjectId and getSessionId into separate

@@ -66,9 +66,10 @@ classdef ProjectManagerUI < handle
             tf = strcmp(obj.UIControls.CreateNewProjectButton.Enable, 'off');
         end
         
-        function addExistingProject(obj)
+        function [success, projectName] = addExistingProject(obj)
         %addExistingProject Add existing project from file
-        
+            
+            success = false;
             [fileName, folder] = uigetfile(obj.ProjectRootFolderPath);
             
             if fileName == 0
@@ -77,12 +78,19 @@ classdef ProjectManagerUI < handle
             
             try
                 filePath = fullfile(folder, fileName);
-                obj.ProjectManager.addExistingProject(filePath)
+                projectName = obj.ProjectManager.addExistingProject(filePath);
+                success = ~isempty( projectName );
             catch ME
                 throw(ME)
             end
 
             obj.updateProjectTableData()
+            
+            if ~nargout
+                clear success projectName
+            elseif nargout == 1
+                clear projectName
+            end
         end
         
         function createProject(obj)
@@ -242,7 +250,7 @@ classdef ProjectManagerUI < handle
         
             T = struct2table(obj.ProjectManager.Catalog, 'AsArray', true);
             
-            currentProjectName = getpref('Nansen', 'CurrentProject');
+            currentProjectName = getpref('Nansen', 'CurrentProject', '');
             
             isCurrent = strcmp(T.Name, currentProjectName);
             tableColumn = table(isCurrent, 'VariableNames', {'Current'});

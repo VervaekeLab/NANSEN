@@ -50,6 +50,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj@applify.apptable(varargin{:})
            
             obj.onModelSet()
+            
+            % Reset IsDirty flag because it will be triggered when model is
+            % set.
+            obj.IsDirty = false;
         end
         
     end
@@ -295,6 +299,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
     end
     
     methods % Methods for updating
+        
+        function set.IsDirty(obj, newValue)
+            obj.IsDirty = newValue;
+        end
         
         function setActive(obj)
         %setActive Execute actions needed for ui activation

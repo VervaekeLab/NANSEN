@@ -2,7 +2,7 @@ function reset()
 %Reset Reset all settings of this software package. 
 
 
-    %% Ask user if this is really desired.
+    %% Ask user to confirm.
     msg = sprintf(['\nThis will reset all settings for this package, and ', ...
         'the operation can not be undone. \nAre you sure you want to continue? ', ...
         'Enter y or n: ']);
@@ -35,6 +35,9 @@ function reset()
         fullfile(nansenRootPath, '_userdata', 'projects'), ...
         fullfile(nansenRootPath, '_userdata', 'settings') };
     
+    backupPath = fullfile(nansenRootPath, '_userdata', 'backup', ...
+        datestr(now, 'yyyy_mm_dd_HHMMSS'));
+    
     for i = 1:numel(folderPath)
         
         iPath = folderPath{i};
@@ -42,17 +45,37 @@ function reset()
         if ~exist(iPath, 'dir')
             continue
         end
+        
+        try
+            rmpath(genpath(iPath))
 
-        rmpath(genpath(iPath))
-        rmdir(iPath, 's')
-    
-        % Remake an empty directory
-        mkdir(iPath)
-        addpath(genpath(iPath))
+            % Move project files and settings to a backup folder
+            if contains(iPath, '_userdata')
+                iPathTarget = strrep(iPath, ...
+                    fullfile(nansenRootPath, '_userdata'), backupPath);
+                movefile(iPath, iPathTarget)
+            else
+                rmdir(iPath, 's')
+            end
+            
+            % Remake an empty directory
+            mkdir(iPath)
+            addpath(genpath(iPath))
+            
+        catch ME
+            disp(ME.message)
+        end
     end
     
-    
+
     %% Show a confirmation message 
     disp('All settings and user data was removed')
     
+end
+
+
+function moveDirToBackup
+
+
+
 end
