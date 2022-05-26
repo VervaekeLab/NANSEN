@@ -51,7 +51,7 @@ function S = getAddonList()
     S(i).WebUrl = 'https://github.com/ewiger/yamlmatlab';
     S(i).DownloadUrl = 'https://github.com/ehennestad/yamlmatlab/archive/refs/heads/master.zip'; % Fixed som bugs with original
     S(i).HasSetupFile = false;
-    S(i).SetupFileName = 'yaml.addToStaticJavaClassPath';
+    S(i).SetupFileName = 'nansen.config.path.addYamlJarToJavaClassPath';
     S(i).FunctionName = 'yaml.WriteYaml';
     
     i = i + 1;
