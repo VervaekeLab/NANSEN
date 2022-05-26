@@ -63,6 +63,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         DataLocationModel
         
+        CurrentProjectName  % Current project which is open in the app
         ProjectManager
         
         MessagePanel % Todo: Use HasDisplay mixin...
@@ -102,7 +103,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.ProjectManager = nansen.ProjectManager();
             app.assertProjectsAvailable()
             app.ProjectManager.setProject()
-            
+            app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
+
             nansen.validate()
 
             
@@ -1031,20 +1033,38 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uicontrol(app.h.StatusField)
         end
         
+        function promptOpenProject(app, projectName)
+            
+            prompt = sprintf('Do you want to open the project "%s"', projectName);
+            title = 'Open Project?';
+            answer = app.openQuestionDialog(prompt, title);
+            
+            switch answer
+                case 'Yes'
+                    app.changeProject(projectName)
+            end
+        end
+        
+        function changeProject(app, newProjectName)
+        %changeProject Change project to specified project
+        
+            if ~app.MetaTable.isClean()
+                wasCanceled = app.promptToSaveCurrentMetaTable();
+                if wasCanceled; return; end
+            end
+
+            projectManager = nansen.ProjectManager;
+            projectManager.changeProject(newProjectName)
+
+            % Todo: Update session table!
+            app.onProjectChanged()
+        end
         
         function onProjectChanged(app, varargin)
             app.TableIsUpdating = true;
             
-            % Todo: Remove. TEMP:
-            %h = nansen.metadata.MetaTableCatalog();
-            
             app.UiMetaTableViewer.resetTable()
             app.UiMetaTableViewer.refreshTable(table.empty, true)
-            
-            
-            drawnow
-            disp('Changing project is a work in progress. Some things might not work as expected.')
-            
             
             % Need to reassign data location model before loading metatable
             app.DataLocationModel = nansen.DataLocationModel;
@@ -1061,7 +1081,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Make sure project list is displayed correctly
             % Indicating current project
             app.updateProjectList()
-            
 
             % Update file viewer
             delete(app.UiFileViewer); app.UiFileViewer = [];
@@ -1071,13 +1090,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %             tabIdx = strcmp({hTabs.Title}, 'File Viewer');
 % %             app.UiFileViewer = nansen.FileViewer(hTabs(tabIdx));
                         
-            % Close DL Model Editr app if it is open:
+            % Close DL Model Editor app if it is open:
             if ~isempty( app.DLModelApp )
                 delete(app.DLModelApp); app.DLModelApp = [];
             end
 
             app.TableIsUpdating = false;
-
+            app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
         end
         
         function onDataLocationModelChanged(app, src, evt)
@@ -2080,12 +2099,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return 
             end
             
-            projectName = getpref('Nansen', 'CurrentProject');
-
             % Prepare inputs for the question dialog
             qstring = sprintf(['The session table for project "%s" has ', ...
                 'unsaved changes. Do you want to save changes to the ', ...
-                'table?'], projectName);
+                'table?'], app.CurrentProjectName);
             
             title = 'Save changes to table?';
             alternatives = {'Save', 'Don''t Save', 'Cancel'};
@@ -2599,27 +2616,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                     
                 case 'Add Existing...'
-                    ProjectManagerUI().addExistingProject()
+                    [success, projectName] = ProjectManagerUI().addExistingProject();
+                    
+                    if success
+                        app.promptOpenProject(projectName)
+                    end
+                    
             end
             
             app.updateProjectList()
 
         end
         
-        function onChangeProjectMenuClicked(app, src, evt)
+        function onChangeProjectMenuClicked(app, src, ~)
         %onChangeProjectMenuClicked Let user change current project
-        
-            if ~app.MetaTable.isClean()
-                wasCanceled = app.promptToSaveCurrentMetaTable();
-                if wasCanceled; return; end
-            end
-        
-            projectManager = nansen.ProjectManager;
-            projectManager.changeProject(src.Text)
-            
-            % Todo: Update session table!
-            app.onProjectChanged()
-            
+            app.changeProject(src.Text)
         end
         
         function onManageProjectsMenuClicked(app, src, evt)
@@ -2640,14 +2651,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateProjectList()
             
         end
-    
+        
         function MenuCallback_CloseAll(app, ~, ~)
             state = get(app.Figure, 'HandleVisibility');
             set(app.Figure, 'HandleVisibility', 'off')
             close all
             set(app.Figure, 'HandleVisibility', state)
         end
-        
         
         function updateRelatedInventoryLists(app, mItem)
             
