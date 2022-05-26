@@ -380,10 +380,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Metatable', 'Enable', 'on');
             app.updateRelatedInventoryLists(mitem)
             app.updateMetaTableMenu(mitem);
-            
+
             mitem = uimenu(m, 'Text','Make Current Metatable Default');
             mitem.MenuSelectedFcn = @app.onSetDefaultMetaTableMenuItemClicked;
-             
+            
+            mitem = uimenu(m, 'Text','Reload Metatable');
+            mitem.MenuSelectedFcn = @(src, event) app.reloadMetaTable;
+            mitem = uimenu(m, 'Text','Save Metatable', 'Enable', 'on');
+            mitem.MenuSelectedFcn = @app.saveMetaTable;
+
+            
             mitem = uimenu(m, 'Text','Manage Metatables...', 'Enable', 'off');
             mitem.MenuSelectedFcn = [];
             
@@ -1350,7 +1356,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function updateFigureTitle(app)
             [~, fileName] = fileparts(app.MetaTable.filepath);
-            
+            fileName = app.MetaTable.getName();
+
             if app.IsIdle
                 status = 'idle';
             else
@@ -2050,8 +2057,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 app.h.StatusField.String = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
                 app.clearStatusIn(5)
+            else
+                error('Can not save metatable because access is read only')
             end
 
+        end
+        
+        function reloadMetaTable(app)
+            currentTablePath = app.MetaTable.filepath;
+            app.loadMetaTable(currentTablePath)
         end
         
         function wasCanceled = promptToSaveCurrentMetaTable(app)
@@ -2751,7 +2765,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mtItem = MT.getEntry(metaTableName);
 
             % Get database filepath
-            filePath = fullfile(mtItem.SavePath, mtItem.FileName);
+            rootDir = fileparts(nansen.metadata.MetaTableCatalog.getFilePath());
+            filePath = fullfile(rootDir, mtItem.FileName);
             
             if ~contains(filePath, '.mat')
                 filePath = strcat(filePath, '.mat');
