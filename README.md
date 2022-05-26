@@ -2,7 +2,7 @@
 [![Twitter](https://img.shields.io/twitter/follow/NeuroNansen?style=social)](https://twitter.com/NeuroNansen)
 [![YouTube](https://img.shields.io/youtube/channel/views/UCKOzL-MVWgy7oOMo6x_GSkQ?style=social)](https://www.youtube.com/channel/UCKOzL-MVWgy7oOMo6x_GSkQ)
 
-A collection of apps and modules for processing, analysis and visualization of two-photon imaging data. Check out the introduction to Nansen on [YouTube](https://youtu.be/_u0Aw1n5gHg)
+A collection of apps and modules for processing, analysis and visualization of two-photon imaging data. Check out the introduction to Nansen on [YouTube](https://youtu.be/_u0Aw1n5gHg) and/or see the [Wiki](https://github.com/VervaekeLab/NANSEN/wiki) for more details.
 
 <img src="https://github.com/ehennestad/ehennestad.github.io/blob/main/images/app_overview.png?raw=true" alt="Imviewer instance" width="100%"/>
 
@@ -10,7 +10,11 @@ A collection of apps and modules for processing, analysis and visualization of t
 
 - [Installation](#installation)
 - [Apps](#apps)
+    - [Imviewer](#imviewer)
+    - [Fovmanager](#fovmanager)
 - [Plugins](#plugins)
+- [Wiki](https://github.com/VervaekeLab/NANSEN/wiki)
+
 
 ## Disclaimer
 The NANSEN toolbox is still under development, so don't be surprised if you find occasional bugs here and there! If you manage to break something, please report under the issues section! Secondly, suggestions for improvements and general feedback are very welcome!
