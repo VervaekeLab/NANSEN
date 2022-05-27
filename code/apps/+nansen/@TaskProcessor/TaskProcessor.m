@@ -213,10 +213,10 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
             isMatched = @(fn) strcmp({obj.TaskQueue.(fn)}, taskStruct.(fn));
             
-            nameMatched = any( isMatched('name') );
-            methodMatched = any( isMatched('methodName') );
+            nameMatched = isMatched('name') ;
+            methodMatched = isMatched('methodName') ;
             
-            tf = nameMatched & methodMatched;
+            tf = any( nameMatched & methodMatched );
             
         end
         
