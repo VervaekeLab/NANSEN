@@ -760,18 +760,24 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if nargin < 4 || isempty(dim)
                 % Dim should be minimum 3, but would be 2 for single frame
                 dim = max([3, ndims(tmpStack)]);
-                dim = obj.getDimensionNumber('T');
+                if contains(obj.Data.StackDimensionArrangement, 'T')
+                    dim = obj.getDimensionNumber('T');
+                elseif contains(obj.Data.StackDimensionArrangement, 'Z')
+                    dim = obj.getDimensionNumber('Z');
+                end
             else
                 error('Not implemented yet')
             end
             
             % Special case if the imagedata is a single rgb frame, need to
             % find max along 4th dimensions..
-            if dim == 3 && numel(obj.CurrentChannel) > 1 
+
+            if isempty(dim)
+                dim = ndims(tmpStack) + 1; % (If not T dimension is present, i.e XYC or XYZ. Todo: IS this correct in all cases 
+            elseif dim == 3 && numel(obj.CurrentChannel) > 1 
                 dim = 4;
             end
 
-            
             % Calculate the projection image
             switch lower(projectionName)
                 case {'avg', 'mean', 'average'}
