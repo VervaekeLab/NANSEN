@@ -767,6 +767,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         % Get string that looks like this based on current channel/plane: 
         % Processing part 2/80 (channel 1/2, plane 1/4, part 1/5)
             
+            currentPlane = obj.CurrentPlane;
+            currentChannel = obj.CurrentChannel(1); % Select first (sometimes channels are processed in batch) Todo: This should be generalized, what if some subclass would process channel 1 and 2 and then channel 3 and 4 or some weird stuff like that...
+            
+
             currentPart = iPart;
             numParts = obj.NumParts;
             
@@ -776,8 +780,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             numChannels = obj.SourceStack.NumChannels;
             numPlanes = obj.SourceStack.NumPlanes;
             
-            numRepetitions = numChannels .* numPlanes;
-            currentRepetition = (obj.CurrentChannel-1) .* numPlanes + obj.CurrentPlane;
+            numRepetitions = numChannelIter .* numPlanesIter;
+            currentRepetition = (currentChannel-1) .* numPlanes + currentPlane;
             
             currentPartTotal = currentRepetition + currentPart - 1;
             numPartsTotal = numParts .* numRepetitions;
@@ -808,7 +812,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 addendumStr = strjoin(addendumStr, ', ');
                 str = sprintf('%s (%s)', str, addendumStr);
             end
-            
         end
         
     end

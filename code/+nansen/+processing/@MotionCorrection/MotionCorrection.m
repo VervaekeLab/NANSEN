@@ -53,6 +53,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 %   QUESTIONS:
 %       b) How to resolve initializing this method with a different set of
 %          options than before?
+%       
+%       - Should convertion of projection stacks and saving of fov images
+%         be part of this class or should they be different methods?
+
 
 
     % Todo: 
@@ -240,9 +244,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 varName = 'MotionCorrectedMaximumProjections';
                 obj.MaxProjectionStack = obj.openTiffStack(varName, refArray);
             end
+
             
             if ~strcmp(dataTypeIn, 'uint8')
                 refArray = zeros(refArraySize, 'uint8');
+                fovArray = zeros(refArraySize(1:end-1), 'uint8');
                 varName = 'MotionCorrectionTemplates8bit';
                 
                 obj.DerivedStacks.Templates8bit = ...
@@ -252,15 +258,18 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                     varName = 'MotionCorrectedAverageProjections8bit';
                     obj.DerivedStacks.AvgProj8bit = ...
                         obj.openTiffStack(varName, refArray);
+                    obj.DerivedStacks.AvgFovImage = ...
+                        obj.openTiffStack('FovAverageProjection', fovArray, 'fov_images', false);
                 end
                 
                 if obj.Options.Export.saveMaximumProjection
                     varName = 'MotionCorrectedMaximumProjections8bit';
                     obj.DerivedStacks.MaxProj8bit = ...
                         obj.openTiffStack(varName, refArray);
+                    obj.DerivedStacks.MaxFovImage = ...
+                        obj.openTiffStack('FovMaximumProjection', fovArray, 'fov_images', false);
                 end
             end
-
         end
         
         function onCurrentChannelSet(obj, currentChannel)
@@ -302,6 +311,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         end
         
         function onCompletion(obj)
+            
+            % Todo: Rename to completeCurrentChannelCurrentPlane
 
             i = 1;
             j = obj.CurrentPlane;
@@ -316,52 +327,23 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             imArray = obj.ReferenceStack.getFrameSet(1:obj.NumParts);
             imArray = stack.makeuint8(imArray);
             obj.saveTiffStack('MotionCorrectionTemplates8bit', imArray)
-
+            
+            
             % Save average and maximum projections as 8-bit stacks.
             if obj.Options.Export.saveAverageProjection
-                imArray = obj.AvgProjectionStack.getFrameSet(1:obj.NumParts);
-                imArray = stack.makeuint8(imArray, [], [], crop); % todo: Generalize this function / add tolerance as input
-            	
-                obj.DerivedStacks.AvgProj8bit.writeFrameSet(imArray, 1:obj.NumParts)
-                
-                
-                %obj.saveTiffStack('MotionCorrectedAverageProjections8bit', imArray)
-                
-                % Save average projection image of full stack
-                imArray = obj.AvgProjectionStack.getFrameSet(1:obj.NumParts);
-                fovAverageProjection = mean(imArray, 3);
-                fovAverageProjection = stack.makeuint8(fovAverageProjection, [], [], crop);
-                
-                suffix = obj.getVariableNameSuffix();
-                varName = strcat('FovAverageProjection', suffix);
-                
-                obj.saveData(varName, fovAverageProjection, ...
-                    'Subfolder', 'fov_images', 'FileType', 'tif', ...
-                    'FileAdapter', 'ImageStack' );
-                
+                obj.saveProjectionImages('average', crop)
             end
             
             if obj.Options.Export.saveMaximumProjection
-                imArray = obj.MaxProjectionStack.getFrameSet(1:obj.NumParts);
-                imArray = stack.makeuint8(imArray, [], [], crop); % todo: Generalize this function / add tolerance as input
-                
-                obj.DerivedStacks.MaxProj8bit.writeFrameSet(imArray, 1:obj.NumParts)
-                %obj.saveTiffStack('MotionCorrectedMaximumProjections8bit', imArray)
-                
-                % Save maximum projection image of full stack
-                imArray = obj.MaxProjectionStack.getFrameSet(1:obj.NumParts);
-                fovMaximumProjection = mean(imArray, 3);
-                fovMaximumProjection = stack.makeuint8(fovMaximumProjection, [], [], crop);
-                
-                suffix = obj.getVariableNameSuffix();
-                varName = strcat('FovMaximumProjection', suffix);
-                
-                obj.saveData(varName, fovMaximumProjection, ...
-                    'Subfolder', 'fov_images', 'FileType', 'tif', ...
-                    'FileAdapter', 'ImageStack' );
-                
-                
-
+                obj.saveProjectionImages('maximum', crop)
+            end
+            
+            if obj.SourceStack.NumChannels > 1 && ...
+                    ismember(obj.SourceStack.NumChannels, obj.CurrentChannel)
+                if obj.CurrentPlane == obj.SourceStack.NumPlanes
+                    obj.resaveRGBProjectionImages('average')
+                    obj.resaveRGBProjectionImages('maximum')
+                end
             end
         end
         
@@ -500,16 +482,33 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Save projections images if selected
             
+            % Todo: This shold be done after data is written to target
+            % stack...
+            
             if obj.Options.Export.saveAverageProjection
-                avgProj = mean(Y, 3);
+                dim = ndims(Y);
+                avgProj = mean(Y, dim);
                 avgProj = cast(avgProj, dataTypeIn);
                 obj.AvgProjectionStack.writeFrameSet(avgProj, iPart)
             end
             
             if obj.Options.Export.saveMaximumProjection
                 % Filter using okada before getting the max.
-                Y_ = stack.process.filter3.okada(Y);
-                maxProj = max(Y_, [], 3);
+                dim = ndims(Y);
+                Y_ = movmean(Y, 3, dim);
+% %                 tic
+% %                 Y2_ = movmean(Y, 5, dim);
+% %                 toc
+% %                 Y3_ = Y;
+% %                 tic
+% %                 [h,w,c,t] = size(Y3_);
+% %                 for i = 1:2
+% %                     ytmp = stack.process.filter3.okada(squeeze(Y(:,:,i,:)));
+% %                     Y3_(:, :, i, :) = reshape(ytmp, h,w,1,t);
+% %                 end
+% %                 toc
+                %Y_ = stack.process.filter3.okada(Y);
+                maxProj = max(Y_, [], dim);
                 maxProj = cast(maxProj, dataTypeIn);
                 obj.MaxProjectionStack.writeFrameSet(maxProj, iPart)
             end
@@ -531,7 +530,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Call method of ImageStackProcessor
             openTargetStack@nansen.stack.ImageStackProcessor(obj, filePath, ...
                 stackSize, dataType, 'DataDimensionArrangement', ...
-                obj.SourceStack.MetaData.DimensionArrangement)
+                obj.SourceStack.Data.StackDimensionArrangement)
             
             % Inherit metadata from the source stack
             obj.TargetStack.MetaData.updateFromSource(obj.SourceStack.MetaData)
@@ -574,7 +573,87 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     end
     
     methods (Access = private)
+        
+        function saveProjectionImages(obj, projectionType, cropAmount)
+        %saveProjectionStack Save projections for current channel/plane
+        %
+        %   Save an 8bit version of the projection stack
+        %   Save a full projection image based on the projection stack
+        
+            if numel(obj.CurrentChannel) > 1
+                lastDim = 4;
+            else
+                lastDim = 3;
+            end
+        
+            switch lower( projectionType )
+                case 'average'
+                    sourceStackName = 'AvgProjectionStack';
+                    targetStackNameA = 'AvgProj8bit';
+                    targetStackNameB = 'AvgFovImage';
+                    getFullProjection = @(IM) mean(IM, lastDim);
+                case 'maximum'
+                    sourceStackName = 'MaxProjectionStack';
+                    targetStackNameA = 'MaxProj8bit';
+                    targetStackNameB = 'MaxFovImage';
+                    getFullProjection = @(IM) max(IM, [], lastDim);
+            end
+            
+            % Save an 8bit version of the projection stack
+            imArray = obj.(sourceStackName).getFrameSet(1:obj.NumParts);
+            %imArray8b = stack.makeuint8(imArray_, [], [], cropAmount);      % todo: Generalize this function / add tolerance as input
+            imArray8b = obj.adjustColorPerChannel(imArray, cropAmount);
+            obj.DerivedStacks.(targetStackNameA).writeFrameSet(imArray8b, 1:obj.NumParts)
+            
 
+            % Save projection of the projection stack
+            fovProjection = getFullProjection(imArray);
+            %fovProjection = stack.makeuint8(fovProjection, [], [], cropAmount);
+            fovProjection = obj.adjustColorPerChannel(fovProjection, cropAmount);
+
+            obj.DerivedStacks.(targetStackNameB).writeFrameSet(fovProjection, 1);
+        end
+        
+        function imArrayOut = adjustColorPerChannel(obj, imArrayIn, cropAmount)
+                      
+            imArrayOut = zeros(size(imArrayIn), 'uint8');
+            
+            if numel(obj.CurrentChannel) == 1
+                imArrayOut = stack.makeuint8(imArrayIn, [], [], cropAmount);      % todo: Generalize this function / add tolerance as input
+            else
+                imArrayIn = permute(imArrayIn, [1,2,4,3]);
+                imArrayOut = permute(imArrayOut, [1,2,4,3]);
+                for i = 1:numel(obj.CurrentChannel)
+                    imArrayOut(:,:,:,i) = ...
+                        stack.makeuint8(imArrayIn(:,:,:,i), [], [], cropAmount);
+                end
+                imArrayOut = ipermute(imArrayOut, [1,2,4,3]);
+            end
+        end
+        
+        function resaveRGBProjectionImages(obj, projectionType)
+            % Todo: implement this...
+
+            switch lower( projectionType )
+                case 'average'
+                    IS = obj.DerivedStacks.AvgFovImage;
+                case 'maximum'
+                    IS = obj.DerivedStacks.MaxFovImage;
+            end
+            
+            imArray = IS.getFrameSet('all', 'extended');
+            filepath = IS.FileName;
+            
+            % Todo: Need function for makeing RGB out of n-channel stack...
+            rgbArray = imArray;
+            rgbArray(:, :, 3, :) = 0;
+            
+            newFilepath = strrep(filepath, '.tif', '_rgb.tif');
+
+            nansen.stack.utility.mat2tiffstack( rgbArray, newFilepath )
+            
+        end
+        
         function validateStackSize(~, stackSize)
         %validateStackSize Check if stack has correct size for motion corr    
             
@@ -636,14 +715,18 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 
         end
         
+        
         % Todo: this should be done using load data method of iomodel
         % and an imagestack file adapter.
-        function tiffStack = openTiffStack(obj, DATANAME, imageArray)
+        function tiffStack = openTiffStack(obj, DATANAME, imageArray, folderName, isInternal)
         %openTiffStack
         
+            if nargin < 4; folderName = 'image_registration'; end
+            if nargin < 5; isInternal = true; end
+
             filePath = obj.getDataFilePath( DATANAME, '-w',...
-                'Subfolder', 'image_registration', 'FileType', 'tif', ...
-                'FileAdapter', 'ImageStack', 'IsInternal', true );
+                'Subfolder', folderName, 'FileType', 'tif', ...
+                'FileAdapter', 'ImageStack', 'IsInternal', isInternal);
             
             props = {'DataDimensionArrangement', ...
                 obj.SourceStack.Data.StackDimensionArrangement, ...
