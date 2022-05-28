@@ -2278,26 +2278,30 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 newTask.timeStarted = datetime(now,'ConvertFrom','datenum');
                 
                 % Run the task
-                try
-                    if restart
-                        app.runTaskWithReset(sessionMethod, sessionObj{i}, opts)
-                    else
-                        sessionMethod(sessionObj{i}, opts);
-                    end
+                if app.settings.Session.SessionTaskDebug
+                    sessionMethod(sessionObj{i}, opts);
+                else
+                    try
+                        if restart
+                            app.runTaskWithReset(sessionMethod, sessionObj{i}, opts)
+                        else
+                            sessionMethod(sessionObj{i}, opts);
+                        end
 
-                    sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-                    newTask.status = 'Completed';
-                    diary off
-                    newTask.Diary = fileread(logfile);
-                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                catch ME
-                    newTask.status = 'Failed';
-                    diary off
-                    newTask.Diary = fileread(logfile);
-                    newTask.ErrorStack = ME;
-                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                    app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
-                        func2str(sessionMethod))
+                        sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                        newTask.status = 'Completed';
+                        diary off
+                        newTask.Diary = fileread(logfile);
+                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
+                    catch ME
+                        newTask.status = 'Failed';
+                        diary off
+                        newTask.Diary = fileread(logfile);
+                        newTask.ErrorStack = ME;
+                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
+                        app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
+                            func2str(sessionMethod))
+                    end
                 end
                 
                 clear cleanUpObj
