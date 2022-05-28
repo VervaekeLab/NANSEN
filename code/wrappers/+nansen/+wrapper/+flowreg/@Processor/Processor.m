@@ -111,7 +111,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         function tf = checkIfPartIsFinished(obj, partNumber)
         %checkIfPartIsFinished Check if shift values exist for given frames
         
-            shifts = obj.ShiftsArray;
+            shifts = obj.ShiftsArray(:, obj.CurrentPlane);
             frameIND = obj.FrameIndPerPart{partNumber};
             
             tf = all( arrayfun(@(i) ~isempty(shifts{i}), frameIND) );
@@ -120,16 +120,17 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         
         function initializeShifts(obj, numFrames)
         %initializeShifts Load or initialize shifts...
-        
+            
             filePath = obj.getDataFilePath('FlowregShifts', '-w', ...
                 'Subfolder', 'image_registration', 'IsInternal', true);
             
             if isfile(filePath)
                 S = obj.loadData('FlowregShifts');
+                
                 % TODO: IF DOWNSAMPLED, SHOULD UPSAMPLE
             else
                 % Initialize blank struct array
-                S = cell(numFrames, 1);
+                S = cell(numFrames, obj.SourceStack.NumPlanes);
                 obj.saveData('FlowregShifts', S)
             end
             
@@ -158,7 +159,11 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 IND = obj.CurrentFrameIndices;
             end
             
-            S = obj.CorrectionStats;
+            i = 1;
+            j = obj.CurrentPlane;
+            
+            S = obj.CorrectionStats{i, j};
+            
             
             W = cat(4, obj.CurrentShifts{:});
             displacement = sqrt( W(:,:,1,:).^2 + W(:,:,2,:).^2 ); 
@@ -186,10 +191,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 % % %             S.meanDivergence(IND) = meanDivergence;
 % % %             S.meanTranslation(IND) = meanTranslation;
             
+            obj.CorrectionStats{i, j} = S;
             
             % Save updated image registration stats to data location
-            obj.saveData('MotionCorrectionStats', S)
-            obj.CorrectionStats = S;
+            obj.saveData('MotionCorrectionStats', obj.CorrectionStats)
             
         end
         
@@ -281,6 +286,17 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     
     methods (Access = protected) % Run the motion correction / image registration
         
+        function [channelIterator, nIter] = getChannelIterationValues(obj)
+        %getChannelIterationValues Get index values for channel iteration
+            channelIterator = transpose(1:obj.SourceStack.NumChannels);
+            nIter = 1;
+        end
+        
+        function [planeIterator, nIter] = getPlaneIterationValues(obj)
+            planeIterator = 1:obj.SourceStack.NumPlanes;
+            nIter = numel(planeIterator);
+        end
+        
         function M = registerImageData(obj, Y)
             
             import nansen.wrapper.flowreg.utility.*
@@ -340,7 +356,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             M = squeeze(M);
             
             
-
             % Convert shifts to cell array and add to shiftarray.
             shifts = arrayfun(@(i) shifts(:, :, :, i), 1:size(shifts,4), 'uni', 0);
             obj.CurrentShifts = shifts;
@@ -350,7 +365,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 shifts{i} = single(imresize(shifts{i}, [32,32]) );
             end
             
-            obj.ShiftsArray(obj.CurrentFrameIndices) = shifts;
+            obj.ShiftsArray(obj.CurrentFrameIndices, obj.CurrentPlane) = shifts;
             
             % These variables are required:
             % c_ref, c_ref_raw, w_init, weight
