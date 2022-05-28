@@ -2010,7 +2010,7 @@ methods % App update
             
         end
         
-        % Todo: Only do this when dimsplay mode changes.
+        % Todo: Only do this when display mode changes.
         if strcmp( obj.settings.ImageDisplay.VolumeDisplayMode, 'Plane Montage')
             % Update image display x- & y-limits to keep axes tight..
             obj.uiaxes.imdisplay.XLim = [0, size(im, 2)] + 0.5;
@@ -2019,10 +2019,10 @@ methods % App update
             obj.imObj.YData = [1, size(im, 1)];
         else
             % Update image display x- & y-limits to keep axes tight..
-            obj.uiaxes.imdisplay.XLim = [0, obj.imWidth] + 0.5;
-            obj.uiaxes.imdisplay.YLim = [0, obj.imHeight] + 0.5;
-            obj.imObj.XData = [1, obj.imWidth];
-            obj.imObj.YData = [1, obj.imHeight];
+%             obj.uiaxes.imdisplay.XLim = [0, obj.imWidth] + 0.5;
+%             obj.uiaxes.imdisplay.YLim = [0, obj.imHeight] + 0.5;
+%             obj.imObj.XData = [1, obj.imWidth];
+%             obj.imObj.YData = [1, obj.imHeight];
         end
         
         if isa(obj.ImageStack, 'nansen.stack.HighResolutionImage')
@@ -2062,6 +2062,24 @@ methods % App update
             drawnow limitrate
         end
         
+    end
+    
+    function updateAxesLimits(obj)
+        
+        % Todo: Only do this when display mode changes.
+        if strcmp( obj.settings.ImageDisplay.VolumeDisplayMode, 'Plane Montage')
+            % Update image display x- & y-limits to keep axes tight..
+            obj.uiaxes.imdisplay.XLim = [0, size(im, 2)] + 0.5;
+            obj.uiaxes.imdisplay.YLim = [0, size(im, 1)] + 0.5;            
+            obj.imObj.XData = [1, size(im, 2)];
+            obj.imObj.YData = [1, size(im, 1)];
+        else
+            % Update image display x- & y-limits to keep axes tight..
+            obj.uiaxes.imdisplay.XLim = [0, obj.imWidth] + 0.5;
+            obj.uiaxes.imdisplay.YLim = [0, obj.imHeight] + 0.5;
+            obj.imObj.XData = [1, obj.imWidth];
+            obj.imObj.YData = [1, obj.imHeight];
+        end
     end
     
     function refreshImageDisplay(obj)
@@ -4501,6 +4519,8 @@ methods (Access = private) % Housekeeping and internal
 
                 obj.currentPlane = 1:obj.ImageStack.NumPlanes;
         end
+        
+        obj.updateAxesLimits()
     end
     
 end

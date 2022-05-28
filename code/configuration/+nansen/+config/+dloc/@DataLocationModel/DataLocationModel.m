@@ -303,6 +303,46 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
         end
         
+        function dataLocationStruct = validateDataLocationPaths(obj, dataLocationStruct)
+        %validateSubfolders Validate subfolders of data locations
+        %
+        %   This method is used to make sure the file separator of
+        %   subfolders is matched to the operating system
+            
+            if isempty(dataLocationStruct); return; end
+            if ~isfield(dataLocationStruct, 'Subfolders'); return; end
+            
+            % Assume all subfolders are equal...
+            
+            [numItems, numDatalocations] = size(dataLocationStruct);
+            
+            for i = 1:numDatalocations
+                       
+                dlUuid = dataLocationStruct(1,i).Uuid;
+                dlInfo = obj.getItem(dlUuid); 
+
+                for j = 1:numItems
+
+                    % Update the root directory from the model
+                    rootUid = dataLocationStruct(j, i).RootUid;
+                    rootIdx = find( strcmp( {dlInfo.RootPath.Key}, rootUid ) );
+                    
+                    if ~isempty(rootIdx)
+                        dataLocationStruct(j, i).RootPath = dlInfo.RootPath(rootIdx).Value;
+                    end
+                    
+                    % Make sure file separators maths the file system.
+                    iSubfolder = dataLocationStruct(j,i).Subfolders;
+                    if isunix && contains(iSubfolder, '\')
+                        iSubfolder = strrep(iSubfolder, '\', filesep);
+                    elseif ispc && contains(iSubfolder, '/')
+                        iSubfolder = strrep(iSubfolder, '/', filesep);
+                    end
+                    dataLocationStruct(j,i).Subfolders = iSubfolder;
+                end
+            end
+        end
+        
     end
     
     methods % Methods for accessing/modifying items
@@ -622,7 +662,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
         end
         
-        
         function filePath = getLocalRootPathSettingsFile(obj)
             
             import nansen.config.project.ProjectManager
@@ -632,7 +671,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             filePath = fullfile(dirPath, fileName);
             
         end
-        
         
         function S = importLocalRootPaths(obj, S)
             
@@ -720,6 +758,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 end
             end
         end
+        
     end
     
     methods (Access = private)

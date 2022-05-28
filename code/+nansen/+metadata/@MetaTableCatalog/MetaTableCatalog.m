@@ -227,7 +227,10 @@ classdef MetaTableCatalog < uim.handle
             if isempty(MT); pathStr = ''; return; end
             
             IND = find( MT.IsDefault );
-            pathStr = fullfile(MT{IND, 'SavePath'}, MT{IND, 'FileName'});
+            
+            rootDir = fileparts(nansen.metadata.MetaTableCatalog.getFilePath());
+            pathStr = fullfile(rootDir, MT{IND, 'FileName'});
+            %pathStr = fullfile(MT{IND, 'SavePath'}, MT{IND, 'FileName'});
             
             if isa(pathStr, 'cell')
                 pathStr = pathStr{1};

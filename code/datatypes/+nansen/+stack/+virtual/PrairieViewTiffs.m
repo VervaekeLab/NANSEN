@@ -99,6 +99,22 @@ methods (Access = protected) % Implementation of abstract methods
         obj.ImageInfo = imfinfo(obj.FilePathList{1});
         warning('on', 'imageio:tifftagsread:badTagValueDivisionByZero')
         
+        S = obj.getPrairieViewRecordingInfo();
+        
+        % Specify data dimension sizes
+        obj.MetaData.SizeX = S.xpixels;
+        obj.MetaData.SizeY = S.ypixels;
+        obj.MetaData.SizeZ = S.nPlanes;
+        obj.MetaData.SizeC = S.nCh;
+        obj.MetaData.SizeT = sum(S.nFrames)/S.nPlanes;
+        
+        % Specify physical sizes
+        obj.MetaData.SampleRate = 1/S.dt;
+        obj.MetaData.PhysicalSizeY = S.umPerPx_y;
+        obj.MetaData.PhysicalSizeYUnit = 'micrometer';
+        obj.MetaData.PhysicalSizeX = S.umPerPx_x;
+        obj.MetaData.PhysicalSizeXUnit = 'micrometer';
+        
         obj.assignDataSize()
         
         obj.assignDataType()
@@ -362,6 +378,12 @@ methods % Implementation of abstract methods for reading/writing data
 end
 
 methods (Access = protected)
+    
+    function metadata = getPrairieViewRecordingInfo(obj)
+    %getPrairieViewRecordingInfo Get recording info from prairieview xml file
+        tSeriesPath = fileparts(obj.FilePath);
+        metadata = ophys.twophoton.prairieview.getPrairieMetaData( tSeriesPath );
+    end
     
     function numChannels = detectNumberOfChannels(obj)
        

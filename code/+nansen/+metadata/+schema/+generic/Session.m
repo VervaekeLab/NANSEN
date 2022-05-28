@@ -5,7 +5,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
 %   This class provides general metadata about an experimental session and
 %   methods for accessing experimental data.
 
-
+% Todo: This is deprecated. Should be removed
 
 %   Questions: 
 %       - Is it better to have get/create session folders as methods in
@@ -497,7 +497,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             % Get data location model. Question: Better way to do this?
             global dataLocationModel
             if isempty(dataLocationModel)
-                dataLocationModel = nansen.setup.model.DataLocations();
+                dataLocationModel = nansen.config.dloc.DataLocationModel;
             end
             
             S = dataLocationModel.getDataLocation(dataLocationName);

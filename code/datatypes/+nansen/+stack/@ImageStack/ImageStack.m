@@ -313,81 +313,31 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             doCropImage = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(1:2)));
+            % Note: Do crop subsrefing only if necessary. 
+            
+            selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(3:end-1)));
+            % Note: Selecting frame subset is necessary if getting cached
+            % data and some frame dimensions (C, Z) are subsref'ed.
             
             % Todo: make another keyword, like 'all' or 'cache' but return
             % a chunk also if cache is empty
             
             % Case 1: All frames (along last dimension) are requested.
-            % Should return all available frames (i.e cached frames for virtual...)
-            if (ischar(frameInd) && strcmp(frameInd, 'chunk'))
-                % Todo
-                error('Not implemented yet')
-            
-            elseif (ischar(frameInd) && strcmp(frameInd, 'all'))
+            if (ischar(frameInd) && strcmp(frameInd, 'all')) || ...
+                 (isnumeric(frameInd) && numel(frameInd) == obj.NumFrames)
                 
-                % Todo: Check if there is enough memory for operation.
-                % Throw error if not. Return all frames if possible
+                % Check if there is enough memory for operation.
+                obj.assertEnoughMemoryForFrameRequest(indexingSubs)
 
-                
                 % Assign image data to temp variable.
                 if obj.IsVirtual
-                    try
-                        if obj.Data.HasCachedData
-                            imArray = obj.Data.getCachedFrames();
-% % %                             dimT = obj.getDimensionNumber('T');
-                            
-% % %                             % Todo: method...
-% % %                             indexingSubsTmp = indexingSubs;
-% % %                             indexingSubsTmp(1:2) = {':'};
-% % %                             indexingSubsTmp(dimT) = {':'};
-% % %                             selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubsTmp));
-                        else
-                            imArray = [];
-                        end
-                    catch
-                        imArray = [];
-                    end
-                    
-                    if isempty(imArray) % If cache is empty, get images directly from Data
-                        numFrames = min([obj.NumTimepoints, 500]);
-                        imArray = obj.getFrameSet(1:numFrames, mode);
-                        doCropImage = false;
-                    end
-
-                else
-                    imArray = obj.Data.DataArray;
-                end
-                
-                % Only apply subindexing if necessary
-                if doCropImage % todo: method
-                    indexingSubsTmp = indexingSubs;
-                    indexingSubsTmp(3:end) = {':'};
-                    imArray = imArray(indexingSubsTmp{:});
-                end
-                
-% % %                 if selectFrameSubset % todo: method
-% % %                     indexingSubsTmp = indexingSubs;
-% % %                     indexingSubsTmp(1:2) = {':'};
-% % %                     indexingSubsTmp(dimT) = {':'};
-% % %                     imArray = imArray(indexingSubsTmp{:});
-% % %                 end
-                
-            % Case 2: All frames (along last dimension) are requested.
-            % Should return all
-            elseif (isnumeric(frameInd) && numel(frameInd) == obj.NumFrames)
-                if obj.IsVirtual
                     imArray = obj.Data(indexingSubs{:});
+                    [doCropImage, selectFrameSubset] = deal( false );
                 else
                     imArray = obj.Data.DataArray;
-                
-                    % Only apply subindexing if necessary
-                    if doCropImage
-                        indexingSubs(3:end) = {':'};
-                        imArray = imArray(indexingSubs{:});
-                    end
                 end
                 
-            % Case 3; Get cached frames
+            % Case 2; Get cached frames
             elseif (ischar(frameInd) && strcmp(frameInd, 'cache'))
                 if obj.IsVirtual
                     if obj.Data.HasCachedData
@@ -399,30 +349,47 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     else
                         imArray = [];
                     end
+                    
+                    if isempty(imArray) % If cache is empty, get images directly from Data
+                        numFrames = min([obj.NumTimepoints, 500]);
+                        imArray = obj.getFrameSet(1:numFrames, mode);
+                        [doCropImage, selectFrameSubset] = deal( false );
+                    end
+                    
                 else
                     imArray = obj.Data.DataArray;
                 end
-                
-                % Only apply subindexing if necessary
-                if doCropImage && ~isempty(imArray)
-                    indexingSubs(3:end) = {':'};
-                    imArray = imArray(indexingSubs{:});
-                end
-                
-            % Case 4: Subset of frames are requested.
+
+            % Case 3: Subset of frames are requested.
             else
+                % Check if there is enough memory for operation.
+                obj.assertEnoughMemoryForFrameRequest(indexingSubs)
+                
                 imArray = obj.Data(indexingSubs{:});
+                [doCropImage, selectFrameSubset] = deal( false );
             end
+            
+            
+            if isempty(imArray); return; end
             
             % Todo: Subselect channels and or planes
             
+            % Only apply subindexing if necessary
+            if doCropImage && selectFrameSubset
+                imArray = imArray(indexingSubs{1:end-1}, ':');
+
+            elseif doCropImage
+                imArray = obj.cropData(imArray, indexingSubs);
+
+            elseif selectFrameSubset
+                imArray = obj.selectFrameSubset(imArray, indexingSubs);
+            end
+
             
             % Set data intensity limits based on current data if needed.
             if isempty( obj.DataIntensityLimits )
                 obj.autoAssignDataIntensityLimits(imArray) % todo
             end
-
-
         end
         
         function writeFrameSet(obj, imageArray, frameInd)
@@ -455,6 +422,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             imArray = obj.Data(indexingSubs{:});
+
+        end
+        
+        function imArray = getAllFrames(obj)
 
         end
         
@@ -723,7 +694,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                        
             fprintf(sprintf('Calculating %s projection...\n', projectionName))
 
-            projectionImage = obj.getProjection(projectionName, 'all');
+            projectionImage = obj.getProjection(projectionName, 'cache');
             
             % Assign projection image to stackProjection property
             obj.Projections.(projectionName) = projectionImage;
@@ -746,7 +717,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % Todo: Put a limit on how many images to use for getting
             % percentiles of pixel values.
         
-            if nargin < 3 || isempty(frameInd); frameInd = 'all'; end
+            if nargin < 3 || isempty(frameInd); frameInd = 'cache'; end
             
             tmpStack = obj.getFrameSet(frameInd, 'extended');
 
@@ -1404,6 +1375,27 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
+    % - Methods for getting subsets of data
+    
+        function imArray = cropData(obj, imArray, indexingSubs) %#ok<INUSL>
+            % Todo: make sure we crop x and y dimensions. I.e what if the
+            % stack is a weird configuration where x- and y are not 1st and
+            % 2nd dimension?
+            
+            indexingSubsTmp = indexingSubs;
+            indexingSubsTmp(3:end) = {':'};
+            
+            imArray = imArray(indexingSubsTmp{:});
+        end
+        
+        function imArray = selectFrameSubset(obj, imArray, indexingSubs)
+            dimT = obj.getDimensionNumber('T');
+            indexingSubsTmp = indexingSubs;
+            indexingSubsTmp(1:2) = {':'};
+            indexingSubsTmp(dimT) = {':'};
+            imArray = imArray(indexingSubsTmp{:});
+        end
+    
         
     % - Methods for assigning property values based on data
         
@@ -1488,6 +1480,34 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
         end
         
+        function assertEnoughMemoryForFrameRequest(obj, indexingSubs)
+            
+            requestedArraySize = zeros(size(indexingSubs));
+            
+            for i = 1:length(requestedArraySize)
+                if ischar(indexingSubs{i}) && strcmp(indexingSubs{i}, ':')
+                    requestedArraySize(i) = obj.Data.StackSize(i);
+                else
+                    requestedArraySize(i) = numel(indexingSubs{i});
+                end
+            end
+            
+            nRequestedBytes = obj.getImageDataByteSize(...
+                requestedArraySize, obj.DataType);
+
+            nAvailMemoryBytes = utility.system.getAvailableMemory();
+                
+            if nRequestedBytes > nAvailMemoryBytes
+                arraySizeChar = strjoin(arrayfun(@(x) num2str(x), requestedArraySize, 'uni', 0), 'x');
+                numBytesGb = nRequestedBytes / 1024^3;
+                
+                exception = MException('MATLAB:array:SizeLimitExceeded', ...
+                    'Requested %s (%.1f GB) array exceeds maximum array size preference.', ...
+                    arraySizeChar, numBytesGb);
+                
+                throwAsCaller(exception)
+            end
+        end
     end
     
     methods (Access = private) % Callbacks for property value set
