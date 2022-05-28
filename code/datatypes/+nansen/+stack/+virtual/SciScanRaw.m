@@ -180,15 +180,14 @@ methods (Access = protected) % Implementation of abstract methods
         end
         
         % Assign to property (will trigger internal update on virtual data)
-        obj.DataDimensionArrangement = dataDimensionArrangement;
+        if isempty(obj.DataDimensionArrangement)
+            obj.DataDimensionArrangement = dataDimensionArrangement;
+        end
     end
     
     function assignDataType(obj)
     %assignDataType Assign data type of acquired image data.    
-        % Todo: Load image data class from metadata.
-
-        % obj.DataType = obj.MetaData.fileformat?
-        obj.DataType = 'uint16';
+        obj.DataType = obj.MetaData.Class;
     end
     
 end
@@ -235,44 +234,18 @@ end
 methods % Subclass specific methods
     
     function metadata = getSciScanRecordingInfo(obj)
-        
-        % Todo: get number of planes for zstacks.
-        
+    %getSciScanRecordingInfo Get recording info from the sciscan ini file
+    
+    
         inifilepath = strrep(obj.FilePath, '.raw', '.ini');
         inistring = fileread(inifilepath);
 
-% %         L = dir(fullfile(fileparts(obj.FilePath), '*.ini'));
-% %         inistring = fileread(fullfile(L.folder,L.name));
+        
         metadata = struct();
+       
+        metadata.experimentType = obj.readinivar(inistring, 'experiment.type');
         
-        % Get data acquisition parameters for recording
-        metadata.xpixels = obj.readinivar(inistring,'x.pixels');
-        metadata.ypixels = obj.readinivar(inistring,'y.pixels');
-        metadata.fps = obj.readinivar(inistring,'frames.p.sec');
-        metadata.dt = 1/metadata.fps;
-        
-        metadata.isPiezoActive = obj.readinivar(inistring, 'piezo.active');
-        if metadata.isPiezoActive
-            metadata.nPlanes =  obj.readinivar(inistring, 'frames.per.z.cycle');
-        else
-            metadata.nPlanes = 1;
-        end
-        
-        % Todo: Read number of planes for zstacks...
-
-        metadata.nFrames = obj.readinivar(inistring, 'no.of.frames.acquired');
-
-        % Get spatial parameters for recording
-        metadata.zoomFactor = obj.readinivar(inistring,'ZOOM');
-        metadata.xcorrect = obj.readinivar(inistring,'x.correct');
-        metadata.zPosition = abs(obj.readinivar(inistring,'setZ'));
-        metadata.fovSizeX = abs(obj.readinivar(inistring,'x.fov')) * 1e6;
-        metadata.fovSizeY = abs(obj.readinivar(inistring,'y.fov')) * 1e6;
-        metadata.umPerPxX = metadata.fovSizeX / metadata.xpixels;
-        metadata.umPerPxY = metadata.fovSizeY / metadata.ypixels;
-        
-        metadata.numFramesPerPlane = obj.readinivar(inistring,'frames.per.plane');
-        
+        % Resolve data type
         fileformat = obj.readinivar(inistring,'file.format');
         switch fileformat
             case {0, 1} % Todo: Add all possibilities..
@@ -280,7 +253,86 @@ methods % Subclass specific methods
             otherwise
                 error('Not implemented yet, please report')
         end
+
+        % Get pixel resolution of frames
+        metadata.xpixels = obj.readinivar(inistring,'x.pixels');
+        metadata.ypixels = obj.readinivar(inistring,'y.pixels');
         
+        % Get nubmer of recording channels
+        metadata.nChannels = obj.readinivar(inistring,'no.of.channels');
+        
+        try
+            metadata.nFrames = obj.readinivar(inistring, 'no.of.frames.acquired');
+        catch
+            %metadata.nFrames = obj.readinivar(inistring, 'frame.count');  % <-- Not always correct 
+            metadata.nFrames = obj.getFrameCount(metadata);
+        end
+        
+        % Get volume scan information
+        metadata.isPiezoActive = obj.readinivar(inistring, 'piezo.active');
+        if metadata.isPiezoActive
+            metadata.nPlanes =  obj.readinivar(inistring, 'frames.per.z.cycle');
+        else
+            metadata.nPlanes = 1;
+        end
+        
+        % Read number of planes is this is a ZStack recording
+        if strcmp(metadata.experimentType, 'XYTZ')
+            metadata.zSpacing = obj.readinivar(inistring, 'z.spacing');
+            metadata.numFramesPerPlane = obj.readinivar(inistring, 'frames.per.plane');
+            metadata.nPlanes = metadata.nFrames / metadata.numFramesPerPlane;
+            if metadata.nChannels > 1
+                obj.DataDimensionArrangement = 'XYCTZ';
+            else
+                obj.DataDimensionArrangement = 'XYTZ';
+            end
+        else
+            metadata.zSpacing = 0;
+            metadata.numFramesPerPlane = metadata.nFrames;
+            metadata.nPlanes = 1;
+        end
+        
+        % Get spatial (physical) parameters for recording
+        metadata.zoomFactor = obj.readinivar(inistring,'ZOOM');
+        metadata.xcorrect = obj.readinivar(inistring,'x.correct');
+        metadata.zPosition = abs(obj.readinivar(inistring,'setZ'));
+        metadata.fovSizeX = abs(obj.readinivar(inistring,'x.fov')) * 1e6;
+        metadata.fovSizeY = abs(obj.readinivar(inistring,'y.fov')) * 1e6;
+        metadata.umPerPxX = metadata.fovSizeX / metadata.xpixels;
+        metadata.umPerPxY = metadata.fovSizeY / metadata.ypixels;
+                
+        % Get temporal (physical) parameters for recording
+        metadata.fps = obj.readinivar(inistring,'frames.p.sec');
+        metadata.dt = 1/metadata.fps;
+        
+        
+        % Get channel information % Todo...
+        metadata.channelNumbers = [];
+%         metadata.channelNames = {};
+%         metadata.channelColor = {};
+        for ch = 1:4
+            chExpr = sprintf('save.ch.%d', ch);
+            if obj.readinivar(inistring, chExpr) % save.ch.n = true/false
+                % metadata.nChannels = metadata.nChannels + 1;
+                metadata.channelNumbers(end+1) = ch;
+%                 metadata.channelNames{end+1} = ['Ch', num2str(ch)];
+%                 metadata.channelColor{end+1} = colors{ch};
+            end
+        end
+    end
+    
+    function frameCount = getFrameCount(obj, metadata)
+    %getFrameCount Get framecount based on frame size and file size
+        L = dir(obj.FilePath);
+        
+        frameSize = [metadata.xpixels, metadata.ypixels, metadata.nChannels];
+        byteSizePerFrame = obj.getImageDataByteSize(frameSize, metadata.dataType);
+        
+        byteSize = L.bytes;
+        frameCount = byteSize ./ byteSizePerFrame;
+    end
+    
+    function getChannelColors(obj)
         
         % Test this, initially it was done as below, but maybe that was to
         % resolve which channels were recorded.
@@ -294,22 +346,8 @@ methods % Subclass specific methods
 % % %         else
 % % %             colors = {'Green', 'Red', 'N/A', 'N/A'};
 % % %         end
-
-        metadata.nChannels = 0;
-        metadata.channelNumbers = [];
-%         metadata.channelNames = {};
-%         metadata.channelColor = {};
-        for ch = 1:4
-            chExpr = sprintf('save.ch.%d', ch);
-            if obj.readinivar(inistring, chExpr) % save.ch.n = true/false
-                metadata.nChannels = metadata.nChannels + 1;
-                metadata.channelNumbers(end+1) = ch;
-%                 metadata.channelNames{end+1} = ['Ch', num2str(ch)];
-%                 metadata.channelColor{end+1} = colors{ch};
-            end
-        end
         
-        metadata.fileFormat = obj.readinivar(inistring, 'file.format');
+        
         
     end
     

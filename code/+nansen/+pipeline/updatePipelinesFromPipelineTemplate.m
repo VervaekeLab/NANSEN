@@ -36,8 +36,12 @@ function pipelineArray = updatePipelinesFromPipelineTemplate(pipelineArray, pipe
             
             isMatch = strcmp({thisTaskListOld.TaskName}, thisTaskName);
             
-            if any(isMatch)
+            if sum(isMatch) == 1
                 thisTaskListNew(jTask) = thisTaskListOld(isMatch);
+            elseif sum(isMatch) > 1
+                isMatch = find(isMatch, 1, 'first');
+                thisTaskListNew(jTask) = thisTaskListOld(isMatch);
+                warning('Duplicate method detected, task state might not be correctly updated')
             end
 
         end

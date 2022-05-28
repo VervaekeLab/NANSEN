@@ -608,7 +608,7 @@ classdef FileViewer < handle
                         case '.mat'
                             S = load(nodeHandle.UserData.filePath);
                             varNames = fieldnames(S);
-                            for i = 1:numel(S)
+                            for i = 1:numel(varNames)
                                 assignin('base', varNames{i}, S.(varNames{i}))
                             end
                             
