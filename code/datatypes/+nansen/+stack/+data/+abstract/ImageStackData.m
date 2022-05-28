@@ -331,8 +331,10 @@ classdef ImageStackData < uim.mixin.assignProperties
         
         function onDataDimensionArrangementChanged(obj, oldValue, newValue)
             
-            obj.MetaData.DimensionArrangement = obj.DataDimensionArrangement;
-                        
+            if ~isempty(obj.MetaData)
+                obj.MetaData.DimensionArrangement = obj.DataDimensionArrangement;
+            end
+            
             % If the last dimension has length 1, matlab automatically
             % squeezes, but its important that the last dimension is
             % represented in DataSize, even if it has length 1
