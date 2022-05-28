@@ -319,8 +319,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Determine amount of cropping to use for adjusting image data
             % to uint8
-            maxX = max(obj.CorrectionStats{i, j}.offsetX);
-            maxY = max(obj.CorrectionStats{i, j}.offsetY);
+            maxX = max(abs(obj.CorrectionStats{i, j}.offsetX));
+            maxY = max(abs(obj.CorrectionStats{i, j}.offsetY));
             crop = round( max([maxX, maxY])*1.5 );
             
             % Save reference images to 8bit
