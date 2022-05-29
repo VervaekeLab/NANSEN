@@ -278,14 +278,16 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 
                 
                 examplePath = thisDataLocation.ExamplePath;
-                
-                switch M(rowNumber).VariableName
-                    case 'Experiment Time'
-                        value = obj.DataLocationModel.getTime(examplePath);
-                    case 'Experiment Date'
-                        value = obj.DataLocationModel.getDate(examplePath);
+                try
+                    switch M(rowNumber).VariableName
+                        case 'Experiment Time'
+                            value = obj.DataLocationModel.getTime(examplePath);
+                        case 'Experiment Date'
+                            value = obj.DataLocationModel.getDate(examplePath);
+                    end
+                catch 
+                    value = '';
                 end
-                
                 substring = char(value);
                 
             end

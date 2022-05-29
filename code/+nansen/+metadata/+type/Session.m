@@ -372,6 +372,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
     end
     
     methods 
+        function name = getDataId(obj)
+            name = obj.sessionID;
+        end
         
         function S = toStruct(obj)
         %TOSTRUCT Convert object to a struct.
@@ -925,10 +928,12 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
             
             if wasModified
-                % Notify with the "reduced" data location struct
-                T = struct2table(obj.DataLocation, 'AsArray', true);
-                S = transpose( table2struct(T(:, {'Uuid', 'RootUid', 'Subfolders'})) );
-                eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', S);
+                % Notify with the "reduced" data location struct (Not
+                % anymore!)
+                %T = struct2table(obj.DataLocation, 'AsArray', true);
+                %S = transpose( table2struct(T(:, {'Uuid', 'RootUid', 'Subfolders'})) );
+                %eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', S);
+                eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', obj.DataLocation);
                 obj.notify('PropertyChanged', eventData)
             end
             
@@ -1005,7 +1010,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             obj.DataLocation(dlIdx).Subfolders = subfolders;
             
-            newValue = obj.DataLocationModel.reduceDataLocationInfo( obj.DataLocation );
+            newValue = obj.DataLocation;
+            %newValue = obj.DataLocationModel.reduceDataLocationInfo( obj.DataLocation );
             
             
             eventData = uiw.event.EventData('Property', 'DataLocation', ...
