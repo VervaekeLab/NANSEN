@@ -138,4 +138,16 @@ function S = getAddonList()
 % %     S(i).SetupFileName = '';
 % %     S(i).FunctionName = 'patchwarp.m';
 
+    i = i + 1;
+    S(i).Name = 'GRaFT';
+    S(i).Description = 'GraFT (Graph-Filtered Temporal) dictionary learning is a signal extraction method for spatio-temporal data.';
+    S(i).IsRequired = false;
+    S(i).Type = 'Neuroscience';
+    S(i).Source = 'Github';
+    S(i).WebUrl = 'https://github.com/adamshch/GraFT-analysis';
+    S(i).DownloadUrl = 'https://github.com/adamshch/GraFT-analysis/archive/refs/heads/main.zip';
+    S(i).HasSetupFile = false;
+    S(i).SetupFileName = '';
+    S(i).FunctionName = 'patchGraFT.m';
+
 end
