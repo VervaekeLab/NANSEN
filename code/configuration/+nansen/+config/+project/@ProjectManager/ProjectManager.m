@@ -295,6 +295,20 @@ classdef ProjectManager < handle
                     end
                     utility.system.deleteFolder(folderPath)
                     fprintf('Deleted project data for project "%s"\n', name)
+                    
+                    localDir = fileparts(obj.CatalogPath);
+                    localProjectDir = fullfile(localDir, thisProject.Name);
+                    
+                    % Delete local project folder (when project
+                    % folder) is saved externally
+                    if ~isequal(localProjectDir, folderPath)
+                        if isfolder(localProjectDir)
+                            if contains(path, localProjectDir)
+                                rmpath(genpath(localProjectDir))
+                            end
+                            utility.system.deleteFolder(localProjectDir)
+                        end
+                    end
                 end
                 
                 obj.Catalog(IND) = [];
@@ -309,12 +323,27 @@ classdef ProjectManager < handle
        
         function s = getProject(obj, name)
         %getProject Get project entry given its name 
-            IND = strcmp({obj.Catalog.Name}, name);
+            IND = obj.getProjectIndex(name);
             
             if any(IND)
                 s = obj.Catalog(IND);
             else
                 s = struct.empty;
+            end
+            
+        end
+        
+        function projectObj = getProjectObject(obj, name)
+            s = obj.getProject(name);
+            projectObj = nansen.config.project.Project(s.Name, s.Path);
+        end
+        
+        function idx = getProjectIndex(obj, projectName)
+            
+            if isnumeric(projectName) % Assume index was given instead of name
+                idx = projectName;
+            else
+                idx = find(strcmp({obj.Catalog.Name}, projectName));
             end
             
         end
