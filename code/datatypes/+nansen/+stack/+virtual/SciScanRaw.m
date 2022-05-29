@@ -242,9 +242,7 @@ methods % Subclass specific methods
 
         
         metadata = struct();
-       
-        metadata.experimentType = obj.readinivar(inistring, 'experiment.type');
-        
+
         % Resolve data type
         fileformat = obj.readinivar(inistring,'file.format');
         switch fileformat
@@ -258,7 +256,7 @@ methods % Subclass specific methods
         metadata.xpixels = obj.readinivar(inistring,'x.pixels');
         metadata.ypixels = obj.readinivar(inistring,'y.pixels');
         
-        % Get nubmer of recording channels
+        % Get number of recording channels
         metadata.nChannels = obj.readinivar(inistring,'no.of.channels');
         
         try
@@ -268,15 +266,13 @@ methods % Subclass specific methods
             metadata.nFrames = obj.getFrameCount(metadata);
         end
         
-        % Get volume scan information
+        % Get info about whether recording is a volume (piezo, multi-plane) 
+        % scan or a zstack
+        metadata.experimentType = obj.readinivar(inistring, 'experiment.type');
         metadata.isPiezoActive = obj.readinivar(inistring, 'piezo.active');
-        if metadata.isPiezoActive
-            metadata.nPlanes =  obj.readinivar(inistring, 'frames.per.z.cycle');
-        else
-            metadata.nPlanes = 1;
-        end
         
-        % Read number of planes is this is a ZStack recording
+        % Read number of planes if this is a ZStack recording or get volume
+        % scan information if recording is a multiplane (piezo) scan
         if strcmp(metadata.experimentType, 'XYTZ')
             metadata.zSpacing = obj.readinivar(inistring, 'z.spacing');
             metadata.numFramesPerPlane = obj.readinivar(inistring, 'frames.per.plane');
@@ -286,7 +282,10 @@ methods % Subclass specific methods
             else
                 obj.DataDimensionArrangement = 'XYTZ';
             end
-        else
+        elseif metadata.isPiezoActive
+            metadata.nPlanes =  obj.readinivar(inistring, 'frames.per.z.cycle');
+            % Todo: Get z-spacing
+        else 
             metadata.zSpacing = 0;
             metadata.numFramesPerPlane = metadata.nFrames;
             metadata.nPlanes = 1;
