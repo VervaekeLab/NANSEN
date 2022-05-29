@@ -373,7 +373,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         %   manages the iteration over channels and/or planes for
         %   ImageStack with multiple channels/planes
         
-        
             obj.displayStartCurrentStep()
 
             obj.printTask(sprintf('Running method: %s', class(obj) ) )
@@ -387,6 +386,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             obj.NumChannelIterations = nChannelsIter;
             obj.NumPlaneIterations = nPlanesIter;
             
+            % Todo: Make method for displaying the following:
+            
             numChans = obj.SourceStack.NumChannels;
             numPlanes = obj.SourceStack.NumPlanes;
             
@@ -394,11 +395,23 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             partsToProcess = obj.getPartsToProcess(IND);
             numParts =  numel(partsToProcess);
             
-            if numChans > 1 || numPlanes > 1
-                obj.printSubTask(sprintf('ImageStack contains %d channels and %d planes', numChans, numPlanes))
-                obj.printSubTask(sprintf('Each channel and plane will be divided in %d parts during processing', numParts))
+            if numParts == 1
+                numPartsStr = sprintf('%d part', numParts);
             else
-                obj.printSubTask(sprintf('ImageStack will be processed in %d parts', numParts))
+                numPartsStr = sprintf('%d parts', numParts);
+            end
+            
+            if numChans > 1 && numPlanes > 1
+                obj.printSubTask(sprintf('ImageStack contains %d channels and %d planes', numChans, numPlanes))
+                obj.printSubTask(sprintf('Each channel and plane will be divided in %s during processing', numPartsStr))
+            elseif numChans > 1
+                obj.printSubTask(sprintf('ImageStack contains %d channels', numChans))
+                obj.printSubTask(sprintf('Each channel will be divided in %s during processing', numPartsStr))
+            elseif numPlanes > 1
+                obj.printSubTask(sprintf('ImageStack contains %d planes', numPlanes))
+                obj.printSubTask(sprintf('Each plane will be divided in %s during processing', numPartsStr))
+            else
+                obj.printSubTask(sprintf('ImageStack will be processed in %s', numPartsStr))
             end
             
             for iChannel = channelIterator
@@ -770,7 +783,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             currentPlane = obj.CurrentPlane;
             currentChannel = obj.CurrentChannel(1); % Select first (sometimes channels are processed in batch) Todo: This should be generalized, what if some subclass would process channel 1 and 2 and then channel 3 and 4 or some weird stuff like that...
             
-
             currentPart = iPart;
             numParts = obj.NumParts;
             
@@ -783,7 +795,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             numRepetitions = numChannelIter .* numPlanesIter;
             currentRepetition = (currentChannel-1) .* numPlanes + currentPlane;
             
-            currentPartTotal = currentRepetition + currentPart - 1;
+            currentPartTotal = (currentRepetition-1) .* numParts + currentPart;
             numPartsTotal = numParts .* numRepetitions;
             
             str = sprintf('part %d/%d', currentPartTotal, numPartsTotal);
@@ -823,9 +835,11 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
             if obj.IsSubProcess; return; end
 
-            fprintf('\n---\n')
-            obj.printTask(sprintf('Initializing method: %s', class(obj)))
-            fprintf('\n')
+            fprintf(newline); fprintf('---'); fprintf(newline)
+            obj.printTask(...
+                sprintf('Initializing method "%s" on dataset "%s"', ...
+                        class(obj), obj.DataId))
+            fprintf(newline)
         end
         
         function displayProcessingSteps(obj)
