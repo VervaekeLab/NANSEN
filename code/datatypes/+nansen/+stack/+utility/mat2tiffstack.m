@@ -71,9 +71,10 @@ elseif nDim == 4 || createRgb
             tiffFile.write(mat(:, :, :, f));
             tiffFile.writeDirectory();
         end
+        tiffFile.close();
+        
     end
 
-    tiffFile.close();
 
 else
     error('No implementation for %d-dimensional stacks', nDim) 
