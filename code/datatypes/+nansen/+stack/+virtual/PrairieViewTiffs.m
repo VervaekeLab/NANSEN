@@ -1,23 +1,13 @@
 classdef PrairieViewTiffs < nansen.stack.data.VirtualArray
-%nansen.stack.virtual.Image Creates a virtual stack for a set of images
+%nansen.stack.virtual.PrairieViewTiffs Create virtual array for PrairieView
 %
-%   Works for set of image files (jpg, png, bmp) where all files have the
-%   same resolution and data type.
+%
+%
+
 
     % Todo:
     % [ ] Implement folder initialization.  
-    % [ ] implement methods for writing data
-    % [ ] getFrameSet: This is the same for all. Should generalize
-    % [ ] getFrameSet: Simplify. Do not need subs, only need stacksize...
-    % [ ] getFrameSet: Add error handling if requested image is not right
-    %       dimension
-    % [ ] writeFrameSet: combine with getFrameSet???
-    % [ ] writeFrameSet: Test thoroughly
-    % [ ] Alternatively: make readFrame and writeFrame method... since this
-    %       class will always (?) reference individual files...
-    % [ ] assignFilePath: resolve if there are files from multiple channels or planes
-    % [ ] assignFilePath: validate file formats...
-    % [ ] assignDataClass: What if it is int? What if single or double?
+    % [ ] assignFilePath: resolve if there are files from multiple planes
 
     
 properties (Constant, Hidden)
@@ -193,7 +183,7 @@ methods (Access = protected) % Implementation of abstract methods
         
         % Get arrangement of dimensions of data from class specific
         try
-            dataDimensionArrangement = obj.DATA_DIMENSION_ARRANGEMENT;
+            dataDimensionArrangement = 'YXTCZ';
         catch
             dataDimensionArrangement = obj.DEFAULT_DIMENSION_ARRANGEMENT;   % Use default if no class specific is specified
         end

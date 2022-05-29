@@ -2055,6 +2055,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     dataLocationStructs = metaTable.entries.DataLocation;
                     dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
                     metaTable.entries.DataLocation = dataLocationStructs;
+                    metaTable.markClean() % This change does not make the table dirty.
                 end
                 
                 app.MetaTable = metaTable;
