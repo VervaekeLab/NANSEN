@@ -106,7 +106,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
 
             nansen.validate()
-
             
             app.DataLocationModel = nansen.DataLocationModel;
             
@@ -153,6 +152,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if ~isempty(PipelineViewer)
                 delete(PipelineViewer); PipelineViewer = [];
             end
+            
+            app.settings.Session.SessionTaskDebug = false; % Reset debugging on quit
+            app.saveSettings()
+            
             
             if isempty(app.MetaTable)
                 return
@@ -819,13 +822,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.h.StatusField = uicontrol('Parent', app.hLayout.StatusPanel, 'style', 'text');
             app.h.StatusField.Units = 'normalized';
-            app.h.StatusField.Position = [0,-0.15,1,1];
+            app.h.StatusField.Position = [0,-0.2,1,1];                      % -0.2: Correct for text being offset towards top of textbox
+            
+            %app.h.StatusField.FontName = 'avenir next';
+            app.h.StatusField.FontSize = 12;
+            app.h.StatusField.FontUnits = 'pixels';
             
             app.h.StatusField.String = ' Status : Idle';
             app.h.StatusField.BackgroundColor = ones(1,3).*0.85;
             app.h.StatusField.HorizontalAlignment = 'left';
             app.h.StatusField.Enable = 'inactive';
-            
+                        
         end
         
         function createTabPages(app)
@@ -1353,7 +1360,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             w = figPosPix(3);
             h = figPosPix(4);
             
-            normalizedHeight = 20 / figPosPix(4);
+            normalizedHeight = 25 / figPosPix(4);
             
             app.hLayout.StatusPanel.Position = [0, 0, 1, normalizedHeight];
             app.hLayout.MainPanel.Position = [0, normalizedHeight, 1, 1-normalizedHeight];
@@ -1687,7 +1694,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if reset
                 [updatedValues{:}] = deal(updateFcn());
-                
             else
             
                 for iSession = 1:numSessions
@@ -1703,7 +1709,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         end
 
                         if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
-                        if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
+                        %if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
 
                         updatedValues{iSession} = newValue;
 
