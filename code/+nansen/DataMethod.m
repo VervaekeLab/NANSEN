@@ -22,7 +22,10 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
     properties (Access = protected)
         DataIoModel
         Parameters % Todo: Resolve: Same as options...
-
+    end
+    
+    properties (Dependent)
+        DataId
     end
     
     methods (Static)
@@ -54,7 +57,14 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
             
         end
     end
-
+    
+    methods % Set/get
+        
+        function id = get.DataId(obj)
+            id = obj.DataIoModel.getDataId;
+        end
+    end
+    
     methods (Access = public) % Todo: Use methods of hasOptions superclass
         
         function wasSuccess = preview(obj) %_workinprogress(obj)
