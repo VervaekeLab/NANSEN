@@ -42,6 +42,8 @@ classdef StorableCatalog < handle
 %       [ ] Add mode for saving changes immediately or not. I.e when
 %           working with table on command line versus in app...
 %       [ ] Property flag for whether items should be assigned uuids or not
+%       [ ] AutoSave property? I.e let user decide to autosave or not when
+%           catalog changes. 
 
 % Questions:
 %     - Should data be a struct or a table?
@@ -299,6 +301,27 @@ classdef StorableCatalog < handle
             
         end
         
+        function newItem = replaceItem(obj, newItem)
+             
+            % Make sure item has necessary fields...
+            newItem = obj.validateItem(newItem);
+            
+            itemName = obj.getItemName(newItem);
+            [itemExists, insertIdx] = obj.containsItem(itemName);
+            
+            if ~itemExists
+                error('Item with name "%s" does not exist in this catalog', itemName)
+            else
+                obj.Data(insertIdx) = newItem;
+            end
+            
+            obj.save()
+            
+            if ~nargout
+                clear newItem
+            end
+        end
+        
         function removeItem(obj, itemName)
              
             if isnumeric(itemName) % Assume index was given instead of name
@@ -388,6 +411,19 @@ classdef StorableCatalog < handle
             
         end
 
+        function name = getItemName2(obj, item) % Alternative version..
+            % Assumes the "Name" is the second fieldname. Todo: generalize
+            fieldNames = fieldnames(obj.Data);
+            
+            if strcmp(fieldNames{1}, 'Uuid')
+                idName = fieldNames{2};
+            else
+                idName = fieldNames{1};
+            end
+            
+            name = item.(idName);
+        end
+        
         function [Lia, Locb] = ismember(obj, itemName)
         %ismember 
             
