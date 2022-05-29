@@ -333,10 +333,12 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     
                     % Make sure file separators maths the file system.
                     iSubfolder = dataLocationStruct(j,i).Subfolders;
-                    if isunix && contains(iSubfolder, '\')
+                    if isempty(iSubfolder)
+                        continue
+                    elseif isunix && contains(iSubfolder, '\')              % convert file separator from unix style to windows
                         iSubfolder = strrep(iSubfolder, '\', filesep);
-                    elseif ispc && contains(iSubfolder, '/')
-                        iSubfolder = strrep(iSubfolder, '/', filesep);
+                    elseif ispc && contains(iSubfolder, '/')                % convert file separator from windows style to unix
+                        iSubfolder = strrep(iSubfolder, '/', filesep);  
                     end
                     dataLocationStruct(j,i).Subfolders = iSubfolder;
                 end
