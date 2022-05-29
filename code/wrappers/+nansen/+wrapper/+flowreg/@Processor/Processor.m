@@ -120,6 +120,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         
         function initializeShifts(obj, numFrames)
         %initializeShifts Load or initialize shifts...
+        
+        % Note: shifts is a cell array of numFrames x numPlanes where
+        % each cell contains a matrix of shifts for the current frame and
+        % plane
             
             filePath = obj.getDataFilePath('FlowregShifts', '-w', ...
                 'Subfolder', 'image_registration', 'IsInternal', true);
@@ -136,6 +140,15 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             obj.ShiftsArray = S;
 
+        end
+        
+        function addDriftToShifts(obj, drift)
+        %addDriftToShifts Add drift value to the shifts for current part
+            j = obj.CurrentPlane;
+            iIndices = obj.CurrentFrameIndices;
+
+            obj.ShiftsArray{iIndices, j}(iIndices) = obj.addShifts(...
+                    obj.ShiftsArray{iIndices, j}(iIndices), drift);
         end
         
         function updateShifts(obj)

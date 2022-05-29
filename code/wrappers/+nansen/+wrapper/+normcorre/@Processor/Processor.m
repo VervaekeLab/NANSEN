@@ -124,6 +124,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         function initializeShifts(obj, numFrames)
         %initializeShifts Load or initialize shifts...
         
+        % Note: shifts is a cell array of numChannels x numPlanes where
+        % each cell contains the struct array of shifts from normcorre
+        
             % Get filepath (initialize if it does not exist)
             filePath = obj.getDataFilePath('NormcorreShifts', '-w', ...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
@@ -142,6 +145,16 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             obj.ShiftsArray = S;
 
+        end
+        
+        function addDriftToShifts(obj, drift)
+        %addDriftToShifts Add drift value to the shifts for current part
+            i = 1;
+            j = obj.CurrentPlane;
+            iIndices = obj.CurrentFrameIndices;
+
+            obj.ShiftsArray{i,j}(iIndices) = obj.addShifts(...
+                    obj.ShiftsArray{i,j}(iIndices), drift);
         end
         
         function saveShifts(obj)

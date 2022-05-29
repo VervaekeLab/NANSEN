@@ -115,6 +115,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
         updateCorrectionStats(obj, S, shiftsArray, frameIndices)
         
+        addDriftToShifts        % Subclasses use different definitions for shifts, so this need to be an abstract method. Todo: always use struct arrays for shifts?
+        
         saveShifts(obj, shiftsArray)
         
         ref = initializeTemplate(obj, Y, opts); % Todo: Rename to create template...
@@ -450,9 +452,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                     obj.ReferenceStack.writeFrameSet(obj.CurrentRefImage, obj.CurrentPart)
                 end
                 
-                % Add drift to shifts.
-                obj.ShiftsArray(iIndices) = obj.addShifts(...
-                    obj.ShiftsArray(iIndices), drift);
+                % Add drift to shifts. %Todo: Flowreg
+                obj.addDriftToShifts(drift)
+                obj.ShiftsArray{i,j}(iIndices) = obj.addShifts(...
+                    obj.ShiftsArray{i,j}(iIndices), drift);
             end
 
             % Save stats based on motion correction shifts
@@ -495,19 +498,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             if obj.Options.Export.saveMaximumProjection
                 % Filter using okada before getting the max.
                 dim = ndims(Y);
+                
+                % Todo: Adjust binsize according to framerate and/or
+                % indicator type.
                 Y_ = movmean(Y, 3, dim);
-% %                 tic
-% %                 Y2_ = movmean(Y, 5, dim);
-% %                 toc
-% %                 Y3_ = Y;
-% %                 tic
-% %                 [h,w,c,t] = size(Y3_);
-% %                 for i = 1:2
-% %                     ytmp = stack.process.filter3.okada(squeeze(Y(:,:,i,:)));
-% %                     Y3_(:, :, i, :) = reshape(ytmp, h,w,1,t);
-% %                 end
-% %                 toc
-                %Y_ = stack.process.filter3.okada(Y);
                 maxProj = max(Y_, [], dim);
                 maxProj = cast(maxProj, dataTypeIn);
                 obj.MaxProjectionStack.writeFrameSet(maxProj, iPart)
@@ -517,6 +511,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % current part is corrected or not.
             obj.saveShifts()
         end
+        
     end
 
     methods (Access = protected)
@@ -604,7 +599,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             %imArray8b = stack.makeuint8(imArray_, [], [], cropAmount);      % todo: Generalize this function / add tolerance as input
             imArray8b = obj.adjustColorPerChannel(imArray, cropAmount);
             obj.DerivedStacks.(targetStackNameA).writeFrameSet(imArray8b, 1:obj.NumParts)
-            
 
             % Save projection of the projection stack
             fovProjection = getFullProjection(imArray);
@@ -631,7 +625,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             end
         end
         
-        function resaveRGBProjectionImages(obj, projectionType)
+        function resaveRGBProjectionImages(obj, projectfionType)
             % Todo: implement this...
 
             switch lower( projectionType )
@@ -650,8 +644,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             newFilepath = strrep(filepath, '.tif', '_rgb.tif');
 
-            nansen.stack.utility.mat2tiffstack( rgbArray, newFilepath )
-            
+
+            nansen.stack.utility.mat2tiffstack( rgbArray, newFilepath, true ) % true to save as rgb.            
         end
         
         function validateStackSize(~, stackSize)
