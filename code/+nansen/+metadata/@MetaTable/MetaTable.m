@@ -193,8 +193,8 @@ classdef MetaTable < handle
             obj.fromStruct(S)
             
             % Check if file is part of MetaTable Catalog (adds if missing)
-            metaCatalogEntry = obj.toStruct('metatable_catalog');
-            nansen.metadata.MetaTableCatalog.checkMetaTableCatalog(metaCatalogEntry)
+            %metaCatalogEntry = obj.toStruct('metatable_catalog');
+            %nansen.metadata.MetaTableCatalog.checkMetaTableCatalog(metaCatalogEntry)
             
             if ~obj.IsMaster
                 obj.synchFromMaster()

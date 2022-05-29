@@ -17,9 +17,8 @@ classdef Project < handle
         PackageName
     end
     
-    properties (Access = private)
+    properties (SetAccess = private)
         FolderPath
-        
     end
     
     properties (Dependent)
