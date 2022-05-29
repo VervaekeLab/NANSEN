@@ -212,14 +212,15 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             % Get toolbox options and template for motion correction.
             options = obj.ToolboxOptions;
-            options.correct_bidir = false;
-            
-            template = single( obj.CurrentRefImage );
-            
+            options.correct_bidir = false; % should be done elsewhere...
+
             i = 1;
             j = obj.CurrentPlane;
             
-            
+            template = single( obj.CurrentRefImage );
+
+            Y = squeeze(Y);
+
             if obj.CurrentChannel == obj.ChannelToCorrect
                 [M, shifts, templateOut] = normcorre_batch(Y, options, template);
                 obj.CurrentRefImage = templateOut;
