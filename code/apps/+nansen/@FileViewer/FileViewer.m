@@ -31,7 +31,8 @@ classdef FileViewer < handle
 
 %   Todo
 %       [v] Create refresh button... Right click to refresh. Button better?
-
+%       [ ] Add preferences and
+%           - MaxNumItemsToShow. Currently hardcoded to 100
 
     properties
         CurrentSessionObj
@@ -337,8 +338,14 @@ classdef FileViewer < handle
             skip = strncmp({L.name}, '.',  1);
             L(skip) = [];
             
-            hBranches = uiw.widget.FileTreeNode.empty;
+            if numel(L) > 100
+                numItemsNotShown = numel(L) - 100;
+                L = L(1:100);
+            else
+                numItemsNotShown = 0;
+            end
             
+            hBranches = uiw.widget.FileTreeNode.empty;
 
             for i = 1:numel(L)
                 if L(i).isdir
@@ -383,6 +390,11 @@ classdef FileViewer < handle
                     %hBranches(i).UIContextMenu = obj.createTreeItemContextMenu(hBranches(i));
                     setIcon(hBranches(i), icoFile);
                 end
+            end
+            
+            if numItemsNotShown > 0
+                hBranches(i+1) = uiw.widget.FileTreeNode('Parent', nodeHandle);
+                hBranches(i+1).Name = sprintf('%d more items are present, but not shown...', numItemsNotShown);
             end
             
             

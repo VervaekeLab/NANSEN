@@ -631,7 +631,10 @@ classdef MetaTable < handle
         
         function replaceDataColumn(obj, columnName, columnValues)
         %replaceDataColumn Replace all values of a data column.
-        
+            
+            assert( isa(columnValues, 'cell') && numel(columnValues) == size(obj.entries, 1), ...
+                'column values must be a cell array with one cell per table row')
+            
             % Convert to struct in order to assign values that does not
             % match type or size of current values
             tempS = table2struct(obj.entries);
