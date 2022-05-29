@@ -19,6 +19,12 @@ classdef PrairieViewTiffs < nansen.stack.data.VirtualArray
     % [ ] assignFilePath: validate file formats...
     % [ ] assignDataClass: What if it is int? What if single or double?
 
+    
+properties (Constant, Hidden)
+    FilenameExpression = 'Cycle\d{5}_Ch\d{1}_\d{6}'
+    DATA_DIMENSION_ARRANGEMENT = 'YXTCZ';
+end
+    
 properties (Constant, Hidden)
     VALID_FILE_FORMATS = {'TIF', 'TIFF'}
     FILE_PERMISSION = 'read'
@@ -185,11 +191,11 @@ methods (Access = protected) % Implementation of abstract methods
         % Find singleton dimensions.
         isSingleton = stackSize == 1;
         
-        % Get arrangement of dimensions of data
+        % Get arrangement of dimensions of data from class specific
         try
             dataDimensionArrangement = obj.DATA_DIMENSION_ARRANGEMENT;
         catch
-            dataDimensionArrangement = obj.DEFAULT_DIMENSION_ARRANGEMENT;
+            dataDimensionArrangement = obj.DEFAULT_DIMENSION_ARRANGEMENT;   % Use default if no class specific is specified
         end
         
         % Get order of dimensions of data
@@ -416,7 +422,8 @@ methods (Access = protected)
             
             obj.FilePathList = reshape(obj.FilePathList(sortedChIdx), ...
                 numPartsPerChannel, numChannels);
-            
+        else
+            numChannels = 1;
         end       
     end
     
