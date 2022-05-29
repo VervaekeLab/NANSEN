@@ -16,6 +16,7 @@ classdef DataIoModel < handle
 
 
     properties
+        DataId
         FileName            % A part of filename which is given to all files
         FolderPath          % The initial directory for saving data
         DataLocation
@@ -30,6 +31,10 @@ classdef DataIoModel < handle
         DataLocationModel
     end
 
+    methods (Abstract)
+        name = getDataId(obj)
+    end
+    
     methods % Constructor
         
         function obj = DataIoModel(varargin)
@@ -89,7 +94,7 @@ classdef DataIoModel < handle
     end
 
     methods % Load data variables
-
+        
         function data = loadData(obj, varName, varargin)
         %loadData Load data given a variable name
         %
@@ -260,7 +265,6 @@ classdef DataIoModel < handle
             end
             
         end
-        
         
     end
     
