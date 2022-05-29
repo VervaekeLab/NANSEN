@@ -165,7 +165,11 @@ methods (Access = protected) % Implementation of abstract methods
         stackSize(4) = obj.detectNumberOfPlanes();
 
         numFrames = obj.countNumFrames();
-        stackSize(5) = numFrames / stackSize(3) / stackSize(4);
+        if strcmp(obj.ChannelMode, 'multisample')
+            stackSize(5) = numFrames / stackSize(4);
+        else
+            stackSize(5) = numFrames / stackSize(4) / stackSize(3);
+        end
         
         % Find singleton dimensions.
         isSingleton = stackSize == 1;
@@ -494,7 +498,6 @@ methods (Static)
     end
     
     function filepath = lookForMultipartFiles(filepath)
-        
         if ischar(filepath) || (iscell(filepath) && numel(filepath)==1)
             if iscell(filepath)
                 [folder, ~, ext] = fileparts(filepath{1});
@@ -508,10 +511,19 @@ methods (Static)
             
             % If many files are found and all filenames are same length
             if numel(L) > 1 && numel( unique(cellfun(@numel, {L.name})) ) == 1
-                filepath = fullfile({L.folder}, {L.name});
+                filepathCandidates = fullfile({L.folder}, {L.name});
+                
+                % Remove all numbers from filenames. If all names are 
+                % identical after, we assume folder contains multipart files.
+                
+                filepathCandidates_ = regexprep(filepathCandidates, '\d*', '');
+                if numel( unique(filepathCandidates_) ) == 1
+                    filepath = filepathCandidates;
+                else
+                    % Return original filepath.
+                end
             end
         end
-        
     end
 end
 
