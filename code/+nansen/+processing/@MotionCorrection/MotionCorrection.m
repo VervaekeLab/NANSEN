@@ -539,7 +539,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         % Get filepath for saving options file to session folder
 
             filePath = obj.getDataFilePath(optionsVarname, '-w', ...
-                'Subfolder', 'image_registration', 'IsInternal', true);
+                'Subfolder', 'motion_corrected', 'IsInternal', true);
             
             % And check whether it already exists on file...
             if isfile(filePath)
@@ -560,7 +560,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             else % Save to file if it does not already exist
                 % Save options to session folder
                 obj.saveData(optionsVarname, opts, ...
-                    'Subfolder', 'image_registration')
+                    'Subfolder', 'motion_corrected')
             end
             
         end
@@ -596,6 +596,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Save an 8bit version of the projection stack
             imArray = obj.(sourceStackName).getFrameSet(1:obj.NumParts);
+            imArray = squeeze(imArray); %Squeeze singleton dims (C or Z)
             %imArray8b = stack.makeuint8(imArray_, [], [], cropAmount);      % todo: Generalize this function / add tolerance as input
             imArray8b = obj.adjustColorPerChannel(imArray, cropAmount);
             obj.DerivedStacks.(targetStackNameA).writeFrameSet(imArray8b, 1:obj.NumParts)
@@ -625,7 +626,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             end
         end
         
-        function resaveRGBProjectionImages(obj, projectfionType)
+        function resaveRGBProjectionImages(obj, projectionType)
             % Todo: implement this...
 
             switch lower( projectionType )
@@ -643,7 +644,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             rgbArray(:, :, 3, :) = 0;
             
             newFilepath = strrep(filepath, '.tif', '_rgb.tif');
-
 
             nansen.stack.utility.mat2tiffstack( rgbArray, newFilepath, true ) % true to save as rgb.            
         end
@@ -702,7 +702,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function saveTiffStack(obj, DATANAME, imageArray)
             
             filePath = obj.getDataFilePath( DATANAME, '-w',...
-                'Subfolder', 'image_registration', 'FileType', 'tif', ...
+                'Subfolder', 'motion_corrected', 'FileType', 'tif', ...
                 'FileAdapter', 'ImageStack', 'IsInternal', true );
                 
             nansen.stack.utility.mat2tiffstack( imageArray, filePath )
@@ -715,7 +715,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function tiffStack = openTiffStack(obj, DATANAME, imageArray, folderName, isInternal)
         %openTiffStack
         
-            if nargin < 4; folderName = 'image_registration'; end
+            if nargin < 4; folderName = 'motion_corrected'; end
             if nargin < 5; isInternal = true; end
 
             filePath = obj.getDataFilePath( DATANAME, '-w',...
@@ -746,7 +746,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 
             % Check if imreg stats already exist for this session
             filePath = obj.getDataFilePath('MotionCorrectionStats', '-w',...
-                'Subfolder', 'image_registration', 'IsInternal', true);
+                'Subfolder', 'motion_corrected', 'IsInternal', true);
             
             % Load or initialize
             if isfile(filePath)
@@ -762,7 +762,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 S = obj.repeatStructPerDimension(S);
                 
                 obj.saveData('MotionCorrectionStats', S, ...
-                    'Subfolder', 'image_registration');
+                    'Subfolder', 'motion_corrected');
             end
             
             obj.CorrectionStats = S;
@@ -802,7 +802,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 
             M = imtranslate(M, [dx,dy] );
             shifts = [dx, dy];
-        
         end
         
     end
