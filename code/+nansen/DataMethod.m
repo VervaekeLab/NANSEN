@@ -61,7 +61,13 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
     methods % Set/get
         
         function id = get.DataId(obj)
-            id = obj.DataIoModel.getDataId;
+            if isempty(obj.DataIoModel)
+                id = 'Name not available';
+            elseif ischar(obj.DataIoModel)
+                [~, id] = fileparts(obj.DataIoModel);
+            else
+                id = obj.DataIoModel.getDataId;
+            end
         end
     end
     

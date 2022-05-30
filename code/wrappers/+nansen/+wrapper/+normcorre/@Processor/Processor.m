@@ -35,7 +35,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     end
     
     properties (Constant, Hidden)
-        DATA_SUBFOLDER = 'image_registration'; % Name of subfolder(s) where to save results by default
+        DATA_SUBFOLDER = 'motion_corrected'; % Name of subfolder(s) where to save results by default
     end
     
     properties (Constant) % From motion correction

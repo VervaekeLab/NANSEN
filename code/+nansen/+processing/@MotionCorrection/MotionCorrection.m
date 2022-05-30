@@ -74,8 +74,14 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     %   [ ] Save shifts in standardized output as well as method outputs...
     %
     %   POSTPROCESSING
+    %   
+    %   [ ] Use min max when recasting a galvo scan. Less noise, so the
+    %       upper percentile value saturates a lot of signal...
+    %   
     %   [ ] Save temporal downsampled stacks (postprocessing?).
-    %               - Save successively, if downsampling
+    %           - Save successively, if downsampling
+    %           - No: Should be a separate method
+    %
     %   [ ] Save 25th prctile (or better approximation to baseline) stack 
     %
     %   [ ] Need to load image stats. Also, nice to update imagestats if
@@ -471,7 +477,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             if recastOutput
                 % Todo: throw out outliers instead of using prctile?
                 minVal = prctile(obj.ImageStats{i,j}.prctileL2, 5);
-                maxVal = max(obj.ImageStats{i,j}.prctileU2);
+                %maxVal = max(obj.ImageStats{i,j}.prctileU2);
+                maxVal = max(obj.ImageStats{i,j}.maximumValue);
 
                 switch dataTypeOut
                     case 'uint8'

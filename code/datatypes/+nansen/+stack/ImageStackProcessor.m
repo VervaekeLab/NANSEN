@@ -34,6 +34,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 % - - - - - - - - - - TODO - - - - - - - - - - - - - - - - - - -
 %     [ ] Make separate StackIterator class   
 %
+%     [ ] Check which parts are finished across channels and planes.
+%
 %     [ ] ProcessPart should be public. How to tell which part to process
 %           if method is called externally? Input iPart or iInd? Or "synch"
 %           with another method?
@@ -86,7 +88,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         PartsToProcess = 'all'      % Parts to processs. Manually assign to process a subset of parts
         RedoProcessedParts = false  % Flag to use if processing should be done again on already processed parts
     end
-    
+
     properties (Access = public) % Resolve: Should these instead be methods?
         DataPreProcessFcn   = []    % Function to apply on image data after loading (works on each part)
         DataPreProcessOpts  = []    % Options to use when preprocessing image data
@@ -101,6 +103,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
         NumChannelIterations
         NumPlaneIterations
+        
+        NumFramePerPart_
     end
     
 % %     properties (Abstract) % Todo
@@ -114,6 +118,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     end
     
     properties (Dependent) % Options
+        RunOnSeparateWorker
         FrameInterval
         NumFramesPerPart           
     end
@@ -191,8 +196,46 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     end
 
     methods % Set/get methods
+        
+        function runOnSeparateWorker = get.RunOnSeparateWorker(obj)
+            if isfield(obj.Options, 'Run')
+                runOnSeparateWorker = obj.Options.Run.runOnSeparateWorker;
+            else
+                S = nansen.stack.ImageStackProcessor.getDefaultOptions();
+                runOnSeparateWorker = S.Run.runOnSeparateWorker;
+            end
+        end
+        
         function numFramesPerPart = get.NumFramesPerPart(obj)
-            numFramesPerPart = obj.Options.Run.numFramesPerPart;
+            
+            if isempty(obj.NumFramePerPart_)
+                if isfield(obj.Options, 'Run')
+                    numFramesPerPart = obj.Options.Run.numFramesPerPart;
+                else
+                    S = nansen.stack.ImageStackProcessor.getDefaultOptions();
+                    numFramesPerPart = S.Run.numFramesPerPart;
+                end
+            else
+                numFramesPerPart = obj.NumFramePerPart_;
+            end
+        end
+        
+        function set.NumFramesPerPart(obj, numFramesPerPart)
+            if isfield(obj.Options, 'Run')
+                obj.Options.Run.numFramesPerPart = numFramesPerPart;
+            end
+            obj.NumFramePerPart_ = numFramesPerPart;
+            obj.onNumFramesPerPartSet()
+        end
+        
+        
+        function frameInterval = get.FrameInterval(obj)
+            if isfield(obj.Options, 'Run')
+                frameInterval = obj.Options.Run.frameInterval;
+            else
+                S = nansen.stack.ImageStackProcessor.getDefaultOptions();
+                frameInterval = S.Run.frameInterval;
+            end
         end
         
         function currentChannel = get.CurrentChannel(obj)
@@ -266,7 +309,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
         function runMethod(obj, skipInit)
             
-            if obj.Options.Run.runOnSeparateWorker
+            if obj.RunOnSeparateWorker
                 obj.runOnWorker()
                 return
             end
@@ -463,7 +506,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 
                 % Load data Todo: Make method. Two photon session method?
                 Y = obj.SourceStack.getFrameSet(iIndices);
-
+                Y = squeeze(Y);
+                
                 if ~isempty(obj.DataPreProcessFcn)
                     Y = obj.DataPreProcessFcn(Y, iIndices, obj.DataPreProcessOpts);
                 end
@@ -476,7 +520,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                     end
                     
                     if ~isempty(obj.TargetStack)
-                        obj.TargetStack.writeFrameSet(Y, iIndices)
+                        targetIndices = obj.getTargetIndices(iIndices);
+                        obj.TargetStack.writeFrameSet(Y, targetIndices)
                     end
                 end
                 
@@ -564,7 +609,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         end
         
         function openTargetStack(obj, filePath, stackSize, dataType, varargin)
-        %openTargetStack Open/assign image stack which is target
+        %openTargetStack Open (or create) and assign the target image stack
         
             if ~isfile(filePath)
                 obj.printTask('Creating target stack for method: %s...', class(obj))
@@ -576,6 +621,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             obj.TargetStack = nansen.stack.ImageStack(imageStackData);
         end
 
+        function iIndices = getTargetIndices(obj, iIndices)
+            % This method is meant for subclasses where the indices of the
+            % source and the target are different, i.e for downsampling
+            % methods.
+        end
+        
         function tf = checkIfPartIsFinished(obj, partNumber)
             % Rename to isPartFinished?
             % Subclass may implement
@@ -599,7 +650,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         %configureImageStackSplitting Get split configuration from options
             
             % Get number of frames per part
-            N = obj.Options.Run.numFramesPerPart;
+            N = obj.NumFramesPerPart;
             
             % Get cell array of frame indices per part (IND) and numParts
             [IND, numParts] = obj.SourceStack.getChunkedFrameIndices(N);
@@ -610,7 +661,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
             % Todo: Make sure this method is not resuming from previous
             % instance that used a different stack splitting configuration
-            
             
         end
         
@@ -734,6 +784,21 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
         end
         
+        function onNumFramesPerPartSet(obj)
+        %onNumFramesPerPartSet Callback for property set method
+        %
+        %   Update NumParts and the FrameIndPerPart properties
+            
+            N = obj.NumFramePerPart_;
+            
+            % Get cell array of frame indices per part (IND) and numParts
+            [IND, numParts] = obj.SourceStack.getChunkedFrameIndices(N);
+
+            % Assign to property values
+            obj.FrameIndPerPart = IND;
+            obj.NumParts = numParts;
+            
+        end
     end
     
     methods (Access = protected) % Methods for printing commandline output
