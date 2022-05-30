@@ -55,7 +55,7 @@ function wasSuccess = createNewSessionMethod(app)
             expression = 'ATTRIBUTES = {''serial'', ''queueable''}';
             replacement = expression;
 
-            if strcmpi(S.Input, 'single session')
+            if strcmpi(S.Input, 'multiple sessions')
                 replacement = strrep(replacement, 'serial', 'batch');
             end
             if ~S.Queueable

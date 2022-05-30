@@ -12,7 +12,7 @@ function varargout = viewRoiSignals(sessionObject, varargin)
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'batch', 'unqueueable'};   
+    ATTRIBUTES = {'serial', 'unqueueable'};   
 
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
