@@ -2695,6 +2695,7 @@ methods % Event/widget callbacks
             props = {'FontSize', 'FontWeight', 'LineWidth', 'Color', 'Location', 'FontName'};
             values = cellfun(@(p) obj.Annotation.Scalebar.(p), props, 'uni', 0);
             pvPairs = cat(1, props, values);
+            pvPairs = reshape(pvPairs,1,[]);
             delete(obj.Annotation.Scalebar)
         else
             pvPairs = {'Location', 'southeast'};%, 'Color', ones(1,3)*0.9};
