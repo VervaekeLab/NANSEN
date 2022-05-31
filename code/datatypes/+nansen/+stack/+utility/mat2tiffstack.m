@@ -14,12 +14,19 @@ className = class(mat);
 switch className
     case 'uint8'
         bitsPerSample = 8;
+        sampleFormat = Tiff.SampleFormat.UInt;
     case 'uint16'
         bitsPerSample = 16;
-    case {'uint32', 'single'}
+        sampleFormat = Tiff.SampleFormat.UInt;
+    case 'uint32'
         bitsPerSample = 32;
+        sampleFormat = Tiff.SampleFormat.UInt;
+    case 'single'
+        bitsPerSample = 32;
+        sampleFormat = Tiff.SampleFormat.IEEEFP;
     case 'double'
         bitsPerSample = 64;
+        sampleFormat = Tiff.SampleFormat.IEEEFP;
 end
 
 
@@ -36,6 +43,7 @@ if nDim == 2 || nDim == 3
         tiffFile.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
         tiffFile.setTag('BitsPerSample', bitsPerSample);
         tiffFile.setTag('SamplesPerPixel', 1);
+        tiffFile.setTag('SampleFormat', sampleFormat);
         tiffFile.setTag('Compression',Tiff.Compression.None);
         tiffFile.write(mat(:, :, f));
 
@@ -61,6 +69,7 @@ elseif nDim == 4
         tiffFile.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
         tiffFile.setTag('BitsPerSample', bitsPerSample);
         tiffFile.setTag('SamplesPerPixel', 3);
+        tiffFile.setTag('SampleFormat', sampleFormat);
         tiffFile.setTag('Compression',Tiff.Compression.None);
         tiffFile.write(mat(:, :, :, f));
         tiffFile.writeDirectory();
