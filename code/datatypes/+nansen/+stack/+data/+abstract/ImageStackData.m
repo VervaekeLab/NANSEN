@@ -221,7 +221,12 @@ classdef ImageStackData < uim.mixin.assignProperties
                 clear obj
             end
         end
-                
+        
+        function name = getDataAdapterClass(obj)
+            fullClassName = builtin('class', obj);
+            splitClassName = strsplit(fullClassName, '.');
+            name = splitClassName{end};
+        end
     end
     
     methods % Set methods for properties
@@ -467,9 +472,12 @@ classdef ImageStackData < uim.mixin.assignProperties
             
             % Check that dimension arrangement is compatible with defaults
             A = nansen.stack.data.abstract.ImageStackData.DEFAULT_DIMENSION_ARRANGEMENT;
-            msg2 = sprintf('Dimension arrangement can only contain the letters %s', ...
+            
+            if ~all( ismember(dimArrangement, A) )
+                msg2 = sprintf('Dimension arrangement can only contain the letters %s', ...
                 strjoin( arrayfun(@(c) sprintf('''%s''',c), A, 'uni', 0), ', ') );
-            assert(all(ismember(dimArrangement, A)), msg2)
+                error('Nansen:ImageStackData:WrongDimensionLetter', msg2) %#ok<SPERR>
+            end
             
             % Check that the dimension arrangement is a permutation of
             % reference dimensions (if reference dimension are given)

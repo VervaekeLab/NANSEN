@@ -1007,6 +1007,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         end
 
+        function tf = isvirtual(obj)
+            tf = isa(obj.Data, 'nansen.stack.data.VirtualArray');
+        end
+        
         function enablePreprocessing(obj, varargin)
         %enablePreprocessing Enable preprocessing of data on retrieval
             obj.Data.enablePreprocessing(varargin{:})
@@ -1363,7 +1367,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                             subs{i} = frameInd;
                         end
                     otherwise
-                        subs{i} = 1:obj.getDimensionLength(thisDim); 
+                        subs{i} = ':';
                 end
             end
             

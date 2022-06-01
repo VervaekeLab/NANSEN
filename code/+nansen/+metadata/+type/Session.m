@@ -935,8 +935,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         end
         
         function folderPath = getSessionFolder(obj, dataLocationName)
-        %getSessionFolder Get session folder for session given a
-        %dataLocationName
+        %getSessionFolder Get session folder for a given dataLocationName
+        %
+        %
                             
             if nargin < 2
                 dataLocationName = obj.DataLocationModel.DefaultDataLocation;

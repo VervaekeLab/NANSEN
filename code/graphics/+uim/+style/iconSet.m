@@ -203,7 +203,8 @@ classdef iconSet < uim.handle
             if nargin < 3; plotType = 'polygon'; end
             
             L = dir(fullfile(rootDir, '*.png'));
-
+    
+            [~, iconName] = fileparts(iconName);
             
             if nargin >= 2 || exist('iconName', 'var')
                 IND = find(strcmp({L.name}, [iconName, '.png'] ));

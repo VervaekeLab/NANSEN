@@ -7,6 +7,8 @@ function imArray = makeuint8(imArray, bLims, tolerance, cropAmount)
 %
 %   imArray = makeuint8(__, nvPairs)
 
+% Todo: Adjust brightness individually per dimension
+
 
 if ~isa(imArray, 'single') || ~isa(imArray, 'double')
     imArray = single(imArray);
