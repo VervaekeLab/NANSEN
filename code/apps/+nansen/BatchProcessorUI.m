@@ -350,6 +350,7 @@ classdef BatchProcessorUI < handle
             end
             
             obj.refreshTableCells(rowIdx, 3, data) % 3rd column is status...
+            drawnow
             
         end
         

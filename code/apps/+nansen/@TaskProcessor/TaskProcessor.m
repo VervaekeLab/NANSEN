@@ -13,6 +13,9 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 %   [ ] Should sessionobject have its own field in a task item? its a bit
 %       weird to pull it out from the argsfield when needed
 
+%   [ ] Happened once that task is set to running but state in table is not
+%       updated...
+
 
 % Note: If changes are made on session class, it will not work to load task
 %       lists that contains sessions!

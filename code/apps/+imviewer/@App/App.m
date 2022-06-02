@@ -3944,21 +3944,21 @@ methods % Misc, most can be outsourced
         end
         
         if isempty(savePath); return; end
-
+        
         im = obj.imObj.CData;
         
         switch class(im)
             case 'uint16'
-                imwrite(uint16(im), savePath, 'TIFF')
+                imwrite(uint16(im), savePath)
             case 'int16'
                 im = im - min(im(:));
-                imwrite(uint16(im), savePath, 'TIFF')
+                imwrite(uint16(im), savePath)
                 
                 % Todo, use Tiff... imwrite(int16(im), savePath, 'TIFF')
             case 'uint8'
-                imwrite(uint8(im), savePath, 'TIFF')
+                imwrite(uint8(im), savePath)
             otherwise % This will need to be fixed at some point
-                imwrite(uint8(im), savePath, 'TIFF')
+                imwrite(uint8(im), savePath)
         end
 
     end
@@ -3985,7 +3985,8 @@ methods % Misc, most can be outsourced
 %                         'Image Files (*.tif, *.tiff, *.png, *.jpg, *.jpeg, *.JPG)'; ...
 %                        '*', 'All Files (*.*)'} ;
 
-        filePattern = { '*.tif;*.tiff', 'Tiff Files (*.tif, *.tiff)' };
+        filePattern = { '*.tif;*.tiff', 'Tiff Files (*.tif, *.tiff)'; ...
+                        '*.png', 'Png Files (*.png)' };
         [fileName, folderPath] = uiputfile(filePattern, '', initPath);
         
         if isempty(fileName) || isequal(fileName, 0)

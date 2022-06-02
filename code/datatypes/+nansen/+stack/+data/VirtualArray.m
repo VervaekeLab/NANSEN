@@ -272,6 +272,12 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     
     methods (Access = protected) % Subclasses can override
         
+        function tf = isSingleRgbFrame(obj)
+           tf = ndims(obj) == 3 && ...
+               (strcmp(obj.StackDimensionArrangement, 'YXC') || ...
+                strcmp(obj.StackDimensionArrangement, 'XYC') ) ;
+        end
+        
         function validateFrameSize(obj, data)
             
             dimX = obj.getDataDimensionNumber('X');

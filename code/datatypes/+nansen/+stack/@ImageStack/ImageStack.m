@@ -364,7 +364,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             else
                 % Check if there is enough memory for operation.
                 obj.assertEnoughMemoryForFrameRequest(indexingSubs)
-                
                 imArray = obj.Data(indexingSubs{:});
                 [doCropImage, selectFrameSubset] = deal( false );
             end
@@ -1482,6 +1481,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function assertEnoughMemoryForFrameRequest(obj, indexingSubs)
             
+            persistent nAvailMemoryBytes
+            if isempty(nAvailMemoryBytes)
+                nAvailMemoryBytes = utility.system.getAvailableMemory();
+            end
+            
             requestedArraySize = zeros(size(indexingSubs));
             
             for i = 1:length(requestedArraySize)
@@ -1495,7 +1499,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             nRequestedBytes = obj.getImageDataByteSize(...
                 requestedArraySize, obj.DataType);
 
-            nAvailMemoryBytes = utility.system.getAvailableMemory();
                 
             if nRequestedBytes > nAvailMemoryBytes
                 arraySizeChar = strjoin(arrayfun(@(x) num2str(x), requestedArraySize, 'uni', 0), 'x');

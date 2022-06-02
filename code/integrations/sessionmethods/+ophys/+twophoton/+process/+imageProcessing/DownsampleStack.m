@@ -12,7 +12,7 @@ function varargout = DownsampleStack(sessionObject, varargin)
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'batch', 'queueable'};   
+    ATTRIBUTES = {'serial', 'queueable'};   
 
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
