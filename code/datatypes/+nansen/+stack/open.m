@@ -35,10 +35,14 @@ function virtualData = open(pathStr, varargin)
         case {'.tif', '.tiff'}
             
             if isfile(pathStr{1})
+                % No idea if this is important, but everything looks fine
+                warning('off', 'imageio:tiffmexutils:libtiffWarning')
                 imInfo = Tiff(pathStr{1});
+                warning('on', 'imageio:tiffmexutils:libtiffWarning')
             else
                 imInfo = struct;
             end
+            
             virtualData = [];
             
             % Should file be opened using the custom ScanImageTiff adapter?

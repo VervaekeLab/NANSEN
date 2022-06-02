@@ -833,7 +833,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             if ~isempty(L) && numel(L)==1
                 fileName = L.name;
             elseif ~isempty(L) && numel(L)>1
-                error('Multiple files were found')
+                fileName = L(1).name;
+                warning off backtrace
+                warning('Multiple files were found for variable "%s".\nSelected first file in list.', S.VariableName)
+                warning on backtrace
             else
                 fileName = '';
             end

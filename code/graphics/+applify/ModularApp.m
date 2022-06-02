@@ -288,7 +288,11 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             
             if removeAxToolbar
                 disableDefaultInteractivity(src)
-                src.Interactions(:) = [];
+                try
+                    src.Interactions(:) = [];
+                catch
+                    src.Interactions = [];
+                end
                 src.Toolbar = [];
             end
             
