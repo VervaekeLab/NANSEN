@@ -13,14 +13,28 @@ nDim = numel(size(mat));
 className = class(mat);
 
 switch className
-    case 'uint8'
+    case {'uint8', 'int8'}
         bitsPerSample = 8;
-    case 'uint16'
+    case {'uint16', 'int16'}
         bitsPerSample = 16;
-    case {'uint32', 'single'}
+    case {'uint32', 'int32'}
+        bitsPerSample = 32;
+    case 'single'
         bitsPerSample = 32;
     case 'double'
         bitsPerSample = 64;
+    otherwise
+        disp('a')
+end
+
+switch className
+    case {'uint8', 'uint16', 'uint32'}
+        sampleFormat = Tiff.SampleFormat.UInt;
+    case {'int8', 'int16', 'int32'}
+        sampleFormat = Tiff.SampleFormat.Int;
+    case {'single', 'double'}
+        sampleFormat = Tiff.SampleFormat.IEEEFP;
+    otherwise
 end
 
 
@@ -37,6 +51,7 @@ if (nDim == 2 || nDim == 3) && ~createRgb
         tiffFile.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
         tiffFile.setTag('BitsPerSample', bitsPerSample);
         tiffFile.setTag('SamplesPerPixel', 1);
+        tiffFile.setTag('SampleFormat', sampleFormat);
         tiffFile.setTag('Compression',Tiff.Compression.None);
         tiffFile.write(mat(:, :, f));
 
@@ -67,14 +82,12 @@ elseif nDim == 4 || createRgb
             tiffFile.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
             tiffFile.setTag('BitsPerSample', bitsPerSample);
             tiffFile.setTag('SamplesPerPixel', 3);
+            tiffFile.setTag('SampleFormat', sampleFormat);
             tiffFile.setTag('Compression',Tiff.Compression.None);
             tiffFile.write(mat(:, :, :, f));
             tiffFile.writeDirectory();
         end
-        tiffFile.close();
-        
     end
-
 
 else
     error('No implementation for %d-dimensional stacks', nDim) 

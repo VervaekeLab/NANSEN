@@ -15,8 +15,7 @@ S = struct();
 
 % Options for image display
 S.ImageDisplay.brightnessSliderLimits = [0, 1];  % Should be automatically adjusted based on loaded image data, but allow for manual override
-S.ImageDisplay.imageBrightnessLimits = [0,255]; % Color brightness limits of displayed images
-
+S.ImageDisplay.imageBrightnessLimits = [0, 255]; % Color brightness limits of displayed images
 S.ImageDisplay.movingBinSize        = 9;
 
 S.ImageDisplay.colorMap      = 'Gray'; % Colormap selection

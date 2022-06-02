@@ -255,13 +255,15 @@ classdef pointerManager < handle
             wasCaptured = true;
             if isempty(event.Modifier)
                 switch event.Key
+                    case 'x'
+                        obj.togglePointerMode('crop')
                     case 'q'
                         obj.togglePointerMode('zoomIn')
                     case 'w'
                         obj.togglePointerMode('zoomOut')
                     case 'y'
                         obj.togglePointerMode('pan')
-                    case 'x'
+                    case 'i'
                         obj.togglePointerMode('dataCursor')
                     case 's'
                         obj.togglePointerMode('selectObject')
