@@ -7,7 +7,7 @@ function parameterStruct = getScanParameters(fileRef, parameterList)
     
     import ophys.twophoton.scanimage.util.*
     
-    if isa(fileRef, char) && isfile(fileRef)
+    if isa(fileRef, 'char') && isfile(fileRef)
         [~, ~, ext] = fileparts(fileRef);
         
         if strcmpi(ext, '.tif') || strcmpi(ext, '.tiff')
