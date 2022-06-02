@@ -47,7 +47,12 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             msg = 'Number of parts is not matched';
             assert(obj.NumParts == numel(obj.Results), msg)
             
-            tf = ~isempty(obj.Results{partNumber});
+            if obj.RedoIfCompleted
+                tf = false;
+            else
+                tf = ~isempty(obj.Results{partNumber});
+            end
+
         end
 
         function runPreInitialization(obj)
@@ -117,7 +122,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         function onCompletion(obj)
         %onCompletion Run when processor is done with all parts
            
-            if ~isfile(obj.getDataFilePath(obj.ROI_VARIABLE_NAME))
+            if ~isfile(obj.getDataFilePath(obj.ROI_VARIABLE_NAME)) || obj.RedoIfCompleted
                 
                 obj.mergeResults()
                 
@@ -155,19 +160,20 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
             
             % And check whether it already exists on file...
-            if isfile(filePath)
+            if isfile(filePath) && ~obj.RedoIfCompleted
                 optsOld = obj.loadData(optionsVarname);
                 
-                % Todo: make this conditional, e.g if redoing aligning, we
+                % Todo: make this conditional, e.g if redoing processing, we
                 % want to overwrite options...
                 
                 % If correction is resumed with different options
                 if ~isequal(opts, optsOld)
-                    warnMsg = ['options already exist for ', ...
-                      'this session, but they are different from the ', ...
-                      'current options. Existing options will be used.'];
-                    warning('%s %s', warnMsg,  class(obj) )
-                    opts = optsOld;
+                    warnMsg = ['This method has already been initialized ', ...
+                        'before, but with different options. Please use ', ...
+                        'the same options as before, or rerun the method ', ...
+                        'with new options. Aborting...'];
+                    error('%s %s', warnMsg,  class(obj) )
+                    %opts = optsOld;
                 end
                 
             else % Save to file if it does not already exist
@@ -238,14 +244,12 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     methods (Static)
         
         function S = getDefaultOptions()
-            S = struct.empty;
+            S = struct();
+            S.TemporalDownsamplingFactor = 10; % 1 = no downsampling...
+            S.SpatialDownsamplingFactor = 1;
             
-% % %             S.TemporalDownsampling = true; % needed?
-% % %             S.TemporalDownsamplingFactor = 10; % 1 = no downsampling...
-% % %             S.SpatialDownsamplingFactor = 1;
-% % %             
-% % %             % S.SpatialPartitioning
-% % %             % S.TemporalPartitioning
+            % S.SpatialPartitioning
+            % S.TemporalPartitioning
             
         end
 
