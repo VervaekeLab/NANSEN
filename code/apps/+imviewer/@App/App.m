@@ -235,7 +235,9 @@ methods % Structors
         nvPairs = utility.struct2nvpairs(defaultStackInitOptions);
         nvPairs = [nvPairs, varargin{:}];
         
-        obj.Figure.Visible = 'on';
+        if strcmp(obj.mode, 'standalone')
+            obj.Figure.Visible = 'on';
+        end
         
         % Check if data ref is an imageStack object, initialize if not.
         if ~isa(dataref, 'nansen.stack.ImageStack') % && ~isa(dataref, 'imviewer.ImageStack')
