@@ -879,6 +879,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %h.HTable.MouseMotionFcn = @(s,e) onMouseMotionInTable(h, s, e);
             
             addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
+            addlistener(h, 'SelectionChanged', @app.onSessionSelectionChanged);
             
             h.UpdateColumnFcn = @app.updateTableVariable;
             h.ResetColumnFcn = @app.resetTableVariable;
@@ -2211,6 +2212,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isempty(app.UiMetaTableViewer);    return;    end
             app.UiMetaTableViewer.refreshColumnModel()
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
+        end
+        
+        function onSessionSelectionChanged(app, src, evt)
+            
+            % Count number of sessions selected
+            selectedRows = app.UiMetaTableViewer.getSelectedEntries();
+            
+            str = 'Status: Idle';
+            
+            if numel(selectedRows) == 1
+                strA = sprintf( '%d session selected', numel(selectedRows) );
+                str = strjoin({strA, str}, ' | ');
+            elseif numel(selectedRows) > 1
+                strA = sprintf( '%d sessions selected', numel(selectedRows) );
+                str = strjoin({strA, str}, ' | ');
+            end
+            
+            app.h.StatusField.String = str;
+            
         end
         
         function onSessionTaskSelected(app, ~, evt)
