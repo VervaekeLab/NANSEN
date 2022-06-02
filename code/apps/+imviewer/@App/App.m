@@ -1,5 +1,4 @@
-classdef App < applify.ModularApp & applify.mixin.UserSettings & applify.AppWithPlugin
-    
+classdef App < applify.ModularApp & applify.mixin.UserSettings & applify.AppWithPlugin 
 % Interactive figure inspired by imageJ for displaying images and stacks
 %
 %   imviewer without any inputs opens a browser for locating tiff file or 
@@ -39,6 +38,7 @@ classdef App < applify.ModularApp & applify.mixin.UserSettings & applify.AppWith
 
 % TODO:
 %   [x] setSliderLimits : should use imagestack for getting limits
+%   [ ] Add annotation / legend showing time and z-depth.
 %   [ ] Make brightness slider for each channel...
 %   [ ] need a method for resizing panel without invoking its sizechanged function
 %   [ ] Find a way to turn preprocessing on and off when opening sciscan raw
@@ -107,6 +107,7 @@ properties (Access = public, SetObservable) % Current frame selection
 end
 
 properties (Dependent)
+    Valid
     ChannelColors
 end
 
@@ -198,6 +199,8 @@ properties (Access = private, Hidden = true) % Internal states/settings
     mouseDown = false
     isDrag = false
     
+    waitForKeyPress = false
+    
     isAltDown = false;
     isShiftDown = false;
     isControlDown = false;
@@ -231,6 +234,8 @@ methods % Structors
         defaultStackInitOptions = obj.getStackInitializationOptions();
         nvPairs = utility.struct2nvpairs(defaultStackInitOptions);
         nvPairs = [nvPairs, varargin{:}];
+        
+        obj.Figure.Visible = 'on';
         
         % Check if data ref is an imageStack object, initialize if not.
         if ~isa(dataref, 'nansen.stack.ImageStack') % && ~isa(dataref, 'imviewer.ImageStack')
@@ -406,6 +411,21 @@ methods % App initialization & creation
         imviewerInstances.PreviousInstance = [];
     end
     
+    function transferOwnership(obj, controllerApp)
+        %transferOwnership Transfer ownership of app to another app   
+            
+        % App (figure) deletion is now controlled by another app. If figure
+        % window is closed, the figure is not deleted, just made invisible
+        
+        obj.Figure.CloseRequestFcn = @(s,e) obj.hideApp;
+        addlistener(controllerApp, 'ObjectBeingDestroyed', @(s,e) obj.delete);
+
+    end
+    
+    function hideApp(obj)
+        obj.Figure.Visible = 'off';
+    end
+    
     function parseVarargin(obj, varargin)
         
         default = struct();
@@ -463,8 +483,10 @@ methods % App initialization & creation
         %obj.displayMessage('Initializing...')
         
         % Initialize the pointer interface.
-        pif = uim.interface.pointerManager(obj.Figure, obj.uiaxes.imdisplay, {'zoomIn', 'zoomOut', 'pan'});
+        pif = uim.interface.pointerManager(obj.Figure, obj.uiaxes.imdisplay, {'zoomIn', 'zoomOut', 'pan', 'crop'});
         pif.pointers.pan.buttonMotionCallback = @obj.moveImage;
+        addlistener(pif.pointers.crop, 'CropLimitChanged', ...
+            @obj.onImageSelectionLimitsChanged);
         obj.plugins(end+1).pluginName = 'pointerManager';
         obj.plugins(end).pluginHandle = pif;        
         
@@ -663,7 +685,7 @@ methods % App initialization & creation
             margins(2) = margins(2) + obj.positionInfo.Margin(2);
         end
         
-        figureSize = axesSize + margins;
+        figureSize = axesSize + margins + [0,2]; % Todo: Why do i need 2 extra pixels in y?
         
     end
     
@@ -714,12 +736,17 @@ methods % App initialization & creation
         
         if isValidFigure && strcmp(obj.mode, 'standalone')
                         
-            if isempty(obj.stackname)
+            if isempty(obj.ImageStack.Name)
                 figureName = sprintf('%s (%d)', obj.AppName, ...
                         obj.Figure.Number );
             else
                 figureName = sprintf('%s (%d): %s', obj.AppName, ...
-                        obj.Figure.Number, obj.stackname );
+                        obj.Figure.Number, obj.ImageStack.Name );
+            end
+            
+            if ~isempty(obj.ImageStack) && ~isempty(obj.ImageStack.Data)
+                virtualDataClass = obj.ImageStack.Data.getDataAdapterClass();
+                figureName = sprintf('%s (%s)', figureName, virtualDataClass);
             end
             
             obj.Figure.Name = figureName;
@@ -1013,7 +1040,6 @@ methods % App initialization & creation
     
     function createImageMenu(obj, m)
     %createImageMenu Create a context menu for the image axes.   
-
     
         % % % Menu section with items for image colormap and illustrations.
         %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -   
@@ -1096,6 +1122,13 @@ methods % App initialization & creation
         mitem = uimenu(m, 'Text', 'Save');
         mSubItem = uimenu(mitem, 'Text', 'Save Stack', 'Enable', 'off');
         mSubItem.Callback = @obj.saveStack; % Todo: make this one
+        mSubItem = uimenu(mitem, 'Text', 'Export Stack...', 'Enable', 'off');
+        fcnList = imviewer.export.getExportFunctionList();
+        for i = 1:numel(fcnList)
+            mSubSubItem = uimenu(mSubItem, 'Text', fcnList{i});
+            mSubSubItem.Callback = @(s,e) obj.exportStack(s);
+        end
+                
         mSubItem = uimenu(mitem, 'Text', 'Save Image', 'Enable', 'on');
         mSubItem.Callback = @(s,e) obj.saveImage; % Todo: make this one
         mSubItem = uimenu(mitem, 'Text', 'Export Image As...', 'Enable', 'off');
@@ -1388,6 +1421,9 @@ methods % App initialization & creation
             'Callback', @(s,e) obj.showBrightnessSlider, ...
             'Tooltip', 'Set Brightness (c)');
         
+        hButton = hToolbar.addButton('Icon', obj.ICONS.crop, 'Mode', 'togglebutton', 'Tag', 'crop', 'Tooltip', 'Crop Image (x)', 'MechanicalAction', 'Switch when pressed', buttonProps{:});
+        %hButton.Callback = @obj.onCropButtonPressed;
+        
         hToolbar.addButton('Icon', obj.ICONS.zoomIn, 'Mode', 'togglebutton', 'Tag', 'zoomIn', 'Tooltip', 'Zoom In (q)', 'MechanicalAction', 'Switch when pressed', buttonProps{:})
         hToolbar.addButton('Icon', obj.ICONS.zoomOut, 'Mode', 'togglebutton', 'Tag', 'zoomOut', 'Tooltip', 'Zoom Out (w)', buttonProps{:})
         hToolbar.addButton('Icon', obj.ICONS.hand4, 'Mode', 'togglebutton', 'Tag', 'pan', 'Tooltip', 'Pan (y)', buttonProps{:})
@@ -1399,7 +1435,7 @@ methods % App initialization & creation
         % Add listeners for toggling of modes from the pointertools to the
         % buttons. Also connect to buttonDown to toggling of the pointer
         % tools.
-        pointerModes = {'zoomIn', 'zoomOut', 'pan'};
+        pointerModes = {'zoomIn', 'zoomOut', 'pan', 'crop'};
         
         for i = 1:numel(pointerModes)
             hBtn = hToolbar.getHandle(pointerModes{i});
@@ -1554,17 +1590,17 @@ methods % Set/Get
     function set.Visible(obj, value)
         switch value
             case 'on'
-                obj.Figure.Resize = 'off';
+                %obj.Figure.Resize = 'off';
                 pos = obj.Figure.Position;
                 
-                if ~isempty(obj.uiwidgets.playback)
-                    obj.uiwidgets.playback.changeFramePos(obj.currentFrameNo, obj.nFrames)
-                end
+% %                 if ~isempty(obj.uiwidgets.playback)
+% %                     obj.uiwidgets.playback.changeFramePos(obj.currentFrameNo, obj.nFrames)
+% %                 end
                 updateInfoText(obj)
                 updateImageDisplay(obj);
                 
             case 'off'
-                obj.Figure.Resize = 'on';
+                %obj.Figure.Resize = 'on';
             otherwise
                 error('Visible can be ''on'' or ''off'' ')
                 
@@ -1573,10 +1609,10 @@ methods % Set/Get
         obj.Figure.Visible = value;
         
         % Why do I need to do this????
-        if strcmp(value, 'on')
-            drawnow
-            obj.Figure.Position = pos;
-        end
+% %         if strcmp(value, 'on')
+% %             drawnow
+% %             obj.Figure.Position = pos;
+% %         end
         
     end
     
@@ -1650,6 +1686,9 @@ methods % Set/Get
         obj.onLinkedAppsSet()
     end
     
+    function isValid = get.Valid(obj)
+        isValid = isvalid(obj) && isvalid(obj.Figure);
+    end
 end
 
 methods % App update
@@ -2483,8 +2522,14 @@ methods % Event/widget callbacks
         obj.nFrames = newValue;
         obj.onNumFramesChanged()
     end
-        
     
+    function onImageSelectionLimitsChanged(obj, src, event)
+        
+        obj.ImageStack.DataXLim = event.XLim;
+        obj.ImageStack.DataYLim = event.YLim;
+            obj.updateImage()
+            obj.updateImageDisplay()
+    end
     
     function onDisplayLimitsChanged(obj)
         
@@ -3748,7 +3793,7 @@ methods % Misc, most can be outsourced
         axesSize = obj.getAxesSize(newPosition(3:4), preserveAspectRatio, mode);
            
         % Resize image display
-        newAxLocation = [axesMargins(1) + 1, obj.showFooter*footerSize + 1];
+        newAxLocation = [axesMargins(1) + 1, obj.showFooter*footerSize];
         obj.uiaxes.imdisplay.Position = [newAxLocation, axesSize];
 
         if obj.showHeader
@@ -3934,9 +3979,22 @@ methods % Misc, most can be outsourced
 
     end
     
+    function exportStack(obj, src)
+    %exportStack Callback for export stack menu
+        fcnName = strjoin({'imviewer', 'export', src.Text}, '.');
+        fcnHandle = str2func( fcnName );
+        obj.displayMessage('Exporting ImageStack to %s file...', src.Text)
+        
+        try
+            fcnHandle(obj.ImageStack) % Todo: give dialog handle 
+        catch ME
+            obj.displayMessage(['Error: ', ME.message])
+        end
+        
+        obj.clearMessage()
+    end
     
     function saveImage(obj, savePath)
-        
         
         if nargin < 2 || isempty(savePath)
             savePath = obj.getImageFilePath();
@@ -3962,14 +4020,12 @@ methods % Misc, most can be outsourced
 
     end
     
-    
     function saveImageToDesktop(obj)
         filename = strcat('imviewer_', datestr(now, 'yyyy_mm_dd-HH.MM.SS'), '.tif');
         savePath = fullfile(getDesktop, filename);
 
         obj.saveImage(savePath)
     end
-    
     
     function savePath = getImageFilePath(obj)
         
@@ -4111,6 +4167,7 @@ methods % Misc, most can be outsourced
     function uiEditStackMetadata(obj)
         
         S = struct;
+        S.Name = obj.ImageStack.Name;
         S.SpatialPosition = obj.ImageStack.MetaData.SpatialPosition;
         S.PhysicalSize(1) = obj.ImageStack.MetaData.PhysicalSizeX;
         S.PhysicalSize(2) = obj.ImageStack.MetaData.PhysicalSizeY;
@@ -4123,6 +4180,7 @@ methods % Misc, most can be outsourced
         h.waitfor()
         
         if ~h.wasCanceled
+            obj.ImageStack.Name = h.dataEdit.Name;
             obj.ImageStack.MetaData.SampleRate = h.dataEdit.SampleRate;
             obj.ImageStack.MetaData.SpatialPosition = h.dataEdit.SpatialPosition;
             physSize = h.dataEdit.PhysicalSize;
@@ -4137,6 +4195,8 @@ methods % Misc, most can be outsourced
             obj.ImageStack.MetaData.PhysicalSizeXUnit = physUnits{1};
             obj.ImageStack.MetaData.PhysicalSizeYUnit = physUnits{2};
             obj.ImageStack.MetaData.PhysicalSizeZUnit = physUnits{3};
+            
+            obj.setFigureName()
         end
         
         if isfield(obj.Annotation, 'Scalebar')
@@ -4233,8 +4293,11 @@ methods % Misc, most can be outsourced
         imSizeXY = [obj.imWidth, obj.imHeight] - 40;
         
         if nargin < 2 || isempty(rccInit)
-            rccInit = [21,21, imSizeXY-[1,1]];
+            %rccInit = [21,21, imSizeXY-[1,1]];
+            rccInit = [];
         end
+        
+        rcc = [];
         
         % Move to non-class function
         if obj.isMatlabPre2018b
@@ -4242,13 +4305,22 @@ methods % Misc, most can be outsourced
             hrect.setColor(plotColor)
             restrainCropSelection = makeConstrainToRectFcn('imrect', [1, obj.imWidth], [1, obj.imHeight]);
             hrect.setPositionConstraintFcn( restrainCropSelection );
+            obj.waitForKeyPress = true;
             uiwait(obj.Figure)
+            obj.waitForKeyPress = false;
             rcc = round(hrect.getPosition);
         else
-            hrect = drawrectangle(obj.uiaxes.imdisplay, 'Position', rccInit);
+            if ~isempty(rccInit)
+                hrect = drawrectangle(obj.uiaxes.imdisplay, 'Position', rccInit);
+            else
+                hrect = drawrectangle(obj.uiaxes.imdisplay);
+            end
             hrect.Color = plotColor;
-            hrect.DrawingArea = [1, 1, obj.imWidth, obj.imHeight];
+            hrect.DrawingArea = [1, 1, obj.imWidth-1, obj.imHeight-1];
+            obj.waitForKeyPress = true;
             uiwait(obj.Figure)
+            obj.waitForKeyPress = false;
+            if ~isvalid(hrect); return; end
             rcc = round(hrect.Position);
         end
         
@@ -5002,12 +5074,11 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 
                 
 %             case {'leftarrow', 'rightarrow'}
-            case 'return'
+            case {'return', 'escape'}
                 obj.Figure.UserData.lastKey = 'return';
-                uiresume(obj.Figure)
-            case 'escape'
-                obj.Figure.UserData.lastKey = 'escape';
-                uiresume(obj.Figure)
+                if obj.waitForKeyPress
+                    uiresume(obj.Figure)
+                end
                 
             case 'leftarrow'
                 if contains( event.Modifier, {'alt', 'ctrl','control'})
@@ -5488,7 +5559,7 @@ methods (Access = private) % Methods that runs when properties are set
                 
         obj.setTempProperties()
         obj.setImageStackSettings()
-
+        
         if  obj.isConstructed
             obj.setSliderExtremeLimits()
             obj.setSliderLimits()
