@@ -169,6 +169,17 @@ classdef MetaTableCatalog < uim.handle
             
         end
         
+        function metaTable = getMasterMetaTable(obj)
+            
+            IND = find( obj.Table.IsMaster );
+            rootDir = fileparts( obj.FilePath );
+            
+            metatableFilename = obj.Table{IND, 'FileName'}{1};
+            metatableFilepath = fullfile(rootDir, metatableFilename);
+            
+            metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
+        end
+        
         function updatePath(obj, newFilepath)
         %updatePath Update path for all entries in the catalog.
         

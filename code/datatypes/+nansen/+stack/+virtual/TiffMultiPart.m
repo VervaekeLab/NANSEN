@@ -319,7 +319,7 @@ methods % Implementation of abstract methods for readin/writing
     %   See also nansen.stack.data.VirtualArray/readData
     
         % Special case for single frame image
-        if ndims(obj) == 2 %#ok<ISMAT>
+        if ndims(obj) == 2 || obj.isSingleRgbFrame() %#ok<ISMAT>
             frameInd = 1;
         else
             dims = obj.InterleavedDimensions;

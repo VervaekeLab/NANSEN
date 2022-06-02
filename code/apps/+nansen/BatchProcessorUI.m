@@ -112,6 +112,8 @@ classdef BatchProcessorUI < handle
             obj.UITableHistory.Table.ColumnMinWidth = [150, 100, 50, 120, 120, 100];
             obj.UITableHistory.Table.ColumnPreferredWidth = [170, 200, 75, 135, 135, 200];
             obj.UITableHistory.Table.CellEditCallback = @obj.onTableCellEdited;
+            obj.UITableHistory.Table.KeyPressFcn = @obj.onKeyPressedInTable;
+
             
             %obj.UITableQueue.Table.UIContextMenu = obj.createQueueContextMenu();
             %obj.UITableHistory.Table.UIContextMenu = obj.createHistoryContextMenu();
@@ -166,6 +168,7 @@ classdef BatchProcessorUI < handle
             mTmp.Callback = @(s,e,str) obj.onShowDiaryMenuItemClicked('history');
             mTmp = uimenu(h, 'Text', 'Show Errors'); 
             mTmp.Callback = @(s,e) obj.onShowErrorsMenuItemClicked;
+            mTmp.Accelerator = 'e';
             mTmp = uimenu(h, 'Text', 'Show Warnings', 'Enable', 'off');
             mTmp.Callback = [];
             
@@ -347,6 +350,7 @@ classdef BatchProcessorUI < handle
             end
             
             obj.refreshTableCells(rowIdx, 3, data) % 3rd column is status...
+            drawnow
             
         end
         
@@ -504,48 +508,14 @@ classdef BatchProcessorUI < handle
             
         end
 
-        function onShowDiaryMenuItemClicked(obj, taskType, mode)
-            
+        function onShowDiaryMenuItemClicked(obj, ~, mode)
             if nargin < 3; mode = 'full'; end
-            
-            switch lower( taskType )
-                case 'queue'
-                    rowIdx = obj.UITableQueue.selectedRows;
-                    
-                    if ~any(rowIdx == 1)
-                        msgbox('Can only show diary for running task')
-                        return
-                    elseif any(rowIdx == 1) && numel(rowIdx) > 1
-                        msgbox('Showing diary for the running task')
-                    end
-                    
-                    taskItems = obj.BatchProcessor.getQueuedTask(rowIdx);
-                    
-                    diary = obj.BatchProcessor.getCurrentDiary();
-                    switch mode
-                        case 'last'
-                            diary = strsplit(diary, newline);
-                            if isempty(diary{end}); diary = diary(1:end-1); end
-                            diary = diary{end};
-                        case 'full'
-                            
-                    end
-                    taskItems.Diary = diary;
-                                        
-                case 'history'
-                    rowIdx = obj.UITableHistory.selectedRows;
-                    taskItems = obj.BatchProcessor.getArchivedTask(rowIdx);
-            end
-            
-            obj.displayDiary(taskItems)
-            
+            obj.showDiaryForSelectedRows(mode)
         end
         
         function onShowErrorsMenuItemClicked(obj)
         %onShowErrorsMenuItemClicked Show errors for selected tasks
-            rowIdx = obj.UITableHistory.selectedRows;
-            taskItems = obj.BatchProcessor.getArchivedTask(rowIdx);
-            obj.displayErrors(taskItems)
+            obj.showErrorsForSelectedRows()
         end
         
         function onReassignToQueueMenuItemClicked(obj)
@@ -571,6 +541,55 @@ classdef BatchProcessorUI < handle
                 obj.BatchProcessor.updateTaskComment(taskType, taskIdx, newComment)
             end
             
+        end
+        
+    end
+    
+    methods (Access = private) % Actions
+            
+        function showErrorsForSelectedRows(obj)
+            rowIdx = obj.UITableHistory.selectedRows;
+            taskItems = obj.BatchProcessor.getArchivedTask(rowIdx);
+            obj.displayErrors(taskItems)    
+        end
+        
+        
+        function showDiaryForSelectedRows(obj, mode)
+            
+            if nargin < 2; mode = 'full'; end
+            
+            taskType = obj.TabGroup.SelectedTab.Title;
+            
+            switch lower( taskType )
+                case 'queue'
+                    rowIdx = obj.UITableQueue.selectedRows;
+
+                    if ~any(rowIdx == 1)
+                        msgbox('Can only show diary for running task')
+                        return
+                    elseif any(rowIdx == 1) && numel(rowIdx) > 1
+                        msgbox('Showing diary for the running task')
+                    end
+
+                    taskItems = obj.BatchProcessor.getQueuedTask(rowIdx);
+
+                    diary = obj.BatchProcessor.getCurrentDiary();
+                    switch mode
+                        case 'last'
+                            diary = strsplit(diary, newline);
+                            if isempty(diary{end}); diary = diary(1:end-1); end
+                            diary = diary{end};
+                        case 'full'
+
+                    end
+                    taskItems.Diary = diary;
+
+                case 'history'
+                    rowIdx = obj.UITableHistory.selectedRows;
+                    taskItems = obj.BatchProcessor.getArchivedTask(rowIdx);
+            end
+            
+            obj.displayDiary(taskItems)
         end
         
     end
@@ -601,7 +620,6 @@ classdef BatchProcessorUI < handle
             taskList = obj.getTaskList(tableType, taskIdx);
             hTable = obj.getUiTable(tableType);
             
-            
             switch tableType
                 case 'Queue'
                     % Special case, if right click happened on first cell
@@ -628,7 +646,26 @@ classdef BatchProcessorUI < handle
             hTable.UIContextMenu.Visible = 'on';
             
         end
-
+        
+        function onKeyPressedInTable(obj, src, evt)
+            
+            isControl = @(m) strcmp(m, 'command') || strcmp(m, 'control');
+            
+            switch evt.Key
+                case 'e'
+                    if isControl(evt.Modifier) 
+                        obj.showErrorsForSelectedRows()
+                    end
+                case 'd'
+                    if isControl(evt.Modifier) 
+                        obj.showDiaryForSelectedRows()
+                    end
+                    
+            end
+            
+            
+        end
+            
     end
     
     methods (Static)
