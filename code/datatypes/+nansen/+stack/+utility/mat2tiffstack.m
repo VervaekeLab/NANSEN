@@ -13,21 +13,28 @@ nDim = numel(size(mat));
 className = class(mat);
 
 switch className
-    case 'uint8'
+    case {'uint8', 'int8'}
         bitsPerSample = 8;
-        sampleFormat = Tiff.SampleFormat.UInt;
-    case 'uint16'
+    case {'uint16', 'int16'}
         bitsPerSample = 16;
-        sampleFormat = Tiff.SampleFormat.UInt;
-    case 'uint32'
+    case {'uint32', 'int32'}
         bitsPerSample = 32;
-        sampleFormat = Tiff.SampleFormat.UInt;
     case 'single'
         bitsPerSample = 32;
-        sampleFormat = Tiff.SampleFormat.IEEEFP;
     case 'double'
         bitsPerSample = 64;
+    otherwise
+        disp('a')
+end
+
+switch className
+    case {'uint8', 'uint16', 'uint32'}
+        sampleFormat = Tiff.SampleFormat.UInt;
+    case {'int8', 'int16', 'int32'}
+        sampleFormat = Tiff.SampleFormat.Int;
+    case {'single', 'double'}
         sampleFormat = Tiff.SampleFormat.IEEEFP;
+    otherwise
 end
 
 
