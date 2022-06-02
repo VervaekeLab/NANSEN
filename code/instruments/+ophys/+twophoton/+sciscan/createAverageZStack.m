@@ -6,6 +6,7 @@ function imageArrayAvgZ = createAverageZStack(imageStack, varargin)
     defaults = struct;
     defaults.MergeChannels = false;
     defaults.ReferenceChannel = 2;
+    defaults.AdjustBrightness = false;
     defaults.doDestretch = false;
     defaults.doRegister = false;
     defaults.doNonrigid = false;
@@ -99,9 +100,10 @@ function imageArrayAvgZ = createAverageZStack(imageStack, varargin)
 % %     imageArrayAvgZ = normalizearray(imageArrayAvgZ);
     
     
+    if params.AdjustBrightness
+        imageArrayAvgZ = normalizeArray(imageArrayAvgZ);
+    end
     
-    imageArrayAvgZ = normalizeArray(imageArrayAvgZ);
-
 end
 
 function ncOpts = getNormcorreOptions(params, imageStack)
