@@ -221,7 +221,7 @@ classdef crop < uim.interface.abstractPointer
             y = sum(evt.CurrentPosition([2,4]));
            
             obj.hRectangleSizeText.Position(1:2) = [x,y] + 5;
-            obj.hRectangleSizeText.String = sprintf('(%d, %d)', size(1), size(2));
+            obj.hRectangleSizeText.String = sprintf('(%d x %d)', size(1), size(2));
         end
         
         function resetCrop(obj, src, evt)

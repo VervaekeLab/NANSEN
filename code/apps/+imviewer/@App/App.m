@@ -5576,6 +5576,7 @@ methods (Access = private) % Methods that runs when properties are set
             %uistack(obj.imObj, 'up')
             
             obj.uiwidgets.playback.resetRangeSelector()
+            obj.uiwidgets.playback.NumPlanes = obj.ImageStack.NumPlanes;
             
             if ~all(isnan(obj.DisplayedImage(:)))
                 set(obj.hDropbox, 'Visible', 'off')
