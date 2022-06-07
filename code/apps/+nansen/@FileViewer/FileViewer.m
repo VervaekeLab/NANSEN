@@ -33,6 +33,7 @@ classdef FileViewer < handle
 %       [v] Create refresh button... Right click to refresh. Button better?
 %       [ ] Add preferences and
 %           - MaxNumItemsToShow. Currently hardcoded to 100
+%       [ ] Add reset method...
 
     properties
         CurrentSessionObj
@@ -60,6 +61,8 @@ classdef FileViewer < handle
         
         hPanelPreview
         hBackgroundLabel
+        
+        ParentSizeChangedListener event.listener
     end
     
     
@@ -88,7 +91,8 @@ classdef FileViewer < handle
 % % %             % center
 % % %             uim.utility.layout.centerObjectInRectangle(obj.hPanelPreview, obj.Parent);
         
-            addlistener(obj.Parent, 'SizeChanged', @obj.onParentSizeChanged);
+            obj.ParentSizeChangedListener = listener(obj.Parent, ...
+                'SizeChanged', @obj.onParentSizeChanged);
 
         end
 
@@ -96,6 +100,10 @@ classdef FileViewer < handle
             if obj.IsInitialized
                 delete(obj.TabGroup)
             end
+            if ~isempty(obj.ParentSizeChangedListener)
+                delete(obj.ParentSizeChangedListener)
+            end
+            
             delete(obj.hContextMenu)
             delete(obj.nwbContextMenu)
         end
