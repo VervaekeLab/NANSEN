@@ -243,7 +243,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             % fprintf('Deleted ImageStack.\n') % For testing
-            
         end
 
     end
@@ -368,7 +367,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 [doCropImage, selectFrameSubset] = deal( false );
             end
             
-            
             if isempty(imArray); return; end
             
             % Todo: Subselect channels and or planes
@@ -383,7 +381,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             elseif selectFrameSubset
                 imArray = obj.selectFrameSubset(imArray, indexingSubs);
             end
-
+            
+            %imArray = squeeze(imArray);
             
             % Set data intensity limits based on current data if needed.
             if isempty( obj.DataIntensityLimits )
@@ -693,7 +692,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                        
             fprintf(sprintf('Calculating %s projection...\n', projectionName))
 
-            projectionImage = obj.getProjection(projectionName, 'cache');
+            projectionImage = obj.getProjection(projectionName, 'cache', 'T', 'extended');
             
             % Assign projection image to stackProjection property
             obj.Projections.(projectionName) = projectionImage;
@@ -707,7 +706,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
         end
         
-        function projectionImage = getProjection(obj, projectionName, frameInd, dim)
+        function projectionImage = getProjection(obj, projectionName, frameInd, dim, mode)
         % getProjection Get stack projection image
         %
         %   Projection is always calculated along the last dimension unless
@@ -724,6 +723,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             %       i.e cast output to original type. Some functions
             %       require input to be single or double...
             
+            if nargin < 5
+                mode = 'standard';
+            end
+            
             
             % Set dimension to calculate projection image over.
             
@@ -731,6 +734,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 % Dim should be minimum 3, but would be 2 for single frame
                 dim = max([3, ndims(tmpStack)]);
                 dim = obj.getDimensionNumber('T');
+            elseif ischar(dim)
+                dim = obj.getDimensionNumber(dim);
             else
                 error('Not implemented yet')
             end
@@ -766,10 +771,13 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     % todo
                     
                 otherwise
-                    
                     projFun = nansen.stack.utility.getProjectionFunction(projectionName);
                     projectionImage = projFun(tmpStack, dim);
 
+            end
+            
+            if strcmp(mode, 'standard')
+                projectionImage = obj.getProjectionSubSelection(projectionImage);
             end
             
         end
