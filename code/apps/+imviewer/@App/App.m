@@ -2768,6 +2768,9 @@ methods % Handle user actions
         % be formatted as in fprintf or sprintf?
         
         im = obj.ImageStack.getFullProjection(funcName);
+        
+        obj.changeImageDisplayMode('projection', funcName)
+        
         obj.DisplayedImage = im;
         
         obj.updateImageDisplay()
