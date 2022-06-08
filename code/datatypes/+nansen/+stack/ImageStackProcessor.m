@@ -199,6 +199,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             if ~isempty(obj.StackIterator)
                 delete(obj.StackIterator)
             end
+            
+            if ~isempty(obj.TargetStack)
+                delete(obj.TargetStack)
+            end
+            
+            % Todo: Delete source stack if it is opened on construction...
         end
         
     end
@@ -379,14 +385,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         function setCurrentPart(obj, partNumber)
             obj.CurrentPart = partNumber;
             obj.CurrentFrameIndices = obj.FrameIndPerPart{partNumber};
-        end
-        
-        function delete(obj)
-            % Todo: Delete source stack if it is opened on construction...
-            
-            if ~isempty(obj.TargetStack)
-                delete(obj.TargetStack)
-            end
         end
         
     end
@@ -670,8 +668,13 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         %   For stack with multiple channels or planes, the input struct is
         %   repeated for the length of each of those dimensions
         
-            numChannels = obj.SourceStack.NumChannels;
-            numPlanes = obj.SourceStack.NumPlanes;
+%             numChannels = obj.SourceStack.NumChannels;
+%             numPlanes = obj.SourceStack.NumPlanes;
+            numChannels = obj.StackIterator.NumIterationsC;
+            numPlanes = obj.StackIterator.NumIterationsZ;
+            
+            % Todo: Use struct array instead of cell array....
+            
             S = repmat({S}, numChannels, numPlanes);
         end
         
