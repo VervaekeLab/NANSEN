@@ -32,7 +32,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
 
 % - - - - - - - - - - TODO - - - - - - - - - - - - - - - - - - -
-%     [ ] Make separate StackIterator class   
+%     [v] Make separate StackIterator class   
 %
 %     [ ] Check which parts are finished across channels and planes.
 %
@@ -101,16 +101,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         CurrentFrameIndices         % Current indices of frames that are being processed (updated during processing)
         NumParts                    % Number of parts that image stack is split into for processing
         
-        NumChannelIterations
-        NumPlaneIterations
+        StackIterator nansen.stack.ImageStackIterator
         
         NumFramePerPart_
     end
-    
-% %     properties (Abstract) % Todo
-% %         ChannelProcessingMode % 'serial' or 'batch'
-% %         PlaneProcessingMode % 'serial' or 'batch'
-% %     end
     
     properties (Dependent, SetAccess = private, GetAccess = protected)
         CurrentChannel  % Current channel of ImageStack
@@ -142,6 +136,14 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             %S.Run.partsToProcess = 'all';
             %S.Run.redoPartIfFinished = false;
             S.Run.runOnSeparateWorker = false;
+            
+            % Options for configuring channel/plane iterations.
+            S.Run.PrimaryChannel = 1;
+            S.Run.ChannelProcessingMode = 'serial';
+            S.Run.ChannelProcessingMode_ = {'serial', 'batch', 'single'};
+            S.Run.PlaneProcessingMode = 'serial';
+            S.Run.PlaneProcessingMode_ = {'serial', 'batch'};             
+            
         end
     end
     
@@ -193,9 +195,21 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
         end
         
+        function delete(obj)
+            if ~isempty(obj.StackIterator)
+                delete(obj.StackIterator)
+            end
+        end
+        
     end
 
     methods % Set/get methods
+        
+        function set.SourceStack(obj, value)
+            obj.SourceStack = value;
+            obj.initializeStackIterator()
+            obj.configureStackIterator()
+        end
         
         function runOnSeparateWorker = get.RunOnSeparateWorker(obj)
             if isfield(obj.Options, 'Run')
@@ -227,7 +241,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             obj.NumFramePerPart_ = numFramesPerPart;
             obj.onNumFramesPerPartSet()
         end
-        
         
         function frameInterval = get.FrameInterval(obj)
             if isfield(obj.Options, 'Run')
@@ -419,51 +432,23 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             obj.displayStartCurrentStep()
 
             obj.printTask(sprintf('Running method: %s', class(obj) ) )
-
+    
+            % Need to set these before starting...
             obj.CurrentChannel = 1;
             obj.CurrentPlane = 1;
             
-            [channelIterator, nChannelsIter] = obj.getChannelIterationValues();
-            [planeIterator, nPlanesIter] = obj.getPlaneIterationValues();
-
-            obj.NumChannelIterations = nChannelsIter;
-            obj.NumPlaneIterations = nPlanesIter;
+            % Display information about how many parts to process in total.
+            obj.printStackProcessingDetails()
             
-            % Todo: Make method for displaying the following:
-            
-            numChans = obj.SourceStack.NumChannels;
-            numPlanes = obj.SourceStack.NumPlanes;
-            
-            IND = obj.FrameIndPerPart;
-            partsToProcess = obj.getPartsToProcess(IND);
-            numParts =  numel(partsToProcess);
-            
-            if numParts == 1
-                numPartsStr = sprintf('%d part', numParts);
-            else
-                numPartsStr = sprintf('%d parts', numParts);
-            end
-            
-            if numChans > 1 && numPlanes > 1
-                obj.printSubTask(sprintf('ImageStack contains %d channels and %d planes', numChans, numPlanes))
-                obj.printSubTask(sprintf('Each channel and plane will be divided in %s during processing', numPartsStr))
-            elseif numChans > 1
-                obj.printSubTask(sprintf('ImageStack contains %d channels', numChans))
-                obj.printSubTask(sprintf('Each channel will be divided in %s during processing', numPartsStr))
-            elseif numPlanes > 1
-                obj.printSubTask(sprintf('ImageStack contains %d planes', numPlanes))
-                obj.printSubTask(sprintf('Each plane will be divided in %s during processing', numPartsStr))
-            else
-                obj.printSubTask(sprintf('ImageStack will be processed in %s', numPartsStr))
-            end
-            
-            for iChannel = channelIterator
-                obj.CurrentChannel = iChannel;
-                for jPlane = planeIterator
-                    obj.CurrentPlane = jPlane;
-                    
-                    obj.processParts()
-                end
+            % Use stack iterator to set current channel/plane and process
+            % parts for the current selection
+            obj.StackIterator.reset()
+            for i = 1:obj.StackIterator.NumIterations
+                obj.StackIterator.next()
+                obj.CurrentChannel = obj.StackIterator.CurrentChannel;
+                obj.CurrentPlane = obj.StackIterator.CurrentPlane;
+                
+                obj.processParts()
             end
             
             obj.displayFinishCurrentStep()
@@ -531,17 +516,14 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         function finish(obj)
             
             %if obj.IsFinished; return; end
-            [channelIterator, ~] = obj.getChannelIterationValues();
-            [planeIterator, ~] = obj.getPlaneIterationValues();
-            
-            for iChannel = channelIterator
-                obj.CurrentChannel = iChannel;
-                for jPlane = planeIterator
-                    obj.CurrentPlane = jPlane;
-                    
-                    % Subclass may implement
-                    obj.onCompletion()
-                end
+
+            obj.StackIterator.reset()
+            for i = 1:obj.StackIterator.NumIterations
+                obj.StackIterator.next()
+                obj.CurrentChannel = obj.StackIterator.CurrentChannel;
+                obj.CurrentPlane = obj.StackIterator.CurrentPlane;
+                
+                obj.onCompletion()
             end
 
             obj.printCompletionMessage()
@@ -551,17 +533,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     end
     
     methods (Access = protected) % Subroutines (Subclasses may override)
-        
-        function [channelIterator, nIter] = getChannelIterationValues(obj)
-        %getChannelIterationValues Get index values for channel iteration
-            channelIterator = 1:obj.SourceStack.NumChannels;
-            nIter = numel(channelIterator);
-        end
-        
-        function [planeIterator, nIter] = getPlaneIterationValues(obj)
-            planeIterator = 1:obj.SourceStack.NumPlanes;
-            nIter = numel(planeIterator);
-        end
         
         function onCurrentChannelSet(obj, currentChannel)
             if ~isempty(obj.TargetStack)
@@ -662,6 +633,16 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             % Todo: Make sure this method is not resuming from previous
             % instance that used a different stack splitting configuration
             
+        end
+
+        function configureStackIterator(obj)
+            if isempty(obj.StackIterator)
+                error('StackIterator is not initialized yet')
+            end
+            
+            obj.StackIterator.ChannelProcessingMode = obj.Options.Run.ChannelProcessingMode;
+            obj.StackIterator.PrimaryChannel = obj.Options.Run.PrimaryChannel;
+            obj.StackIterator.PlaneProcessingMode = obj.Options.Run.PlaneProcessingMode;
         end
         
         function imArray = getImageArray(obj, N)
@@ -801,6 +782,33 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             obj.NumParts = numParts;
             
         end
+        
+        function initializeStackIterator(obj)
+            numC = obj.SourceStack.NumChannels;
+            numZ = obj.SourceStack.NumPlanes;
+            obj.StackIterator = nansen.stack.StackIterator(numC, numZ);
+        end
+        
+        function frameIndices = getFrameIndices(obj, frameIndices)
+            
+            % Get frame indices for all frame dimensions, i.e C, Z & T
+            
+            if nargin < 1
+                frameIndices = obj.FrameIndPerPart{obj.CurrentPart};
+            end
+            
+            % Todo: This should depend on stack dimension order.
+            
+            if obj.SourceStack.NumPlanes > 1
+                frameIndices{end+1} = obj.StackIterator.CurrentPlane;
+            end
+            
+            if obj.SourceStack.NumChannels > 1
+                frameIndices{end+1} = obj.StackIterator.CurrentChannel;
+            end
+            
+        end
+        
     end
     
     methods (Access = protected) % Methods for printing commandline output
@@ -843,25 +851,20 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         end
         
         function str = getCurrentPartString(obj, iPart)
+        %getCurrentPartString Get string with info about current part.
         
         % Get string that looks like this based on current channel/plane: 
         % Processing part 2/80 (channel 1/2, plane 1/4, part 1/5)
             
-            currentPlane = obj.CurrentPlane;
-            currentChannel = obj.CurrentChannel(1); % Select first (sometimes channels are processed in batch) Todo: This should be generalized, what if some subclass would process channel 1 and 2 and then channel 3 and 4 or some weird stuff like that...
-            
             currentPart = iPart;
             numParts = obj.NumParts;
-            
-            numChannelIter = obj.NumChannelIterations;
-            numPlanesIter = obj.NumPlaneIterations;
             
             numChannels = obj.SourceStack.NumChannels;
             numPlanes = obj.SourceStack.NumPlanes;
             
-            numRepetitions = numChannelIter .* numPlanesIter;
-            currentRepetition = (currentChannel-1) .* numPlanes + currentPlane;
-            
+            numRepetitions = obj.StackIterator.NumIterations;
+            currentRepetition = obj.StackIterator.CurrentIteration;
+                        
             currentPartTotal = (currentRepetition-1) .* numParts + currentPart;
             numPartsTotal = numParts .* numRepetitions;
             
@@ -869,13 +872,13 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             addendumStr = {};
             
             % Add channel addendum
-            if numChannelIter > 1
+            if obj.StackIterator.NumIterationsC > 1
                 addendumStr{end+1} = sprintf('channel %d/%d', ...
                     obj.CurrentChannel, numChannels);
             end
             
             % Add plane addendum
-            if numPlanesIter > 1
+            if obj.StackIterator.NumIterationsZ > 1
                 addendumStr{end+1} = sprintf('plane %d/%d', ...
                     obj.CurrentPlane, numPlanes);
             end
@@ -931,6 +934,36 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             obj.printTask(sprintf('Completed method: %s', class(obj)))
             fprintf('---\n')
             fprintf('\n')
+        end
+        
+        function printStackProcessingDetails(obj)
+            % Todo: Make method for displaying the following:
+            
+            numChans = obj.SourceStack.NumChannels;
+            numPlanes = obj.SourceStack.NumPlanes;
+            
+            IND = obj.FrameIndPerPart;
+            partsToProcess = obj.getPartsToProcess(IND);
+            numParts =  numel(partsToProcess);
+            
+            if numParts == 1
+                numPartsStr = sprintf('%d part', numParts);
+            else
+                numPartsStr = sprintf('%d parts', numParts);
+            end
+            
+            if numChans > 1 && numPlanes > 1
+                obj.printSubTask(sprintf('ImageStack contains %d channels and %d planes', numChans, numPlanes))
+                obj.printSubTask(sprintf('Each channel and plane will be divided in %s during processing', numPartsStr))
+            elseif numChans > 1
+                obj.printSubTask(sprintf('ImageStack contains %d channels', numChans))
+                obj.printSubTask(sprintf('Each channel will be divided in %s during processing', numPartsStr))
+            elseif numPlanes > 1
+                obj.printSubTask(sprintf('ImageStack contains %d planes', numPlanes))
+                obj.printSubTask(sprintf('Each plane will be divided in %s during processing', numPartsStr))
+            else
+                obj.printSubTask(sprintf('ImageStack will be processed in %s', numPartsStr))
+            end
         end
         
     end
