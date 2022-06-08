@@ -38,6 +38,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             nansen.OptionsManager('nansen.wrapper.flowreg.Processor')
     end
     
+    properties (Constant, Hidden)
+        DATA_SUBFOLDER = 'motion_corrected'; % Name of subfolder(s) where to save results by default
+    end
+    
     properties (Constant) % From motion correction
         ImviewerPluginName = 'FlowRegistration'
     end
@@ -68,6 +72,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             % Todo. Move to superclass
             obj.Options.Export.FileName = obj.SourceStack.Name;
+            
             
             % Call the appropriate run method
             if ~nargout
@@ -103,9 +108,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % Initialize options (Load from session if options already
             % exist, otherwise save to session)
             S = obj.initializeOptions(opts, optionsVarname);
-            
-            
-            
         end
         
         function tf = checkIfPartIsFinished(obj, partNumber)
@@ -126,7 +128,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         % plane
             
             filePath = obj.getDataFilePath('FlowregShifts', '-w', ...
-                'Subfolder', 'image_registration', 'IsInternal', true);
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
             
             if isfile(filePath)
                 S = obj.loadData('FlowregShifts');
@@ -298,17 +300,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     end
     
     methods (Access = protected) % Run the motion correction / image registration
-        
-        function [channelIterator, nIter] = getChannelIterationValues(obj)
-        %getChannelIterationValues Get index values for channel iteration
-            channelIterator = transpose(1:obj.SourceStack.NumChannels);
-            nIter = 1;
-        end
-        
-        function [planeIterator, nIter] = getPlaneIterationValues(obj)
-            planeIterator = 1:obj.SourceStack.NumPlanes;
-            nIter = numel(planeIterator);
-        end
         
         function M = registerImageData(obj, Y)
             

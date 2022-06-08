@@ -22,8 +22,8 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
 %   TODO:
 %       [ ] Print command line output
-%       [ ] Implement multiple channel correction
-%       [ ] Improve initialization of template or leave it to normcorre... 
+%       [ ] Improve initialization of template or leave it to normcorre...
+%       [ ] Option for using precalculated template. 
 
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
@@ -42,8 +42,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         ImviewerPluginName = 'NoRMCorre'
     end
     
-    properties
-        ChannelToCorrect = 1;
+    properties (Dependent)
+        ChannelToCorrect % todo: rename to ReferenceChannel and
+        %update imageStackIterator when this value is set.
     end
     
 % % %     properties (Constant, Access = protected)
@@ -68,6 +69,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % Todo. Move to superclass
             obj.Options.Export.FileName = obj.SourceStack.Name;
             
+            % Todo: Make sure channel processing mode is serial or single
+            % (no batch method available for normcorre.)
+            
             % Call the appropriate run method
             if ~nargout
                 obj.runMethod()
@@ -76,6 +80,15 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
         end
         
+    end
+    
+    methods % Set/get
+        function set.ChannelToCorrect(obj, value)
+            obj.ChannelToCorrect = value;
+            % Todo:
+            %obj.Options.Run.PrimaryChannel = value;
+            %obj.StackIterator.PrimaryChannel = value;
+        end
     end
     
     methods (Access = protected) % Implementation of abstract, public methods
@@ -218,7 +231,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             warning('off', warnID)
             
             % Start parallell pool
-            gcp();%parpool()
+            % gcp();%parpool()
         end
         
         function M = registerImageData(obj, Y)
