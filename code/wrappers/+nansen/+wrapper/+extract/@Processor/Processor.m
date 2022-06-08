@@ -112,9 +112,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
         function dsFactor = getTemporalDownsamplingFactor(obj)
             % Todo:
-            %dsFactor = obj.Options.Downsample.downsample_time_by;
-            %obj.Options.Downsample.downsample_time_by = 1;
-            dsFactor = 10;
+            % dsFactor = obj.Options.Downsample.downsample_time_by;
+            % obj.Options.Downsample.downsample_time_by = 1;
+            dsFactor = 1;
+            
         end
 
         function runPreInitialization(obj)
@@ -144,11 +145,12 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 %obj.mergeSpatialComponents()
                 obj.mergeSpatialComponentsLiberal()
                 spatialWeights = obj.MergedResults.spatial_weights;
-                summary = obj.MergedResults;
             else
                 spatialWeights = obj.Results{1}.spatial_weights;
-                summary = obj.Results{1};
+                obj.MergedResults = obj.Results{1};
             end
+            
+            summary = obj.MergedResults;
 
             % Save (merged) results as spatial weights and roiarray
             obj.saveData('ExtractSpatialWeightsAuto', spatialWeights, ...
@@ -212,9 +214,15 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     obj.mergeResults()
                 end
                 
+                if isempty(obj.OriginalStack)
+                    sourceStack = obj.SourceStack;
+                else
+                    sourceStack = obj.OriginalStack;
+                end
+                
                 % Get temporal segments %Todo: Should just be a separate method...
                 tExtracor = nansen.wrapper.extract.ProcessorT(...
-                    obj.OriginalStack, obj.Options, obj.MergedResults);
+                    sourceStack, obj.Options, obj.MergedResults);
                 tExtracor.Options.Run.numFramesPerPart = 2000;
                 tExtracor.DataIoModel = obj.DataIoModel;
 

@@ -183,14 +183,19 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         
         function runAlign(obj)
          %runAlign Run correction on full image stack using a dummy session
-   
+            
+            % Todo: Implement data i/o model.
+                
+            %    - This method should be able to output to file, or to
+            %    memory.
+                
             pathStr = obj.ImviewerObj.ImageStack.FileName;
             
-            hSession = nansen.metadata.schema.dummy.TwoPhotonSession( pathStr );
+            % % hSession = nansen.metadata.schema.dummy.TwoPhotonSession( pathStr );
 
             %%hSession = nansen.metadata.type.Session( pathStr );
-            
-            ophys.twophoton.process.motionCorrection.normcorre(hSession, obj.settings);
+            nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack, obj.settings)
+            %ophys.twophoton.process.motionCorrection.normcorre(hSession, obj.settings);
             
         end
         
