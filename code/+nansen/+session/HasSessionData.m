@@ -49,12 +49,12 @@ classdef HasSessionData < uim.handle
             numOutputs = nargout;
             varargout = cell(1, numOutputs);
             
-            if strcmp(s(1).type, '.')
-                if strcmp(s(1).subs, 'Data')
-                    for i = 1:numel(obj)
-                        if ~obj(i).Data.IsInitialized
-                            obj(i).Data.initialize();
-                        end
+            [isDataRequested, ind] = obj.isDataSubsrefed(s);
+            
+            if isDataRequested
+                for i = ind
+                    if ~obj(i).Data.IsInitialized
+                        obj(i).Data.initialize();
                     end
                 end
             end
@@ -89,7 +89,6 @@ classdef HasSessionData < uim.handle
 % %             end
         end
         
-        
         function n = numArgumentsFromSubscript(obj, s, indexingContext)
             if strcmp(s(1).type, '.')
                 if strcmp(s(1).subs, 'Data')
@@ -107,7 +106,22 @@ classdef HasSessionData < uim.handle
     end
     
     methods (Access = private)
-                    
+          
+        function [tf, idx] = isDataSubsrefed(obj, s)
+            
+            if strcmp(s(1).type, '.') && strcmp(s(1).subs, 'Data')
+                tf = true;
+                idx = 1:numel(obj);
+            elseif numel(s) >= 2 && strcmp(s(1).type, '()') ...
+                    && strcmp(s(2).type, '.') && strcmp(s(2).subs, 'Data')
+                tf = true;
+                idx = s(1).subs{1};
+            else
+                tf = false;
+                idx = [];
+            end
+        end
+        
         function numArgouts = determineNumArgout(obj, s)
         %determineNumArgout Determine expected nargout from subsref
         
