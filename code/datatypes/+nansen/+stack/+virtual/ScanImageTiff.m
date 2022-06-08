@@ -369,7 +369,7 @@ methods (Access = private)
             end
             
         end
-        
+        numFramesPerFile(i) = numFramesPerFile(i) .* sIParams.hChannels.channelSave .* siParams.hStackManager.actualNumSlices;
         obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
         obj.NumTimepoints_ = sum(numFramesPerFile);
         

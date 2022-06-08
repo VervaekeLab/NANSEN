@@ -2768,6 +2768,9 @@ methods % Handle user actions
         % be formatted as in fprintf or sprintf?
         
         im = obj.ImageStack.getFullProjection(funcName);
+        
+        obj.changeImageDisplayMode('projection', funcName)
+        
         obj.DisplayedImage = im;
         
         obj.updateImageDisplay()
@@ -5576,6 +5579,7 @@ methods (Access = private) % Methods that runs when properties are set
             %uistack(obj.imObj, 'up')
             
             obj.uiwidgets.playback.resetRangeSelector()
+            obj.uiwidgets.playback.NumPlanes = obj.ImageStack.NumPlanes;
             
             if ~all(isnan(obj.DisplayedImage(:)))
                 set(obj.hDropbox, 'Visible', 'off')

@@ -111,7 +111,11 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
         end
         
         function filePath = getDataFilePath(obj, varargin)
-            filePath = obj.DataIoModel.getDataFilePath(varargin{:});
+            if ischar(obj.DataIoModel) && isfile(obj.DataIoModel)
+                error('DataLocation Model is not set.')
+            else
+                filePath = obj.DataIoModel.getDataFilePath(varargin{:});
+            end
         end
         
         function folder = getTargetFolder(obj)
