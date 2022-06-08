@@ -366,9 +366,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 obj.CurrentPart = iPart;
                 obj.CurrentFrameIndices = iIndices;
                 
-                % Load data Todo: Make method. Two photon session method?
+                % Load data Todo: Make method?
                 Y = obj.SourceStack.getFrameSet(iIndices);
-
+                Y = squeeze(Y);
+                
                 if ~isempty(obj.DataPreProcessFcn)
                     Y = obj.DataPreProcessFcn(Y, iIndices, obj.DataPreProcessOpts);
                 end
@@ -487,9 +488,11 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             if nargin < 2 || isempty(N)
                 N = obj.SourceStack.chooseChunkLength();
             end
-            
+
             imArray = obj.SourceStack.getFrameSet(1:N);
-            obj.SourceStack.addToStaticCache(imArray, 1:N)
+            % Todo: Include this but fix caching for multichannel data...
+            % obj.SourceStack.addToStaticCache(imArray, 1:N)
+            imArray = squeeze(imArray);
             
             obj.printTask('Finished loading data')
             

@@ -437,9 +437,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             dataSize = obj.Data.StackSize;
             tmpSize = size(imData);
             
-%             if ~isequal(dataSize(3:end), tmpSize(3:end))
-%                 tmpInd = repmat({':'}, 1, ndims(obj.Data));
-%             end
+            if ~isequal(dataSize(3:end-1), tmpSize(3:end-1))
+                warning('Data being inserted in the cache is not complete along some of the dimensions.')
+                %tmpInd = repmat({':'}, 1, ndims(obj.Data));
+            end
             
             obj.Data.addToStaticCache(imData, frameIndices)
             
