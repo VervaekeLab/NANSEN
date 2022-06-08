@@ -13,6 +13,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     %   [ ] Important: Load task list and start running it if preferences
     %       are set for that, even if gui is not initialized...
+    %
+    %   [ ] Figure out what to do vis a vis multisession methods and pipelines. 
     
 
     properties (Constant, Access=protected) % Inherited from uiw.abstract.AppWindow
@@ -2369,7 +2371,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Update the status field
                 app.updateStatusField(i-1, numTasks, sessionMethod)
                 
-                newTask = app.BatchProcessor.createTaskItem(sessionObj{i}.sessionID, ...
+                newTask = app.BatchProcessor.createTaskItem(sessionObj{i}(1).sessionID, ...
                     sessionMethod, 0, sessionObj(i), 'Default', 'Command window task');
 
                 % cleanupObj makes sure temp logfile is deleted later
@@ -2384,8 +2386,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     else
                         sessionMethod(sessionObj{i}, opts);
                     end
-
-                    sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                    if numel(sessionObj{i}) == 1 % Methods which accept multiple session should not be included in pipelines...
+                        sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                    end
                     newTask.status = 'Completed';
                     diary off
                     newTask.Diary = fileread(logfile);
