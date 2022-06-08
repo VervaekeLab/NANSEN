@@ -789,7 +789,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         function initializeStackIterator(obj)
             numC = obj.SourceStack.NumChannels;
             numZ = obj.SourceStack.NumPlanes;
-            obj.StackIterator = nansen.stack.StackIterator(numC, numZ);
+            obj.StackIterator = nansen.stack.ImageStackIterator(numC, numZ);
         end
         
         function frameIndices = getFrameIndices(obj, frameIndices)
