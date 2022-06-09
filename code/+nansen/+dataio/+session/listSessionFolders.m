@@ -21,6 +21,7 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
     
     allDataLocationNames = {dataLocationModel.Data.Name};
     
+    % Get indicies for datalocation items to list session folders from
     if ischar(dataLocationName) && strcmp(dataLocationName, 'all')
         ind = 1:numel(dataLocationModel.Data);
     elseif ischar(dataLocationName) || iscell(dataLocationName)
