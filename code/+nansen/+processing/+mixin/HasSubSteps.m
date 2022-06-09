@@ -76,7 +76,7 @@ classdef HasSubSteps < handle
         function displayStartStep(obj, stepId)
         %displayStartStep Display message when specified step is started   
             
-            idx = obj.StepList.findStep(stepId);
+            idx = obj.findStep(stepId);
 
             obj.printTask('Running step %d/%d: %s...', idx, obj.NumSteps, ...
                 obj.StepList(idx).Description )
@@ -85,7 +85,7 @@ classdef HasSubSteps < handle
         function displayFinishStep(obj, stepId)
         %displayFinishStep Display message when specified step is finished    
             
-            idx = obj.StepList.findStep(stepId);
+            idx = obj.findStep(stepId);
             
             obj.printTask('Finished step %d/%d: %s.\n', idx, obj.NumSteps, ...
                 obj.StepList(idx).Description)
