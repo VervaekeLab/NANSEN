@@ -39,7 +39,7 @@ classdef HasSubSteps < handle
             if nargin < 4; listPosition = 'end'; end
             listPosition = validatestring(listPosition, {'beginning', 'end'});
             
-            if obj.StepList.containsStep(id) 
+            if obj.hasStep(id) 
                 warning('Step with id "%s" already exists in the step list', id)
             else
                 newSubStep = DataMethodSubStep(id, description);
