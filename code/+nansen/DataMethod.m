@@ -5,6 +5,9 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
     %     already completed. I.e rerun and overwrite, rerun and save to new
     %     folder, or do nothing...
     %
+    % [ ] Implement option to turn on/off saving of secondary results.
+    % [ ] Related: Implement DataIOModel for filepaths. See saveData/loadData 
+    %
     % [ ] Implement printStatus method. Create a special class for method
     %     logging?
     %
