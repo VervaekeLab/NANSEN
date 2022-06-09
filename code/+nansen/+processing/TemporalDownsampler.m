@@ -343,7 +343,7 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             % Change filetype (extension) if filetype is specified.
             if ~strcmp(obj.TargetFileType, 'same')
                 newExt = obj.TargetFileType;
-                if ~strncmp(ext, '.', 1)
+                if ~strncmp(newExt, '.', 1)
                     newExt = strcat('.', newExt);
                 end
                 filePath = strrep(filePath, ext, newExt);
