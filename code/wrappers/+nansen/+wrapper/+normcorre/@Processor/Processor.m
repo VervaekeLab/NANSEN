@@ -24,18 +24,18 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %       [ ] Print command line output
 %       [ ] Improve initialization of template or leave it to normcorre...
 %       [ ] Option for using precalculated template. 
+%       [ ] Move shifts to results property of ImageStackProcessor
 
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
         MethodName = 'Motion Correction (NoRMCorre)'
-        IsManual = false        % Does method require manual supervision?
-        IsQueueable = true      % Can method be added to a queue?
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.normcorre.Processor')
     end
     
     properties (Constant, Hidden)
         DATA_SUBFOLDER = 'motion_corrected'; % Name of subfolder(s) where to save results by default
+        VARIABLE_PREFIX = 'Normcorre';
     end
     
     properties (Constant) % From motion correction
@@ -65,9 +65,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             if numel(varargin) == 0
                 return
             end
-            
-            % Todo. Move to superclass
-            obj.Options.Export.FileName = obj.SourceStack.Name;
             
             % Todo: Make sure channel processing mode is serial or single
             % (no batch method available for normcorre.)

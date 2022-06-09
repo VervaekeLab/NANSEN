@@ -15,8 +15,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %     * <strong>ExtractResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack. 
 %           Struct contains output from EXTRACT
 %
-%     * <strong>ExtractSpatialWeightsAuto</strong> : Spatial weights of rois. 
-%           (imageHeight x imageWidth x numRois) single array
+%     * <strong>ExtractResultsFinal</strong> : Cell array of structs. One struct for each channel and/or 
+%           plane of ImageStack. Struct contains output from EXTRACT
 %
 %     * <strong>roiArrayExtractAuto</strong> : array of RoI objects
 %           resulting from running EXTRACT autosegmentation
@@ -27,13 +27,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     properties (Constant, Hidden) 
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_extract')
         VARIABLE_PREFIX = 'Extract';
-        ROI_VARIABLE_NAME = 'roiArrayExtractAuto'
     end
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
         MethodName = 'EXTRACT (Autosegmentation)'
-        IsManual = false        % Does method require manual supervision
-        IsQueueable = true      % Can method be added to a queue
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.extract.Processor')
     end
@@ -41,12 +38,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     properties (Constant) % From ImageStack Processor...
         ImviewerPluginName = 'EXTRACT'
     end
-    
-    properties (Access = private)
-        MergedResults % Adapt to multichannel/multiplane
-        SpatialWeights % Adapt to multichannel/multiplane
-    end
-    
+
     
     methods % Constructor 
         
@@ -62,9 +54,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 return
             end
 
-            % Todo. Move to superclass
-            obj.Options.Export.FileName = obj.SourceStack.Name;
-            
             % Call the appropriate run method
             if ~nargout
                 obj.runMethod()
@@ -115,7 +104,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             % Prioritize value from internal pipeline
             dsFactor1 = obj.Options.Downsample.downsample_time_by;
-            dsFactor2 = obj.Options.TemporalDownsamplingFactor;
+            dsFactor2 = obj.Options.Run.TemporalDownsamplingFactor;
             
             if dsFactor1 > 1
                 obj.Options.Downsample.downsample_time_by = 1; % Need to set this to 1, because stack processor takes care of downsampling...
@@ -132,40 +121,78 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             tempResults = obj.Results;
             obj.saveData('ExtractResultsTemp', tempResults) 
         end
-                
-        function mergeResults(obj)
+        
+        function mergeSpatialComponents(obj, iChannel, iPlane)
+        %mergeSpatialComponentsLiberal    
+
+            iMergedResults = obj.Results{1, iPlane, iChannel};
+            [h, w, ~] = size(iMergedResults.spatial_weights);
+
+            for i = 2:size(obj.Results, 1)
+
+                % Find matching indices between two sets of spatial masks
+                S{1} = iMergedResults.spatial_weights;
+                T{1} = iMergedResults.temporal_weights;
+                S_{1} = reshape(S{1}, [], size(S{1}, 3));
+
+                S{2} = obj.Results{i, iPlane, iChannel}.spatial_weights;
+                T{2} = obj.Results{i, iPlane, iChannel}.temporal_weights;
+                S_{2} = reshape(S{2}, [], size(S{2}, 3));
+
+                idx_match = match_sets(S_{1}, S_{2});
+
+                % Merge components that are matched
+                Smerged = cell(1,2);
+
+                for j = 1:2
+                    Smerged{j} = S_{j}(:, idx_match(j, :));
+                    Smerged{j} = reshape(Smerged{j}, h, w, []);
+                    S{j}(:, :, idx_match(j, :)) = [];
+                end
+
+                SMerged = mean( cat(4, Smerged{:}), 4 );
+
+                % Insert merged components back to original rois and combine
+                S{1} = utility.insertIntoArray(S{1}, SMerged, idx_match(1, :), 3);
+                iMergedResults.spatial_weights = cat(3, S{:});
+
+            end
+
+            obj.MergedResults{iZ, iC} = iMergedResults;
+        end
+        
+        
+        function mergeResultsOld(obj)
         %mergeResults Merge results from each processing part
-              
+            
             obj.displayStartStep('merge_results')
 
             % Combine spatial segments
-            if numel(obj.Results) > 1
+            if size(obj.Results, 1) > 1
                 %obj.mergeSpatialComponents()
                 obj.mergeSpatialComponentsLiberal()
                 spatialWeights = obj.MergedResults.spatial_weights;
             else
                 spatialWeights = obj.Results{1}.spatial_weights;
-                obj.MergedResults = obj.Results{1};
+                obj.MergedResults = squeeze( obj.Results );
             end
             
+            
             summary = obj.MergedResults;
-
-            % Save (merged) results as spatial weights and roiarray
-            obj.saveData('ExtractSpatialWeightsAuto', spatialWeights, ...
-                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true)
             
             obj.saveData('ExtractSegmentationSummary', summary, ...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true)
-            
-            obj.SpatialWeights = spatialWeights;
-            
+                        
             obj.displayFinishStep('merge_results')
         end
 
         function roiArray = getRoiArray(obj)
         %getRoiArray Get results as a roi array
+        
+            spatialWeights = obj.MergedResults.spatial_weights;
+        
             roiArray = nansen.wrapper.extract.convert2rois(...
-                struct('spatial_weights', obj.SpatialWeights));
+                struct('spatial_weights', spatialWeights));
         end
         
         function getRoiAppData(obj)
@@ -177,6 +204,20 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     
     methods (Access = protected) % Implementation of ImageStackProcessor methods
 
+        function onInitialization(obj)
+            
+            onInitialization@nansen.processing.RoiSegmentation(obj)
+            
+%             filePath = obj.getDataFilePath('ExtractResultsTemp', '-w',...
+%                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
+%             
+%             if isfile(filePath)
+%                 obj.printTask('Loading previously saved results...')
+%                 obj.Results = obj.loadData('ExtractResultsTemp');
+%             end
+            
+        end
+        
         function result = segmentPartition(obj, Y)
             
             % This should only be done once... (internal check ensures)
@@ -187,20 +228,29 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
         end
 
-        function onInitialization(obj)
-            
-            onInitialization@nansen.processing.RoiSegmentation(obj)
-            
-            filePath = obj.getDataFilePath('ExtractResultsTemp', '-w',...
-                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
-            
-            if isfile(filePath)
-                obj.printTask('Loading previously saved results...')
-                obj.Results = obj.loadData('ExtractResultsTemp');
-            end
-            
-        end
+        function mergeResults(obj)
+        %mergeResults Merge results from subparts of ImageStack    
 
+            [numParts, numC, numZ] = size(obj.Results);
+            
+            if numParts == 1
+                obj.MergedResults = squeeze(obj.Results);
+            elseif numParts > 1
+                obj.MergedResults = cell(numZ, numC);
+                
+                for i = 1:numZ
+                    for j = 1:numC
+                        obj.mergeSpatialComponents(i, j)
+                    end
+                end
+            end
+
+            variableName = sprintf('%sResultsFinal', obj.VARIABLE_PREFIX);
+                
+            obj.saveData(variableName, obj.MergedResults, ...
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true)
+        end
+        
         function onCompletion(obj)
 
             % Run superclass method first:
@@ -233,7 +283,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
     end
     
-    methods (Access = private)
+    methods (Access = private) % Methods specific to the Extract Processor
         
         function createRoiClassificationData(obj)
             
@@ -242,7 +292,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             imArray = obj.SourceStack.getFrameSet(1:N);
             
             % Load roiArray
-            roiArray = obj.loadData( obj.ROI_VARIABLE_NAME );
+            roiArray = obj.loadData( obj.RoiArrayVarName );
             
             % Load signals
             roiSignals = obj.loadData('ExtractTemporalWeights');
@@ -270,7 +320,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             
             % Save to roi file...
-            filePath = obj.getDataFilePath( obj.ROI_VARIABLE_NAME );
+            filePath = obj.getDataFilePath( obj.RoiArrayVarName );
             S = struct('roiImages', roiImages, 'roiStats', roiStats);
             save(filePath, '-struct', 'S', '-append') 
             
@@ -283,7 +333,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %
             
             % Get initial data.
-            spatialWeights = obj.loadData('ExtractSpatialWeightsAuto');
+            spatialWeights = obj.MergedResults.spatial_weights;
             
             roiArray = obj.RoiArray;
             roiImages = obj.RoiImages;
@@ -313,9 +363,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
         end
         
-        function mergeSpatialComponents(obj)
-            
-            mergedResults = obj.Results{1};
+        function mergeSpatialComponentsOld(obj, iChannel, iPlane)
+                        
+            mergedResults = obj.Results{1, iPlane, iChannel};
             [h, w, n] = size(mergedResults.spatial_weights);
             
             for i = 2:numel(obj.Results)
@@ -349,48 +399,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
             
             obj.MergedResults = mergedResults;
-            
-        end
-        
-        function mergeSpatialComponentsLiberal(obj)
-                        
-            mergedResults = obj.Results{1};
-            [h, w, n] = size(mergedResults.spatial_weights);
-            
-            for i = 2:numel(obj.Results)
-                
-                % Find matching indices between two sets of spatial masks
-                S{1} = mergedResults.spatial_weights;
-                T{1} = mergedResults.temporal_weights;
-                S_{1} = reshape(S{1}, [], size(S{1}, 3));
-                
-                S{2} = obj.Results{i}.spatial_weights;
-                T{2} = obj.Results{i}.temporal_weights;
-                S_{2} = reshape(S{2}, [], size(S{2}, 3));
-                
-                idx_match = match_sets(S_{1}, S_{2});
-                                
-                % Merge components that are matched
-                Smerged = cell(1,2);
-                
-                for j = 1:2
-                    Smerged{j} = S_{j}(:, idx_match(j, :));
-                    Smerged{j} = reshape(Smerged{j}, h, w, []);
-                    S{j}(:, :, idx_match(j, :)) = [];
-                end
-                
-                SMerged = mean( cat(4, Smerged{:}), 4 );
-                
-                % Insert merged components back to original rois and combine
-                S{1} = utility.insertIntoArray(S{1}, SMerged, idx_match(1, :), 3);
-                mergedResults.spatial_weights = cat(3, S{:});
-                
-            end
-            
-            obj.MergedResults = mergedResults;            
-        end
-        
-        function mergeTemporalComponents(obj)
             
         end
         

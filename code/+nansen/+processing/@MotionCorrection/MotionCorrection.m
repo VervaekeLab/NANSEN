@@ -93,6 +93,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     properties (Abstract, Constant)
         ImviewerPluginName
     end
+    
+    properties (Constant) % Attributes inherited from nansen.DataMethod
+        IsManual = false        % Does method require manual supervision
+        IsQueueable = true      % Can method be added to a queue
+    end
 
     properties (Dependent, SetAccess = private)
         RecastOutput        % Flag for whether to recast output.
@@ -321,7 +326,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function onCompletion(obj)
             
             % Todo: Rename to completeCurrentChannelCurrentPlane
-
+            
             i = 1;
             j = obj.CurrentPlane;
             
@@ -458,10 +463,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                     obj.ReferenceStack.writeFrameSet(obj.CurrentRefImage, obj.CurrentPart)
                 end
                 
-                % Add drift to shifts. %Todo: Flowreg
+                % Add drift to shifts.
                 obj.addDriftToShifts(drift)
-                obj.ShiftsArray{i,j}(iIndices) = obj.addShifts(...
-                    obj.ShiftsArray{i,j}(iIndices), drift);
             end
 
             % Save stats based on motion correction shifts
@@ -803,7 +806,16 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 'bin_width', 50, 'max_shift', 20, 'us_fac', 50, ...
                 'correct_bidir', false, 'print_msg', 0);
             
-            [~, nc_shifts, ~,~] = normcorre(mean(M, 3), options_rigid, sessionRef);
+            if ndims(M) == 4 % multichannel
+                averageImage = squeeze( mean( mean(M, 4), 3) );
+                sessionRef = mean(sessionRef, 3);
+            elseif ndims(M) == 3 || ismatrix(M)
+                averageImage = mean(M, 3);
+            else
+                error('Imagedata is wrong size.')
+            end
+            
+            [~, nc_shifts, ~,~] = normcorre(averageImage, options_rigid, sessionRef);
             dx = arrayfun(@(row) row.shifts(2), nc_shifts);
             dy = arrayfun(@(row) row.shifts(1), nc_shifts);
 

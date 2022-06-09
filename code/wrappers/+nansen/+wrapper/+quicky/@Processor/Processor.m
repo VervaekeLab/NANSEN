@@ -19,13 +19,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %
     properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_quicky')
-        ROI_VARIABLE_NAME = 'roiArrayQuickyAuto'
+        VARIABLE_PREFIX = 'Quicky'
     end
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
         MethodName = 'Autosegmentation (Quicky)'
-        IsManual = false        % Does method require manual supervision
-        IsQueueable = true      % Can method be added to a queue
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.quicky.Processor')
     end
@@ -53,9 +51,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 return
             end
 
-            % Todo. Move to superclass
-            obj.Options.Export.FileName = obj.SourceStack.Name;
-            
             % Call the appropriate run method
             if ~nargout
                 obj.runMethod()

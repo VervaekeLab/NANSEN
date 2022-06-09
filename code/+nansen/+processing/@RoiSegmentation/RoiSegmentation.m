@@ -1,19 +1,26 @@
 classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 %RoiSegmentation Superclass for running roi autosegmentation on ImageStacks
-
-    % Todo: 
-    %   [ ] Multichannel support
+%
+%   This class is a template method for running autosegmentation on
+%   ImageStacks. Subclasses must be based on the template for
+%   ImageStackProcessor and additionally implement the following methods:
+%
+%         getToolboxSpecificOptions
+%         segmentPartition
+%         getRoiArray
     
+    properties (Constant) % Attributes inherited from nansen.DataMethod
+        IsManual = false        % Does method require manual supervision
+        IsQueueable = true      % Can method be added to a queue
+    end
     
-% %     properties (Abstract, Constant, Hidden) % Todo: move to DataMethod
-% %         DATA_SUBFOLDER  % Name of subfolder(s) where to save results by default
-% %         ROI_VARIABLE_NAME
-% %     end
+    properties (Dependent, Access = protected)
+        RoiArrayVarName
+    end
     
     properties (Access = protected) % Data to keep during processing.
         ToolboxOptions  % Options that are in the format of original toolbox
         OriginalStack   % To store original ImageStack if SourceStack is downsampled
-        Results         % Cell array to store temporary results (from each subpart)
                 
         RoiArray        % Store roi array
         RoiImages       % Store roi images
@@ -27,6 +34,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     methods (Abstract, Access = protected)
         S = getToolboxSpecificOptions(obj)
         results = segmentPartition(obj, y)
+        mergeSpatialComponents(obj, channelNumber, planeNumber)
         roiArray = getRoiArray(obj)
     end
     
@@ -35,25 +43,29 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         function obj = RoiSegmentation(varargin)
             obj@nansen.stack.ImageStackProcessor(varargin{:})
         end
+        
+        function varName = get.RoiArrayVarName(obj)
+            varName = sprintf('roiArray%sAuto', obj.VARIABLE_PREFIX);
+        end
     
     end
     
     % Methods for initialization/completion of algorithm
     methods (Access = protected) % Override ImageStackProcessor methods 
         
-        function tf = checkIfPartIsFinished(obj, partNumber)
-        %checkIfPartIsFinished Check if intermediate results exist for part
-                    
-            msg = 'Number of parts is not matched';
-            assert(obj.NumParts == numel(obj.Results), msg)
-            
-            if obj.RedoIfCompleted
-                tf = false;
-            else
-                tf = ~isempty(obj.Results{partNumber});
-            end
-
-        end
+% % %         function tf = checkIfPartIsFinished(obj, partNumber)
+% % %         %checkIfPartIsFinished Check if intermediate results exist for part
+% % %                     
+% % %             msg = 'Number of parts is not matched';
+% % %             %assert(obj.NumParts == numel(obj.Results), msg)
+% % %             
+% % %             if obj.RedoIfCompleted
+% % %                 tf = false;
+% % %             else
+% % %                 tf = ~isempty(obj.Results{partNumber});
+% % %             end
+% % % 
+% % %         end
 
         function runPreInitialization(obj)
         %onPreInitialization Method that runs before the initialization step    
@@ -115,17 +127,40 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             
              Y = obj.preprocessImageData(Y);
             
-             output = obj.segmentPartition(Y);
+             summary = obj.segmentPartition(Y);
              
-             obj.Results{obj.CurrentPart} = output;
-             obj.saveResults()
+             %obj.Results{obj.CurrentPart} = output;
+             %obj.saveResults()
              
+        end
+        
+        function mergeResults(obj)
+        %mergeResults Merge results from subparts of ImageStack    
+
+            [numParts, numC, numZ] = size(obj.Results);
+            
+            if numParts == 1
+                obj.MergedResults = squeeze(obj.Results);
+            elseif numParts > 1
+                obj.MergedResults = cell(numZ, numC);
+                
+                for i = 1:numZ
+                    for j = 1:numC
+                        obj.mergeSpatialComponents(i, j)
+                    end
+                end
+            end
+
+            variableName = sprintf('%sResultsFinal', obj.VARIABLE_PREFIX);
+                
+            obj.saveData(variableName, obj.MergedResults, ...
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true)
         end
         
         function onCompletion(obj)
         %onCompletion Run when processor is done with all parts
            
-            if ~isfile(obj.getDataFilePath(obj.ROI_VARIABLE_NAME)) || obj.RedoIfCompleted
+            if ~isfile(obj.getDataFilePath(obj.RoiArrayVarName)) || obj.RedoIfCompleted
                 
                 obj.mergeResults()
                 
@@ -146,7 +181,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 roiGroupStruct.roiClassification = zeros(numel(obj.RoiArray), 1);
                 
                 % Save as roigroup.
-                obj.saveData(obj.ROI_VARIABLE_NAME, roiGroupStruct, ...
+                obj.saveData(obj.RoiArrayVarName, roiGroupStruct, ...
                     'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
 
             end
@@ -191,16 +226,12 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             % Subclasses may override
         end
         
-        function mergeResults(obj)
-            % Subclasses may override
-        end
-        
         function finalizeResults(obj)
             % Subclasses may override
         end
                 
         function dsFactor = getTemporalDownsamplingFactor(obj)
-            dsFactor = obj.Options.TemporalDownsamplingFactor;
+            dsFactor = obj.Options.Run.TemporalDownsamplingFactor;
         end
         
         function getRoiAppData(obj)
@@ -248,8 +279,8 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         
         function S = getDefaultOptions()
             S = struct();
-            S.TemporalDownsamplingFactor = 10; % 1 = no downsampling...
-            S.SpatialDownsamplingFactor = 1;
+            S.Run.TemporalDownsamplingFactor = 10; % 1 = no downsampling...
+            S.Run.SpatialDownsamplingFactor = 1;
             
             % S.SpatialPartitioning
             % S.TemporalPartitioning

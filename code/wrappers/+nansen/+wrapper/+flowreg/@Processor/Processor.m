@@ -22,24 +22,25 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
 %   TODO:
 %       [ ] Print command line output
-%       [ ] Implement multiple channel correction
+%       [v] Implement multiple channel correction
 %       [ ] Improve initialization of template or leave it to normcorre...
 
 %       [ ] Is there time to be saved on calculating shift metrics on
 %           downsampled shift data. Will metrics be quanitatively similar or
 %           not. 
 
+%       [ ] Move shifts to results property of ImageStackProcessor
+
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
         MethodName = 'Motion Correction (FlowRegistration)'
-        IsManual = false        % Does method require manual supervision
-        IsQueueable = true      % Can method be added to a queue
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.flowreg.Processor')
     end
     
     properties (Constant, Hidden)
         DATA_SUBFOLDER = 'motion_corrected'; % Name of subfolder(s) where to save results by default
+        VARIABLE_PREFIX = 'Flowreg';
     end
     
     properties (Constant) % From motion correction
@@ -69,10 +70,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             if numel(varargin) == 0
                 return
             end
-            
-            % Todo. Move to superclass
-            obj.Options.Export.FileName = obj.SourceStack.Name;
-            
             
             % Call the appropriate run method
             if ~nargout
@@ -149,8 +146,8 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             j = obj.CurrentPlane;
             iIndices = obj.CurrentFrameIndices;
 
-            obj.ShiftsArray{iIndices, j}(iIndices) = obj.addShifts(...
-                    obj.ShiftsArray{iIndices, j}(iIndices), drift);
+            obj.ShiftsArray(iIndices, j) = obj.addShifts(...
+                    obj.ShiftsArray(iIndices, j), drift);
         end
         
         function updateShifts(obj)

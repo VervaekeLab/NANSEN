@@ -5,11 +5,11 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %   object. This class provides functionality for splitting the stack in
 %   multiple parts and running the processing on each part in sequence. The
 %   class is designed so that methods can be started over and skip over 
-%   data that have already been process. It is also possible to rerun the 
+%   data that have already been processed. It is also possible to rerun the 
 %   method on a specified set of parts.
 %
 %   This class is useful for stacks which are very large and may not fit 
-%   in the computer memory. 
+%   in the computer's memory. 
 %
 %   Constructing an object of this class will not start the processing, use
 %   the runMethod for this.
@@ -90,11 +90,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         SourceStack nansen.stack.ImageStack % The image stack to use as source
         TargetStack nansen.stack.ImageStack % The image stack to use as target (optional)
         DerivedStacks struct = struct       % Struct containing one or more derived stacks
-        Results cell                        % Cell array (numParts x numPlanes x numChannels) containing results for each part of processing
+        Results cell                        % Cell array (numParts x numPlanes x numChannels) containing temporary results for each part of processing
+        MergedResults cell                  % Cell array (numPlanes x numChannels) containing final (merged) results
     end
     
     properties % User preferences
-        IsSubProcess = false        % Flag to indicate if this is a subprocess of another process (determines display output)
+        %IsSubProcess = false        % Flag to indicate if this is a subprocess of another process (determines display output)
         PreprocessDataOnLoad = false; % Flag for whether to activate image stack data preprocessing...
         PartsToProcess = 'all'      % Parts to processs. Manually assign to process a subset of parts
         RedoProcessedParts = false  % Flag to use if processing should be done again on already processed parts
@@ -133,8 +134,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         FrameIndPerPart = []        % List (cell array) of frame indices for each subpart of image stack
         IsInitialized = false;      % Boolean flag; is processor already initialized?
         IsFinished = false;         % Boolean flag; has processor completed?
+        DeleteSourceStackOnDestruction = false; % Boolean flag, delete SourceStack when processor is destroyed?
+        DeleteTargetStackOnDestruction = true; % Boolean flag, delete TargetStack when processor is destroyed?
     end
-    
+
 % - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - 
 
     methods (Static) % Method to get default options
@@ -209,9 +212,14 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 delete(obj.StackIterator)
             end
             
-            if ~isempty(obj.TargetStack)
+            if ~isempty(obj.TargetStack) && obj.DeleteTargetStackOnDestruction
                 delete(obj.TargetStack)
             end
+            
+            if ~isempty(obj.SourceStack) && obj.DeleteSourceStackOnDestruction
+                delete(obj.SourceStack)
+            end
+            
             % Delete derived stacks
             % Todo: Delete source stack if it is opened on construction...
         end
@@ -222,6 +230,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
         function set.SourceStack(obj, value)
             obj.SourceStack = value;
+            obj.onSourceStackSet()
             obj.initializeStackIterator()
             obj.configureStackIterator()
         end
@@ -281,7 +290,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             obj.SourceStack.CurrentPlane = currentPlane;
             obj.onCurrentPlaneSet(currentPlane)
         end
-        
         
     end
     
@@ -447,6 +455,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
             if obj.allIsFinished()
                 fprintf('All parts have already been processed.')
+                fprintf(newline)
                 return; 
             end
         
@@ -542,23 +551,36 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         function finish(obj)
             
             %if obj.IsFinished; return; end
-
-            obj.StackIterator.reset()
-            for i = 1:obj.StackIterator.NumIterations
-                obj.StackIterator.next()
-                obj.CurrentChannel = obj.StackIterator.CurrentChannel;
-                obj.CurrentPlane = obj.StackIterator.CurrentPlane;
+            
+            % Do the merging of results from each subpart of ImageStack
+            if isempty( obj.MergedResults )
                 
-                obj.onCompletion()
+                if obj.StepList.containsStep('merge_results')
+                    obj.displayStartStep('merge_results')
+                end
+
+                obj.mergeResults()
+
+                if obj.StepList.containsStep('merge_results')
+                    obj.displayFinishStep('merge_results')
+                end
             end
+            
+            % Call method which can be customized in subclasses 
+            obj.onCompletion()
 
             obj.printCompletionMessage()
             %obj.IsFinished = true;
         end
-        
+
     end
-    
+   
     methods (Access = protected) % Subroutines (Subclasses may override)
+        
+        function onSourceStackSet(obj)
+            % Set name for export in options
+            obj.Options.Export.FileName = obj.SourceStack.Name;
+        end
         
         function onCurrentChannelSet(obj, currentChannel)
             if ~isempty(obj.TargetStack)
@@ -584,7 +606,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             end
         end
         
-        function runPreInitialization(obj) % todo: protected?
+        function runPreInitialization(obj)
         %runPreInitialization Runs before the initialization step    
             % Subclasses can override
             obj.addStep('main', obj.MethodName)
@@ -595,9 +617,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         
             if isa(imageStackRef, 'nansen.stack.ImageStack')
                 obj.SourceStack = imageStackRef;
+                % Stack was handed to us, so we should not destroy it.
+                obj.DeleteSourceStackOnDestruction = false;
             else
                 try % Can we create an ImageStack?
                     obj.SourceStack = nansen.stack.ImageStack(imageStackRef);
+                    obj.DeleteSourceStackOnDestruction = true;
                 catch
                     error('Input must be transferable to an ImageStack')
                 end
@@ -623,22 +648,50 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             % methods.
         end
         
-        function tf = checkIfPartIsFinished(obj, partNumber)
-            % Rename to isPartFinished?
-            % Subclass may implement
-            tf = false; 
-        end
+% %         function tf = checkIfPartIsFinished(obj, partNumber)
+% %             % Rename to isPartFinished?
+% %             % Subclass may implement
+% %             tf = false; 
+% %         end
         
         function tf = allIsFinished(obj)
-            tf = all( cellfun(@isempty, obj.Results(:)) );
+            tf = all( cellfun(@(c) ~isempty(c), obj.Results(:)) );
         end
         
-% % %         Todo: Add Results as property and use this instead
-% % %         function tf = checkIfPartIsFinished(obj, partNumber, planeNumber, channelNumber)
-% % %             if nargin < 3; planeNumber = obj.StackIterator.CurrentIterationZ;
-% % %             if nargin < 4; channelNumber = obj.StackIterator.CurrentIterationC;
-% % %             tf = ~isempty(obj.Results{partNumber, planeNumber, channelNumber});
-% % %         end
+        %Todo: Add Results as property and use this instead
+        function tf = checkIfPartIsFinished(obj, partNumber, planeNumber, channelNumber)
+            if nargin < 3; planeNumber = obj.StackIterator.CurrentIterationZ; end
+            if nargin < 4; channelNumber = obj.StackIterator.CurrentIterationC; end
+            
+            if obj.RedoIfCompleted
+                tf = false;
+            else
+                tf = ~isempty(obj.Results{partNumber, planeNumber, channelNumber});
+            end
+        end
+        
+        function mergeResults(obj)
+        %mergeResults Merge results from subparts of ImageStack    
+
+            [numParts, numC, numZ] = size(obj.Results);
+            
+            if numParts == 1
+                obj.MergedResults = squeeze(obj.Results);
+            elseif numParts > 1
+                obj.MergedResults = cell(numZ, numC);
+                
+                for i = 1:numZ
+                    for j = 1:numC
+                        obj.MergedResults{i, j} = cat(1, obj.Results{:, i, j});
+                    end
+                end
+            end
+
+            variableName = sprintf('%sResultsFinal', obj.VARIABLE_PREFIX);
+                
+            obj.saveData(variableName, obj.MergedResults, ...
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true)
+        end
         
         function onInitialization(~)
             % Subclass may implement
@@ -857,6 +910,15 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             info = struct;
             info.Description = sprintf('Results is a cell array that contains intermediate results from the ImageStackProcessor "%s"', obj.MethodName);
             info.ImageStackName = obj.SourceStack.Name;
+            
+            % Load merged results if they are available.
+            variableName = sprintf('%sResultsFinal', obj.VARIABLE_PREFIX);
+            filePath = obj.getDataFilePath(variableName, '-w',...
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
+            
+            if isfile(filePath)
+                obj.MergedResults = obj.loadData(variableName);
+            end
         end
         
         function assertResultsCorrectSize(obj, summarySize)
@@ -880,7 +942,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
             % Save update results
             variableName = sprintf('%sResultsTemp', obj.VARIABLE_PREFIX);
-            obj.saveData(variableName, tempResults) 
+            obj.saveData(variableName, obj.Results)
         end
         
         function frameIndices = getFrameIndices(obj, frameIndices)
@@ -1005,16 +1067,26 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             fprintf('\n')
         end
         
+        function printStackInformation(obj)
+            % Todo:
+            
+            % Print size of stack (number of frames, channels, planes)
+            
+            % Print channel processing mode...
+            
+            
+        end
+        
         function printStackProcessingDetails(obj)
             % Todo: Make method for displaying the following:
             
-            numChans = obj.SourceStack.NumChannels;
+            numChans = obj.StackIterator.NumIterationsC; %obj.SourceStack.NumChannels;
             numPlanes = obj.SourceStack.NumPlanes;
             
-            IND = obj.FrameIndPerPart;
-            partsToProcess = obj.getPartsToProcess(IND);
-            numParts =  numel(partsToProcess);
-            
+            %IND = obj.FrameIndPerPart;
+            %partsToProcess = obj.getPartsToProcess(IND);
+            %numParts =  numel(partsToProcess);
+            numParts = obj.NumParts;
             if numParts == 1
                 numPartsStr = sprintf('%d part', numParts);
             else
@@ -1023,7 +1095,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
             if numChans > 1 && numPlanes > 1
                 obj.printSubTask(sprintf('ImageStack contains %d channels and %d planes', numChans, numPlanes))
-                obj.printSubTask(sprintf('Each channel and plane will be divided in %s during processing', numPartsStr))
+                obj.printSubTask(sprintf('Each channel and plane will be processed in %s', numPartsStr))
             elseif numChans > 1
                 obj.printSubTask(sprintf('ImageStack contains %d channels', numChans))
                 obj.printSubTask(sprintf('Each channel will be divided in %s during processing', numPartsStr))
