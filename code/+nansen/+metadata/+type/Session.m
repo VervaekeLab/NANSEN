@@ -117,7 +117,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         %constructFromDataLocationStruct Construct object(s)
         
             % Todo: Support vector of objects.
-            % Todo: Should I accept old and new dataLocation structure?
+            % Todo: Should I accept old and new dataLocation structure? NO
             
             obj.DataLocation = dataLocationStruct;
             obj.autoAssignPropertiesOnConstruction()
@@ -339,8 +339,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     rootPaths = {dataLocation.RootPath.Value};
                     
                     for k = 1:numel(rootPaths)
-                        tf = contains( obj(j).DataLocation.(name), rootPaths{k} );
-                        if ~isempty(tf)
+                        isMatched = contains( obj(j).DataLocation.(name), rootPaths{k} );
+                        if isMatched
                             root = rootPaths{k};
                             rootIdx = k;
                             break
