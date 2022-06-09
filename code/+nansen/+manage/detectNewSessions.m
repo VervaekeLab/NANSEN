@@ -84,6 +84,9 @@ function sessionArray = validateDataLocationStruct(metaTable, sessionArray, data
     % Todo: This should not be necessary, just make sure from the get-go
     % that all datalocations structs are "extended"
     dataLocationOriginal = metaTable.entries{1, 'DataLocation'};
+    if iscell(dataLocationOriginal)
+        dataLocationOriginal = dataLocationOriginal{1};
+    end
     fieldsOriginal = fieldnames(dataLocationOriginal);
     dataLocationNew = sessionArray(1).DataLocation;
     fieldNamesNew = fieldnames(dataLocationNew);
