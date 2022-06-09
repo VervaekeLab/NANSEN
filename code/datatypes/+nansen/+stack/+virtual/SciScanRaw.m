@@ -256,7 +256,7 @@ methods % Subclass specific methods
         metadata.nChannels = obj.readinivar(inistring,'no.of.channels');
         
         if metadata.nChannels > 1
-            dataDimensionArrangement(end+1) = 'XYC'; 
+            dataDimensionArrangement(end+1) = 'C'; 
         end
         
         try
