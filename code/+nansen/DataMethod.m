@@ -112,16 +112,25 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
     %Todo: Get this from a superclass / mixin class.
     
         function data = loadData(obj, varargin)
-            data = obj.DataIoModel.loadData(varargin{:});
+            if ischar(obj.DataIoModel) && isfile(obj.DataIoModel)
+                data = []; % skip loading
+            else
+                data = obj.DataIoModel.loadData(varargin{:});
+            end
         end
         
         function saveData(obj, varargin)
-            obj.DataIoModel.saveData(varargin{:})
+            if ischar(obj.DataIoModel) && isfile(obj.DataIoModel)
+                % Skip saving...
+            else
+                obj.DataIoModel.saveData(varargin{:})
+            end
         end
         
         function filePath = getDataFilePath(obj, varargin)
             if ischar(obj.DataIoModel) && isfile(obj.DataIoModel)
-                error('DataLocation Model is not set.')
+                filePath = '';
+                %warning('DataLocation Model is not set.')
             else
                 filePath = obj.DataIoModel.getDataFilePath(varargin{:});
             end
