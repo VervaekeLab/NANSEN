@@ -634,7 +634,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             % Create a new TemporalDownsampler ImageStackProcessor object.
-            downsampler = nansen.processing.TemporalDownsampler(obj, n, method, params);
+            downsampler = nansen.stack.processor.TemporalDownsampler(obj, n, method, params);
             
             if ~downsampler.existDownsampledStack()
                 downsampler.runMethod()
