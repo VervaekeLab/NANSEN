@@ -53,6 +53,14 @@ classdef HasSubSteps < handle
             end
         end
         
+        function tf = hasStep(obj, id)
+            tf = contains(id, {obj.StepList.StepID});
+        end
+        
+        function idx = findStep(obj, id)
+            idx = find( strcmp({obj.StepList.StepID}, id) );
+        end
+        
         function displayProcessingSteps(obj)
         %displayProcessingSteps Display the processing steps for process    
                         

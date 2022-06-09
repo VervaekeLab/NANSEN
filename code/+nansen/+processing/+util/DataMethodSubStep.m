@@ -22,13 +22,6 @@ classdef DataMethodSubStep < handle
             obj.Description = description;
         end
         
-        function idx = findStep(obj, id)
-            idx = find( strcmp({obj.StepID}, id) );
-        end
-        
-        function tf = containsStep(obj, id)
-            tf = contains(id, {obj.StepID});
-        end
     end
     
 end

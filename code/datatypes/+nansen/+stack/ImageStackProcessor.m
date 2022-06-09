@@ -555,13 +555,13 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             % Do the merging of results from each subpart of ImageStack
             if isempty( obj.MergedResults )
                 
-                if obj.StepList.containsStep('merge_results')
+                if obj.hasStep('merge_results')
                     obj.displayStartStep('merge_results')
                 end
 
                 obj.mergeResults()
 
-                if obj.StepList.containsStep('merge_results')
+                if obj.hasStep('merge_results')
                     obj.displayFinishStep('merge_results')
                 end
             end
