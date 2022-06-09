@@ -32,10 +32,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         ImviewerPluginName = ''
     end
     
-    properties (Access = private)
-        MergedResults
-    end
-    
     
     methods % Constructor
         

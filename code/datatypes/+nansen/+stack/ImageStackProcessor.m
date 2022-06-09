@@ -673,7 +673,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         function mergeResults(obj)
         %mergeResults Merge results from subparts of ImageStack    
 
-            [numParts, numC, numZ] = size(obj.Results);
+            [numParts, numZ, numC] = size(obj.Results);
             
             if numParts == 1
                 obj.MergedResults = squeeze(obj.Results);
