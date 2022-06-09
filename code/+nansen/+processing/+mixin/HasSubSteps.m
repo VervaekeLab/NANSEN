@@ -74,7 +74,7 @@ classdef HasSubSteps < handle
                 obj.StepList(idx).Description )
         end
         
-        function displayFinishStep(obj)
+        function displayFinishStep(obj, stepId)
         %displayFinishStep Display message when specified step is finished    
             
             idx = obj.StepList.findStep(stepId);
