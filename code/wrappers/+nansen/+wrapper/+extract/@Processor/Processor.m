@@ -26,6 +26,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
     properties (Constant, Hidden) 
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_extract')
+        VARIABLE_PREFIX = 'Extract';
         ROI_VARIABLE_NAME = 'roiArrayExtractAuto'
     end
 
@@ -42,8 +43,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     end
     
     properties (Access = private)
-        MergedResults
-        SpatialWeights
+        MergedResults % Adapt to multichannel/multiplane
+        SpatialWeights % Adapt to multichannel/multiplane
     end
     
     
@@ -111,23 +112,20 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         end
         
         function dsFactor = getTemporalDownsamplingFactor(obj)
-            % Todo:
-            % dsFactor = obj.Options.Downsample.downsample_time_by;
-            % obj.Options.Downsample.downsample_time_by = 1;
-            dsFactor = 1;
             
-        end
+            % Prioritize value from internal pipeline
+            dsFactor1 = obj.Options.Downsample.downsample_time_by;
+            dsFactor2 = obj.Options.TemporalDownsamplingFactor;
+            
+            if dsFactor1 > 1
+                obj.Options.Downsample.downsample_time_by = 1; % Need to set this to 1, because stack processor takes care of downsampling...
+                dsFactor = dsFactor1;
+            elseif dsFactor2 > 1
+                dsFactor = dsFactor2;
+            else
+                dsFactor = 1;
+            end
 
-        function runPreInitialization(obj)
-            runPreInitialization@nansen.processing.RoiSegmentation(obj)
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Combine temporary results from each subpart of stack';
-            obj.StepDescription = [obj.StepDescription, descr];
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Compute roi images & roi stats';
-            obj.StepDescription = [obj.StepDescription, descr];
         end
         
         function saveResults(obj)
@@ -138,7 +136,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         function mergeResults(obj)
         %mergeResults Merge results from each processing part
               
-            obj.displayStartCurrentStep()
+            obj.displayStartStep('merge_results')
 
             % Combine spatial segments
             if numel(obj.Results) > 1
@@ -161,7 +159,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             obj.SpatialWeights = spatialWeights;
             
-            obj.displayFinishCurrentStep()
+            obj.displayFinishStep('merge_results')
         end
 
         function roiArray = getRoiArray(obj)

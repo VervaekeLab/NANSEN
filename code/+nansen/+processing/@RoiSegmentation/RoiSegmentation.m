@@ -5,10 +5,10 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     %   [ ] Multichannel support
     
     
-    properties (Abstract, Constant, Hidden) % Todo: move to DataMethod
-        DATA_SUBFOLDER  % Name of subfolder(s) where to save results by default
-        ROI_VARIABLE_NAME
-    end
+% %     properties (Abstract, Constant, Hidden) % Todo: move to DataMethod
+% %         DATA_SUBFOLDER  % Name of subfolder(s) where to save results by default
+% %         ROI_VARIABLE_NAME
+% %     end
     
     properties (Access = protected) % Data to keep during processing.
         ToolboxOptions  % Options that are in the format of original toolbox
@@ -59,9 +59,14 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         %onPreInitialization Method that runs before the initialization step    
             
             % Determine how many steps are required for the method
+            runPreInitialization@nansen.stack.ImageStackProcessor(obj)
             
-            obj.NumSteps = 1;
-            obj.StepDescription = {obj.MethodName};
+            descr = 'Combine and refine detected components';
+            obj.addStep('merge_results', descr)
+                       
+            descr = 'Compute roi images & roi stats';
+            obj.addStep('compute_roidata', descr)
+            
             
             % 1) Check if stack should be downsampled.
             dsFactor = obj.getTemporalDownsamplingFactor();
@@ -73,9 +78,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 % %                     tf = nansen.stack.ImageStack.isStackComplete(filePath);
 % %                     if ~tf
                         obj.RequireDownsampleStack = true;
-                        obj.NumSteps = obj.NumSteps + 1;
-                        descr = 'Downsample stack in time';
-                        obj.StepDescription = [descr, obj.StepDescription];
+                        obj.addStep('downsample', 'Downsample stack in time', 'beginning')
 % %                     end
 % %                 end
             end
@@ -96,9 +99,9 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             dsFactor = obj.getTemporalDownsamplingFactor();
             if dsFactor > 1
                 
-                obj.displayStartCurrentStep()
+                obj.displayStartStep('downsample')
                 obj.downsampleStack(dsFactor)
-                obj.displayFinishCurrentStep()
+                obj.displayFinishStep('downsample')
                 
                 % Redo the splitting
                 obj.configureImageStackSplitting()
@@ -108,7 +111,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             obj.Results = cell(obj.NumParts, 1);
         end
                 
-        function Y = processPart(obj, Y, ~)
+        function [Y, summary] = processPart(obj, Y, ~)
             
              Y = obj.preprocessImageData(Y);
             
@@ -131,9 +134,9 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 obj.RoiArray = obj.getRoiArray();
                 
                 % Get roiImages and roiStats, i.e roi application data
-                obj.displayStartCurrentStep()
+                obj.displayStartStep('compute_roidata')
                 obj.getRoiAppData()
-                obj.displayFinishCurrentStep()
+                obj.displayFinishStep('compute_roidata')
                 
                 % Assemble final results in a roigroup struct.
                 roiGroupStruct = struct();

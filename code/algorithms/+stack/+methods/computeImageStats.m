@@ -64,10 +64,10 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
     
     methods (Access = protected) % Implement methods from ImageStackProcessor
         
-        function Y = processPart(obj, Y)
+        function [Y, results] = processPart(obj, Y)
             obj.updateImageStats(Y)
             obj.saveImageStats() % Save results for every part
-            Y = [];
+            Y = []; results = true;
         end
         
         function tf = checkIfPartIsFinished(obj, partNumber)

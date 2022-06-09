@@ -89,18 +89,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
         end
         
-        function runPreInitialization(obj)
-            runPreInitialization@nansen.processing.RoiSegmentation(obj)
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Combine and refine detected components';
-            obj.StepDescription = [obj.StepDescription, descr];
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Compute roi images & roi stats';
-            obj.StepDescription = [obj.StepDescription, descr];
-        end
-        
         function saveResults(obj)
             tempResults = obj.Results;
             obj.saveData('QuickyResultsTemp', tempResults) 
@@ -111,7 +99,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     
             import flufinder.detect.findUniqueRoisFromComponents
             
-            obj.displayStartCurrentStep()
+            obj.displayStartStep('merge_results')
 
             % Combine spatial segments
             obj.Results = cat(1, obj.Results{:});
@@ -122,7 +110,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             obj.RoiArray = roiArrayT;
             
-            obj.displayFinishCurrentStep()
+            obj.displayFinishStep('merge_results')
         end
         
         function finalizeResults(obj)

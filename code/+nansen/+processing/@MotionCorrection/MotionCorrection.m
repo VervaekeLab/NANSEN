@@ -62,7 +62,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     % Todo: 
     %   [ ] Save general options for motion correction... 
     %
-    %   [ ] Multichannel support
+    %   [v] Multichannel support
     %
     %   [ ] Move preview method to stack.ChunkProcessor (and rename to testrun/samplerun etc)
     %   [v] Move preview functionality to ImageStackProcessor...
@@ -86,6 +86,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     %
     %   [ ] Need to load image stats. Also, nice to update imagestats if
     %       they are not available...
+    %   [ ] Save projection images for raw stacks.
+    %   [ ] Save other metrics to assess registration quality
 
     
     properties (Abstract, Constant)
@@ -174,16 +176,12 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %onPreInitialization Method that runs before the initialization step    
             
             % Determine how many steps are required for the method
-            
-            obj.NumSteps = 1;
-            obj.StepDescription = {obj.MethodName};
+            runPreInitialization@nansen.stack.ImageStackProcessor(obj)
             
             % 1) Check if stack should be recast before saving.
             if obj.RecastOutput
                 % Need to compute pixel statistics for source stack..
-                obj.NumSteps = obj.NumSteps + 1;
-                descr = 'Compute pixel statistics';
-                obj.StepDescription = [descr, obj.StepDescription];
+                obj.addStep('pixelstats', 'Compute pixel statistics', 'beginning')
             end
             
         end
@@ -202,12 +200,14 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % of the options should be the same... 
            
             if obj.RecastOutput % Calculate imagestats if needed (for recasting).
-                obj.displayStartCurrentStep()
+                obj.displayStartStep('pixelstats')
+                
                 processor = stack.methods.computeImageStats(obj.SourceStack, ...
                     'DataIoModel', obj.DataIoModel);
                 processor.IsSubProcess = true;
                 processor.runMethod()
-                obj.displayFinishCurrentStep()
+                
+                obj.displayFinishStep('pixelstats')
             else
                 % Can be computed during motion correction
                 obj.ImageStatsProcessor = stack.methods.computeImageStats(...
@@ -308,11 +308,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             end
         end
 
-        function Y = processPart(obj, Y, ~)
+        function [Y, summary] = processPart(obj, Y, ~)
             
              Y = obj.preprocessImageData(Y);
             
-             Y = obj.registerImageData(Y);
+             [Y, summary] = obj.registerImageData(Y);
              
              Y = obj.postprocessImageData(Y);
 
