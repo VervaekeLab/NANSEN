@@ -2814,7 +2814,7 @@ methods % Handle user actions
         end
         
         % Update some parameters from the image stack method:
-        params.UseTransientVirtualStack = ~params.SaveToFile;
+        params.UseTemporaryFile = ~params.SaveToFile;
         params.OutputDataType = 'same';
         
         % Todo: Specify that this will take a while if stack is large...

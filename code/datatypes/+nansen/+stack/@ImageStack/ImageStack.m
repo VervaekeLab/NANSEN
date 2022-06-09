@@ -600,12 +600,19 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
             params = struct();
             params.SaveToFile = false;
-            params.UseTransientVirtualStack = true;
+            params.UseTemporaryFile = true;
             params.FilePath = '';
             params.OutputDataType = 'same';
             params.Verbose = false;
             
             params = utility.parsenvpairs(params, 1, varargin{:});
+            
+            % Rename some fields for the downsampler class
+            params.TargetFilePath = params.FilePath;
+            params = rmfield(params, 'FilePath');
+                       
+            params.TargetFileType = params.OutputDataType;
+            params = rmfield(params, 'OutputDataType');
             
             % Calculate number of downsampled frames
             numFramesFinal = floor( obj.NumTimepoints / n );
@@ -626,49 +633,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 params.SaveToFile = true;
             end
             
-            % Create a new ImageStack object, which is an instance of a
-            % downSampled stack.
-            downsampledStack = nansen.stack.DownsampledStack(obj, n, method, params);
+            % Create a new TemporalDownsampler ImageStackProcessor object.
+            downsampler = nansen.processing.TemporalDownsampler(obj, n, method, params);
             
-            % Get indices for different parts/blocks
-            [IND, numChunks] = obj.getChunkedFrameIndices(chunkLength);
-            
-            % Check metadata to see if stack is already downsampled
-            if downsampledStack.MetaData.Downsampling.IsCompleted
-                return
+            if ~downsampler.existDownsampledStack()
+                downsampler.runMethod()
             end
             
-            % Check data to see if stack is already downsampled
-            if nansen.stack.ImageStack.isStackComplete(downsampledStack, numChunks)
-                
-                if params.Verbose
-                    fprintf('Downsampled stack already exists.\n')
-                end
-                downsampledStack.MetaData.Downsampling.IsCompleted = true;
-                return % Data is already downsampled...
-            end            
-            
-            global waitbar
-            useWaitbar = false;
-            if ~isempty(waitbar); useWaitbar = true; end
-              
-            if useWaitbar
-                waitbar(0/numChunks, 'Initializing downsampling')
-            end
-            
-            % Loop through blocks and downsample frames
-            for iPart = 1:numChunks
-                imData = obj.getFrameSet( IND{iPart} );
-                downsampledStack.addFrames(imData);
-                if params.Verbose
-                    fprintf('Downsampled part %d/%d\n', iPart, numChunks)
-                end
-                if useWaitbar
-                    waitbar(iPart/numChunks, 'Downsampling image stack')
-                end
-            end
-            
-            downsampledStack.MetaData.Downsampling.IsCompleted = true;
+            downsampledStack = downsampler.getDownsampledStack();
             
             if ~nargout
                 clear downsampledStack
@@ -1650,7 +1622,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function tf = isStackComplete(fileRef, numChunks)
-        %isDownsampledStackComplete Check if image stack is complete 
+        %isStackComplete Check if image stack is complete 
         %
         %   Note, check that a random subset of frames are not just zeros.
         
@@ -1666,7 +1638,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             % Pick 100 random frames.
-            randFrameIdx = randperm(imageStack.NumTimepoints, 100);
+            numFrames = min([imageStack.NumTimepoints, 100]);
+            randFrameIdx = randperm(imageStack.NumTimepoints, numFrames);
+            
             data = imageStack.getFrameSet(sort(randFrameIdx));
             tf = all( mean(mean(data,2),1) ~= 0 );
             

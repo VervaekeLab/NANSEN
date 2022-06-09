@@ -27,6 +27,11 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             nansen.OptionsManager(mfilename('class'))
     end
 
+    properties (Constant, Hidden)
+        DATA_SUBFOLDER = ''	% defined in nansen.DataMethod
+        VARIABLE_PREFIX	= '' % defined in nansen.DataMethod
+    end 
+    
     properties (SetAccess = private)
         DownsamplingFactor
         DownsamplingMethod
@@ -72,6 +77,10 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             S.TargetFilepath_       = 'transient';
             S.DownsamplingMethod_   = {'mean', 'max'};
             S.TargetFileType_       = {'raw', 'tif'}; % Todo h5?
+            
+            className = mfilename('class');
+            superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
+            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});            
         end
         
     end
@@ -160,6 +169,30 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
         
     end
     
+    methods 
+        
+        function tf = existDownsampledStack(obj)
+            
+            % Todo: Use this as a backup? I.e if targetStack already
+            % exists, but for some reason the IsCOmplete flag was not
+            % added.
+            nansen.stack.ImageStack.isStackComplete(obj.TargetStack)
+            
+            if isempty(obj.TargetStack)
+                obj.openTargetStack()
+            end
+            tf = obj.TargetStack.MetaData.Downsampling.IsCompleted;
+        end
+        
+        function imageStack = getDownsampledStack(obj)
+            imageStack = obj.TargetStack;
+            % Since someone requested TargetStack, assume they use it for
+            % something and don't clean up when processor is destroyed.
+            obj.DeleteTargetStackOnDestruction = false;
+        end
+        
+    end
+    
     methods (Access = protected) 
                    
         function openTargetStack(obj, ~, ~, ~)
@@ -215,7 +248,7 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             
         end
         
-        function data = processPart(obj, data, iIndices)
+        function [data, summary] = processPart(obj, data, iIndices)
             
             binSize = obj.DownsamplingFactor;
             method = obj.DownsamplingMethod;
@@ -238,6 +271,10 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             obj.MinPixelValue = min(obj.MinPixelValue, minValTmp);
             maxValTmp = max(data(:));
             obj.MaxPixelValue = max(obj.MaxPixelValue, maxValTmp);
+            
+            summary = struct();
+            summary.minPixelValue = min(data(:));
+            summary.maxPixelValue = max(data(:));
         end
         
         function onCompletion(obj)
@@ -247,6 +284,10 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             if obj.AdjustWhenFinished
                 obj.adjustBrightness()
             end
+            
+            ds = obj.TargetStack.MetaData.Downsampling;
+            ds.IsCompleted = true;
+            obj.TargetStack.MetaData.set('Downsampling', ds)
         end
         
     end
@@ -294,9 +335,19 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             method = obj.DownsamplingMethod;
         
             [~, ~, ext] = fileparts(obj.SourceStack.FileName);
+            
             postfix = sprintf('_downsampled_%s_x%d', method, n);
             postfix = strcat(postfix, ext);
             filePath = strrep(obj.SourceStack.FileName, ext, postfix);
+            
+            % Change filetype (extension) if filetype is specified.
+            if ~strcmp(obj.TargetFileType, 'same')
+                newExt = obj.TargetFileType;
+                if ~strncmp(ext, '.', 1)
+                    newExt = strcat('.', newExt);
+                end
+                filePath = strrep(filePath, ext, newExt);
+            end
         end
         
         function updateTargetMetadata(obj)
