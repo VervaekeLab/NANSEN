@@ -1,14 +1,22 @@
-classdef computeImageStats < nansen.stack.ImageStackProcessor
-%computeImageStats Compute pixel statistics for imagestack
+classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
+%PixelStatCalculator Calculate pixel statistics for imagestack
 %
 %   Mean, limits and percentiles of all pixels for stack.
 
+%   Todo:
+%       [ ] Calculate noise levels...
+%       [ ] Use ImageStackProcessor's Results instead of ImageStats?
     
     properties (Constant)
-        MethodName = 'Compute Image Stats'
+        MethodName = 'Compute Pixel Stats'
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
         OptionsManager = nansen.OptionsManager('nansen.stack.ImageStackProcessor')
+    end
+    
+    properties (Constant, Hidden) % Inherited from DataMethod
+        DATA_SUBFOLDER = 'image_pixel_stats';
+        VARIABLE_PREFIX = 'PixelStats';
     end
     
     properties %Options
@@ -36,7 +44,7 @@ classdef computeImageStats < nansen.stack.ImageStackProcessor
     
     methods % Structor
         
-        function obj = computeImageStats(varargin)
+        function obj = PixelStatCalculator(varargin)
             
             obj@nansen.stack.ImageStackProcessor(varargin{:})
             

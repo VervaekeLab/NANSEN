@@ -203,22 +203,19 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
            
             % Todo: Validate options. I.e, if processor is run again, some
             % of the options should be the same... 
-           
+       
+            processor = nansen.stack.processor.PixelStatCalculator(...
+                          obj.SourceStack, 'DataIoModel', obj.DataIoModel);
+            processor.IsSubProcess = true;
+            
             if obj.RecastOutput % Calculate imagestats if needed (for recasting).
                 obj.displayStartStep('pixelstats')
-                
-                processor = stack.methods.computeImageStats(obj.SourceStack, ...
-                    'DataIoModel', obj.DataIoModel);
-                processor.IsSubProcess = true;
                 processor.runMethod()
-                
                 obj.displayFinishStep('pixelstats')
             else
                 % Can be computed during motion correction
-                obj.ImageStatsProcessor = stack.methods.computeImageStats(...
-                    obj.SourceStack, 'DataIoModel', obj.DataIoModel);
-                obj.ImageStatsProcessor.IsSubProcess = true;
-                obj.ImageStatsProcessor.matchConfiguration(obj)
+                obj.ImageStatsProcessor = processor;
+                obj.ImageStatsProcessor.matchConfiguration(obj) % todo..
             end
 
             numFrames = stackSize(end); % Todo...
@@ -383,10 +380,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %
         %   Take care of some preprocessing steps that should be common for
         %   many motion correction methods.
-        
-            % Update image stats
-            % Todo: Only do this if output should be recast?
-            % Todo: Do this using the stack.methods.computeImageStats class
             
             if ~isempty( obj.ImageStatsProcessor )
                 obj.ImageStatsProcessor.setCurrentPart(obj.CurrentPart);
