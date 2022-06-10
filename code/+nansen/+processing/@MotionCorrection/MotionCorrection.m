@@ -125,7 +125,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
         ref = initializeTemplate(obj, Y, opts); % Todo: Rename to create template...
         
-        M = registerImageData(obj, Y) % Run motion correction on subpart of ImageStack
+        [M, results] = registerImageData(obj, Y) % Run motion correction on subpart of ImageStack
         
     end
     

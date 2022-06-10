@@ -239,12 +239,14 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % gcp();%parpool()
         end
         
-        function M = registerImageData(obj, Y)
+        function [M, results] = registerImageData(obj, Y)
             
             % Get toolbox options and template for motion correction.
             options = obj.ToolboxOptions;
             options.correct_bidir = false; % should be done elsewhere...
 
+            results = true;
+            
             i = 1;
             j = obj.CurrentPlane;
             

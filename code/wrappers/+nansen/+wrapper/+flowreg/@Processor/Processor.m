@@ -294,10 +294,12 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     
     methods (Access = protected) % Run the motion correction / image registration
         
-        function M = registerImageData(obj, Y)
+        function [M, results] = registerImageData(obj, Y)
             
             import nansen.wrapper.flowreg.utility.*
 
+            results = true;
+            
             options = obj.ToolboxOptions;
             template = obj.CurrentRefImage;
             
