@@ -390,7 +390,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             end
             
             % Save projections of corrected images
-            obj.addImageToCorrectedProjectionStacks(obj, Y)
+            obj.addImageToCorrectedProjectionStacks(Y)
 
             % Important: Do this last, because shifts are used to check if 
             % current part is corrected or not.
