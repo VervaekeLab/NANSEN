@@ -5365,18 +5365,17 @@ methods (Access = protected)
             val = nan;
         end
         
-        if numel(val) > 1; val = mean(val); end
-        
         locationStr = sprintf('x=%1d, y=%1d', x, y);
-        
+                
         switch obj.ImageStack.DataType
             case {'single', 'double'}
                 % Todo: Change precision if data is not between 0 and 1
-                pixelValueStr = sprintf('value=%.2f', val);
+                value = arrayfun(@(c) sprintf('%.2f', c), val, 'uni', 0);
             otherwise
-                pixelValueStr = sprintf('value=%1d', round(val));
+                value = arrayfun(@(c) sprintf('%1d', c), round(val), 'uni', 0);
         end
-        
+        pixelValueStr = sprintf('value=%s', strjoin(value, ', '));
+
         pixelValueStr = strjoin({locationStr, pixelValueStr}, ', ');
         
     end
