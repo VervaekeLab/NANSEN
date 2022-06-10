@@ -614,7 +614,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             if obj.Options.Export.saveAverageProjection
                 avgProj = mean(Y, dim);
                 avgProj = cast(avgProj, dataTypeIn);
-                obj.DerivedStacks.AvgProjectionStackRaw.writeFrameSet(avgProj, iPart)
+                obj.DerivedStacks.AvgProjectionStackOrig.writeFrameSet(avgProj, iPart)
             end
             
             if obj.Options.Export.saveMaximumProjection
@@ -623,7 +623,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 Y_ = movmean(Y, 3, dim);
                 maxProj = max(Y_, [], dim);
                 maxProj = cast(maxProj, dataTypeIn);
-                obj.DerivedStacks.MaxProjectionStackRaw.writeFrameSet(maxProj, iPart)
+                obj.DerivedStacks.MaxProjectionStackOrig.writeFrameSet(maxProj, iPart)
             end
         end
         
