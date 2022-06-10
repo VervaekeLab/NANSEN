@@ -42,8 +42,8 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         ImviewerPluginName = 'NoRMCorre'
     end
     
-    properties (Dependent)
-        ChannelToCorrect % todo: rename to ReferenceChannel and
+    properties %(Dependent)
+        ChannelToCorrect = 2 % todo: rename to ReferenceChannel and
         %update imageStackIterator when this value is set.
     end
     
@@ -125,7 +125,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 IND = obj.FrameIndPerPart{partNumber};
                 tf = all( arrayfun(@(i) ~isempty(shifts(i).shifts), IND) );
             else
-                im = obj.AvgProjectionStack.getFrameSet(partNumber);
+                im = obj.DerivedStacks.AvgProjectionStack.getFrameSet(partNumber);
                 tf = any(im(:) ~= 0);
             end
             
