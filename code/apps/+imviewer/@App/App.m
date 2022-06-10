@@ -1961,9 +1961,16 @@ methods % App update
                 cLim = obj.settings.ImageDisplay.imageBrightnessLimits;
                 lowhigh_in = (cLim - min(cLim)) ./ range(obj.settings.ImageDisplay.brightnessSliderLimits);
         end
-
+        
+        if all(lowhigh_in == 0)
+            lowhigh_in = [0,1];
+            %obj.displayMessage('Warning: ImageStack appears to be blank.')
+            warning('ImageStack appears to be blank.')
+        end
+        
         %im = imadjust(im, lowhigh_in);
         im = imadjustn(im, lowhigh_in);
+        
     end
     
     function updateImageDisplay(obj)
