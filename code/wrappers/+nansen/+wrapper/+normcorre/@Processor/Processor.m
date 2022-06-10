@@ -227,6 +227,14 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             warnID = 'MATLAB:mir_warning_maybe_uninitialized_temporary';
             warning('off', warnID)
             
+            % Save original selection for drift correction. This value will
+            % be adjusted during motion correction to make sure that drifts
+            % are only corrected for the reference channel (will be 
+            % automatically applied to other channels). Note: important to
+            % do this after the superclass' onInitialization method so that
+            % this extra field is not added to the saved options.
+            obj.Options.General.correctDriftUserChoice = obj.Options.General.correctDrift;
+            
             % Start parallell pool
             % gcp();%parpool()
         end
@@ -245,6 +253,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             Y = squeeze(Y);
 
             if obj.CurrentChannel == obj.ChannelToCorrect
+                
+                obj.Options.General.correctDrift = obj.Options.General.correctDriftUserChoice;
+
                 [M, shifts, templateOut] = normcorre_batch(Y, options, template);
                 obj.CurrentRefImage = templateOut;
                                 
@@ -255,6 +266,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 % Add shifts to shiftarray
                 obj.ShiftsArray{i,j}(obj.CurrentFrameIndices) = shifts;
             else
+                % Make sure drift is not corrected based on this channel:
+                obj.Options.General.correctDrift = false;
+                
                 % Get shifts from shiftarray
                 nc_shifts_part = obj.ShiftsArray{i,j}(obj.CurrentFrameIndices);
                 M = apply_shifts(Y, nc_shifts_part, options);

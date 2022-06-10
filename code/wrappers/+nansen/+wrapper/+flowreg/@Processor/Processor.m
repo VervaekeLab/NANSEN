@@ -22,7 +22,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
 %   TODO:
 %       [ ] Print command line output
-%       [v] Implement multiple channel correction
+%       [ ] Implement multiple channel correction
 %       [ ] Improve initialization of template or leave it to normcorre...
 
 %       [ ] Is there time to be saved on calculating shift metrics on
@@ -114,7 +114,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             frameIND = obj.FrameIndPerPart{partNumber};
             
             tf = all( arrayfun(@(i) ~isempty(shifts{i}), frameIND) );
-
+            
         end
         
         function initializeShifts(obj, numFrames)
@@ -148,10 +148,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
             obj.ShiftsArray(iIndices, j) = obj.addShifts(...
                     obj.ShiftsArray(iIndices, j), drift);
-        end
-        
-        function updateShifts(obj)
-            
         end
         
         function saveShifts(obj)
