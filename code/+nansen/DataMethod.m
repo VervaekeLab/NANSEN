@@ -104,6 +104,7 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
             if ~isvalid(hPreviewApp); wasSuccess = false; return; end
             
             obj.Parameters = hPreviewApp.settings;
+            obj.Options = hPreviewApp.settings;
             wasSuccess = ~hPreviewApp.wasAborted;
             
             delete(hPreviewApp)
