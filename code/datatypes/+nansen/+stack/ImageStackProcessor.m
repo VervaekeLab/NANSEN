@@ -119,7 +119,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
         NumFramePerPart_
     end
     
-    properties (Dependent, SetAccess = private, GetAccess = protected)
+    properties (Dependent, SetAccess = protected, GetAccess = protected)
         CurrentChannel  % Current channel of ImageStack
         CurrentPlane    % Current plane of ImageStack
     end

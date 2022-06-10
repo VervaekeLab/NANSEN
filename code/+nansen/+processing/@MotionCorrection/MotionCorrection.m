@@ -226,39 +226,47 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Todo: Rename to completeCurrentChannelCurrentPlane
             
-            i = 1;
-            j = obj.CurrentPlane;
+            obj.StackIterator.reset()
+            for i = 1:obj.StackIterator.NumIterations
+                obj.StackIterator.next()
+                obj.CurrentChannel = obj.StackIterator.CurrentChannel;
+                obj.CurrentPlane = obj.StackIterator.CurrentPlane;
             
-            % Determine amount of cropping to use for adjusting image data
-            % to uint8
-            maxX = max(abs(obj.CorrectionStats{i, j}.offsetX));
-            maxY = max(abs(obj.CorrectionStats{i, j}.offsetY));
-            crop = round( max([maxX, maxY])*1.5 );
+
+                iC = 1;
+                iZ = obj.CurrentPlane;
             
-            % Save reference images to 8bit
-            imArray = obj.DerivedStacks.ReferenceStack.getFrameSet(1:obj.NumParts);
-            imArray = stack.makeuint8(imArray);
-            obj.saveTiffStack('MotionCorrectionTemplates8bit', imArray)
+                % Determine amount of cropping to use for adjusting image data
+                % to uint8
+                maxX = max(abs(obj.CorrectionStats{iC, iZ}.offsetX));
+                maxY = max(abs(obj.CorrectionStats{iC, iZ}.offsetY));
+                crop = round( max([maxX, maxY])*1.5 );
+
+                % Save reference images to 8bit
+                imArray = obj.DerivedStacks.ReferenceStack.getFrameSet(1:obj.NumParts);
+                imArray = stack.makeuint8(imArray);
+                obj.saveTiffStack('MotionCorrectionTemplates8bit', imArray)
+
             
-            
-            % Save average and maximum projections as 8-bit stacks.
-            if obj.Options.Export.saveAverageProjection
-                obj.saveProjectionImages('average', crop)
-                obj.saveProjectionImages('average-orig', crop)
-            end
-            
-            if obj.Options.Export.saveMaximumProjection
-                obj.saveProjectionImages('maximum', crop)
-                obj.saveProjectionImages('maximum-orig', crop)
-            end
-            
-            if obj.SourceStack.NumChannels > 1 && ...
-                    ismember(obj.SourceStack.NumChannels, obj.CurrentChannel)
-                if obj.CurrentPlane == obj.SourceStack.NumPlanes
-                    obj.resaveRGBProjectionImages('average')
-                    obj.resaveRGBProjectionImages('average-orig')
-                    obj.resaveRGBProjectionImages('maximum')
-                    obj.resaveRGBProjectionImages('maximum-orig')
+                % Save average and maximum projections as 8-bit stacks.
+                if obj.Options.Export.saveAverageProjection
+                    obj.saveProjectionImages('average', crop)
+                    obj.saveProjectionImages('average-orig', crop)
+                end
+
+                if obj.Options.Export.saveMaximumProjection
+                    obj.saveProjectionImages('maximum', crop)
+                    obj.saveProjectionImages('maximum-orig', crop)
+                end
+
+                if obj.SourceStack.NumChannels > 1 && ...
+                        ismember(obj.SourceStack.NumChannels, obj.CurrentChannel)
+                    if obj.CurrentPlane == obj.SourceStack.NumPlanes
+                        obj.resaveRGBProjectionImages('average')
+                        obj.resaveRGBProjectionImages('average-orig')
+                        obj.resaveRGBProjectionImages('maximum')
+                        obj.resaveRGBProjectionImages('maximum-orig')
+                    end
                 end
             end
         end

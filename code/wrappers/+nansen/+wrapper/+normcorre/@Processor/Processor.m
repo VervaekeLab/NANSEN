@@ -235,6 +235,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % this extra field is not added to the saved options.
             obj.Options.General.correctDriftUserChoice = obj.Options.General.correctDrift;
             
+            % todo: get from options
+            obj.StackIterator.PrimaryChannel = obj.ChannelToCorrect;
+            
             % Start parallell pool
             % gcp();%parpool()
         end
