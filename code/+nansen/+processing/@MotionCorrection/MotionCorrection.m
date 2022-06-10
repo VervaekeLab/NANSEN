@@ -208,7 +208,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             obj.initializeShifts(numFrames);
             obj.initializeCorrectionStats(numFrames);
             
-            obj.openProjectionStacks()
+            obj.openProjectionStacks(stackSize, dataTypeIn)
             
         end
         
