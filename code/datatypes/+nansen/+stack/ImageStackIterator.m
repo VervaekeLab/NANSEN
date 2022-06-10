@@ -148,14 +148,20 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
     
     methods %(Access = ?nansen.stack.ImageStackProcessor)
         
-        function next(obj)
+        function [iZ, iC] = next(obj)
         %next Move the iterator to the next iteration state
+        %
+        %   iteratorObj.next() moves the iterator to the next iteration
+        %       state.
+        %
+        %   [iZ, iC] = iteratorObj.next() moves the iterator to the next 
+        %       iteration state and returns the current iteration numbers
+        %       for planes (iZ) and channels (iC)
         
             if ~obj.IsInitialized
                 obj.IsInitialized = true;
                 obj.CurrentIterationC = 1;
                 obj.CurrentIterationZ = 1;
-            
             else
                 
                 if obj.CurrentIterationZ < obj.NumIterationsZ % Increment Z
@@ -172,6 +178,11 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
             
             obj.CurrentChannel = obj.IterationValuesC{obj.CurrentIterationC};
             obj.CurrentPlane = obj.IterationValuesZ{obj.CurrentIterationZ};
+            
+            if nargout
+                iZ = obj.CurrentIterationZ;
+                iC = obj.CurrentIterationC;
+            end
         end
         
         function tf = hasMore(obj)
