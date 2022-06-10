@@ -263,7 +263,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                                 
                 % Write reference image to file.
                 templateOut = cast(templateOut, obj.SourceStack.DataType);
-                obj.ReferenceStack.writeFrameSet(templateOut, obj.CurrentPart)
+                obj.DerivedStacks.ReferenceStack.writeFrameSet(templateOut, obj.CurrentPart)
 
                 % Add shifts to shiftarray
                 obj.ShiftsArray{i,j}(obj.CurrentFrameIndices) = shifts;
