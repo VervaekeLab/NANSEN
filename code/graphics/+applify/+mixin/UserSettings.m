@@ -303,6 +303,7 @@ classdef (Abstract) UserSettings < uim.handle
         
             if isempty(obj.settings_) % Initialization
                 obj.settings_ = newSettings;
+                obj.assignSettingNames()
                 return
             end
             
@@ -394,7 +395,7 @@ classdef (Abstract) UserSettings < uim.handle
         %assignSettingNames 
         %
         %   Assign settings names using fieldnames recursively, so it
-        %   includes fields of all substructs. THis function also assigns
+        %   includes fields of all substructs. This function also assigns
         %   the settingsSubs, which makes it easier to assign individual
         %   settings fields without declaring the field names explicitly in
         %   the code. See for example set.Settings for use case
