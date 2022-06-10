@@ -90,7 +90,11 @@ elseif nDim == 4 || createRgb
     end
 
 else
-    error('No implementation for %d-dimensional stacks', nDim) 
+    [height, width, nFrames] = size(mat);
+
+    mat = reshape(mat, height, width, []);
+    nansen.stack.utility.mat2tiffstack(mat, stackPath, false)
+    %error('No implementation for %d-dimensional stacks', nDim) 
 end
 
 end

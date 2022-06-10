@@ -687,7 +687,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             end
             
             % Save an 8bit version of the projection stack
-            imArray = obj.(sourceStackName).getFrameSet(1:obj.NumParts);
+            imArray = obj.DerivedStacks.(sourceStackName).getFrameSet(1:obj.NumParts);
             imArray = squeeze(imArray); %Squeeze singleton dims (C or Z)
             %imArray8b = stack.makeuint8(imArray_, [], [], cropAmount);      % todo: Generalize this function / add tolerance as input
             imArray8b = obj.adjustColorPerChannel(imArray, cropAmount);
