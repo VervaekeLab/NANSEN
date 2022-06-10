@@ -417,6 +417,9 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             % Check if SourceStack has been assigned.
             assert(~isempty(obj.SourceStack), 'SourceStack is not assigned')
             
+            % Set name for export in options
+            obj.Options.Export.FileName = obj.SourceStack.Name;
+            
             obj.printInitializationMessage()
             
 %             if obj.IsInitialized
@@ -573,13 +576,25 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             %obj.IsFinished = true;
         end
 
+% %         function runMethodOnEachPlane(obj, methodFcn)
+% %                     
+% %             numZ = obj.StackIterator.NumIterationsZ;
+% %             numC = obj.StackIterator.NumIterationsC;
+% %             
+% %             
+% %             for iZ = 1:numZ
+% %                 for iC = 1:numC
+% %                     methodFcn(obj, iZ, iC)
+% %                 end
+% %             end
+% %         end
+        
     end
    
     methods (Access = protected) % Subroutines (Subclasses may override)
         
         function onSourceStackSet(obj)
-            % Set name for export in options
-            obj.Options.Export.FileName = obj.SourceStack.Name;
+
         end
         
         function onCurrentChannelSet(obj, currentChannel)
@@ -676,7 +691,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             [numParts, numZ, numC] = size(obj.Results);
             
             if numParts == 1
-                obj.MergedResults = squeeze(obj.Results);
+                obj.MergedResults = reshape(obj.Results, numZ, numC);
             elseif numParts > 1
                 obj.MergedResults = cell(numZ, numC);
                 
@@ -738,7 +753,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             if nargin < 2 || isempty(N)
                 N = obj.SourceStack.chooseChunkLength();
             end
-
+            
+            obj.SourceStack.CurrentChannel = obj.StackIterator.CurrentChannel;
+            obj.SourceStack.CurrentPlane = obj.StackIterator.CurrentPlane;
+            
             imArray = obj.SourceStack.getFrameSet(1:N);
             % Todo: Include this but fix caching for multichannel data...
             % obj.SourceStack.addToStaticCache(imArray, 1:N)
