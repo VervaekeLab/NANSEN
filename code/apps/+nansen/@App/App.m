@@ -156,7 +156,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.settings.Session.SessionTaskDebug = false; % Reset debugging on quit
             app.saveSettings()
             
-            
             if isempty(app.MetaTable)
                 return
             end
@@ -177,7 +176,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if ~isempty(app.Figure) && isvalid(app.Figure)
                 app.saveFigurePreferences()
-                delete(app.Figure)
+                %delete(app.Figure) % This will trigger onExit again...
             end
 
         end
@@ -201,7 +200,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % app.saveMetaTable()
             
             app.onExit@uiw.abstract.AppWindow(h);
-            %delete(app)
+            %delete(app) % Not necessary, happens in superclass' onExit method
         end
         
     end
@@ -291,7 +290,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             MP = get(0, 'MonitorPosition');
             nMonitors = size(MP, 1);
             
-            if nMonitors > 1
+            if nMonitors >= 1
                 screenNumber = app.getPreference('PreferredScreen', 1);
                 
                 prefScreenPos = app.getPreference('PreferredScreenPosition', [1, 1, 1180, 700]);
