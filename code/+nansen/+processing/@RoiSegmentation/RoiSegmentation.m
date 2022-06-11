@@ -34,7 +34,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     methods (Abstract, Access = protected)
         S = getToolboxSpecificOptions(obj)
         results = segmentPartition(obj, y)
-        mergeSpatialComponents(obj, channelNumber, planeNumber)
+        mergeSpatialComponents(obj, planeNumber, channelNumber)
         roiArray = getRoiArray(obj)
     end
     
@@ -53,20 +53,6 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     % Methods for initialization/completion of algorithm
     methods (Access = protected) % Override ImageStackProcessor methods 
         
-% % %         function tf = checkIfPartIsFinished(obj, partNumber)
-% % %         %checkIfPartIsFinished Check if intermediate results exist for part
-% % %                     
-% % %             msg = 'Number of parts is not matched';
-% % %             %assert(obj.NumParts == numel(obj.Results), msg)
-% % %             
-% % %             if obj.RedoIfCompleted
-% % %                 tf = false;
-% % %             else
-% % %                 tf = ~isempty(obj.Results{partNumber});
-% % %             end
-% % % 
-% % %         end
-
         function runPreInitialization(obj)
         %onPreInitialization Method that runs before the initialization step    
             
@@ -119,34 +105,28 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 obj.configureImageStackSplitting()
             end
             
-            % Initialize cell array for results.
-            obj.Results = cell(obj.NumParts, 1);
         end
                 
         function [Y, summary] = processPart(obj, Y, ~)
-            
+        %processPart Process subpart of ImageStack
+        
              Y = obj.preprocessImageData(Y);
-            
              summary = obj.segmentPartition(Y);
-             
-             %obj.Results{obj.CurrentPart} = output;
-             %obj.saveResults()
-             
         end
         
         function mergeResults(obj)
         %mergeResults Merge results from subparts of ImageStack    
 
-            [numParts, numC, numZ] = size(obj.Results);
+            [numParts, numZ, numC] = size(obj.Results);
             
             if numParts == 1
-                obj.MergedResults = squeeze(obj.Results);
+                obj.MergedResults = reshape(obj.Results, numZ, numC);
             elseif numParts > 1
                 obj.MergedResults = cell(numZ, numC);
                 
-                for i = 1:numZ
-                    for j = 1:numC
-                        obj.mergeSpatialComponents(i, j)
+                for iZ = 1:numZ
+                    for iC = 1:numC
+                        obj.mergeSpatialComponents(iZ, iC)
                     end
                 end
             end
@@ -161,9 +141,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         %onCompletion Run when processor is done with all parts
            
             if ~isfile(obj.getDataFilePath(obj.RoiArrayVarName)) || obj.RedoIfCompleted
-                
-                obj.mergeResults()
-                
+                                
                 obj.finalizeResults()
                 
                 obj.RoiArray = obj.getRoiArray();
@@ -173,16 +151,8 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 obj.getRoiAppData()
                 obj.displayFinishStep('compute_roidata')
                 
-                % Assemble final results in a roigroup struct.
-                roiGroupStruct = struct();
-                roiGroupStruct.roiArray = obj.RoiArray;
-                roiGroupStruct.roiImages = obj.RoiImages;
-                roiGroupStruct.roiStats = obj.RoiStats;
-                roiGroupStruct.roiClassification = zeros(numel(obj.RoiArray), 1);
-                
-                % Save as roigroup.
-                obj.saveData(obj.RoiArrayVarName, roiGroupStruct, ...
-                    'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
+                % Assemble final results and save as a roigroup struct.
+                obj.saveToRoiGroup()
 
             end
         end
@@ -222,33 +192,46 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             
         end
         
-        function saveResults(obj)
-            % Subclasses may override
+        function dsFactor = getTemporalDownsamplingFactor(obj)
+            dsFactor = obj.Options.Run.TemporalDownsamplingFactor;
         end
         
         function finalizeResults(obj)
             % Subclasses may override
         end
-                
-        function dsFactor = getTemporalDownsamplingFactor(obj)
-            dsFactor = obj.Options.Run.TemporalDownsamplingFactor;
-        end
-        
+
         function getRoiAppData(obj)
         %getRoiAppData Get roi application data (roiImages & roiStats)
         
             import nansen.twophoton.roi.getRoiAppData
-        
-            roiArray = obj.RoiArray;
-            imArray = obj.getImageArray();
+            %obj.printTask('Computing roi images and stats')
+
+            [numZ, numC] = size(obj.RoiArray);
             
-            obj.printTask('Computing roi images and stats')
-            [roiImages, roiStats] = getRoiAppData(imArray, roiArray);       % Imported function
-            obj.RoiImages = roiImages;
-            obj.RoiStats = roiStats;
-            obj.printTask('Finished roi images and stats')
+            [obj.RoiImages, obj.RoiStats] = deal( cell(numZ, numC) );
+            
+            obj.StackIterator.reset()
+            for i = 1:obj.StackIterator.NumIterations
+                obj.StackIterator.next()
+                
+                iC = obj.StackIterator.CurrentIterationC;
+                iZ = obj.StackIterator.CurrentIterationZ;
+                
+                thisRoiArray = obj.RoiArray{iZ, iC};
+                imArray = obj.getImageArray();
+                if ~isempty(thisRoiArray)
+                    [roiImages, roiStats] = getRoiAppData(imArray, thisRoiArray);       % Imported function
+
+                    obj.RoiImages{iZ, iC} = roiImages;
+                    obj.RoiStats{iZ, iC} = roiStats;
+                end
+                
+            end
+            
+            %obj.printTask('Finished roi images and stats')
             
         end
+        
     end
     
     methods (Access = private)
@@ -263,9 +246,19 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         function downsampleStack(obj, dsFactor)
         %downsampleStack Downsample stack in the time dimension
         
-            downsampledStack = obj.SourceStack.downsampleT(dsFactor, [], ...
-                'Verbose', true, 'UseTransientVirtualStack', false, ...
-                'SaveToFile', true);
+% %             downsampledStack = obj.SourceStack.downsampleT(dsFactor, [], ...
+% %                 'Verbose', true, 'UseTemporaryFile', false, ...
+% %                 'SaveToFile', true);
+            
+            downsampler = nansen.stack.processor.TemporalDownsampler(...
+                obj.SourceStack, dsFactor, [], 'Verbose', true, ...
+                'UseTemporaryFile', false, 'SaveToFile', true);
+            downsampler.IsSubProcess = true;
+            downsampler.runMethod()
+            
+            downsampledStack = downsampler.getDownsampledStack();
+            
+            
             
             % Store original stack and assign the downsampled stack as
             % source stack. Original stack might be needed later.
@@ -273,6 +266,32 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             obj.SourceStack = downsampledStack;
         end
         
+        function saveToRoiGroup(obj)
+            
+            [numZ, numC] = size(obj.RoiArray);
+            
+            obj.StackIterator.reset()
+            for i = 1:obj.StackIterator.NumIterations
+                [iZ, iC] = obj.StackIterator.next();
+
+                varNameSuffix = obj.getVariableNameSuffix(iC, iZ);
+                varName = [obj.RoiArrayVarName, varNameSuffix];
+
+                roiGroupStruct = struct();
+                roiGroupStruct.ChannelNum = obj.StackIterator.CurrentChannel;
+                roiGroupStruct.PlaneNum = obj.StackIterator.CurrentPlane;
+
+                roiGroupStruct.roiArray = obj.RoiArray{iZ,iC};
+                roiGroupStruct.roiImages = obj.RoiImages{iZ,iC};
+                roiGroupStruct.roiStats = obj.RoiStats{iZ,iC};
+                roiGroupStruct.roiClassification = zeros(numel(obj.RoiArray{iZ,iC}), 1);
+
+                % Save as roigroup.
+                obj.saveData(obj.RoiArrayVarName, roiGroupStruct, ...
+                    'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
+            
+            end
+        end
     end
     
     methods (Static)

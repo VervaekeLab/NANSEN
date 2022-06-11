@@ -80,28 +80,31 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
         end
         
-        function saveResults(obj)
-            tempResults = obj.Results;
-            obj.saveData('QuickyResultsTemp', tempResults) 
-        end
-        
         function mergeResults(obj)
         %mergeResults Merge results from each processing part
                     
             import flufinder.detect.findUniqueRoisFromComponents
             
-            obj.displayStartStep('merge_results')
-
-            % Combine spatial segments
-            obj.Results = cat(1, obj.Results{:});
-            S = cat(1, obj.Results.spatialComponents );
-                
-            imageSize = obj.SourceStack.FrameSize;
-            roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
-
-            obj.RoiArray = roiArrayT;
+            mergeResults@nansen.processing.RoiSegmentation(obj)
             
-            obj.displayFinishStep('merge_results')
+            imageSize = obj.SourceStack.FrameSize;
+
+            [numZ, numC] = size(obj.MergedResults);
+            roiArrayCell = cell(numZ, numC);
+
+            for i = 1:numZ
+                for j = 1:numC
+                    
+                    % Combine spatial segments
+                    S = cat(1, obj.MergedResults{i,j}.spatialComponents );
+                
+                    roiArrayCell{i,j} = findUniqueRoisFromComponents(imageSize, S);
+                    %roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
+                end
+            end
+            
+            obj.RoiArray = roiArrayCell;
+            %obj.RoiArray = roiArrayT;
         end
         
         function finalizeResults(obj)
