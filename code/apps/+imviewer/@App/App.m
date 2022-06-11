@@ -5347,6 +5347,7 @@ methods (Access = protected)
 
         pixelValueStr = '';
         
+        if isempty(obj.imObj); return; end
         if isempty(obj.imObj.CData); return; end
             
         x = coords(1); y = coords(2);
