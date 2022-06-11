@@ -42,3 +42,23 @@ function [filePath, filename] = listFiles(filePathCellArray, filetype)
 
     
 end
+
+% % function [folders, names, ext] = fileparts(varargin)
+% %     
+% %     [folders, names, ext] = deal(cell(1, numel(varargin)));
+% %     
+% %     for i = 1:numel(varargin)
+% %         [folders{i}, names{i}, ext{i}] = builtin('fileparts', varargin{i});
+% %     end
+% %     
+% %     if nargin == 1
+% %         folders = folders{1}; names = names{1}; ext = ext{1};
+% %     end
+% %     
+% %     if nargout == 1
+% %         clear names ext
+% %     elseif nargout == 2
+% %         clear ext
+% %     end
+% % 
+% % end
