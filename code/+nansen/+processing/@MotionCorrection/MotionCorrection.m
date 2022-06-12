@@ -39,15 +39,15 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 %       
 %     * <strong>MotionCorrectionTemplates8bit</strong> : Same as above cast to 8bit
 %
-%     * <strong>MotionCorrectedAverageProjections</strong> : Image stack with average
+%     * <strong>AverageProjectionsCorrected</strong> : Image stack with average
 %     projections. Each average projection is from one chunk of the stack
 %
-%     * <strong>MotionCorrectedAverageProjections8bit</strong> : Same as above, cast to 8bit
+%     * <strong>AverageProjectionsCorrected8bit</strong> : Same as above, cast to 8bit
 %     
-%     * <strong>MotionCorrectedMaximumProjections</strong> : Image stack with maximum
+%     * <strong>MaximumProjectionsCorrected</strong> : Image stack with maximum
 %     projections. Each maximum projection is from one chunk of the stack
 %
-%     * <strong>MotionCorrectedMaximumProjections8bit</strong> : Same as above, cast to 8bit
+%     * <strong>MaximumProjectionsCorrected8bit</strong> : Same as above, cast to 8bit
 
 
 %   QUESTIONS:
@@ -285,6 +285,16 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             S = repmat({S}, numChannels, numPlanes);
         end
         
+        function saveResults(obj)
+            % Skip for now, in this class results have a special
+            % implementation (see saveShifts on subclasses)
+        end
+
+        function saveMergedResults(obj)
+            % Skip for now, in this class results have a special
+            % implementation (see save shifts)
+        end
+
     end
         
     methods (Access = protected) % Pre- and processing methods for imagedata
@@ -548,11 +558,12 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %openProjectionStacks Open projection stacks for various images    
             
             % Create image stack for saving reference (template) images
+            refFolderName = fullfile(obj.DATA_SUBFOLDER, 'reference_images');
             varName = 'MotionCorrectionReferenceImage'; %'MotionCorrectionTemplate'
             
             refArraySize = [stackSize(1:end-1), obj.NumParts];
             refArray = zeros(refArraySize, dataTypeIn);
-            obj.DerivedStacks.ReferenceStack = obj.openTiffStack(varName, refArray);
+            obj.DerivedStacks.ReferenceStack = obj.openTiffStack(varName, refArray, refFolderName);
             
             % Todo implement like this instead of above:
             %obj.saveData(refName, refArray)
@@ -560,55 +571,53 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Create image stack for saving average projection images
             if obj.Options.Export.saveAverageProjection
-                varName = 'MotionCorrectedAverageProjections';
-                obj.DerivedStacks.AvgProjectionStack = obj.openTiffStack(varName, refArray);
-                varName = 'MotionCorrectedAverageProjectionsOrig';
-                obj.DerivedStacks.AvgProjectionStackOrig = obj.openTiffStack(varName, refArray);
+                folderName = fullfile(obj.DATA_SUBFOLDER, 'projections_average');
+                varName = 'AverageProjectionsOriginal';
+                obj.DerivedStacks.AvgProjectionStackOrig = obj.openTiffStack(varName, refArray, folderName);
+                varName = 'AverageProjectionsCorrected';
+                obj.DerivedStacks.AvgProjectionStackCorr = obj.openTiffStack(varName, refArray, folderName);
             end
                 
             % Create image stack for saving maximum projection images
             if obj.Options.Export.saveMaximumProjection
-                varName = 'MotionCorrectedMaximumProjections';
-                obj.DerivedStacks.MaxProjectionStack = obj.openTiffStack(varName, refArray);
-                varName = 'MotionCorrectedMaximumProjectionsOrig';
-                obj.DerivedStacks.MaxProjectionStackOrig = obj.openTiffStack(varName, refArray);
+                folderName = fullfile(obj.DATA_SUBFOLDER, 'projections_maximum');
+                varName = 'MaximumProjectionsOriginal';
+                obj.DerivedStacks.MaxProjectionStackOrig = obj.openTiffStack(varName, refArray, folderName);
+                varName = 'MaximumProjectionsCorrected';
+                obj.DerivedStacks.MaxProjectionStackCorr = obj.openTiffStack(varName, refArray, folderName);
             end
 
-            
             if ~strcmp(dataTypeIn, 'uint8')
                 refArray = zeros(refArraySize, 'uint8');
                 fovArray = zeros(refArraySize(1:end-1), 'uint8');
-                varName = 'MotionCorrectionTemplates8bit';
                 
                 obj.DerivedStacks.Templates8bit = ...
-                    obj.openTiffStack(varName, refArray);
+                    obj.openTiffStack('MotionCorrectionReferenceImage8bit', refArray, refFolderName);
                 
                 if obj.Options.Export.saveAverageProjection
-                    varName = 'MotionCorrectedAverageProjections8bit';
-                    obj.DerivedStacks.AvgProj8bit = ...
-                        obj.openTiffStack(varName, refArray);
-                    obj.DerivedStacks.AvgFovImage = ...
-                        obj.openTiffStack('FovAverageProjection', fovArray, 'fov_images', false);
-                    
-                    varName = 'MotionCorrectedAverageProjectionsOrig8bit';
-                    obj.DerivedStacks.AvgProjOrig8bit = ...
-                        obj.openTiffStack(varName, refArray);
-                    obj.DerivedStacks.AvgFovImageOrig = ...
-                        obj.openTiffStack('FovAverageProjectionOrig', fovArray, 'fov_images', false);
+                    folderName = fullfile(obj.DATA_SUBFOLDER, 'projections_average');
+                     
+                    varName = 'AverageProjectionsOriginal8bit';
+                    obj.DerivedStacks.AvgProjOrig8bit = obj.openTiffStack(varName, refArray, folderName);
+                    varName = 'AverageProjectionsCorrected8bit';
+                    obj.DerivedStacks.AvgProjCorr8bit = obj.openTiffStack(varName, refArray, folderName);
+                    varName = 'FovAverageProjectionOrig';
+                    obj.DerivedStacks.AvgFovImageOrig = obj.openTiffStack(varName, fovArray, 'fov_images', false);
+                    varName = 'FovAverageProjection';
+                    obj.DerivedStacks.AvgFovImageCorr = obj.openTiffStack(varName, fovArray, 'fov_images', false);
                 end
                 
                 if obj.Options.Export.saveMaximumProjection
-                    varName = 'MotionCorrectedMaximumProjections8bit';
-                    obj.DerivedStacks.MaxProj8bit = ...
-                        obj.openTiffStack(varName, refArray);
-                    obj.DerivedStacks.MaxFovImage = ...
-                        obj.openTiffStack('FovMaximumProjection', fovArray, 'fov_images', false);
-                    
-                    varName = 'MotionCorrectedMaximumProjectionsOrig8bit';
-                    obj.DerivedStacks.MaxProjOrig8bit = ...
-                        obj.openTiffStack(varName, refArray);
-                    obj.DerivedStacks.MaxFovImageOrig = ...
-                        obj.openTiffStack('FovMaximumProjectionOrig', fovArray, 'fov_images', false);                    
+                    folderName = fullfile(obj.DATA_SUBFOLDER, 'projections_maximum');
+
+                    varName = 'MaximumProjectionsCorrected8bit';
+                    obj.DerivedStacks.MaxProjCorr8bit = obj.openTiffStack(varName, refArray, folderName);
+                    varName = 'MaximumProjectionsOriginal8bit';
+                    obj.DerivedStacks.MaxProjOrig8bit = obj.openTiffStack(varName, refArray, folderName);
+                    varName = 'FovMaximumProjectionOrig';
+                    obj.DerivedStacks.MaxFovImageOrig = obj.openTiffStack(varName, fovArray, 'fov_images', false);    
+                    varName = 'FovMaximumProjectionCorr';
+                    obj.DerivedStacks.MaxFovImageCorr = obj.openTiffStack(varName, fovArray, 'fov_images', false);
                 end
             end
             
@@ -647,7 +656,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             if obj.Options.Export.saveAverageProjection
                 avgProj = mean(Y, dim);
                 avgProj = cast(avgProj, dataTypeIn);
-                obj.DerivedStacks.AvgProjectionStack.writeFrameSet(avgProj, iPart)
+                obj.DerivedStacks.AvgProjectionStackCorr.writeFrameSet(avgProj, iPart)
             end
             
             if obj.Options.Export.saveMaximumProjection
@@ -656,7 +665,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 Y_ = movmean(Y, 3, dim);
                 maxProj = max(Y_, [], dim);
                 maxProj = cast(maxProj, dataTypeIn);
-                obj.DerivedStacks.MaxProjectionStack.writeFrameSet(maxProj, iPart)
+                obj.DerivedStacks.MaxProjectionStackCorr.writeFrameSet(maxProj, iPart)
             end
         end
         
@@ -674,25 +683,29 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             end
         
             switch lower( projectionType )
-                case 'average'
-                    sourceStackName = 'AvgProjectionStack';
-                    targetStackNameA = 'AvgProj8bit';
-                    targetStackNameB = 'AvgFovImage';
-                    getFullProjection = @(IM) mean(IM, lastDim);
-                case 'maximum'
-                    sourceStackName = 'MaxProjectionStack';
-                    targetStackNameA = 'MaxProj8bit';
-                    targetStackNameB = 'MaxFovImage';
-                    getFullProjection = @(IM) max(IM, [], lastDim);
+                
                 case 'average-orig'
                     sourceStackName = 'AvgProjectionStackOrig';
                     targetStackNameA = 'AvgProjOrig8bit';
                     targetStackNameB = 'AvgFovImageOrig';
                     getFullProjection = @(IM) mean(IM, lastDim);
+
+                case 'average'
+                    sourceStackName = 'AvgProjectionStackCorr';
+                    targetStackNameA = 'AvgProjCorr8bit';
+                    targetStackNameB = 'AvgFovImageCorr';
+                    getFullProjection = @(IM) mean(IM, lastDim);
+                
                 case 'maximum-orig'
                     sourceStackName = 'MaxProjectionStackOrig';
                     targetStackNameA = 'MaxProjOrig8bit';
                     targetStackNameB = 'MaxFovImageOrig';
+                    getFullProjection = @(IM) max(IM, [], lastDim);
+
+                case 'maximum'
+                    sourceStackName = 'MaxProjectionStackCorr';
+                    targetStackNameA = 'MaxProjCorr8bit';
+                    targetStackNameB = 'MaxFovImageCorr';
                     getFullProjection = @(IM) max(IM, [], lastDim);
             end
             
@@ -733,11 +746,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 
             switch lower( projectionType )
                 case 'average'
-                    IS = obj.DerivedStacks.AvgFovImage;
+                    IS = obj.DerivedStacks.AvgFovImageCorr;
                 case 'average-orig'
                     IS = obj.DerivedStacks.AvgFovImageOrig;
                 case 'maximum'
-                    IS = obj.DerivedStacks.MaxFovImage;
+                    IS = obj.DerivedStacks.MaxFovImageCorr;
                 case 'maximum-orig'
                     IS = obj.DerivedStacks.MaxFovImageOrig;
             end
@@ -789,13 +802,13 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % 2: 
             
             
-            imArray = obj.DerivedStacks.AvgProjectionStack.getFrameSet(1:obj.NumParts);
+            imArray = obj.DerivedStacks.AvgProjectionStackCorr.getFrameSet(1:obj.NumParts);
             
             imArray = stack.makeuint8(imArray, [], [], crop); % todo: Generalize this function / add tolerance as input
-            obj.saveTiffStack('MotionCorrectedAverageProjections8bit', imArray)
+            obj.saveTiffStack('AverageProjectionsCorrected8bit', imArray)
 
             % Save average projection image of full stack
-            imArray = obj.DerivedStacks.AvgProjectionStack.getFrameSet(1:obj.NumParts);
+            imArray = obj.DerivedStacks.AvgProjectionStackCorr.getFrameSet(1:obj.NumParts);
             fovAverageProjection = mean(imArray, 3);
             fovAverageProjection = stack.makeuint8(fovAverageProjection, [], [], crop);
             obj.saveData('FovAverageProjection', fovAverageProjection, ...
@@ -821,9 +834,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function tiffStack = openTiffStack(obj, DATANAME, imageArray, folderName, isInternal)
         %openTiffStack
         
-            if nargin < 4; folderName = 'motion_corrected'; end
+            if nargin < 4; folderName = obj.DATA_SUBFOLDER; end
             if nargin < 5; isInternal = true; end
 
+            % Note: Removed '-w' as second argument to make the variable
+            % "transient", i.e its not path of the variable model.
             filePath = obj.getDataFilePath( DATANAME, '-w',...
                 'Subfolder', folderName, 'FileType', 'tif', ...
                 'FileAdapter', 'ImageStack', 'IsInternal', isInternal);

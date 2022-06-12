@@ -125,7 +125,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 IND = obj.FrameIndPerPart{partNumber};
                 tf = all( arrayfun(@(i) ~isempty(shifts(i).shifts), IND) );
             else
-                im = obj.DerivedStacks.AvgProjectionStack.getFrameSet(partNumber);
+                im = obj.DerivedStacks.AvgProjectionStackCorr.getFrameSet(partNumber);
                 tf = any(im(:) ~= 0);
             end
             

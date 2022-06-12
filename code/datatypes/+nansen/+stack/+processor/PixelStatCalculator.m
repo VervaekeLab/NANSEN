@@ -91,6 +91,16 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             tf = all( ~isnan(obj.ImageStats{i,j}.meanValue(frameIndices) ) );
         end
         
+        function saveResults(obj)
+            % Skip for now, in this class results have a special
+            % implementation (see saveShifts on subclasses)
+        end
+
+        function saveMergedResults(obj)
+            % Skip for now, in this class results have a special
+            % implementation (see save shifts)
+        end
+
     end
     
     methods (Access = private) 

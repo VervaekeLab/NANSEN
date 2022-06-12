@@ -109,7 +109,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         
         function tf = checkIfPartIsFinished(obj, partNumber)
         %checkIfPartIsFinished Check if shift values exist for given frames
-        
             shifts = obj.ShiftsArray(:, obj.CurrentPlane);
             frameIND = obj.FrameIndPerPart{partNumber};
             
@@ -285,7 +284,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             params.initialShifts = mean(shifts, 4);
             params.cRef = c_ref;
            
-            obj.CorrectionParams = params;
+            obj.CorrectionParams{obj.CurrentPlane} = params;
             
         end
         
@@ -294,6 +293,11 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     
     methods (Access = protected) % Run the motion correction / image registration
         
+        function onInitialization(obj)
+            onInitialization@nansen.processing.MotionCorrection(obj)
+            obj.CorrectionParams = cell(1, obj.StackIterator.NumIterationsZ);
+        end
+
         function [M, results] = registerImageData(obj, Y)
             
             import nansen.wrapper.flowreg.utility.*
@@ -303,12 +307,11 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             options = obj.ToolboxOptions;
             template = obj.CurrentRefImage;
             
-            if isempty(obj.CorrectionParams)
+            if isempty(obj.CorrectionParams{obj.CurrentPlane})
                 obj.initializeParameters(Y);
             end
-            params = obj.CorrectionParams;
+            params = obj.CorrectionParams{obj.CurrentPlane};
             
-
             % What is the difference between cref and cref raw???
             
             % Raw images, reshaped to H x W x nCh x nSamples
@@ -350,7 +353,8 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 params.initialShifts = mean(shifts, 4); %w_init;
             end
             
-            obj.CorrectionParams = params;
+            % Update correction parameters for next iteration
+            obj.CorrectionParams{obj.CurrentPlane} = params;
             
             M = squeeze(M);
             
