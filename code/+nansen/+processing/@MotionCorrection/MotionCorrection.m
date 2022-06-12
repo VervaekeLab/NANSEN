@@ -533,11 +533,13 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
         function Y = subtractPixelBaseline(obj, Y)
             baselineValue = obj.getCurrentPixelBaseline();
+            baselineValue = cast(baselineValue, 'like', Y);
             Y = Y - baselineValue;            
         end
         
         function Y = addPixelBaseline(obj, Y)
             baselineValue = obj.getCurrentPixelBaseline();
+            baselineValue = cast(baselineValue, 'like', Y);
             Y = Y + baselineValue;               
         end
         
