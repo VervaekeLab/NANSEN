@@ -2502,6 +2502,10 @@ methods % Event/widget callbacks
     end
     
     function changePlane(obj, planeNum, mode) %#ok<INUSD>
+        if any(planeNum < 1) || any(planeNum > obj.ImageStack.NumPlanes)
+            return
+        end
+
         obj.currentPlane = planeNum;
     end
     
@@ -3950,7 +3954,7 @@ methods % Misc, most can be outsourced
         % Activate waitbar...
         obj.uiwidgets.msgBox.activateGlobalWaitbar()
         
-        obj.displayMessage('Updating image data')
+        obj.displayMessage('Loading image data')
         
         
         % Get data from all channels and planes... (Caching only works if
@@ -5095,7 +5099,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 end
                 
             case 'leftarrow'
-                if contains( event.Modifier, {'alt', 'ctrl','control'})
+                if contains( event.Modifier, {'ctrl','control'})
                     xLim = get(obj.uiaxes.imdisplay, 'XLim');
                     obj.moveImage([obj.settings.Interaction.panFactor * diff(xLim), 0])
                 elseif contains(event.Modifier, {'shift'})
@@ -5104,18 +5108,23 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                     obj.changeFrame(struct('Value', -1), [], 'keypress');
                 end
             case 'rightarrow'
-                if contains( event.Modifier, {'alt', 'ctrl', 'control'})
+                if contains( event.Modifier, {'ctrl', 'control'})
                     xLim = get(obj.uiaxes.imdisplay, 'XLim');
                     obj.moveImage([-obj.settings.Interaction.panFactor * diff(xLim), 0])
+                elseif contains( event.Modifier, {'alt'} )
+                    
                 elseif contains(event.Modifier, {'shift'})
                     obj.changeFrame(struct('Value', 5), [], 'keypress');
                 else
                     obj.changeFrame(struct('Value', 1), [], 'keypress');
                 end
             case 'uparrow'
-                if contains( event.Modifier, {'alt', 'ctrl', 'control'})
+                if contains( event.Modifier, {'ctrl', 'control'})
                     yLim = get(obj.uiaxes.imdisplay, 'YLim');
                     obj.moveImage([0, -obj.settings.Interaction.panFactor * diff(yLim)])
+                elseif contains( event.Modifier, 'alt')
+                    obj.changePlane(obj.currentPlane + 1)
+
                 elseif contains( event.Modifier, 'shift')
                     if strcmp(obj.Figure.Resize, 'off')
                         obj.resizeWindow([], [],'maximize')
@@ -5126,9 +5135,11 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                     end
                 end
             case 'downarrow'
-                if contains( event.Modifier, {'alt', 'ctrl', 'control'})
+                if contains( event.Modifier, {'ctrl', 'control'})
                     yLim = get(obj.uiaxes.imdisplay, 'YLim');
                     obj.moveImage([0, obj.settings.Interaction.panFactor * diff(yLim)])
+                elseif contains( event.Modifier, 'alt')
+                    obj.changePlane(obj.currentPlane - 1)                    
                 elseif contains( event.Modifier, 'shift')
                     if strcmp(obj.Figure.Resize, 'off')
                         obj.resizeWindow([], [],'restore')
