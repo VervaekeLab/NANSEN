@@ -117,6 +117,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
         end
         
+        
         function tf = checkIfPartIsFinished(obj, partNumber)
         %checkIfPartIsFinished Check if shift values exist for given part
             

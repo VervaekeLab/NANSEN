@@ -107,13 +107,16 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             S = obj.initializeOptions(opts, optionsVarname);
         end
         
+        function tf = allIsFinished(obj)
+            tf = all( cellfun(@(c) ~isempty(c), obj.ShiftsArray(:)) );
+        end
+
         function tf = checkIfPartIsFinished(obj, partNumber)
         %checkIfPartIsFinished Check if shift values exist for given frames
             shifts = obj.ShiftsArray(:, obj.CurrentPlane);
             frameIND = obj.FrameIndPerPart{partNumber};
             
             tf = all( arrayfun(@(i) ~isempty(shifts{i}), frameIND) );
-            
         end
         
         function initializeShifts(obj, numFrames)
