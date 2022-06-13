@@ -845,6 +845,30 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
             
         end %RM
         
+        
+        function S = getAutosegmentDefaultOptions(obj, methodName)
+            
+            switch lower(methodName)
+                case 'quicky'
+                    %h = nansen.OptionsManager('flufinder.getDefaultOptions');
+                    S = flufinder.getDefaultOptions();
+                    
+                case 'extract'
+                    S = nansen.wrapper.extract.Options.getDefaults();
+
+                case 'suite2p'
+                    S = nansen.twophoton.autosegmentation.suite2p.Options.getDefaultOptions;
+
+               %case 'cnmf'
+
+                otherwise
+                   error('Not implemented')
+
+            end
+            
+        end
+        
+
         function foundRois = runInternalAutosegmentation(obj, Y, options)
                         
             % Get imageStack from viewer

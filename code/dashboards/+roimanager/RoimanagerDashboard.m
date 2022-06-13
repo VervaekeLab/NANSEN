@@ -538,29 +538,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             end
             
         end
-        
-        function S = getAutosegmentDefaultOptions(obj, methodName)
-            
-            switch lower(methodName)
-                case 'quicky'
-                    %h = nansen.OptionsManager('flufinder.getDefaultOptions');
-                    S = flufinder.getDefaultOptions();
-                    
-                case 'extract'
-                    S = nansen.wrapper.extract.Options.getDefaults();
 
-                case 'suite2p'
-                    S = nansen.twophoton.autosegmentation.suite2p.Options.getDefaultOptions;
-
-               %case 'cnmf'
-
-                otherwise
-                   error('Not implemented')
-
-            end
-            
-        end
-        
         function opts = convertAutosegmentOptions(obj, options, methodName)
             
         end
