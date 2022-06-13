@@ -270,12 +270,11 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             
             [numZ, numC] = size(obj.RoiArray);
             
+            roiGroupCellArrayOfStruct = cell(numZ, numC);
+
             obj.StackIterator.reset()
             for i = 1:obj.StackIterator.NumIterations
                 [iZ, iC] = obj.StackIterator.next();
-
-                varNameSuffix = obj.getVariableNameSuffix(iC, iZ);
-                varName = [obj.RoiArrayVarName, varNameSuffix];
 
                 roiGroupStruct = struct();
                 roiGroupStruct.ChannelNum = obj.StackIterator.CurrentChannel;
@@ -286,11 +285,15 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 roiGroupStruct.roiStats = obj.RoiStats{iZ,iC};
                 roiGroupStruct.roiClassification = zeros(numel(obj.RoiArray{iZ,iC}), 1);
 
-                % Save as roigroup.
-                obj.saveData(obj.RoiArrayVarName, roiGroupStruct, ...
-                    'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
-            
+                roiGroupCellArrayOfStruct{iZ, iC} = roiGroupStruct;
             end
+
+            roiGroupStruct = cell2mat(roiGroupCellArrayOfStruct);
+
+            % Save as roigroup.
+            obj.saveData(obj.RoiArrayVarName, roiGroupStruct, ...
+                'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
+            
         end
     end
     
