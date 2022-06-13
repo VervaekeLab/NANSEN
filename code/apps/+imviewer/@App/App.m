@@ -2117,6 +2117,8 @@ methods % App update
         % Todo: Only do this when display mode changes.
         if strcmp( obj.settings.ImageDisplay.VolumeDisplayMode, 'Plane Montage')
             % Update image display x- & y-limits to keep axes tight..
+            im = obj.prepareMultiplaneImageForDisplay(obj.DisplayedImage);
+
             obj.uiaxes.imdisplay.XLim = [0, size(im, 2)] + 0.5;
             obj.uiaxes.imdisplay.YLim = [0, size(im, 1)] + 0.5;            
             obj.imObj.XData = [1, size(im, 2)];
