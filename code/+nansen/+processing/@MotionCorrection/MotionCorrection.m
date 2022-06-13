@@ -258,17 +258,12 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                     obj.saveProjectionImages('maximum', crop)
                     obj.saveProjectionImages('maximum-orig', crop)
                 end
-
-                if obj.SourceStack.NumChannels > 1 && ...
-                        ismember(obj.SourceStack.NumChannels, obj.CurrentChannel)
-                    if obj.CurrentPlane == obj.SourceStack.NumPlanes
-                        obj.resaveRGBProjectionImages('average')
-                        obj.resaveRGBProjectionImages('average-orig')
-                        obj.resaveRGBProjectionImages('maximum')
-                        obj.resaveRGBProjectionImages('maximum-orig')
-                    end
-                end
             end
+            
+            obj.resaveRGBProjectionImages('average')
+            obj.resaveRGBProjectionImages('average-orig')
+            obj.resaveRGBProjectionImages('maximum')
+            obj.resaveRGBProjectionImages('maximum-orig')
         end
         
         function S = repeatStructPerDimension(obj, S)
@@ -603,7 +598,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                     obj.DerivedStacks.AvgProjCorr8bit = obj.openTiffStack(varName, refArray, folderName);
                     varName = 'FovAverageProjectionOrig';
                     obj.DerivedStacks.AvgFovImageOrig = obj.openTiffStack(varName, fovArray, 'fov_images', false);
-                    varName = 'FovAverageProjection';
+                    varName = 'FovAverageProjectionCorr';
                     obj.DerivedStacks.AvgFovImageCorr = obj.openTiffStack(varName, fovArray, 'fov_images', false);
                 end
                 
@@ -668,7 +663,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 obj.DerivedStacks.MaxProjectionStackCorr.writeFrameSet(maxProj, iPart)
             end
         end
-        
         
         function saveProjectionImages(obj, projectionType, cropAmount)
         %saveProjectionStack Save projections for current channel/plane
