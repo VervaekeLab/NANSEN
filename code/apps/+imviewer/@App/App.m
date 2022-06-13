@@ -2969,13 +2969,19 @@ methods % Misc, most can be outsourced
     %   Todo: If playback speed ischanging, should adjust current position.
     %   % As it is now, theres a big jump...
     
+    %   [ ] Let user select to play a certain number of frames per second
+    %   or to play real time based on sample rate.
+    %   [ ] if samplerate is low, and user increases speed, should not skip
+    %   frames. I.e always show at least 25 frames per second...
+
         obj.isPlaying = true;
         
-        dt = 1 / obj.ImageStack.getSampleRate;
-        if isnan(dt)
-            dt = 1/30;
-        end
-        
+% %         dt = 1 / obj.ImageStack.getSampleRate;
+% %         if isnan(dt)
+% %             dt = 1/30;
+% %         end
+        dt = 1/30;
+
         currentPlaybackSpeed = obj.playbackspeed;
         
         initialFrame = obj.currentFrameNo;
