@@ -22,13 +22,11 @@ function moveTableVarsToProjectNameSpace()
                 continue
             end
             
-            
             movefile(tableVarFolderSource, tableVarFolderTarget)
-            fprintf('Moved tablevariables to project namespace for project %s\n', projectName)
+            fprintf('Moved tablevariables to project namespace for project "%s"\n', projectName)
 
-            
         catch ME
-            fprintf('Failed to move tablevariables to project namespace for project %s\n', projectName)
+            fprintf('Failed to move tablevariables to project namespace for project "%s"\n', projectName)
             disp(getReport(ME, 'extended'))
         end
 

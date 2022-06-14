@@ -257,7 +257,9 @@ classdef PlaybackControl < uim.mixin.assignProperties
         end
         
         function set.CurrentPlane(obj, newValue)
-        	obj.hPlaneSwitcher.CurrentPlane = newValue;
+            if ~isempty(obj.hPlaneSwitcher)
+                obj.hPlaneSwitcher.CurrentPlane = newValue;
+            end
         end
         
         function set.ChannelColors(obj, newValue)
@@ -281,6 +283,12 @@ classdef PlaybackControl < uim.mixin.assignProperties
             obj.NumChannels = newValue;
             obj.onNumChannelsChanged()
             
+        end
+        
+        function set.NumPlanes(obj, newValue)
+            
+            obj.NumPlanes = newValue;
+            obj.onNumPlanesChanged()
         end
     end
     
@@ -1091,7 +1099,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
                     return
                 else
                     delete(obj.hPlaneSwitcher)
-                    obj.hPlaneSwitcher=[];
+                    obj.hPlaneSwitcher = [];
                     obj.onSizeChanged()
                     return
                 end
@@ -1111,7 +1119,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
                 obj.hPlaneSwitcher = uim.widget.PlaneSwitcher( ...
                     obj.ParentApp, obj.ButtonAxes, params{:});
             else
-                obj.hChannelIndicator.NumPlanes = obj.NumPlanes;
+                obj.hPlaneSwitcher.NumPlanes = obj.NumPlanes;
             end
             
             % Resize axes...

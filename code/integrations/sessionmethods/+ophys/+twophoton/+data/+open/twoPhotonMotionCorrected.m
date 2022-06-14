@@ -43,6 +43,10 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
         
     filePath = sessionObj.getDataFilePath('TwoPhotonSeries_Corrected');
     
+    if ~isfile(filePath)
+        error('File for "%s" was not found.', 'TwoPhotonSeries_Corrected')
+    end
+    
     if ~params.UseVirtualStack
         imageStack = nansen.stack.ImageStack(filePath);
         imData = imageStack.getFrameSet(params.FirstImage:params.LastImage);

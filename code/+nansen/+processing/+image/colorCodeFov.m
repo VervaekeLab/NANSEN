@@ -128,7 +128,7 @@ for i = 1:numParts
     end
 end
 
-% Colorcode.
+% Colorcode. % Todo: use stack.colorcodeImageStack
 for l = 1:nOutputs
     
     % make 3 dubplicates of the projection stack

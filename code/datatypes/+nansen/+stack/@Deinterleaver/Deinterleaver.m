@@ -5,7 +5,13 @@ classdef Deinterleaver < handle
 %   users need to manually specify how stacks should be deinterleaved.
 
 
+% Todo:
+%       [ ] Add property StackSize (length of all dimensions for the stack being deinterleaved
+%       [ ] Add interleaved dimensions (number for the dimension in stack that are interleaved)
+
+
     properties (SetAccess = immutable)
+        InterleavedDimensionNumbers
         Dimensions = 'CZT'; % Name of stack dimensions
         NumFrames = 1   % Total number of frames for a stack
     end
@@ -95,17 +101,27 @@ classdef Deinterleaver < handle
         %              comes from. (first two dimensions not required)
         %   
         
+        % This is a late night hack. Some files, i.e tiff files can have
+        % multichannel frames, and in this case the 3rd dimension is also
+        % uninterleaved, whereas in most cases only the first two
+        % dimensions are uninterleaved. Todo: All these things should be
+        % explicitly specified using properties. I.e full size of original
+        % stack and which dimension number are interleaved should be
+        % properties of this class.
+        
             if numel(subs) >= obj.NumDimensions + 2
-                % (Assume the first two dimensions were not included)
-                subs = subs(3:end);
+                % (Assume the first x dimensions were not included)
+                nDimU = numel(subs) - obj.NumDimensions; % Number of dimensions that are not interleaved ([U]ninterleaved)
+                subs = subs(nDimU+1:end); % Subs of interleaved dimensions only
+            else
+                nDimU = 2; % Default is that first two dimensions are [U]ninterleaved.
             end
             
             subs = obj.replaceColonSubs(subs);
         
             dataSize = size(data);
-            newShape = [dataSize(1:2), cellfun(@numel, subs)];
+            newShape = [dataSize(1:nDimU), cellfun(@numel, subs)];
             data = reshape(data, newShape);
-
         end
 
     end

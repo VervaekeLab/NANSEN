@@ -243,7 +243,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             % fprintf('Deleted ImageStack.\n') % For testing
-            
         end
 
     end
@@ -368,7 +367,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 [doCropImage, selectFrameSubset] = deal( false );
             end
             
-            
             if isempty(imArray); return; end
             
             % Todo: Subselect channels and or planes
@@ -383,7 +381,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             elseif selectFrameSubset
                 imArray = obj.selectFrameSubset(imArray, indexingSubs);
             end
-
+            
+            %imArray = squeeze(imArray);
             
             % Set data intensity limits based on current data if needed.
             if isempty( obj.DataIntensityLimits )
@@ -438,9 +437,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             dataSize = obj.Data.StackSize;
             tmpSize = size(imData);
             
-%             if ~isequal(dataSize(3:end), tmpSize(3:end))
-%                 tmpInd = repmat({':'}, 1, ndims(obj.Data));
-%             end
+            if ~isequal(dataSize(3:end-1), tmpSize(3:end-1))
+                warning('Data being inserted in the cache is not complete along some of the dimensions.')
+                %tmpInd = repmat({':'}, 1, ndims(obj.Data));
+            end
             
             obj.Data.addToStaticCache(imData, frameIndices)
             
@@ -553,11 +553,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         function [tf, filePath] = hasDownsampledStack(obj, method, downsampleFactor)
             
             % Todo; make this work for spatial downsampling as well.
-                        
+            
             if strcmp(method, 'temporal_mean'); method = 'mean'; end
             
             args = {obj, downsampleFactor, method};
-            filePath = nansen.stack.DownsampledStack.createDataFilepath(args{:});
+            filePath = nansen.stack.utility.getDownsampledStackFilename(args{:});
             
             tf = isfile(filePath);
             
@@ -600,12 +600,19 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
             params = struct();
             params.SaveToFile = false;
-            params.UseTransientVirtualStack = true;
+            params.UseTemporaryFile = true;
             params.FilePath = '';
             params.OutputDataType = 'same';
             params.Verbose = false;
             
             params = utility.parsenvpairs(params, 1, varargin{:});
+            
+            % Rename some fields for the downsampler class
+            params.TargetFilePath = params.FilePath;
+            params = rmfield(params, 'FilePath');
+                       
+            params.TargetFileType = params.OutputDataType;
+            params = rmfield(params, 'OutputDataType');
             
             % Calculate number of downsampled frames
             numFramesFinal = floor( obj.NumTimepoints / n );
@@ -626,49 +633,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 params.SaveToFile = true;
             end
             
-            % Create a new ImageStack object, which is an instance of a
-            % downSampled stack.
-            downsampledStack = nansen.stack.DownsampledStack(obj, n, method, params);
+            % Create a new TemporalDownsampler ImageStackProcessor object.
+            downsampler = nansen.stack.processor.TemporalDownsampler(obj, n, method, params);
             
-            % Get indices for different parts/blocks
-            [IND, numChunks] = obj.getChunkedFrameIndices(chunkLength);
-            
-            % Check metadata to see if stack is already downsampled
-            if downsampledStack.MetaData.Downsampling.IsCompleted
-                return
+            if ~downsampler.existDownsampledStack()
+                downsampler.runMethod()
             end
             
-            % Check data to see if stack is already downsampled
-            if nansen.stack.ImageStack.isStackComplete(downsampledStack, numChunks)
-                
-                if params.Verbose
-                    fprintf('Downsampled stack already exists.\n')
-                end
-                downsampledStack.MetaData.Downsampling.IsCompleted = true;
-                return % Data is already downsampled...
-            end            
-            
-            global waitbar
-            useWaitbar = false;
-            if ~isempty(waitbar); useWaitbar = true; end
-              
-            if useWaitbar
-                waitbar(0/numChunks, 'Initializing downsampling')
-            end
-            
-            % Loop through blocks and downsample frames
-            for iPart = 1:numChunks
-                imData = obj.getFrameSet( IND{iPart} );
-                downsampledStack.addFrames(imData);
-                if params.Verbose
-                    fprintf('Downsampled part %d/%d\n', iPart, numChunks)
-                end
-                if useWaitbar
-                    waitbar(iPart/numChunks, 'Downsampling image stack')
-                end
-            end
-            
-            downsampledStack.MetaData.Downsampling.IsCompleted = true;
+            downsampledStack = downsampler.getDownsampledStack();
             
             if ~nargout
                 clear downsampledStack
@@ -693,7 +665,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                        
             fprintf(sprintf('Calculating %s projection...\n', projectionName))
 
-            projectionImage = obj.getProjection(projectionName, 'cache');
+            projectionImage = obj.getProjection(projectionName, 'cache', 'T', 'extended');
             
             % Assign projection image to stackProjection property
             obj.Projections.(projectionName) = projectionImage;
@@ -707,7 +679,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
         end
         
-        function projectionImage = getProjection(obj, projectionName, frameInd, dim)
+        function projectionImage = getProjection(obj, projectionName, frameInd, dim, mode)
         % getProjection Get stack projection image
         %
         %   Projection is always calculated along the last dimension unless
@@ -724,24 +696,39 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             %       i.e cast output to original type. Some functions
             %       require input to be single or double...
             
+            if nargin < 5
+                mode = 'standard';
+            end
+            
             
             % Set dimension to calculate projection image over.
             
             if nargin < 4 || isempty(dim)
                 % Dim should be minimum 3, but would be 2 for single frame
-                dim = max([3, ndims(tmpStack)]);
-                dim = obj.getDimensionNumber('T');
+                if contains(obj.Data.StackDimensionArrangement, 'T')
+                    dim = obj.getDimensionNumber('T');
+                elseif contains(obj.Data.StackDimensionArrangement, 'Z')
+                    dim = obj.getDimensionNumber('Z');
+                else
+                    dim = max([3, ndims(tmpStack)]);
+                end
+
+            elseif ischar(dim)
+                dim = obj.getDimensionNumber(dim);
+                
             else
                 error('Not implemented yet')
             end
             
             % Special case if the imagedata is a single rgb frame, need to
             % find max along 4th dimensions..
-            if dim == 3 && numel(obj.CurrentChannel) > 1 
+
+            if isempty(dim)
+                dim = ndims(tmpStack) + 1; % (If not T dimension is present, i.e XYC or XYZ. Todo: IS this correct in all cases 
+            elseif dim == 3 && numel(obj.CurrentChannel) > 1 
                 dim = 4;
             end
 
-            
             % Calculate the projection image
             switch lower(projectionName)
                 case {'avg', 'mean', 'average'}
@@ -766,10 +753,13 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     % todo
                     
                 otherwise
-                    
                     projFun = nansen.stack.utility.getProjectionFunction(projectionName);
                     projectionImage = projFun(tmpStack, dim);
 
+            end
+            
+            if strcmp(mode, 'standard')
+                projectionImage = obj.getProjectionSubSelection(projectionImage);
             end
             
         end
@@ -1006,6 +996,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         end
 
+        function tf = isvirtual(obj)
+            tf = isa(obj.Data, 'nansen.stack.data.VirtualArray');
+        end
+        
         function enablePreprocessing(obj, varargin)
         %enablePreprocessing Enable preprocessing of data on retrieval
             obj.Data.enablePreprocessing(varargin{:})
@@ -1362,7 +1356,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                             subs{i} = frameInd;
                         end
                     otherwise
-                        subs{i} = 1:obj.getDimensionLength(thisDim); 
+                        subs{i} = ':';
                 end
             end
             
@@ -1628,7 +1622,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function tf = isStackComplete(fileRef, numChunks)
-        %isDownsampledStackComplete Check if image stack is complete 
+        %isStackComplete Check if image stack is complete 
         %
         %   Note, check that a random subset of frames are not just zeros.
         
@@ -1644,7 +1638,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             % Pick 100 random frames.
-            randFrameIdx = randperm(imageStack.NumTimepoints, 100);
+            numFrames = min([imageStack.NumTimepoints, 100]);
+            randFrameIdx = randperm(imageStack.NumTimepoints, numFrames);
+            
             data = imageStack.getFrameSet(sort(randFrameIdx));
             tf = all( mean(mean(data,2),1) ~= 0 );
             

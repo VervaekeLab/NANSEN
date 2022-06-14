@@ -415,6 +415,11 @@ classdef SessionTaskMenu < handle
             evtData = uiw.event.EventData( nvPairs{:} );
             obj.notify('MethodSelected', evtData)
             
+            drawnow
+            
+            % Reset mode to default when item is selected
+            obj.Mode = 'Default';
+
         end
         
     end

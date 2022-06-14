@@ -213,7 +213,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         end
 
         function tf = isTaskOnQueue(obj, taskStruct)
-            
+            if isempty(obj.TaskQueue); tf = false; return; end
             isMatched = @(fn) strcmp({obj.TaskQueue.(fn)}, taskStruct.(fn));
             
             nameMatched = isMatched('name') ;

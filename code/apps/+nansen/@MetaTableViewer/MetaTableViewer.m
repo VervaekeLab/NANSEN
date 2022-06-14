@@ -105,6 +105,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     
     events
         TableUpdated
+        SelectionChanged
     end
     
     
@@ -501,6 +502,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
             
             obj.HTable.CellEditCallback = @obj.onCellValueEdited;
+            obj.HTable.CellSelectionCallback = @obj.onCellSelectionChanged;
             obj.HTable.JTable.getTableHeader().setReorderingAllowed(true);
             obj.JTable = obj.HTable.JTable;
 
@@ -1076,6 +1078,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
         end
         
+        function onCellSelectionChanged(obj, src, evt)
+            %evtData = event.EventData;
+            evtData = uiw.event.EventData('SelectedRows', evt.SelectedRows);
+            obj.notify('SelectionChanged', evtData) 
+        end
+        
         function onColumnWidthChanged(obj, src, event)
         %onColumnWidthChanged Callback for events where column widths are
         %changed by resizing column widths in from gui.
@@ -1165,11 +1173,17 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             if isempty(obj.ColumnContextMenu)
                 obj.createColumnContextMenu()
             end
-
-            columnType = obj.HTable.ColumnFormat{colNumber};
             
+            % Get column name of column where context menu should open
             [~, varNames] = obj.ColumnModel.getColumnNames();
             currentColumnName = varNames{colNumber};
+            
+            % Get column number according to the underlying java column
+            % models column order.
+            [colIdxJava, ~] = obj.ColumnModel.getColumnModelIndexOrder();
+            colNumber = colIdxJava(colNumber);
+            
+            columnType = obj.HTable.ColumnFormat{colNumber};
             
             isMatch = strcmp( {obj.MetaTableVariableAttributes.Name}, currentColumnName );
             if any(isMatch)

@@ -848,7 +848,11 @@ classdef MetaTable < handle
             else
                 % Use {:} in the end to unpack indexes results from cell array
                 % (MT{...} unpacks specified table variables to a cell array)
-                masterFilePath = fullfile( MT{ IND, {'SavePath', 'FileName'} }{:} );
+                
+                rootDir = fileparts(nansen.metadata.MetaTableCatalog.getFilePath());
+                masterFilePath = fullfile(rootDir, MT{IND, 'FileName'}{:});
+                %deprecated, not compatible with multiple file locations...
+                %masterFilePath = fullfile( MT{ IND, {'SavePath', 'FileName'} }{:} );
             end
 
         end

@@ -180,7 +180,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         function tf = get.HasStaticCache(obj)
             tf = ~isempty(obj.StaticFrameCache);
         end 
-        
+
     end
     
     methods % Methods for reading/writing data; subclasses can override
@@ -412,6 +412,38 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             subs = cell(1, numDims);
             subs(1:end-1) = {':'};
             subs{end} = frameInd;
+        end
+        
+    end
+    
+    methods (Access = protected, Sealed)
+        
+        function resolveDataSizeAndDimensionArrangement(obj, stackSize)
+            
+            % Find singleton dimensions.
+            isSingleton = stackSize == 1;
+
+            % Get arrangement of dimensions of data
+            try
+                % Note subclasses might implement this as a constant
+                % property. If it's not implemented, use default DDA
+                dataDimensionArrangement = obj.DATA_DIMENSION_ARRANGEMENT;
+            catch
+                dataDimensionArrangement = obj.DEFAULT_DIMENSION_ARRANGEMENT;
+            end
+
+            % Get order of dimensions of data
+            [~, ~, dimensionOrder] = intersect( obj.DEFAULT_DIMENSION_ARRANGEMENT, ...
+                dataDimensionArrangement, 'stable' );
+
+            % Rearrange beased on dimension order
+            isSingleton_(dimensionOrder) = isSingleton;
+            dataSize(dimensionOrder) = stackSize;
+
+            % Assign size and dimension arrangement for data excluding
+            % singleton dimension.
+            obj.DataSize = dataSize(~isSingleton_);
+            obj.DataDimensionArrangement = dataDimensionArrangement(~isSingleton_);
         end
         
     end

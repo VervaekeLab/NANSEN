@@ -5,9 +5,14 @@ classdef TiffMultiPart < nansen.stack.data.VirtualArray
 
 
     % Todo:
-    % [ ] Implement writable...
+    % [v] Implement writable.
+    % [ ] Set channel mode and write according to selection. I.e we can
+    %     write multichannel data to interleaved tiffstacks with 1 sample
+    %     per pixel or we can configure to tiff file with multiple samples 
+    %     per pixels and write multichannel data to each tiff frame
     % [ ] Test that multi plane/ multi channel works with any kind of
     %     dimension arrangement
+    %
     
     
 properties (Constant, Hidden)
@@ -160,7 +165,11 @@ methods (Access = protected) % Implementation of abstract methods
         stackSize(4) = obj.detectNumberOfPlanes();
 
         numFrames = obj.countNumFrames();
-        stackSize(5) = numFrames / stackSize(3) / stackSize(4);
+        if strcmp(obj.ChannelMode, 'multisample')
+            stackSize(5) = numFrames / stackSize(4);
+        else
+            stackSize(5) = numFrames / stackSize(4) / stackSize(3);
+        end
         
         % Find singleton dimensions.
         isSingleton = stackSize == 1;
@@ -406,30 +415,33 @@ methods % Implementation of abstract methods for readin/writing
     
     function writeFrameSet(obj, data, frameIndices, subs)
         
-        % Todo: combine with getFrameSet???
         % Todo: Test thoroughly
-        
-% %         if nargin < 4
-% %             subs = obj.frameind2subs(frameInd);
-% %             insertSub = repmat({':'}, 1, ndims(obj));
-% %         end
-% %         
+
 % %         % Todo: Make assertion that data has the same size as the stack
 % %         % (width and height, numchannels) 
 % %         
 % %         % Todo: Resolve which is the subs containing number of samples.
 % %         sampleDim = strfind(obj.DimensionOrder, 'T'); % todo, store in property.
 % %         frameIndices = subs{sampleDim};
-
         
-        % Preallocate data
-        insertSub = repmat({':'}, 1, numel(obj.DataSize));
+        % dataSub should be 3D if writing channel data interleaved or
+        % 4D if writing channel data to multiple samples per pixel...
+
+        % Determine size of requested data
+        if strcmp(obj.ChannelMode, 'multisample')
+            dataSize = [obj.DataSize(1:3), numel(frameIndices)];
+        else
+            dataSize = [obj.DataSize(1:2), numel(frameIndices)];
+        end
+        
+        % Create cell array of subs for getting frame data from data array
+        dataSub = repmat({':'}, 1, numel(dataSize));
 
         % Loop through frames and load into data.
         for i = 1:numel( frameIndices )
 
             frameNum = frameIndices(i);
-            insertSub{end} = i;
+            dataSub{end} = i;
 
             fileNum = obj.frameIndexInfo.fileNum(frameNum);
             frameInFile = obj.frameIndexInfo.frameInFile(frameNum);
@@ -437,7 +449,7 @@ methods % Implementation of abstract methods for readin/writing
             obj.tiffObj(fileNum).setDirectory(frameInFile);
             
             % Todo: include planes as well
-            obj.tiffObj(fileNum).write(data(insertSub{:}));
+            obj.tiffObj(fileNum).write(data(dataSub{:}));
 
         end
         
@@ -486,7 +498,6 @@ methods (Static)
     end
     
     function filepath = lookForMultipartFiles(filepath)
-        
         if ischar(filepath) || (iscell(filepath) && numel(filepath)==1)
             if iscell(filepath)
                 [folder, ~, ext] = fileparts(filepath{1});
@@ -500,10 +511,19 @@ methods (Static)
             
             % If many files are found and all filenames are same length
             if numel(L) > 1 && numel( unique(cellfun(@numel, {L.name})) ) == 1
-                filepath = fullfile({L.folder}, {L.name});
+                filepathCandidates = fullfile({L.folder}, {L.name});
+                
+                % Remove all numbers from filenames. If all names are 
+                % identical after, we assume folder contains multipart files.
+                
+                filepathCandidates_ = regexprep(filepathCandidates, '\d*', '');
+                if numel( unique(filepathCandidates_) ) == 1
+                    filepath = filepathCandidates;
+                else
+                    % Return original filepath.
+                end
             end
         end
-        
     end
 end
 

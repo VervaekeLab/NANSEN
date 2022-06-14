@@ -19,23 +19,17 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %
     properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_quicky')
-        ROI_VARIABLE_NAME = 'roiArrayQuickyAuto'
+        VARIABLE_PREFIX = 'Quicky'
     end
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
         MethodName = 'Autosegmentation (Quicky)'
-        IsManual = false        % Does method require manual supervision
-        IsQueueable = true      % Can method be added to a queue
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.quicky.Processor')
     end
     
     properties (Constant) % From imagestack...
         ImviewerPluginName = ''
-    end
-    
-    properties (Access = private)
-        MergedResults
     end
     
     
@@ -53,9 +47,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 return
             end
 
-            % Todo. Move to superclass
-            obj.Options.Export.FileName = obj.SourceStack.Name;
-            
             % Call the appropriate run method
             if ~nargout
                 obj.runMethod()
@@ -89,40 +80,31 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
         end
         
-        function runPreInitialization(obj)
-            runPreInitialization@nansen.processing.RoiSegmentation(obj)
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Combine and refine detected components';
-            obj.StepDescription = [obj.StepDescription, descr];
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Compute roi images & roi stats';
-            obj.StepDescription = [obj.StepDescription, descr];
-        end
-        
-        function saveResults(obj)
-            tempResults = obj.Results;
-            obj.saveData('QuickyResultsTemp', tempResults) 
-        end
-        
         function mergeResults(obj)
         %mergeResults Merge results from each processing part
                     
             import flufinder.detect.findUniqueRoisFromComponents
             
-            obj.displayStartCurrentStep()
-
-            % Combine spatial segments
-            obj.Results = cat(1, obj.Results{:});
-            S = cat(1, obj.Results.spatialComponents );
-                
-            imageSize = obj.SourceStack.FrameSize;
-            roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
-
-            obj.RoiArray = roiArrayT;
+            mergeResults@nansen.processing.RoiSegmentation(obj)
             
-            obj.displayFinishCurrentStep()
+            imageSize = obj.SourceStack.FrameSize;
+
+            [numZ, numC] = size(obj.MergedResults);
+            roiArrayCell = cell(numZ, numC);
+
+            for i = 1:numZ
+                for j = 1:numC
+                    
+                    % Combine spatial segments
+                    S = cat(1, obj.MergedResults{i,j}.spatialComponents );
+                
+                    roiArrayCell{i,j} = findUniqueRoisFromComponents(imageSize, S);
+                    %roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
+                end
+            end
+            
+            obj.RoiArray = roiArrayCell;
+            %obj.RoiArray = roiArrayT;
         end
         
         function finalizeResults(obj)

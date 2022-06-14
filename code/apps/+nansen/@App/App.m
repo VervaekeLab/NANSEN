@@ -13,6 +13,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     %   [ ] Important: Load task list and start running it if preferences
     %       are set for that, even if gui is not initialized...
+    %
+    %   [ ] Figure out what to do vis a vis multisession methods and pipelines. 
     
 
     properties (Constant, Access=protected) % Inherited from uiw.abstract.AppWindow
@@ -878,6 +880,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %h.HTable.MouseMotionFcn = @(s,e) onMouseMotionInTable(h, s, e);
             
             addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
+            addlistener(h, 'SelectionChanged', @app.onSessionSelectionChanged);
             
             h.UpdateColumnFcn = @app.updateTableVariable;
             h.ResetColumnFcn = @app.resetTableVariable;
@@ -1201,7 +1204,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 fcnName = func2str(task.method);
                 
                 if strcmp(task.status, 'Completed')
-                    sessionObj.updateProgress(fcnName, task.status)
+                    if numel(sessionObj) == 1
+                        sessionObj.updateProgress(fcnName, task.status)
+                    end
                 end
                 
             end
@@ -2212,6 +2217,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
         
+        function onSessionSelectionChanged(app, src, evt)
+            
+            % Count number of sessions selected
+            selectedRows = app.UiMetaTableViewer.getSelectedEntries();
+            
+            str = 'Status: Idle';
+            
+            if numel(selectedRows) == 1
+                strA = sprintf( '%d session selected', numel(selectedRows) );
+                str = strjoin({strA, str}, ' | ');
+            elseif numel(selectedRows) > 1
+                strA = sprintf( '%d sessions selected', numel(selectedRows) );
+                str = strjoin({strA, str}, ' | ');
+            end
+            
+            app.h.StatusField.String = str;
+            
+        end
+        
         function onSessionTaskSelected(app, ~, evt)
             
             % Todo: Implement error handling.
@@ -2348,7 +2372,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Update the status field
                 app.updateStatusField(i-1, numTasks, sessionMethod)
                 
-                newTask = app.BatchProcessor.createTaskItem(sessionObj{i}.sessionID, ...
+                newTask = app.BatchProcessor.createTaskItem(sessionObj{i}(1).sessionID, ...
                     sessionMethod, 0, sessionObj(i), 'Default', 'Command window task');
 
                 % cleanupObj makes sure temp logfile is deleted later
@@ -2357,28 +2381,33 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 newTask.timeStarted = datetime(now,'ConvertFrom','datenum');
                 
                 % Run the task
-                try
-                    if restart
-                        app.runTaskWithReset(sessionMethod, sessionObj{i}, opts)
-                    else
-                        sessionMethod(sessionObj{i}, opts);
-                    end
+                if app.settings.Session.SessionTaskDebug
+                    sessionMethod(sessionObj{i}, opts);
+                else
 
-                    sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-                    newTask.status = 'Completed';
-                    diary off
-                    newTask.Diary = fileread(logfile);
-                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                catch ME
-                    newTask.status = 'Failed';
-                    diary off
-                    newTask.Diary = fileread(logfile);
-                    newTask.ErrorStack = ME;
-                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                    app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
-                        func2str(sessionMethod))
+                    try
+                        if restart
+                            app.runTaskWithReset(sessionMethod, sessionObj{i}, opts)
+                        else
+                            sessionMethod(sessionObj{i}, opts);
+                        end
+                        if numel(sessionObj{i}) == 1 % Methods which accept multiple session should not be included in pipelines...
+                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                        end
+                        newTask.status = 'Completed';
+                        diary off
+                        newTask.Diary = fileread(logfile);
+                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
+                    catch ME
+                        newTask.status = 'Failed';
+                        diary off
+                        newTask.Diary = fileread(logfile);
+                        newTask.ErrorStack = ME;
+                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
+                        app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
+                            func2str(sessionMethod))
+                    end
                 end
-                
                 clear cleanUpObj
             end
             

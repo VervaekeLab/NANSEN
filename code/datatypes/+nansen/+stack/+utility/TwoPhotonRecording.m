@@ -30,6 +30,7 @@ classdef TwoPhotonRecording < handle
 
     properties (Dependent)
         PreprocessDataEnabled % Flag for subclass to decide whether is should invoke the processdata method
+        PreprocessingOptions
         % Is it better if this is just set internally whenever properties
         % are changed?
     end
@@ -76,7 +77,19 @@ classdef TwoPhotonRecording < handle
     
     
     methods % Set/get methods
-            
+        
+        function optsStruct = get.PreprocessingOptions(obj)
+            optsStruct.NumFlybackLines = obj.NumFlybackLines;
+            optsStruct.StretchCorrectionMethod = obj.StretchCorrectionMethod;
+            optsStruct.CorrectBidirectionalOffset = obj.CorrectBidirectionalOffset;
+        end
+        
+        function set.PreprocessingOptions(obj, optsStruct)
+            obj.NumFlybackLines = optsStruct.NumFlybackLines;
+            obj.StretchCorrectionMethod = optsStruct.StretchCorrectionMethod;
+            obj.CorrectBidirectionalOffset = optsStruct.CorrectBidirectionalOffset;
+        end
+        
         function tf = get.PreprocessDataEnabled(obj)
             
             doFlyBackRemoval = obj.NumFlybackLines ~= 0;
@@ -205,7 +218,7 @@ classdef TwoPhotonRecording < handle
             end
             
             warning('on', 'SciScan:StretchProfileMissing')
-            testData = obj.readFrames(1); %#ok<MCNPN> % subclass method
+            obj.readFrames(1); %#ok<MCNPN> % subclass method
             warning('off', 'SciScan:StretchProfileMissing')
             
         end

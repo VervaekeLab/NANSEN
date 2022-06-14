@@ -84,6 +84,9 @@ classdef OptionsManager < handle
 
         
     % TODO:
+    %   [ ] Use Catalog as basis for an OptionsCatalog class
+    %
+    %   [ ] Save options sets to individual files.
     %   
     %   [ ] Create an OptionsSet class. This class should look like the
     %   struct returned by getEmptyOptionsSet, and have functionality for
@@ -234,6 +237,9 @@ classdef OptionsManager < handle
                 case 'multiple_files'
                     error('Not implemented yet')
             end
+            
+            
+            obj.updateOptionsFromDefault()
             
             
             if ~isempty(obj.OptionsName)
@@ -794,6 +800,65 @@ classdef OptionsManager < handle
             
         end
         
+        
+        function updatedOpts = updateOptionsFromReference(obj, newOpts, refOpts)
+            
+            isAllSubstruct = all( structfun(@(s) isstruct(s), refOpts) );
+            
+            if isAllSubstruct
+                subfields = fieldnames(refOpts);
+
+                updatedOpts = newOpts;
+
+                for i = 1:numel(subfields)
+                    
+                    thisField = subfields{i};
+
+                    if isfield(newOpts, thisField)
+                        updatedOpts.(thisField) = obj.addMissingFieldsFromReference(...
+                            newOpts.(thisField), refOpts.(thisField) );
+                    else
+                        updatedOpts.(thisField) = refOpts.(thisField);
+                    end 
+                end
+
+            else
+                updatedOpts = obj.addMissingFieldsFromReference(newOpts, refOpts);
+            end
+            
+            
+        end
+        
+        function s = addMissingFieldsFromReference(~, s, sRef)
+                        
+            fieldNamesRef = fieldnames(sRef);
+            for i = 1:numel(fieldNamesRef)
+                thisField = fieldNamesRef{i};
+                if ~isfield(s, thisField)
+                    s.(thisField) = sRef.(thisField);
+                end
+            end
+            
+        end
+        
+        % Todo:
+% %         function s = removeDeprecatedFields(obj, s, sRef)
+% %             
+% %             
+% %             
+% %         end
+        
+        
+        function updateOptionsFromDefault(obj)
+                        
+            for i = 1:numel(obj.CustomOptions_)
+                obj.CustomOptions_(i) = obj.updateOptionsFromReference(...
+                    obj.CustomOptions_(i), obj.PresetOptions_(1) );
+
+            end
+            
+        end
+        
         % % Methods related to preset options. % Create PresetOptionFinder
         % class?
         
@@ -1173,12 +1238,20 @@ classdef OptionsManager < handle
                         
             for i = 1:numel(obj.PresetOptions_)
                 thisName = obj.PresetOptions_(i).Name;
-                thisOpts = obj.PresetOptions_(i).Options;
+                iReferenceOpts = obj.PresetOptions_(i).Options;
                 
                 if any(strcmp({loadedPresetOptions.Name}, thisName))
                     matchIdx = strcmp({loadedPresetOptions.Name}, thisName);
                     
-                    if ~isequal(thisOpts, loadedPresetOptions(matchIdx).Options)
+                    iLoadedOpts = loadedPresetOptions(matchIdx).Options;
+
+                    if ~isequal(iLoadedOpts, iReferenceOpts)
+                        iLoadedOpts = obj.updateOptionsFromReference(iLoadedOpts, iReferenceOpts);
+                        fprintf('Updated options for %s to match to changes in preset options\n', obj.FunctionName)    
+                        loadedPresetOptions(matchIdx).Options = iLoadedOpts;
+                    end
+                    
+                    if ~isequal(iLoadedOpts, iReferenceOpts)
                         
                         % Todo: Implement this and make it easy to fix...
                         

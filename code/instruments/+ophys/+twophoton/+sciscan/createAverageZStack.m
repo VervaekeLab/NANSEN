@@ -1,11 +1,14 @@
 function imageArrayAvgZ = createAverageZStack(imageStack, varargin)
-    
+
+% not a sciscan function...
+
     assert(isa(imageStack, 'nansen.stack.ImageStack'), ...
         'Input must be an ImageStack object')
     
     defaults = struct;
     defaults.MergeChannels = false;
     defaults.ReferenceChannel = 2;
+    defaults.AdjustBrightness = false;
     defaults.doDestretch = false;
     defaults.doRegister = false;
     defaults.doNonrigid = false;
@@ -99,9 +102,12 @@ function imageArrayAvgZ = createAverageZStack(imageStack, varargin)
 % %     imageArrayAvgZ = normalizearray(imageArrayAvgZ);
     
     
+    if params.AdjustBrightness
+        imageArrayAvgZ = normalizeArray(imageArrayAvgZ);
+    end
     
-    imageArrayAvgZ = normalizeArray(imageArrayAvgZ);
-
+    imageArrayAvgZ = squeeze(imageArrayAvgZ);
+    
 end
 
 function ncOpts = getNormcorreOptions(params, imageStack)
