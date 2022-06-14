@@ -37,6 +37,8 @@ function [roiArray, classification, stats, images] = convertRois(S)
     images = struct.empty; % Todo: Create weight image...
     [images(1:numRois).SpatialWeights] = deal([]);
     
+    imageSize = cast(imageSize, 'like', S.stat(1).ypix);
+
     mask = zeros([imageSize, numRois], 'single');
     for i = 1:numel(S.stat)
         tmpMask = mask(:, :, i);
