@@ -79,7 +79,20 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
         end
         
         function tf = allIsFinished(obj)
-            tf = all( cellfun(@(c) ~isempty(c), obj.ImageStats(:)) );
+            
+            numParts = numel( obj.ImageStats(:) );
+
+            tf = false(1, numParts );
+
+            for i = 1:numParts
+                if isempty(obj.ImageStats{i})
+                    continue
+                elseif all(~isnan(obj.ImageStats{i}.meanValue))
+                    tf(i) = true;
+                end
+            end
+            
+            tf = all(tf);
         end
 
         function tf = checkIfPartIsFinished(obj, partNumber)
