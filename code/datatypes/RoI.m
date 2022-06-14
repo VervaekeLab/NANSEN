@@ -106,7 +106,11 @@ methods
             [h, w, ~] = size(coordinates);
             imSize = [h, w];
         end
-        
+
+        if ~islogical(coordinates)
+            imSize = cast(imSize, 'like', coordinates);
+        end
+
         % Set coordinates and shape
         obj.shape = shape;
         obj = setCoordinates(obj, coordinates);
@@ -885,7 +889,7 @@ methods
                 mask = false(imsize);
                 
                 coordInt = round(self.coordinates);
-
+                
                 % Keep all indices which are within the image boundaries
                 keep = sum(coordInt < 1, 2) == 0 & sum(coordInt > fliplr(imsize), 2) == 0;
                 
@@ -896,7 +900,7 @@ methods
             case 'IMask'
                 mask = false(imsize);
                 coordInt = round(self.coordinates);
-                
+
                 keep = self.pixelweights > self.MaskWeightCutoff;
                 ind = sub2ind(imsize, coordInt(keep, 2), coordInt(keep, 1));
                 mask(ind) = true;
@@ -1236,11 +1240,13 @@ methods (Access = protected)
                 CC.PixelIdxList = { sub2ind(obj.imagesize, round(obj.coordinates(keep,2)), round(obj.coordinates(keep,1))) };
                 bboxOffset = 0.5;
                 correctionOffset = -0.5;
-                correctionOffset = -0.5;
+                
             case 'IMask'
                 pixelsKeep = obj.pixelweights > obj.MaskWeightCutoff;
                 CC = struct('Connectivity', 8, 'ImageSize', obj.imagesize, 'NumObjects', 1);
                 CC.PixelIdxList = { sub2ind(obj.imagesize, round(obj.coordinates(pixelsKeep,2)), round(obj.coordinates(pixelsKeep,1))) };
+                bboxOffset = 0.5;
+                correctionOffset = -0.5;
 
             otherwise
                 CC = bwconncomp(BW);
