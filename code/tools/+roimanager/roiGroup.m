@@ -186,8 +186,7 @@ classdef roiGroup < handle
             end
             
 
-            % Update roicount. This should happen before plot, update listbox 
-            % and modify signal array:
+            % Update roicount. This should happen triggering event below...
             obj.roiCount = numel(obj.roiArray); %obj.roiCount + nRois;
             
             try
@@ -333,7 +332,6 @@ classdef roiGroup < handle
             
         end
 
-        
         function roiInd = getNextRoiInd(obj, currentRoiInd, direction, selectionMode)
             % currentRoiInd is a number of the current roi
             % direction can be 'forward' or 'backward'
@@ -418,7 +416,6 @@ classdef roiGroup < handle
             
         end
 
-        
         function changeRoiSelection(obj, oldSelection, newSelection, origin)
         %changeRoiSelection Method to notify a roiSelectionChanged event
         %
