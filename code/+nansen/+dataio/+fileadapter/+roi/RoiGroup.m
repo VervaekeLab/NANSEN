@@ -9,13 +9,16 @@ classdef RoiGroup < nansen.dataio.FileAdapter
     
     properties (Dependent)
         RoiFormat
-        RoiConverter % Todo.
     end
     
     properties (Access = private)
         RoiFormat_
     end
-    
+
+    properties (Access = private)
+        RoiConverter = nansen.dataio.dataconverter.roi.RoiConverter
+    end
+
     properties (Constant, Hidden, Access = protected)
         SUPPORTED_FILE_TYPES = {'mat', 'npy'}
     end
