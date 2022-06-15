@@ -488,8 +488,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 
             elseif numel(iC) == 1 % Single channel
                 currentStats = obj.ImageStats{iC,iZ};
-                upperValue = max( [currentStats.maximumValue] );
-                % upperValue = max( [currentStats.prctileU2] );
+                %upperValue = mean( [currentStats.maximumValue] );
+                upperValue = max( [currentStats.prctileU2] );
             else
                 error('Unexpected error occurred. Please report')
             end  
@@ -520,8 +520,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
             iC = obj.CurrentChannel;
             iZ = obj.CurrentPlane;
-            
-
             
             if numel(iC) > 1 % Multiple channels
                 currentStats = cat(1, obj.ImageStats{iC, iZ});

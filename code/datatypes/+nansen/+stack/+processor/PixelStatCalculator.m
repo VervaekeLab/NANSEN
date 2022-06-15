@@ -15,8 +15,8 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
     end
     
     properties (Constant, Hidden) % Inherited from DataMethod
-        DATA_SUBFOLDER = 'image_pixel_stats';
-        VARIABLE_PREFIX = 'PixelStats';
+        DATA_SUBFOLDER = '' %'image_pixel_stats';
+        VARIABLE_PREFIX = 'PixelStats'
     end
     
     properties %Options
@@ -97,6 +97,8 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
 
         function tf = checkIfPartIsFinished(obj, partNumber)
         %checkIfPartIsFinished Check if specified part is completed        
+
+            tf = false;return
             
             frameIndices = obj.FrameIndPerPart{partNumber};
             i = obj.CurrentChannel;
