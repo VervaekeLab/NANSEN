@@ -1290,7 +1290,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         if isnumeric(subs{i})
                             isValid = subs{i} >= 1 & subs{i} <= obj.NumTimepoints;
                             if any(~isValid)
-                                error('Invalid data indexing along T dimension')
+                                error('Invalid data indexing along T dimension. Indexes must be between 1 and %d', obj.NumTimepoints)
                             end
                             %subs{i} = subs{i}(isValid);
                         end
