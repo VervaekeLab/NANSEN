@@ -9,6 +9,7 @@ function hApp = nansen(varargin)
         switch ME.identifier
             case 'Nansen:ProjectNotConfigured:MetatableMissing'
                 disp(ME.message)
+                disp('Run nansen.setup to configure project or change to another project.')
             case 'Nansen:NoProjectsAvailable'
                 disp(ME.message)
             case 'MATLAB:class:InvalidSuperClass'
