@@ -2716,11 +2716,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 case 'New Metatable...'
                     % Add session to new database
                     metaTable = app.MenuCallback_CreateMetaTable();
+                    if isempty(metaTable); return; end % User canceled
                 otherwise
                     
                     MT = nansen.metadata.MetaTableCatalog();
                     metaTable = MT.getMetaTable(src.Text);
-
             end
 
             metaTable.addEntries(sessionEntries)
@@ -2735,6 +2735,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function metatable = MenuCallback_CreateMetaTable(app, src, evt)
+            
+            metatable = [];
             
             S = struct();
             S.MetaTableName = '';

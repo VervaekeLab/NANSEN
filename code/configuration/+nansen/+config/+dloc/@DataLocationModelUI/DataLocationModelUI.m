@@ -26,6 +26,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
     end
     
     properties (Access = private) % Layout properties
+        LastUigetdirFolder = ''     % Loast opened folder using uigetdir
         ButtonSizeSmall = [22, 22]
         ButtonSizeLarge = [70, 22]
     end
@@ -658,6 +659,10 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 initPath = '';
             end
             
+            if ~isempty(obj.LastUigetdirFolder)
+                initPath = obj.LastUigetdirFolder;
+            end
+            
             folderPath = uigetdir(initPath);
             
             % Call this to take care of bug in matlab where uifigures loose
@@ -689,6 +694,8 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
 
             % Invoke callback for taking care of path changes
             obj.onRootPathEditComponentValueChanged( hComponent, event )
+            
+            obj.LastUigetdirFolder = fileparts(folderPath);
             
         end
         

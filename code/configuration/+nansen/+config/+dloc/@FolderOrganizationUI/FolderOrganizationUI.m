@@ -668,7 +668,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             evtData = event.EventData();
             obj.notify('FilterChanged', evtData)
             
-            obj.updateSubfolderItems(iRow)
+            obj.updateSubfolderItems(iRow); % supress output
 
         end
         
@@ -700,16 +700,19 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             % Show message dialog and return if no subfolders are found.
             if isempty(obj.CurrentDataLocation.RootPath)
                 hSubfolderDropdown.Items = {'Root folder is not specified'};
+                if ~nargout; clear success; end
                 return
             elseif ~isfolder( obj.CurrentDataLocation.RootPath(1).Value )
                 hSubfolderDropdown.Items = {'Data location root folder not found'};
+                if ~nargout; clear success; end
                 return
             elseif isempty(dirName) % && iRow > 1
 % %                 message = 'No subfolders were found within the selected folder';
 % %                 hFigure = ancestor(obj.Parent, 'figure');
 % %                 uialert(hFigure, message, 'Aborting')
                 success = false;
-                hSubfolderDropdown.Items = {'No subfolders were found'};
+                hSubfolderDropdown.Items = {'No subfolders were found'};            
+                if ~nargout; clear success; end
                 return
             end
             
@@ -746,9 +749,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             %obj.IsDirty = true;
             
-            if ~nargout
-                clear success
-            end
+            if ~nargout; clear success; end
             
         end
         
@@ -1090,6 +1091,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             switch evt.DataField
                 case 'Name'
                     obj.updateDataLocationSelector()
+                    if strcmp( obj.CurrentDataLocation.Name, evt.OldValue )
+                        obj.CurrentDataLocation.Name = evt.DataLocationName;
+                    end
                 
                 case 'RootPath'
                                
