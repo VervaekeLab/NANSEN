@@ -340,6 +340,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Manage Projects...');
             mitem.MenuSelectedFcn = @app.onManageProjectsMenuClicked;
             
+            mitem = uimenu(m, 'Text','Open Project Folder');
+            mitem.MenuSelectedFcn = @app.onOpenProjectFolderMenuClicked;
 
             % % % % % % Create CONFIGURATION menu items % % % % % % 
             
@@ -2687,6 +2689,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
+        function onOpenProjectFolderMenuClicked(app, src, evt)
+            project = app.ProjectManager.getProject(app.ProjectManager.CurrentProject);
+            utility.system.openFolder(project.Path)
+        end
+
         function MenuCallback_CloseAll(app, ~, ~)
             state = get(app.Figure, 'HandleVisibility');
             set(app.Figure, 'HandleVisibility', 'off')

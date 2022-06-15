@@ -34,7 +34,7 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         
             obj@imviewer.ImviewerPlugin(varargin{:})
             
-            if not( obj.PartialConstruction )
+            if ~obj.PartialConstruction 
                 obj.openControlPanel()
             end
             
