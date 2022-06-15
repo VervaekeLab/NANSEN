@@ -79,6 +79,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             opts = obj.initializeOptions(opts, optionsVarname);
             
         end
+
+        function mergeSpatialComponents(obj)
+            %todo
+        end
         
         function mergeResults(obj)
         %mergeResults Merge results from each processing part
