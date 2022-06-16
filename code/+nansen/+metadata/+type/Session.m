@@ -330,11 +330,16 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             for j = 1:numel(obj)
                 
+                % Initialize a datalocation struct for session object
                 S = struct('Uuid', {}, 'RootUid', {}, 'Subfolders', {});
                 
+                % Loop through datalocations of the DataLocationModel
                 for i = 1:obj(j).DataLocationModel.NumDataLocations
                     dataLocation = obj(j).DataLocationModel.getItem(i);
                 
+                    % Check if there is a root folder in the
+                    % DataLocationModel matching the rootfolder for the
+                    % current datalocation of the session object
                     name = dataLocation.Name;
                     rootPaths = {dataLocation.RootPath.Value};
                     
@@ -347,8 +352,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                         end
                     end
                     
+                    % Add root uid and subfolders if a rootfolder was
+                    % matched from the DataLocationModel
                     S(i).Uuid = dataLocation.Uuid;
-                    if ~isempty(rootPaths)
+                    if ~isempty(rootPaths) && isMatched
                         S(i).RootUid = dataLocation.RootPath(rootIdx).Key;
                         S(i).Subfolders = strrep(obj(j).DataLocation.(name), root, '');
                     end
