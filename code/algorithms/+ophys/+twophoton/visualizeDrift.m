@@ -1,4 +1,4 @@
-function [f, results] = visualizeDrift(avgProjImageArray)
+function [f, results] = visualizeDrift(data)
 %visualizeDrift Visualize the drift occuring throughout a stack of images
 %
 %   INPUT:
@@ -15,71 +15,56 @@ function [f, results] = visualizeDrift(avgProjImageArray)
 %          with the first image of the stack.
 %       4) Mean fluorescence: The mean fluorescence level in each image of
 %          the stack.
+%
+%   See also ophys.twophoton.analysis.computeDriftSummary
 
-
-    numParts = size(avgProjImageArray, 3);
-
-    fprintf('Computing image frame statistics...'); fprintf(newline)
-    meanFluorescence = mean(mean(avgProjImageArray, 1), 2);
-    meanFluorescenceSmooth = smoothdata(meanFluorescence);
-
-    getPercentileValues = @(IM, p) prctile(prctile(IM, p, 1), p, 2);
     
-    %minFluorescence = getPercentileValues( avgProjectionImageArray, 5);
-    maxFluorescence = getPercentileValues( avgProjImageArray, 95);
-    maxFluorescenceSmooth = smoothdata(maxFluorescence);
-
-    % Correct for mean fluorescence changes across the recording
-    avgProjImageArray = avgProjImageArray ./ meanFluorescenceSmooth;
-    
-    imageCorrelation = zeros(1, numParts);
-    
-    fprintf('Computing image correlations...'); fprintf(newline)
-    for i = 1:numParts
-        imageCorrelation(i) = corr2(avgProjImageArray(:, :, 1), ...
-                                    avgProjImageArray(:, :, i));
+    if isnumeric(data)
+        results = ophys.twophoton.analysis.computeDriftSummary(data);
+    elseif isstruct(data)
+        results = data;
     end
-    
-    % Prepare images to plot
-    avgProjImageArray = avgProjImageArray ./ sqrt(avgProjImageArray);       % Not sure if this is useful
-    
-    % Todo: Change colors
-    cMapA = [1, 0.5, 0; 0, 0.5, 1];
-    imageMerged = stack.colorCodeImageStack(avgProjImageArray(:, :, [1,end]), cMapA);
-    
-    imageMerged = imageMerged - min(imageMerged(:));
-    imageMerged = uint8( imageMerged ./ max(imageMerged(:)) .* 255 );
 
-    imageDiff = avgProjImageArray(:, :, 1) - avgProjImageArray(:, :, end);
+    % todo: Check results...
+    numParts = results.NumParts;
 
-    
+
     % Specify configuration for figure
     MARGIN = 50;
     SPACING = 20;
 
+    figSize = [900,600];
+
+    yHeightU = 0.75;
+    yHeightL = 0.25;
+    yHeightPix = (figSize(2)-MARGIN*2-SPACING*4) .* [yHeightU, yHeightL];
+
+
     fprintf('Plotting data...'); fprintf(newline)
     
     % Create figure
-    f = figure('MenuBar', 'none', 'Position', [100,100,900,600]);
+    f = figure('MenuBar', 'none', 'Position', [100,100,figSize]);
     f.Name = sprintf('Drift visualization');
     
     % Setup axes layout and create axes
     figSize = getpixelposition(f);
-    [x, w] = uim.utility.layout.subdividePosition(MARGIN, figSize(3)-MARGIN*2, [0.5,0.5], SPACING);
-    [y, h] = uim.utility.layout.subdividePosition(MARGIN, figSize(4)-MARGIN*2, [0.25,0.75], SPACING);
+    [xU, wU] = uim.utility.layout.subdividePosition(MARGIN, figSize(3)-MARGIN*2, [0.5,0.5], SPACING);
+    [xL, wL] = uim.utility.layout.subdividePosition(MARGIN, figSize(3)-MARGIN*2, [1, yHeightPix(2)], SPACING*4);
+    [y, h] = uim.utility.layout.subdividePosition(MARGIN, figSize(4)-MARGIN*2, [0.25,0.75], SPACING*2);
     
     ax = matlab.graphics.axis.Axes.empty;
-    ax(1) = axes(f, 'Units', 'pixels', 'Position', [x(1), y(2), w(1), h(2)]);
-    ax(2) = axes(f, 'Units', 'pixels', 'Position', [x(2), y(2), w(2), h(2)]);
-    ax(3) = axes(f, 'Units', 'pixels', 'Position', [x(1), y(1), figSize(3)-MARGIN*2, h(1)]);
-
+    ax(1) = axes(f, 'Units', 'pixels', 'Position', [xU(1), y(2), wU(1), h(2)]);
+    ax(2) = axes(f, 'Units', 'pixels', 'Position', [xU(2), y(2), wU(2), h(2)]);
+    ax(3) = axes(f, 'Units', 'pixels', 'Position', [xL(1), y(1), wL(1), h(1)]);
+    ax(4) = axes(f, 'Units', 'pixels', 'Position', [xL(2), y(1), wL(2), h(1)]);
+    
     % Plot first and last image overlaid
-    image(ax(1), imageMerged )
+    image(ax(1), results.ImagesMerged )
     ax(1).Title.String = 'First and last part overlaid';
     ax(1).CLim = [0,255];
 
     % Plot difference between first and last image
-    imagesc(ax(2), imageDiff)
+    imagesc(ax(2), results.ImagesDiff)
     ax(2).Title.String = 'First and last part difference';
 
     % Set properties for axes showing images
@@ -95,32 +80,34 @@ function [f, results] = visualizeDrift(avgProjImageArray)
     % Plot the image correlations and the mean fluorescence throughout the
     % recording
     ax(3).Title.String = 'Image correlation w/ first part + mean fluorescence';
-    plot(ax(3), imageCorrelation)
+    plot(ax(3), results.ImageCorrelations(:, 1))
     ax(3).XLim = [1, numParts];
     ax(3).YLabel.String = 'Image Correlation';
 
     yyaxis(ax(3), 'right')
-    plot(ax(3), squeeze( meanFluorescence ./ max(maxFluorescence) ) )
-    hold(ax(3), "on")
-    plot(ax(3), squeeze( meanFluorescenceSmooth ) )
-    %plot(ax(3), squeeze( minFluorescence ) )
-    %plot(ax(3), squeeze( maxFluorescence ) )
 
-    ax(3).YLabel.String = 'Mean Fluorescence (% of max)';
+    normalizeMean = @(x) x ./ results.PeakFluorescence;
+
+    meanFNorm = normalizeMean( results.MeanFluoresence ) ;
+    meanFSmoothNorm = normalizeMean( results.MeanFluoresenceSmooth );
+
+    plot(ax(3), meanFNorm  )
+    hold(ax(3), "on")
+    plot(ax(3), meanFSmoothNorm )
+    
+    ax(3).Title.String = 'Stability throughout recording';
+    ax(3).YLabel.String = 'Mean Fluorescence (% of peak)';
     ax(3).XLabel.String = 'Recording part number';
 
-    if ~nargout
-        clear f
-    end
-        
-    if nargout >= 2
-        results = struct;
-        results.NumParts = numParts;
-        results.ImagesMerged = imageMerged;
-        results.ImagesDiff = imageDiff;
-        results.ImageCorrelations = imageCorrelation;
-        results.MeanFluoresence = meanFluorescence;
-        results.MeanFluoresenceSmooth = meanFluorescenceSmooth;
-    end
+    ax(3).Title.String = 'Pairwise Image Correlations';
+    imagesc(ax(4), results.ImageCorrelations)
+    colormap(ax(4), 'viridis')
+    %axis(ax(4), 'image')
+    %set([ax(4).XAxis], 'Visible', 'off')
+    %set([ax(4).YAxis], 'Visible', 'off')
+
+
+    if nargout < 1; clear f;       end
+    if nargout < 2; clear results; end
 
 end
