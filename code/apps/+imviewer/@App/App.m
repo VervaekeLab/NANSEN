@@ -178,6 +178,7 @@ end
 
 properties (Access = public, Dependent = true) % Superclass? (modular app)
     Visible
+    Valid
 end
 
 properties (Access = private, Dependent = true) % Aspect ratios
