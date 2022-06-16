@@ -6,6 +6,9 @@ function [f, results] = visualizeDrift(data)
 %           each of a set of subparts of an imageStack (downsampled binned
 %           average)
 %
+%    -or:
+%       driftSummary : struct outputted by ophys.twophoton.analysis.computeDriftSummary
+%
 %   This function displays two different images and two timeseries signals
 %       1) Image where first and last image of a stack is merged using two
 %          different colors.
