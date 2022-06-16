@@ -2350,7 +2350,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Update the status field
                 app.updateStatusField(i-1, numTasks, sessionMethod)
                 
-                newTask = app.BatchProcessor.createTaskItem(sessionObj{i}.sessionID, ...
+                if numel(sessionObj{i}) > 1
+                    taskName = 'Multisession';
+                else
+                    taskName = sessionObj{i}.sessionID;
+                end
+
+                newTask = app.BatchProcessor.createTaskItem(taskName, ...
                     sessionMethod, 0, sessionObj(i), 'Default', 'Command window task');
 
                 % cleanupObj makes sure temp logfile is deleted later
@@ -2366,7 +2372,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         sessionMethod(sessionObj{i}, opts);
                     end
 
-                    sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                    if numel(sessionObj{i}) == 1
+                        sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                    end
                     newTask.status = 'Completed';
                     diary off
                     newTask.Diary = fileread(logfile);
@@ -2377,7 +2385,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     newTask.Diary = fileread(logfile);
                     newTask.ErrorStack = ME;
                     app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                    app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
+                    app.throwSessionMethodFailedError(ME, taskName, ...
                         func2str(sessionMethod))
                 end
                 
@@ -3039,12 +3047,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex');
         end
         
-        function throwSessionMethodFailedError(app, ME, sessionObj, methodName)
+        function throwSessionMethodFailedError(app, ME, taskName, methodName)
             
             % Todo: Use a messagebox widget to show error message
             
             errorMessage = sprintf('Method ''%s'' failed for session ''%s'', with the following error:\n', ...
-                methodName, sessionObj.sessionID);
+                methodName, taskName);
             
             % Show error message in user dialog
             app.openErrorDialog(sprintf('%s\n%s', errorMessage, ME.message))
