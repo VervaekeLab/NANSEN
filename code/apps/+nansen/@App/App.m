@@ -1594,7 +1594,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     createFunctionForCustomTableVar(S)
                 case 'Get values from list'
                     dlgTitle = sprintf('Create list of choices for %s', S.VariableName);
-                    selectionList = multiLineListbox({}, 'Title', dlgTitle, ...
+                    selectionList = uics.multiLineListbox({}, 'Title', dlgTitle, ...
                         'ReferencePosition', app.Figure.Position);
                     S.SelectionList = selectionList;
                     createClassForCustomTableVar(S)
@@ -2374,7 +2374,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Update the status field
                 app.updateStatusField(i-1, numTasks, sessionMethod)
                 
-                newTask = app.BatchProcessor.createTaskItem(sessionObj{i}(1).sessionID, ...
+                if numel(sessionObj{i}) > 1
+                    taskName = 'Multisession';
+                else
+                    taskName = sessionObj{i}.sessionID;
+                end
+
+                newTask = app.BatchProcessor.createTaskItem(taskName, ...
                     sessionMethod, 0, sessionObj(i), 'Default', 'Command window task');
 
                 % cleanupObj makes sure temp logfile is deleted later
@@ -2409,6 +2415,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
                             func2str(sessionMethod))
                     end
+
                 end
                 clear cleanUpObj
             end
@@ -2745,11 +2752,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 case 'New Metatable...'
                     % Add session to new database
                     metaTable = app.MenuCallback_CreateMetaTable();
+                    if isempty(metaTable); return; end % User canceled
                 otherwise
                     
                     MT = nansen.metadata.MetaTableCatalog();
                     metaTable = MT.getMetaTable(src.Text);
-
             end
 
             metaTable.addEntries(sessionEntries)
@@ -2764,6 +2771,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function metatable = MenuCallback_CreateMetaTable(app, src, evt)
+            
+            metatable = [];
             
             S = struct();
             S.MetaTableName = '';
@@ -3066,12 +3075,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex');
         end
         
-        function throwSessionMethodFailedError(app, ME, sessionObj, methodName)
+        function throwSessionMethodFailedError(app, ME, taskName, methodName)
             
             % Todo: Use a messagebox widget to show error message
             
             errorMessage = sprintf('Method ''%s'' failed for session ''%s'', with the following error:\n', ...
-                methodName, sessionObj.sessionID);
+                methodName, taskName);
             
             % Show error message in user dialog
             app.openErrorDialog(sprintf('%s\n%s', errorMessage, ME.message))

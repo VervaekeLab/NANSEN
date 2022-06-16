@@ -440,6 +440,9 @@ classdef ProjectManagerUI < handle
                 name = obj.UIControls.ProjectTable.Data{rowIndex, 2};
             end
             
+            if iscell(name)
+                name = name{1};
+            end
         end
     end
 
@@ -610,13 +613,21 @@ classdef ProjectManagerUI < handle
         function onTableCellSelected(obj, ~, evt)
         %onTableCellSelected Change selected row
             
-            if isempty(evt.DisplayIndices)
-                obj.SelectedRow = []
+            if isprop(evt, 'Indices')
+                displayIndices = evt.Indices;
+            elseif isprop(evt, 'DisplayIndices')
+                displayIndices = evt.DisplayIndices;
+            end
+        
+            if isempty(displayIndices)
+                obj.SelectedRow = [];
                 return
             end
         
-            obj.SelectedRow = evt.DisplayIndices(1);
-            obj.setRowStyle('Selected Row', evt.DisplayIndices(1))
+            obj.SelectedRow = displayIndices(1);
+            try
+            obj.setRowStyle('Selected Row', displayIndices(1))
+            end
         end
         
         function onTableCellEdited(obj, src, evt)

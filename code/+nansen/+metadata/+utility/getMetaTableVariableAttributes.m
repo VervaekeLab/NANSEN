@@ -52,7 +52,7 @@ function S = getMetaTableVariableAttributes(tableClassName)
         
         % Note: Custom variables takes precedence!
         % Check the custom variable definition for attribute values
-        if contains(S(iVar).Name, varNamesCustom)
+        if any( strcmp(S(iVar).Name, varNamesCustom) )
             varFunction = getCustomTableVariableFcn(S(iVar).Name);
             fcnResult = varFunction();
             if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')

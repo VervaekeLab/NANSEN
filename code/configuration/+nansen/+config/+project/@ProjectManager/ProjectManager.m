@@ -94,9 +94,9 @@ classdef ProjectManager < handle
                 end
             else
                 projectPath = nansen.localpath('Current Project');
-                if ~contains(path, projectPath)
+                %if ~contains(path, projectPath)
                     addpath(genpath(projectPath), '-end') % todo. dont brute force this..
-                end
+                %end
             end
         end
         
