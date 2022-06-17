@@ -313,7 +313,11 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         
         function onPromptTextSet(obj)
             if obj.IsConstructed
-                obj.jSearchField.setPromptText(obj.PromptText);
+                try
+                    obj.jSearchField.setPromptText(obj.PromptText);
+                catch
+                    obj.jSearchField.setToolTipText(obj.PromptText);                    
+                end
             end
         end
     end
@@ -339,9 +343,12 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                 case 'ComboBox'
                     if ~isa(event, 'java.awt.event.KeyEvent')
                         newItem = get(obj.jComboBox, 'SelectedItem');
-                        obj.jSearchField.setText(newItem)
-                        
-                        %obj.Value = newItem;
+                        try
+                            obj.jSearchField.setText(newItem)
+                        catch
+                            obj.jSearchField.setName(newItem)
+                        end
+                            %obj.Value = newItem;
                         
                         if ~isempty(obj.Callback)
                             obj.SelectedItems = newItem;
@@ -353,14 +360,18 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                 % of selections and show the dropdown (popup)
                 case 'searchButton'
                     obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.Items_));
-                    obj.jComboBox.showPopup;                    
-                    set(obj.jSearchField, 'ScrollOffset', 1)
+                    obj.jComboBox.showPopup;  
+                    try
+                        set(obj.jSearchField, 'ScrollOffset', 1)
+                    catch
+                        %todo: what is the effect?
+                    end
                     obj.SelectedItems = obj.Items_;
                     if ~isempty(obj.Callback)
                         obj.Callback(obj, event)
                     end
 
-                    % If the cancle button is clicked, reset the dropdown list
+                % If the cancel button is clicked, reset the dropdown list
                 % of selections, but do not show the dropdown (popup)
                 case 'cancelButton'
                     obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.Items_));
