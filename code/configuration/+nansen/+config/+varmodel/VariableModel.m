@@ -60,7 +60,7 @@ classdef VariableModel < utility.data.StorableCatalog
             S = nansen.config.varmodel.VariableModel.getBlankItem;
 
             S.VariableName = varName;
-            S.DataLocation = 'Processed';
+            S.DataLocation = '';
             S.FileType = '.mat';
             S.FileAdapter = 'Default';
             
