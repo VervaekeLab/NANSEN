@@ -112,7 +112,6 @@ properties (Access = public, SetObservable) % Current frame selection
 end
 
 properties (Dependent)
-    Valid
     ChannelColors
 end
 
