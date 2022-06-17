@@ -90,9 +90,14 @@ function hDffPlugin = openDffExplorer(sessionObj)
     % Load signals
     roiSignalTable = sessionObj.loadData('RoiSignals_MeanF');
     
+    
     % Create roi group
-    roiGroup = roimanager.roiGroup(roiArray);
-
+    if isa(roiArray, 'roimanager.roiGroup')
+        roiGroup = roiArray;
+    else
+        roiGroup = roimanager.roiGroup(roiArray);
+    end
+    
     % Open roitable app
     hTableViewer = roimanager.RoiTable(roiGroup);
     
