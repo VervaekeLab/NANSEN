@@ -16,7 +16,7 @@ function moveTableVarsToProjectNameSpace()
 
             tableVarFolderSource = fullfile(tableFolder, '+tablevar');
             tableVarFolderTarget = fullfile(tableFolder, projectPackageName, '+tablevar');
-
+            
             if ~isfolder(tableVarFolderSource)
                 continue
             end

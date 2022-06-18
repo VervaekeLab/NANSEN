@@ -340,6 +340,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Manage Projects...');
             mitem.MenuSelectedFcn = @app.onManageProjectsMenuClicked;
             
+            mitem = uimenu(m, 'Text','Open Project Folder');
+            mitem.MenuSelectedFcn = @app.onOpenProjectFolderMenuClicked;
 
             % % % % % % Create CONFIGURATION menu items % % % % % % 
             
@@ -1592,7 +1594,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     createFunctionForCustomTableVar(S)
                 case 'Get values from list'
                     dlgTitle = sprintf('Create list of choices for %s', S.VariableName);
-                    selectionList = multiLineListbox({}, 'Title', dlgTitle, ...
+                    selectionList = uics.multiLineListbox({}, 'Title', dlgTitle, ...
                         'ReferencePosition', app.Figure.Position);
                     S.SelectionList = selectionList;
                     createClassForCustomTableVar(S)
@@ -2361,7 +2363,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if nargin < 6; restart = false; end
         
             % Get task name
-            taskName = nansen.session.SessionMethod.getMethodName(sessionMethod);
+            methodName = nansen.session.SessionMethod.getMethodName(sessionMethod);
                         
             % Todo: Check if there is a maximum number of tasks for this
             % method.
@@ -2372,7 +2374,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Update the status field
                 app.updateStatusField(i-1, numTasks, sessionMethod)
                 
-                newTask = app.BatchProcessor.createTaskItem(sessionObj{i}(1).sessionID, ...
+                if numel(sessionObj{i}) > 1
+                    taskName = 'Multisession';
+                else
+                    taskName = sessionObj{i}.sessionID;
+                end
+
+                newTask = app.BatchProcessor.createTaskItem(taskName, ...
                     sessionMethod, 0, sessionObj(i), 'Default', 'Command window task');
 
                 % cleanupObj makes sure temp logfile is deleted later
@@ -2398,17 +2406,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         diary off
                         newTask.Diary = fileread(logfile);
                         app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
+
+                 
                     catch ME
                         newTask.status = 'Failed';
                         diary off
                         newTask.Diary = fileread(logfile);
                         newTask.ErrorStack = ME;
                         app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                        app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
+                        app.throwSessionMethodFailedError(ME, taskName, ...
                             func2str(sessionMethod))
                     end
+                
+                    clear cleanUpObj
                 end
-                clear cleanUpObj
             end
             
         end
@@ -2434,6 +2445,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 try
                     sMethod = sessionMethod();
 
+                    if numel(sessionObj{i}) > 1
+                        taskName = 'Multisession';
+                    else
+                        taskName = sessionObj{i}.sessionID;
+                    end
+                    
+                    
                     % Open the options / method in preview mode
                     if isa(sMethod, 'nansen.session.SessionMethod')
                         sMethod = sessionMethod(sessionObj{i});
@@ -2469,7 +2487,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
 
                 catch ME
-                    app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
+                    app.throwSessionMethodFailedError(ME, taskName, ...
                         func2str(sessionMethod))
                 end
             end
@@ -2687,6 +2705,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
+        function onOpenProjectFolderMenuClicked(app, src, evt)
+            project = app.ProjectManager.getProject(app.ProjectManager.CurrentProject);
+            utility.system.openFolder(project.Path)
+        end
+
         function MenuCallback_CloseAll(app, ~, ~)
             state = get(app.Figure, 'HandleVisibility');
             set(app.Figure, 'HandleVisibility', 'off')
@@ -2738,11 +2761,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 case 'New Metatable...'
                     % Add session to new database
                     metaTable = app.MenuCallback_CreateMetaTable();
+                    if isempty(metaTable); return; end % User canceled
                 otherwise
                     
                     MT = nansen.metadata.MetaTableCatalog();
                     metaTable = MT.getMetaTable(src.Text);
-
             end
 
             metaTable.addEntries(sessionEntries)
@@ -2757,6 +2780,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function metatable = MenuCallback_CreateMetaTable(app, src, evt)
+            
+            metatable = [];
             
             S = struct();
             S.MetaTableName = '';
@@ -3059,12 +3084,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex');
         end
         
-        function throwSessionMethodFailedError(app, ME, sessionObj, methodName)
+        function throwSessionMethodFailedError(app, ME, taskName, methodName)
             
             % Todo: Use a messagebox widget to show error message
             
             errorMessage = sprintf('Method ''%s'' failed for session ''%s'', with the following error:\n', ...
-                methodName, sessionObj.sessionID);
+                methodName, taskName);
             
             % Show error message in user dialog
             app.openErrorDialog(sprintf('%s\n%s', errorMessage, ME.message))

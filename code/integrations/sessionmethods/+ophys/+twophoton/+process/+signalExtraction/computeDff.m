@@ -9,6 +9,11 @@ classdef computeDff < nansen.session.SessionMethod
         IsQueueable = true;
         OptionsManager = nansen.OptionsManager(mfilename('class')) % todo...
     end
+
+    properties (Constant)
+        DATA_SUBFOLDER = 'roisignals' % defined in nansen.DataMethod
+        VARIABLE_PREFIX	= ''          % defined in nansen.DataMethod
+    end
     
     methods
         
@@ -66,6 +71,10 @@ classdef computeDff < nansen.session.SessionMethod
             h = openDffExplorer(obj.SessionObjects);
             wasSuccess = obj.finishPreview(h);
         end
+
+        function printTask(obj, varargin)
+            fprintf(varargin{:})
+        end
         
     end
 
@@ -81,9 +90,14 @@ function hDffPlugin = openDffExplorer(sessionObj)
     % Load signals
     roiSignalTable = sessionObj.loadData('RoiSignals_MeanF');
     
+    
     % Create roi group
-    roiGroup = roimanager.roiGroup(roiArray);
-
+    if isa(roiArray, 'roimanager.roiGroup')
+        roiGroup = roiArray;
+    else
+        roiGroup = roimanager.roiGroup(roiArray);
+    end
+    
     % Open roitable app
     hTableViewer = roimanager.RoiTable(roiGroup);
     

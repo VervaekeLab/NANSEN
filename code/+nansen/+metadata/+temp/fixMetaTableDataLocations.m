@@ -12,34 +12,42 @@ function metaTable = fixMetaTableDataLocations(metaTable, dataLocationModel)
     newDataLocation = cell(numel(entries), 1);
     
     for j = 1:numel(entries)
+        
+        if isfield(entries(j).DataLocation, 'Uuid')
+            S = entries(j).DataLocation;
+            
+        else
+        
+            S = struct('Uuid', {}, 'RootUid', {}, 'Subfolders', {});
 
-        S = struct('Uuid', {}, 'RootUid', {}, 'Subfolders', {});
+            for i = 1:dataLocationModel.NumDataLocations
+                dataLocation = dataLocationModel.getItem(i);
 
-        for i = 1:dataLocationModel.NumDataLocations
-            dataLocation = dataLocationModel.getItem(i);
+                name = dataLocation.Name;
+                rootPaths = {dataLocation.RootPath.Value};
 
-            name = dataLocation.Name;
-            rootPaths = {dataLocation.RootPath.Value};
-
-            for k = 1:numel(rootPaths)
-                tf = contains( entries(j).DataLocation.(name), rootPaths{k} );
-                if ~isempty(tf)
-                    root = rootPaths{k};
-                    rootIdx = k;
-                    break
+                for k = 1:numel(rootPaths)
+                    tf = contains( entries(j).DataLocation.(name), rootPaths{k} );
+                    if ~isempty(tf)
+                        root = rootPaths{k};
+                        rootIdx = k;
+                        break
+                    end
                 end
-            end
 
-            S(i).Uuid = dataLocation.Uuid;
-            if ~isempty(rootPaths)
-                S(i).RootUid = dataLocation.RootPath(rootIdx).Key;
-                S(i).Subfolders = strrep(entries(j).DataLocation.(name), root, '');
+                S(i).Uuid = dataLocation.Uuid;
+                if ~isempty(rootPaths)
+                    S(i).RootUid = dataLocation.RootPath(rootIdx).Key;
+                    S(i).Subfolders = strrep(entries(j).DataLocation.(name), root, '');
+                end
+                
             end
             
-            newDataLocation{j} = S;
+            S = dataLocationModel.expandDataLocationInfo(S);
 
-        end 
+        end
         
+        newDataLocation{j} = S;
 
     end
 

@@ -407,20 +407,20 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 % Todo: Make sure default datalocation is still allowed type: 
             end
             
+            oldValue = obj.Data(idx).(field);
             obj.Data(idx).(field) = value;
             
             if strcmp(field, 'Name') % Special case if name is change
                 obj.onDataLocationRenamed(dataLocationName, value)
                 dataLocationName = value;
             end
-            
 
-            
             % Trigger DataLocationModified event 
             evtData = uiw.event.EventData(...
                 'DataLocationName', dataLocationName, ...
                 'DataField', field, ...
-                'NewValue', value);
+                'NewValue', value, ...
+                'OldValue', oldValue);
             
             obj.notify('DataLocationModified', evtData)
             

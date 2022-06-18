@@ -536,12 +536,13 @@ classdef RoiSignalArray < handle
             %       subset of frames or fram the whole stack.
             
             if nargin < 4; options = struct(); end
+            if nargin < 3; channelNum = 1; end
             
             options = obj.SignalExtractionOptions;
             
             import nansen.twophoton.roisignals.extractF
             
-            imageStack = obj.ImageStack(channelNum);
+            imageStack = obj.ImageStack;
             roiArray = obj.RoiGroup(channelNum).roiArray;
             
             % Todo: What to do with virtual stacks????

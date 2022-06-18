@@ -4,6 +4,9 @@ function stats = dffprops(dff, varargin)
 %   stats = dffprops(dff) Returns struct array with different (statistical)
 %   measurements from a dff roi signal array.
 %
+%   stats = dffprops(dff, name1, ...) Returns struct array with specified 
+%   statistical measurements (Only specified fields are returned). 
+%
 %   INPUT:
 %       dff : matrix of dff (numSamples x numRois)
 %   
