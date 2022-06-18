@@ -357,10 +357,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             i = 1;
             
-            % Re-add the pixel baseline that was subtracted in the
-            % preprocessing step.
-            Y = obj.addPixelBaseline(Y);
-
             % Correct drift.
             obj.Options.General.correctDrift = true;
             if iPart ~= 1 && obj.Options.General.correctDrift
@@ -384,6 +380,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Save stats based on motion correction shifts
             obj.updateCorrectionStats(iIndices)
 
+            % Re-add the pixel baseline that was subtracted in the
+            % preprocessing step.
+            Y = obj.addPixelBaseline(Y);
+            
             % Check if brightness of output should be adjusted...
             dataTypeIn = obj.SourceStack.DataType;
             dataTypeOut = obj.Options.Export.OutputDataType;
@@ -488,8 +488,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 
             elseif numel(iC) == 1 % Single channel
                 currentStats = obj.ImageStats{iC,iZ};
-                upperValue = max( [currentStats.maximumValue] );
-                % upperValue = max( [currentStats.prctileU2] );
+                %upperValue = max( [currentStats.maximumValue] );
+                upperValue = max( [currentStats.prctileU2] );
             else
                 error('Unexpected error occurred. Please report')
             end  
