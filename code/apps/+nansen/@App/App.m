@@ -2339,7 +2339,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if nargin < 6; restart = false; end
         
             % Get task name
-            taskName = nansen.session.SessionMethod.getMethodName(sessionMethod);
+            methodName = nansen.session.SessionMethod.getMethodName(sessionMethod);
                         
             % Todo: Check if there is a maximum number of tasks for this
             % method.
@@ -2365,31 +2365,38 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 newTask.timeStarted = datetime(now,'ConvertFrom','datenum');
                 
                 % Run the task
-                try
-                    if restart
-                        app.runTaskWithReset(sessionMethod, sessionObj{i}, opts)
-                    else
-                        sessionMethod(sessionObj{i}, opts);
-                    end
 
-                    if numel(sessionObj{i}) == 1
-                        sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                if app.settings.Session.SessionTaskDebug
+                    sessionMethod(sessionObj{i}, opts);
+                else
+
+                    try
+                        if restart
+                            app.runTaskWithReset(sessionMethod, sessionObj{i}, opts)
+                        else
+                            sessionMethod(sessionObj{i}, opts);
+                        end
+                        if numel(sessionObj{i}) == 1 % Methods which accept multiple session should not be included in pipelines...
+                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
+                        end
+                        newTask.status = 'Completed';
+                        diary off
+                        newTask.Diary = fileread(logfile);
+                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
+
+                 
+                    catch ME
+                        newTask.status = 'Failed';
+                        diary off
+                        newTask.Diary = fileread(logfile);
+                        newTask.ErrorStack = ME;
+                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
+                        app.throwSessionMethodFailedError(ME, taskName, ...
+                            func2str(sessionMethod))
                     end
-                    newTask.status = 'Completed';
-                    diary off
-                    newTask.Diary = fileread(logfile);
-                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                catch ME
-                    newTask.status = 'Failed';
-                    diary off
-                    newTask.Diary = fileread(logfile);
-                    newTask.ErrorStack = ME;
-                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                    app.throwSessionMethodFailedError(ME, taskName, ...
-                        func2str(sessionMethod))
-                end
                 
-                clear cleanUpObj
+                    clear cleanUpObj
+                end
             end
             
         end
@@ -2415,6 +2422,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 try
                     sMethod = sessionMethod();
 
+                    if numel(sessionObj{i}) > 1
+                        taskName = 'Multisession';
+                    else
+                        taskName = sessionObj{i}.sessionID;
+                    end
+                    
+                    
                     % Open the options / method in preview mode
                     if isa(sMethod, 'nansen.session.SessionMethod')
                         sMethod = sessionMethod(sessionObj{i});
@@ -2450,7 +2464,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
 
                 catch ME
-                    app.throwSessionMethodFailedError(ME, sessionObj{i}, ...
+                    app.throwSessionMethodFailedError(ME, taskName, ...
                         func2str(sessionMethod))
                 end
             end
