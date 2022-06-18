@@ -178,11 +178,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             end
         end
         function value = get.Value(obj)                        
-            try
-                value = char( obj.jSearchField.getText() );
-            catch
-                value = char( obj.jSearchField.getName() );
-            end
+            value = char( obj.jSearchField.getText() );
         end
         
         
@@ -239,9 +235,21 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             
             % Create a SearchTextField control on top of the combo-box
             searchField = com.mathworks.widgets.SearchTextField(obj.PromptText);
-            obj.jSearchField = searchField.getComponent;
-            [~, hContainer2] = javacomponent(obj.jSearchField, [], obj.Parent);
+            jComponent = searchField.getComponent;
             
+            % This widget is different on windows and mac
+            if isa(jComponent, 'com.mathworks.mwswing.MJPanel') % Windows
+                obj.jSearchField = jComponent.getComponent(0);
+                hjSearchButton = handle(jComponent.getComponent(1), 'CallbackProperties');
+                [~, hContainer2] = javacomponent(jComponent, [], obj.Parent);
+                
+            else % Mac
+                obj.jSearchField = jComponent;
+                hjSearchButton = handle(obj.jSearchField.getComponent(0), 'CallbackProperties');
+                hjCancelButton = handle(obj.jSearchField.getComponent(1), 'CallbackProperties');
+                [~, hContainer2] = javacomponent(obj.jSearchField, [], obj.Parent);
+            end
+                        
             set(hContainer2, 'Units', obj.Units_, 'Position', obj.Position_ + [0,30,0,0]);
             obj.hContainerSearchField = hContainer2;
 
@@ -252,14 +260,13 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
 %             jInputField.getComponent(0).setMaximumSize(jSize);
 %             jInputField.getComponent(0).setPreferredSize(jSize);
 %             
-
-            % Set callback for mousepress on cancel button
-            hjCancelButton = handle(obj.jSearchField.getComponent(1), 'CallbackProperties');
-            set(hjCancelButton, 'MousePressedCallback', {@obj.updateSearch, 'cancelButton'});
-%             set(hjCancelButton, 'KeyPressedCallback', {@obj.updateSearch, 'cancelButton'});
+            if exist('hjCancelButton', 'var')
+                % Set callback for mousepress on cancel button
+                set(hjCancelButton, 'MousePressedCallback', {@obj.updateSearch, 'cancelButton'});
+%               set(hjCancelButton, 'KeyPressedCallback', {@obj.updateSearch, 'cancelButton'});
+            end
             
             % Set callback for mousepress on search button
-            hjSearchButton = handle(obj.jSearchField.getComponent(0), 'CallbackProperties');
             set(hjSearchButton, 'MousePressedCallback', {@obj.updateSearch, 'searchButton'});
 %             set(hjSearchButton, 'KeyPressedCallback', {@obj.updateSearch, 'searchButton'});
 
@@ -273,9 +280,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             else
                 set(obj.jSearchField, 'FocusLostCallback', @(h,e) obj.resetScroll);  % hide the popup when another component is selected
             end
-            
-
-            
         end
         
         function stripUiControl(obj, jControl)
@@ -323,11 +327,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         
         function onPromptTextSet(obj)
             if obj.IsConstructed
-                try
-                    obj.jSearchField.setPromptText(obj.PromptText);
-                catch
-                    obj.jSearchField.setToolTipText(obj.PromptText);                    
-                end
+                obj.jSearchField.setPromptText(obj.PromptText);
             end
         end
     end
@@ -335,7 +335,9 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
     methods (Access = private)
         
         function resetScroll(obj)
-            set(obj.jSearchField, 'ScrollOffset', 1)
+            if isvalid(obj)
+                set(obj.jSearchField, 'ScrollOffset', 1)
+            end
         end
         
         function updateSearch(obj, ~, event, sourceName)
@@ -366,11 +368,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                 case 'searchButton'
                     obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.Items_));
                     obj.jComboBox.showPopup;  
-                    try
-                        set(obj.jSearchField, 'ScrollOffset', 1)
-                    catch
-                        %todo: what is the effect?
-                    end
+                    set(obj.jSearchField, 'ScrollOffset', 1)
                     obj.SelectedItems = obj.Items_;
                     if ~isempty(obj.Callback)
                         obj.Callback(obj, event)
