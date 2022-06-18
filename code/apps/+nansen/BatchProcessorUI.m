@@ -649,7 +649,7 @@ classdef BatchProcessorUI < handle
         
         function onKeyPressedInTable(obj, src, evt)
             
-            isControl = @(m) strcmp(m, 'command') || strcmp(m, 'control');
+            isControl = @(m) all(strcmp(m, 'command')) || all(strcmp(m, 'control'));
             
             switch evt.Key
                 case 'e'
