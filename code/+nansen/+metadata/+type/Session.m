@@ -643,7 +643,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     
             dataFilePathModel = nansen.config.varmodel.VariableModel;
             
-            if ~isa(variableName, 'cell'); 
+            if ~isa(variableName, 'cell')
                 variableName = {variableName}; 
             end
             

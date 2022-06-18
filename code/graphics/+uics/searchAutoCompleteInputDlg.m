@@ -171,19 +171,29 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         end
             
         function set.Value(obj, newValue)
-        	obj.jSearchField.setText(newValue);
+            try
+                obj.jSearchField.setText(newValue)
+            catch
+                obj.jSearchField.setName(newValue)
+            end
         end
-        function value = get.Value(obj)
-            value = char( obj.jSearchField.getText() );
+        function value = get.Value(obj)                        
+            try
+                value = char( obj.jSearchField.getText() );
+            catch
+                value = char( obj.jSearchField.getName() );
+            end
         end
         
         
         function set.String(obj, newValue)
-        	obj.jSearchField.setText(newValue);
+            obj.Value = newValue;
+        	%obj.jSearchField.setText(newValue);
             % Todo: add to items.......
         end
         function value = get.String(obj)
-            value = char( obj.jSearchField.getText() );
+            value = obj.Value;
+            %value = char( obj.jSearchField.getText() );
         end
         
         function set.PromptText(obj, newValue)
@@ -342,16 +352,11 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                 % and put it on the searchfield.
                 case 'ComboBox'
                     if ~isa(event, 'java.awt.event.KeyEvent')
-                        newItem = get(obj.jComboBox, 'SelectedItem');
-                        try
-                            obj.jSearchField.setText(newItem)
-                        catch
-                            obj.jSearchField.setName(newItem)
-                        end
-                            %obj.Value = newItem;
+                        newValue = get(obj.jComboBox, 'SelectedItem');
+                        obj.Value = newValue;
                         
                         if ~isempty(obj.Callback)
-                            obj.SelectedItems = newItem;
+                            obj.SelectedItems = newValue;
                             obj.Callback(obj, event)
                         end
                     end
@@ -394,8 +399,8 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
 
                 switch keyCode
                     case 10 % enter/return
-                        newItem = get(obj.jComboBox, 'SelectedItem');
-                        obj.jSearchField.setText(newItem)
+                        newValue = get(obj.jComboBox, 'SelectedItem');
+                        obj.Value = newValue;
                         obj.jComboBox.hidePopup;
                         return
                     case 38 % uparrow
