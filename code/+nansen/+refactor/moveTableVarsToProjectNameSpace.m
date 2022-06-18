@@ -17,6 +17,10 @@ function moveTableVarsToProjectNameSpace()
             tableVarFolderSource = fullfile(tableFolder, '+tablevar');
             tableVarFolderTarget = fullfile(tableFolder, projectPackageName, '+tablevar');
 
+            if ~isfolder(tableVarFolderSource)
+                continue
+            end
+            
             if isfolder(tableVarFolderTarget)
                 fprintf('Table variables are already moved for project "%s"\n', projectName)
                 continue
