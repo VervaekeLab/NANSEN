@@ -34,8 +34,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties
-        NotesViewer     % Standalone app, that we need to keep track of.
-        DLModelApp      % Standalone app, that we need to keep track of.
+        NotesViewer % Auxiliary app, that we need to keep track of.
+        DLModelApp % Auxiliary app, that we need to keep track of.
+        VariableModelApp % Auxiliary app, that we need to keep track of.
     end
     
     properties (Constant, Hidden = true) % Inherited from UserSettings
@@ -62,6 +63,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         SessionContextMenu
         
         DataLocationModel
+        VariableModel
         
         CurrentProjectName  % Current project which is open in the app
         ProjectManager
@@ -107,7 +109,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             nansen.validate()
             
+            % Todo: This is project dependent, should be set on
+            % setProject... Dependent???
             app.DataLocationModel = nansen.DataLocationModel;
+            app.VariableModel = nansen.VariableModel;
             
             app.loadMetaTable()
             app.initializeBatchProcessor()
@@ -348,10 +353,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             uimenu( mitem, 'Text', 'Datalocations...', ...
                 'MenuSelectedFcn', @(s,e) app.openDataLocationEditor )
-
             
-            uimenu( mitem, 'Text', 'Variables...', 'MenuSelectedFcn', @(s,e)nansen.config.varmodel.VariableModelApp);
-            %mitem.MenuSelectedFcn = [];
+            uimenu( mitem, 'Text', 'Variables...', ...
+                'MenuSelectedFcn', @(s,e) app.openVariableModelEditor );
             
             uimenu( mitem, 'Text', 'Watch Folders...', 'MenuSelectedFcn', ...
                 @(s,e)nansen.config.watchfolder.WatchFolderManagerApp, ...
@@ -1075,8 +1079,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UiMetaTableViewer.refreshTable(table.empty, true)
             
             % Need to reassign data location model before loading metatable
-            app.DataLocationModel = nansen.DataLocationModel;
-                      
+            % Todo: Explicitly get models for this project.
+            app.DataLocationModel = nansen.DataLocationModel();
+            app.VariableModel = nansen.VariableModel();
+
             app.updateRelatedInventoryLists()
             app.loadMetaTable()
 
@@ -1101,6 +1107,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Close DL Model Editor app if it is open:
             if ~isempty( app.DLModelApp )
                 delete(app.DLModelApp); app.DLModelApp = [];
+            end
+            if ~isempty( app.VariableModelApp )
+                delete(app.VariableModelApp); app.VariableModelApp = [];
             end
 
             app.TableIsUpdating = false;
@@ -1155,7 +1164,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Submit the current datalocation model on create of
                 % objects that have datalocation information.
                 if any(strcmp(entries.Properties.VariableNames, 'DataLocation'))
-                    nvPairs = {'DataLocationModel', app.DataLocationModel};
+                    nvPairs = {'DataLocationModel', app.DataLocationModel, ...
+                                'VariableModel', app.VariableModel};
                 else
                     nvPairs = {};
                 end
@@ -1837,6 +1847,28 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
             else
                 app.DLModelApp.Visible = 'on';
+            end
+        end
+
+        function openVariableModelEditor(app)
+        %openVariableModelEditor Open editor app for variable model.
+                    
+            args = {'VariableModel', app.VariableModel, ...
+                'DataLocationModel', app.DataLocationModel};
+    
+            % Open app by creating new instance or showing previous
+            if isempty(app.VariableModelApp) || ~app.VariableModelApp.Valid
+                hApp = nansen.config.varmodel.VariableModelApp(args{:}); 
+                hApp.transferOwnership(app)
+                app.VariableModelApp = hApp;
+                
+                % Not implemented. I don't see any situation where it is
+                % necessary, but maybe later?
+% %                 addlistener(hApp, 'VariableModelChanged', ...
+% %                     @app.onVariableModelChanged);
+                
+            else
+                app.VariableModelApp.Visible = 'on';
             end
         end
 
