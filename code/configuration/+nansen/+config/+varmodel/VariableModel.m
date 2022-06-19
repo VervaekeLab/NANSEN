@@ -1,4 +1,4 @@
-classdef VariableModel < utility.data.StorableCatalog
+classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.CatalogWithBackup
     
     % Todo: 
     %   [x] Add IsEditable? I.e is it possible to change the filename
@@ -63,7 +63,6 @@ classdef VariableModel < utility.data.StorableCatalog
             S.DataLocation = '';
             S.FileType = '.mat';
             S.FileAdapter = 'Default';
-            
         end
         
     end 
@@ -100,7 +99,6 @@ classdef VariableModel < utility.data.StorableCatalog
             el = listener(dataLocationModel, 'DataLocationModified', ...
                 @obj.onDataLocationModelModified);
             obj.DataLocationNameChangedListener = el;
-            
         end
         
         function [S, isExistingEntry] = getVariableStructure(obj, varName)
@@ -133,12 +131,6 @@ classdef VariableModel < utility.data.StorableCatalog
             if contains(S.Subfolder, '\') && ~strcmp('\', filesep)
                 S.Subfolder = strrep(S.Subfolder, '\', filesep);
             end
-            
-        end
-        
-        function setGlobal(obj)
-            global dataFilePathModel
-            dataFilePathModel = obj;
         end
         
         function load(obj)
