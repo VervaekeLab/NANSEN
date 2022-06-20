@@ -446,7 +446,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             % Todo: Implement row to roi when table filtering is
             % implemented.
-            
+
             currentRowSelection = obj.UITable.getSelectedEntries();
             if iscolumn(currentRowSelection)
                 currentRowSelection = transpose(currentRowSelection);
@@ -471,12 +471,15 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             if isempty(obj.UITable); return; end
             
+            if isempty( setdiff(obj.VisibleRois, evtData.NewVisibleInd) )
+                return
+            end
+            
             obj.VisibleRois = evtData.NewVisibleInd;
             if ~strcmp(evtData.Type, 'TableFilterUpdate')
                 obj.UITable.updateVisibleRows(obj.VisibleRois)
                 obj.UITable.resetColumnFilters()
             end
-            
         end
 
         function onRoiClassificationChanged(obj, evtData)
