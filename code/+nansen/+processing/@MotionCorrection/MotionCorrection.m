@@ -435,7 +435,15 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 
             % Get file reference for corrected stack
             DATANAME = 'TwoPhotonSeries_Corrected';
-            filePath = obj.getDataFilePath( DATANAME );
+
+            switch obj.Options.Export.OutputFormat
+                case 'Binary'
+                    fileType = '.raw';
+                case 'Tiff'
+                    fileType = '.tif';
+            end
+
+            filePath = obj.getDataFilePath(DATANAME, 'FileType', fileType);
             
             % Call method of ImageStackProcessor
             openTargetStack@nansen.stack.ImageStackProcessor(obj, filePath, stackSize, dataType)
