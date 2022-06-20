@@ -42,6 +42,10 @@ classdef MotionCorrectionPreview < handle
             end
         end
         
+        function folderPath = getExportDirectory(obj)
+            folderPath = fileparts(obj.ImviewerObj.ImageStack.FileName);
+        end
+
         function [saveFolder, datePrefix] = prepareSaveFolder(obj)
         %prepareSaveFolder Prepare save folder for saving preview results.
         
@@ -57,7 +61,7 @@ classdef MotionCorrectionPreview < handle
                 rootDir = obj.DataIoModel.getTargetFolder();
                 saveDir = fullfile(rootDir, 'image_registration');
             else
-                rootDir = obj.settings.Export.SaveDirectory;
+                rootDir = fileparts( obj.settings.Export.SaveDirectory );
                 saveDir = rootDir;
             end
 

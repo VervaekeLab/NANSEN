@@ -115,8 +115,9 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         end
         
         function delete(obj)
-            
-            obj.PrimaryApp.removePlugin(obj.Name)
+            if ~isempty(obj.PrimaryApp)
+                obj.PrimaryApp.removePlugin(obj.Name)
+            end
 
             % Delete menu items
             if ~isempty(obj.MenuItem)
@@ -272,6 +273,8 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
 
             if ~obj.wasAborted && obj.RunMethodOnFinish
                 obj.run();
+            else
+                delete(obj)
             end
         
         end

@@ -60,6 +60,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         end
         
         function delete(obj)
+
             if ~isempty(obj.hGridLines)
                 delete(obj.hGridLines)
                 delete(obj.hGridOverlaps)
@@ -204,12 +205,12 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         % callback function (ValueChangedFcn) on the sEditor object
         
             sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
-            sEditor.ValueChangedFcn = @obj.onValueChanged;
+            %sEditor.ValueChangedFcn = @obj.onValueChanged;
             
             % Create default folderpath for saving results
             folderPath = fileparts( obj.ImviewerObj.ImageStack.FileName );
             folderPath = fullfile(folderPath, 'motion_correction_normcorre');
-
+            
             % Need a better solution for this!
             idx = strcmp(sEditor.Name, 'Export');
             sEditor.dataOrig{idx}.SaveDirectory = folderPath;
@@ -239,9 +240,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
                 case {'numRows', 'numCols', 'patchOverlap'}
                     obj.settings.Configuration.(name) = value;
                     obj.plotGrid()
-
-                case exportFields
-                    obj.settings.Export.(name) = value;
                     
                 case {'firstFrame', 'numFrames', 'saveResults', 'showResults'}
                     obj.settings.Preview.(name) = value;
