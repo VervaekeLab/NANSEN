@@ -287,17 +287,17 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         % Todo: Combine these into one method
         
         function onSettingsChanged(obj, name, value)
-           
-            exportFields = fieldnames(obj.settings.Export);
-            previewFields = fieldnames(obj.settings.Preview);
             
+            % Call superclass method to deal with settings that are
+            % general motion correction settings.
+            onSettingsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+
             switch name
                 
                 case 'symmetricKernel'
                     obj.settings.General.symmetricKernel = value;
                     
                 case {'sigmaX', 'sigmaY'}
-
                     if obj.settings.General.symmetricKernel
                         obj.settings.General.sigmaX = value;
                         obj.settings.General.sigmaY = value;
@@ -315,16 +315,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
                     obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.settings.Model.sigma);
                     obj.ImviewerObj.updateImage();        
                     obj.ImviewerObj.updateImageDisplay();
-                    
-                case 'run'
-                    obj.runTestAlign()
-                    
-                case previewFields
-                    obj.settings.Preview.(name) = value;
-                    
-                case exportFields
-                    obj.settings.Export.(name) = value;
-                    
+
             end
         end
         

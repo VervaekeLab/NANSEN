@@ -6,9 +6,32 @@ classdef MotionCorrectionPreview < handle
         settings
         ImviewerObj
     end
+
+    properties (Access = private)
+        DefaultOptions = nansen.processing.MotionCorrection.getDefaultOptions();
+    end
     
     methods (Access = protected)
-       
+        
+        function onSettingsChanged(obj, name, value)
+        %onSettingsChanged Update value in settings if value changes.    
+            
+            defaultFields = fieldnames(obj.DefaultOptions);
+            for i = 1:numel(defaultFields)
+                subFields = fieldnames( obj.DefaultOptions.(defaultFields{i}) );
+                
+                if any(strcmp(subFields, name))
+                    obj.settings.(defaultFields{i}).(name) = value;
+                end
+            end
+           
+            % Deal with specific fields
+            switch name
+                case 'run'
+                    obj.runTestAlign()
+            end
+        end
+
         function assertPreviewSettingsValid(obj)
             
             % Check if saveResult or showResults is selected
@@ -76,7 +99,12 @@ classdef MotionCorrectionPreview < handle
                 
             imArray = obj.ImviewerObj.ImageStack.getFrameSet(firstFrame:lastFrame);
             imArray = squeeze(imArray);
-            %imArray = imArray(9:end, :, :);
+            
+            if obj.settings.Preprocessing.NumFlybackLines ~= 0
+                IND = repmat({':'}, 1, ndims(imArray));
+                IND{1} = obj.settings.Preprocessing.NumFlybackLines : size(imArray, 1);
+                imArray = imArray(IND{:});
+            end
             
         end
 

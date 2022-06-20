@@ -200,33 +200,33 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         
         function onSettingsChanged(obj, name, value)
             
+            % Call superclass method to deal with settings that are
+            % general motion correction settings.
+            onSettingsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+
             patchesFields = fieldnames(obj.settings.Configuration);
             templateFields = fieldnames(obj.settings.Template);
-            exportFields = fieldnames(obj.settings.Export);
             
             switch name
-                case {'numRows', 'numCols', 'patchOverlap'}
-                    obj.settings.Configuration.(name) = value;
-                    obj.plotGrid()
-                    
+
                 case patchesFields
                     obj.settings.Configuration.(name) = value;
                     
                 case templateFields
                     obj.settings.Template.(name) = value;
-                    
+
+                case {'numRows', 'numCols', 'patchOverlap'}
+                    obj.settings.Configuration.(name) = value;
+                    obj.plotGrid()
+
                 case exportFields
                     obj.settings.Export.(name) = value;
                     
                 case {'firstFrame', 'numFrames', 'saveResults', 'showResults'}
                     obj.settings.Preview.(name) = value;
                     
-                case 'run'
-                    obj.runTestAlign()
-                    
                 case 'runAlign'
                     obj.runAlign()
-                    
             end
         end
         
