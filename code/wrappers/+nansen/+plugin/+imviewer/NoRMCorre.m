@@ -184,16 +184,37 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         function runAlign(obj)
          %runAlign Run correction on full image stack using a dummy session
    
-            pathStr = obj.ImviewerObj.ImageStack.FileName;
-            
-            hSession = nansen.metadata.schema.dummy.TwoPhotonSession( pathStr );
+            folderPath = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            %folderPath = fullfile(folderPath, 'motion_corrected');
+            if ~isfolder(folderPath); mkdir(folderPath); end
 
-            %%hSession = nansen.metadata.type.Session( pathStr );
+            dataSet = nansen.dataio.dataset.SingleFolderDataSet(folderPath);
             
-            ophys.twophoton.process.motionCorrection.normcorre(hSession, obj.settings);
+            dataSet.addVariable('TwoPhotonSeries_Original', ...
+                'Data', obj.ImviewerObj.ImageStack)
             
+            nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack, 'DataIoModel', dataSet)
+
         end
+
+        function sEditor = openSettingsEditor(obj)
+        %openSettingsEditor Open editor for method options.    
         
+        % Note: Override superclass method in order to set an extra
+        % callback function (ValueChangedFcn) on the sEditor object
+        
+            sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
+            sEditor.ValueChangedFcn = @obj.onValueChanged;
+            
+            % Create default folderpath for saving results
+            folderPath = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            folderPath = fullfile(folderPath, 'motion_correction_normcorre');
+
+            % Need a better solution for this!
+            idx = strcmp(sEditor.Name, 'Export');
+            sEditor.dataOrig{idx}.SaveDirectory = folderPath;
+            sEditor.dataEdit{idx}.SaveDirectory = folderPath;
+        end
     end
     
     methods (Access = protected)
