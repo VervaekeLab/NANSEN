@@ -32,7 +32,8 @@ function S = getDefaultOptions()
     S.Export.OutputDataType = 'uint8';
     S.Export.OutputDataType_ = {'uint8', 'uint16'};
     S.Export.OutputFormat = 'Binary';
-    S.Export.OutputFormat_ = {'Binary', 'Tiff'};
+    S.Export.OutputFormat_ = {'Binary'};
+    %S.Export.OutputFormat_ = {'Binary', 'Tiff'}; % todo...
     S.Export.saveAverageProjection = true;
     S.Export.saveMaximumProjection = true;
     
