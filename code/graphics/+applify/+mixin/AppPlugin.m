@@ -262,7 +262,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             if ~isvalid(obj.hSettingsEditor); return; end
 
             if ~obj.hSettingsEditor.wasCanceled
-                obj.settings = obj.hSettingsEditor.dataEdit;
+                obj.settings_ = obj.hSettingsEditor.dataEdit;
             end
 
             obj.wasAborted = obj.hSettingsEditor.wasCanceled;
