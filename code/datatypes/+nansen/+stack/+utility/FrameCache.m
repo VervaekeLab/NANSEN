@@ -4,6 +4,10 @@ classdef FrameCache < handle %< utility.class.StructAdapter
 %   This class can be used with a nansen.stack.data.VirtualArray instance 
 %   to increase performance when reading frames from files on a harddrive.
 %
+%   The cache deposits and withdraws framedata along the last dimension. If
+%   the cache belongs to a 4D or 5D stack, all frames of the 3rd (and 4th)
+%   dimension are cached.
+%
 %   Common use case: 
 %       When viewing data in imviewer, or if it is expected that data is
 %       accessed more than once.
@@ -12,17 +16,19 @@ classdef FrameCache < handle %< utility.class.StructAdapter
 %   USAGE: 
 %
 %       frameCache = nansen.stack.utility.FrameCache(sz, cls) creates a
-%       framecache with the default length of 1000 frames. If the data
-%       which is being cached has n dimensions (where n > 3), the length 
-%       of the cache is divided among the last n-2 dimensions. 
+%       framecache with the default length of 1000 frames. 
 %
 %       frameCache = nansen.stack.utility.FrameCache(..., cacheLength)
-%       creates a framecache with the specified length. If cacheLength is a
-%       scalar, the length of the cache is divided among the last n-2 
-%       dimensions. Otherwise, if the cacheLength is a vector, the
-%       cacheLength should have on entry for each of the n-2 last
-%       dimensions.
-%
+%       creates a framecache with the specified length. 
+
+
+%   Note: For 4D (or 5D stacks), all frames for the 3rd (and 4th) dimension
+%   are cached. This might in some cases no be very efficient, i.e if a
+%   stack is open where the current channels (and/or planes) are set to a
+%   subset of all available. An improvement would be to cache subsets of
+%   frames along these dimensions as well, possibly using the frame
+%   deinterleaver class in order to have a "1D" cache for up to "3D" frame
+%   indices.
 
 
 %   In a perfect world, there would be an abstract framecache class and
@@ -32,9 +38,11 @@ classdef FrameCache < handle %< utility.class.StructAdapter
 %           of the dimensions... Not Urgent, Not Important
 %       [ ] Swap names for cachelength and num frames...
 
+
     properties        
         Mode = 'dynamic'        % 'dynamic' or 'static'
         CacheLength = 1000      % Length of the number of frames in cache (in total)
+        LeadingDimension        % Not implemented yet.
     end
     
     % Dependent
@@ -77,6 +85,8 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             
             % Will assign mode if any of the varargin is 'static' or 'dynamic'
             obj.getModeFromVarargin(varargin{:});
+            
+            obj.getLeadingDimFromVarargin(varargin{:})
                         
             % Initialize
             if strcmp(obj.Mode, 'dynamic')
@@ -117,8 +127,8 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         function subs = getCacheSubs(obj, frameIndices)
                 
             subs = cell(1, max([3, ndims(obj.Data)]));
-            subs(1:end-1) = {':'};
-            subs{end} = frameIndices;
+            subs(:) = {':'};
+            subs{obj.LeadingDimension} = frameIndices;
 
         end
         
@@ -128,14 +138,10 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         
             if numel(cacheLength) == 1
         
-                if mod(cacheLength, prod(obj.DataSize(3:end-1))) ~= 0
-                    cacheLength = obj.adaptCacheLength(cacheLength);
-                else
-                    if cacheLength > prod(obj.DataSize(3:end))
-                        cacheLength = obj.DataSize(3:end);
-                    end
+                if cacheLength > obj.DataSize(end)
+                    cacheLength = obj.DataSize(end);
                 end
-                
+
             else
                 nRequiredEntries = numel(obj.DataSize)-2;
             
@@ -183,12 +189,15 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         end
         
         function setCacheSize(obj)
-               
-            cacheLength = obj.CacheLength;     
-            
+        %setCacheSize Set cache size (ND) based on cache length (1D)
+        
+            cacheLength = obj.CacheLength;
             cacheSize = obj.DataSize(3:end);
-            cacheSize(end) = cacheLength ./ prod(cacheSize(1:end-1));       
 
+%             if isscalar(cacheLength)
+%                 cacheSize(end) = cacheLength ./ prod(cacheSize(1:end-1));       
+%             end
+            
             % If this assertion fails, either the cache length has been set
             % to a number that does not match the data size (which should
             % not happend), or this function is called before a valid cache
@@ -229,6 +238,19 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             
         end
         
+        function getLeadingDimFromVarargin(obj, varargin)
+           
+            nvPairs = utility.getnvpairs(varargin);
+            nvPairs = utility.nvpairs2struct(nvPairs);
+            
+            if isfield(nvPairs, 'LeadingDimension')
+                obj.LeadingDimension = nvPairs.LeadingDimension;
+            else
+                obj.LeadingDimension = numel(obj.DataSize);
+            end
+            
+        end
+        
         function initialize(obj)
             
             % Dimensionality of stacks are always in the order of XYCZT.
@@ -236,9 +258,12 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             % of channels and number of planes are 1, the stack
             % dimensionality is XYT. 
             
-
             % Determine size for cached data
-            cacheSize = [obj.DataSize(1:end-1), obj.CacheLength];
+            if numel(obj.CacheLength) == 1
+                cacheSize = [obj.DataSize(1:end-1), obj.CacheLength];
+            else
+                cacheSize = obj.CacheLength;
+            end
             
             obj.Data = zeros(cacheSize, obj.DataType);
             obj.CachedFrameIndices = zeros(1, obj.CacheLength);
@@ -320,6 +345,14 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         %   % Todo: make sure data is provided in stable order (i.e
         %   according the order of frame indices)?
         
+            if isempty(obj); frameData = []; return; end 
+            
+            % Todo: Should make 2 classes, dynamic and static and implement
+            % these methods differently
+            if nargin < 2 && strcmp( obj.Mode, 'static')
+                frameData = obj.Data; return
+            end
+            
             if nargin < 2
                 isRequested = obj.CachedFrameIndices ~= 0;
             else

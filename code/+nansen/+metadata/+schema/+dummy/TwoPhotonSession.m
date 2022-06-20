@@ -1,4 +1,4 @@
-classdef TwoPhotonSession < nansen.metadata.schema.vlab.TwoPhotonSession
+classdef TwoPhotonSession < nansen.metadata.type.Session
     
     % Todo: This is not a metadata schema. Should make a framework for
     % sessionData....
@@ -11,13 +11,11 @@ classdef TwoPhotonSession < nansen.metadata.schema.vlab.TwoPhotonSession
         fileName
         folderPath
     end
-   
-   
-   
+    
     methods
    
         function obj = TwoPhotonSession(pathStr)
-            %obj@nansen.metadata.schema.vlab.TwoPhotonSession(varargin{:})
+            %obj@nansen.metadata.type.Session(varargin{:})
 
             obj.filePath = pathStr;
             
@@ -26,9 +24,7 @@ classdef TwoPhotonSession < nansen.metadata.schema.vlab.TwoPhotonSession
         end
         
         function pathStr = getSessionFolder(obj, dataLocation)
-            
             pathStr = fullfile(obj.folderPath, dataLocation);
-            
         end
         
         function pathStr = getDataFilePath(obj, varName, varargin)
@@ -36,7 +32,8 @@ classdef TwoPhotonSession < nansen.metadata.schema.vlab.TwoPhotonSession
             if strcmp(varName, 'TwoPhotonSeries_Original')
                 pathStr = obj.filePath;
             else
-                pathStr = getDataFilePath@nansen.metadata.schema.vlab.TwoPhotonSession(obj, varName, varargin{:});
+                varargin = [varargin, {'DataLocation', 'Processed'}];
+                pathStr = getDataFilePath@nansen.metadata.type.Session(obj, varName, varargin{:});
             end
     
         end

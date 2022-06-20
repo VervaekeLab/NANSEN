@@ -77,8 +77,9 @@ classdef OptionsManager < handle
 %     user can change which option set to use by default.
 %
 %     Note: The default options are automatically selected when an instance
-%     of options manager is created. If the options are changed, this new
-%     selection wil remain the current one until the object is recreated...
+%     of options manager is created. If an options set is edited, it will
+%     be selected and remain selected until another options set is selected
+%     or a new OptionsManager instance is recreated.
     
 
         
@@ -110,7 +111,7 @@ classdef OptionsManager < handle
     %   [ ] Methods for comparing options with archived options. Should
     %       ignore parameters tagged with transient....
     %
-    %   [ ] Save options sets for project tasks to the project folder?
+    %   [v] Save options sets for project tasks to the project folder?
     
     
 % %     properties (Access = private)
@@ -118,6 +119,10 @@ classdef OptionsManager < handle
 % %         PresetOptionFinder nansen.manage.PresetOptionFinder
 % %     end
    
+    properties (Constant, Hidden)
+        SAVE_MODE = 'single_file' %'multiple_files' % 'multiple_files', 'single_file'
+    end
+
     properties (SetAccess = private)
         FunctionName char       % Name of function (or class)
         FunctionType char
@@ -219,10 +224,15 @@ classdef OptionsManager < handle
             obj.findPresetOptions()
             
             % Check if options file exists for the given function
-            if isfile(obj.FilePath)
-                obj.synchOptionsFromFile()
-            else
-                obj.initializeOptionsFile()
+            switch obj.SAVE_MODE
+                case 'single_file'
+                    if isfile(obj.FilePath)
+                        obj.synchOptionsFromFile()
+                    else
+                        obj.initializeOptionsFile()
+                    end
+                case 'multiple_files'
+                    error('Not implemented yet')
             end
             
             
@@ -240,6 +250,11 @@ classdef OptionsManager < handle
     
     methods (Static)
         
+        function name = unformatName(name)
+            name = nansen.manage.OptionsManager.unformatDefaultName(name);
+            name = nansen.manage.OptionsManager.unformatPresetName(name);
+        end
+        
         function name = formatDefaultName(name)
         %formatDefaultName Format default options name for display
             %name = strcat('>', name, '<');
@@ -256,14 +271,30 @@ classdef OptionsManager < handle
             names = cellfun(@(name) sprintf('[%s]', name), names, 'uni', 0);
         end
         
+        function name = unformatPresetName(name)
+        %unformatDefaultName Unformat preset options name
+            name = strrep(name, '[', '');
+            name = strrep(name, ']', '');
+        end
+        
+        
         function names = formatEditedNames(names)
         %formatPresetNames Format preset options name for display
             %names = cellfun(@(name) sprintf('%s (Modified)', name), names, 'uni', 0);
         end
         
-        function folderPath = getOptionsDirectory()
+        function folderPath = getOptionsDirectory(location)
         %getOptionsDirectory Folder where options sets are saved.
-            folderPath = nansen.localpath('custom_options');
+            
+            if nargin < 1; location = 'local'; end
+        
+            switch location
+                case 'project'
+                    folderPath = nansen.localpath('project_custom_options');
+                case 'local'
+                    folderPath = nansen.localpath('custom_options');
+            end
+            
         end
         
         function [name, descr] = getCustomOptionsName()
@@ -305,6 +336,9 @@ classdef OptionsManager < handle
                 optionsName = obj.getReferenceOptionsName('Default');
             end
             
+            optionsName = obj.unformatDefaultName(optionsName);
+            optionsName = obj.unformatPresetName(optionsName);
+            
             if obj.isPreset(optionsName)
                 S = obj.getPresetOptions(optionsName);
                 
@@ -313,7 +347,9 @@ classdef OptionsManager < handle
                      
             elseif obj.isModified(optionsName)
                 S = obj.getModifiedOptions(optionsName);
-            
+            else
+                S = struct;
+                warning('No options were found')
             end
             
             if nargout == 0
@@ -326,8 +362,20 @@ classdef OptionsManager < handle
             
         end
         
-        function setOptions(obj, options, optionsName)
+        function setOptions(obj, optionsName, options)
             % Todo: Create this method
+            
+            optionsName = obj.unformatDefaultName(optionsName);
+            optionsName = obj.unformatPresetName(optionsName);
+            
+            if any(strcmp(obj.AllOptionNames, optionsName))
+                obj.OptionsName = optionsName;
+                obj.Options = obj.getOptions(optionsName);
+            else
+                error('not implemented yet')
+            end
+                
+            
         end
         
     end
@@ -368,6 +416,32 @@ classdef OptionsManager < handle
             
         end
         
+        function hOptionsEditor = openOptionsEditor(obj, optionsName, optsStruct)
+        %openOptionsEditor Open options editor for current options.
+        
+            if nargin < 2 || isempty(optionsName)
+                optionsName = obj.OptionsName;
+            end
+            
+            if nargin < 3 || isempty(optsStruct)
+                optsStruct = obj.getOptions(optionsName);
+            end
+            
+            methodName = strsplit( obj.FunctionName, '.'); 
+            methodName = methodName{end};
+        
+            titleStr = obj.getEditorTitle(methodName);
+            promptStr = sprintf('Set parameters for %s:', methodName);
+            
+            hOptionsEditor = structeditor(optsStruct, ...
+                'OptionsManager', obj, ...
+                'Title', titleStr, ...
+                'Prompt', promptStr );
+            
+            hOptionsEditor.changeOptionsSelectionDropdownValue(optionsName);
+            
+        end
+        
         function [optsName, optsStruct, wasAborted] = editOptions(obj, optsName, optsStruct)
         %editOptions Interactively edit options using structeditor app
         
@@ -388,21 +462,19 @@ classdef OptionsManager < handle
                 optsStruct = obj.getOptions(optsName);
             end
             
-            fcnName = strsplit(obj.FunctionName, '.'); fcnName = fcnName{end};
-            sEditor = structeditor(optsStruct, 'OptionsManager', obj, 'Title', fcnName);
-            sEditor.changeOptionsSelectionDropdownValue(optsName);
+            optsName = obj.unformatName(optsName);
             
+            sEditor = obj.openOptionsEditor(optsName, optsStruct);
             sEditor.waitfor()
+            
             wasAborted = sEditor.wasCanceled;
 
             if sEditor.wasCanceled
                 optsStruct = sEditor.dataOrig;
             else
                 optsStruct = sEditor.dataEdit;
-                
+                optsName = sEditor.currentOptionsName;
             end
-            
-            optsName = sEditor.currentOptionsName;
             
             obj.Options = optsStruct;
             obj.OptionsName = optsName;
@@ -731,7 +803,7 @@ classdef OptionsManager < handle
         %   Find preset options for a function and assign them to the
         %   private property containing preset options. Check whether the
         %   found preset options match provided options or options in file.
-        
+
             if obj.FunctionTypeIdx == 0
                 if isempty(obj.Options)
                     error(['Options must be provided when creating an ', ...
@@ -742,7 +814,10 @@ classdef OptionsManager < handle
                 optionsEntry = obj.findPresetsFromFunction();
                 
             elseif obj.FunctionTypeIdx == 3 || obj.FunctionTypeIdx == 4
-                if obj.hasPresetPackage
+
+                if obj.inheritOptionsFromSuperclass()
+                    optionsEntry = obj.getPresetsFromSuperclass();
+                elseif obj.hasPresetPackage
                     optionsEntry = obj.findPresetsFromPresetsPackage();
                 else
                     optionsEntry = obj.findPresetsFromOptionsMixinClass();
@@ -750,7 +825,7 @@ classdef OptionsManager < handle
             else
                 error('Something went wrong!')
             end
-            
+                        
             % Make sure any options are present before continuing.
             if isempty(obj.Options) && isempty(optionsEntry)
                 error('Preset options were not found for %s', obj.FunctionName)
@@ -777,10 +852,16 @@ classdef OptionsManager < handle
             
             % Return as options entry (struct)
             opts = fcnHandle();
-            name = 'Function Preset';
+            name = 'Preset Options';
             
             if obj.FunctionTypeIdx == 1
                 opts = opts.DefaultOptions; % Session task formatting...
+            end
+            
+            if isempty(obj.OptionsName)
+                if isequal(obj.Options, opts)
+                    obj.OptionsName = name;
+                end
             end
             
             optionsEntry = obj.createOptionsStructForSaving(opts, name, ...
@@ -800,11 +881,64 @@ classdef OptionsManager < handle
 
             % Return as options entry (struct)
             opts = fcnHandle();
-            name = 'Class Preset';
+            name = 'Preset Options';
             
             optionsEntry = obj.createOptionsStructForSaving(opts, name, ...
                 sprintf('Default preset options for %s', obj.FunctionName) );
 
+        end
+        
+        function tf = inheritOptionsFromSuperclass(obj)
+        %inheritOptionsFromSuperclass Check if function inherits options
+        
+            tf = false; % null hypothesis, function does not inherit options
+            
+            superClassNames = superclasses(obj.FunctionName);
+
+            if contains('nansen.mixin.HasOptions', superClassNames)
+                mc = meta.class.fromName(obj.FunctionName);
+                
+                if ~isempty(mc.PropertyList) 
+                    
+                    matchedIdx = strcmp({mc.PropertyList.Name}, 'OptionsManager');
+                    if any(matchedIdx)
+                        definingClass = mc.PropertyList(matchedIdx).DefiningClass;
+                        if strcmp(definingClass.Name, obj.FunctionName)
+                            return
+                        elseif mc.PropertyList(matchedIdx).Abstract
+                            return
+                        elseif any(strcmp(superClassNames, definingClass.Name))
+                            tf = true;
+                        end
+                    end
+                end
+            end
+        end
+        
+        function name = getOptionsDefiningSuperclassName(obj)
+            
+            mc = meta.class.fromName(obj.FunctionName);
+            matchedIdx = strcmp({mc.PropertyList.Name}, 'OptionsManager');
+            definingClass = mc.PropertyList(matchedIdx).DefiningClass;
+            name =  definingClass.Name;
+            
+        end
+        
+        function optionsEntry = getPresetsFromSuperclass(obj)
+        %getPresetsFromSuperclass
+        
+            optManager = eval(sprintf('%s.OptionsManager', obj.FunctionName));
+            presetOptionsNames = optManager.PresetOptionNames;
+            
+            for i = 1:numel(presetOptionsNames)
+                
+                optsName = presetOptionsNames{i};
+                optsStruct = optManager.getOptions(optsName);
+                
+                optionsEntry(i) = obj.createOptionsStructForSaving(...
+                        optsStruct, optsName, '');
+            end
+            
         end
         
         function tf = hasPresetPackage(obj)
@@ -815,13 +949,21 @@ classdef OptionsManager < handle
             % Find the full path to where the function/package is located
             folderNames =  strsplit(obj.FunctionName, '.');
             s = what( fullfile(folderNames{1:end-1}) );
-            
+                        
             if isempty(s)
                 return
+            elseif numel(s) > 1
+                warning('Multiple instances of function "%s" was found on the path.')
+                % Note: If this happens when running a job on a parallell
+                % pool of workers, it might be necessary to reset the
+                % pool(?) by deleting it from Matlab's Job Monitor...
+                % (Restarting matlab did not fix it for me)
+                s = s(1);
+            else
+                % All good.
             end
-            
+
             tf = ~isempty(s.packages) && contains('presets', s.packages);
-            
         end
         
         function optionsEntry = findPresetsFromPresetsPackage(obj)
@@ -933,25 +1075,55 @@ classdef OptionsManager < handle
     
     methods (Access = private) % Methods for file interaction
         
+        function tf = compareOptions(obj, optsA, optsB)
+            % Todo
+            tf = isequal(optsA, optsB);
+        end
+        
         function fileName = createFilename(obj)
         %createFilename Create a filename for the file containing presets
-        
-            % fileName = strrep(obj.FunctionName, '.', '_');
-            fileName = obj.FunctionName;
-            % Remove nansen from filename ?
-            % fileName = strrep(fileName, 'nansen_', '');
+            
+            if obj.inheritOptionsFromSuperclass()
+                fileName = obj.getOptionsDefiningSuperclassName();
+            else
+                fileName = obj.FunctionName;
+            end
             
             fileName = [fileName, '.mat'];
+        end
+        
+        function folderName = createFoldername(obj)
+        %createFilename Create a filename for the file containing presets
+            
+            if obj.inheritOptionsFromSuperclass()
+                folderName = obj.getOptionsDefiningSuperclassName();
+            else
+                folderName = obj.FunctionName;
+            end
+            
         end
         
         function filePath = createFilePath(obj)
         %assignFilePath Assign the filepath for the file containing presets
 
-            folderPath = obj.getOptionsDirectory();
-            fileName = obj.createFilename();
+            pathStr = which(obj.FunctionName);
+            if contains(pathStr, fullfile('code', 'integrations', 'sessionmethods'))
+                location = 'local';
+            elseif contains(pathStr, '+nansen')
+                location = 'local';
+            else
+                location = 'project';
+            end
+            folderPath = obj.getOptionsDirectory(location);
             
-            filePath = fullfile(folderPath, fileName);
-            
+            if strcmp(obj.SAVE_MODE, 'single_file')
+                fileName = obj.createFilename();
+                filePath = fullfile(folderPath, fileName);
+            elseif strcmp(obj.SAVE_MODE, 'multiple_files')
+                error('Not implemented yet')
+                %fileName = obj.createFoldername();
+                %filePath = fullfile(folderPath, fileName);
+            end
         end
         
         function initializeOptionsFile(obj)
@@ -1007,11 +1179,14 @@ classdef OptionsManager < handle
                     matchIdx = strcmp({loadedPresetOptions.Name}, thisName);
                     
                     if ~isequal(thisOpts, loadedPresetOptions(matchIdx).Options)
-                        functionLink = sprintf('See <a href="matlab: open(''nansen.manage.OptionsManager/updatePresets'')">updatePresets</a> for more info.');
-                        warnMsg = sprintf(['The preset OptionsSet "%s" has been ', ...
-                            'modified and is different from \nthe originally saved ', ...
-                            'preset OptionsSet. %s\n'], thisName, functionLink);
-                        warning(warnMsg) %#ok<SPWRN>
+                        
+                        % Todo: Implement this and make it easy to fix...
+                        
+% %                         functionLink = sprintf('See <a href="matlab: open(''nansen.manage.OptionsManager/updatePresets'')">updatePresets</a> for more info.');
+% %                         warnMsg = sprintf(['The preset OptionsSet "%s" has been ', ...
+% %                             'modified and is different from \nthe originally saved ', ...
+% %                             'preset OptionsSet. %s\n'], thisName, functionLink);
+% %                         warning('Nansen:OptionsManager:PresetChanged', warnMsg) %#ok<SPWRN>
                     end
                         
                     obj.PresetOptions_(i) = loadedPresetOptions(matchIdx);
@@ -1053,7 +1228,9 @@ classdef OptionsManager < handle
                     opts = obj.getOptions(obj.OptionsName);
                     
                     assertMsg = 'Provided options already exist but are different from previously saved options, aborting...';
-                    assert(isequal(opts, obj.Options), assertMsg)
+                    
+                    isEqual = obj.compareOptions(opts, obj.Options);
+                    assert(isEqual, assertMsg)
                 end
             end
         end
@@ -1134,6 +1311,31 @@ classdef OptionsManager < handle
     end
     
     methods (Static, Access = private)
+        
+        function editorTitleStr = getEditorTitle(functionName)
+        %getEditorTitle Get title for options editor
+        
+            methodName = '';
+            
+            mc = meta.class.fromName( functionName );
+            if ~isempty(mc)
+                if any(strcmp({mc.PropertyList.Name}, 'MethodName'))
+                    isMatch = strcmp({mc.PropertyList.Name}, 'MethodName');
+                    propertyItem = mc.PropertyList(isMatch);
+                    if propertyItem.HasDefault
+                        methodName = propertyItem.DefaultValue;
+                    end
+                end
+            end
+            
+            if isempty(methodName)
+                methodName = strsplit( functionName, '.'); 
+                methodName = methodName{end};
+            end
+            
+            editorTitleStr = sprintf('Options Editor (%s)', methodName);
+            
+        end
         
         function varName = getReferenceTypeVarname(referenceType)
         %getReferenceTypeVarname Get variable name for given reference type
@@ -1218,7 +1420,7 @@ classdef OptionsManager < handle
 
                 if contains('nansen.mixin.HasOptions', superClassNames)
                     fcnType = 3;
-                elseif contains('nansen.module.abstract.OptionsAdapter', superClassNames)
+                elseif contains('nansen.wrapper.abstract.OptionsAdapter', superClassNames)
                     fcnType = 4;
                 end
                 
@@ -1253,7 +1455,7 @@ classdef OptionsManager < handle
             end
         
             if fcnType == 0
-                errorMsg = ['The provided function does not exist on path'];
+                errorMsg = sprintf('The provided function "%s" does not exist on path', functionName);
                 error(errorMsg)
             end
 
@@ -1262,4 +1464,3 @@ classdef OptionsManager < handle
     end
 
 end
-

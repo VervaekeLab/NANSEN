@@ -2,6 +2,8 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
     
     % Todo: adapt to uim.widgets.
     
+    % Todo: Allow vertical orientation...
+    
     properties
         
         Min = 0                 % Minimum slider value
@@ -19,14 +21,13 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         TextColor = ones(1,3)*0.2;
         TextBackgroundColor = 'none';
         
-        TickLength = 7;
+        TickLength = 0;
         TickWidth = 1;
         TickMode = 'both' % 'over','under', 'both'
         
         ValueChangedFcn
         ValueChangingFcn
         Callback
-        
         
         Position = [0, 0, 0.1, 0.3]
         Units = 'normalized'
@@ -36,7 +37,7 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         ShowLabel = true;
         TooltipPrecision = 2;
         TooltipUnits = '';
-        
+        TooltipExpression
         
         Style = 'slidebar'
         Tag = ''
@@ -136,7 +137,9 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
 
             
             % Start plotting ticks, so that they are behind everything else
-            %obj.plotTicks()
+            if obj.TickLength ~= 0
+                obj.plotTicks()
+            end
 
             % Plot the bar as a line
             [xCoords, yCoords] = obj.getBarCoordinates();
@@ -194,10 +197,10 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
             obj.hAxes = axes('Parent', obj.Parent);
             hold(obj.hAxes, 'on');
             obj.hAxes.Visible = 'off';
+            obj.hAxes.Units = obj.Units;
             obj.hAxes.Position = obj.Position;
             obj.hAxes.HandleVisibility = 'off';
             obj.hAxes.Tag = 'SlideBar Container';
-            obj.hAxes.Units = obj.Units;
 
             obj.hAxes.YLim = [0,1];
             obj.hAxes.XLim = [obj.Min, obj.Max];
@@ -205,13 +208,24 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         end
         
         function plotTicks(obj)
-           
-
+            if obj.hasAxes; return; end % Todo....
+            
             [x, y] = getTickCoordinates(obj);
             obj.hTicks = plot(obj.hAxes, x, y, '-', 'Color',  obj.BarColor, 'LineWidth', obj.TickWidth);
             
+            if obj.IsConstructed
+                uistack(obj.hTicks, 'bottom')
+            end
         end
         
+        function redrawTicks(obj)
+            if isempty(obj.hTicks); return; end
+            [xCoords, yCoords] = getTickCoordinates(obj);
+            numTicks = size(xCoords, 2);
+            xCoords = mat2cell(xCoords', ones(numTicks, 1));
+            yCoords = mat2cell(yCoords', ones(numTicks, 1));
+            set(obj.hTicks, {'XData'}, xCoords, {'YData'}, yCoords)
+        end
         
     end
     
@@ -221,7 +235,7 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         function [xCoords, yCoords] = getTextCoordinates(obj)
             if obj.hasAxes
                 xCoords = obj.Value;
-                yCoords = obj.hAxes.YLim(2);
+                yCoords = obj.hAxes.YLim(2) .* 1.4; % Ad hoc offset.
             else
                 xCoords = obj.Position(1) + obj.Padding(1) + ...
                     obj.Position(3) .* (obj.Value - obj.Min) ./ (obj.Max - obj.Min);
@@ -288,6 +302,18 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
             if obj.hasAxes
                 xCoords = [obj.Min; obj.Max];
                 yCoords = [0.5; 0.5];
+                
+                barWidth = 3;
+                
+                [edgeX, edgeY] = uim.shape.rectangle([obj.Position(3), barWidth], barWidth/2);
+                %edgeX = edgeX + obj.Position(1);
+                edgeY = edgeY + obj.Position(4)/2 - barWidth/2;
+                coords = uim.utility.px2du(obj.hAxes, [edgeX', edgeY']);
+                xCoords = coords(:,1)';
+                yCoords = coords(:,2)';
+                
+                
+                
             else
                 xCoords = [obj.Position(1)+obj.Padding(1); sum(obj.Position([1,3]))-obj.Padding(3)];
                 yCoords = ones(2,1) .* obj.Position(2) + obj.Position(4) / 2;
@@ -301,9 +327,10 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         end
         
         function [xCoords, yCoords] = getTickCoordinates(obj)
+                
             x1 = obj.Position(1)+obj.Padding(1);
             x2 = sum(obj.Position([1,3]))-obj.Padding(3);
-
+            
             % Correct for linewidth
             x1 = x1+2;
             x2 = x2-2;
@@ -329,6 +356,10 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
            
             yCoords = repmat([y1;y2;nan], 1, numTicks);
             
+            if obj.hasAxes
+                coords = uim.utility.px2du(obj.hAxes, [xCoords', yCoords']);
+                % Todo:
+            end
         end
         
         function [xCoords, yCoords] = getBackgroundCoordinates(obj)
@@ -346,10 +377,14 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
             [xCoords, ~] = obj.getTextCoordinates();
             obj.hText.Position(1) = xCoords;
             
-            formatStr = sprintf('%%.%df', obj.TooltipPrecision);
-            tooltipStr = num2str(obj.Value, formatStr);
-            if ~isempty(obj.TooltipUnits)
-                tooltipStr = sprintf('%s %s', tooltipStr, obj.TooltipUnits);
+            if isempty(obj.TooltipExpression)
+                formatStr = sprintf('%%.%df', obj.TooltipPrecision);
+                tooltipStr = num2str(obj.Value, formatStr);
+                if ~isempty(obj.TooltipUnits)
+                    tooltipStr = sprintf('%s %s', tooltipStr, obj.TooltipUnits);
+                end
+            else
+                tooltipStr = sprintf(obj.TooltipExpression, obj.Value);
             end
             
             obj.hText.String = tooltipStr;
@@ -357,6 +392,8 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         end
         
         function onPositionChanged(obj)
+            
+            if ~obj.IsConstructed; return; end
             
             [xCoords, yCoords] = obj.getTextCoordinates();
             obj.hText.Position(1:2) = [xCoords, yCoords];
@@ -370,12 +407,9 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
             [xCoords, yCoords] = getBackgroundCoordinates(obj);
             set(obj.hBackground, 'XData', xCoords, 'YData', yCoords)
            
-%             [xCoords, yCoords] = getTickCoordinates(obj);
-%             numTicks = size(xCoords, 2);
-%             xCoords = mat2cell(xCoords', ones(numTicks, 1));
-%             yCoords = mat2cell(yCoords', ones(numTicks, 1));
-%             set(obj.hTicks, {'XData'}, xCoords, {'YData'}, yCoords)
-            
+            if ~isempty(obj.hTicks)
+                obj.redrawTicks()
+            end
         end
         
         function onVisibleChanged(obj)
@@ -397,8 +431,24 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
             if obj.IsConstructed
                 obj.hText.Color = obj.TextColor;
             end
-            
         end
+        
+        function onTickLengthSet(obj)
+            if ~obj.IsConstructed; return; end
+                
+            if obj.TickLength ~= 0 && isempty(obj.hTicks)
+                obj.plotTicks()
+            elseif obj.TickLength ~= 0
+                obj.redrawTicks()
+            end
+        end
+        
+        function onBarColorSet(obj)
+            if ~isempty(obj.hBar)
+                obj.hBar.FaceColor = newColor;
+            end
+        end
+        
     end
     
     
@@ -531,11 +581,15 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
             end
         end
         
-        
         function set.BarColor(obj, newColor)
-            if ~isempty(obj.hBar)
-                obj.hBar.Color = newColor;
-            end
+            obj.BarColor = newColor;
+            obj.onBarColorSet()
+        end
+        
+        function set.TickLength(obj, newValue)
+            assert(isnumeric(newValue), 'TickLength must be a number')
+            obj.TickLength = newValue;
+            obj.onTickLengthSet()
         end
         
     end

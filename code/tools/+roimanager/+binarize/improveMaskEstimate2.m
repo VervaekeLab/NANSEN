@@ -1,6 +1,6 @@
-function [roiArrayOut, statOut] = improveMaskEstimate2(roiArrayIn, datatype)
+function [roiArrayOut, statOut] = improveMaskEstimate2(roiArrayIn, roiType)
 
-    if nargin < 2; datatype = 'soma'; end
+    if nargin < 2; roiType = 'soma'; end
 
     roiImages = cat(3, roiArrayIn.enhancedImage);
     
@@ -27,16 +27,15 @@ function [roiArrayOut, statOut] = improveMaskEstimate2(roiArrayIn, datatype)
         tmpX = indX + centerCoords(i, 1);
         tmpY = indY + centerCoords(i, 2);
         
-        switch datatype
+        switch roiType
             case 'axon'
-                [mask, s] = roimanager.binarize.getRoiMaskFromImage3(roiArrayIn(i).enhancedImage);
-                
-            case 'soma'
-                [mask, s] = roimanager.roidetection.binarizeSomaImage(roiImages(:, :, i));
-                % Alternative version
-                %[mask, s] = getRoiMaskFromImage2(roiArrayIn(i).enhancedImage);
-                %[mask, ~] = findRoiMaskFromImage(activeRoisImageStackC(:,:,i), centerCoords(i,:), imSize, 'method', 'disk');
+                im = roiArrayIn(i).enhancedImage;
+                roiDiameter = 2; %Todo: add roi diameter from options
+                [mask, s] = flufinder.binarize.getRoiMaskFromImage(im, roiType, roiDiameter);
 
+            case 'soma'
+                [mask, s] = flufinder.binarize.findSomaMaskByThresholding(roiImages(:, :, i));
+                
         end
         
         statOut(i).RoiContrast = s.dff;

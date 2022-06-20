@@ -9,7 +9,7 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
 %       colorMap: colormap to use for coloring each rois. colors are
 %       imageUsFactor: upsample image (integer factor)
     
-    import nansen.module.extract.util.getRoiImageMatrix
+    import nansen.wrapper.extract.util.getRoiImageMatrix
 
     params = struct;
     params.plotMode = 'single_layer'; % single_layer or multi_layer

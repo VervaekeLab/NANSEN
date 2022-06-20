@@ -9,7 +9,13 @@ function defaultValue = getDefaultValueAsChar(dataType)
         case 'numeric'
             defaultValue = 'nan';
         case {'char', 'text'}
-            defaultValue = '{''N/A''}'; 
+            defaultValue = '{''N/A''}';
+        case 'categorical'
+            defaultValue = '{''N/A''}';
+        case 'struct'
+            defaultValue = '''struct.empty''';
+        otherwise
+            defaultValue = '{''N/A''}';
     end
             
 end

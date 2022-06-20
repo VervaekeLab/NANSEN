@@ -1,4 +1,4 @@
-classdef SessionData < dynamicprops
+classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin.UserSettings
 %SessionData Class that provides access to File Variables in DataLocations 
 % 
 %
@@ -8,12 +8,29 @@ classdef SessionData < dynamicprops
 % properties and methods are accounted for, there could be issues if
 % subclassing this class and implementing protected properties. Long story
 % short, protected properties would not be protected in this case.
+% Another issue if trying something like {sessionData.RoiArray.area}, wont
+% work, so assign roiArray to another variable first
 
+% Note: This class is not yet well adapted non-scalar objects!
+
+
+% Todo: 
+%   [v] Should hold the session object and call methods from the session
+%       object, instead of running a copy of those methods....
+%   [ ] Remove all methods that are duplicates from the session class.
+
+    properties (Constant, Hidden)
+        USE_DEFAULT_SETTINGS = false;
+        DEFAULT_SETTINGS = nansen.session.SessionData.getDefaultSettings()
+    end
 
     properties
         sessionID
     end
-
+    
+    properties (Dependent, Hidden)
+        IsInitialized;
+    end
 
     properties (Access = private)
         DataLocation
@@ -23,61 +40,152 @@ classdef SessionData < dynamicprops
     end
     
     properties (Access = private)
+        SessionObject
         DataLocationModel
         DataFilePathModel
     end
     
     properties (Access = private)
-        VariableList = {};
+        State = 'uninitialized';
+        VariableList struct
         FileList containers.Map
     end
     
+    properties (Access = private, Dependent)
+        VariableNames
+    end
     
-    methods
+    
+    methods (Hidden) % Constructor
         
         function obj = SessionData(sessionObj)
             
-            global dataLocationModel dataFilePathModel % Todo: Make sure these are not empty
-            
-            if isempty(dataLocationModel)
-                dataLocationModel = nansen.setup.model.DataLocations();
-                dataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
-            end
-            
-            obj.DataLocationModel = dataLocationModel;
-            obj.DataFilePathModel = dataFilePathModel;
-
-            
-            % inherit properties for sessionObj. Todo: Avoid duplication...       
+            obj.SessionObject = sessionObj;
+                        
+            % Inherit properties for sessionObj. Todo: Avoid duplication...       
             obj.sessionID = sessionObj.sessionID;
-            obj.subjectID = sessionObj.subjectID;
-            obj.Date = sessionObj.Date;
-            obj.Time = sessionObj.Time;
-            obj.DataLocation = sessionObj.DataLocation;
+% %             obj.subjectID = sessionObj.subjectID;
+% %             obj.Date = sessionObj.Date;
+% %             obj.Time = sessionObj.Time;
+% %             obj.DataLocation = sessionObj.DataLocation;
 
             
             % Initialize the property value here (because Map is handle)
-            obj.FileList = containers.Map;
+            obj.FileList = containers.Map; % Todo: Use java.HashTable or similar instead?
             
         end
         
     end
     
-    
-    
     methods
+        
+        function obj = initialize(obj)
+        %initialize Initialize the variables of session
+            fprintf('Initializing session data variables...\n')
+            obj.updateDataVariables();
+        end
+        
+        function obj = update(obj)
+            fprintf('Updating session data variables...\n')
+            obj.updateDataVariables();
+        end
+        
+        function resetCache(obj, varNames)
+            
+            if nargin < 2
+                varNames = {obj.VariableList.VariableName};
+            end
+            
+            if isa(varNames, 'char')
+                varNames = {varNames};
+            end
+            
+            for i = 1:numel(varNames)
+                varName_ = strcat( varNames{i}, '_' );
+                obj.(varName_) = [];
+            end
+            
+        end
+        
+    end
+    
+    methods 
+        function dlModel = get.DataLocationModel(obj)
+            dlModel = obj.SessionObject.DataLocationModel;
+        end
+        
+        function varNames = get.VariableNames(obj)
+            if isempty(obj.VariableList)
+                varNames = {};
+            else
+                varNames = {obj.VariableList.VariableName};
+            end
+        end
+        
+        function tf = get.IsInitialized(obj)
+            if strcmp(obj.State, 'uninitialized')
+                tf = false;
+            elseif strcmp(obj.State, 'initialized')
+                tf = true;
+            end
+        end
+        
+    end
+    
+    methods (Hidden)
+        
+        function obj = showInternalVariables(obj)
+            obj.settings.ShowInternalVariables = true;
+        end
+        
+        function obj = hideInternalVariables(obj)
+            obj.settings.ShowInternalVariables = false;
+        end
+        
+        function obj = showFavouriteVariables(obj)
+            obj.settings.ShowFavouriteVariables = true;
+        end
+        
+        function obj = hideFavouriteVariables(obj)
+            obj.settings.ShowFavouriteVariables = false;
+        end
+                
+        function obj = showDefaultVariables(obj)
+            obj.settings.ShowDefaultVariables = true;
+        end
+        
+        function obj = hideDefaultVariables(obj)
+            obj.settings.ShowDefaultVariables = false;
+        end
+        
+        function obj = showUserVariables(obj)
+            obj.settings.ShowUserVariables = true;
+        end
+        
+        function obj = hideUserVariables(obj)
+            obj.settings.ShowUserVariables = false;
+        end
+        
+
         function updateDataVariables(obj)
             
+            if isempty(obj.SessionObject.DataLocationModel)
+                % Todo: Consider to throw an error.
+                fprintf('Aborted, this session does not have a DataLocationModel')
+                return
+            end
             
+            obj.DataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
             varNames = {obj.DataFilePathModel.VariableList.VariableName};
             
             for i = 1:numel(varNames)
                 try
-                    filePath = obj.getDataFilePath(varNames{i});
+                    filePath = obj.SessionObject.getDataFilePath(varNames{i});
 
                     if isfile(filePath)
                         if ~isprop(obj, varNames{i})
                             obj.addDataProperty(varNames{i})
+                            obj.appendToVariableList(obj.DataFilePathModel.VariableList(i))
                         end
                     end
                 catch
@@ -86,15 +194,89 @@ classdef SessionData < dynamicprops
                 end
             end
             
+            obj.State = 'initialized';
+            
         end
 
+        function varNames = getDataType(obj, typeName)
+            
+            % Todo: get from session object.
+            dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
+            
+            fileAdapters = {dataFilePathModel.VariableList.FileAdapter};
+            
+            switch typeName
+                case {'RoiGroup', 'RoiArray', 'roiArray'}
+                    tf = strcmp(fileAdapters, 'RoiGroup');
+                    varNames = {dataFilePathModel.VariableList(tf).VariableName};
+                    
+                otherwise
+                    tf = strcmp(fileAdapters, typeName);
+                    varNames = {dataFilePathModel.VariableList(tf).VariableName};
+            end
+            
+            tf = false(1, numel(varNames));
+            for i = 1:numel(varNames)
+                tf(i) = isprop(obj, varNames{i} );
+            end
+            
+            varNames = varNames(tf);
+        end
+        
+        function varNames = uiSelectVariableName(obj, dataType, selectionMode)
+        %uiSelectVariableName Open dialog to select variable from sdata
+        %------------------------------------------------------------------
+        %
+        %   SYNTAX:
+        %
+        %   varNames = obj.uiSelectVariableName() opens a dialog to select
+        %   on or more variables that are available in SessionData object
+        %
+        %   varNames = obj.uiSelectVariableName(dataType) lets user select
+        %   among variables from the specified dataType
+        %
+        %   varNames = obj.uiSelectVariableName(dataType, selectionMode)
+        %   additionally determines the selection mode. selectionMode can
+        %   be 'multi' (Default) or 'single'.
+        %
+        %   OUTPUT:
+        %       varNames : cell array of variable name(s)
+        
+        
+            if nargin < 2
+                varNames = obj.VariableNames;
+            else
+                varNames = obj.getDataType(dataType);
+            end
+            
+            if nargin < 3; selectionMode = 'multi'; end
+            
+            if isempty(varNames)
+                if exist('dataType', 'var')
+                    error('No variable is available for data type "%s"', dataType)
+                else
+                    error('No variable is available')
+                end
+            end
+            
+            msg = 'Select a data variable:';
+            [indx, tf] = listdlg('ListString', varNames, ...
+                'PromptString', msg, 'SelectionMode', selectionMode);
+            
+            if tf
+                varNames = varNames(indx);
+            else
+                varNames = {};
+            end
+            
+        end
+        
     end
     
     methods (Access = protected)
         
         function addDataProperty(obj, variableName)
             pPuplic = obj.addprop(variableName);
-            
             
             % Add a private property that will hold the actual data.
             privateVariableName = strcat(variableName, '_');
@@ -108,15 +290,22 @@ classdef SessionData < dynamicprops
             
             %pPuplic.SetMethod = @obj.setDataVariable;
             pPuplic.SetAccess = 'private'; %todo: Add set functionality
-            obj.VariableList{end+1} = variableName;
 
         end
-      
+        
+        function appendToVariableList(obj, variableItem)
+            if isempty(obj.VariableList)
+                obj.VariableList = variableItem;
+            else
+                obj.VariableList(end+1) = variableItem;
+            end
+        end
+        
         function value = getDataVariable(obj, varName)
             privateVarName = strcat(varName, '_');
             
             if isempty(obj.(privateVarName))
-                value = 'Uninitialized';
+                value = 'Unassigned';
             else
                 value = obj.(privateVarName);
             end
@@ -133,12 +322,87 @@ classdef SessionData < dynamicprops
         end
         
         function setDataVariable(obj, varargin)
-            disp('so far so goooood')
+            disp('variables can only be read for now')
         end
         
+        function str = getHeader(obj)
+            str = getHeader@matlab.mixin.CustomDisplay(obj);
+            
+            className = strrep(class(obj), 'nansen.session.', '');
+            
+            if numel(obj) == 1
+                if strcmp(obj.State, 'uninitialized')
+                    className = sprintf('%s (%s)', className, obj.State);
+                end
+            end
+            
+            str = strrep(str, '>SessionData<', sprintf('>%s<', className));
+            
+            if numel(obj) == 1
+                str = strrep(str, 'properties', 'data variables');
+            else
+                str = strrep(str, 'with properties:', '(variables not displayable for non-scalar SessionData)');
+            end
+            
+            % Todo: Improve header for arrays
+        end
+        
+        function propGroup = getPropertyGroups(obj)
+            
+            % Initialize output variable as empty
+            propGroup = matlab.mixin.util.PropertyGroup.empty;
+
+            if numel(obj) > 1
+                return
+                % Todo: Improve property groups for arrays!
+            end
+            
+            if strcmp(obj(1).State, 'uninitialized') ...
+                    || isempty(obj(1).VariableList)
+                return;
+            end
+            
+            isDefault = [obj(1).VariableList.IsDefaultVariable];
+            isInternal = [obj(1).VariableList.IsInternal];
+            isFavorite = [obj(1).VariableList.IsFavorite];
+            isCustom = [obj(1).VariableList.IsCustom];
+            
+            propGroup = matlab.mixin.util.PropertyGroup.empty;
+                        
+            if obj.settings.ShowFavouriteVariables && any(isFavorite)
+                propNames = sort( {obj.VariableList(isFavorite).VariableName} ); 
+                propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Favorite Variables:')];
+            end
+            
+            if obj.settings.ShowDefaultVariables && any(isDefault)
+                propNames = sort( {obj.VariableList(isDefault).VariableName} ); 
+                propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Default Variables:')];
+            end
+            
+            if obj.settings.ShowUserVariables && any(isCustom)
+                propNames = sort( {obj.VariableList(isCustom).VariableName} ); 
+                propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'User Variables:')];
+            end
+            
+            if obj.settings.ShowInternalVariables && any(isInternal)
+                propNames = sort( {obj.VariableList(isInternal).VariableName} ); 
+                propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Internal Variables:')];
+            end
+            
+        end
+        
+        function onSettingsChanged(obj, name, value)
+            % Pass
+        end
     end
     
     methods (Sealed, Hidden)
+        
+        function T = addprop(obj, varargin)
+            T = addprop@dynamicprops(obj, varargin{:});
+            if ~nargout; clear T; end
+        end
+        
         function varargout = subsref(obj, s)
             
             % Preallocate cell array of output.
@@ -151,7 +415,7 @@ classdef SessionData < dynamicprops
                 % we should load the data from file
                 
                 case '.'
-                    if any(strcmp(obj.VariableList, s(1).subs))
+                    if any(strcmp(obj.VariableNames, s(1).subs))
                         obj.assignDataToPrivateVar(s(1).subs)
                         
                     else % Take appropriate action if a property or method is requested.
@@ -210,68 +474,26 @@ classdef SessionData < dynamicprops
                             try
                                 builtin('subsref', obj, s)
                             catch ME
-                                throwAsCaller(ME)
+                                rethrow(ME)
                             end
                         otherwise
-                            throwAsCaller(ME)
+                            rethrow(ME)
                     end
                 end
             end
                     
         end
+
     end
-            
             
     methods (Access = protected) % Load data variables
         
         function data = loadData(obj, varName, varargin)
-            
-            % TODO:
-            %   [ ] Implement file adapters.
-            
-            filePath = obj.getDataFilePath(varName, '-r', varargin{:});
-
-            if isfile(filePath)
-                
-                [~, ~, ext] = fileparts(filePath);
-                
-                switch ext
-                    case '.mat'
-                        S = load(filePath, varName);
-                        if isfield(S, varName)
-                            data = S.(varName);
-                        else
-                            S = load(filePath);
-                            data = S;
-        %                 else
-        %                     error('File does not hold specified variable')
-                        end
-                        
-                    case {'.raw', '.tif'}
-                        data = nansen.stack.ImageStack(filePath);
-                        
-                    otherwise
-                        error('Nansen:Session:LoadData', 'Files of type ''%s'' is not supported for loading', ext)
- 
-                end
-                
-
-            else
-                error('File not found')
-            end
-            
+            data = obj.SessionObject.loadData(varName, varargin{:});
         end
         
         function saveData(obj, varName, data, varargin)
-            
-            % TODO:
-            %   [ ] Implement file adapters.
-            
-            filePath = obj.getDataFilePath(varName, '-w', varargin{:});
-            
-            S.(varName) = data;
-            save(filePath, '-struct', 'S')
-            
+            obj.SessionObject.saveData(varName, data, varargin{:});
         end
         
         function pathStr = getDataFilePath(obj, varName, varargin)
@@ -308,250 +530,19 @@ classdef SessionData < dynamicprops
             %       trials or are just split into multiple parts...
             
             
-            % Get the model for data file paths.
-            global dataFilePathModel
-            if isempty(dataFilePathModel)
-                dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
-            end
-
-            
-            % Check if mode is given as input:
-            [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
-            parameters = struct(varargin{:});
-            
-            % Get the entry for given variable name from model
-            [S, isExistingEntry] = dataFilePathModel.getEntry(varName);
-        
-            if ~isExistingEntry
-                S = utility.parsenvpairs(S, [], parameters);
-            end
-            
-            % Get path to session folder
-            sessionFolder = obj.getSessionFolder(S.DataLocation);
-            
-            % Check if file should be located within a subfolder.
-            if ~isempty(S.Subfolder)
-                dataFolder = fullfile(sessionFolder, S.Subfolder);
-                
-                if ~isfolder(dataFolder) && strcmp(mode, 'write')
-                    mkdir(dataFolder)
-                end
-            else
-                dataFolder = sessionFolder;
-            end
-            
-            
-            if isempty(S.FileNameExpression)
-                fileName = obj.createFileName(varName, S);
-            else
-                fileName = obj.lookForFile(dataFolder, S);
-                if isempty(fileName)
-                    fileName = obj.getFileName(S);
-                end
-            end
-            
-            pathStr = fullfile(dataFolder, fileName);
-            
-            % Save filepath entry to filepath settings if it did
-            % not exist from before...
-            if ~isExistingEntry && strcmp(mode, 'write')
-                dataFilePathModel.addEntry(S)
-            end
-            
+            pathStr = obj.SessionObject.getDataFilePath(varName, varargin{:});
         end
-        
-        function [mode, varargin] = checkDataFilePathMode(~, varargin)
-            
-            % Default mode is read:
-            mode = 'read';
-            
-            if ~isempty(varargin) && ischar(varargin{1})
-                switch varargin{1}
-                    case '-r'
-                        mode = 'read';
-                        varargin = varargin(2:end);
-                    case '-w'
-                        mode = 'write';
-                        varargin = varargin(2:end);
-                end
-            end
-            
-        end
-        
-        function fileName = lookForFile(obj, sessionFolder, S)
-
-            % Todo: Move this method to filepath settings editor.
-            
-            expression = S.FileNameExpression;
-            fileType = S.FileType;
-            
-            if contains(expression, fileType)
-                expression = ['*', expression];
-            else
-                expression = ['*', expression, fileType]; % Todo: ['*', expression, '*', fileType] <- Is this necessary???
-            end
-            
-            
-            % Is this faster if there are many files?
-% % %             if isKey(obj.FileList, sessionFolder)
-% % %                 fileList = obj.FileList(sessionFolder);
-% % %             else
-% % %                 L = dir(sessionFolder);
-% % %                 L = L(~strncmp({L.name}, '.', 1));
-% % %                 fileList = {L.name};
-% % %                 obj.FileList(sessionFolder) = fileList;
-% % %             end
-% % % 
-% % %             expression = strrep(expression, '*', '')
-% % %             isMatch = contains(fileList, expression);
-% % %             if any(isMatch) && sum(isMatch)==1
-% % %                 fileName = fileList{isMatch};
-% % %             elseif any(isMatch) && sum(isMatch) < 1
-% % %                 error('Multiple files were found')
-% % %             else
-% % %                 fileName = '';
-% % %             end
-            
-            L = dir(fullfile(sessionFolder, expression));
-            L = L(~strncmp({L.name}, '.', 1));
-            
-            if ~isempty(L) && numel(L)==1
-                fileName = L.name;
-            elseif ~isempty(L) && numel(L)>1
-                error('Multiple files were found')
-            else
-                fileName = '';
-            end
-            
-        end
-        
-        function fileName = createFileName(obj, varName, parameters)
-            
-            sid = obj.sessionID;
-            
-            capLetterStrInd = regexp(varName, '[A-Z, 1-9]');
-
-            for i = fliplr(capLetterStrInd)
-                if i ~= 1
-                    varName = insertBefore(varName, i , '_');
-                end
-            end
-            
-            varName = lower(varName);
-            
-            fileName = sprintf('%s_%s', sid, varName);
-            
-            if isfield(parameters, 'FileType')
-                fileExtension = parameters.FileType;
-                if ~strncmp(fileExtension, '.', 1)
-                    fileExtension = strcat('.', fileExtension);
-                end
-            else
-                fileExtension = '.mat';
-            end
-            
-            fileName = strcat(fileName, fileExtension);
-
-        end
-        
-        function fileName = getFileName(obj, S)
-            
-            sid = obj.sessionID;
-
-            fileName = sprintf('%s_%s', sid, S.FileNameExpression);
-            
-            fileType = S.FileType;
-            
-            if ~strncmp(fileType, '.', 1)
-                fileType = strcat('.', fileType);
-            end
-            
-            fileName = strcat(fileName, fileType);
-            
-        end
-        
-        function folderPath = getSessionFolder(obj, dataLocationType)
-        % Get session folder for session given a dataLocationType
-        
-            % Todo: implement secondary roots (ie cloud directories)
-            
-            global dataLocationModel
-            if isempty(dataLocationModel)
-                dataLocationModel = nansen.setup.model.DataLocations();
-            end
-            
-            if isfield(obj.DataLocation, dataLocationType)
-                folderPath = obj.DataLocation.(dataLocationType);
-            else
-                dataLocTypes = {dataLocationModel.Data.Name};
-                    
-                if ~any( strcmp(dataLocTypes, dataLocationType) )
-                    error(['Data location type ("%s") is not valid. Please use one of the following:\n', ...
-                           '%s'], dataLocationType, strjoin(dataLocTypes, ', ') )
-                else
-                    folderPath = obj.createSessionFolder(dataLocationType);
-                end
-                
-            end
-            
-            if ~isfolder(folderPath)
-                error('Session folder not found')
-            end
-            
-        end
-        
-        function folderPath = createSessionFolder(obj, dataLocationName)
-            
-            % Get data location model. Question: Better way to do this?
-            global dataLocationModel
-            if isempty(dataLocationModel)
-                dataLocationModel = nansen.setup.model.DataLocations();
-            end
-            
-            S = dataLocationModel.getDataLocation(dataLocationName);
-            
-            rootPath = S.RootPath{1};
-            
-            folderPath = rootPath;
-            
-            for i = 1:numel(S.SubfolderStructure)
-                
-                switch S.SubfolderStructure(i).Type
-                    
-                    case 'Animal'
-                        folderName = sprintf('subject-%s', obj.subjectID);
-                    case 'Session'
-                        folderName = sprintf('session-%s', obj.sessionID);
-                    case 'Date'
-                        folderName = obj.Date;
-                    case 'Time'
-                        folderName = obj.Time;
-                    otherwise
-                        folderName = S.SubfolderStructure(i).Name;
-                        
-                        if isempty(folderName)
-                            error('Can not create session folder because foldername is not specified')
-                        end
-                end
-                
-                folderPath = fullfile(folderPath, folderName);
-                
-            end
-            
-            if ~isfolder(folderPath)
-                mkdir(folderPath)
-            end
-            
-            obj.DataLocation.(dataLocationName) = folderPath;
-            
-            if ~nargout
-                clear folderPath
-            end
-
-        end
-        
     end
    
     methods (Static)
+        function S = getDefaultSettings()
+            
+            S = struct;
+            S.ShowDefaultVariables = true;
+            S.ShowUserVariables = true;
+            S.ShowInternalVariables = false;
+            S.ShowFavouriteVariables = true;
+            
+        end
     end
 end

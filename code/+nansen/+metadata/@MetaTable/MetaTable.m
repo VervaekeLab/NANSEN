@@ -91,6 +91,10 @@ classdef MetaTable < handle
            tf = ~obj.IsModified; 
         end
 
+        function markClean(obj)
+            obj.IsModified = false;
+        end
+        
         function schemaIdName = get.SchemaIdName(obj)
         %GET.SCHEMAIDNAME Get the propertyname of the ID of current schema   
             schemaIdName = eval(strjoin({obj.MetaTableClass, 'IDNAME'}, '.'));
@@ -189,8 +193,8 @@ classdef MetaTable < handle
             obj.fromStruct(S)
             
             % Check if file is part of MetaTable Catalog (adds if missing)
-            metaCatalogEntry = obj.toStruct('metatable_catalog');
-            nansen.metadata.MetaTableCatalog.checkMetaTableCatalog(metaCatalogEntry)
+            %metaCatalogEntry = obj.toStruct('metatable_catalog');
+            %nansen.metadata.MetaTableCatalog.checkMetaTableCatalog(metaCatalogEntry)
             
             if ~obj.IsMaster
                 obj.synchFromMaster()
@@ -228,15 +232,15 @@ classdef MetaTable < handle
             % Get MetaTable variables which will be saved to file.
             S = obj.toStruct('metatable_file');
             
+            % Sort MetaTable entries based on the entry ID.
+            obj.sort()
+            
             % Synch with master if this is a dummy MetaTable.
             if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
                 obj.synchToMaster(S)
                 S.MetaTableEntries = {};
             end
-            
-            % Sort MetaTable entries based on the entry ID.
-            obj.sort()
-            
+
             % Save metatable variables to file
             save(obj.filepath, '-struct', 'S')
             fprintf('MetaTable saved to %s\n', obj.filepath)
@@ -285,7 +289,7 @@ classdef MetaTable < handle
 
             % Link to master MetaTable if this is a dummy
             if isempty(obj.MetaTableKey) && obj.IsMaster
-                obj.MetaTableKey = uuidgen;
+                obj.MetaTableKey = nansen.util.getuuid();
             elseif isempty(obj.MetaTableKey) && ~obj.IsMaster
                 obj.linkToMaster()
             else
@@ -390,7 +394,7 @@ classdef MetaTable < handle
             
         end
         
-        function T = getFormattedTableData(obj, columnIndices)
+        function T = getFormattedTableData(obj, columnIndices, rowIndices)
         %formatTableData Format cells of columns with special data types.
         %
         % Some columns might have special data types, and this function
@@ -400,45 +404,69 @@ classdef MetaTable < handle
             if nargin < 2 % Get all columns
                 columnIndices = 1:size(obj.entries, 2);
             end
+            if nargin < 3 % Get all rows
+                rowIndices = 1:size(obj.entries, 1);
+            end
+            
+            if isempty(obj.entries)
+                T = obj.entries;
+                return
+            end
         
             % Todo: implement better way for detecting variables that have
             % their own display functions...
             
             % Check if any of the columns contain structs
-            row = table2cell( obj.entries(1, columnIndices) );
-            isStruct = cellfun(@(c) isstruct(c), row);
+            firstRowData = table2cell( obj.entries(1, columnIndices) );
+            isStruct = cellfun(@(c) isstruct(c), firstRowData);
             
-            T = obj.entries(:, columnIndices);
+            T = obj.entries(rowIndices, columnIndices);
+            
+            % Todo: This should not depend on if type is struct
             if ~any(isStruct);    return;    end
 
-            % Todo: This should not depend on if type is struct
-            % Todo: Make method to get typdef private and public typedef
-            % functions.
+            % Todo: Make method to get private and public typedef functions.
             columnNumbers = find(isStruct);
             columnNames = T.Properties.VariableNames(columnNumbers);
             
-            columnNames = ['Time', columnNames];
-            
+            if any(strcmp(T.Properties.VariableNames, 'Time'))
+                columnNames = ['Time', columnNames];
+            end
+               
+            % Note: Right now, this brute forces a formatting function
+            % handle from the internal package for tablevars.
             tmpfun = @(name) sprintf('nansen.metadata.tablevar.%s', name);
             typeDef = cellfun(@(name) str2func(tmpfun(name)), columnNames, 'uni', 0);
             
             % Convert table to struct for the formatting of values.
             % Can't change the datatype of the table columns otherwise...?
             tempStruct = table2struct(T);
-                
+            
+            % Format data column by column
             numRows = numel(tempStruct);
-            for iRow = 1:numRows % Go through all rows
+            numCols = numel(columnNames);
+            
+            for jColumn = 1:numCols % Go through columns
                 
-                for jColumn = 1:numel(columnNames) % Go through columns
-                    thisColumnName = columnNames{jColumn};
-                    thisValue = tempStruct(iRow).(thisColumnName);
+                thisColumnName = columnNames{jColumn};
+                thisValue = { tempStruct.(thisColumnName) };
                     
+                try % Since we dont know if the function exists, use try/catch
                     tmpObj = typeDef{jColumn}( thisValue );
                     str = tmpObj.getCellDisplayString();
+                catch ME
+                    if contains(ME.message, 'rgb2hsv')
+                        warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
+                    end
                     
-                    % Todo: have a backup if there is no typeDef for column
-                    tempStruct(iRow).(thisColumnName) = str;
+                    % Todo: have a better backup if there is no typeDef for column
+                    % i.e a general struct viewer...
+                    str = repmat({''}, numRows, 1);
                 end
+                
+                % Add formatted character vectors for all meta items for
+                % current column:
+                [tempStruct(:).(thisColumnName)] = deal( str{:} );
                 
             end
             
@@ -463,10 +491,18 @@ classdef MetaTable < handle
         %   variable to the table and initializes all column values to the
         %   initValue.
         
-            numTableRows = size(obj.entries, 1);
-            columnValues = repmat(initValue, numTableRows, 1);
-            
-            obj.entries{:, variableName} = columnValues;
+        % Todo: Make method for adding multiple variable ine one go, i.e
+        % allow variableName and initValue to be cell arrays.
+
+            if ~obj.IsMaster % Add to master metatable
+                % Get filepath to master MetaTable file and load MetaTable
+                masterFilePath = obj.getMasterMetaTableFile();
+                masterMT = nansen.metadata.MetaTable.open(masterFilePath);
+                masterMT.addTableVariable(variableName, initValue);
+                masterMT.save();
+            end
+        
+            obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
 
         end
 
@@ -474,6 +510,32 @@ classdef MetaTable < handle
             obj.entries(:, variableName) = [];
         end
 
+        function appendTable(obj, newTableRows)
+        %appendTable append a metatable to the current metatable 
+        
+            % Todo: Add validations to make sure there are not duplicate
+            % entries
+            % Todo: Extract separate methods for the code which is
+            % duplicated in addEntries.
+        
+            % Todo; what if the id is not the 1st variable.
+            schemaIdName = newTableRows.Properties.VariableNames{1};
+            
+            obj.entries = [obj.entries; newTableRows];
+            obj.MetaTableMembers = obj.entries.(schemaIdName);
+            
+            % Synch entries from master, e.g. if some entries were added
+            % that are already in master.
+            if ~obj.IsMaster %&& ~isempty(obj.filepath)
+                obj.synchFromMaster()
+            end
+            
+            obj.sort()
+            
+            obj.IsModified = true;
+            
+        end
+        
         % Add entry/entries to MetaTable table
         function addEntries(obj, newEntries)
         %addEntries Add entries to the MetaTable
@@ -505,14 +567,21 @@ classdef MetaTable < handle
             
             % Check that entry/entries are not already present in the
             % Metatable.
-            iA = contains(newEntryIds, obj.MetaTableMembers);
+            if iscell(newEntryIds) && ischar(newEntryIds{1})
+                iA = contains(newEntryIds, obj.MetaTableMembers);
+            elseif isnumeric(newEntryIds)
+                if isempty(obj.MetaTableMembers)
+                    obj.MetaTableMembers = [];
+                end
+                iA = ismember(newEntryIds, obj.MetaTableMembers);
+            end
+            
             newEntryIds(iA) = [];
             
             if isempty(newEntryIds); return; end
             
             % Skip entries that are already present in the MetaTable.
             newEntries(iA, :) = [];
-            
             
             % Add new entries to the MetaTable.
             if isempty(obj.entries)
@@ -545,7 +614,33 @@ classdef MetaTable < handle
         
         function editEntries(obj, rowInd, varName, newValue)
         %editEntries Edit entries given some parameters.
-            obj.entries{rowInd, varName} = newValue;
+            
+            if isa( obj.entries{rowInd, varName}, 'cell')
+                try
+                    obj.entries{rowInd, varName} = newValue;
+                catch % Todo: Better way?
+                    obj.entries{rowInd, varName} = {newValue};
+                end
+            elseif isa(newValue, 'cell')
+                obj.entries{rowInd, varName} = cat(1, newValue{:});
+            else
+                obj.entries{rowInd, varName} = newValue;
+            end
+            
+        end
+        
+        function replaceDataColumn(obj, columnName, columnValues)
+        %replaceDataColumn Replace all values of a data column.
+            
+            assert( isa(columnValues, 'cell') && numel(columnValues) == size(obj.entries, 1), ...
+                'column values must be a cell array with one cell per table row')
+            
+            % Convert to struct in order to assign values that does not
+            % match type or size of current values
+            tempS = table2struct(obj.entries);
+            [tempS(:).(columnName)] = deal( columnValues{:} );
+            obj.entries = struct2table(tempS, 'AsArray', true);
+            
         end
         
         % Remove entry/entries from MetaTable
@@ -601,9 +696,11 @@ classdef MetaTable < handle
         end
         
         function sort(obj)
-            [~, ind] = sort(obj.entries.(obj.SchemaIdName));
-            obj.entries = obj.entries(ind, :);
-            obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            if ~isempty(obj.entries)
+                [~, ind] = sort(obj.entries.(obj.SchemaIdName));
+                obj.entries = obj.entries(ind, :);
+                obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            end
 
         end
         
@@ -619,9 +716,9 @@ classdef MetaTable < handle
 
             if isempty(MT); return; end
             
-            isClass = contains(MT.MetaTableClass, className);
-            isKey = contains(MT.MetaTableKey, obj.MetaTableKey);
-            isName = contains(MT.MetaTableName, obj.MetaTableName);
+            isClass = strcmp(MT.MetaTableClass, className);
+            isKey = strcmp(MT.MetaTableKey, obj.MetaTableKey);
+            isName = strcmp(MT.MetaTableName, obj.MetaTableName);
             
             MT(isClass, 'IsDefault') = {false};
             MT(isClass&isKey&isName, 'IsDefault') = {true};
@@ -671,15 +768,18 @@ classdef MetaTable < handle
             assert(~isempty(mtTmp), 'No master MetaTable for this MetaTable class')
 
             MetaTableNames = mtTmp.MetaTableName;
+            
+            promptString = sprintf('Select a master MetaTable');
+            
             [ind, ~] = listdlg( 'ListString', MetaTableNames, ...
                                 'SelectionMode', 'multiple', ...
-                                'Name', ...
-                                'Select MetaTable to Use as Master' );
+                                'Name', 'Select Table', ...
+                                'PromptString', promptString);
 
             if isempty(ind); error('You need link to a master MetaTable'); end
             
             obj.MetaTableKey = mtTmp.('MetaTableKey'){ind};
-            
+            obj.save()
         end
         
         function synchToMaster(obj, S)
@@ -719,7 +819,10 @@ classdef MetaTable < handle
             % Get filepath to master MetaTable file and load MetaTable
             masterFilePath = obj.getMasterMetaTableFile();
             
-            if isempty(masterFilePath); return; end
+            if isempty(masterFilePath)
+                obj.linkToMaster()
+                masterFilePath = obj.getMasterMetaTableFile();
+            end
             
             sMaster = load(masterFilePath);
             
@@ -790,7 +893,7 @@ classdef MetaTable < handle
 
             % Add master to name for master MetaTable
             names(MT.IsMaster) = strcat(names(MT.IsMaster), ' (master)');
-            
+            names(MT.IsDefault) = strcat(names(MT.IsDefault), ' (default)');
             
             % Sort names alphabetically..
             names(~MT.IsMaster) = sort(names(~MT.IsMaster));
@@ -862,6 +965,9 @@ classdef MetaTable < handle
             % If entries are provided, add them to MetaTable:
             elseif isa(varargin{1}, 'nansen.metadata.abstract.BaseSchema')
                 metaTable.addEntries(varargin{1})
+                
+            elseif isa(varargin{1}, 'table')
+                metaTable.addEntries(varargin{1})
             
             % If keyword is provided, use this:
             elseif any( strcmp(varargin{1}, {'master', 'dummy'} ) )
@@ -903,13 +1009,16 @@ classdef MetaTable < handle
         %   This method is static because the expected input is a
         %   MetaTableCatalog entry (which is a struct)
             
+            filename = matlab.lang.makeValidName(S.MetaTableName);
+            filename = utility.string.camel2snake(filename);
+
             if S.IsMaster
                 nameExtension = 'master_metatable';
             else
                 nameExtension = 'dummy_metatable';
             end
             
-            filename = sprintf('%s_%s.mat', S.MetaTableName, nameExtension);
+            filename = sprintf('%s_%s.mat', filename, nameExtension);
             
         end
         
@@ -926,6 +1035,19 @@ classdef MetaTable < handle
             S = table2struct( MT(isClassMatch & isDefault, :) );
             tf = ~isempty(S);
             
+        end
+        
+        function T = addTableVariableStatic(T, variableName, initValue)
+        %   addTableVariable(obj, variableName, initValue) adds a new
+        %   variable to the table and initializes all column values to the
+        %   initValue.
+        
+            % This is kind of a more general table utility function..
+            
+            numTableRows = size(T, 1);
+            columnValues = repmat(initValue, numTableRows, 1);
+            
+            T{:, variableName} = columnValues;
         end
         
     end

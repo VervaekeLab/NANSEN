@@ -37,7 +37,7 @@ classdef SessionTaskMenu < handle
     %       getting task attributes
     
     properties (Constant, Hidden)
-        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit'}
+        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Restart'}
     end
     
     properties
@@ -57,8 +57,8 @@ classdef SessionTaskMenu < handle
     properties (Access = private)
         DefaultMethodsPath char % Todo: Tie to a session type. Ie Ephys, ophys etc.
         ProjectMethodsPath char
-        DefaultMethodsPackage char
-        ProjectMethodsPackage char
+        DefaultMethodsPackage char % not used, remove?
+        ProjectMethodsPackage char % not used, remove?
         
         ProjectChangedListener
     end
@@ -70,18 +70,23 @@ classdef SessionTaskMenu < handle
     
     methods
         
-        function obj = SessionTaskMenu(appHandle)
+        function obj = SessionTaskMenu(appHandle, modules)
             
             obj.ParentApp = appHandle;
+            
+            if nargin < 2
+                modules = {'ophys.twophoton'};
+            end
             
             % NB: This assumes that the ParentApp has a Figure property
             hFig = obj.ParentApp.Figure;
             
-            obj.assignDefaultMethodsPath()
+            obj.assignDefaultMethodsPath(modules)
             obj.assignProjectMethodsPath()
-            tic
+            
+            % Todo: Improve performance!
             obj.createMenuFromDirectory(hFig);
-            toc
+            
         end
 
     end
@@ -129,7 +134,14 @@ classdef SessionTaskMenu < handle
     
     methods (Access = private)
         
-        function assignDefaultMethodsPath(obj)
+        function assignDefaultMethodsPath(obj, modules)
+            
+            sesMethodRootFolder = nansen.localpath('sessionmethods');
+
+            integrationDirs = utility.path.packagename2pathstr(modules);
+            obj.DefaultMethodsPath = fullfile(sesMethodRootFolder, integrationDirs);
+            return
+            
             %Todo: This should depend on session schema.
             obj.DefaultMethodsPath = fullfile(nansen.rootpath, '+session', '+methods');
             obj.DefaultMethodsPackage = utility.path.pathstr2packagename(obj.DefaultMethodsPath);
@@ -202,7 +214,10 @@ classdef SessionTaskMenu < handle
         % Requires: utility.string.varname2label
         
             if nargin < 3
-                dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
+                dirPath = [obj.DefaultMethodsPath, {obj.ProjectMethodsPath}];
+                init = true;
+            else
+                init = false;
             end
         
             % List contents of directory given in inputs
@@ -215,6 +230,15 @@ classdef SessionTaskMenu < handle
             
             L = L(~strncmp({L.name}, '.', 1));
             
+            if init % Sort menus 
+                
+                % Sort names to come in a specified order...
+                menuOrder = {'+data', '+process', '+analyze', '+plot'};
+                [~, ~, ic] = intersect(menuOrder, {L.name}, 'stable');
+                mySortIdx = unique( [ic', 1:numel(L)], 'stable');
+                L = L(mySortIdx);
+                
+            end
             
             % Loop through contents of directory
             for i = 1:numel(L)
@@ -244,7 +268,7 @@ classdef SessionTaskMenu < handle
                 else
                     [~, fileName, ext] = fileparts(L(i).name);
                     
-                    if ~strcmp(ext, '.m') % Skip files that are not .m
+                    if ~strcmp(ext, '.m') &&  ~strcmp(ext, '.mlx')  % Skip files that are not .m
                         continue
                     end
                     
@@ -252,17 +276,18 @@ classdef SessionTaskMenu < handle
                                         
                     % Get the full function name (including package names)
                     functionName = obj.getFunctionStringName(L(i).folder, fileName);
+                    fcnConfig = obj.getTaskAttributes(functionName);
 
                     
                     % Create menu items with function handle as callback
                     if ~isempty(meta.class.fromName(functionName))
                         
                         % Get attributes for session method/function.
-                        fcnConfig = obj.getTaskAttributes(functionName);
+                        %fcnConfig = obj.getTaskAttributes(functionName);
                         options = fcnConfig.OptionsManager.AllOptionNames;
                         iSubMenu = uimenu(hParent, 'Text', menuName);
                         
-                        if isempty(options)
+                        if isempty(options) || numel(options)==1
                             obj.createMenuCallback(iSubMenu, functionName)
                             obj.registerMenuObject(iSubMenu, fcnConfig)
                         
@@ -282,7 +307,7 @@ classdef SessionTaskMenu < handle
                     else
                         iMitem = uimenu(hParent, 'Text', menuName);
                         obj.createMenuCallback(iMitem, functionName)
-                        obj.registerMenuObject(iMitem, functionName)
+                        obj.registerMenuObject(iMitem, fcnConfig)
                         
                     end
                     
@@ -343,6 +368,7 @@ classdef SessionTaskMenu < handle
                 h.Text = strrep(h.Text, '...', '');
                 h.Text = strrep(h.Text, ' (q)', '');
                 h.Text = strrep(h.Text, ' (e)', '');
+                h.Text = strrep(h.Text, ' (r)', '');
                 h.Enable = 'on';
 
                 % Append token to text
@@ -364,7 +390,10 @@ classdef SessionTaskMenu < handle
                         
                     case 'Edit'
                         h.Text = [h.Text, ' (e)'];
-
+                        
+                    case 'Restart'
+                        h.Text = [h.Text, ' (r)'];
+                        
                  end
             end
            

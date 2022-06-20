@@ -31,7 +31,7 @@ function varargout = sessionMethodFunctionTemplate(sessionObject, varargin)
     
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Implementation of the method : Add you code here:    
+% Implementation of the method : Add your code here:    
     
 
 

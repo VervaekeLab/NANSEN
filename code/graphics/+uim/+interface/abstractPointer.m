@@ -13,7 +13,6 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
         exitMode        % Go back to previous, or go back to default?
     end
     
-    
     properties 
         isActive = false % Is tool doing something right now?
  
@@ -24,14 +23,12 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
         buttonUpCallback % protected?
         buttonMotionCallback % protected?
         
-%         activatedCallback  Jusrt use toggle event instead??
+%         activatedCallback  Just use toggle event instead??
 %         deactivatedCallback
     end
     
-    
     properties (Access = protected)
         state = 'off';      % on | on hold | off
-        
         pointerCData = [];
     end
     
@@ -49,8 +46,7 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
         
     end
     
-
-    methods
+    methods % Public methods
         
         function wasCaptured = onKeyPress(obj, src, event)
             wasCaptured = false;
@@ -79,9 +75,7 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
             eventData = uim.event.ToggleEvent(0);
             obj.notify('ToggledPointerTool', eventData)
         end
-        
-        
-        
+
         function tf = isPointerInsideAxes(obj, currentPoint)
             
             if nargin < 2
@@ -96,6 +90,28 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
             tf = ~any(any(diff([axLim(1:2); currentPoint; axLim(3:4)]) < 0));
         end
         
+        function onPointerExitedAxes(obj)
+            % Subclasses may override
+        end
+        
+        function onPointerEnteredAxes(obj)
+            % Subclasses may override
+        end
+        
     end
+    
+% %     methods (Access = public) % These should not be public... Or there 
+% %         %should be one method that can be accessed from Pointermanager and
+% %         %one method that can be overridden by subclasses...
+% %         
+% %         function onPointerExitedAxes(obj)
+% %             % Subclasses may override
+% %         end
+% %         
+% %         function onPointerEnteredAxes(obj)
+% %             % Subclasses may override
+% %         end
+% %         
+% %     end
     
 end

@@ -1,4 +1,4 @@
-classdef BaseSchema < uim.mixin.structAdapter
+classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
 %BaseSchema Basis class for a metadata object definition.
 %
 % Properties are metadata info.
@@ -33,9 +33,48 @@ classdef BaseSchema < uim.mixin.structAdapter
         Notebook = struct.empty        % struct
     end
     
+    properties (Transient, SetAccess = immutable, GetAccess = protected)
+        IsConstructed = false
+    end
     
-    methods
+    
+    events
+        PropertyChanged
+    end
+    
+    methods % Constructor
+        function obj = BaseSchema(varargin)
+            
+            if ~isempty(varargin) && isa(varargin{1}, 'table')
+                obj = obj.constructFromTable(varargin{1});
+                [obj.IsConstructed] = deal(true);
+            end
+            
+        end
+    end
+    
+    methods (Access = private)
+                      
+        function obj = constructFromTable(obj, metaTable)
+        %constructFromTable Construct object(s) from meta table
+        %
+        %   metaObj.constructFromTable(metaTable) constructs a vector of
+        %   objects from a table
         
+        %   Note: Need to return obj, because this function might change
+        %   the size of obj.
+        
+            % Count table rows
+            numObjects = size(metaTable,1);
+            % Use notebook field to initialize a vector of objects
+            obj(numObjects).Notebook = struct.empty;
+            % Assign object properties from meta table   
+            obj.fromTable(metaTable)
+            
+        end
+    end
+    
+    methods % Methods for retyping
         
         function fromStruct(obj, S)
             
@@ -44,29 +83,30 @@ classdef BaseSchema < uim.mixin.structAdapter
             
             for jProp = 1:numel(propertyNames)
                 if isprop(obj, propertyNames{jProp})
+% %                     for i = 1:numObjects
+% %                         obj(i).(propertyNames{jProp}) = S(i).(propertyNames{jProp});
+% %                     end
+                    [obj.(propertyNames{jProp})] = S.(propertyNames{jProp});
+                else
+                    P = obj.addprop(propertyNames{jProp});
                     for i = 1:numObjects
                         obj(i).(propertyNames{jProp}) = S(i).(propertyNames{jProp});
                     end
-                else
-                    % Todo: Add to dynamic property?
+                    % Dynamic props can only be set from within the class
+                    [P.SetAccess] = deal('protected');
+                    
                 end
             end
             
             
         end
         
-        
         function S = toStruct(obj)
         %TOSTRUCT Convert object to a struct. Skip Notebook property.
-        %
-        % Todo: Why do we skip the Notebook??     
             
-            S = toStruct@uim.mixin.structAdapter(obj);
-            %S = rmfield(S, 'Notebook');
-            
+            S = toStruct@nansen.util.StructAdapter(obj);
         end
 
-        
         function T = makeTable(obj)
             
             for i = 1:numel(obj)
@@ -87,6 +127,42 @@ classdef BaseSchema < uim.mixin.structAdapter
             numObjects = numel(S);
             obj(numObjects).Notebook = struct.empty;
             obj.fromStruct(S);
+            
+        end
+        
+    end
+    
+    methods
+        function addNote(obj, note)
+            
+            if isa(note, 'nansen.notes.Note')
+                noteStruct = struct(note);
+            elseif isa(note, 'struct')
+                noteStruct = note;
+            else
+                error('Invalid input')
+            end
+            
+            if isempty(obj.Notebook)
+                obj.Notebook = noteStruct;
+            else
+                obj.Notebook(end+1) = noteStruct;
+            end
+            
+            evtData = obj.getPropertyChangedEventData('Notebook');
+            obj.notify('PropertyChanged', evtData)
+        end
+    end
+    
+    methods (Access = protected)
+        
+        function evtData = getPropertyChangedEventData(obj, propertyName)
+            
+            newValue = obj.(propertyName);
+            if isa(newValue, 'struct'); newValue = {newValue}; end
+            
+            evtData = uiw.event.EventData('Property', propertyName, ...
+                'NewValue', newValue); 
             
         end
         

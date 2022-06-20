@@ -1,4 +1,4 @@
-function [roiImages, roiStats] = createRoiUserdata(roiArray, imArray)
+function [roiImages, roiStats] = createRoiUserdata(roiArray, imArray, dff)
 %createRoiUserdata
 %
 %   Todo: organize this and make part of roimanager. Also standardize with
@@ -6,12 +6,13 @@ function [roiImages, roiStats] = createRoiUserdata(roiArray, imArray)
 %   Todo: create templatesfor ringW & diskW
     import roimanager.*
 
-    % Add average images of roi
-    f = nansen.twophoton.roisignals.extractF(imArray, roiArray);
-    dff = nansen.twophoton.roisignals.computeDff(f, 'dffFcn', 'dffRoiMinusDffNpil');
+    if nargin < 3
+        % Add average images of roi
+        f = nansen.twophoton.roisignals.extractF(imArray, roiArray);
+        dff = nansen.twophoton.roisignals.computeDff(f, 'dffFcn', 'dffRoiMinusDffNpil');
+        dff = dff'; % NOTE: Should be nrois x nsamples
+    end
     
-    %dff = autosegment.extractDff(imArray, roiArray, 'unique roi');
-
     roiImA = autosegment.extractRoiImages(imArray, roiArray, dff);
     roiImB = autosegment.extractRoiImages(imArray, roiArray, dff, 'ImageType', 'peak dff');
     roiImC = autosegment.extractRoiImages(imArray, roiArray, dff, 'ImageType', 'correlation');
@@ -33,7 +34,6 @@ function [roiImages, roiStats] = createRoiUserdata(roiArray, imArray)
 %         roiImD = arrayfun(@(i) roiImD(:, :, i), 1:size(roiImD,3), 'uni', 0);
 
     roiImages = struct('enhancedAverage', roiImA, 'peakDff', roiImB, 'correlation', roiImC);%, 'enhancedCorrelation', roiImD);
-
 
     roiStats = autosegment.calculateRoiStats(roiArray, roiImages, dff, ringW, diskW);
 

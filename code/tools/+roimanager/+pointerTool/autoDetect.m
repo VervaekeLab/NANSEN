@@ -1,4 +1,5 @@
-classdef autoDetect < uim.interface.abstractPointer
+classdef autoDetect < uim.interface.abstractPointer & ...
+        roimanager.pointerTool.RoiDisplayInputHandler
     
     % TODO: Fix so that crosshairs are plotted based on the maximum
     % size/limits of the parent axes.
@@ -7,12 +8,10 @@ classdef autoDetect < uim.interface.abstractPointer
         exitMode = 'default';
     end
     
-    
     properties 
         xLimOrig
         yLimOrig
         
-        hObjectMap
         hImageStack
         hImage
         
@@ -21,6 +20,11 @@ classdef autoDetect < uim.interface.abstractPointer
         mode = 1
     end
     
+    properties 
+        ButtonDownFcn
+        ButtonMotionFcn
+        UpdateRoiFcn
+    end
     
     properties (Access = private) % Properties related to displaying circle during creation
         circleToolCoords
@@ -35,6 +39,7 @@ classdef autoDetect < uim.interface.abstractPointer
         scrollListener
         hTempRoi
         
+        AxesLimitChangeListener event.listener
     end
     
     
@@ -51,9 +56,9 @@ classdef autoDetect < uim.interface.abstractPointer
 
         end
         
-        
         function activate(obj)
             activate@uim.interface.abstractPointer(obj)
+            
             showCircle(obj)
             hideCircle(obj)
             obj.plotCrosshair()
@@ -70,7 +75,6 @@ classdef autoDetect < uim.interface.abstractPointer
             end
         end
         
-        
         function deactivate(obj)
             deactivate@uim.interface.abstractPointer(obj)
             hideCircle(obj)
@@ -82,13 +86,11 @@ classdef autoDetect < uim.interface.abstractPointer
             obj.isActive = false;
         end
 
-        
         function suspend(obj)
             suspend@uim.interface.abstractPointer(obj)
             hideCircle(obj)
             set(obj.hCrosshair, 'Visible', 'off')
         end
-        
         
         function setPointerSymbol(obj)
             %obj.hFigure.Pointer = 'cross';
@@ -116,7 +118,6 @@ classdef autoDetect < uim.interface.abstractPointer
             
         end
         
-        
         function onButtonDown(obj, src, evt)
             
             %obj.isActive = true;
@@ -125,7 +126,6 @@ classdef autoDetect < uim.interface.abstractPointer
                 return
             end
             
-
             currentPoint = obj.hAxes.CurrentPoint(1, 1:2);
             
             x = currentPoint(1);
@@ -133,22 +133,25 @@ classdef autoDetect < uim.interface.abstractPointer
             r = obj.circleToolCoords(3);
             r(2) = obj.extendedRadius;
 
-            % Todo: Call a buttonDownFcn instead. 
-            isRoiSelected = obj.hObjectMap.hittest(src, evt);
-            obj.hObjectMap.autodetectRoi(x, y, r, obj.mode, isRoiSelected);
-
+            isRoiSelected = obj.RoiDisplay.hittest(src, evt);
+            
+            % Todo: Call a buttonDownFcn instead.
+            if ~isempty(obj.ButtonDownFcn)
+                obj.ButtonDownFcn(x, y, r, obj.mode, isRoiSelected)
+            else
+                obj.RoiDisplay.autodetectRoi2(x, y, r, obj.mode, isRoiSelected);
+            end
+            
         end
-        
         
         function onButtonMotion(obj, src, evt)
            
             if ~obj.isPointerInsideAxes; return; end
             if ~obj.isActive; return; end
             
-
             currentPoint = obj.hAxes.CurrentPoint(1, 1:2);
             
-            % Todo: Call a mouseMotionFcn instead. instead. 
+            % Todo: Call a mouseMotionFcn instead. 
             if ~isempty(obj.hTempRoi) && strcmp(obj.hTempRoi.Visible, 'on')
             	obj.updateRoi(currentPoint)
             end
@@ -159,11 +162,9 @@ classdef autoDetect < uim.interface.abstractPointer
             obj.plotCrosshair(tmpCoords(1:2))
         end
         
-        
         function onButtonUp(obj, src, event)
             %obj.isActive = false;
         end
-        
         
         function onMouseScroll(obj, src, event)
             if obj.mode == 4 && obj.isAltDown && obj.isControlDown
@@ -186,7 +187,6 @@ classdef autoDetect < uim.interface.abstractPointer
                 end
             end
         end
-        
         
         function wasCaptured = onKeyPress(obj, src, event)
             wasCaptured = true;
@@ -219,7 +219,7 @@ classdef autoDetect < uim.interface.abstractPointer
                     end
 
                 
-                case {'g', 'h'}
+                case '§' %{'g', 'h'} % Todo: reconsider this.... Use alt + mouse?
                     if ~isempty(obj.hCircle) && strcmp(obj.hCircle.Visible, 'off')
                         obj.showCircle()
                         obj.hideCircleIn(2, true)
@@ -255,8 +255,14 @@ classdef autoDetect < uim.interface.abstractPointer
                 otherwise
                     wasCaptured = false;
             end
+            
+            if wasCaptured
+                return
+            else % Pass on to roi keypress handler
+                wasCaptured = obj.roiKeypressHandler(src, event);
+            end
+            
         end
-        
         
         function onKeyRelease(obj, src, event)
             switch event.Key
@@ -267,25 +273,53 @@ classdef autoDetect < uim.interface.abstractPointer
             end
         end
         
-        
         function updateRoi(obj, currentPoint)
             
             if nargin < 2
-                currentPoint = obj.hAxes.CurrentPoint(1, 1:2);
+                %currentPoint = obj.hAxes.CurrentPoint(1, 1:2);
+                currentPoint = obj.getAxesCenterPoint();
             end
             
             if ~obj.isPointerInsideAxes(currentPoint); return; end
             
-            
             x = currentPoint(1);
             y = currentPoint(2);
-            r = obj.circleToolCoords(3);
+            r = round( obj.circleToolCoords(3) );
             
             r(2) = obj.extendedRadius;
             
-            newRoi = obj.hObjectMap.autodetectRoi(x, y, r, obj.mode, false);
+            if ~isempty(obj.UpdateRoiFcn)
+                newRoi = obj.UpdateRoiFcn(x, y, r, obj.mode, false);
+            else
+%                 newRoi = obj.RoiDisplay.autodetectRoi(x, y, r, obj.mode, false);
+                newRoi = obj.RoiDisplay.autodetectRoi2(x, y, r, obj.mode, false);
+            end
             
             obj.plotTempRoi(newRoi)
+        end
+        
+        function centerPoint = getAxesCenterPoint(obj)
+            centerPointX = obj.hAxes.XLim(1) + diff(obj.hAxes.XLim)/2;
+            centerPointY = obj.hAxes.YLim(1) + diff(obj.hAxes.YLim)/2;
+            centerPoint = [centerPointX, centerPointY];
+        end
+        
+        function addAxesLimitChangeListener(obj)
+            obj.AxesLimitChangeListener = listener(obj.hAxes, ...
+                {'XLim', 'YLim'}, 'PostSet', @obj.updateAxesLimitValues);
+        end
+        
+        function removeAxesLimitChangeListener(obj)
+            if ~isempty(obj.AxesLimitChangeListener)
+                delete( obj.AxesLimitChangeListener )
+                obj.AxesLimitChangeListener = event.listener.empty;
+            end
+        end
+        
+        function updateAxesLimitValues(obj, ~, ~)
+            obj.xLimOrig = obj.hAxes.XLim;
+            obj.yLimOrig = obj.hAxes.YLim;
+            obj.plotCrosshair()
         end
         
     end
@@ -298,7 +332,6 @@ classdef autoDetect < uim.interface.abstractPointer
             end
             obj.hCircle.Visible = 'on';
         end
-        
         
         function hideCircle(obj, doFade)
             
@@ -314,9 +347,7 @@ classdef autoDetect < uim.interface.abstractPointer
             
             obj.hCircle.Visible = 'off';
             obj.hCircle.FaceAlpha = 0.15;
-            
         end
-        
         
         function changeCircleRadius(obj, deltaR)
             tmpCoords = obj.circleToolCoords;
@@ -332,10 +363,29 @@ classdef autoDetect < uim.interface.abstractPointer
         
     end
     
-    
-    
-    methods (Access = protected)
+    methods (Access = public)
         
+        function onPointerExitedAxes(obj)
+
+            currentPoint = obj.getAxesCenterPoint();
+            
+            if ~isempty(obj.hTempRoi) && strcmp(obj.hTempRoi.Visible, 'on')
+            	obj.updateRoi(currentPoint)
+            end
+            
+            tmpCoords = [currentPoint, obj.circleToolCoords(3)];
+            
+            obj.plotCircleTool(tmpCoords);
+            obj.plotCrosshair(tmpCoords(1:2))
+        end
+        
+        function onPointerEnteredAxes(obj)
+            % pass
+        end
+        
+    end
+
+    methods (Access = protected)
         
         function plotCircleTool(obj, coords)
             
@@ -403,21 +453,19 @@ classdef autoDetect < uim.interface.abstractPointer
             
         end
         
-        
         function plotCrosshair(obj, center)
-%             drawnow limitrate
-%             drawnow
             
+            if isempty(obj.circleToolCoords); return; end
+
             hAx = obj.hAxes;
             
             
             % Todo: Have these sizes as internal property?
-% %             axLimOrig = [1,obj.hObjectMap.displayApp.imWidth; ...
-% %                 1,obj.hObjectMap.displayApp.imHeight];
+% %             axLimOrig = [1,obj.RoiDisplay.displayApp.imWidth; ...
+% %                 1,obj.RoiDisplay.displayApp.imHeight];
 % %             ps = 10 / axLimOrig(2a) * range(hAx.XLim); 
             
             
-            %imSize = size(obj.hImage.CData);
             axLimOrig = [obj.xLimOrig; obj.yLimOrig];
             
             if nargin < 2 && ~obj.isPointerInsideAxes()
@@ -462,28 +510,14 @@ classdef autoDetect < uim.interface.abstractPointer
             
         end
         
-        
         function plotTempRoi(obj, hRoi)
             
             if isempty(hRoi)
-                B = {[nan, nan]};
+                B = [nan, nan];
             else
                 %B = bwboundaries(hRoi);
                 B = hRoi.Boundary{1};
             end
-            
-% %             % Standardize output B, so that boundary property is a cell of two
-% %             % column vectors, where the first is y-coordinates and the seconds
-% %             % is x-coordinates. Should ideally be an nx2 matrix of x and y.
-% %             if numel(B) > 1
-% %                 B = cellfun(@(b) vertcat(b, nan(1,2)), B, 'uni', 0);
-% %                 B = vertcat(B{:});
-% %                 B(end, :) = []; % Just remove the last nans...
-% %             elseif isempty(B)
-% %                 B = [nan, nan];
-% %             else
-% %                 B = B{1};
-% %             end
             
             X = B(:, 2);
             Y = B(:, 1);
@@ -498,8 +532,22 @@ classdef autoDetect < uim.interface.abstractPointer
                 obj.hTempRoi.FaceAlpha = 0.15;
             end
             obj.hTempRoi.Visible = 'on';
+            
+            % Debugging:
+% % %             if isempty(hRoi);return;end
+% % %             persistent f ax hIm
+% % %             if isempty(f) || ~isvalid(f)
+% % %                 f = figure('Position', [300,300,300,300], 'MenuBar', 'none'); 
+% % %                 ax = axes(f, 'Position',[0,0,1,1]);
+% % %             else
+% % %                 cla(ax)
+% % %             end
+% % % 
+% % %             hIm = imagesc(ax, hRoi.mask); hold on
+% % %             plot(ax, X, Y)
+            
+
         end
-        
         
         function deactivateWhenScrolling(obj)
             t = timer('ExecutionMode', 'singleShot', 'StartDelay', 0.3);
@@ -508,7 +556,6 @@ classdef autoDetect < uim.interface.abstractPointer
             obj.isActive = false;
             obj.scrollerTimerFcn = t;
         end
-        
         
         function reactivateAfterScrolling(obj, t)
             % Return if gui has been deleted
@@ -522,7 +569,6 @@ classdef autoDetect < uim.interface.abstractPointer
             obj.isActive = true;
         end
         
-        
         function hideCircleIn(obj, n, doFade)
             if nargin < 2; doFade = false; end
             t = timer('ExecutionMode', 'singleShot', 'StartDelay', n);
@@ -530,7 +576,6 @@ classdef autoDetect < uim.interface.abstractPointer
             start(t)
             obj.timerFcn = t;
         end
-        
         
         function hideCircleByTimer(obj, t, doFade)
             
@@ -547,9 +592,6 @@ classdef autoDetect < uim.interface.abstractPointer
             
         end
         
-        
     end
-    
-    
-    
+
 end

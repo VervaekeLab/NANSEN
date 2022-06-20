@@ -1,5 +1,5 @@
 classdef Addons < handle
-    %ADDONS A simple addon manager for managing a custom list of addons
+%ADDONS A simple addon manager for managing a custom list of addons
     %   Provides an interface for downloading and adding addons/toolboxes
     %   to the matlab path. Addons are specified in a separate function
     %   and this class provides several methods for managing these addons.
@@ -9,7 +9,7 @@ classdef Addons < handle
     % TODOS:
     % [X] Save addon list
     % [x] System for adding addons to path on startup
-    % [ ] Make another class for addons. 
+    % [ ] Make another class for addons.
     % [ ] Rename to addon manager
     % [ ] Add option for setting a custom installation dir
     % [ ] File with list of addons should be saved based on which software
@@ -118,7 +118,7 @@ classdef Addons < handle
             
             % Assign to AddonList property
             obj.AddonList = addonList;
-            
+
         end
         
         function saveAddonList(obj)
@@ -151,30 +151,40 @@ classdef Addons < handle
             % If some addons are present in default addon list and not in
             % current addon list, add from default to current.
             for iAddon = newAddons
-                next = numel(S) + 1;
+                appendIdx = numel(S) + 1;
                 
                 for jField = 1:numel(fieldNames)
                     thisField = fieldNames{jField};
-                    S(next).(thisField) = defaultAddonList(iAddon).(thisField);
+                    S(appendIdx).(thisField) = defaultAddonList(iAddon).(thisField);
                 end
                 
                 % Check if addon is found on matlab's path and update
                 % IsInstalled flag
-                if ismember(exist(S(next).FunctionName), [2,8])
-                    S(next).IsInstalled = true;
-                    S(next).DateInstalled = datestr(now);
+                if ismember(exist(S(appendIdx).FunctionName), [2,8])
+                    S(appendIdx).IsInstalled = true;
+                    S(appendIdx).DateInstalled = datestr(now);
                 else
-                    S(next).IsInstalled = false;
-                    S(next).DateInstalled = 'N/A';
+                    S(appendIdx).IsInstalled = false;
+                    S(appendIdx).DateInstalled = 'N/A';
                 end
                 
                 % Set this flag to false. This should change if an addon is
                 % installed, but not saved to the matlab search path.
-                S(next).AddToPathOnInit = false;
+                S(appendIdx).AddToPathOnInit = false;
 
-                
             end
             
+            % Update package and download url links
+            for i = 1:numel(S)
+                thisName = S(i).Name;
+                isMatch = strcmp(thisName, defaultAddonNames);
+                if ~any(isMatch); return; end
+                
+                S(i).DownloadUrl = defaultAddonList(isMatch).DownloadUrl;
+                S(i).WebUrl = defaultAddonList(isMatch).WebUrl;
+                S(i).SetupFileName = defaultAddonList(isMatch).SetupFileName;
+                
+            end
         end
         
         function tf = browseAddonPath(obj, addonName)
@@ -210,26 +220,34 @@ classdef Addons < handle
             if isa(updateFlag, 'char') && strcmp(updateFlag, 'update')
                 updateFlag = true;
             end
-                
+            
+            % Get addon entry from the given addon index
             addonIdx = obj.getAddonIndex(addonIdx);
             addonEntry = obj.AddonList(addonIdx);
             
             % Create a temporary path for storing the downloaded file.
-            tempZipFilepath = [tempname '.zip'];
+            fileType = obj.getFileTypeFromUrl(addonEntry);
+            tempFilepath = [tempname, fileType];
             
-            % Download the zip-file containing the addon toolbox
+            % Download the file containing the addon toolbox
             try
-                tempZipFilepath = websave(tempZipFilepath, addonEntry.DownloadUrl);
+                tempFilepath = websave(tempFilepath, addonEntry.DownloadUrl);
+                fileCleanupObj = onCleanup( @(fname) delete(tempFilepath) );
             catch ME
                 error(ME)
             end
             
             if updateFlag && ~isempty(addonEntry.FilePath)
                 pkgInstallationDir = addonEntry.FilePath;
-                rootDir = utility.path.getAncestorDir(pkgInstallationDir);
+                %rootDir = utility.path.getAncestorDir(pkgInstallationDir);
                 
                 % Delete current version
-                rmdir(pkgInstallationDir, 's')
+                if isfolder(pkgInstallationDir)
+                    if contains(path, pkgInstallationDir)
+                        rmpath(genpath(pkgInstallationDir))
+                    end
+                    rmdir(pkgInstallationDir, 's')
+                end
             else
                 
                 switch addonEntry.Type
@@ -244,30 +262,20 @@ classdef Addons < handle
                 pkgInstallationDir = fullfile(rootDir, addonEntry.Name);
             end
             
-            unzip(tempZipFilepath, pkgInstallationDir);
+            switch fileType
+                case '.zip'
+                    unzip(tempFilepath, pkgInstallationDir);
+                case '.mltbx'
+                    obj.installMatlabToolbox(tempFilepath) % Todo: pass updateFlag
+                    
+            end
             
             % Delete the temp zip file
-            delete(tempZipFilepath)
-            
-            % Github packages unzips to a new folder within the created
-            % folder. Move it up one level.
-            if strcmp(addonEntry.Source, 'Github')
-                
-                % Find the repository folder
-                L = dir(pkgInstallationDir);
-                L = L(~strncmp({L.name}, '.', 1));
-                
-                % Move folder up one level
-                oldDir = fullfile(pkgInstallationDir, L.name);
-                newDir = fullfile(rootDir, L.name);
-                movefile(oldDir, newDir)
-                rmdir(pkgInstallationDir)
-                
-                % Remove the master postfix from foldername
-                newName = strrep(L.name, '-master', '');
-                renamedDir = fullfile(rootDir, newName);
-                movefile(newDir, renamedDir)
-                
+            clear fileCleanupObj
+
+            % Fix github unzipped directory...
+            if strcmp(addonEntry.Source, 'Github') 
+                renamedDir = obj.moveGithubAddonDirectory(pkgInstallationDir);
                 pkgInstallationDir = renamedDir;
             end
             
@@ -283,12 +291,12 @@ classdef Addons < handle
            
             obj.markDirty()
             
+            addpath(genpath(pkgInstallationDir))
             
-            % Special case... Need to add something to the javapath
-            if strcmp(obj.AddonList(addonIdx).Name, 'Widgets Toolbox')
-                jarFilePath = fullfile(pkgInstallationDir, 'resource', 'MathWorksConsultingWidgets.jar');
-                success = nansen.setup.model.Addons.addStaticJavaPath(jarFilePath); 
-                javaclasspath( jarFilePath ) %Temp add to dynamic path...
+            % Run setup of package if it has a setup function.
+            if ~isempty(obj.AddonList(addonIdx).SetupFileName)
+                setupFcn = str2func(obj.AddonList(addonIdx).SetupFileName);
+                setupFcn()
             end
             
         end
@@ -433,7 +441,6 @@ classdef Addons < handle
         %getPathForAddonList Get path where local addon list is saved.
         
             %Todo: What do I call this?
-            
             nansenDir = nansen.rootpath;
             rootDir = utility.path.getAncestorDir(nansenDir, 1);
             pathStr = fullfile(rootDir, '_userdata', 'settings');
@@ -444,6 +451,21 @@ classdef Addons < handle
             
         end
         
+        function fileType = getFileTypeFromUrl(obj, addonEntry)
+        %getFileTypeFromUrl Get filetype from the url download entry.    
+            downloadUrl = addonEntry.DownloadUrl;
+            
+            % Todo: Does this generalize well?
+            switch addonEntry.Source
+                
+                case 'FileExchange'
+                    [~, fileType, ~] = fileparts(downloadUrl);
+                    fileType = strcat('.', fileType);
+                case 'Github'
+                    [~, ~, fileType] = fileparts(downloadUrl);
+            end
+        end
+        
         % Following functions are not implemented
         function downloadGithubAddon(obj, addonName)
             
@@ -452,7 +474,7 @@ classdef Addons < handle
         function downloadMatlabAddon(obj, addonName)
             
         end
-        
+
         function installGithubAddon(obj, addonName)
             
         end
@@ -461,7 +483,39 @@ classdef Addons < handle
             
         end
         
+        function installMatlabToolbox(obj, fileName)
+            
+            % Will install to the default matlab toolbox/adodn directory.
+            newAddon = matlab.addons.install(fileName);
+            
+            
+%           NEWADDON is a table of strings with these fields:
+%               Name - Name of the installed add-on
+%               Version - Version of the installed add-on
+%               Enabled - Whether the add-on is enabled
+%               Identifier - Unique identifier of the installed add-on
+            
+        end
+        
     end
+    
+    methods (Hidden)
+        
+        function showAddonFiletype(obj)
+        %showAddonFiletype Show the filetype of the downloaded addon files
+        %
+        %   Method for testing/verification
+        
+            for i = 1:numel(obj.AddonList)
+                thisAddon = obj.AddonList(i);
+                fileType = obj.getFileTypeFromUrl(thisAddon);
+                
+                fprintf('%s : %s\n', thisAddon.Name, fileType)
+            end
+        end
+        
+    end
+        
     
     methods (Static)
         
@@ -488,27 +542,41 @@ classdef Addons < handle
             
         end
         
-        function doneTF = addStaticJavaPath(javapath)
+        function folderPath = moveGithubAddonDirectory(folderPath)
+        %moveGithubAddonDirectory Move the folder of a github addon.
+        %
 
-            doneTF = false; 
-
-            savedir = prefdir;
-
-            filepath = fullfile(savedir, 'javaclasspath.txt');
-
-            if ~exist(filepath, 'file')
-                fid = fopen(filepath, 'w', 'n', 'UTF-8');
+        % Github packages unzips to a new folder within the created
+        % folder. Move it up one level. Also, remove the '-master' from
+        % foldername.
+            
+            rootDir = fileparts(folderPath);
+        
+            % Find the repository folder
+            L = dir(folderPath);
+            L = L(~strncmp({L.name}, '.', 1));
+                
+            % Move folder up one level
+            oldDir = fullfile(folderPath, L.name);
+            newDir = fullfile(rootDir, L.name);
+            movefile(oldDir, newDir)
+            rmdir(folderPath)
+                
+            % Remove the master postfix from foldername
+            if contains(L.name, '-master')
+                newName = strrep(L.name, '-master', '');
+            elseif contains(L.name, '-main')
+                newName = strrep(L.name, '-main', '');
             else
-                fid = fopen(filepath, 'a', 'n', 'UTF-8');
+                folderPath = fullfile(rootDir, L.name);
+                return
             end
             
-            fprintf(fid, '%s', javapath);
+            % Rename folder to remove main/master tag
+            renamedDir = fullfile(rootDir, newName);
+            movefile(newDir, renamedDir)
+            folderPath = renamedDir;
             
-            status = fclose(fid);
-            if status == 0
-                doneTF = true;
-            end
-
         end
     end
 

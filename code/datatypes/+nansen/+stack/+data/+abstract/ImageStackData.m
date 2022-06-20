@@ -8,12 +8,15 @@ classdef ImageStackData < uim.mixin.assignProperties
 %       getData(obj, subs)              % Get data specified by subs
 %       setData(obj, data, subs)        % Set data specified by subs
 
-
 %   TODO
 %       [ ] Add reshape functionality, so that number of data dimensions
 %           and number of stack dimensions can be different
-%       
-%       
+%           - i.e data dimension is : YXN and stack dimension is YX[CT]
+%           - Use Deinterleaver class...
+
+%       [ ] Should both DataDimensionArrangement and
+%           StackDimensionArrangement be added to metadata?
+
 
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
 
@@ -23,12 +26,13 @@ classdef ImageStackData < uim.mixin.assignProperties
     end
        
     properties (SetAccess = protected) % Size and type of original data
+        MetaData nansen.stack.metadata.StackMetadata
         DataSize                        % Length of each dimension of the original data array
         DataType                        % Data type for the original data array
     end
     
     properties % Specification of data dimension arrangement
-        DataDimensionArrangement char   % Letter sequence describing the arrangement of dimensions in the data, i.e 'YXCT'
+        DataDimensionArrangement char   % Letter sequence describing the arrangement of dimensions in the data (input layer), i.e 'YXCT'
         StackDimensionArrangement char  % Letter sequence describing the arrangement of dimensions in the stack (output layer)
     end
 
@@ -36,8 +40,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         StackSize                       % Length of each dimension according to the stack-centric dimension ordering
     end
     
-    properties (Access = protected)
-        DataDimensionOrder              % Numeric vector describing the order of dimensions in the data
+    properties (GetAccess = protected, SetAccess = private)
         StackDimensionOrder             % Numeric vector describing the order of dimensions in the stack
     end
     
@@ -55,6 +58,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         setData(obj, data, subs)
         
         data = getLinearizedData(obj)
+        
     end
     
     methods (Sealed) % Override size, class, ndims, subsref & subsasgn
@@ -72,11 +76,21 @@ classdef ImageStackData < uim.mixin.assignProperties
             % Return length of specified dimension, dim
             elseif nargin == 2 && (nargout == 1 || ~nargout)
                 
-                if numel(dim) > numel(stackSize)
-                    stackSize(end+1:numel(dim)) = 1;
-                    varargout{1} = stackSize;
-                else
-                    varargout{1} = stackSize(dim);
+                if max(dim) > numel(stackSize)
+                    stackSize(end+1:max(dim)) = 1;
+                end
+                
+                varargout{1} = stackSize(dim);
+                
+            % Make sure the number of dimensions requested matches the
+            % number of outputs requested
+            elseif nargin >= 2 && nargout > 1
+                msg = 'Incorrect number of output arguments. Number of output arguments must equal the number of input dimension arguments.';
+                assert(numel(dim) == nargout, msg)
+                
+                varargout = cell(1, nargout);
+                for i = 1:numel(dim)
+                    varargout{i} = stackSize(dim(i));
                 end
                     
             % Return length of each dimension separately
@@ -95,7 +109,13 @@ classdef ImageStackData < uim.mixin.assignProperties
         
         function ndim = ndims(obj)
         %NDIMS Implement ndims function to mimick array functionality.
-            ndim = numel(obj.DataSize);
+            
+            %ndim = numel(obj.DataSize);
+            % Use dataDimensionArrangement instead because trailing
+            % singleton dimensions are automatically removed, and in some
+            % cases the stack will have a singleton dimension as the
+            % last dimension:
+            ndim = numel(obj.DataDimensionArrangement);
         end
         
         function dataType = class(obj)
@@ -107,6 +127,9 @@ classdef ImageStackData < uim.mixin.assignProperties
             
             % Preallocate cell array of output.
             varargout = cell(1, nargout);
+            
+            % Todo: use numArgumentsFromSubscript instead of try catch
+            % blocks below.
 
             switch s(1).type
 
@@ -142,6 +165,9 @@ classdef ImageStackData < uim.mixin.assignProperties
                         return
                     elseif numRequestedDim == ndims(obj)
                         subs = obj.rearrangeSubs(s.subs);
+                    elseif numRequestedDim == 1
+                        % todo:
+                        [subs{1:ndims(obj)}] = ind2sub(obj.DataSize, s.subs{1});
                     else
                         error('Requested number of dimensions does not match number of data dimensions')
                         % Todo: If there are too many dimensions in subs,
@@ -151,27 +177,15 @@ classdef ImageStackData < uim.mixin.assignProperties
                     end
                     
                     % Todo: check that subs are not exceeding data/array bounds 
+                    % obj.validateSubs() % Todo: make this method...
                     
-                    
-                    % Are any of these frames found in the cache?
-%                     if false %obj.HasCachedData
-%                         data = obj.getDataFromCache(subs);
-%                     else
                     data = obj.getData(subs);
-%                     end
-
-%                     % Todo: Test this. Get cropped data if requested... 
-%                     % Note: this should only be part of subclasses where
-%                     whole images are read, i.e Tiff or Image
-%                     data = data(subs{1:end-1}, ':');
                     
-                    % Squeeze if possible
+                    % Permute data according to the stack dimension order
                     data = permute(data, obj.StackDimensionOrder);
                     
                     [varargout{:}] = data;
-
             end
-        
         end
         
         function obj = subsasgn(obj, s, data)
@@ -198,17 +212,14 @@ classdef ImageStackData < uim.mixin.assignProperties
                         error('Indexing does not match stack size')
                     end
 
-                    % permute data before adding...?
+                    % Permute data according to the stack dimension order
                     data = permute(data, obj.StackDimensionOrder);
                     obj.setData(subs, data)
-            
             end
-            
             
             if ~nargout
                 clear obj
             end
-            
         end
                 
     end
@@ -228,6 +239,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                 obj.DataDimensionArrangement = newValue;
                 obj.onDataDimensionArrangementChanged(oldValue, newValue)
             end
+            
         end
         
         function set.StackDimensionArrangement(obj, newValue)
@@ -235,7 +247,8 @@ classdef ImageStackData < uim.mixin.assignProperties
             obj.validateDimensionArrangement(newValue, refValue)
             
             obj.StackDimensionArrangement = newValue;
-            obj.updateDimensionOrders()
+            obj.updateStackDimensionOrder()
+            obj.updateStackSize()
         end
         
         function set.StackDimensionOrder(obj, newValue)
@@ -245,7 +258,16 @@ classdef ImageStackData < uim.mixin.assignProperties
         
     end
     
-    methods (Access = protected) % Internal updating (change to private?)
+    methods
+        function enablePreprocessing(~)
+            % Subclasses may override
+        end
+        function disablePreprocessing(~)
+            % Subclasses may override
+        end
+    end
+    
+    methods (Access = protected) % Internal updating (change to private?) onDataSizeChanged must be protected...
         
         function setDefaultDataDimensionArrangement(obj)
         %setDefaultDataDimensionArrangement Assign default property value
@@ -309,6 +331,17 @@ classdef ImageStackData < uim.mixin.assignProperties
         
         function onDataDimensionArrangementChanged(obj, oldValue, newValue)
             
+            obj.MetaData.DimensionArrangement = obj.DataDimensionArrangement;
+                        
+            % If the last dimension has length 1, matlab automatically
+            % squeezes, but its important that the last dimension is
+            % represented in DataSize, even if it has length 1
+            if numel(obj.DataSize) < numel(obj.DataDimensionArrangement)
+                nDims = numel(obj.DataDimensionArrangement);
+                obj.DataSize(nDims) = 1;
+                obj.DataSize(obj.DataSize==0) = 1;             
+            end
+
             % Check if any dimensions were redefined
             if ~isempty(oldValue) && ~isempty(obj.StackDimensionArrangement)
                         
@@ -322,23 +355,76 @@ classdef ImageStackData < uim.mixin.assignProperties
                     % A data dimension was added
                     % Note: This assumes the dimension was added at the end
                     % I dont know if thats a valid assumption.
+                    % Todo: This need more development for special cases
                     obj.StackDimensionArrangement = strcat(obj.StackDimensionArrangement, newDim);
+                elseif isempty(newDim) && isempty(oldDim)
+                    % Data dimensions were rearranged
+                    obj.StackDimensionArrangement = newValue;
                 else
                     error('Something went wrong')
                 end
-
             end
             
-            obj.updateDimensionOrders()
-            obj.StackSize = obj.DataSize(obj.StackDimensionOrder);
+            % If data dimension arrangement is set on construction
+            if isempty(obj.StackDimensionOrder); return; end
+            
+            % Todo: Remove (these should be redundant since there is a
+            % callback when the StackDimensionArrangement is set.
+            stackDimensionOrderPre = obj.StackDimensionOrder;
+            obj.updateStackDimensionOrder()
+            if ~isequal(stackDimensionOrderPre, obj.StackDimensionOrder)
+                error('Unexpected behavior. Debug/report!')
+            end
+            % Todo: remove. This is also redundant 
+            %obj.updateStackSize();
         end
         
-        function updateDimensionOrders(obj)
-            
+        function updateStackDimensionOrder(obj)
+        %updateStackDimensionOrder Update the StackDimensionOrder property
+        %
+        %   Update the StackDimensionOrder to reflect the mapping from
+        %   DataDimensionArrangement to StackDimensionArrangement
+        
             [Lia, Locb] = ismember(obj.StackDimensionArrangement, ...
                 obj.DataDimensionArrangement);
             
             obj.StackDimensionOrder = Locb(Lia);
+            
+            %obj.MetaData.DimensionArrangement = obj.StackDimensionArrangement;
+        end
+        
+        function dim = getDataDimensionNumber(obj, dimensionName)
+            dim = strfind(obj.DataDimensionArrangement, dimensionName);
+        end
+        
+        function dimLength = getDimLength(obj, dimensionName)
+        %getDimLength Get length of dimension given by letter
+        %
+        %   dimLength = getDimLength(obj, dimensionName) where
+        %   dimensionName is 'X', 'Y', 'C', 'Z' or 'T'.
+        
+            ind = obj.getDataDimensionNumber(dimensionName);
+            
+            if isempty(ind)
+                dimLength = 1;
+            elseif ind > numel(obj.DataSize)
+                dimLength = 1;
+            else
+                dimLength = obj.DataSize(ind);
+            end
+        end
+        
+        function dim = getFrameIndexingDimension(obj)
+            
+            if contains(obj.DataDimensionArrangement, 'Z')
+                if contains(obj.DataDimensionArrangement, 'T')
+                    dim = strfind(obj.DataDimensionArrangement, 'T');
+                else
+                    dim = strfind(obj.DataDimensionArrangement, 'Z');
+                end
+            else
+                dim = strfind(obj.DataDimensionArrangement, 'T');
+            end
             
         end
         
@@ -355,7 +441,18 @@ classdef ImageStackData < uim.mixin.assignProperties
         end
         
         function updateStackSize(obj)
-            obj.StackSize = obj.DataSize(obj.StackDimensionOrder);
+        %updateStackSize Update StackSize based on StackDimensionArrangement
+        
+            % Since Matlab squeezes singleton dimensions if they are at the
+            % end of an array, it might occur that the StackDimensionOrder
+            % has more elements than the DataSize. Make sure this does not
+            % case an error:
+            nd = numel(obj.DataSize);
+            if numel(obj.StackDimensionOrder) > nd
+                obj.StackSize = obj.DataSize(obj.StackDimensionOrder(1:nd));
+            else 
+                obj.StackSize = obj.DataSize(obj.StackDimensionOrder);
+            end
         end
         
     end

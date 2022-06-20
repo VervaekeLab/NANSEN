@@ -1,4 +1,4 @@
-classdef RoiManager < applify.mixin.AppPlugin
+classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixin
 %imviewer.plugin.RoiManager Open the roimanager tool as a plugin in imviewer
     
     % Todo:
@@ -27,27 +27,28 @@ classdef RoiManager < applify.mixin.AppPlugin
         Name = 'Roimanager'
     end
     
-    properties 
-        %RoiManager  % Handle to roimanager class
-            
+    properties %(SetAccess = protected)
+        CreateContextMenu = true  % Boolean flag : Should contextmenu be created.
+    end
+    
+    properties
         PrimaryAppName = 'imviewer'
-                
-        roiTools
-        roiGroup                % RM
+    end
+    
+    properties 
+        RoiGroup
+        roiFilePath             % RM
+    end
+    
+    properties (Access = protected)
+
         roiDisplay
-        
-        % Todo: Where should this be saved. need to rethink RoI
-        % specifications...
-        roiImages
-        roiStats
-        roiClassification
         
         secondaryGroups % Todo: merge this with roiGroup
         secondaryMaps % Todo: merge this with roiDisplay
         
         roiSignalArray          % RM
         
-        roiFilePath             % RM
         
         signalOptions           % ?
         deconvolutionOptions    % ?
@@ -63,9 +64,7 @@ classdef RoiManager < applify.mixin.AppPlugin
         KeyPressListener = event.listener.empty
         MapUpdateListener = event.listener.empty
         hMenu
-        
-        hImageRoiStatic % Come up with better name
-               
+                
         ImageStackChangedListener
         ImageDataChangedListener
 
@@ -77,11 +76,13 @@ classdef RoiManager < applify.mixin.AppPlugin
         
         function obj = RoiManager(varargin)
             
+            [nvPairs, varargin] = utility.getnvpairs(varargin);
+            
             % Note: hImviewer will be empty if varargin is empty.
             hImviewer = imviewer.plugin.RoiManager.validateApp(varargin{:});
             
             % Pass potential imviewer handle to superclass constructor.
-            obj@applify.mixin.AppPlugin(hImviewer);
+            obj@applify.mixin.AppPlugin(hImviewer, [], nvPairs{:});
 
             % Plugin already existed, and obj was reassigned in superclass
             if obj.IsActivated
@@ -89,11 +90,6 @@ classdef RoiManager < applify.mixin.AppPlugin
                 return
             end
 
-            
-            % Initialize a roi map and store in the roiDisplay property
-            obj.roiGroup = roimanager.roiGroup();
-            
-            
             % if imviewer was empty, we return here
             if ~isempty(hImviewer)
                 obj.activatePlugin(hImviewer)
@@ -108,19 +104,22 @@ classdef RoiManager < applify.mixin.AppPlugin
             % deleted?
             %
             % Check is roiGroup has unsaved changes, and save those
-            
         end
         
     end
     
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} ) % Callbacks
-        function wasCaptured = onKeyPress(obj, src, event)
+        
+        function wasCaptured = keyPressHandler(obj, src, event)
             wasCaptured = true; %Guilty until proven innocent c-^_^-?
             
             switch event.Key
                 case 'space'
-                    obj.toggleShowRoiOutlines()
+                    obj.switchRoiOutlineVisibility()
                     
+                case 'i'
+                    obj.roiDisplay.improveRois();
+
                     
                 otherwise
                     wasCaptured = false;
@@ -128,7 +127,6 @@ classdef RoiManager < applify.mixin.AppPlugin
         end
         
     end
-    
     
     methods
         function activatePlugin(obj, h)
@@ -141,31 +139,43 @@ classdef RoiManager < applify.mixin.AppPlugin
     
     methods (Access = protected)
         
+        function onConstruction(obj)
+            % Todo?
+            % Initialize a roi map and store in the roiDisplay property
+            obj.RoiGroup = roimanager.roiGroup();
+        end
+        
         function onPluginActivated(obj)
                                  
             obj.PrimaryApp.displayMessage('Activating roimanager...', [], 2)
 
-            
             [obj.StackViewer, hImviewer] = deal( obj.PrimaryApp );
 
             hAxes = hImviewer.Axes;
             
             % Update menu, by adding some roimanager options:
-            obj.createMenu()
-
-            obj.roiGroup.ParentApp = obj.PrimaryApp;
+            if obj.CreateContextMenu
+                obj.createMenu()
+            end
             
-            obj.roiDisplay = roimanager.roiMap(hImviewer, hAxes, obj.roiGroup);
+            obj.RoiGroup = roimanager.roiGroup();
+            obj.RoiGroup.ParentApp = obj.PrimaryApp;
+            
+            obj.roiDisplay = roimanager.roiMap(hImviewer, hAxes, obj.RoiGroup);
             
             % Assign the Ancestor App of the roigroup to the app calling
             % for its creation.
-            obj.roiDisplay.roiGroup.ParentApp = hImviewer;
+            obj.roiDisplay.RoiGroup.ParentApp = hImviewer;
             obj.roiDisplay.hRoimanager = obj;
             
             obj.initializePointerTools()
             
             obj.addButtonsToToolbar % Do this after creating pointertools.
             obj.PrimaryApp.clearMessage()
+            
+            
+            obj.ImageStackChangedListener = addlistener(obj.StackViewer, ...
+                'ImageStack', 'PostSet', @obj.onImageStackChanged);
             
         end
         
@@ -179,7 +189,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                     % Todo: Change this to roi labels... Just for testing
                     obj.toggleShowRoiOutlines('', value)
                 case 'colorRoiBy'
-                    obj.roiDisplay.updateRoiColors(1:obj.roiGroup.roiCount)
+                    obj.roiDisplay.updateRoiColors(1:obj.RoiGroup.roiCount)
                     if strcmp(value, 'Activity Level')
                         obj.PrimaryApp.displayMessage('Not implemented yet')
                         pause(1.5)
@@ -188,54 +198,19 @@ classdef RoiManager < applify.mixin.AppPlugin
             end
         end
         
-        function newGroup = createNewRoiGroup(obj)
-            
-            newGroup = roimanager.roiGroup();
-            newRoiMap = roimanager.roiMap(obj.StackViewer, obj.StackViewer.Axes, newGroup);
-
-            numGroups =  numel(obj.secondaryGroups);
-            
-            if numGroups == 0
-                obj.secondaryGroups = newGroup;
-                obj.secondaryMaps = newRoiMap;
-            else
-                obj.secondaryGroups(end+1) = newGroup;
-                obj.secondaryMaps(end+1) = newRoiMap;
-
-            end
-
-            
-            % Assign the Ancestor App of the roigroup to the app calling
-            % for its creation.
-            newRoiMap.roiGroup.ParentApp = obj.StackViewer;
-            newRoiMap.hRoimanager = obj;
-            
-            colorMap=cbrewer('qual', 'Set1', 8, 'spline');
-            newRoiMap.defaultColor = colorMap(numGroups+1, :);
-
-            % Todo: What if this is not created yet....Need to add to
-            % settings....?
-            % Add group to settings controls...
-            numGroups = numel(obj.secondaryGroups) + 1;
-            % Todo. What if this panel was not opened yet?!?!?
-            obj.AppModules(4).hControls.setCurrentRoiGroup.String{end+1} = sprintf('Group %d', numGroups);
-            obj.AppModules(4).hControls.showRoiGroups.String{end+1} = sprintf('Show Group %d', numGroups);            
-            
-        end
-        
         function changeCurrentRoiGroup(obj, newGroupName)
             
             newGroupNumberStr = strrep(newGroupName, 'Group ', ''); 
             newGroupNumber = round( str2double(newGroupNumberStr) );
             if newGroupNumber == 1
                 newMap = obj.roiDisplay;
-                newGroup = obj.roiGroup;
+                newGroup = obj.RoiGroup;
             else
                 newMap = obj.secondaryMaps(newGroupNumber-1);
                 newGroup = obj.secondaryGroups(newGroupNumber-1);
             end
             
-            obj.PointerManager.pointers.selectObject.hObjectMap = newMap;
+            obj.PointerManager.pointers.selectObject.RoiDisplay = newMap;
            
             obj.roiSignalArray.RoiGroup = newGroup;
             obj.SignalViewer.RoiGroup = newGroup;
@@ -269,6 +244,101 @@ classdef RoiManager < applify.mixin.AppPlugin
             
         end
         
+        
+% % % % Context menu item callbacks (Roi map visibility states)
+        
+        function toggleShowRoiRelations(obj, src)
+            
+            % Get handle to menuItem
+            if nargin < 2
+                mItem = findobj(obj.hMenu, '-regexp', 'Text', 'Roi Relations');
+            else
+                mItem = src;
+            end
+            
+            switch mItem.Text
+                case 'Show Roi Relations'
+                    obj.roiDisplay.showRoiRelations()
+                case 'Hide Roi Relations'
+                    obj.roiDisplay.hideRoiRelations()
+            end
+            
+            % NB: Do this last
+            utilities.toggleUicontrolLabel(mItem, 'Show', 'Hide');
+            
+        end
+        
+        function onShowRoiOutlinesMenuItemClicked(obj, src)
+            switch src.Text
+                case 'Show Roi Outlines'
+                    obj.switchRoiOutlineVisibility(true)
+                case 'Hide Roi Outlines'
+                    obj.switchRoiOutlineVisibility(false)
+            end
+        end
+        
+        function onShowRoiLabelsMenuItemClicked(obj, src)
+            switch src.Text
+                case 'Show Roi Outlines'
+                    obj.switchRoiLabelVisibility(true)
+                case 'Hide Roi Outlines'
+                    obj.switchRoiLabelVisibility(false)
+            end
+        end
+        
+        function onMaskRoiInteriorMenuItemClicked(obj, src)
+            switch src.Text
+                case 'Mask Roi Interior'
+                    obj.switchMaskRoiInteriorState(true)
+                case 'Show Roi Interior'
+                    obj.switchMaskRoiInteriorState(false)
+            end
+        end
+        
+        
+% % % % Methods for manipulating what is shown in the viewer.
+        
+        % TODO: Make sure settings value corresponds. Not needed now,
+        % because only onsettingsChanged will call these methods...
+        
+        function switchRoiOutlineVisibility(obj, value)
+            if nargin < 2; value = ~obj.roiDisplay.roiOutlineVisible; end
+            obj.roiDisplay.roiOutlineVisible = value;
+            obj.updateContextMenu('Roi Outlines')
+        end
+        
+        function switchRoiLabelVisibility(obj, value)
+            obj.roiDisplay.roiLabelVisible = value;
+            obj.updateContextMenu('Text Labels')
+        end
+        
+        function switchMaskRoiInteriorState(obj, value)
+            obj.roiDisplay.MaskRoiInterior = value;
+            obj.updateContextMenu('Roi Interior')
+        end
+        
+        
+    end
+    
+    methods (Access = protected) % RoiGroupFileIoAppMixin methods
+                   
+        function initPath = getRoiInitPath(obj)
+        %getRoiInitPath Get path to start uigetfile or uiputfile
+        
+            if ~isempty(obj.roiFilePath)
+                initPath = obj.roiFilePath;
+            else
+                initPath = obj.PrimaryApp.ImageStack.FileName;
+                initPath = fileparts(initPath);
+                [parentDir, name] = fileparts(initPath);
+                if strcmp(name, 'reg_tif') % suite2p
+                    initPath = parentDir;
+                elseif isfolder(fullfile(parentDir, 'roi_data')) % nansen
+                    initPath = fullfile(parentDir, 'roi_data');
+                end
+            end
+        end
+
     end
     
     methods (Access = private) % Initialization
@@ -298,7 +368,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             % Add roimanager pointer tools.
             for i = 1:numel(pointerNames)
                 obj.PointerManager.initializePointers(hAxes, pointerRefs{i})
-                obj.PointerManager.pointers.(pointerNames{i}).hObjectMap = hMap;
+                obj.PointerManager.pointers.(pointerNames{i}).RoiDisplay = hMap;
             end
 
             % Set default tool.
@@ -366,11 +436,11 @@ classdef RoiManager < applify.mixin.AppPlugin
             hMenu.Callback = [];
             
             mItem = uimenu(hMenu, 'Text', 'Load Rois');
-            mItem.Callback = @(s, e) obj.loadRois();
+            mItem.Callback = @(s, e) obj.importRois();
 %             mitem.Accelerator = 'l';
 
 %             mitem = uimenu(m, 'Text', 'Load Rois...');
-%             mitem.Callback = @(s, e, pstr) obj.loadRois('');
+%             mitem.Callback = @(s, e, pstr) obj.importRois('');
             
             mItem = uimenu(hMenu, 'Text', 'Save Rois');
             mItem.Callback = @(s, e) obj.saveRois();
@@ -379,16 +449,16 @@ classdef RoiManager < applify.mixin.AppPlugin
             mItem = uimenu(hMenu, 'Text', 'Show...', 'Separator', 'on');
             
             mSubItem = uimenu(mItem, 'Text', 'Show Text Labels', 'Enable', 'off');
-            mSubItem.Callback = [];
+            mSubItem.Callback = @(s,e) obj.onShowRoiLabelsMenuItemClicked(s);
             
             mSubItem = uimenu(mItem, 'Text', 'Hide Roi Outlines');
-            mSubItem.Callback = @(s, e) obj.toggleShowRoiOutlines(s);
+            mSubItem.Callback = @(s,e) obj.onShowRoiOutlinesMenuItemClicked(s);
             
             mSubItem = uimenu(mItem, 'Text', 'Hide Roi Relations');
-            mSubItem.Callback = @(s, e) obj.toggleShowRoiRelations(s);
+            mSubItem.Callback = @(s,e) obj.toggleShowRoiRelations(s);
             
             mSubItem = uimenu(mItem, 'Text', 'Mask Roi Interior');
-            mSubItem.Callback = @(s, e) obj.maskRoiInterior(s);
+            mSubItem.Callback = @(s,e) obj.onMaskRoiInteriorMenuItemClicked(s);
             
             mItem = uimenu(hMenu, 'Text', 'Run Autosegmentation', 'Separator', 'on');
             mItem.Callback = @(s, e) obj.runAutoSegmentation();
@@ -412,132 +482,53 @@ classdef RoiManager < applify.mixin.AppPlugin
             mItem.Callback = [];
             
             mitem = uimenu(hMenu, 'Text', 'Export Video');
-            mitem.Callback = @(s,e) imviewer.plugin.roiSignalVideo(obj.PrimaryApp); % Todo: update reference.
+            mitem.Callback = @(s,e) imviewer.plugin.RoiSignalVideo(obj.PrimaryApp); % Todo: update reference.
             
             obj.hMenu = hMenu;
-            obj.Menu = hMenu;
             
         end
         
+        function updateContextMenu(obj, name, propName)
+            
+            %if isempty(obj.ContextMenu); return; end
+            if isempty(obj.hMenu); return; end
+            
+            if nargin < 3; propName = 'Checked'; end
+            
+            mItem = findobj(obj.hMenu, '-regexp', 'Text', name);
+            if isempty(mItem); return; end
+            
+            switch name
+                    
+                case 'Roi Outlines'
+                    if obj.roiDisplay.roiOutlineVisible
+                        newMenuTextLabel = 'Hide Roi Outlines';
+                    else
+                        newMenuTextLabel = 'Show Roi Outlines';
+                    end
+                    
+                case 'Text Labels'
+                    if obj.roiDisplay.roiLabelVisible
+                        newMenuTextLabel = 'Hide Text Labels';
+                    else
+                        newMenuTextLabel = 'Show Text Labels';
+                    end
+                    
+                case {'Show Roi Interior', 'Mask Roi Interior', 'Roi Interior'}
+                    if obj.roiDisplay.MaskRoiInterior
+                        newMenuTextLabel = 'Show Roi Interior';
+                    else
+                        newMenuTextLabel = 'Mask Roi Interior';
+                    end
+                    
+            end
+            
+            set(mItem, 'Text', newMenuTextLabel)
+                    
+        end
     end
     
     methods % User methods.
-
-        function loadRois(obj, initPath)
-            
-            if nargin < 2; initPath = ''; end
-            loadPath = obj.getRoiPath(initPath, 'load');
-            if isempty(loadPath); return; end
-
-            obj.PrimaryApp.displayMessage('Loading Rois...')
-            C = onCleanup(@(s,e) obj.PrimaryApp.clearMessage);
-            
-             % Load roi array from selected file path.
-            if exist(loadPath, 'file')
-                S = load(loadPath);
-                field = fieldnames(S);
-                
-                if contains('sessionData', fieldnames(S))
-                    S = S.sessionData;
-                    field = fieldnames(S);
-                end
-                
-                fieldMatch = contains(field, {'roiArray', 'roi_arr'});
-                if isempty(fieldMatch)
-                    error('Did not find roi array in selected file')
-                else
-                    roi_arr = S.(field{fieldMatch});
-                    if isa(roi_arr, 'struct')
-                        roi_arr = roimanager.utilities.struct2roiarray(roi_arr);
-
-                    end
-                end
-                
-                if isa(roi_arr, 'RoI')
-                    roi_arr_struct = roimanager.utilities.roiarray2struct(roi_arr);
-                    roi_arr = roimanager.utilities.struct2roiarray(roi_arr_struct);
-                end
-                
-                
-                if contains( 'roiImages', field)
-                    roi_arr = roi_arr.setappdata('roiImages', S.roiImages);
-                end
-                
-                if contains( 'roiStats', field)
-                    roi_arr = roi_arr.setappdata('roiStats', S.roiStats);
-                end
-                
-                if contains( 'roiClassification', field)
-                    roi_arr = roi_arr.setappdata('roiClassification', S.roiClassification);
-                end
-                
-                obj.roiFilePath = loadPath;
-            else
-                error('File not found')
-            end
-            
-            % Todo: Current group / Current channel etc...
-            currentRoiGroup = obj.roiGroup;
-            
-            % If rois already exist, determine how to add new ones
-            if ~isempty(currentRoiGroup.roiArray)
-                % If the loaded rois are identical, abort here
-                if isequal(currentRoiGroup.roiArray, roi_arr)
-                    return
-                else
-                    addMode = obj.getModeForAddingRois();
-                end
-            else
-                addMode = 'initialize';
-            end
-            
-            % If rois should be replaced, remove current rois. Also remove
-            % overlapping rois if that is requested.
-            switch addMode
-                case 'replace'
-                    roiInd = 1:currentRoiGroup.roiCount;
-                    currentRoiGroup.removeRois(roiInd);
-                case 'append non-overlapping'
-                    addMode = 'append';
-                    
-                    [iA, ~] = roimanager.utilities.findOverlappingRois(...
-                                    roi_arr, currentRoiGroup.roiArray);
-                    roi_arr(iA) = [];
-            end
-                        
-            obj.roiDisplay.roiGroup.addRois(roi_arr, [], addMode)
-            
-        end
-        
-        function mode = getModeForAddingRois(obj)
-        %getModeForAddingRois Ask user for how to add rois    
-        
-            message = 'Should new rois replace current rois?';
-            title = 'Options for Loading New Rois';
-            alternatives = {'Replace', 'Append', 'Append non-overlapping'};
-            defaultChoice = 'Append';
-            
-            mode = questdlg(message, title, alternatives{:}, defaultChoice);
-            mode = lower(mode);
-            
-        end
-                    
-        function saveRois(obj, initPath)
-           
-            if nargin < 2; initPath = ''; end
-            savePath = obj.getRoiPath(initPath, 'save');
-            if isempty(savePath); return; end
-            
-            roiArray = obj.roiDisplay.roiGroup.roiArray;
-            save(savePath, 'roiArray')
-            saveMsg = sprintf('Rois Saved to %s', savePath);
-            obj.PrimaryApp.displayMessage(saveMsg, 2)
-                        
-            obj.roiFilePath = savePath;
-            
-            
-
-        end
         
         function [initPath, fileName] = getInitPath(obj)
             
@@ -556,230 +547,146 @@ classdef RoiManager < applify.mixin.AppPlugin
             end
         
         end
+              
+        function rois = loadRois(obj, loadPath)
+        %loadRois Load rois and add them to app
         
-        function filePath = getRoiPath(obj, initPath, mode)
+            obj.PrimaryApp.displayMessage('Loading Rois...')
+            C = onCleanup(@(s,e) obj.PrimaryApp.clearMessage);
+           
+            try
+                rois = loadRois@roimanager.RoiGroupFileIoAppMixin(obj, loadPath);
+            catch ME
+                clear C % Reset message display
+                obj.PrimaryApp.displayMessage(['Error: ', ME.message], [], 2)
+                if nargout; rois = []; end
+                return
+            end
             
-            filePath = '';
+             %msg = lastwarn;
+            %if ~isempty(msg); obj.PrimaryApp.displayWarning(); end  %Todo
             
-            if nargin < 2 || isempty(initPath)
-                if ~isempty(obj.roiFilePath)
-                    initPath = obj.roiFilePath;
+            % Todo: Current group / Current channel / Current plane...
+            currentRoiGroup = obj.RoiGroup;
+            loadedRoiGroup = rois;
+            if ~nargout; clear rois; end
+            
+            % If rois already exist, determine how to add new ones
+            if ~isempty(currentRoiGroup.roiArray)
+                % If the loaded rois are identical, abort here
+                if isequal(currentRoiGroup.roiArray, loadedRoiGroup.roiArray)
+                    return
                 else
-                    initPath = obj.PrimaryApp.ImageStack.FileName;
+                    addMode = obj.uiGetModeForAddingRois();
                 end
+            else
+                addMode = 'initialize';
+            end
+            
+            % Todo: Check that the imagesize of rois match the imagesize of
+            % the loaded images, and take appropriate action if not!
+% %             imSize = [obj.imHeight, obj.imWidth] %<- Todo...
+% %             if ~assertImageSize(loadedRoiGroup.roiArray, imSize)
+% %                 for i = 1:numel(loadedRoiGroup.roiArray)
+% %                     loadedRoiGroup.roiArray(i).imagesize = imSize;
+% %                 end
+% %             end
+            
+            
+            % If rois should be replaced, remove current rois. Also remove
+            % overlapping rois if that is requested.
+            switch addMode
+                case 'replace'
+                    roiInd = 1:currentRoiGroup.roiCount;
+                    currentRoiGroup.removeRois(roiInd);
                 
-                if exist(initPath, 'file') == 2
-                    [initPath, fileName, ext] = fileparts(initPath);
-                end
+                case 'append non-overlapping'
+                    addMode = 'append';
+                    
+                    [iA, ~] = roimanager.utilities.findOverlappingRois(...
+                    	loadedRoiGroup.roiArray, currentRoiGroup.roiArray);
+                    
+                    loadedRoiGroup.removeRois(iA)
+            end
+                        
+            obj.RoiGroup.addRois(loadedRoiGroup, [], addMode)
+            
+            if strcmp(addMode, 'replace') || strcmp(addMode, 'initialize')
+                obj.RoiGroup.markClean()
+            end
+        end
+        
+        function saveRois(obj, initPath)
+        %saveRois Save rois with confirmation message in app.    
+            if nargin < 2; initPath = ''; end
+            saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
+            
+            saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);            
+            obj.PrimaryApp.displayMessage(saveMsg, 2)
+        end
+
+        function addRois(obj, roiArray)
+            obj.RoiGroup.addRois(roiArray, [], 'append')
+        end
+        
+        function newGroup = createNewRoiGroup(obj)
+            
+            newGroup = roimanager.roiGroup();
+            newRoiMap = roimanager.roiMap(obj.StackViewer, obj.StackViewer.Axes, newGroup);
+
+            numGroups =  numel(obj.secondaryGroups);
+            
+            if numGroups == 0
+                obj.secondaryGroups = newGroup;
+                obj.secondaryMaps = newRoiMap;
+            else
+                obj.secondaryGroups(end+1) = newGroup;
+                obj.secondaryMaps(end+1) = newRoiMap;
+
+            end
+
+            
+            % Assign the Ancestor App of the roigroup to the app calling
+            % for its creation.
+            newRoiMap.roiGroup.ParentApp = obj.StackViewer;
+            newRoiMap.hRoimanager = obj;
+            
+            colorMap=cbrewer('qual', 'Set1', 8, 'spline');
+            newRoiMap.defaultColor = colorMap(numGroups+1, :);
+
+            % Todo: What if this is not created yet....Need to add to
+            % settings....?
+            % Add group to settings controls...
+            numGroups = numel(obj.secondaryGroups) + 1;
+            
+            
+            % Todo. What if this panel was not opened yet?!?!?
+            if ~isprop(obj, 'AppModules') || isempty( obj.AppModules(4) )
+                return
+            end
+            
+            obj.AppModules(4).hControls.setCurrentRoiGroup.String{end+1} = sprintf('Group %d', numGroups);
+            obj.AppModules(4).hControls.showRoiGroups.String{end+1} = sprintf('Show Group %d', numGroups);            
+            
+        end
                 
-            end
+        function mode = uiGetModeForAddingRois(obj)
+        %uiGetModeForAddingRois Ask user for how to add rois    
+        
+            message = 'Should new rois replace current rois?';
+            title = 'Options for Loading New Rois';
+            alternatives = {'Replace', 'Append', 'Append non-overlapping'};
+            defaultChoice = 'Append';
             
-            fileSpec = {  '*.mat', 'Mat Files (*.mat)'; ...
-                            '*', 'All Files (*.*)' };
-            
-            switch mode
-                case 'load'
-                    [filename, filePath, ~] = uigetfile(fileSpec, ...
-                        'Load Roi File', initPath, 'MultiSelect', 'on');
-                    
-                case 'save'
-                    if exist('fileName', 'var') && ~isempty(fileName)
-                        if ~contains(fileName, '_rois')
-                            initPath = fullfile(initPath, strcat(fileName, '_rois.mat'));
-                        else
-                            initPath = fullfile(initPath, [fileName, ext]);
-                        end
-                    end
-                    [filename, filePath, ~] = uiputfile(fileSpec, ...
-                        'Save Roi File', initPath);
-            end
-            
-            if isequal(filename, 0) % User pressed cancel
-                filePath = '';
-            else
-                filePath = fullfile(filePath, filename);
-            end
-            
+            mode = questdlg(message, title, alternatives{:}, defaultChoice);
+            mode = lower(mode);
             
         end
         
-        
-% % % % Methods for manipulating what is shown in the viewer.
-
-        function toggleShowRoiOutlines(obj, src, value)
-            
-            % Get handle to menuItem
-            if nargin < 2 || isempty(src)
-                mItem = findobj(obj.hMenu, '-regexp', 'Text', 'Roi Outlines');
-            else
-                mItem = src;
-            end
-            
-            % Todo: Need to make a general toggle method...
-            if nargin == 3
-                if value
-                    mItem.Text = 'Show Roi Outlines';
-                else
-                    mItem.Text = 'Hide Roi Outlines';
-                end
-            end
-            
-            drawnow
-            
-            switch mItem.Text
-                case 'Show Roi Outlines'
-                    obj.roiDisplay.showRoiOutlines()
-                case 'Hide Roi Outlines'
-                    obj.roiDisplay.hideRoiOutlines()
-            end
-            
-            % NB: Do this last
-            uim.utility.toggleUicontrolLabel(mItem, 'Show', 'Hide');
-            
+        % Todo: Should belong to roimap:
+        function improveRois(obj)
+            obj.roiDisplay.improveRois()
         end
-        
-        
-        function toggleShowRoiTextLabels(obj, src, value)
-            
-            % Get handle to menuItem
-            if nargin < 2 || isempty(src)
-                mItem = findobj(obj.hMenu, '-regexp', 'Text', 'Text Labels');
-            else
-                mItem = src;
-            end
-            
-            % Todo: Need to make a general toggle method...
-            if nargin == 3
-                if value
-                    mItem.Text = 'Show Text Labels';
-                else
-                    mItem.Text = 'Hide Text Labels';
-                end
-            end
-            
-            drawnow
-            
-            switch mItem.Text
-                case 'Show Text Labels'
-                    obj.roiDisplay.showRoiTextLabels()
-                case 'Hide Text Labels'
-                    obj.roiDisplay.hideRoiTextLabels()
-            end
-            
-            % NB: Do this last
-            uim.utility.toggleUicontrolLabel(mItem, 'Show', 'Hide');
-            
-        end
-        
-        
-        
-        function toggleShowRoiRelations(obj, src)
-            
-            % Get handle to menuItem
-            if nargin < 2
-                mItem = findobj(obj.hMenu, '-regexp', 'Text', 'Roi Relations');
-            else
-                mItem = src;
-            end
-            
-            switch mItem.Text
-                case 'Show Roi Relations'
-                    obj.roiDisplay.showRoiRelations()
-                case 'Hide Roi Relations'
-                    obj.roiDisplay.hideRoiRelations()
-            end
-            
-            % NB: Do this last
-            utilities.toggleUicontrolLabel(mItem, 'Show', 'Hide');
-            
-        end
-        
-        
-        function maskRoiInterior(obj, src)
-            
-            % Todo: Only do this if hViewer is an imviewer instance?
-            
-            if nargin < 2
-                % Todo: Does it match partially or do i need the regexp
-                % flag?
-                mItem = findobj(obj.hMenu, '-regexp', 'Text', 'Roi Interior');
-            else
-                mItem = src;
-            end
-            
-            switch mItem.Text
-                case 'Mask Roi Interior'
-                    if isempty(obj.hImageRoiStatic)
-                        obj.plotRoiStaticImage()
-                    else
-                        obj.hImageRoiStatic.Visible = 'on';
-                        obj.updateRoiStaticImage()
-                    end
-                    
-                case 'Show Roi Interior'
-                    obj.hImageRoiStatic.Visible = 'off';
-            end
-            
-            uim.utility.toggleUicontrolLabel(mItem, 'Show', 'Mask');
-            
-        end
-        
-        
-        function plotRoiStaticImage(obj)
-        %plotRoiStaticImage Overlay a static image on all rois.
-        
-            % Get mean image of stack
-            avgIm = obj.PrimaryApp.ImageStack.getProjection('average');
-
-            obj.hImageRoiStatic = imagesc(avgIm, 'Parent', obj.PrimaryApp.Axes);
-            
-            % Make sure this layer does not capture mouseclicks.
-            obj.hImageRoiStatic.HitTest = 'off';
-            obj.hImageRoiStatic.PickableParts = 'none';
-            
-            % Place image just above the bottom level in the viewer axes.
-            % The bottom should be the displayed image. NB, Not sure if
-            % this will always be the case, so should add code to make sure
-            % this is so. % Todo: This is shaky.
-            uistack(obj.hImageRoiStatic, 'bottom')
-            uistack(obj.hImageRoiStatic, 'up', 3)
-
-            % Set alphadata of roi static image
-            obj.updateRoiStaticImage()
-            
-            el = listener(obj.roiDisplay, 'mapUpdated', ...
-                @(s,e) obj.updateRoiStaticImage);
-            obj.MapUpdateListener = el;
-        end
-        
-        
-        function updateRoiStaticImage(obj)
-        %updateRoiStaticImage Update the static image, i.e when rois change
-
-            % Set alpha of all pixels not within a roi to 0 and within a
-            % roi to 1.
-% % %             if strcmp(obj.hImageRoiStatic.Visible, 'on')
-% % %                 roiMasks = obj.roiDisplay.roiMaskAll;
-% % %                 if isempty(roiMasks)
-% % %                     obj.hImageRoiStatic.AlphaData = 0;
-% % %                 else
-% % %                     obj.hImageRoiStatic.AlphaData = sum(roiMasks, 3) >= 1;
-% % %                 end
-% % %             end
-            
-            
-            if strcmp(obj.hImageRoiStatic.Visible, 'on')
-                roiMask = obj.roiDisplay.roiMaskAll;
-                if isempty(roiMask)
-                    obj.hImageRoiStatic.AlphaData = 0;
-                else
-                    obj.hImageRoiStatic.AlphaData = roiMask;
-                end
-            end
-            
-            %A = obj.roiDisplay.roiIndexMap
-        end
-        
         
 % % % % 
 
@@ -811,15 +718,16 @@ classdef RoiManager < applify.mixin.AppPlugin
             
         end
 
-
         function runAutoSegmentation(obj)
         % Calls autodetection package from Pnevmatikakis et al (Paninski)
         % and adds detected rois to gui
 
             import nansen.twophoton.autosegmentation.*
-            import nansen.module.*
+            import nansen.wrapper.*
             global fprintf
             fprintf = @(varargin) obj.PrimaryApp.updateMessage(varargin{:});
+
+            obj.PrimaryApp.uiwidgets.msgBox.activateGlobalWaitbar()
 
             
             % Prepare data
@@ -845,21 +753,31 @@ classdef RoiManager < applify.mixin.AppPlugin
                 
                 case 'quicky'
                     
-                    %foundRois = obj.runInternalAutosegmentation(Y, methodOptions);
-                    [foundRois, im, stat] = roimanager.autosegment.autosegmentSoma(Y, mean(Y, 3));
+                    switch methodOptions.MorphologicalStructure
+                        %foundRois = obj.runInternalAutosegmentation(Y, methodOptions);
+
+                        case 'Soma'
+                            [foundRois, im, stat] = roimanager.autosegment.autosegmentSoma(Y, mean(Y, 3));
+                        case 'Axonal Bouton'
+                            [foundRois, im, stat] = roimanager.autosegment.autosegmentAxon(Y, methodOptions);
+                    end       
+                    
 
                 case 'suite2p'
                     opts = suite2p.Options.convert(methodOptions);
                     tic; foundRois = suite2p.run(Y, opts); toc
 
                 case 'extract'
-                    opts = nansen.module.extract.Options.convert(methodOptions);
+                    opts = nansen.wrapper.extract.Options.convert(methodOptions);
                     tic; [foundRois, im, stat] = extract.run(Y, opts); toc
                     
                 case 'cnmf'
 
                     
             end
+            
+            obj.PrimaryApp.uiwidgets.msgBox.deactivateGlobalWaitbar()
+
             
             
             mask = mean(Y,3) == 0;
@@ -887,7 +805,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             switch obj.settings.Autosegmentation.finalization
                 
                 case 'Add rois to current Roi Group'
-                    obj.roiGroup.addRois(foundRois);
+                    obj.RoiGroup.addRois(foundRois);
 
                 case 'Add rois to new Roi Group'
                     newGroup = obj.createNewRoiGroup();
@@ -909,7 +827,6 @@ classdef RoiManager < applify.mixin.AppPlugin
 
             
         end %RM
-        
         
         function foundRois = runInternalAutosegmentation(obj, Y, options)
                         
@@ -950,10 +867,11 @@ classdef RoiManager < applify.mixin.AppPlugin
             
         end
         
-        
         function openManualRoiClassifier(obj)
             % todo....
-            imviewer.plugin.RoiClassifier(obj.StackViewer)
+            hClassifier = imviewer.plugin.RoiClassifier(obj.StackViewer);
+            hClassifier.setFilePath(obj.roiFilePath);
+            
         end % /function openManualRoiClassifier
         
         function extractSignals(obj)
@@ -964,7 +882,7 @@ classdef RoiManager < applify.mixin.AppPlugin
             
             % % Get image stack and rois. Cancel if there are no rois
             imageStack = obj.StackViewer.imageStack;
-            roiArray = obj.roiGroup.roiArray;
+            roiArray = obj.RoiGroup.roiArray;
             
             if isempty(roiArray)
                 msg = 'Need some rois to extract signals from...';
@@ -1083,7 +1001,7 @@ classdef RoiManager < applify.mixin.AppPlugin
                 obj.initializeSignalArray()
             end
             
-            mItem = findobj(obj.Menu, '-regexp', 'Text', 'Signal Viewer');
+            mItem = findobj(obj.hMenu, '-regexp', 'Text', 'Signal Viewer');
 
             
             if isempty(obj.SignalViewer)
@@ -1093,11 +1011,12 @@ classdef RoiManager < applify.mixin.AppPlugin
                 else
                     obj.SignalViewer = roisignalviewer.App(hPanel, obj.roiSignalArray);
                 end
+                obj.SignalViewer.ShowRoiSignalOptionsOnMenu = true;
                 
                 %obj.SignalViewer.Theme = signalviewer.theme.Dark;
                 
                 % Add the roigroup reference to the signalviewer
-                obj.SignalViewer.RoiGroup = obj.roiGroup;
+                obj.SignalViewer.RoiGroup = obj.RoiGroup;
                 
                 % Create listener for signalviewer being destroyed
                 l = addlistener(obj.SignalViewer, 'ObjectBeingDestroyed', ...
@@ -1106,17 +1025,18 @@ classdef RoiManager < applify.mixin.AppPlugin
                 
                 % Link current frame no property
                 
-                obj.StackViewer.linkprop(obj.SignalViewer)
+                obj.StackViewer.linkprop(obj.SignalViewer, [], false, false)
                 
                 %obj.SignalViewer.synchWithApp(obj.StackViewer)
                 
             else
-                
-                switch mItem.Text
-                    case 'Open Signal Viewer'
-                        obj.SignalViewer.show()
-                    case 'Close Signal Viewer'
-                        obj.SignalViewer.hide()
+                if ~isempty(mItem)
+                    switch mItem.Text
+                        case 'Open Signal Viewer'
+                            obj.SignalViewer.show()
+                        case 'Close Signal Viewer'
+                            obj.SignalViewer.hide()
+                    end
                 end
             end
             
@@ -1126,6 +1046,7 @@ classdef RoiManager < applify.mixin.AppPlugin
         end %?
         
         function onSignalViewerDeleted(obj, mItem)
+            if ~isvalid(obj); return; end
             obj.SignalViewer = [];
             if isvalid(mItem)
                 mItem.Text = 'Open Signal Viewer';
@@ -1134,20 +1055,35 @@ classdef RoiManager < applify.mixin.AppPlugin
         
         function onImageStackChanged(obj, src, evt)
             
-            obj.roiSignalArray.ImageStack = evt.AffectedObject.ImageStack;
-            obj.SignalViewer.nSamples = obj.roiSignalArray.ImageStack.numFrames;
-            obj.SignalViewer.resetTimeSeriesObjects()
-            obj.SignalViewer.initializeTimeSeriesObjects()
+            imageStack = evt.AffectedObject.ImageStack;
             
-            if obj.roiSignalArray.ImageStack.IsVirtual
-                obj.SignalViewer.showVirtualDataDisclaimer()
-            else
-                obj.SignalViewer.hideVirtualDataDisclaimer()
+            if ~isempty(obj.roiSignalArray)
+                obj.roiSignalArray.ImageStack = imageStack;
             end
             
-            obj.SignalViewer.setNewXLims()
+            if imageStack.IsVirtual
+                obj.ImageDataChangedListener = listener(imageStack.Data, ...
+                    'StaticCacheChanged', @obj.onImageDataChanged);
+            end
+            
+            if ~isempty(obj.SignalViewer)
 
+                obj.SignalViewer.nSamples = obj.roiSignalArray.ImageStack.NumTimepoints;
+                obj.SignalViewer.resetTimeSeriesObjects()
+                obj.SignalViewer.initializeTimeSeriesObjects()
+            
+                obj.SignalViewer.setNewXLims()
 
+                if obj.roiSignalArray.ImageStack.IsVirtual
+                    obj.SignalViewer.showVirtualDataDisclaimer()
+                else
+                    obj.SignalViewer.hideVirtualDataDisclaimer()
+                end
+                
+            end
+            
+            % Reset the static image of the fov...
+            obj.roiDisplay.resetStaticFovImage()
         end
         
         function onImageDataChanged(obj, src, evt)
@@ -1155,14 +1091,18 @@ classdef RoiManager < applify.mixin.AppPlugin
             imageStack = obj.StackViewer.ImageStack;
             imData = imageStack.Data.getStaticCache();
             
-            obj.roiSignalArray.ImageStack = nansen.stack.ImageStack(imData);
-            obj.SignalViewer.nSamples = obj.roiSignalArray.ImageStack.NumTimepoints;
-            obj.SignalViewer.resetTimeSeriesObjects()
-            obj.SignalViewer.initializeTimeSeriesObjects()
-            obj.SignalViewer.hideVirtualDataDisclaimer()
-            obj.SignalViewer.setNewXLims()
-            obj.SignalViewer.refreshSignalPlot()
+            if ~isempty(obj.roiSignalArray)
+                obj.roiSignalArray.ImageStack = nansen.stack.ImageStack(imData);
+            end
             
+            if ~isempty(obj.SignalViewer)
+                obj.SignalViewer.nSamples = obj.roiSignalArray.ImageStack.NumTimepoints;
+                obj.SignalViewer.resetTimeSeriesObjects()
+                obj.SignalViewer.initializeTimeSeriesObjects()
+                obj.SignalViewer.hideVirtualDataDisclaimer()
+                obj.SignalViewer.setNewXLims()
+                obj.SignalViewer.refreshSignalPlot()
+            end
             
         end
         
@@ -1188,10 +1128,34 @@ classdef RoiManager < applify.mixin.AppPlugin
                 end
             end
             
-            obj.roiSignalArray = RoiSignalArray(imageStack, obj.roiGroup);
+            obj.roiSignalArray = RoiSignalArray(imageStack, obj.RoiGroup);
             
         end %RM?
     
+        function createImageStackListeners(obj, imageStack)
+            % Not finished
+            if imageStack.IsVirtual
+                obj.ImageDataChangedListener = listener(imageStack.Data, ...
+                    'StaticCacheChanged', @obj.onImageDataChanged);
+            end
+            
+            obj.ImageStackChangedListener = addlistener(obj.StackViewer, ...
+                'ImageStack', 'PostSet', @obj.onImageStackChanged);
+            
+        end
+        
+        function resetImageStackListeners(obj)
+            % Not finished
+            if ~isempty(obj.ImageDataChangedListener)
+                delete(obj.ImageDataChangedListener)
+            end
+            
+            if ~isempty(obj.ImageStackChangedListener)
+                delete(obj.ImageStackChangedListener)
+            end
+            
+        end
+        
     end
     
     methods (Static)

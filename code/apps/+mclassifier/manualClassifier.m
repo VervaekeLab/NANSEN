@@ -1,36 +1,42 @@
 classdef manualClassifier < applify.mixin.UserSettings
+%manualClassifier App for manually classifying set of items
+%
+%
+%   Abstract class for manual classification of images or plot segments
+%   or a combination of the two. 
     
-    % Abstract class for manual classification of images or plot segments
-    % or a combination of the two. 
     
+% ABSTRACT PROPERTIES:
+% --------------------
+%   classificationLabels : Label to use for each classification             Ex: { 'Accepted', 'Rejected', 'Unresolved' }
+%   classificationColors : Cell array of colors to use for each             
+%                          classification label                             Ex: { [0.174, 0.697, 0.492] , [0.920, 0.339, 0.378] , [0.176, 0.374, 0.908] }
+
     
-    
+%   TODO:
+%       [ ] Inherit from theme mixin class.
+
+
 properties (Constant, Hidden = true) % Inherited from UserSettings
-    USE_DEFAULT_SETTINGS = false        % Ignore settings file
+    USE_DEFAULT_SETTINGS = false     % Ignore settings file
     DEFAULT_SETTINGS = mclassifier.getDefaultSettings
 end
 
-
 properties (Abstract) %(Access = private)
-
-% % %     classificationColors = { [0.174, 0.697, 0.492], ...
-% % %                              [0.920, 0.339, 0.378], ...
-% % %                              [0.176, 0.374, 0.908] }
-% % % 
-% % %     classificationLabels = { 'Accepted', 'Rejected', 'Unclear' }
-% % % 
-% % % 
-% % %     guiColors = struct('Background', ones(1,3)*0.2, ...
-% % %                        'Foreground', ones(1,3)*0.7 )
-             
-                                      
-    %settings
-    classificationColors
-    classificationLabels
-    guiColors
-    
+    classificationLabels    % Label to use for each classification
+    classificationColors    % Cell array of colors to use for each classification label
+    guiColors % Todo: Replace with theme
 end
 
+% Properties holding data
+properties (Abstract)
+    dataFilePath            % Filepath to load/save data from
+
+    itemSpecs               % Struct array of different specifications per item
+    itemImages              % Struct array of different images per item
+    itemStats               % Struct array of different stats per item
+    itemClassification      % Vector with classification status per item
+end
 
 % Graphical handles for gui
 properties 
@@ -42,7 +48,6 @@ properties
     hMessageBox
 end
 
-
 % Graphical handles for gui that are private
 properties (Access = private)
     hScrollbarAxes
@@ -50,29 +55,15 @@ properties (Access = private)
     hUicontrols
 end
 
-
-% Properties holding ripple data (todo)
-properties (Abstract)
-    
-    dataFilePath            % Filepath to load/save data from
-    
-    itemSpecs               % Struct array of different specifications per item
-    itemImages              % Struct array of different images per item
-    itemStats               % Struct array of different stats per item
-    itemClassification      % Vector with classification status per item
-    
-end
-
-
 % Properties related to selection of "items"
-properties
+properties (SetAccess = protected)
     selectedItem
     displayedItems
     lastSelectedItem
 end
 
 
-properties (Access = public, SetObservable = true)
+properties (Access = public, SetObservable = true) % Todo: protected?
     mouseMode = ''
     scrollMode = ''
     cursorPosition
@@ -86,6 +77,7 @@ end
 methods
     
     function obj = manualClassifier(varargin)
+    %manualClassifier Constructor    
         
         if ~nargin
             success = obj.uiopenFromFile();
@@ -120,16 +112,10 @@ methods
         obj.setTileCallbacks()
 
         % Activate mouse moving callback when everything is up and running
-        obj.hFigure.WindowButtonMotionFcn = @obj.onMouseMotion;
-
+        obj.createFigureInteractionCallbacks()
     end
     
-    
     function delete(obj)
-        % Todo: Check if there are unsaved changes and let user abort or
-        % save changes before quitting.
-        
-        
         delete(obj.hFigure)
         delete(obj.hTiledImageAxes)
         delete(obj.hScrollbar)
@@ -151,12 +137,18 @@ methods (Access = private, Hidden) % Gui Creation/construction
         obj.hFigure.Color = obj.guiColors.Background;
         obj.hFigure.NumberTitle = 'off';
         obj.hFigure.Name = 'Manual Classifier';
-        obj.hFigure.KeyPressFcn = @obj.keyPress;
-        obj.hFigure.WindowButtonDownFcn = @obj.mousePressed;
-        obj.hFigure.WindowScrollWheelFcn = @obj.scrollHandler;
-        obj.hFigure.CloseRequestFcn = @(s, e) obj.delete;
+        
+        obj.hFigure.CloseRequestFcn = @(s, e) obj.onFigureCloseRequest;
     end
 
+    function createFigureInteractionCallbacks(obj)
+        obj.hFigure.KeyPressFcn = @obj.keyPress;
+        
+        %obj.hFigure.WindowButtonDownFcn = @obj.mousePressed;
+        obj.hFigure.ButtonDownFcn = @obj.mousePressed;
+        obj.hFigure.WindowScrollWheelFcn = @obj.scrollHandler; 
+        obj.hFigure.WindowButtonMotionFcn = @obj.onMouseMotion;
+    end
 
     function configurePanels(obj)
     %configurePanels Configure gui panels and add axes/controls
@@ -321,30 +313,35 @@ methods (Access = private, Hidden) % Gui Creation/construction
         inputbox(end).TooltipString = 'Press shift+number to switch selection';
         
         if ~isempty(obj.itemImages)
-        % Create a textbox to label image selection dropdown menu
-        i = i+1;
-        textbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'text');
-        textbox(end).String = 'Image Selection:';
-        textbox(end).Units = 'normalized';
-        textbox(end).Position = [xPos(i)+0.003, yPosTxt, uicSize];
-        textbox(end).Tag = '';
-        
-        
-        % Create image selection dropdown menu
-        
-        imageNames = fieldnames(obj.itemImages);
-        numbers = 1:numel(imageNames);
-        popupLabels = arrayfun(@(j) sprintf('(%d) %s', j, imageNames{j}), numbers, 'uni', 0);
+            % Create a textbox to label image selection dropdown menu
+            i = i+1;
+            textbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'text');
+            textbox(end).String = 'Image Selection:';
+            textbox(end).Units = 'normalized';
+            textbox(end).Position = [xPos(i)+0.003, yPosTxt, uicSize];
+            textbox(end).Tag = '';
 
-        inputbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'popupmenu');
-        inputbox(end).String = popupLabels;
-        inputbox(end).Value = 1;
-        inputbox(end).Units = 'normalized';
-        inputbox(end).Position = [xPos(i), yPosPop, uicSize];
-        inputbox(end).HorizontalAlignment = 'left';
-        inputbox(end).Tag = 'SelectionImage';
-        inputbox(end).Callback = @(src, event) obj.changeImageType;
-        inputbox(end).TooltipString = 'Press cmd+number to switch selection';
+
+            % Create image selection dropdown menu
+
+            imageNames = fieldnames(obj.itemImages);
+            numbers = 1:numel(imageNames);
+            popupLabels = arrayfun(@(j) sprintf('(%d) %s', j, imageNames{j}), numbers, 'uni', 0);
+
+            inputbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'popupmenu');
+            inputbox(end).String = popupLabels;
+            inputbox(end).Value = 1;
+            inputbox(end).Units = 'normalized';
+            inputbox(end).Position = [xPos(i), yPosPop, uicSize];
+            inputbox(end).HorizontalAlignment = 'left';
+            inputbox(end).Tag = 'SelectionImage';
+            inputbox(end).Callback = @(src, event) obj.changeImageType;
+
+            if ismac
+                inputbox(end).TooltipString = 'Press cmd+number to switch selection';
+            else
+                inputbox(end).TooltipString = 'Press ctrl+number to switch selection';
+            end
         end
         
         
@@ -418,7 +415,11 @@ methods (Access = private, Hidden) % Gui Creation/construction
         set(textbox, 'BackgroundColor', obj.guiColors.Background)
         set(textbox, 'ForegroundColor', obj.guiColors.Foreground)
         set(textbox, 'HorizontalAlignment', 'left')
+        set(textbox, 'FontUnits', 'pixels')
+        set(textbox, 'FontSize', 12)
         
+        set(inputbox, 'FontUnits', 'pixels')
+        set(inputbox, 'FontSize', 11)
         
         i = i+1;
         buttons(end+1) = uicontrol(obj.hPanelSettings, 'style', 'togglebutton');
@@ -450,6 +451,18 @@ methods (Access = private, Hidden) % Gui Creation/construction
         buttons(end).String = 'Help';
         buttons(end).Units = 'normalized';
         buttons(end).Position = [xPos(i), yPosBtn, btnSize];
+        
+        set(buttons, 'FontUnits', 'pixels')
+        set(buttons, 'FontSize', 11)
+        
+        %obj.hPanelSettings
+% % %         set(inputbox, 'ForegroundColor', ones(1,3)*0.85)
+% % % 
+% % %         applify.AppWindow.switchJavaWarnings('off')
+% % %         h = applify.uicontrolSchemer(inputbox);
+% % %         h = applify.uicontrolSchemer(buttons);
+% % % 
+% % %         applify.AppWindow.switchJavaWarnings('on')
         
     end
 
@@ -485,8 +498,8 @@ methods (Access = private, Hidden) % Gui Creation/construction
         if nargin < 2
             candidates = getCandidatesForUpdatedView(obj);
 
-            roiOrder = obj.getItemOrder();
-            candidates = intersect(roiOrder, candidates, 'stable');
+            itemOrder = obj.getItemOrder();
+            candidates = intersect(itemOrder, candidates, 'stable');
         end
         
         nTiles = obj.hTiledImageAxes.nTiles;
@@ -523,30 +536,53 @@ methods (Access = private, Hidden) % Gui Creation/construction
     function keyPress(obj, src, event)
 
         switch event.Key
+            
             case 'uparrow'
-                obj.updateView([], [], 'previous')
+                if isempty(obj.selectedItem) || isequal(event.Modifier, 'shift')
+                    obj.updateView([], [], 'previous')
+                else
+                    obj.changeSelectedItem('up')
+                end
+                
             case 'downarrow'
-                obj.updateView([], [], 'next')
+                if isempty(obj.selectedItem) || isequal(event.Modifier, 'shift')
+                    obj.updateView([], [], 'next')
+                else
+                    obj.changeSelectedItem('down')
+                end
+                
             case 'leftarrow'
                 obj.changeSelectedItem('prev')
+            
             case 'rightarrow'
                 obj.changeSelectedItem('next')
                 
+% %             case 'tab'
+% %                 if isempty( event.Modifier )
+% %                     obj.changeSelectedItem('next')
+% %                 elseif strcmp(event.Modifier, 'shift')
+% %                     obj.changeSelectedItem('prev')
+% %                 end
+                
+                
             % Numeric keypress should change the selected value in one of 3
-            % popupmenus and make necessary updates. If a roi is selected
-            % during numeric keypress, that roi will be classified.
+            % popupmenus and make necessary updates. If an item is selected 
+            % during numeric keypress, that item will be classified.
+            
             case {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
                 
                 val = str2double(event.Key) + 1;
 
                 if contains(event.Modifier, 'shift')
                     hPopup = findobj(obj.hPanelSettings, 'Tag', 'SelectionShow');
+                
                 elseif any(contains({'command',  'control'}, event.Modifier))
                     hPopup = findobj(obj.hPanelSettings, 'Tag', 'SelectionImage');
                     
                     val = val-1;
                     if val == 0 || isempty(hPopup); return; end
-                else % If roi is selected, classify it, otherwise, change mouse click classification behavior
+                
+                else % If item is selected, classify it, otherwise, change mouse click classification behavior
                     obj.setMouseMode(src, event, 'Select') % Exit roiTools if numbers are used
                     
 %                     if ~isempty(obj.selectedItem)
@@ -611,25 +647,21 @@ methods (Access = private, Hidden) % Gui Creation/construction
                 % Do nothing.
 
         end
-        
 
-        
-        
-        
     end
     
     
     function scrollHandler(obj, src, event)
     %scrollHandler Take care of scrolling input to figure.
     
-        if isempty(obj.selectedItem)
+        %if isempty(obj.selectedItem)
             obj.hScrollbar.moveScrollbar(src, event)
             obj.updateView(src, event, 'scroll')
-        else
+        %else
 % %             if ~isempty(obj.hRoimanager) && isvalid(obj.hRoimanager)
 % %                 obj.hRoimanager.changeFrame(src, event, 'mousescroll')
 % %             end
-        end
+        %end
         
     end
     
@@ -653,33 +685,16 @@ methods (Access = private, Hidden) % Gui Creation/construction
         % Get Mouse Point in the axes coordinates.
         newMousePointAx = get(obj.hTiledImageAxes.Axes, 'CurrentPoint');
         newMousePointAx = newMousePointAx(1, 1:2);
+        
 %         obj.lastMousePress = newMousePointAx;
-        
-        
-%         if ~isempty(obj.roiTools) && obj.roiTools.captureClicks && ~isnan(tileNum)
-% 
-%             switch obj.roiTools.mouseMode
-%                 case {'magicwand', 'circle', 'Autodetect', 'CircleSelect', 'CrosshairSelect'}
-%                     
-%                     currentRoiInd = obj.displayedItems(tileNum);
-%                     roiData = obj.prepareRoiData(currentRoiInd, tileNum);
-%                     
-%                     modifiedRoi = obj.roiTools.requestRoi(src, event, roiData);
-%                     
-%                     if ~isempty(modifiedRoi)
-%                         obj.updateRois(modifiedRoi, currentRoiInd, 'reshape')
-%                     end
-%                     
-%                 case {'polydraw'}
-%                     
-%                     
-%             end
-% 
-%         end
-%         
-%         if isnan(tileNum) && ~isempty(obj.selectedItem) 
-%             obj.changeSelectedItem('unselect')
-%         end
+
+
+        % Note: If this callback is a ButtonDownFcn and not a
+        % WindowButtonDownFcn, this statement is only reached if mouse is
+        % pressed outside of tiles.
+        if isnan(tileNum)
+            obj.changeSelectedItem('unselect')
+        end
 
         
     end
@@ -697,7 +712,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
     
 end
 
-
 methods (Abstract, Access = protected)
     
     preInitialization(obj)
@@ -709,7 +723,6 @@ methods (Abstract, Access = protected)
     onSelectedItemChanged(obj)
     
 end
-
 
 methods (Access = protected)
         
@@ -935,6 +948,7 @@ methods
                 % Determine how many tiles to move across
                 if ismac % Mac touchpad is too sensitive...
                     i = ceil(event.VerticalScrollCount/5);
+                    if i == 0; i = sign(event.VerticalScrollCount); end
                 else
                     i = ceil(event.VerticalScrollCount);
                 end
@@ -949,16 +963,24 @@ methods
                 % being displayed as first in the image tiles?
                 currentCandidate = find( candidates == firstIndex );
                 
+                nItemsToShow = min(nTiles, numel(candidates));
+                
                 % Count how many candidates are left in the list after this
                 % one.
                 candidatesLeft = candidates(currentCandidate:end);
 
                 % Make sure to stop at either beginning or end of candidate
                 % list.
-                if currentCandidate+n < 1
+                if currentCandidate+n < 1 % Make sure to stop at beginning.
                     candidatesLeft = candidates(1:end);
-                elseif currentCandidate+n >= numel(candidatesLeft) + obj.hTiledImageAxes.nCols
-                    candidatesLeft = candidates(end-nTiles:end);
+                    
+                elseif currentCandidate + n + obj.hTiledImageAxes.nTiles > numel(candidates)
+                    candidatesLeft = candidates(end-nItemsToShow+1:end);
+
+                % Todo: Is this useful, or was this a bug?
+                %elseif currentCandidate+n >= numel(candidatesLeft) + obj.hTiledImageAxes.nCols
+                %    candidatesLeft = candidates(end-nTiles:end);
+                
                 else
                     candidatesLeft = candidates(currentCandidate+n:end);
                 end
@@ -1024,12 +1046,16 @@ methods
     
     function updateTileColor(obj, tileNum)
 
+        % tileNum must be a row vector
+        if iscolumn(tileNum); tileNum = tileNum'; end
+
+        
         colors = obj.classificationColors;
         
         tileClsf = obj.itemClassification(obj.displayedItems);
 
         for i = tileNum
-            cInd = tileClsf(i);
+            cInd = unique( tileClsf(i) );
 
             if cInd == 0
                 obj.hTiledImageAxes.setTileOutlineColor(i)
@@ -1060,7 +1086,6 @@ methods
 
     function roiOrder = getItemOrder(obj)
         
-        
         if ~isempty(obj.itemStats)
             hPopup = findobj(obj.hPanelSettings, 'Tag', 'VariableSelector');
             sortVariable = hPopup.String{hPopup.Value};
@@ -1081,7 +1106,6 @@ methods
         
     end
     
-
     function imageSelection = getCurrentImageSelection(obj)
     %getCurrentImageSelection Get image type selection from popup menu 
         
@@ -1138,7 +1162,30 @@ methods
         
     end
 
+    function itemText = getItemText(obj, roiInd)
+    %getItemText Get text to show in tile for each item.    
+        
+        cellOfStr = arrayfun(@(i) sprintf('%d', i), roiInd, 'uni', 0);
+            
+        % Find value of variable selector:
+        hTmp = findobj(obj.hFigure, 'Tag', 'VariableSelector');
+        varName = hTmp.String{hTmp.Value};
 
+        if ~strcmp(varName, '<none>')
+            valuesAll = [obj.itemStats.(varName)];
+            values = valuesAll(roiInd);
+
+            if contains(lower(varName), 'pval')
+                valuesStr = arrayfun(@(x) sprintf(' (%s)', pval2str(x)), values, 'uni', 0);
+            else
+                valuesStr = arrayfun(@(x) sprintf(' (%.2f)', x), values, 'uni', 0);
+            end
+
+            cellOfStr = strcat(cellOfStr, valuesStr);
+        end 
+        
+        itemText = cellOfStr;
+    end
     
     % % % Methods for making changes...
     
@@ -1162,7 +1209,7 @@ methods
     end
     
     
-    function removeRois(obj, indToRemove)
+    function removeItems(obj, indToRemove)
         
         if isempty(indToRemove); return; end
         
@@ -1229,7 +1276,21 @@ methods
                 nextTileNum = max([1, currentTileNum-1]); 
             case 'next'
                 nextTileNum = min([currentTileNum+1, obj.hTiledImageAxes.nTiles]);
+            case 'up'
+                numCols = obj.hTiledImageAxes.nCols;
+                nextTileNum = currentTileNum-numCols; 
+                if nextTileNum < 0
+                    nextTileNum = currentTileNum;
+                end
+            case 'down'
+                numCols = obj.hTiledImageAxes.nCols;
+                nextTileNum = currentTileNum+numCols;
+                if nextTileNum > obj.hTiledImageAxes.nTiles
+                    nextTileNum = currentTileNum;
+                end
             case 'unselect'
+                %obj.onSelectedItemChanged(obj.selectedItem, [])
+
                 return
             case 'tile'
                 nextTileNum = tileNum;
@@ -1374,21 +1435,6 @@ methods
                 case 'open'
                     
                     obj.changeSelectedItem('tile', tileNum)
-
-%                     % Quick adhoc, just for testing:
-%                     event = struct;
-%                     event.EventName = 'KeyPress';
-%                     event.Key = 'i';
-%                     
-%                     currentRoiInd = obj.selectedItem;
-%                     roiData = obj.prepareRoiData(currentRoiInd);
-% 
-%                     modifiedRoi = obj.roiTools.requestRoi([], event, roiData);
-% 
-%                     if ~isempty(modifiedRoi)
-%                         obj.updateRois(modifiedRoi, currentRoiInd, 'reshape')
-%                     end
-
                     
                 otherwise
 %                     obj.startMove(src, event, tileNum)
@@ -1406,28 +1452,74 @@ methods
 
     
     % Methods for saving results.
-    function saveClassification(obj, ~, ~)
-             
+    function saveClassification(obj, ~, ~, varargin)
+        
+        
+        % Get path for saving data to file.
+        if isempty(varargin)
+            savePath = obj.getSavePath();
+        else
+            error('Not implemented yet')
+        end
+        
+        if isempty(savePath); return; end
+        
+        % Save these variables:
+        varNames = {'itemSpecs', 'itemImages', 'itemStats', 'itemClassification'};
+        
+        S = struct;
+        for i = 1:numel(varNames)
+            S.(varNames{i}) = obj.(varNames{i});
+        end
+        S.classificationLabels = obj.classificationLabels;
+        
+        if exist(savePath, 'file')
+            save(savePath, '-struct', 'S', '-append')
+        else
+            save(savePath, '-struct', 'S')
+        end
+        
+        
+        % Save clean version:
+        keep = obj.itemClassification ~= 2;
+        for i = 1:numel(varNames)
+            S.(varNames{i}) = S.(varNames{i})(keep);
+        end
+        
+        savePath = strrep(savePath, '.mat', '_clean.mat');
+        save(savePath, '-struct', 'S')
+        
+        fprintf('Saved classification results to %s\n', savePath)
+        
+    end
+    
+    
+    function savePath = getSavePath(obj)
+    %getSavePath Interactive user dialog to let user choose where to save
+    
+        savePath = '';
         
         % Determine where to save classification
-        if ~isempty(obj.roiFilePath)
+        if ~isempty(obj.dataFilePath)
             answer = questdlg('Save classification to file that was loaded? (Existing variables will be replaced)', 'Choose How to Save Classification', 'Yes', 'Pick Another File', 'Append _classified', 'Yes');
+            
             switch lower(answer)
                 case 'yes'
                     pickFile = false;
-                    savePath = obj.roiFilePath;
+                    savePath = obj.dataFilePath;
 
                 case 'pick another file'
                     pickFile = true;
                     
                 case 'append _classified'
                     pickFile = false;
-                    savePath = strrep(obj.roiFilePath, '.mat', '_classified.mat');
+                    savePath = strrep(obj.dataFilePath, '.mat', '_classified.mat');
                     
                 otherwise
                     return
             end
-            initPath = obj.roiFilePath;
+            
+            initPath = obj.dataFilePath;
         else
             pickFile = true;
             initPath = '';
@@ -1435,64 +1527,23 @@ methods
         
         % Pick filepath interactively or get from obj.
         if pickFile
-            [roiFilenm, savePath] = uiputfile(...
-                                        {'*.mat', 'Mat Files (*.mat)'; ...
-                                        '*', 'All Files (*.*)'}, ...
-                                        'Save Roi File', initPath);
-            savePath = fullfile(savePath, roiFilenm);
-        end
-        
-        
-        % Tag rois with classification
-        roiCls = obj.itemClassification;
-        uniqueClasses = unique(roiCls);
-        labels = obj.classificationLabels; %Todo
-        
-        for i = uniqueClasses
-            if i == 0
-                continue
-            elseif i == 3
-                obj.roiArray(roiCls==i) = obj.roiArray(roiCls==i).addTag('imported');
+            
+            fileSpec = {'*.mat', 'Mat Files (*.mat)'; '*', 'All Files (*.*)'};
+            titleStr = 'Save Classification File';
+            
+            [filename, folderPath] = uiputfile(fileSpec, titleStr, initPath);
+                              
+            if filename == 0
+                return
             end
+            
+            savePath = fullfile(folderPath, filename);
+            
         end
-        
-        roiArray = obj.roiArray;
-        itemClassification = obj.itemClassification;
-        roiImages = obj.itemImages;
-        itemStats = obj.itemStats;
-        
-        if exist(savePath, 'file')
-            save(savePath, 'roiArray', 'roiImages', 'itemStats', 'itemClassification', '-append')
-        else
-            save(savePath, 'roiArray', 'roiImages', 'itemStats', 'itemClassification')
-        end
-        
-        
-        % Save clean version:
-        roiArray(obj.itemClassification==2) = []; %#ok<*NASGU>
-        
-        if ~isempty(roiImages)
-            roiImages(obj.itemClassification==2) = [];
-        end
-        
-        if ~isempty(itemStats)
-            itemStats(obj.itemClassification==2) = [];
-        end
-        
-        itemClassification(obj.itemClassification==2) = [];
-        
-        savePath = strrep(savePath, '.mat', '_clean.mat');
-        save(savePath, 'roiArray', 'roiImages', 'itemStats', 'itemClassification')
-        
-        fprintf('Saved classification results to %s\n', savePath)
-        
-    end
-   
-    
 
+    end
 
 end
-
 
 methods (Access = protected)
     
@@ -1570,18 +1621,21 @@ methods (Access = protected)
                 
         end
         
-    end
-
+        end
+        
+        function onFigureCloseRequest(obj)
+        % Todo: Check if there are unsaved changes and let user abort or
+        % save changes before quitting.
+            delete(obj)
+        end
 end
 
-
 methods (Static)
-    
     
     function S = getSettings()
         S = getSettings@clib.hasSettings('manualClassifier');
     end
-
+    
     function removeFocusFromControl(h)
         
         set(h, 'Enable', 'off');

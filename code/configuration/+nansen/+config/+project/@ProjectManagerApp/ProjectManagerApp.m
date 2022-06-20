@@ -1,28 +1,22 @@
-classdef ProjectManagerApp < nansen.config.project.ProjectManagerUI % applify.ModularApp & 
+classdef ProjectManagerApp < nansen.config.abstract.ConfigurationApp
 %ProjectManagerApp Create an app for the project manager
 %
 %   Todo: Program this using traditional gui figure for backwards
 %   compatibility and more responsive figure.
 
-    properties (Constant, Hidden)
-        DEFAULT_THEME = nansen.theme.getThemeColors('light'); 
-    end
-    
+
     properties (Constant)
         AppName = 'Project Manager'
     end
-    
-    
-    
+
     methods
+        
         function obj = ProjectManagerApp()
             
-            hFigure = uifigure;
-            hFigure.Position(3:4) = [699,229]; 
-            uim.utility.centerFigureOnScreen(hFigure)
-
-            obj@nansen.config.project.ProjectManagerUI(hFigure);
-
+            obj.createFigure();
+            obj.Figure.Visible = 'on';
+            obj.UIModule{1} = nansen.config.project.ProjectManagerUI(obj.Figure); 
+            
             if ~nargout; clear obj; end
             
             %obj@applify.ModularApp

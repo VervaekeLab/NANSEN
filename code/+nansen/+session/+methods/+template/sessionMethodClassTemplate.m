@@ -5,8 +5,9 @@ classdef sessionMethodClassTemplate < nansen.session.SessionMethod
     properties (Constant) % SessionMethod attributes
         MethodName = ''
         BatchMode = 'serial'
+        IsManual = false
         IsQueueable = true;
-        OptionsManager = nansen.OptionsManager.empty % todo...
+        OptionsManager = nansen.OptionsManager(mfilename('class')) % todo...
     end
     
     

@@ -8,7 +8,12 @@ classdef HDF5 < nansen.stack.data.VirtualArray
     %      stored in different datasets
     %  [ ] Implement finding datasets which are within groups...
     %  [ ] Subclass (?) for datasets within the NWB format...
+    %  [ ] Check nwb-datapipe for inspiration how to use low level h5 functions 
 
+properties (Constant, Hidden)
+    FILE_PERMISSION = 'write'
+end
+    
 properties
     DatasetName = ''
 end
@@ -55,7 +60,7 @@ methods (Access = protected) % Implementation of abstract methods
         
         [~, ~, ext] = fileparts(filePath);
         
-        assert(strcmp(ext, '.h5'), 'File must be a .h5 file')
+        assert(strcmp(ext, '.h5') || strcmp(ext, '.nwb') , 'File must be a .h5 file')
 
         obj.FilePath = filePath;
         
@@ -76,16 +81,13 @@ methods (Access = protected) % Implementation of abstract methods
         
         obj.DatasetInfoH5 = h5info(obj.FilePath, ['/', obj.DatasetName] );
         obj.MetaData.Size = obj.DatasetInfoH5.Dataspace.Size;
-
         obj.MetaData.Class = obj.h5Type2matType(obj.DatasetInfoH5.Datatype);
-                
-        % TODO
-        % Add more meta, specifically numPlanes and numChannels 
-        
         
         obj.assignDataSize()
         
         obj.assignDataType()
+        
+        % Todo: Update metadata properties
         
     end
     
@@ -268,7 +270,7 @@ methods (Static) % H5 specific methods
         [start, count, stride] = deal( ones(1, numel(sz)) );
 
         for i = 1:numel(subs)
-            if subs{i} == ':'
+            if ischar(subs{i}) && isequal(subs{i}, ':') % make sure it's a char before comparing with isequal
                 % Write the whole dimension.
                 start(i) = 1;
                 count(i) = sz(i);

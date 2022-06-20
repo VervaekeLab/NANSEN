@@ -511,8 +511,12 @@ classdef Button_ < uim.abstract.Control
                 end
                 
             end
-        end
+       end
          
+       function onSizeChanged(obj, oldPosition, newPosition)
+           onSizeChanged@uim.abstract.Control(obj, oldPosition, newPosition);
+           obj.updateTextLocation()
+       end
     end
     
     methods % Public
@@ -533,7 +537,8 @@ classdef Button_ < uim.abstract.Control
             end
             
             if ~isempty(obj.hButtonText) && isa(obj.hButtonText, 'matlab.graphics.primitive.Text')
-                obj.hButtonText.Position(1:2) = obj.hButtonText.Position(1:2)+shift(1:2);
+                obj.updateTextLocation()
+                %obj.hButtonText.Position(1:2) = obj.hButtonText.Position(1:2)+shift(1:2);
             end
             
             obj.setTooltipPosition()

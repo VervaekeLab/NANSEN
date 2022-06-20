@@ -26,6 +26,7 @@ classdef scrollerBar < uim.handle
 
     properties 
         Orientation = 'vertical' %Todo: Resolve automatically based on pos
+        Direction = 'normal' % normal or reverse
         Position = [0,0,1,1]
         Units = 'normalized'
         
@@ -59,6 +60,7 @@ classdef scrollerBar < uim.handle
         isCursorOnBar = false
         
         isTrackVisible = false;
+        ParentSizeChangedListener
         
     end % /properties (private)
 
@@ -85,6 +87,9 @@ classdef scrollerBar < uim.handle
             obj.createScrollbar;
             obj.setPointerBehavior()
             
+            obj.ParentSizeChangedListener = listener(obj.hParent, ...
+                'SizeChanged', @(s, e) obj.updateBarLength);
+            
             obj.isInitialized = true;
             obj.redraw()
 
@@ -100,13 +105,17 @@ classdef scrollerBar < uim.handle
 
         end % /scrollerBar
         
-
+        function delete(obj)
+            if isvalid(obj.ParentSizeChangedListener)
+                delete(obj.ParentSizeChangedListener)
+            end
+        end
+           
         function redraw(obj)
         %redraw Redraw scrollbar.    
             obj.updateBarLength()
             drawnow
         end % /redraw
-        
         
         function set.Value(obj, newValue)
         %set.Value Set Value property and update bar position.
@@ -135,7 +144,13 @@ classdef scrollerBar < uim.handle
         end % /set.VisibleAmount
         
         function set.TrackColor(obj, newValue)
-            obj.hScrollbar(1).FaceColor = newValue;
+            obj.TrackColor = newValue;
+            obj.onStyleChanged()
+        end
+        
+        function set.BarColor(obj, newValue)
+            obj.BarColor = newValue;
+            obj.onStyleChanged()
         end
         
         function set.Visible(obj, newValue)
@@ -458,14 +473,18 @@ classdef scrollerBar < uim.handle
             obj.hScrollbarAxes.Units = obj.Units;
             obj.hScrollbarAxes.Position = obj.Position;
             obj.hScrollbarAxes.Tag = 'Scrollbar Axes';
-
+            obj.hScrollbarAxes.HandleVisibility = 'off';
+            
             % Set axes limits to "normalized" units.
             obj.hScrollbarAxes.Visible = 'off';
             hold(obj.hScrollbarAxes, 'on')
             obj.hScrollbarAxes.XLim = [0,1];
             obj.hScrollbarAxes.YLim = [0,1];
             
-            obj.hScrollbarAxes.YDir = 'reverse'; % Scroll from top to bottom
+            switch obj.Direction
+                case 'normal'
+                    obj.hScrollbarAxes.YDir = 'reverse'; % Scroll from top to bottom
+            end
             
             % Determine if scroller should be horizontal or vertical
             axPixelPos = getpixelposition(obj.hScrollbarAxes);
@@ -545,6 +564,12 @@ classdef scrollerBar < uim.handle
         end
         
         
+        function onStyleChanged(obj)
+            obj.hScrollbar(1).FaceColor = obj.TrackColor;
+            obj.hScrollbar(2).FaceColor = obj.BarColor;
+        end
+        
+        
         function updateBarLength(obj)
         %updateBarLength Update scrollerbar height.
         
@@ -566,6 +591,7 @@ classdef scrollerBar < uim.handle
                     isDim = [0, 1];
                     obj.hScrollbarAxes.XLim = newAxesLimits;
                     barLength = axSize(1) .* obj.VisibleAmount ./ axesRange;
+                    %barLength = max([barLength, obj.BarWidth]);
                     barSize = round( [barLength, obj.BarWidth] );
                 case 'vertical'
                     isDim = [1, 0];
@@ -573,6 +599,8 @@ classdef scrollerBar < uim.handle
                     barLength = axSize(2) .* obj.VisibleAmount ./ obj.Maximum;
                     barSize = round( [obj.BarWidth, barLength] );
             end
+            
+            barSize(~isDim) = round( max([barSize(~isDim), obj.BarWidth]) );
             
             obj.updateTrackLimits() % since axes limits was changed...
             

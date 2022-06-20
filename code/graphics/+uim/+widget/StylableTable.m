@@ -11,7 +11,7 @@ classdef StylableTable < uiw.widget.Table
     %     and format) without invoking onStyleChangedMethod from
     %     uiw.widget.Table
     % [ ] How can I remove column header
-
+    % [ ] Update colors of table header and table header area in updateTheme
     
     properties
         Theme uim.style.tableTheme = uim.style.tableLight
@@ -20,8 +20,12 @@ classdef StylableTable < uiw.widget.Table
         ShowColumnHeader = true
         
         UseDefaultHeader = true
-        
         HeaderPressedCallback = []
+        HeaderReleasedCallback = []
+    end
+    
+    properties (SetAccess = private)
+        ColumnArrangement
     end
     
     properties %(Access = protected, Dependent)
@@ -40,14 +44,21 @@ classdef StylableTable < uiw.widget.Table
     
         % Following properties are used to detect if column header is
         % changed via the user interface by mouse drag actions.
-        WasMouseDraggedInHeader = false;
         OldColumnWidth = []
         OldColumnOrder = {}
     end
     
+    properties (Access = private)
+        MousePointStart = []
+        WasMouseDraggedInHeader = false;
+    end
+    
     events
+        MouseDraggedInHeader
         ColumnWidthChanged % Event listener for if column width changes (if user drags column headers to resize)
         ColumnsRearranged % Event listener for if columns are rearranged (if user drags column headers to rearrange)
+        %HorizontalScroll
+        %VerticalScroll
     end
     
     
@@ -112,6 +123,7 @@ classdef StylableTable < uiw.widget.Table
         end
         
         function retrieveAncestorContainer(obj)
+            % Need to update color of some ancestor container?
             obj.JRandomContainer = obj.JScrollPane.getParent.getParent.getParent.getParent;
             obj.updateTheme()
         end
@@ -131,8 +143,36 @@ classdef StylableTable < uiw.widget.Table
     
     methods
         
+        function figurePoint = tablepoint2figurepoint(obj, tablePoint)
+                  
+            % Todo: Need to know if position is java position or not... in
+            % which case the y position needs to be reversed.
+            
+            % Get scroll positions in table
+            xScroll = obj.getHorizontalScrollOffset();
+            yScroll = obj.getVerticalScrollOffset();
+
+            % Correct the coordinates based on the scroll offsets
+            clickPosX = tablePoint(1) - xScroll;
+            clickPosY = tablePoint(2) - yScroll;
+            
+            % Convert from table-based to figure-based coordinates.
+            tablePosition = getpixelposition(obj, true);
+            tableLocationX = tablePosition(1) + 1; % +1 because ad hoc...
+            tableHeight = tablePosition(4);
+            
+            clickPosX = tableLocationX + clickPosX; % Add offset for table position.
+            clickPosY = tableHeight - clickPosY; % Need to reverse y-position because java-based positions are opposite (i.e upside-down) compared to matlab positions.
+            figurePoint = [clickPosX, clickPosY];
+            
+        end
+        
         function xOffset = getHorizontalScrollOffset(obj)
             xOffset = get(obj.JHScroller, 'Value');
+        end
+        
+        function yOffset = getVerticalScrollOffset(obj)
+            yOffset = get(obj.JVScroller, 'Value');
         end
         
         function showHorizontalScroller(obj)
@@ -160,8 +200,8 @@ classdef StylableTable < uiw.widget.Table
         function columnNames = getColumnOrder(obj)
 
             % Todo: Move to columnlayout class...
-            
-            jTableHeader = obj.JTable.getTableHeader();
+            %jTableHeader = obj.JTable.getTableHeader();
+            jTableHeader = obj.JTableHeader;
             jColumnModel = jTableHeader.getColumnModel();
             numColumns = jColumnModel.getColumnCount;
             
@@ -173,6 +213,48 @@ classdef StylableTable < uiw.widget.Table
             
         end
         
+        function selectRowFromMouseEvent(obj, evtData)
+            
+            % Get row where mouse press ocurred.
+            row = evtData.Cell(1); col = evtData.Cell(2);
+
+            % Select row where mouse is pressed if it is not already
+            % selected
+            if ~ismember(row, obj.SelectedRows) 
+                if row > 0 && col > 0
+                    obj.SelectedRows = row;
+                else
+                    obj.SelectedRows = [];
+                    return
+                end
+            end
+                
+        end
+        
+        function position = getTableContextMenuPosition(obj, eventPosition)
+        %getTableContextMenuPosition Get cmenu position from event position
+        
+            % Get scroll positions in table
+            xScroll = obj.getHorizontalScrollOffset();
+            yScroll = obj.getVerticalScrollOffset();
+                        
+            % Get position where mouseclick occured (in figure)
+            clickPosX = eventPosition(1) - xScroll;
+            clickPosY = eventPosition(2) - yScroll;
+            
+            % Convert to position inside table
+            tablePosition = getpixelposition(obj, true);
+            tableLocationX = tablePosition(1);
+            tableLocationY = tablePosition(2);
+
+            tableHeight = tablePosition(4);
+            
+            positionX = clickPosX + tableLocationX + 1; % +1 because ad hoc...
+            positionY = tableHeight - clickPosY + tableLocationY; % +15 because ad hoc... size of table header?
+            
+            position = [positionX, positionY];
+            
+        end
     end
     
     methods % Set / get methods
@@ -242,14 +324,20 @@ classdef StylableTable < uiw.widget.Table
 %             % Convert to javacolors.
 %             bgColor2 = obj.rgb2jrgb( S.tableBackgroundColor );
 %             fgColor = obj.rgb2jrgb( S.tableForegroundColor );
-%             
-%             jViewPort = getappdata(obj.hTableView, 'JViewPort');
-%             jScrollPane = getappdata(obj.hTableView, 'jScrollPane');
-% 
-%             % Set background color of table viewport (area available for table)
-%             set(jViewPort, 'background', S.bgColor);
-            
+%             jScrollPane = getappdata(obj.hTableView, 'jScrollPane'); 
+
+
             obj.BackgroundColor = obj.Theme.CellColorUnmodified;
+            
+            
+            % Set background color of table viewport (area available for table)
+            jViewPort = obj.JScrollPane.getComponent(0);
+            set(jViewPort, 'background', jRGB(obj.BackgroundColor));
+
+% %             jViewPort = obj.JScrollPane.getComponent(3);
+% %             set(jViewPort, 'background', jRGB(obj.BackgroundColor));
+            
+            
             obj.JTable.GridColor = jRGB( obj.Theme.GridColor );
 
             if ~obj.UseDefaultHeader
@@ -261,6 +349,9 @@ classdef StylableTable < uiw.widget.Table
             
             obj.JTable.Foreground = jRGB(obj.Theme.TableForegroundColor);
             obj.JTable.Background = jRGB(obj.Theme.CellColorModified);
+            
+            obj.JTable.DisabledBackground = jRGB(obj.Theme.TableBackgroundColorDisabled);
+            obj.JTable.DisabledForeground = jRGB(obj.Theme.TableForegroundColorDisabled);
             
             obj.JTable.selectionForeground = jRGB(obj.Theme.TableForegroundColorSelected);
             obj.JTable.selectionBackground = jRGB(obj.Theme.TableBackgroundColorSelected);
@@ -299,7 +390,6 @@ classdef StylableTable < uiw.widget.Table
             hSpacing = double(obj.ShowVerticalLines)*0;
             vSpacing = double(obj.ShowHorizontalLines)*1;
             obj.JTable.IntercellSpacing = java.awt.Dimension(hSpacing, vSpacing);
-
             obj.JTable.ShowVerticalLines = obj.ShowVerticalLines;
             obj.JTable.ShowHorizontalLines = obj.ShowHorizontalLines;
         end
@@ -365,11 +455,28 @@ classdef StylableTable < uiw.widget.Table
         
         function onMouseDraggedInHeader(obj, src, evt)
         %onMouseDraggedInHeader Used to test if column widths are changed
-            if ~obj.WasMouseDraggedInHeader
+            
+            persistent allowInterrupt
+            if isempty(allowInterrupt); allowInterrupt = true; end
+            
+            if ~allowInterrupt; return; end
+            allowInterrupt = false; %#ok<NASGU>
+            
+            jPoint = get(evt, 'Point');
+            mPoint = [jPoint.x, jPoint.y];
+            
+            if ~obj.WasMouseDraggedInHeader % Mouse just started dragging!
+                obj.MousePointStart = mPoint;
+                obj.OldColumnWidth = obj.ColumnWidth; % Should be set before dragging starts. For very fast drags, this assignment is finished only after drag is completed
                 obj.WasMouseDraggedInHeader = true;
-                obj.OldColumnWidth = obj.ColumnWidth;
-                obj.OldColumnOrder = obj.getColumnOrder();
             end
+            
+            eventData = uiw.event.EventData('MousePointStart', ...
+                obj.MousePointStart, 'MousePointCurrent', mPoint);
+            obj.notify('MouseDraggedInHeader', eventData)
+            
+            allowInterrupt = true;
+
         end
         
         function onMouseReleasedFromHeader(obj, src, evt)
@@ -380,19 +487,42 @@ classdef StylableTable < uiw.widget.Table
                 % Need to check if columns are rearranged before checking if
                 % columns are resized. If columns of different sizes are
                 % rearranged, it will appear as columns have been resized.
-                currentColumnOrder = obj.getColumnOrder();
-                if ~isequal(obj.OldColumnOrder, currentColumnOrder) % (1)
+                currentColumnArrangement = obj.getColumnOrder();
+
+                if ~isequal(obj.ColumnArrangement , currentColumnArrangement) % (1)
                     obj.notify('ColumnsRearranged', event.EventData)
-                
+                    obj.ColumnArrangement = currentColumnArrangement; 
+
                 elseif any(obj.ColumnWidth ~= obj.OldColumnWidth)   % (2)
                     obj.updateColumnHeaderWidth()
                     obj.notify('ColumnWidthChanged', event.EventData)
+
+                else
+                    %disp('Nothing Changed')
                 end
-                
                 obj.WasMouseDraggedInHeader = false;
+            else
+                if ~isempty(obj.HeaderReleasedCallback)
+                    obj.HeaderReleasedCallback(src, evt)
+                end
             end
         end
 
+    end
+    
+    methods (Access = protected) % Override uiw.widget.Table method
+        
+        function onTableModelChanged(obj, ~, e)
+            % This method is reimplemented in order to store the column
+            % arrangment of the table model, which is needed to detect
+            % whether columns are rearranged when mouse is dragged in table
+            % header.
+            
+            onTableModelChanged@uiw.widget.Table(obj, [], e)
+            obj.ColumnArrangement = obj.getColumnOrder;
+            % disp('table model changed')
+        end
+        
     end
     
 end

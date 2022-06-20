@@ -1,38 +1,60 @@
-function openRoiClassifier(imviewerRef)
-%openRoiClassifier Open roiClassifier on request from imviewer
-    
-    % Find roimanager handle
-    success=false;
-    if any( contains({imviewerRef.plugins.pluginName}, 'flufinder') )
-        IND = contains({imviewerRef.plugins.pluginName}, 'flufinder');
-        
-        h = imviewerRef.plugins(IND).pluginHandle;
-        
-        % Get roi group
-        roiGroup = h.roiGroup;
-        
-        %TODO: Make sure roigroup has images and stat, otherwise generate
-        % it
-        
-        
-        tf = roiGroup.validateForClassification();
-        if isempty(roiGroup.roiImages) || isempty(roiGroup.roiStats)
-            % get roi images/stats
-            error('Images and stats are missing')
-        end
-        
-        
-        if roiGroup.roiCount > 0
-            % Initialize roi classifier
-            roiClassifier(h.roiGroup, 'tileUnits', 'scaled')
-            success = true;
-        end
+function hClassifier = openRoiClassifier(varargin)
+%openRoiClassifier Open roiClassifier
+%
+%   hClassifier = openRoiClassifier(roiData)
+%       roiData is a struct with the following fields: roiArray, roiImages,
+%       roiStats, roiClassification
+%
+%   hClassifier = openRoiClassifier(roiGroup) is a roimanager.roiGroup
+%
+%   hClassifier = openRoiClassifier(roiArray, imageStack) 
 
+
+    roiData = struct.empty;
+    roiGroup = [];
+    
+    vararginType = cellfun(@(c) class(c), varargin, 'uni', 0);
+        
+    if isa( varargin{1}, 'struct' )
+        
+        dataFields = fieldnames(varargin{1});
+        
+        if all( ismember({'roiArray', 'roiImages', 'roiStats', 'roiClassification'}, dataFields) )
+            roiData = varargin{1};
+        end
+       
+    elseif isa(varargin{1}, 'RoI')
+        
+        if isa(varargin{2}, 'nansen.stack.ImageStack') 
+            roiData = roiclassifier.prepareRoiData(varargin{1:2});
+        end
+        
+    elseif isa(varargin{1}, 'roimanager.roiGroup')
+        if nargin >= 2 && ~isempty(varargin{2}) && isa(varargin{2}, 'nansen.stack.ImageStack') 
+            roiData = roiclassifier.prepareRoiData(varargin{1:2});
+        
+        else
+            roiGroup = varargin{1};
+        end
+        
+        
     end
     
-    if ~success
-        imviewerRef.displayMessage('Error: No rois are present')
+    
+    if ~isempty(roiData)
+        roiArray = roiData.roiArray;       
+        roiArray = roiArray.setappdata('roiImages', roiData.roiImages);
+        roiArray = roiArray.setappdata('roiStats', roiData.roiStats);
+        roiArray = roiArray.setappdata('roiClassification',  roiData.roiClassification);
+
+        roiGroup = roimanager.roiGroup(roiArray);
     end
     
+    if isempty(roiGroup)
+        error('Input is not valid for roi classifier app')
+    end
+
+    hClassifier = roiclassifier.App(roiGroup, 'tileUnits', 'scaled');
+
 
 end

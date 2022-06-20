@@ -1,36 +1,25 @@
 classdef Notebook < nansen.metadata.abstract.TableVariable
-    
-    % Todo
-    %   [ ] Adapt addEntry and removeEntry to work for this class
-    %   implementation. Was taken from sessionInventory.
-    %   [ ] Same for: editMessages, onEditNotesButtonPress
+%Notebook A table variable implementation for a notebook variable.
+%
+%   See also nansen.metadata.abstract.TableVariable nansen.notes.Note
     
     properties (Constant)
         IS_EDITABLE = false
         DEFAULT_VALUE = struct.empty
     end
-
-    properties
-        % Struct array containing note entries. Each note entry should have 
-        % the following fields:
-        %   timestamp   % Time when message was generated
-        %   type        % Comment, warning
-        %   title       % Title of message
-        %   message     % Actual message
-        
-        % Value struct
-        
-    end
    
-    methods
+    methods % Constructor
+        
         function obj = Notebook(S)
+            if nargin < 1; S = struct.empty; end
             obj@nansen.metadata.abstract.TableVariable(S);
-            assert(isstruct(obj.Value), 'Value must be a struct')
+            
+            assert( all( arrayfun(@isstruct, [obj.Value])), 'Value must be a struct')
         end
+        
     end
     
-    
-    methods % Implement abstract methods of superclass
+    methods % Implementation of abstract superclass methods
        
         function str = getCellDisplayString(obj)
                         
@@ -38,41 +27,65 @@ classdef Notebook < nansen.metadata.abstract.TableVariable
             % structarrays are not compatible with tables as far as I could
             % figure out...
             
-            commentStruct = obj.Value;
+            str = cell(1, numel(obj));
             
-            if iscell(commentStruct)
-                commentStruct = commentStruct{1};
-            end
+            for i = 1:numel(obj)
+           
+                commentStruct = obj(i).Value;
             
-            if isempty(commentStruct)
-                str = '0 Notes';
-                return
-            else
-                msgLevel = {commentStruct.level};
-                numComments = sum(contains(lower(msgLevel), 'comment'));
-                numWarnings = sum(contains(lower(msgLevel), 'warning'));
-            end
+                if iscell(commentStruct)
+                    commentStruct = commentStruct{1};
+                end
             
-            str1 = sprintf('Comments (%d)', numComments);
-            icon1 = '/Applications/MATLAB_R2017b.app/toolbox/matlab/uitools/private/icon_help_32.png';
-            str1 = sprintf('<html><img src="file:%s" width="10" height="10"><font color="#000000">%s</font>', icon1, str1);
+                str{i} = sprintf('%d Notes', numel(commentStruct));
+
+                if isempty(commentStruct)
+                    continue
+                else
+    % %                 msgLevel = {commentStruct.Type};
+    % %                 numComments = sum(contains(lower(msgLevel), 'informal'));
+    % %                 numWarnings = sum(contains(lower(msgLevel), 'important'));
+                end
             
-            str2 = sprintf('Warnings (%d)', numWarnings);    
-            icon2 = '/Applications/MATLAB_R2017b.app/toolbox/matlab/uitools/private/icon_warn_32.png';
-            str2 = sprintf('<html><img src="file:%s" width="10" height="10"><font color="#000000">%s</font>', icon2, str2);
+            
+                formattedStr = sprintf('<html><font color="#000000"> %s </font>', str{i});
+
+
+                if contains('Informal', {commentStruct.Type})
+                    iconHtmlStr = obj.getIconHtmlString('help');
+                    formattedStr = strcat(formattedStr, iconHtmlStr);
+                end
+
+                if contains('Important', {commentStruct.Type})
+                    iconHtmlStr = obj.getIconHtmlString('warn');
+                    formattedStr = strcat(formattedStr, iconHtmlStr);
+                end
+
+                if contains('Question', {commentStruct.Type})
+                    iconHtmlStr = obj.getIconHtmlString('quest');
+                    formattedStr = strcat(formattedStr, iconHtmlStr);
+                end
+
+                if contains('Todo', {commentStruct.Type})
+                    iconHtmlStr = obj.getIconHtmlString('error');
+                    formattedStr = strcat(formattedStr, iconHtmlStr);
+                end
 
             
+
+% % %             if numComments == 0 && numWarnings > 0
+% % %                 formattedStr = sprintf('<html><font color="#000000"> %s </font> %s', str, str2);
+% % %             elseif numWarnings == 0 && numComments > 0
+% % %                 formattedStr = sprintf('<html><font color="#000000"> %s </font> %s', str, str1);
+% % %             elseif numWarnings > 0 && numComments > 0
+% % %                 spaceStr = sprintf('<html><font color="#000000"> %s </font>', ' '); %todo... figure out how to make space between icons...
+% % %                 formattedStr = sprintf('<html><font color="#000000"> %s </font> %s %s %s', str, str2, spaceStr, str1);
+% % %             else
+% % %                 
+% % %             end
             
-            if numComments == 0 && numWarnings > 0
-                formattedStr = sprintf('%s', str2);
-            elseif numWarnings == 0 && numComments > 0
-                formattedStr = sprintf('%s', str1);
-            elseif numWarnings > 0 && numComments > 0
-                formattedStr = sprintf('%s , %s', str2, str1);
+                str{i} = formattedStr;
             end
-            
-            
-            str = formattedStr;
         end
        
         function str = getCellTooltipString(obj)
@@ -83,145 +96,67 @@ classdef Notebook < nansen.metadata.abstract.TableVariable
                 str = '';
             else
                 
-                %str = sprintf('<html>&nbsp;<b>%s</b>', sessionID);
+                str = sprintf('<html>&nbsp;<b>%s</b>', noteStruct(1).ObjectID);
                 
                 for j = 1:numel(noteStruct)
-                    newLine1 = sprintf('<br>&nbsp; %d) %s (%s)', j, noteStruct(j).title, noteStruct(j).timestamp);
+                    newLine1 = sprintf('<br>&nbsp; %d) %s (%s)', j, noteStruct(j).Title, noteStruct(j).TimeStamp);
                     str = [str, newLine1]; %#ok<AGROW>
-                    newLine2 = sprintf('<br>&nbsp; %s', noteStruct(j).message);
+                    newLine2 = sprintf('<br>&nbsp; %s', noteStruct(j).Text);
                     str = [str, newLine2]; %#ok<AGROW>
                 end
 
             end
         end
         
-    end
-    
-    
-    methods
-        
-        function entry = addNote(entry, title, message, level)
-            
-            % Level: comment, warning
-            
-            if nargin < 4; level = 'comment'; end
-            
-            % Initialize note:
-            note = struct();
-            note.timestamp = datestr(now, 'yyyy.mm.dd - HH:MM:SS');
-            note.level = lower(level);
-            note.title = title;
-            note.message = message;
-            
-            if isa(entry.Notes, 'cell')
-                entry.Notes = entry.Notes{1};
+        function onCellDoubleClick(obj, ~)
+            if ~isempty(obj.Value)
+                obj.openNotebookUI()
             end
-            
-            % Add note to session inventory entry.
-            if isempty(entry.Notes)
-                entry.Notes = note;
-            else
-                entry.Notes(end+1) = note;
-            end
-            
-            entry.Notes = {entry.Notes};
-            
         end
-        
-        
-        function entry = removeNote(entry)
-            
-        end
-        
-        function editMessages(obj, sid)
-            
-            thisRow = contains(obj.entries.(obj.IDNAME), sid);
-            
-            thisEntry = table2struct( obj.entries(thisRow, :),'ToScalar',true);   
-            
-            notes = thisEntry.Notes;
-            if isa(notes, 'cell')
-                notes = notes{1};
-            end
-            
-                        
-            % Specify figure position (Open in the middle of the screen)
-            screenSize = get(0, 'ScreenSize');
-            figSize = [350, 400];
-            figLoc = screenSize(3:4)/2 - figSize/2;
-            
-            % Open a temporary figure window
-            tmpF = figure('Visible', 'on', 'Position', [figLoc, figSize]);
-            tmpF.NumberTitle = 'off';
-            tmpF.Name = 'Edit Session Notes';
-            tmpF.MenuBar = 'none';
-            tmpF.Resize = 'off';
-            tmpF.CloseRequestFcn = @(s, e, f) uiresume(tmpF);
-  
-            % Open a listWithButton widget for editing the list of commands
-            % in the history log.
-            
-            % Todo: Add edit feature
-            % Also, add view feature
-            widgetH = uiw.widget.ListWithButtons('Parent', tmpF);
-            widgetH.Position = [.01,.005, .98, .99];
-            if isempty(notes)
-                widgetH.Items = {};
-                notes = struct('timestamp', {}, 'level', {}, 'title', {}, 'message', {});
-            else
-                widgetH.Items = {notes.title};
-            end
-            widgetH.Callback = @obj.onEditNotesButtonPress;
-            widgetH.AllowEdit = false;            
-            widgetH.ButtonLocation = 'right';
-            widgetH.UserData.Notes = notes;
-
-            % Wait for the temporary window to close and replace the
-            % notes with the new list of notes from the widget.
-            uiwait(tmpF)
-
-            % Todo: update notes..
-            
-            notes = widgetH.UserData.Notes;
-            
-            thisEntry.Notes = {notes};
-            obj.entries(thisRow, :) = struct2table(thisEntry, 'AsArray', true);
-            
-            delete(tmpF) % Close the temporary figure.
-
-        end
-        
-        
-        function onEditNotesButtonPress(obj, src, event)
-            
-            switch event.Interaction
-                    
-                case 'Delete' % Just remove item
-                    src.Items(event.SelectedIndex) = [];
-                    src.UserData.Notes(event.SelectedIndex) = [];
-                    obj.isModified = true;
-
-                case {'Add'} %, 'Edit'
-                    
-                    % Initialize note:
-                                             
-                    note = sbutil.inputNote();
-                    note.timestamp = datestr(now, 'yyyy.mm.dd - HH:MM:SS');
-                    note.level = lower(note.level);
-                    
-                    src.Items{end+1} = note.title;
-                    src.UserData.Notes(end+1) = note;
-                    obj.isModified = true;
-
-            end
-            
-        end
-
-        
         
     end
-   
+
+    methods (Access = private)
         
+        function openNotebookUI(obj)
+        %openNotebookUI Open the notebook ui using this notebook instance.
+            hApp = obj.getNotebookViewer();
+            hApp.Visible = 'on';
+            hApp.openNotebook(obj.Value);
+        end
+        
+    end
+        
+    methods (Static)
+        
+        function hApp = getNotebookViewer()
+        %getNotebookViewer Get notebook viewer from global variable.
+        %
+        %   Get notebook viewer from a global variable. If the global
+        %   variable is empty, create a new notebook viewer.
+
+            global NoteBookViewer
+            
+            if isempty(NoteBookViewer) || ~isvalid(NoteBookViewer)
+                NoteBookViewer = nansen.notes.NoteViewerApp();
+                NoteBookViewer.setClosePolicy('hide')
+            end
+            
+            hApp = NoteBookViewer;
+            
+        end
+        
+        function str = getIconHtmlString(iconName)
+            
+            % Todo: Create better icons and place in nansen...
+
+            %warn, error, quest, help
+            iconPath = sprintf( '/Applications/MATLAB_R2017b.app/toolbox/matlab/uitools/private/icon_%s_32.png', iconName);
+            str = sprintf('<img src="file:%s" width="10" height="10" margin="0">', iconPath);
+            
+        end
+        
+    end
     
     
 end

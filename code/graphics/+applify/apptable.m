@@ -1,4 +1,4 @@
-classdef apptable < applify.minitable
+classdef apptable < applify.UiControlTable
 % A row based table for placing in an app using uifigure
 %
 %
@@ -28,13 +28,12 @@ classdef apptable < applify.minitable
 
 
     properties (Access = protected, Hidden) % Internal layout properties
+        TempFig
         TempAxes % Axes used for determining extent of text labels.
         TempText % Text used for determining extent of text labels.
     end
     
-    
     properties (Access = protected, Hidden) % Internal graphical properties
-        
         TableHeaderSpacer % An empty image placed in top of table panel to create some padding in the top of a scrollpanel.
         ImageGraphicPaths struct = struct()
     end
@@ -44,9 +43,9 @@ classdef apptable < applify.minitable
         
         function obj = apptable(varargin)
         %apptable Constructor                
-            obj@applify.minitable(varargin{:})
+            obj@applify.UiControlTable(varargin{:})
             
-            delete(obj.TempAxes)
+            delete(obj.TempFig)
             
             obj.addTablePanelMargin() % Quirk needed in scrollable uipanel...
 
@@ -76,7 +75,7 @@ classdef apptable < applify.minitable
             % Subclasses may override this method.
         end
         
-        function createTableRowComponents(obj)      	% defined in applify.minitable
+        function createTableRowComponents(obj) % defined in applify.UiControlTable
         
         end
         
@@ -94,10 +93,19 @@ classdef apptable < applify.minitable
         % Temporary axes for getting length of strings to fit component 
         % width to text length..... Wtf matlab, this should not be necessary.
         
-            obj.TempAxes = uiaxes(obj.Parent);
+        % Note important to plot in traditional figure to get pixel size
+        % correct.
+            obj.TempFig = figure('Visible', 'off');
+        
+            obj.TempAxes = uiaxes(obj.TempFig, 'Units', 'pixels', ...
+                'Position', obj.TablePanel.Position);
+            obj.TempAxes.HandleVisibility = 'off';
+            obj.TempAxes.Visible = 'off';
+            
             obj.TempText = text(obj.TempAxes);
-            obj.TempText.Units = 'pixel';
-            drawnow
+            obj.TempText.Units = 'pixels';
+            obj.TempText.FontSize = 12;
+            obj.TempText.FontWeight = 'bold';
         end
         
         function createHeader(obj)
@@ -112,22 +120,14 @@ classdef apptable < applify.minitable
             obj.ColumnHeaderBorder.Position = obj.ColumnHeaderPosition;
             obj.ColumnHeaderBorder.ImageSource = imagePathStr;
             
-% %             rootPath = fileparts( mfilename('fullpath') );
-% %             imgPath = fullfile(rootPath, '_graphics', 'icons');
-
-            rootPath = fileparts(nansen.rootpath);
-            imgPath = fullfile(rootPath, 'setup', '_icons');
-            
             yOff = 5; % Correction factor in pixels to keep labels closer 
                       % to horizontal border below
                       
             % Todo(?): Create panel for header
             for i = 1:obj.NumColumns
-
-                if isempty(obj.ColumnNames{i}) % Skip rest if column name is empty
-                    continue
-                end
                 
+                % Skip this column if name is empty
+                if isempty(obj.ColumnNames{i}); continue; end
                 
                 % Add position(1) to correct for xOffset (column header is 
                 % created directly in parent, but table components are 
@@ -136,68 +136,55 @@ classdef apptable < applify.minitable
                 w = obj.ColumnWidths(i);
                 y = obj.ColumnHeaderPosition(2);
                 
-                
+                % Create a uilabel for the column header
                 obj.ColumnHeaderLabels{i} = uilabel(obj.Parent);
+                obj.ColumnHeaderLabels{i}.Text = obj.ColumnNames{i};
                 obj.ColumnHeaderLabels{i}.FontName = obj.FontName;
                 obj.ColumnHeaderLabels{i}.FontWeight = 'bold';
                 obj.ColumnHeaderLabels{i}.FontSize = 12;
-
-                obj.ColumnHeaderLabels{i}.Text = obj.ColumnNames{i};
-                
-                obj.TempText.String = obj.ColumnNames{i};
-                                
-% % %                 if strcmp(obj.ColumnNames{i}, 'Data location type')
-% % %                     disp(obj.TempText.Extent)
-% % %                     disp(obj.TempText.Position)
-% % %                 end
-                
-                obj.TempText.FontName = obj.ColumnHeaderLabels{i}.FontName;
-                obj.TempText.FontWeight = 'bold';
-                obj.TempText.FontSize = obj.ColumnHeaderLabels{i}.FontSize;
-                
-                
-                
-                extent = obj.TempText.Extent; %obj.ColumnHeaderLabels{i}.Position;
-                
-% % %                 if strcmp(obj.ColumnNames{i}, 'Data location type')
-% % %                     drawnow
-% % %                 end
-% % %                 
-% % %                 extent2 = obj.TempText.Extent; %obj.ColumnHeaderLabels{i}.Position;
-
-                obj.ColumnHeaderLabels{i}.UserData.Extent = extent;
                 obj.ColumnHeaderLabels{i}.Position = [xi y w 22];
-                
-
-% % %                 if strcmp(obj.ColumnNames{i}, 'Data location type')
-% % %                     disp(extent)
-% % %                     disp(extent2)
-% % %                     
-% % % % %                     f = figure;
-% % % % %                     copyobj(obj.TempAxes, f)
-% % % % %                     
-% % % % %                     h = findobj(f, 'Type', 'text');
-% % % % %                     h.Extent
-% % %                     
-% % %                 end
-                
                 obj.centerComponent(obj.ColumnHeaderLabels{i}, y-yOff)
-                
+
                 if obj.ShowColumnHeaderHelp
-                    obj.ColumnLabelHelpButton{i} = uiimage(obj.Parent);
-                    w_ = obj.ColumnHeaderLabels{i}.UserData.Extent(3);
-                    obj.ColumnLabelHelpButton{i}.Position = [xi+w_, y, 18, 18];
-                    obj.ColumnLabelHelpButton{i}.ImageSource = fullfile(imgPath, 'help.png');
-                    obj.ColumnLabelHelpButton{i}.ImageClickedFcn = @obj.onHelpButtonClicked;
+                    % Determine help icon position
+                    x0 = obj.ColumnHeaderLabels{i}.Position(1);
+                    hTxt = obj.plotText(obj.ColumnHeaderLabels{i}, i);
+                    w = hTxt.Extent(3) + 5;
+                    % Create help icon
+                    obj.ColumnLabelHelpButton{i} = obj.createHelpIconButton(obj.Parent);
+                    obj.ColumnLabelHelpButton{i}.Position = [x0+w, y, 18, 18];
                     obj.ColumnLabelHelpButton{i}.Tag = obj.ColumnNames{i};
-                    obj.ColumnLabelHelpButton{i}.Tooltip = 'Press for help';
                     obj.centerComponent(obj.ColumnLabelHelpButton{i}, y-yOff)
-                    
                 end
-                
+
             end
+            drawnow;
             
             % Add horizontal border below header.
+            
+        end
+        
+        function hTxt = plotText(obj, hLabel, i)
+            
+            obj.TempText(i) = text(obj.TempAxes);
+            obj.TempText(i).String = obj.ColumnNames{i};
+            obj.TempText(i).Units = 'pixels';
+            obj.TempText(i).FontName = hLabel.FontName;
+            obj.TempText(i).FontSize = hLabel.FontSize;
+            obj.TempText(i).FontWeight = hLabel.FontWeight;
+            hTxt = obj.TempText(i);
+        end
+        
+        function hIconButton = createHelpIconButton(obj, hContainer)
+        %createHelpIconButton Create a help button
+        
+            rootPath = fileparts(nansen.rootpath);
+            imgPath = fullfile(rootPath, 'setup', '_icons');
+            
+            hIconButton = uiimage(hContainer);
+            hIconButton.Tooltip = 'Press for help';
+            hIconButton.ImageSource = fullfile(imgPath, 'help.png');
+            hIconButton.ImageClickedFcn = @obj.onHelpButtonClicked;
             
         end
         
@@ -371,11 +358,11 @@ classdef apptable < applify.minitable
         %addRow Add a row to the table.
             
             if nargin < 2
-                addRow@applify.minitable(obj)
+                addRow@applify.UiControlTable(obj)
             elseif nargin < 3
-                addRow@applify.minitable(obj, rowNumber)
+                addRow@applify.UiControlTable(obj, rowNumber)
             else
-                addRow@applify.minitable(obj, rowNumber, rowData)
+                addRow@applify.UiControlTable(obj, rowNumber, rowData)
             end
             
             obj.updateTablePanelMargin()
@@ -384,7 +371,7 @@ classdef apptable < applify.minitable
         
         function removeRow(obj, rowNumber)
             
-            removeRow@applify.minitable(obj, rowNumber)
+            removeRow@applify.UiControlTable(obj, rowNumber)
         
             obj.updateTablePanelMargin()
 

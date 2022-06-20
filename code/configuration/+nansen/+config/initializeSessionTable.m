@@ -1,15 +1,24 @@
-function initializeSessionTable(dataLocationModel, sessionSchema)
+function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, uiWaitbar, hFigure)
 
-
+    if nargin < 3; uiWaitbar = struct(); end  % create dummy waitbar
+    if nargin < 4; hFigure = []; end
+    
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
     
     %sessionSchema = @nansen.metadata.schema.vlab.TwoPhotonSession;
-
-
+    
+    uiWaitbar.Message = 'Locating session folders...';
+    
     % % Use the folder structure to detect session folders.
     sessionFolders = listSessionFolders(dataLocationModel, 'all');
-    sessionFolders = matchSessionFolders(dataLocationModel, sessionFolders);
+    [sessionFolders, ~, sessionFoldersUnmatched] = matchSessionFolders(dataLocationModel, sessionFolders);
+    
+    % Check for unmatched session folders
+    if ~isempty(sessionFoldersUnmatched)
+        [sessionFolders] = nansen.manage.uiresolveUnmatchedSessions(...
+            sessionFolders, sessionFoldersUnmatched, hFigure);
+    end
     
     if isempty(sessionFolders)
         % Todo: Get exception
@@ -18,16 +27,28 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
         throwAsCaller(MException(errorID, errorMsg))
     end
 
+    uiWaitbar.Message = 'Creating session objects...';
     
     % Create a list of session metadata objects
     numSessions = numel(sessionFolders);
     sessionArray = cell(numSessions, 1);
     for i = 1:numSessions
-        sessionArray{i} = sessionSchema(sessionFolders(i));
+        sessionArray{i} = sessionSchema(sessionFolders(i), 'DataLocationModel', dataLocationModel);
     end
     
     sessionArray = cat(1, sessionArray{:});
     
+    % Check for duplicate session IDs
+    sessionIDs = {sessionArray.sessionID};
+    if numel(sessionIDs) ~= numel(unique(sessionIDs))
+        [sessionArray, wasAborted] = nansen.manage.uiresolveDuplicateSessions(sessionArray, hFigure);
+        % Todo: Rerun initialization from here if sessions were resolved
+        if wasAborted
+            return
+        end
+    end
+    
+    uiWaitbar.Message = 'Creating session table...';
 
     
     % Initialize a MetaTable using the given session schema and the
@@ -40,7 +61,8 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
     S.SavePath = nansen.config.project.ProjectManager.getProjectSubPath('MetaTable');
     S.IsDefault = true;
     S.IsMaster = true;
-
+    
+    
     % Save the metatable in the current project
     try
         metaTable.archive(S);
@@ -51,7 +73,8 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
 % %                 uialert(app.NansenSetupUIFigure, ME.message, title) 
     end
     
-    
+    uiWaitbar.Message = 'Implementing project specifications...';
+
     % Get user defined (project) variables...
     varNames = nansen.metadata.utility.getCustomTableVariableNames();
     
@@ -63,7 +86,7 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
             continue
         end
         
-        thisFcn = str2func(strjoin({'tablevar', 'session', thisName}, '.'));
+        thisFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
         
         initValue = thisFcn();
         
@@ -76,5 +99,9 @@ function initializeSessionTable(dataLocationModel, sessionSchema)
     
     metaTable.save()
    
+    uiWaitbar.Message = 'Metatable created!'; %#ok<STRNU>
+    
+    wasAborted = false;
+    
     
 end

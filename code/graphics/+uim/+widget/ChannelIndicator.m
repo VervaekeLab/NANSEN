@@ -214,6 +214,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                     obj.hChannelForeground(i).PickableParts = 'none';
                     obj.hChannelForeground(i).HitTest = 'off';
                     obj.hChannelForeground(i).Tag = 'ButtonForeground';
+                    set(obj.hChannelForeground(i), 'Visible', 'off')
                     obj.setPointerBehavior(obj.hChannelForeground(i))
                 else
                     set(obj.hChannelForeground(i), 'XData', X+x0, 'YData', Y+y0)
@@ -245,6 +246,8 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                     obj.hChannelForeground(channelNum).Color = ones(1,3)*0.8;
                 end
             end
+            set(obj.hChannelForeground, 'Visible', 'off')
+
             
         end
         
@@ -263,12 +266,19 @@ classdef ChannelIndicator < uim.mixin.assignProperties
        
         function onChannelIndicatorPressed(obj, channelNum)
 
-            oldSelection = obj.CurrentChannels;
+            %oldSelection = obj.CurrentChannels;
             
             if ismember(channelNum, obj.CurrentChannels)
                 obj.CurrentChannels = setdiff(obj.CurrentChannels, channelNum);
             else
                 obj.CurrentChannels = union(obj.CurrentChannels, channelNum);
+            end
+            
+            % If only one channel is visible, and it is deselected, toggle
+            % all the other channels on
+            if isempty(obj.CurrentChannels)
+                allChannels = 1:obj.NumChannels;
+                obj.CurrentChannels = setdiff(allChannels, channelNum, 'stable');
             end
             
             if ~isempty(obj.Callback)

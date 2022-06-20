@@ -33,6 +33,7 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
         jTable
        
         ColumnNames
+        ColumnEditable
         
     end
     
@@ -51,7 +52,6 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
             obj.assignPVPairs(varargin{:})
             
             obj.create()
-            
             
         end
        
@@ -114,7 +114,9 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
             numColumns = numel(obj.ColumnNames);
             
 
-            obj.Table.ColumnEditable = logical([0,0,0,0,0,1]);
+            obj.Table.ColumnEditable = obj.ColumnEditable;
+            
+            %logical([0,0,0,0,0,1]);
             
             % Change appearance
             obj.Table.FontName = 'Avenir New';

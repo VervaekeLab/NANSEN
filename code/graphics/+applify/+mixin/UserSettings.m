@@ -81,6 +81,10 @@ classdef (Abstract) UserSettings < uim.handle
     properties (Dependent)
         settings            % A struct containing different settings variables
     end
+    
+    properties (Hidden)
+        wasAborted = false; % Flag to indicate if settings editor ui was aborted..
+    end
 
     properties (Access = protected, Hidden = true)
         settings_ struct    % For internal use to assign settings without triggering callbacks
@@ -189,7 +193,7 @@ classdef (Abstract) UserSettings < uim.handle
         function editSettings(obj)
         %editSettings Open gui for editing fields of settings.
         
-            titleStr = sprintf('preferences for %s', class(obj));
+            titleStr = sprintf('Preferences for %s', class(obj));
             doDefault = true; % backward compatibility...
             
             if ~isempty(obj.hSettingsEditor)
@@ -244,6 +248,9 @@ classdef (Abstract) UserSettings < uim.handle
                                 errordlg(msg)
                                 error(msg)
                             end
+                                            
+                        otherwise
+                            rethrow(ME)
 
                     end
                 end
@@ -265,6 +272,13 @@ classdef (Abstract) UserSettings < uim.handle
             end
             obj.settings = defaultSettings;
             obj.saveSettings()
+        end
+        
+        function waitfor(obj)
+        %uiwait Wait for the settings editor (if open)
+            if ~isempty(obj.hSettingsEditor)
+                obj.hSettingsEditor.waitfor()
+            end
         end
         
     end
@@ -304,20 +318,7 @@ classdef (Abstract) UserSettings < uim.handle
             if numel(S) >= 2 && contains(S(2).name, internalMethods)
                 obj.settings_ = newSettings; % Update settings and return
             else
-                
-                subs = obj.settingsSubs;
-                                
-                % Trigger onSettingsChanged for each field that changed.
-                for i = 1:numel(subs)
-                   oldValue = subsref( obj.settings_, subs{i});
-                   newValue = subsref( newSettings, subs{i});
-                    
-                    if ~isequal( oldValue, newValue )
-                        obj.settings_ = subsasgn(obj.settings_, subs{i}, newValue);
-                        thisName = subs{i}(end).subs; % Note: Only using the last name for identifier. Not ideal, but it done because of legacy...
-                        obj.onSettingsChanged(thisName, newValue)
-                    end
-                end
+                obj.onSettingsSet(newSettings)
             end
         end
         
@@ -336,7 +337,28 @@ classdef (Abstract) UserSettings < uim.handle
     end
     
     methods (Access = protected)
+        
+        function onSettingsSet(obj, newSettings)
+        %onSettingsSet Callback when settings is set from external source
             
+        % Sets the settings_ property and invokes the onSettingsChanged for
+        % each field in settings.
+        
+            subs = obj.settingsSubs;
+
+            % Trigger onSettingsChanged for each field that changed.
+            for i = 1:numel(subs)
+               oldValue = subsref( obj.settings_, subs{i});
+               newValue = subsref( newSettings, subs{i});
+
+                if ~isequal( oldValue, newValue )
+                    obj.settings_ = subsasgn(obj.settings_, subs{i}, newValue);
+                    thisName = subs{i}(end).subs; % Note: Only using the last name for identifier. Not ideal, but it done because of legacy...
+                    obj.onSettingsChanged(thisName, newValue)
+                end
+            end
+        end
+        
         % Is this needed somewhere?
         function updateSettingsValue(obj, name, value)
             % Temp solution to deal with settings struct with two levels.
@@ -397,10 +419,12 @@ classdef (Abstract) UserSettings < uim.handle
             
             if obj.hSettingsEditor.wasCanceled
                 updatedSettings = obj.hSettingsEditor.dataOrig;
+                obj.wasAborted = true;
             else
                 updatedSettings = obj.hSettingsEditor.dataEdit;
+                obj.wasAborted = false;
             end
-            
+
             obj.saveSettings()
             
             delete(obj.hSettingsEditor)

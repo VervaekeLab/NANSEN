@@ -85,14 +85,31 @@ classdef HasOptions < handle
     
     methods % Public methods
         
-        function optsStruct = editOptions(obj)
+        function [optsStruct, wasAborted] = editOptions(obj)
             
-            [~, optsStruct] = obj.OptionsManager.editOptions('Custom', obj.Options);
+             args = {};
+% % %             if ~isempty(obj.Options)
+% % %                 args = [args, obj.Options];
+% % %             end
+% % %             
+% % % %             if ~isempty(obj.OptionsName)
+% % % %                 args = [obj.OptionsName, args];
+% % % %             else
+% % %                 if ~isempty(args)
+% % %                     args = ['Custom', args];
+% % %                 end
+% % % %             end
+
+            
+            [~, optsStruct, wasAborted] = obj.OptionsManager.editOptions(args{:});
             obj.Options_ = optsStruct;
             
-            if ~nargout
-                clear optsStruct
+            if ~nargout 
+                clear optsStruct wasAborted
+            elseif nargout == 1
+                clear wasAborted
             end
+            
         end
         
     end
@@ -137,7 +154,7 @@ classdef HasOptions < handle
         
     end
     
-    methods (Static, Sealed, Access = protected)
+    methods (Static, Sealed)%, Access = protected)
         
         function options = getSuperClassOptions(className)
         %getSuperClassOptions Get default options from all superclasses   

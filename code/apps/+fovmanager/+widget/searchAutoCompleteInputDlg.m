@@ -1,6 +1,7 @@
 classdef searchAutoCompleteInputDlg < handle
+
     
-    properties
+    properties (Access = private)
         
         uiPanel
         
@@ -95,7 +96,7 @@ classdef searchAutoCompleteInputDlg < handle
         function createSearchInputField(obj, txtArg)
             
             % Create a SearchTextField control on top of the combo-box
-            searchField = com.mathworks.widget.SearchTextField(txtArg);
+            searchField = com.mathworks.widgets.SearchTextField(txtArg);
             obj.jSearchField = searchField.getComponent;
             [~, hContainer2] = javacomponent(obj.jSearchField, [], obj.uiPanel);
             

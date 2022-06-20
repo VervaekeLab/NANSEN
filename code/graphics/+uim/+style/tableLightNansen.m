@@ -8,6 +8,8 @@ classdef tableLightNansen < uim.style.tableTheme
         TableForegroundColor = [0.05, 0.05, 0.05]
         TableBackgroundColorSelected = [240,171,15] ./ 255
         TableForegroundColorSelected = [0.95, 0.95, 0.95]
+        TableBackgroundColorDisabled = [0.85, 0.85, 0.85]
+        TableForegroundColorDisabled = [0.15, 0.15, 0.15]
         CellColorUnmodified = [1, 1, 1]
         CellColorModified = [1, 1, 1]
         GridColor = [0.9, 0.9, 0.9]

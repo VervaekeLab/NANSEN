@@ -14,7 +14,6 @@ function roiArray = mergeOverlappingRois(roiArray, overlap, method)
     if nargin < 2; overlap = 0.8; end
     if nargin < 3; method = 'intersect'; end
 
-    %localModule = tools.module();
     
     % Merge overlapping rois in the activity based roi Array.
     [iA, iB] = roimanager.utilities.findOverlappingRois(roiArray, roiArray, overlap);

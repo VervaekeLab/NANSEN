@@ -42,6 +42,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
         Maximum = 2;
         
         NumChannels = 1;
+        NumPlanes = 1
         
         RangeSelectorEnabled matlab.lang.OnOffSwitchState = 'off'
         ActiveRange = [1, 1]            % For virtual vs memory stacks.
@@ -59,6 +60,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
     
     properties (Dependent)
         CurrentChannels = 1;
+        CurrentPlane
         ChannelColors
     end
     
@@ -76,7 +78,9 @@ classdef PlaybackControl < uim.mixin.assignProperties
         hActiveRangeBar
         hRangeButtons
         
+        hPlaneSwitcher
         hChannelIndicator
+        
         channelColors_
         knob
         play
@@ -145,6 +149,10 @@ classdef PlaybackControl < uim.mixin.assignProperties
         %switchPlayPauseIcon Switch icon of play button on play/pause
             
             buttonPosition = 10;
+            if obj.NumPlanes > 1 && ~isempty(obj.hPlaneSwitcher)
+                buttonPosition = buttonPosition + 20;
+            end
+            
             buttonHeight = 11;
             switch mode
                 case 'play'
@@ -163,6 +171,10 @@ classdef PlaybackControl < uim.mixin.assignProperties
             obj.Value = newFrame;
         end
 
+        function resetRangeSelector(obj)
+            obj.ActiveRange = [1,1];
+            obj.RangeSelectorEnabled = 'off';
+        end
     end
     
     methods % Set/Get
@@ -244,6 +256,10 @@ classdef PlaybackControl < uim.mixin.assignProperties
         	obj.hChannelIndicator.CurrentChannels = newValue;
         end
         
+        function set.CurrentPlane(obj, newValue)
+        	obj.hPlaneSwitcher.CurrentPlane = newValue;
+        end
+        
         function set.ChannelColors(obj, newValue)
             if ~isempty(obj.hChannelIndicator)
                 obj.hChannelIndicator.ChannelColors = newValue;
@@ -259,7 +275,6 @@ classdef PlaybackControl < uim.mixin.assignProperties
                 chColors = obj.channelColors_;
             end
         end
-        
         
         function set.NumChannels(obj, newValue)
             
@@ -354,6 +369,11 @@ classdef PlaybackControl < uim.mixin.assignProperties
             if obj.NumChannels > 1
                 obj.onNumChannelsChanged()
             end
+            
+            if obj.NumPlanes > 1
+                obj.onNumPlanesChanged()
+            end
+            
         end
         
     % % % Methods for drawing the components
@@ -382,6 +402,10 @@ classdef PlaybackControl < uim.mixin.assignProperties
             buttonHeightB = 7;
             
             buttonXPos = 10 + [0, 17, 34, 50];
+            
+            if obj.NumPlanes > 1 && ~isempty(obj.hPlaneSwitcher)
+                buttonXPos = buttonXPos + 20;
+            end
             
             % Specify patch coordinates for drawing buttons
             xPlay = buttonXPos(1) + [0, 0, 10];
@@ -578,7 +602,10 @@ classdef PlaybackControl < uim.mixin.assignProperties
             switch barName
                 
                 case 'ActiveRangeBar'
-                    l = obj.getSliderXposition( abs(range(obj.ActiveRange)) );
+                    
+                    barRange = max(obj.ActiveRange) - min(obj.ActiveRange);
+                    
+                    l = obj.getSliderXposition( barRange );
                     dx = obj.getSliderXposition( min(obj.ActiveRange) - 1 );
                 case 'SliderBar'
                     l = obj.getSliderXposition( obj.Maximum - obj.Minimum );
@@ -959,6 +986,10 @@ classdef PlaybackControl < uim.mixin.assignProperties
                 dx = dx + obj.BarPadding + obj.hChannelIndicator.Position(3);
             end
             
+            if obj.NumPlanes > 1 && ~isempty(obj.hPlaneSwitcher)
+                dx = dx + 20;
+            end
+            
             obj.ButtonAxes.Position(1:2) = obj.Position_(1:2);
             obj.SliderAxes.Position(1:2) = obj.Position_(1:2) + [dx, 0];
 
@@ -972,6 +1003,13 @@ classdef PlaybackControl < uim.mixin.assignProperties
             
             if obj.NumChannels > 1 && ~isempty(obj.hChannelIndicator)
                 dx = dx + obj.BarPadding + obj.hChannelIndicator.Position(3);
+            end
+            
+            if obj.NumPlanes > 1 && ~isempty(obj.hPlaneSwitcher)
+                dx = dx + 20;
+                if ~isempty(obj.hChannelIndicator)
+                    obj.hChannelIndicator.Position(1) = 80+30;
+                end
             end
             
             % Set axes positions in pixels
@@ -1002,6 +1040,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
 
             % Update component coordinates
             obj.redrawSliderComponents()
+            obj.drawPlaybackButtons()
             
         end
         
@@ -1037,6 +1076,42 @@ classdef PlaybackControl < uim.mixin.assignProperties
                     obj.ParentApp, obj.ButtonAxes, params{:});
             else
                 obj.hChannelIndicator.NumChannels = obj.NumChannels;
+            end
+            
+            % Resize axes...
+            obj.onSizeChanged()
+            
+        end
+        
+        function onNumPlanesChanged(obj)
+            if ~obj.IsConstructed; return; end
+            
+            if obj.NumPlanes == 1
+                if isempty(obj.hPlaneSwitcher)
+                    return
+                else
+                    delete(obj.hPlaneSwitcher)
+                    obj.hPlaneSwitcher=[];
+                    obj.onSizeChanged()
+                    return
+                end
+            end
+            
+            % Todo: make method...
+            if isempty(obj.hPlaneSwitcher)
+                
+                pos = [10, obj.Position_(2), 20, obj.Position_(4)];
+                
+                params = {...
+                    'Position', pos, ...
+                    'NumPlanes', obj.NumPlanes, ...
+                    'Callback', @(ind) obj.ParentApp.changePlane(ind), ...
+                    'ForegroundColor', obj.ButtonColor };
+                
+                obj.hPlaneSwitcher = uim.widget.PlaneSwitcher( ...
+                    obj.ParentApp, obj.ButtonAxes, params{:});
+            else
+                obj.hChannelIndicator.NumPlanes = obj.NumPlanes;
             end
             
             % Resize axes...

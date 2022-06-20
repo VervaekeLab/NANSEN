@@ -9,6 +9,13 @@ function assert(keyword)
 
     switch keyword
         
+        case 'StatisticsToolboxInstalled'
+            errID = 'Nansen:StatisticsToolboxNotInstalled';
+            message = ['The Statistics and Machine Learning toolbox is ', ...
+                'required, but is not present. Please install the ', ...
+                'toolbox and try again'];
+            assertionValid = exist('range', 'file') == 2;
+        
         case 'ExtractOnSavepath'
             errID = 'Nansen:ExtractNotFoundOnPath';
             msg = ['EXTRACT is required for this operation, but is not ', ...

@@ -7,11 +7,11 @@ classdef MetaTableCatalog < uim.handle
 %
 %   See also MetaTable
 
-%   Q:
-%       a) Should it subclass from ObjectCatalog?
 %
+%   Todo:
+%       [ ] Subclass from StorableCatalog.
     
-    properties (SetAccess = private)
+    properties %(SetAccess = private)
         FilePath    % Filepath where the catalog is stored locally
         Table       % Catalog represented with a table
     end
@@ -29,6 +29,29 @@ classdef MetaTableCatalog < uim.handle
             end
             
             obj.load();
+            obj.fixMetatable()
+        end
+        
+        function fixMetatable(obj)
+            % Todo: Remove this
+            
+            if size(obj.Table, 1) >= 1
+                obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
+                obj.save()
+            end
+            
+            for i = 1:size(obj.Table,1)
+                fileValues = obj.Table{i, {'SavePath', 'FileName'}};
+                filePath = fullfile(fileValues{:});
+                
+                if isfile(filePath)
+                    S = load(filePath);
+                    if strcmp(S.MetaTableClass, 'nansen.metadata.schema.vlab.TwoPhotonSession')
+                        S.MetaTableClass = 'nansen.metadata.type.Session';
+                    end
+                    save(filePath, '-struct', 'S')
+                end
+            end
         end
         
         function disp(obj)
@@ -121,9 +144,75 @@ classdef MetaTableCatalog < uim.handle
             
         end
         
+        function entry = getEntry(obj, entryName)
+            
+            metaTableNames = obj.Table.MetaTableName;
+            
+            entryName = strrep(entryName, ' (master)', '');
+            entryName = strrep(entryName, ' (default)', '');
+                    
+            ind = find( strcmp(metaTableNames, entryName) );
+            
+            entry = table2struct(obj.Table(ind, :));
+            
+        end
+        
+        function metaTable = getMetaTable(obj, entryName)
+                                
+            item = obj.getEntry(entryName);
+            
+            % Get database filepath
+            filePath = fullfile(item.SavePath, item.FileName);
+                    
+            % Open database
+            metaTable = nansen.metadata.MetaTable.open(filePath);
+            
+        end
+        
+        function metaTable = getMasterMetaTable(obj)
+            
+            IND = find( obj.Table.IsMaster );
+            rootDir = fileparts( obj.FilePath );
+            
+            metatableFilename = obj.Table{IND, 'FileName'}{1};
+            metatableFilepath = fullfile(rootDir, metatableFilename);
+            
+            metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
+        end
+        
+        function updatePath(obj, newFilepath)
+        %updatePath Update path for all entries in the catalog.
+        
+            for i = 1:size(obj.Table, 1)
+                obj.Table{i, 'SavePath'} = {newFilepath};
+            end
+            
+        end
+        
+        function metaTable = getMasterTable(obj, metaTableType)
+            
+            
+            isMatch = obj.Table.IsMaster &&  contains( lower(obj.Table.MetaTableClass), metaTableType);
+            idx = find(isMatch);
+            
+            if numel(idx) > 1
+                warning('More than one master table is present. Selected first match.')
+                idx = idx(1);
+            elseif numel(idx) == 1
+                % Continue
+            else
+                error('No master metatable of this type exists.')
+            end
+            
+            mtItem = obj.Table(idx, :);
+
+            metatableFilepath = fullfile(mtItem.SavePath{1}, mtItem.FileName{1});
+            metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
+            
+        end
+        
     end
-    
-    
+     
     methods (Static)
         
         function pathString = getFilePath()
@@ -146,13 +235,17 @@ classdef MetaTableCatalog < uim.handle
         function pathStr = getDefaultMetaTablePath()
             MT = nansen.metadata.MetaTableCatalog.quickload();
             
+            if isempty(MT); pathStr = ''; return; end
+            
             IND = find( MT.IsDefault );
-            pathStr = fullfile(MT{IND, 'SavePath'}, MT{IND, 'FileName'});
+            
+            rootDir = fileparts(nansen.metadata.MetaTableCatalog.getFilePath());
+            pathStr = fullfile(rootDir, MT{IND, 'FileName'});
+            %pathStr = fullfile(MT{IND, 'SavePath'}, MT{IND, 'FileName'});
             
             if isa(pathStr, 'cell')
                 pathStr = pathStr{1};
             end
-            
             
         end
         
@@ -265,8 +358,8 @@ classdef MetaTableCatalog < uim.handle
                 isPresent = false;
             else
                 % Check if entry matches any entries in the MetaTableCatalog
-                isKeyMatched = contains(MT.MetaTableKey, S.MetaTableKey);
-                isNameMatched = contains(MT.MetaTableName, S.MetaTableName);
+                isKeyMatched = strcmp(MT.MetaTableKey, S.MetaTableKey);
+                isNameMatched = strcmp(MT.MetaTableName, S.MetaTableName);
                 
                 isPresent = isKeyMatched & isNameMatched;
             end

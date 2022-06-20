@@ -26,7 +26,7 @@ function completeSetup(hApp)
 
 
     % Todo: Get schema based on selection
-    sessionSchema = @nansen.metadata.schema.vlab.TwoPhotonSession;
+    sessionSchema = @nansen.metadata.type.Session;
 
     try
         nansen.config.initializeSessionTable(hApp.DataLocationModel, sessionSchema)

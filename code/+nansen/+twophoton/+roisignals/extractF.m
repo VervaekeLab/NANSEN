@@ -1,4 +1,4 @@
-function [signalArray, P] = extractF(imageData, roiArray, varargin)
+function [signalArray, P] = extractF(imageData, roiData, varargin)
 %extractF Extract RoI signals from an image stack in chunkwise manner
 %
 %   signals = extractF(imageStack, roiArray) extracts signals for rois in
@@ -55,11 +55,21 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
     
     [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
     P.showTimer      = false;    V.showTimer = @(x) assert(islogical(x), 'Value must be logical');
+    P.verbose        = false;    V.verbose = @(x) assert(islogical(x), 'Value must be logical');
     P.signalDataType = 'single'; V.signalDataType = @(x) assert(any(strcmp(x, {'single', 'double'})), 'Value must be ''single'' or ''double''');
     
     % Parse potential parameters from input arguments
     params = utility.parsenvpairs(P, V, varargin{:});
 
+    
+    % Validate roidata
+    if isa(roiData, 'roimanager.roiGroup')
+        roiArray = roiData.roiArray;
+    elseif isa(roiData, 'RoI')
+        roiArray = roiData;
+    else
+        error('Unknown data type for roiData input')
+    end
     
     % Validate the input image data. If ImageStack, all is good, if 
     % numeric, an ImageStack object is returned, otherwise throws error.
@@ -97,24 +107,36 @@ function [signalArray, P] = extractF(imageData, roiArray, varargin)
     % Get indices for different parts/blocks
     [IND, numParts] = imageStack.getChunkedFrameIndices(blockSize);
     
-    elapsedTime = 0;
+    [elapsedTimeLoad, elapsedTimeExtract] = deal( 0 );
     signalExtractionFcn = params.extractFcn;
+    method = params.pixelComputationMethod;
+    
+    if params.verbose
+        fprintf('Image stack is split in %d parts for signal extraction\n', numParts)
+    end
+    
     
     % Loop through blocks and extract signals.
     for iPart = 1:numParts
-        
+               
+        tInitLoad = tic;
         iIND = IND{iPart}; 
         imData = imageStack.getFrameSet( iIND );
+        elapsedTimeLoad = elapsedTimeLoad + toc(tInitLoad);
         
-        tInit = tic;
-        signalArray(iIND, :, :) = signalExtractionFcn(imData, roiData);
-        elapsedTime = elapsedTime + toc(tInit);
+        tInitExtract = tic;
+        signalArray(iIND, :, :) = signalExtractionFcn(imData, roiData, params);
+        elapsedTimeExtract = elapsedTimeExtract + toc(tInitExtract);
+        
+        if params.verbose
+            fprintf('Signal Extraction: Finished part %d/%d\n', iPart, numParts)
+        end
     end
     
     % Display elapsed time as output if requested.
-    if params.showTimer
+    if params.showTimer || params.verbose
         fprintf('Signal extraction completed in %.2f seconds\n', ...
-            elapsedTime)
+            elapsedTimeLoad + elapsedTimeExtract)
     end
 
 end
@@ -152,6 +174,11 @@ function params = updateParameters(params, imageStack, roiArray)
     if strcmp(params.roiInd, 'all')
         numRois = numel(roiArray);
         params.roiInd = 1:numRois;
+    end
+    
+    % Only serial extract supports median/percentile methods.
+    if ~strcmp( params.pixelComputationMethod, 'mean' )
+        params.extractFcn = @nansen.twophoton.roisignals.extract.serialExtract;
     end
     
     % Count number of rois to extract signals for.

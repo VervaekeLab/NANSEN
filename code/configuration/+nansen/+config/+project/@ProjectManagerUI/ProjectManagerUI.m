@@ -66,9 +66,10 @@ classdef ProjectManagerUI < handle
             tf = strcmp(obj.UIControls.CreateNewProjectButton.Enable, 'off');
         end
         
-        function addExistingProject(obj)
+        function [success, projectName] = addExistingProject(obj)
         %addExistingProject Add existing project from file
-        
+            
+            success = false;
             [fileName, folder] = uigetfile(obj.ProjectRootFolderPath);
             
             if fileName == 0
@@ -77,19 +78,19 @@ classdef ProjectManagerUI < handle
             
             try
                 filePath = fullfile(folder, fileName);
-                S = load(filePath, 'ProjectConfiguration');
+                projectName = obj.ProjectManager.addExistingProject(filePath);
+                success = ~isempty( projectName );
             catch ME
                 throw(ME)
             end
-            
-            projectInfo = S.ProjectConfiguration;
-            
-            % Todo: Make sure the path of the project corresponds with the
-            % folder...
-            
-            obj.ProjectManager.addProject(projectInfo)
-            
+
             obj.updateProjectTableData()
+            
+            if ~nargout
+                clear success projectName
+            elseif nargout == 1
+                clear projectName
+            end
         end
         
         function createProject(obj)
@@ -180,7 +181,6 @@ classdef ProjectManagerUI < handle
             hLabel = uilabel(obj.TabList(1));
             hLabel.FontName = 'Segoe UI';
             hLabel.FontWeight = 'bold';
-            hLabel.Tooltip = {'(a-z, A-Z, 1-9, _)'};
             hLabel.Position = [51 163 158 22];
             hLabel.Text = 'Enter a short project name';
             
@@ -189,8 +189,13 @@ classdef ProjectManagerUI < handle
             hEditField.ValueChangingFcn = @obj.ProjectLabelEditFieldValueChanging;
             hEditField.FontName = 'Segoe UI';
             hEditField.FontWeight = 'bold';
-            hEditField.Tooltip = {'(a-z, A-Z, 1-9, _)'};
             hEditField.Position = [49 141 169 22];
+            
+            % Set tooltips (no tooltip prop in older versions of matlab)
+            try
+                hLabel.Tooltip = {'(a-z, A-Z, 1-9, _)'};
+                hEditField.Tooltip = {'(a-z, A-Z, 1-9, _)'};
+            end
             
             obj.UILabels.ProjectShortNameInput = hLabel;
             obj.UIControls.ProjectShortNameInput = hEditField;
@@ -245,24 +250,33 @@ classdef ProjectManagerUI < handle
         
             T = struct2table(obj.ProjectManager.Catalog, 'AsArray', true);
             
-            currentProjectName = getpref('Nansen', 'CurrentProject');
+            currentProjectName = getpref('Nansen', 'CurrentProject', '');
             
             isCurrent = strcmp(T.Name, currentProjectName);
             tableColumn = table(isCurrent, 'VariableNames', {'Current'});
             
             T = [tableColumn, T];
             
-            obj.UIControls.ProjectTable.Data = T;
+            try
+                obj.UIControls.ProjectTable.Data = T;
+                
+            catch
+                obj.UIControls.ProjectTable.Data = table2cell(T);
+                obj.UIControls.ProjectTable.ColumnName = T.Properties.VariableNames;
+            end
             
-            obj.setRowStyle('Current Project', find(isCurrent))
-            
-            
-            s = uistyle('FontWeight', 'bold');
-            addStyle(obj.UIControls.ProjectTable, s, 'row', find(isCurrent));
-            
-            
-            if isempty(obj.UIControls.ProjectTable.UIContextMenu)
-                obj.createTableContextMenu()
+            try % Only available in newer matlab versions...
+                if any(isCurrent)
+                    obj.setRowStyle('Current Project', find(isCurrent))
+
+                    s = uistyle('FontWeight', 'bold');
+                    addStyle(obj.UIControls.ProjectTable, s, 'row', find(isCurrent));
+                end
+                if isempty(obj.UIControls.ProjectTable.UIContextMenu)
+                    obj.createTableContextMenu()
+                end
+            catch
+                warning('Some features of the project table are not created properly. Matlab 2018b or newer is required.')
             end
             
             if isempty(obj.UIControls.ProjectTable.CellSelectionCallback)
@@ -330,10 +344,14 @@ classdef ProjectManagerUI < handle
             % Todo: What if something failed
             obj.uialert(msg, 'Changed Project', 'success')
             
-            obj.setRowStyle('Current Project', rowIdx)
-            
-            obj.UIControls.ProjectTable.Data(:, 'Current') = {false};
-            obj.UIControls.ProjectTable.Data(rowIdx, 'Current') = {true};
+            try % Note: Does not work in older versions of matlab
+                obj.setRowStyle('Current Project', rowIdx)
+                obj.UIControls.ProjectTable.Data(:, 'Current') = {false};
+                obj.UIControls.ProjectTable.Data(rowIdx, 'Current') = {true};
+            catch
+                obj.UIControls.ProjectTable.Data(:, 1) = {false};
+                obj.UIControls.ProjectTable.Data(rowIdx, 1) = {true};                
+            end
 
             obj.notify('ProjectChanged', event.EventData)
             
@@ -341,9 +359,13 @@ classdef ProjectManagerUI < handle
         
         function deleteProject(obj, rowIdx)
             
+            projectName = obj.getNameFromRowIndex(rowIdx);
+            
             % Display message
             hFig = ancestor(obj.hParent, 'figure');
-            message = 'This action will remove the project and delete all the project data. Are you sure you want to continue?';
+            message = sprintf(['This action will remove the project "%s" ', ...
+                'and delete all the project data. Are you sure you want ', ...
+                'to continue?'], projectName);
             title = 'Confirm Delete';
             opts = {'Options', {'Delete Project', 'Cancel'}};
             selection = uiconfirm(hFig, message, title, opts{:});
@@ -408,11 +430,19 @@ classdef ProjectManagerUI < handle
         function name = getNameFromRowIndex(obj, rowIndex)
         %getNameFromRowIndex Get name of project from row index    
             
-            name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 2};    % Name colum index = 2
+            try
+                name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 2};    % Name colum index = 2
+                if iscell(name)
+                    name = name{1};
+                end
+                
+            catch % DisplayData not available in older versions of matlab.
+                name = obj.UIControls.ProjectTable.Data{rowIndex, 2};
+            end
+            
             if iscell(name)
                 name = name{1};
             end
-            
         end
     end
 
@@ -506,7 +536,7 @@ classdef ProjectManagerUI < handle
                 catch ME
                     title = 'Project Creation Failed';
                     obj.uialert(ME.message, title)
-                    return
+                    rethrow(ME)
                 end
                 
                 obj.notify('ProjectChanged', event.EventData)
@@ -581,14 +611,28 @@ classdef ProjectManagerUI < handle
         end
         
         function onTableCellSelected(obj, ~, evt)
-        %onTableCellSelected Change selected row  
-            obj.SelectedRow = evt.DisplayIndices(1);
-            obj.setRowStyle('Selected Row', evt.DisplayIndices(1))
+        %onTableCellSelected Change selected row
+            
+            if isprop(evt, 'Indices')
+                displayIndices = evt.Indices;
+            elseif isprop(evt, 'DisplayIndices')
+                displayIndices = evt.DisplayIndices;
+            end
+        
+            if isempty(displayIndices)
+                obj.SelectedRow = [];
+                return
+            end
+        
+            obj.SelectedRow = displayIndices(1);
+            try
+            obj.setRowStyle('Selected Row', displayIndices(1))
+            end
         end
         
         function onTableCellEdited(obj, src, evt)
             
-            if evt.Indices(2) == 2
+            if evt.Indices(2) == 3
                 return % Todo: Save project data...
             end
             
@@ -604,7 +648,12 @@ classdef ProjectManagerUI < handle
         end
         
         function onContextMenuItemClicked(obj, src, ~)
-                        
+            
+            if isempty(obj.SelectedRow)
+                msg = 'No project is selected. Please select a project and try again.';
+                obj.uialert(msg, 'No project is selected', 'error')
+            end
+            
             switch src.Text
                 case 'Set current project'
                     obj.changeProject(obj.SelectedRow)
