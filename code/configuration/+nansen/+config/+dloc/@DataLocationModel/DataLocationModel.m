@@ -214,11 +214,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
     
     methods
         
-        function setGlobal(obj)
-            global dataLocationModel
-            dataLocationModel = obj;
-        end
-        
         function validateRootPath(obj, dataLocIdx)
         %validateRootPath Check if root path exists
         
