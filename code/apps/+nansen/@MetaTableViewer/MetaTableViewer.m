@@ -69,6 +69,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         MetaTableVariableNames  % Cell array of variable names in full table
         MetaTableVariableAttributes % Struct with attributes of metatable variables.
     end
+
+    properties (Dependent)
+        ColumnSettings
+    end
     
     properties (SetAccess = private)
         ColumnModel             % Class instance for updating columns based on user preferences.
@@ -168,6 +172,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
        
+        function set.ColumnSettings(obj, newSettings)
+            obj.ColumnModel.replaceColumnSettings(newSettings);
+            obj.updateColumnLayout()
+        end
+        function colSettings = get.ColumnSettings(obj)
+            colSettings = obj.ColumnModel.settings;
+        end
+
         function set.ColumnFilter(obj, newValue)
             obj.ColumnFilter = newValue;
             if ~isempty(newValue)
