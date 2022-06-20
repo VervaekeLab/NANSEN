@@ -98,6 +98,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         AllTablePropertyNames
         VisibleTablePropertyNames
         SettingsPropertyNames
+        WasSettingsReplaced = false;
         
         JColumnModel
         JColumnModelIndices
@@ -181,6 +182,15 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             obj.saveSettings()
         end
         
+        function replaceColumnSettings(obj, newSettings)
+        %At some point, it made more sense to save column settings per
+        %project, so this method was added in order to use other settings
+        %than those that are loaded by default.
+            obj.settings = newSettings;
+            obj.checkAndUpdateColumnEntries()
+            obj.WasSettingsReplaced = true;
+        end
+
         function loadSettings(obj)
             % Simplified loading... Todo: This should be modified because
             % table is used in different classes....
@@ -204,7 +214,14 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 obj.settings = obj.DEFAULT_SETTINGS;
                 saveSettings(obj)
             end
-        end % Why not protected?
+        end
+
+        function saveSettings(obj)
+            if ~obj.WasSettingsReplaced
+                % Only save if settings were not replaced.
+                saveSettings@nansen.mixin.UserSettings(obj)
+            end
+        end
         
         function updateColumnEditableState(obj)
         %updateColumnEditableState Update the state of column editable for all variables    
@@ -625,6 +642,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % this subclass does not have to invoke the onSettingsChanged when
         % settings are set...
             obj.settings_ = newSettings;
+            
         end
         
         function onSettingsChanged(obj, src, event)
