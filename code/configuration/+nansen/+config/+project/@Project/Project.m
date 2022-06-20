@@ -23,6 +23,7 @@ classdef Project < handle
     
     properties (Dependent)
         MetatableCatalog
+        MetatableViewCatalog
         DataLocationModel
         VariableModel
     end
@@ -48,6 +49,18 @@ classdef Project < handle
             % Todo: Create all folders.
         end
 
+        % todo: implement a dataiomodel on project
+        function saveData(obj, varName, data)
+            filePathStr = obj.getDataFilePath(varName);
+            S.(varName) = data;
+            save(filePathStr, '-struct', 'S');
+        end
+
+        function data = loadData(obj, varName)
+            filePathStr = obj.getDataFilePath(varName);
+            S = load(filePathStr, varName);
+            data = S.(varName);
+        end
         
     end
     
@@ -63,6 +76,11 @@ classdef Project < handle
         
         function metatableCatalog = get.MetatableCatalog(obj)
             filePath = obj.getCatalogPath('MetaTableCatalog');
+            metatableCatalog = nansen.metadata.MetaTableCatalog(filePath);
+        end
+                
+        function metatableCatalog = get.MetatableViewCatalog(obj)
+            filePath = obj.getCatalogPath('MetatableViewCatalog');
             metatableCatalog = nansen.metadata.MetaTableCatalog(filePath);
         end
         
@@ -88,6 +106,10 @@ classdef Project < handle
                 case 'MetaTableCatalog'
                     foldername = obj.METATABLE_FOLDER_NAME;
                     filename = 'metatable_catalog.mat';
+                                    
+                case 'MetatableColumnSettingsCatalog'
+                    foldername = obj.METATABLE_FOLDER_NAME;
+                    filename = 'metatable_column_settings.mat';
                     
                 case 'DataLocationModel'
                     foldername = obj.CONFIG_FOLDER_NAME;
@@ -98,6 +120,17 @@ classdef Project < handle
                     filename = 'filepath_settings.mat';                    
             end
             
+            folderPathStr = fullfile(obj.FolderPath, foldername);
+            filePathStr = fullfile(folderPathStr, filename);
+        end
+
+        function filePathStr = getDataFilePath(obj, varName)
+            switch varName
+                case 'MetatableColumnSettings'
+                    foldername = obj.METATABLE_FOLDER_NAME;
+                    filename = 'metatable_column_settings';
+            end
+
             folderPathStr = fullfile(obj.FolderPath, foldername);
             filePathStr = fullfile(folderPathStr, filename);
         end
