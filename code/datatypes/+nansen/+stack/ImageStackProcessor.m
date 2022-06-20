@@ -163,6 +163,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 return
             end
             
+            if isempty(obj.Options) || (isstruct(obj.Options) && isempty(fieldnames(obj.Options)))
+                obj.Options = obj.getDefaultOptions();
+            end
+            
             % Open source stack based on the first input argument.
             if ischar(varargin{1}) && isfile(varargin{1})
                 obj.openSourceStack(varargin{1})

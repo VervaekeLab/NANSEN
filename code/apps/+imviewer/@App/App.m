@@ -100,6 +100,11 @@ properties (SetAccess = private) % Image data properties
     nSamples % Number of samples in imagestack.. (dependent??)
 end
 
+properties (Dependent)
+    NumChannels
+    NumPlanes
+end
+
 properties (Access = public, SetObservable) % Current frame selection
     currentFrameNo (1,1) double = 1 % Current frame number
     currentChannel (1,:) double = 1 % List of channels that are displayed.
@@ -107,7 +112,6 @@ properties (Access = public, SetObservable) % Current frame selection
 end
 
 properties (Dependent)
-    Valid
     ChannelColors
 end
 
@@ -174,6 +178,7 @@ end
 
 properties (Access = public, Dependent = true) % Superclass? (modular app)
     Visible
+    Valid
 end
 
 properties (Access = private, Dependent = true) % Aspect ratios
@@ -1691,6 +1696,15 @@ methods % Set/Get
     function isValid = get.Valid(obj)
         isValid = isvalid(obj) && isvalid(obj.Figure);
     end
+
+    function numChannels =  get.NumChannels(obj)
+        numChannels = obj.ImageStack.NumChannels;
+    end
+
+    function numPlanes =  get.NumPlanes(obj)
+        numPlanes = obj.ImageStack.NumPlanes;
+    end
+
 end
 
 methods % App update
@@ -5340,6 +5354,7 @@ methods (Access = protected)
 
         pixelValueStr = '';
         
+        if isempty(obj.imObj); return; end
         if isempty(obj.imObj.CData); return; end
             
         x = coords(1); y = coords(2);

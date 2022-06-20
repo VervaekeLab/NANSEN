@@ -154,14 +154,29 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             metaObjects = {};
             if numel(obj.TaskQueue) == 0; return; end
             
+            count = 0;
             for i = 1:numel(obj.TaskQueue)
-                metaObjects{i} = obj.TaskQueue(i).args{1};
+                thisMetaObject = obj.TaskQueue(i).args{1};
+                if ~isvalid(thisMetaObject)
+                    warning('Please recreate the task "%s for session "%s"', ...
+                    obj.TaskQueue(i).methodName, obj.TaskQueue(i).name)
+                else
+                    count = count+1;
+                    metaObjects{count} = obj.TaskQueue(i).args{1}; %#ok<AGROW>
+                end
             end
             
             metaObjects = cat(1, metaObjects{:});
-
-            addlistener(metaObjects, 'PropertyChanged', ...
-                @hReferenceApp.onMetaObjectPropertyChanged);
+            
+            for i = 1:numel(metaObjects)
+                if ~isvalid(metaObjects(i))
+                    % Todo: Validate all tasks on startup
+                    warning('Session object is not valid')
+                    continue
+                end
+                addlistener(metaObjects(i), 'PropertyChanged', ...
+                    @hReferenceApp.onMetaObjectPropertyChanged);
+            end
         end
         
 

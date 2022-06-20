@@ -89,6 +89,14 @@ function S = getAddonList()
     S(i).HasSetupFile = false;
     S(i).SetupFileName = '';
     S(i).FunctionName = 'run_extract';
+    S(i).RequiredToolboxes = { ...
+        'Bioinformatics Toolbox', ...
+        'Econometrics Toolbox', ...
+        'Image Processing Toolbox', ...
+        'Parallel Computing Toolbox', ...
+        'Signal Processing Toolbox', ...
+        'Statistics and Machine Learning Toolbox', ...
+        'Wavelet Toolbox' };
     
     i = i + 1;
     S(i).Name = 'NoRMCorre';
@@ -97,7 +105,8 @@ function S = getAddonList()
     S(i).Type = 'Neuroscience';
     S(i).Source = 'Github';
     S(i).WebUrl = 'https://github.com/flatironinstitute/NoRMCorre';
-    S(i).DownloadUrl = 'https://github.com/flatironinstitute/NoRMCorre/archive/refs/heads/master.zip';
+    %S(i).DownloadUrl = 'https://github.com/flatironinstitute/NoRMCorre/archive/refs/heads/master.zip';
+    S(i).DownloadUrl = 'https://github.com/ehennestad/NoRMCorre/archive/refs/heads/master.zip';
     S(i).HasSetupFile = false;
     S(i).SetupFileName = '';
     S(i).FunctionName = 'normcorre_batch';

@@ -61,6 +61,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
     
     properties (Hidden, SetAccess = immutable) %(Transient) 
         DataLocationModel
+        VariableModel
         % Note: can not be transient because it does not get passed to a
         % worker in a parallell pool.
         % Todo: Immutable setacces.. Will this work? If using
@@ -330,11 +331,16 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             for j = 1:numel(obj)
                 
+                % Initialize a datalocation struct for session object
                 S = struct('Uuid', {}, 'RootUid', {}, 'Subfolders', {});
                 
+                % Loop through datalocations of the DataLocationModel
                 for i = 1:obj(j).DataLocationModel.NumDataLocations
                     dataLocation = obj(j).DataLocationModel.getItem(i);
                 
+                    % Check if there is a root folder in the
+                    % DataLocationModel matching the rootfolder for the
+                    % current datalocation of the session object
                     name = dataLocation.Name;
                     rootPaths = {dataLocation.RootPath.Value};
                     
@@ -347,8 +353,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                         end
                     end
                     
+                    % Add root uid and subfolders if a rootfolder was
+                    % matched from the DataLocationModel
                     S(i).Uuid = dataLocation.Uuid;
-                    if ~isempty(rootPaths)
+                    if ~isempty(rootPaths) && isMatched
                         S(i).RootUid = dataLocation.RootPath(rootIdx).Key;
                         S(i).Subfolders = strrep(obj(j).DataLocation.(name), root, '');
                     end
@@ -382,11 +390,17 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         % Override superclass method
             
             S = toStruct@nansen.metadata.abstract.BaseSchema(obj);
+
+            % Remove properties that are objects, these should not be part
+            % of the struct
+            if isfield(S, 'Data')
+                S = rmfield(S, 'Data');
+            end
             if isfield(S, 'DataLocationModel')
                 S = rmfield(S, 'DataLocationModel');
             end
-            if isfield(S, 'data')
-                S = rmfield(S, 'data');
+            if isfield(S, 'VariableModel')
+                S = rmfield(S, 'VariableModel');
             end
         end
         
@@ -633,16 +647,18 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         
         function validateVariable(obj, variableName)
         %validateData Does data variable exists?
-                    
-            dataFilePathModel = nansen.config.varmodel.VariableModel;
             
-            if ~isa(variableName, 'cell'); 
+            
+            %variableModel = nansen.config.varmodel.VariableModel;
+            variableModel = obj.VariableModel;
+
+            if ~isa(variableName, 'cell')
                 variableName = {variableName}; 
             end
             
             for i = 1:numel(variableName)
             
-                [S, ~] = dataFilePathModel.getVariableStructure(variableName{i});
+                [S, ~] = variableModel.getVariableStructure(variableName{i});
             
                 % Check if data location folder exists:
                 if ~obj.existSessionFolder( S.DataLocation )
@@ -684,6 +700,36 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
         end
         
+        function tf = existVariable(obj, varName)
+            %variableModel = nansen.config.varmodel.VariableModel;
+            variableModel = obj.VariableModel;
+            [~, tf] = variableModel.getVariableStructure(varName);
+        end
+
+        function createVariable(obj, varName, varargin)
+        %createVariable Create a variable and insert in the variable model            
+            %variableModel = nansen.config.varmodel.VariableModel;
+            variableModel = obj.VariableModel;
+
+            % Get the entry for given variable name from model
+            [S, isExistingEntry] = variableModel.getVariableStructure(varName);
+        
+            if isExistingEntry
+                error('Variable "%s" already exists')
+            end
+
+            parameters = struct(varargin{:});
+
+            S = utility.parsenvpairs(S, [], parameters);
+            if isempty(S.DataLocation)
+                dlItem = obj.DataLocationModel.getDefaultDataLocation;
+                S.DataLocation = dlItem.Name;
+                S.DataLocationUuid = dlItem.Uuid;
+            end
+
+            variableModel.insertItem(S)
+        end
+
         function [pathStr, variableInfo] = getDataFilePath(obj, varName, varargin)
         %getDataFilePath Get filepath to data within a session folder
         %
@@ -724,22 +770,29 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % Get the model for data file paths.
             
             % Todo: Should be part of DataIoModel
-            %dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
-            dataFilePathModel = nansen.config.varmodel.VariableModel;
+            %variableModel = nansen.config.varmodel.VariableModel;
+            variableModel = obj.VariableModel;
+
             
             % Check if mode is given as input:
             [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
-            parameters = struct(varargin{:});
             
             % Get the entry for given variable name from model
-            [S, isExistingEntry] = dataFilePathModel.getVariableStructure(varName);
+            [S, isExistingEntry] = variableModel.getVariableStructure(varName);
         
-            if ~isExistingEntry
+            if ~isExistingEntry % Create variableItem using input options.
+                parameters = struct(varargin{:});
                 S = utility.parsenvpairs(S, [], parameters);
                 if isempty(S.DataLocation)
                     dlItem = obj.DataLocationModel.getDefaultDataLocation;
                     S.DataLocation = dlItem.Name;
                     S.DataLocationUuid = dlItem.Uuid;
+                end
+
+                % Save filepath entry to filepath settings if it did
+                % not exist from before...
+                if strcmp(mode, 'write') % Save to model
+                    variableModel.insertItem(S)
                 end
             end
             
@@ -778,12 +831,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
             
             pathStr = fullfile(sessionFolder, fileName);
-            
-            % Save filepath entry to filepath settings if it did
-            % not exist from before...
-            if ~isExistingEntry && strcmp(mode, 'write')
-                dataFilePathModel.insertItem(S)
-            end
             
             if nargout == 2
                 variableInfo = S;
