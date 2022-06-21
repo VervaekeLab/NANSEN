@@ -209,6 +209,11 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             % Get the subs (frame indices) for the frame indexing dimension
             dim = obj.getFrameIndexingDimension();
             frameInd = subs{dim};
+            
+            % Get actual indices if colon operator was used.
+            if ischar(frameInd) && strcmp(frameInd, ':')
+                frameInd = 1:obj.StackSize(dim);
+            end
 
             data = obj.readFrames(frameInd);
             
