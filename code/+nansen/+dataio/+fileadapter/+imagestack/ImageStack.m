@@ -125,7 +125,6 @@ classdef ImageStack < nansen.dataio.FileAdapter
             % Todo: Make function for getting list of virtual data classes
             
             virtualDataClasses = { ...
-                'nansen.stack.virtual.SciScanRaw', ...
                 'nansen.stack.virtual.PrairieViewTiffs', ...
                 'nansen.stack.virtual.TiffMultiPartMultiChannel', ...
                 'nansen.stack.virtual.Suite2pCorrected' ...
@@ -138,9 +137,17 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 
                 if ~isempty( regexp(filename, fileNameExpression, 'once') )
                     className = thisClassName;
+                    return
                 end
-            
             end
+
+            % Check for sciscan raw
+            if isempty(className)
+                if nansen.stack.virtual.SciScanRaw.fileCheck(filename)
+                    className = 'nansen.stack.virtual.SciScanRaw';
+                end
+            end
+
         end
         
     end
