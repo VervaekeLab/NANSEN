@@ -7,10 +7,9 @@ function S = getDefaultOptions()
     S = struct();
 
     S.Preprocessing.NumFlybackLines = 0;
-    S.Preprocessing.BidirectionalCorrection = true;
 
-    % Todo:
-    %S.Preprocessing.BidirectionalCorrection = 'None';
+    S.Preprocessing.BidirectionalCorrection = 'None';
+    S.Preprocessing.BidirectionalCorrection_ = {'None', 'Constant', 'Continuous'};
     %S.Preprocessing.BidirectionalCorrection_ = {'None', 'One Time', 'Continuous'};
     
     %S.General.correctDrift = false;
