@@ -49,18 +49,18 @@ classdef MDF < nansen.stack.data.VirtualArray
             obj.mfile = actxserver('MCSX.Data',[0 0 0 0]);
             status = obj.mfile.invoke('OpenMCSFile', obj.FilePath);
 
-            if ~status
+            if status
                 error('Only one MDF file instance can be opened at once! E.g. close the MDF Viewer and clear the Matlab workspace.');
             end
     
         end
         
         function getFileInfo(obj)
-        
-            obj.readMdfInfoToMetadata()
-    
+            
             mdfParams = obj.getScanParameters();
             obj.assignScanParametersToMetadata(mdfParams)
+            
+            obj.ChannelInd = mdfParams.ChannelInd;
     
             obj.assignDataSize()
             
@@ -94,22 +94,24 @@ classdef MDF < nansen.stack.data.VirtualArray
             
             numFrames = length(frameInd);
             
-            if obj.SizeT > 1 && obj.SizeZ > 1
+            if obj.MetaData.SizeT > 1 && obj.MetaData.SizeZ > 1
                 error('Not implemented for multiplane time series stack. Please report')
             end
             
-            if obj.SizeT > 1
-                dataSize = [obj.SizeY, obj.SizeX, obj.SizeC, obj.SizeT];
-            elseif obj.SizeZ > 1
-                dataSize = [obj.SizeY, obj.SizeX, obj.SizeC, obj.SizeZ];
+            dataSize = [obj.MetaData.SizeY, obj.MetaData.SizeX, obj.MetaData.SizeC];
+            
+            if obj.MetaData.SizeT > 1
+                dataSize = [dataSize, obj.MetaData.SizeT];
+            elseif obj.MetaData.SizeZ > 1
+                dataSize = [dataSize, obj.MetaData.SizeZ];
             else
-                dataSize = [obj.SizeY, obj.SizeX, obj.SizeC, 1];
+                dataSize = [dataSize, 1];
             end
             
             data = zeros(dataSize, obj.DataType);
             
             for i = 1:numFrames             
-                for j = 1:obj.SizeC
+                for j = 1:obj.MetaData.SizeC
                     data(:, :, j, i) = cast(...
                         obj.mfile.ReadFrame(obj.ChannelInd(j), frameInd(i)), ...
                         obj.DataType)';
@@ -167,8 +169,8 @@ classdef MDF < nansen.stack.data.VirtualArray
             obj.MetaData.SizeY = mdfParams.FrameHeight;
 
             %obj.MetaData.ImageSize = [];
-            obj.MetaData.PhysicalSizeY = mdfParams.micronsPerPixel;
-            obj.MetaData.PhysicalSizeX = mdfParams.micronsPerPixel;
+            obj.MetaData.PhysicalSizeY = mdfParams.MicronsPerPixel;
+            obj.MetaData.PhysicalSizeX = mdfParams.MicronsPerPixel;
             
             obj.MetaData.PhysicalSizeYUnit = 'micrometer'; % Todo: Will this always be um?
             obj.MetaData.PhysicalSizeXUnit = 'micrometer'; % Todo: Will this always be um?
@@ -177,11 +179,20 @@ classdef MDF < nansen.stack.data.VirtualArray
             %obj.MetaData.SampleRate = 1 / mdfParams.FrameDuration;
     
             obj.MetaData.SizeC = mdfParams.NumChannels;
-            obj.MetaData.SizeZ = mdfParams.NumPlanes;
-            obj.MetaData.SizeT = mdfParams.FrameCount / mdfParams.NumPlanes;
+            
+            % Todo: need to implement 5D stacks if relevant for anyone
+            if mdfParams.NumPlanes > 1 && mdfParams.NumPlanes ~= mdfParams.FrameCount
+                obj.MetaData.SizeZ = mdfParams.NumPlanes;
+            else
+                obj.MetaData.SizeZ = 1;
+            end
+            
+            obj.MetaData.SizeT = mdfParams.FrameCount / obj.MetaData.SizeZ;
 
             if obj.MetaData.SizeZ > 1 && obj.MetaData.SizeT > 1
                 warning('Multiplane timeseries scans from MDF has not been tested, and probably does not work as expected. Please report')
+            else
+            
             end
 
         end
