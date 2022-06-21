@@ -54,7 +54,7 @@ function metadata = getScanParameters( fileReference )
 
     % Physical units
     micronsPerPixel = mfileObj.ReadParameter('Microns per Pixel');
-    S.MicronsPerPixel = stringWithUnitToNumber(micronsPerPixel, 'um');
+    S.MicronsPerPixel = stringWithUnitToNumber(micronsPerPixel, 'µm');
     
     frameDuration = mfileObj.ReadParameter('Frame Duration (s)');
     S.FrameDuration = stringWithUnitToNumber(frameDuration, 's');
@@ -70,20 +70,20 @@ function metadata = getScanParameters( fileReference )
 
     % Physical position
     xPositionStr = mfileObj.ReadParameter('X Position');
-    S.XPosition = stringWithUnitToNumber(xPositionStr, 'um');
-    S.XPositionUnit = 'um';
+    S.XPosition = stringWithUnitToNumber(xPositionStr, 'µm');
+    S.XPositionUnit = 'µm';
 
     yPositionStr = mfileObj.ReadParameter('Y Position');
-    S.YPosition = stringWithUnitToNumber(yPositionStr, 'um');
-    S.YPositionUnit = 'um';
+    S.YPosition = stringWithUnitToNumber(yPositionStr, 'µm');
+    S.YPositionUnit = 'µm';
 
     zPositionStr = mfileObj.ReadParameter('Z Position');
-    S.ZPosition = stringWithUnitToNumber(zPositionStr, 'um');
-    S.ZPositionUnit = 'um';
+    S.ZPosition = stringWithUnitToNumber(zPositionStr, 'µm');
+    S.ZPositionUnit = 'µm';
     
 
     % Handle potentially missing values
-    if isempty(S.MicronsPerPixel)
+    if isempty(S.MicronsPerPixel) || isnan(S.MicronsPerPixel)
         S.MicronsPerPixel = 1;
         warning('Microns per pixel could not be read from mdf');
     end
