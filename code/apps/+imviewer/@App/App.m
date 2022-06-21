@@ -2727,6 +2727,11 @@ methods % Event/widget callbacks
             'ConversionFactor', conversionFactor, pvPairs{:});
         
         obj.Annotation.Scalebar = h;
+        
+        if ischar(h.Color) && strcmp(h.Color, 'k')
+            h.Color = [0.5,0.5,0.5];
+        end
+        
     end
 end
 
