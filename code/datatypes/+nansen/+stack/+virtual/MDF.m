@@ -2,8 +2,10 @@ classdef MDF < nansen.stack.data.VirtualArray
 % A class that creates a virtual array for an MDF file. 
 %
 %
-%   Credit: Philipp Flotho @ flow_registration
+%   Created from the MDF_file_reader @ flow_registration by Philipp Flotho
+%       https://github.com/phflot/flow_registration
 
+    
     properties (Constant, Hidden)
         FILE_PERMISSION = 'read'
     end
