@@ -2,6 +2,7 @@ classdef SciScanRaw < nansen.stack.data.VirtualArray & nansen.stack.utility.TwoP
 %SciScanRaw Virtual data adapter for a sciscan raw file
 
 properties (Constant, Hidden)
+    FilenameExpression = '\d{8}_\d{2}_\d{2}_\d{2}'
     FILE_PERMISSION = 'read' % SciScan files should only be read from
 end
 

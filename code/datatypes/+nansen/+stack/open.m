@@ -69,6 +69,9 @@ function virtualData = open(pathStr, varargin)
         case '.h5'
             virtualData = nansen.stack.virtual.HDF5(pathStr, '', varargin{:}, nvPairs{:});
             
+        case '.mdf'
+            virtualData = nansen.stack.virtual.MDF(pathStr, nvPairs{:});
+
         case {'.jpg', '.png', '.bmp'}
 %             tic
 %             if numFiles > 1
