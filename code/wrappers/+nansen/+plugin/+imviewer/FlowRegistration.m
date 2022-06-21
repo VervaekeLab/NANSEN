@@ -78,6 +78,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             if ~isa(Y, 'single') || ~isa(Y, 'double') 
                 Y = single(Y);
             end
+
             [Y, bidirBatchSize, colShifts] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
             
             obj.ImviewerObj.displayMessage('Running FlowRegistration...')
@@ -121,7 +122,8 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             %folderPath = fullfile(folderPath, 'motion_correction_flowreg');
             if ~isfolder(folderPath); mkdir(folderPath); end
 
-            dataSet = nansen.dataio.dataset.SingleFolderDataSet(folderPath);
+            dataSet = nansen.dataio.dataset.SingleFolderDataSet(folderPath, ...
+                'DataSetID', obj.settings.Export.FileName );
             dataSet.addVariable('TwoPhotonSeries_Original', ...
                 'Data', obj.ImviewerObj.ImageStack)
 
@@ -142,15 +144,20 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         
             sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
             sEditor.ValueChangedFcn = @obj.onValueChanged;
-            
+    
             % Create default folderpath for saving results
-            folderPath = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
             folderPath = fullfile(folderPath, 'motion_correction_flowreg');
-
+            
             % Need a better solution for this!
             idx = strcmp(sEditor.Name, 'Export');
             sEditor.dataOrig{idx}.SaveDirectory = folderPath;
             sEditor.dataEdit{idx}.SaveDirectory = folderPath;
+            obj.settings_.Export.SaveDirectory = folderPath;
+            
+            sEditor.dataOrig{idx}.FileName = fileName;
+            sEditor.dataEdit{idx}.FileName = fileName;
+            obj.settings_.Export.FileName = fileName;
         end
 
     end

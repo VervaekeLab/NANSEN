@@ -64,6 +64,7 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
             end
 
             obj.FolderPath = initialPath;
+            obj.assignPVPairs(varargin{:})
         end
 
     end

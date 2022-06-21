@@ -98,7 +98,7 @@ classdef DataSet < uiw.mixin.AssignPVPairs
             
             % Combine variable name and data set id
             if ~isempty(obj.DataSetID)
-                fileName = strjoin({obj.DataSetID, varName}, '_');
+                fileName = strjoin({obj.DataSetID, fileName}, '_');
             end
             
             % Append a file extension
