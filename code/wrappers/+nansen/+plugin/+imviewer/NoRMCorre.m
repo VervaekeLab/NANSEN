@@ -194,7 +194,8 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             dataSet.addVariable('TwoPhotonSeries_Original', ...
                 'Data', obj.ImviewerObj.ImageStack)
             
-            nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack, 'DataIoModel', dataSet)
+            nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack,...
+                obj.settings, 'DataIoModel', dataSet)
 
         end
 
@@ -235,6 +236,10 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             templateFields = fieldnames(obj.settings.Template);
             
             switch name
+                % Note: this needs to go before the patchesfield!
+                case {'numRows', 'numCols', 'patchOverlap'}
+                    obj.settings.Configuration.(name) = value;
+                    obj.plotGrid()
 
                 case patchesFields
                     obj.settings.Configuration.(name) = value;
@@ -242,10 +247,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
                 case templateFields
                     obj.settings.Template.(name) = value;
 
-                case {'numRows', 'numCols', 'patchOverlap'}
-                    obj.settings.Configuration.(name) = value;
-                    obj.plotGrid()
-                    
                 case {'firstFrame', 'numFrames', 'saveResults', 'showResults'}
                     obj.settings.Preview.(name) = value;
                     

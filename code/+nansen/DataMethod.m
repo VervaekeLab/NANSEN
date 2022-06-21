@@ -51,6 +51,10 @@ classdef DataMethod < nansen.mixin.HasOptions %nansen.dataio.DataIoModel &
             % input/output model. 
             %obj@nansen.dataio.DataIoModel(varargin{1})
             obj.DataIoModel = varargin{1};
+
+            if nargin >= 2
+                obj.Options = varargin{2};
+            end
             
         end
     end

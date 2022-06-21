@@ -2772,8 +2772,11 @@ methods % Handle user actions
         params.BinningMethod_ = {'mean', 'max'};
         
         params.SaveToFile = false;
+
+        % Todo: Autogenerate initial path and select filetypes...
         params.FilePath = '';
-        
+        params.FilePath_ = 'uiputfile';
+
         % Open options editor.
         titleStr = 'Downsample Image Stack';
         [params, wasCanceled] = tools.editStruct(params, [], titleStr, ...

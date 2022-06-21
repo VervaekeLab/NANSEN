@@ -128,7 +128,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
                 'Data', obj.ImviewerObj.ImageStack)
 
             nansen.wrapper.flowreg.Processor(obj.ImviewerObj.ImageStack, ...
-                'DataIoModel', dataSet)
+                obj.settings, 'DataIoModel', dataSet)
                         
         end
         

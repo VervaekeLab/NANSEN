@@ -138,7 +138,7 @@ classdef MotionCorrectionPreview < handle
 % %                 
 % %             end
 
-            if ~strcmp( obj.Options.Preprocessing.BidirectionalCorrection, 'None')
+            if ~strcmp( obj.settings.Preprocessing.BidirectionalCorrection, 'None')
                 if ndims(imArray) == 4
                     imArrayMean = squeeze( mean(imArray, 3) );
                     colShift = correct_bidirectional_offset(imArrayMean, size(imArray,4), 10);
