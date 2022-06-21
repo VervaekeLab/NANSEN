@@ -117,6 +117,10 @@ classdef MDF < nansen.stack.data.VirtualArray
             end
         end
 
+        function writeFrames(obj, frameIndex, data)
+            error('Writing frames to an MDF (MScan) file is not supported')
+        end
+
     end
 
 
