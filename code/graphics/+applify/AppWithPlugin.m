@@ -31,6 +31,9 @@ classdef AppWithPlugin < uim.handle
                 error('Object of type %s is not a valid AppPlugin.')
             else
                 obj.Plugins(end+1) = pluginObj;
+                addlistener(pluginObj, 'ObjectBeingDestroyed', ...
+                    @(s,e,str) obj.removePlugin(pluginObj.Name));
+
             end
             
         end 
