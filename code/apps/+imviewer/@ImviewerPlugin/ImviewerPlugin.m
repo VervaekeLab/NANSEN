@@ -26,7 +26,13 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
             % Make sure the given handle is an instance of imviewer.App 
             assert(isa(h, 'imviewer.App'), 'Input must be an imviewer App')
             
-            obj@applify.mixin.AppPlugin(h, varargin{:})
+            if nargin > 2 && isa(varargin{2}, 'struct')
+                opts = varargin{2}; varargin(2) = []; 
+            else
+                opts = [];
+            end
+
+            obj@applify.mixin.AppPlugin(h, opts, varargin{:})
             
             % Assign property values.
             obj.PrimaryApp = h;

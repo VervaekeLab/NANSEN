@@ -256,7 +256,10 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             % Todo: What if obj is invalid
         
             % Abort if sEditor is invalid (improper exit)
-            if ~isvalid(obj.hSettingsEditor); return; end
+            if ~isvalid(obj.hSettingsEditor)
+                obj.hSettingsEditor = [];
+                return; 
+            end
 
             if ~obj.hSettingsEditor.wasCanceled
                 obj.settings_ = obj.hSettingsEditor.dataEdit;
@@ -264,6 +267,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
 
             obj.wasAborted = obj.hSettingsEditor.wasCanceled;
             delete(obj.hSettingsEditor)
+            obj.hSettingsEditor = [];
 
             obj.onSettingsEditorClosed()
 
@@ -271,6 +275,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
                 obj.run();
             end
         
+            delete(obj)
         end
         
         function onSettingsEditorClosed(obj)

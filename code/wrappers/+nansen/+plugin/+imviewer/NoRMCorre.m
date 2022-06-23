@@ -48,9 +48,9 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         function obj = NoRMCorre(varargin)
         %NoRMCorre Create an instance of the NoRMCorre plugin for imviewer
                         
-            obj@imviewer.ImviewerPlugin(varargin{:})
+            obj@imviewer.ImviewerPlugin(varargin{:}, 'Modal', false)
             
-            if ~ obj.PartialConstruction
+            if ~ obj.PartialConstruction && isempty(obj.hSettingsEditor)
                 obj.openControlPanel()
             end
             
