@@ -110,7 +110,11 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             opts = Options.convert(obj.Options, stackSize);
             
             optionsVarname = 'NormcorreOptions';
-            
+
+            % Turn of correct_bidir, since this is controlled by the
+            % MotionCorrection method
+            opts.correct_bidir = false;
+
             % Initialize options (Load from session if options already
             % exist, otherwise save to session)
             normcorreOpts = obj.initializeOptions(opts, optionsVarname);

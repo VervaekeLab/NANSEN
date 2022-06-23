@@ -249,7 +249,6 @@ classdef OptionsManager < handle
             if isempty(obj.Options)
                 obj.assignDefaultOptions()
             end
-
         end
         
     end
@@ -283,7 +282,6 @@ classdef OptionsManager < handle
             name = strrep(name, ']', '');
         end
         
-        
         function names = formatEditedNames(names)
         %formatPresetNames Format preset options name for display
             %names = cellfun(@(name) sprintf('%s (Modified)', name), names, 'uni', 0);
@@ -300,7 +298,6 @@ classdef OptionsManager < handle
                 case 'local'
                     folderPath = nansen.localpath('custom_options');
             end
-            
         end
         
         function [name, descr] = getCustomOptionsName()
@@ -380,8 +377,6 @@ classdef OptionsManager < handle
             else
                 error('not implemented yet')
             end
-                
-            
         end
         
     end

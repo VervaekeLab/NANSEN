@@ -8,12 +8,16 @@ classdef DataIoModel < handle
 %   File specifications are editable, but have default values.
 %
 
+%   Create a DataIoModel with a "in place" folder datalocation model
+%     nansen.dataio.DataIoModel(folderPath);
 
 %   Todo: 
 %
 %       [ ] Incorporate the datalocation model + filepath model.
 %       [ ] Temporary saving results in a different location, i.e on an SSD drive.
 
+%       getSourceFolder
+%       getTargetFolder
 
     properties
         DataId

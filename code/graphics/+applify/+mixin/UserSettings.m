@@ -328,6 +328,7 @@ classdef (Abstract) UserSettings < uim.handle
         % more fields of settings without triggering the onSettingsChanged
         % callback. For internal use only.
             obj.settings_ = value;
+            obj.assignSettingNames()
         end
         
         function S = get.settings(obj)

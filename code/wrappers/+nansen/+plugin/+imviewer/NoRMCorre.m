@@ -48,9 +48,9 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         function obj = NoRMCorre(varargin)
         %NoRMCorre Create an instance of the NoRMCorre plugin for imviewer
                         
-            obj@imviewer.ImviewerPlugin(varargin{:})
+            obj@imviewer.ImviewerPlugin(varargin{:}, 'Modal', false)
             
-            if ~ obj.PartialConstruction
+            if ~ obj.PartialConstruction && isempty(obj.hSettingsEditor)
                 obj.openControlPanel()
             end
             
@@ -60,6 +60,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         end
         
         function delete(obj)
+
             if ~isempty(obj.hGridLines)
                 delete(obj.hGridLines)
                 delete(obj.hGridOverlaps)
@@ -183,55 +184,75 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         
         function runAlign(obj)
          %runAlign Run correction on full image stack using a dummy session
-            
-            % Todo: Implement data i/o model.
-                
-            %    - This method should be able to output to file, or to
-            %    memory.
-                
-            pathStr = obj.ImviewerObj.ImageStack.FileName;
-            
-            % % hSession = nansen.metadata.schema.dummy.TwoPhotonSession( pathStr );
+         %
+   
+            folderPath = obj.settings.Export.SaveDirectory;
+            if ~isfolder(folderPath); mkdir(folderPath); end
 
-            %%hSession = nansen.metadata.type.Session( pathStr );
-            nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack, obj.settings)
-            %ophys.twophoton.process.motionCorrection.normcorre(hSession, obj.settings);
+            dataSet = nansen.dataio.dataset.SingleFolderDataSet(folderPath, ...
+                'DataSetID', obj.settings.Export.FileName );
             
+            dataSet.addVariable('TwoPhotonSeries_Original', ...
+                'Data', obj.ImviewerObj.ImageStack)
+            
+            nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack,...
+                obj.settings, 'DataIoModel', dataSet)
+
         end
+
+        function sEditor = openSettingsEditor(obj)
+        %openSettingsEditor Open editor for method options.    
         
+        % Note: Override superclass method in order to set an extra
+        % callback function (ValueChangedFcn) on the sEditor object
+        
+            sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
+            %sEditor.ValueChangedFcn = @obj.onValueChanged;
+            
+            % Create default folderpath for saving results
+            [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            folderPath = fullfile(folderPath, 'motion_correction_normcorre');
+            
+            % Need a better solution for this!
+            idx = strcmp(sEditor.Name, 'Export');
+            sEditor.dataOrig{idx}.SaveDirectory = folderPath;
+            sEditor.dataEdit{idx}.SaveDirectory = folderPath;
+            obj.settings_.Export.SaveDirectory = folderPath;
+            
+            sEditor.dataOrig{idx}.FileName = fileName;
+            sEditor.dataEdit{idx}.FileName = fileName;
+            obj.settings_.Export.FileName = fileName;
+        end
     end
     
     methods (Access = protected)
         
         function onSettingsChanged(obj, name, value)
             
+            % Call superclass method to deal with settings that are
+            % general motion correction settings.
+            onSettingsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+
             patchesFields = fieldnames(obj.settings.Configuration);
             templateFields = fieldnames(obj.settings.Template);
-            exportFields = fieldnames(obj.settings.Export);
             
             switch name
+                % Note: this needs to go before the patchesfield!
                 case {'numRows', 'numCols', 'patchOverlap'}
                     obj.settings.Configuration.(name) = value;
                     obj.plotGrid()
-                    
+
                 case patchesFields
                     obj.settings.Configuration.(name) = value;
                     
                 case templateFields
                     obj.settings.Template.(name) = value;
-                    
-                case exportFields
-                    obj.settings.Export.(name) = value;
-                    
+
                 case {'firstFrame', 'numFrames', 'saveResults', 'showResults'}
                     obj.settings.Preview.(name) = value;
                     
-                case 'run'
-                    obj.runTestAlign()
-                    
                 case 'runAlign'
                     obj.runAlign()
-                    
             end
         end
         

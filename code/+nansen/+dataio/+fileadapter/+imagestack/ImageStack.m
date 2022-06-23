@@ -107,6 +107,9 @@ classdef ImageStack < nansen.dataio.FileAdapter
                     className = 'nansen.stack.virtual.ScanImageTiff';
                     %className = 'nansen.stack.virtual.TiffMultiPart';
 
+                case 'mdf'
+                    className = 'nansen.stack.virtual.MDF';
+
                 otherwise
                     error('Nansen:DataIO:FileTypeNotSupported', ...
                         'File type "%s" can not be opened as an ImageStack', ...
@@ -136,9 +139,17 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 
                 if ~isempty( regexp(filename, fileNameExpression, 'once') )
                     className = thisClassName;
+                    return
                 end
-            
             end
+
+            % Check for sciscan raw
+            if isempty(className)
+                if nansen.stack.virtual.SciScanRaw.fileCheck(filename)
+                    className = 'nansen.stack.virtual.SciScanRaw';
+                end
+            end
+
         end
         
     end

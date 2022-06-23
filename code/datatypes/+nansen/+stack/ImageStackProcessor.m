@@ -185,10 +185,16 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 end
                 
             end
+
+            if nargin >= 2 && isa(varargin{2}, 'struct')
+                opts = varargin{2};
+            else
+                opts = struct.empty;
+            end
             
             % Call the constructor of the DataMethod parent class
             nvPairs = {};
-            obj@nansen.DataMethod(dataLocation, nvPairs{:})
+            obj@nansen.DataMethod(dataLocation, opts, nvPairs{:})
             
             if numel(varargin) == 0
                 return

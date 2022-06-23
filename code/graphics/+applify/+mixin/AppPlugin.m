@@ -115,14 +115,11 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         end
         
         function delete(obj)
-            
-            obj.PrimaryApp.removePlugin(obj.Name)
 
             % Delete menu items
             if ~isempty(obj.MenuItem)
                 structfun(@delete, obj.MenuItem)
             end
-            
         end
         
     end
@@ -259,14 +256,18 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             % Todo: What if obj is invalid
         
             % Abort if sEditor is invalid (improper exit)
-            if ~isvalid(obj.hSettingsEditor); return; end
+            if ~isvalid(obj.hSettingsEditor)
+                obj.hSettingsEditor = [];
+                return; 
+            end
 
             if ~obj.hSettingsEditor.wasCanceled
-                obj.settings = obj.hSettingsEditor.dataEdit;
+                obj.settings_ = obj.hSettingsEditor.dataEdit;
             end
 
             obj.wasAborted = obj.hSettingsEditor.wasCanceled;
             delete(obj.hSettingsEditor)
+            obj.hSettingsEditor = [];
 
             obj.onSettingsEditorClosed()
 
@@ -274,6 +275,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
                 obj.run();
             end
         
+            delete(obj)
         end
         
         function onSettingsEditorClosed(obj)

@@ -2783,6 +2783,11 @@ methods % Event/widget callbacks
             'ConversionFactor', conversionFactor, pvPairs{:});
         
         obj.Annotation.Scalebar = h;
+        
+        if ischar(h.Color) && strcmp(h.Color, 'k')
+            h.Color = [0.5,0.5,0.5];
+        end
+        
     end
 end
 
@@ -2826,8 +2831,11 @@ methods % Handle user actions
         params.BinningMethod_ = {'mean', 'max'};
         
         params.SaveToFile = false;
+
+        % Todo: Autogenerate initial path and select filetypes...
         params.FilePath = '';
-        
+        params.FilePath_ = 'uiputfile';
+
         % Open options editor.
         titleStr = 'Downsample Image Stack';
         [params, wasCanceled] = tools.editStruct(params, [], titleStr, ...

@@ -229,7 +229,8 @@ classdef SessionMethod < nansen.DataMethod
             % Fields of output struct with defaults.
             S.BatchMode = 'serial';
             S.IsQueueable = true;
-            
+            S.Alternatives = {};
+
             % Pick out default options from inputs or init to empty struct
             if ~isempty(varargin) && isstruct(varargin{1})
                 defaultOpts = varargin{1};
@@ -240,30 +241,32 @@ classdef SessionMethod < nansen.DataMethod
             
             S.DefaultOptions = defaultOpts;
          
+            % Extract flags from varargin
+            flags = {'batch', 'serial', 'queueable', 'unqueueable'};
+            [flags, varargin] = utility.splitvararginflags(varargin, flags);
             
-            % Make sure that varargin only contains character vectors
-            isChar = cellfun(@(c) ischar(c), varargin);
-            assert(all(isChar), 'Non-character inputs are not allowed')
+            % Check for any name, value pairs in varargin
+            [nvPairs, varargin] = utility.getnvpairs(varargin);
             
-            
-            % Set the attributes based on keywords from varargin
-            if contains('serial', varargin)
+            S = utility.parsenvpairs(S, 1, nvPairs);
+
+            % Update S from input flags
+            if contains('serial', flags)
                 S.BatchMode = 'serial';
             end
             
-            if contains('batch', varargin)
+            if contains('batch', flags)
                 S.BatchMode = 'batch';
             end
             
-            if any( strcmpi('queueable', varargin) )
+            if any( strcmpi('queueable', flags) )
                 S.IsQueueable = true;
             end
             
-            if any( strcmpi('unqueueable', varargin) )
+            if any( strcmpi('unqueueable', flags) )
                 S.IsQueueable = false;
             end
-            
-            
+
             % Get name of calling function:
             % Todo: Get this from varargin if provided.
             fcnName = nansen.session.SessionMethod.getCallingFunction();

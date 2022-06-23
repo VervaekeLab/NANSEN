@@ -1,17 +1,14 @@
-function varargout = twoPhotonRawImages(sessionObj, varargin)
-%twoPhotonRawImages Open 2-photon raw recording in imviewer
+function varargout = twoPhotonMotionCorrected(sessionObj, varargin)
+%twoPhotonMotionCorrected Open 2-photon corrected recording in imviewer
 %
-%   twoPhotonRawImages(sessionObj) opens the raw two-photon recording for
-%   the given session using default options.
+%   twoPhotonMotionCorrected(sessionObj) opens the motion-corrected 
+%       two-photon recording for the given session using default options.
 %
-%   twoPhotonRawImages(sessionObj, Name, Value) opens the recording using
-%   the options given as name, value pairs.
+%   twoPhotonMotionCorrected(sessionObj, Name, Value) opens the recording 
+%       using the options given as name, value pairs.
 %
-%   fcnAttributes = twoPhotonRawImages() returns a struct of attributes for
-%   the function.
-
-%   Todo: Implement dynamic retrieval of parameters based on file adapter
-%   for opening files.
+%   fcnAttributes = twoPhotonMotionCorrected() returns a struct of 
+%       attributes for the function.
 
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
