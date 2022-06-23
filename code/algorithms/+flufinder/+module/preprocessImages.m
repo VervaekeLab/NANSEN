@@ -38,6 +38,8 @@ function imArray = preprocessImages(imArray, varargin)
     % Preprocess (subtract static background)
     optsNames = {'PrctileForBaseline'};
     opts = utility.struct.substruct(params, optsNames);
-    imArray = flufinder.preprocess.removeStaticBackground(imArray, opts);
+    %imArray = flufinder.preprocess.removeStaticBackground(imArray, opts);
+    % Todo: Bin size should be part of options...
+    imArray = flufinder.preprocess.removeDynamicBackground(imArray);
 
 end

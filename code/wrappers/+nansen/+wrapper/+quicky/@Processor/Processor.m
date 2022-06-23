@@ -23,15 +23,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     end
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
-        MethodName = 'Autosegmentation (Quicky)'
-        IsManual = false        % Does method require manual supervision
-        IsQueueable = true      % Can method be added to a queue
+        MethodName = 'Quicky (Autosegmentation)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.quicky.Processor')
     end
     
     properties (Constant) % From imagestack...
-        ImviewerPluginName = ''
+        ImviewerPluginName = 'FluFinder'
     end
     
     properties (Access = private)

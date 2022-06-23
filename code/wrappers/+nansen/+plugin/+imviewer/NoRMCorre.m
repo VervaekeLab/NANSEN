@@ -48,7 +48,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         function obj = NoRMCorre(varargin)
         %NoRMCorre Create an instance of the NoRMCorre plugin for imviewer
                         
-            obj@imviewer.ImviewerPlugin(varargin{:}, 'Modal', false)
+            obj@imviewer.ImviewerPlugin(varargin{:})
             
             if ~ obj.PartialConstruction && isempty(obj.hSettingsEditor)
                 obj.openControlPanel()
@@ -89,7 +89,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             
             obj.MenuItem(1).PlotShifts = uimenu(m, 'Text', 'Plot NoRMCorre Shifts', 'Enable', 'off');
             obj.MenuItem(1).PlotShifts.Callback = @obj.plotResults;
-            
         end
         
         function onSettingsEditorClosed(obj)
@@ -179,7 +178,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
                 
                 obj.saveProjections(Y, M, getSavepath)           
             end
-            
         end
         
         function runAlign(obj)
@@ -196,7 +194,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             
             nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack,...
                 obj.settings, 'DataIoModel', dataSet)
-
         end
 
         function sEditor = openSettingsEditor(obj)
@@ -222,6 +219,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             sEditor.dataEdit{idx}.FileName = fileName;
             obj.settings_.Export.FileName = fileName;
         end
+
     end
     
     methods (Access = protected)
@@ -260,7 +258,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
     methods (Access = private) % Methods for plotting on imviewer
         
         function plotGrid(obj)
-            
+            % todo: use function from imviewer.plot 
             xLim = [1,obj.ImviewerObj.imWidth];
             yLim = [1,obj.ImviewerObj.imHeight];
             
@@ -311,7 +309,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             
             % could do: implement 64x2 handles with nans and update x/ydata
             % of appropriate number of handles.
-            
         end
         
         function plotResults(obj, ~, ~)

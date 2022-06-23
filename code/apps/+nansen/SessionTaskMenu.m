@@ -100,7 +100,7 @@ classdef SessionTaskMenu < handle
         end
         
         function delete(obj)
-            isdeletable = @(x) ~isempty(x) && isvalid(x);
+            isdeletable = @(x) ~isempty(x) & isvalid(x);
             if isdeletable(obj.ProjectChangedListener)
                 delete(obj.ProjectChangedListener)
             end
