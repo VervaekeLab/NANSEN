@@ -229,7 +229,8 @@ classdef SessionMethod < nansen.DataMethod
             % Fields of output struct with defaults.
             S.BatchMode = 'serial';
             S.IsQueueable = true;
-            
+            S.Alternatives = {};
+
             % Pick out default options from inputs or init to empty struct
             if ~isempty(varargin) && isstruct(varargin{1})
                 defaultOpts = varargin{1};
@@ -241,10 +242,14 @@ classdef SessionMethod < nansen.DataMethod
             S.DefaultOptions = defaultOpts;
          
             
+            % Check for any name, value pairs in varargin
+            [nvPairs, varargin] = utility.getnvpairs(varargin);
+            S = utility.parsenvpairs(S, 1, nvPairs);
+
+            
             % Make sure that varargin only contains character vectors
             isChar = cellfun(@(c) ischar(c), varargin);
             assert(all(isChar), 'Non-character inputs are not allowed')
-            
             
             % Set the attributes based on keywords from varargin
             if contains('serial', varargin)
@@ -262,7 +267,7 @@ classdef SessionMethod < nansen.DataMethod
             if any( strcmpi('unqueueable', varargin) )
                 S.IsQueueable = false;
             end
-            
+
             
             % Get name of calling function:
             % Todo: Get this from varargin if provided.
