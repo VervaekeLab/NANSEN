@@ -26,7 +26,7 @@ import nansen.session.SessionMethod
 
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
-    ATTRIBUTES = {'serial', 'queueable'};
+    ATTRIBUTES = {'serial', 'unqueueable'};
     
     % Get all the data variable alternatives for this function. Add it to 
     % the optional 'Alternatives' attribute to autogenerate a menu item for
