@@ -26,8 +26,11 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
             % Make sure the given handle is an instance of imviewer.App 
             assert(isa(h, 'imviewer.App'), 'Input must be an imviewer App')
             
-            if nargin > 2 && isa(varargin{2}, 'struct')
-                opts = varargin{2}; varargin(2) = []; 
+            isSecondArgOptions = isa(varargin{1}, 'struct') || ...
+                isa(varargin{1}, 'nansen.manage.OptionsManager');
+
+            if nargin > 2 && isSecondArgOptions
+                opts = varargin{1}; varargin(1) = []; 
             else
                 opts = [];
             end

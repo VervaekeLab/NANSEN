@@ -108,7 +108,8 @@ classdef SessionMethod < nansen.DataMethod
             % Parse name-value pairs and assign to parameters property.
             if ~isempty(obj.OptionsManager)
                 params = obj.OptionsManager.getOptions;
-                obj.Parameters = utility.parsenvpairs(params, 1, varargin);
+                %obj.Parameters = utility.parsenvpairs(params, 1, varargin);
+                obj.Options = utility.parsenvpairs(params, 1, varargin);
             end
             
             % Check that required variables for this method exist.
@@ -155,7 +156,8 @@ classdef SessionMethod < nansen.DataMethod
             % Create a subclass??
             if ~isempty(obj.ExternalFcn)
                 sessionObjects = obj.SessionObjects;
-                params = obj.Parameters;
+                %params = obj.Parameters;
+                params = obj.Options;
                 
                 obj.ExternalFcn(sessionObjects, params)
             else
@@ -165,15 +167,15 @@ classdef SessionMethod < nansen.DataMethod
 
         function setup(obj)
                         
-            obj.Parameters = tools.editStruct(obj.Parameters);
+            obj.Options = tools.editStruct(obj.Options);
             
         end
         
         function usePreset(obj, presetName)
             
             obj.OptionsManager.setOptions(presetName)
-            
-            obj.Parameters = obj.OptionsManager.getOptions(presetName);
+            obj.Options = obj.OptionsManager.getOptions(presetName);
+            %obj.Parameters = obj.OptionsManager.getOptions(presetName);
         end
         
     end
