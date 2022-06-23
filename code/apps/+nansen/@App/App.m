@@ -2447,13 +2447,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if app.settings.Session.SessionTaskDebug % make debug mode instead of having it as a preference?
                 sessionMethod(methodArgs{:});
             else
-
+                taskType = taskConfiguration.TaskAttributes.TaskType;
                 try
                     switch taskConfiguration.Mode
                         case 'Default'
                             sessionMethod(methodArgs{:});
                         case 'Restart'
-                            app.runTaskWithReset(sessionMethod, methodArgs)
+                            app.runTaskWithReset(sessionMethod, taskType, methodArgs)
                         case 'Preview'
                             % Todo
                     end

@@ -241,34 +241,32 @@ classdef SessionMethod < nansen.DataMethod
             
             S.DefaultOptions = defaultOpts;
          
+            % Extract flags from varargin
+            flags = {'batch', 'serial', 'queueable', 'unqueueable'};
+            [flags, varargin] = utility.splitvararginflags(varargin, flags);
             
             % Check for any name, value pairs in varargin
             [nvPairs, varargin] = utility.getnvpairs(varargin);
+            
             S = utility.parsenvpairs(S, 1, nvPairs);
 
-            
-            % Make sure that varargin only contains character vectors
-            isChar = cellfun(@(c) ischar(c), varargin);
-            assert(all(isChar), 'Non-character inputs are not allowed')
-            
-            % Set the attributes based on keywords from varargin
-            if contains('serial', varargin)
+            % Update S from input flags
+            if contains('serial', flags)
                 S.BatchMode = 'serial';
             end
             
-            if contains('batch', varargin)
+            if contains('batch', flags)
                 S.BatchMode = 'batch';
             end
             
-            if any( strcmpi('queueable', varargin) )
+            if any( strcmpi('queueable', flags) )
                 S.IsQueueable = true;
             end
             
-            if any( strcmpi('unqueueable', varargin) )
+            if any( strcmpi('unqueueable', flags) )
                 S.IsQueueable = false;
             end
 
-            
             % Get name of calling function:
             % Todo: Get this from varargin if provided.
             fcnName = nansen.session.SessionMethod.getCallingFunction();
