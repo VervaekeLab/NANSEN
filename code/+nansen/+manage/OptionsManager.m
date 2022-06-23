@@ -789,6 +789,80 @@ classdef OptionsManager < handle
             
         end
         
+        function updatedOpts = updateOptionsFromReference(obj, newOpts, refOpts)
+            
+            % Note: 
+            %   Adds fields if they are not present already. This is
+            %   relevant if more options were added to a method
+            %
+            %   Updates the value of configuration fields. Todo: Should
+            %   update from relevant preset. I.e a custom options set is
+            %   derived from a preset options set.
+            %
+            %   Todo: Remove fields that have become obsolete.
+
+
+            isAllSubstruct = all( structfun(@(s) isstruct(s), refOpts) );
+            
+            if isAllSubstruct
+                subfields = fieldnames(refOpts);
+
+                updatedOpts = newOpts;
+
+                for i = 1:numel(subfields)
+                    
+                    thisField = subfields{i};
+
+                    if isfield(newOpts, thisField)
+                        updatedOpts.(thisField) = obj.addMissingFieldsFromReference(...
+                            newOpts.(thisField), refOpts.(thisField) );
+                    else
+                        updatedOpts.(thisField) = refOpts.(thisField);
+                    end 
+                end
+
+            else
+                updatedOpts = obj.addMissingFieldsFromReference(newOpts, refOpts);
+            end
+            
+            
+        end
+        
+        function s = addMissingFieldsFromReference(~, s, sRef)
+                        
+            fieldNamesRef = fieldnames(sRef);
+            for i = 1:numel(fieldNamesRef)
+                thisField = fieldNamesRef{i};
+
+                % Add field if it is not present
+                if ~isfield(s, thisField)
+                    s.(thisField) = sRef.(thisField);
+
+                % Update configuration fields
+                elseif strcmp(thisField(end), '_')
+                    s.(thisField) = sRef.(thisField);
+                end
+            end
+        end
+        
+        % Todo:
+% %         function s = removeDeprecatedFields(obj, s, sRef)
+% %             
+% %             
+% %             
+% %         end
+        
+        
+        function updateOptionsFromDefault(obj)
+                        
+            for i = 1:numel(obj.CustomOptions_)
+                obj.CustomOptions_(i) = obj.updateOptionsFromReference(...
+                    obj.CustomOptions_(i), obj.PresetOptions_(1) );
+
+            end
+            
+        end
+        
         % % Methods related to preset options. % Create PresetOptionFinder
         % class?
         
@@ -1165,7 +1239,9 @@ classdef OptionsManager < handle
             % Update preset options from loaded presets.
             isPresetOptions = strcmp( {S.OptionsEntries.Type}, 'Preset' );
             loadedPresetOptions = S.OptionsEntries(isPresetOptions);
-                        
+                 
+            wasPresetOptionsUpdated = false;
+
             for i = 1:numel(obj.PresetOptions_)
                 thisName = obj.PresetOptions_(i).Name;
                 thisOpts = obj.PresetOptions_(i).Options;
@@ -1173,7 +1249,17 @@ classdef OptionsManager < handle
                 if any(strcmp({loadedPresetOptions.Name}, thisName))
                     matchIdx = strcmp({loadedPresetOptions.Name}, thisName);
                     
-                    if ~isequal(thisOpts, loadedPresetOptions(matchIdx).Options)
+                    iLoadedOpts = loadedPresetOptions(matchIdx).Options;
+
+                    if ~isequal(iLoadedOpts, iReferenceOpts)
+                        iLoadedOpts = obj.updateOptionsFromReference(iLoadedOpts, iReferenceOpts);
+                        fprintf('Updated options for %s to match to changes in preset options\n', obj.FunctionName)    
+                        loadedPresetOptions(matchIdx).Options = iLoadedOpts;
+                        obj.saveOptions(loadedPresetOptions(matchIdx), true)
+                        wasPresetOptionsUpdated = true;
+                    end
+                    
+                    if ~isequal(iLoadedOpts, iReferenceOpts)
                         
                         % Todo: Implement this and make it easy to fix...
                         
@@ -1196,6 +1282,16 @@ classdef OptionsManager < handle
             
             if any(isCustomOptions)
                 loadedCustomOptions = S.OptionsEntries(isCustomOptions);
+            
+                if wasPresetOptionsUpdated
+                    for i = 1:numel(loadedCustomOptions)
+                        loadedCustomOptions(i).Options = obj.updateOptionsFromReference(...
+                            loadedCustomOptions(i).Options, obj.PresetOptions_(1).Options);
+                        obj.saveOptions(loadedCustomOptions(i), true)
+                    end
+                end
+
+
                 obj.CustomOptions_ = loadedCustomOptions;
             end
             
@@ -1230,7 +1326,7 @@ classdef OptionsManager < handle
             end
         end
         
-        function saveOptions(obj, newOptionsSet)
+        function saveOptions(obj, newOptionsSet, doReplace)
         %saveOptions Save an options set to file for current instance
         %
         %   saveOptions(obj, newOptionsSet) saves the newOptionsSet to
@@ -1240,12 +1336,24 @@ classdef OptionsManager < handle
         %
         %   See also OptionsManager/createOptionsStructForSaving
         
+            if nargin < 3; doReplace = false; end
+
             % Get filepath
             savePath = obj.FilePath;
             
             if isfile(savePath)
                 S = load(savePath);
-                S.OptionsEntries(end+1) = newOptionsSet;
+            
+                isMatch = strcmp({S.OptionsEntries.Name}, newOptionsSet.Name);
+                if any(isMatch) && doReplace
+                    S.OptionsEntries(isMatch) = newOptionsSet;
+                elseif any(isMatch) && ~doReplace
+                    errMsg = sprintf('Option preset with name "%s" already exists, aborted.', newOptionsSet.Name);
+                    errordlg(errMsg)
+                    error(errMsg) %#ok<SPERR> 
+                else
+                    S.OptionsEntries(end+1) = newOptionsSet;
+                end
                 save(savePath, '-struct', 'S', '-append')
             else
                 S = struct;
