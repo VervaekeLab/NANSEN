@@ -126,6 +126,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
             
             % Todo: Make function for getting list of virtual data classes
             
+            % List of classes where its enough to check filename
             virtualDataClasses = { ...
                 'nansen.stack.virtual.PrairieViewTiffs', ...
                 'nansen.stack.virtual.TiffMultiPartMultiChannel', ...
@@ -133,7 +134,6 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 };
             
             for i = 1:numel(virtualDataClasses)
-                
                 thisClassName = virtualDataClasses{i};
                 fileNameExpression = eval([thisClassName, '.FilenameExpression']);
                 
@@ -143,13 +143,21 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 end
             end
 
-            % Check for sciscan raw
-            if isempty(className)
-                if nansen.stack.virtual.SciScanRaw.fileCheck(filename)
-                    className = 'nansen.stack.virtual.SciScanRaw';
+            % List of classes where its needed to check metadata
+            virtualDataClasses = { ...
+                'nansen.stack.virtual.SciScanRaw', ...
+                'nansen.stack.virtual.ScanImageTiff' ...
+                };
+            
+            for i = 1:numel(virtualDataClasses)
+                thisClassName = virtualDataClasses{i};
+                tf = feval( strcat(thisClassName, '.fileCheck'), filename);
+
+                if tf
+                    className = thisClassName;
+                    return
                 end
             end
-
         end
         
     end
