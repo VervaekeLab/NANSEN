@@ -837,6 +837,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if strcmp(obj.mode, 'standalone')
                 hTxt = text(obj.header.hAxes, 0.1, 0.5, '');
                 hTxt.Color = obj.Theme.FigureFgColor;
+                hTxt.FontUnits = 'pixels';
                 hTxt.FontSize = 14;
                 hTxt.FontName = obj.FontName;
                 hTxt.FontWeight = 'normal';
@@ -848,7 +849,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.headerTitle.ForegroundColor = obj.Theme.FigureFgColor;
                 obj.headerTitle.BackgroundColor = min([1,1,1;obj.Theme.FigureBgColor+0.05]);
                 obj.headerTitle.HitTest = 'off';
-                obj.headerTitle.FontSize = 10;
+                obj.headerTitle.FontUnits = 'pixels';
+                obj.headerTitle.FontSize = 12;
                 obj.headerTitle.Position = [50,5,100,35];
             end
             
@@ -856,6 +858,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.headerSubtitle.String = '';
             obj.headerSubtitle.HorizontalAlignment = 'center';
             obj.headerSubtitle.ForegroundColor = obj.Theme.FigureFgColor;
+            obj.headerSubtitle.FontUnits = 'pixels';
             obj.headerSubtitle.FontSize = 10;
             obj.headerSubtitle.Position = [2,3,48,15];
 
@@ -865,7 +868,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if obj.numTabs > 1 && strcmp(obj.TabMode, 'dropdown')
                 obj.createTabDropdownSelector()
             end
-            
             
             % Create a button for showing/hiding tabpanel
             if obj.showSidePanel && contains(obj.TabMode, 'popup')
@@ -905,6 +907,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             textbox.String = 'Options:';
             textbox.Color = obj.Theme.FigureFgColor*0.8;
             textbox.FontName = obj.FontName;
+            textbox.FontUnits = 'pixels';
             textbox.FontSize = obj.FontSize;
             
             if obj.numTabs > 1
@@ -923,6 +926,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hDropdown.Position = [X(1), 12, W(1), 22];
             hDropdown.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hDropdown.FontName = obj.FontName;
+            hDropdown.FontUnits = 'pixels';
             hDropdown.FontSize = obj.FontSize;
             hDropdown.Callback = @obj.onOptionsSetChanged;
             
@@ -940,6 +944,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hButton1.Position = [X(2), 12, W(2), 22];
             hButton1.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hButton1.FontName = obj.FontName;
+            hButton1.FontUnits = 'pixels';
             hButton1.FontSize = obj.FontSize;
             hButton1.Callback = @(s,e) obj.saveOptionsSet();
             hButton1.Enable = 'off';
@@ -950,6 +955,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hButton2.Position = [X(3), 12, W(3), 22];
             hButton2.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hButton2.FontName = obj.FontName;
+            hButton2.FontUnits = 'pixels';
             hButton2.FontSize = obj.FontSize;
             hButton2.Callback = @(s,e,h) obj.makeOptionsSetDefault(hDropdown);
 
