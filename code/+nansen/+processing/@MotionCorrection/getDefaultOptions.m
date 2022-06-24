@@ -7,10 +7,12 @@ function S = getDefaultOptions()
     S = struct();
 
     S.Preprocessing.NumFlybackLines = 0;
+
     S.Preprocessing.BidirectionalCorrection = 'None';
-    S.Preprocessing.BidirectionalCorrection_ = {'None', 'Constant', 'Time Dependent'};
-    S.General.correctDrift = true;
+    S.Preprocessing.BidirectionalCorrection_ = {'None', 'Constant', 'Continuous'};
+    %S.Preprocessing.BidirectionalCorrection_ = {'None', 'One Time', 'Continuous'};
     
+    %S.General.correctDrift = false;    
     
     S.Preview.firstFrame = 1;
     S.Preview.numFrames = 500;
@@ -32,7 +34,8 @@ function S = getDefaultOptions()
     S.Export.OutputDataType = 'uint8';
     S.Export.OutputDataType_ = {'uint8', 'uint16'};
     S.Export.OutputFormat = 'Binary';
-    S.Export.OutputFormat_ = {'Binary', 'Tiff'};
+    S.Export.OutputFormat_ = {'Binary'};
+    %S.Export.OutputFormat_ = {'Binary', 'Tiff'}; % todo...
     S.Export.saveAverageProjection = true;
     S.Export.saveMaximumProjection = true;
     

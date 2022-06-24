@@ -41,7 +41,7 @@ if ~isempty(varargin) && (isa(varargin{1}, 'struct') || isa(varargin{end}, 'stru
     %In this case, only use fields which are also part of def, so that user
     % is more free in passing the opts even if it does not contain relevant 
     % fields.
-    fields = intersect(fields, names)';
+    fields = intersect(names, fields, 'stable')';
     values = cellfun(@(name) varargin{ind}.(name), fields, 'uni', 0 );
     nvPairs = reshape(vertcat(fields, values), 1, numel(fields)*2);
 
@@ -93,6 +93,6 @@ end
 
 parserObj.parse(nvPairs{:});
 opt = parserObj.Results;
-
+opt = orderfields(opt, names);
 
 end

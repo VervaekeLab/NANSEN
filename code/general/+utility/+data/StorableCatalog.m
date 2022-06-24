@@ -514,7 +514,7 @@ classdef StorableCatalog < handle
             obj.Data = S.Data;
             obj.Preferences = S.Preferences;
         end
-       
+        
         function parseVarargin(obj, varargin)
             
             if ~isempty(varargin)
@@ -560,6 +560,61 @@ classdef StorableCatalog < handle
             end
             
             S.Data = orderfields(S.Data, ['Uuid'; originalFieldNames]);
+        end
+        
+        function saveToFolder(obj, S)
+        %saveToFolder Save catalog to a folder with one file per item
+            % Make folder if it does not exist.
+            folderPath = strrep(obj.FilePath, '.mat', '');
+            if ~isfolder(folderPath); mkdir(folderPath); end
+
+            % Create and save a master list 
+            main = struct;
+            main.Preferences = S;
+            main.Data = utility.struct.substruct(S.Data, {'Uuid'});
+            
+            % Loop through each item and save
+            for i = 1:numel(S.Data)
+                s = S.Data(i);
+                fileName = matlab.lang.makeValidName( obj.ItemNames{i} );
+                save(fullfile(folderPath, [fileName, '.mat']), '-struct', 's')
+                main.Data(i).Filename = fileName;
+            end
+
+            % Save master list
+            [~, name] =  fileparts(obj.FilePath);
+            filename = sprintf('_%s_inventory.mat', name);
+            save(fullfile(folderPath, filename), '-struct', 'main')
+        end
+        
+        function S = loadFromFolder(obj)
+        %loadFromFolder Load catalog from a folder with one file per item
+        %
+        %   Not used yet. 
+        %
+        %   Note: will be slower than loading from single file, but is more
+        %   modular, in that its easier to add and remove items.
+
+            folderPath = strrep(obj.FilePath, '.mat', '');
+            
+            L = dir(fullfile(folderPath, '*.mat'));
+            
+            % Find preferences
+            isPref = strcmp({L.name}, '_preferences.mat');
+            filePath = fullfile(L(isPref).folder, L(isPref).name);
+            S = load(filePath, 'Preferences');
+            L(isPref) = [];
+
+            numItems = numel(L);
+            itemArray = cell(1, numItems);
+
+            % Load each file
+            for i = 1:numItems
+                filePath = fullfile(L(i).folder, L(i).name);
+                itemArray{i} = load(filePath);
+            end
+
+            S.Data = cat(2, itemArray{:});
         end
         
     end

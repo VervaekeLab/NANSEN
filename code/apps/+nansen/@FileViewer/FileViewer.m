@@ -723,6 +723,8 @@ classdef FileViewer < handle
             fileAdapterIdx = strcmp({fileAdapterList.FileAdapterName}, S.FileAdapter);
             varItem.DataType = fileAdapterList(fileAdapterIdx).DataType;
             
+            % Todo: get variable model for current project. In practice
+            % this will always happen, but it should be explicit!
             VM = VariableModel();
             VM.insertItem(varItem)
             

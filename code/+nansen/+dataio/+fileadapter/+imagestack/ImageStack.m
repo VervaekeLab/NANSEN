@@ -107,6 +107,9 @@ classdef ImageStack < nansen.dataio.FileAdapter
                     className = 'nansen.stack.virtual.ScanImageTiff';
                     %className = 'nansen.stack.virtual.TiffMultiPart';
 
+                case 'mdf'
+                    className = 'nansen.stack.virtual.MDF';
+
                 otherwise
                     error('Nansen:DataIO:FileTypeNotSupported', ...
                         'File type "%s" can not be opened as an ImageStack', ...
@@ -123,6 +126,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
             
             % Todo: Make function for getting list of virtual data classes
             
+            % List of classes where its enough to check filename
             virtualDataClasses = { ...
                 'nansen.stack.virtual.PrairieViewTiffs', ...
                 'nansen.stack.virtual.TiffMultiPartMultiChannel', ...
@@ -130,14 +134,29 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 };
             
             for i = 1:numel(virtualDataClasses)
-                
                 thisClassName = virtualDataClasses{i};
                 fileNameExpression = eval([thisClassName, '.FilenameExpression']);
                 
                 if ~isempty( regexp(filename, fileNameExpression, 'once') )
                     className = thisClassName;
+                    return
                 end
+            end
+
+            % List of classes where its needed to check metadata
+            virtualDataClasses = { ...
+                'nansen.stack.virtual.SciScanRaw', ...
+                'nansen.stack.virtual.ScanImageTiff' ...
+                };
             
+            for i = 1:numel(virtualDataClasses)
+                thisClassName = virtualDataClasses{i};
+                tf = feval( strcat(thisClassName, '.fileCheck'), filename);
+
+                if tf
+                    className = thisClassName;
+                    return
+                end
             end
         end
         

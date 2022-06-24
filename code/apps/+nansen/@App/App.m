@@ -36,8 +36,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties
-        NotesViewer     % Standalone app, that we need to keep track of.
-        DLModelApp      % Standalone app, that we need to keep track of.
+        NotesViewer % Auxiliary app, that we need to keep track of.
+        DLModelApp % Auxiliary app, that we need to keep track of.
+        VariableModelApp % Auxiliary app, that we need to keep track of.
     end
     
     properties (Constant, Hidden = true) % Inherited from UserSettings
@@ -64,6 +65,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         SessionContextMenu
         
         DataLocationModel
+        VariableModel
         
         CurrentProjectName  % Current project which is open in the app
         ProjectManager
@@ -109,7 +111,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             nansen.validate()
             
+            % Todo: This is project dependent, should be set on
+            % setProject... Dependent???
             app.DataLocationModel = nansen.DataLocationModel;
+            app.VariableModel = nansen.VariableModel;
             
             app.loadMetaTable()
             app.initializeBatchProcessor()
@@ -157,6 +162,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.settings.Session.SessionTaskDebug = false; % Reset debugging on quit
             app.saveSettings()
+
+            % Save column view settings to project
+            app.saveMetatableColumnSettingsToProject()
             
             if isempty(app.MetaTable)
                 return
@@ -334,8 +342,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uimenu( mitem, 'Text', 'Create...', 'MenuSelectedFcn', @app.onNewProjectMenuClicked);
             uimenu( mitem, 'Text', 'Add Existing...', 'MenuSelectedFcn', @app.onNewProjectMenuClicked);
             
-            mitem = uimenu(m, 'Text','Change Project');
-            app.updateProjectList(mitem)
+            app.Menu.ChangeProject = uimenu(m, 'Text','Change Project');
+            app.updateProjectList()
             
             mitem = uimenu(m, 'Text','Manage Projects...');
             mitem.MenuSelectedFcn = @app.onManageProjectsMenuClicked;
@@ -350,10 +358,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             uimenu( mitem, 'Text', 'Datalocations...', ...
                 'MenuSelectedFcn', @(s,e) app.openDataLocationEditor )
-
             
-            uimenu( mitem, 'Text', 'Variables...', 'MenuSelectedFcn', @(s,e)nansen.config.varmodel.VariableModelApp);
-            %mitem.MenuSelectedFcn = [];
+            uimenu( mitem, 'Text', 'Variables...', ...
+                'MenuSelectedFcn', @(s,e) app.openVariableModelEditor );
             
             uimenu( mitem, 'Text', 'Watch Folders...', 'MenuSelectedFcn', ...
                 @(s,e)nansen.config.watchfolder.WatchFolderManagerApp, ...
@@ -419,16 +426,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
             
             % Menu with submenus for editing table variable definition:
-            mitem = uimenu(m, 'Text','Edit Table Variable Definition');            
+            mitem = uimenu(m, 'Text','Edit Table Variable Definition');         
             columnVariables = getPublicSessionInfoVariables(app.MetaTable);
+            
+            % Create a menu list with items for each variable
+            mItem = uics.MenuList(mitem, columnVariables, '', 'SelectionMode', 'none');
+            mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
 
-            for iVar = 1:numel(columnVariables)
-                hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
-                hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
-            end
+
+% %             for iVar = 1:numel(columnVariables)
+% %                 hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
+% %                 hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
+% %             end
             
-            
-            
+
+
 % %             menuAlternatives = {'Enter values manually...', 'Get values from function...', 'Get values from dropdown...'};
 % %             for i = 1:numel(menuAlternatives)
 % %                 hSubmenuItem = uimenu(mitem, 'Text', menuAlternatives{i});
@@ -503,27 +515,35 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
-        function updateProjectList(app, mItem)
+        function updateProjectList(app, hParent)
         %updateProjectList Update lists of projects in uicomponents
-            
-            if nargin < 2
-                mItem = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Change Project');
-            end
             
             pm = nansen.ProjectManager;
             names = {pm.Catalog.Name};
+            currentProject = getpref('Nansen', 'CurrentProject');
             
-            if ~isempty(mItem.Children)
-                delete(mItem.Children)
+            if isfield( app.Menu, 'ProjectList' )
+                app.Menu.ProjectList.Items = names;
+                app.Menu.ProjectList.Value = currentProject;
+            else
+                hParent = app.Menu.ChangeProject;
+                hMenuList = uics.MenuList(hParent, names, currentProject);
+                hMenuList.MenuSelectedFcn = @app.onChangeProjectMenuClicked;
+                app.Menu.ProjectList = hMenuList;
             end
 
-            for i = 1:numel(names)
-                msubitem = uimenu(mItem, 'Text', names{i});
-                msubitem.MenuSelectedFcn = @app.onChangeProjectMenuClicked;
-                if strcmp(names{i}, getpref('Nansen', 'CurrentProject'))
-                    msubitem.Checked = 'on';
-                end
-            end
+
+% %             if ~isempty(mItem.Children)
+% %                 delete(mItem.Children)
+% %             end
+% % 
+% %             for i = 1:numel(names)
+% %                 msubitem = uimenu(mItem, 'Text', names{i});
+% %                 msubitem.MenuSelectedFcn = @app.onChangeProjectMenuClicked;
+% %                 if strcmp(names{i}, getpref('Nansen', 'CurrentProject'))
+% %                     msubitem.Checked = 'on';
+% %                 end
+% %             end
 
         end
         
@@ -549,6 +569,32 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
         
+        function updateMetaTableViewMenu(app, mItem)
+            % todo (not implemented yet)
+            if nargin < 2
+                mItem = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Change Table View');
+            end
+                        
+            currentProjectName = app.ProjectManager.CurrentProject;
+            projectObj = app.ProjectManager.getProjectObject(currentProjectName);
+
+            hCatalog = projectObj.MetaTableViewCatalog;
+            names = {hCatalog.Names};
+
+            if ~isempty(mItem.Children)
+                delete(mItem.Children)
+            end
+
+            for i = 1:numel(names)
+                msubitem = uimenu(mItem, 'Text', names{i});
+                msubitem.MenuSelectedFcn = @app.onChangeMetaTableViewMenuClicked;
+                if strcmp(names{i}, hCatalog.DefaultItem)
+                    msubitem.Checked = 'on';
+                end
+            end
+
+        end
+
         function createSessionMenu(app, hMenu, updateFlag)
             
             import nansen.metadata.utility.getPublicSessionInfoVariables
@@ -891,6 +937,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
+            try %#ok<TRYNC> 
+                columnSettings = app.loadMetatableColumnSettingsFromProject();
+                app.UiMetaTableViewer.ColumnSettings = columnSettings;
+            end
+
             app.createSessionTableContextMenu()
             
         end
@@ -1063,6 +1114,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 wasCanceled = app.promptToSaveCurrentMetaTable();
                 if wasCanceled; return; end
             end
+            
+            % pre project change
+            app.saveMetatableColumnSettingsToProject()
 
             projectManager = nansen.ProjectManager;
             projectManager.changeProject(newProjectName)
@@ -1076,10 +1130,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.UiMetaTableViewer.resetTable()
             app.UiMetaTableViewer.refreshTable(table.empty, true)
-            
+            try
+                columnSettings = app.loadMetatableColumnSettingsFromProject();
+                app.UiMetaTableViewer.ColumnSettings = columnSettings;
+            end
+
             % Need to reassign data location model before loading metatable
-            app.DataLocationModel = nansen.DataLocationModel;
-                      
+            % Todo: Explicitly get models for this project.
+            app.DataLocationModel = nansen.DataLocationModel();
+            app.VariableModel = nansen.VariableModel();
+
             app.updateRelatedInventoryLists()
             app.loadMetaTable()
 
@@ -1104,6 +1164,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Close DL Model Editor app if it is open:
             if ~isempty( app.DLModelApp )
                 delete(app.DLModelApp); app.DLModelApp = [];
+            end
+            if ~isempty( app.VariableModelApp )
+                delete(app.VariableModelApp); app.VariableModelApp = [];
             end
 
             app.TableIsUpdating = false;
@@ -1158,7 +1221,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Submit the current datalocation model on create of
                 % objects that have datalocation information.
                 if any(strcmp(entries.Properties.VariableNames, 'DataLocation'))
-                    nvPairs = {'DataLocationModel', app.DataLocationModel};
+                    nvPairs = {'DataLocationModel', app.DataLocationModel, ...
+                                'VariableModel', app.VariableModel};
                 else
                     nvPairs = {};
                 end
@@ -1323,22 +1387,38 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
        
         function onKeyPressed(app, src, evt)
             
+% % %             persistent lastKeyPressTime 
+% % %             if isempty(lastKeyPressTime); lastKeyPressTime = tic; end
+
             if isa(evt, 'java.awt.event.KeyEvent')
                 evt = uim.event.javaKeyEventToMatlabKeyData(evt);
             end
             
             
             switch evt.Key
-                
-                case 'shift'
-                    app.SessionTaskMenu.Mode = 'Preview';
-                case 'q'
-                    app.SessionTaskMenu.Mode = 'TaskQueue';
-                case 'e'
-                    app.SessionTaskMenu.Mode = 'Edit';
-                case 'r'
-                    app.SessionTaskMenu.Mode = 'Restart';
-                    
+        
+                case {'shift', 'q', 'e', 'r'}
+
+% % %                     timeSinceLastPress = toc(lastKeyPressTime);
+% % %                     timeSinceLastPress
+% % %                     if timeSinceLastPress < 0.1
+% % %                         lastKeyPressTime = tic; 
+% % %                         return; 
+% % %                     end
+
+                    switch evt.Key
+                        case 'shift'
+                            app.SessionTaskMenu.Mode = 'Preview';
+                        case 'q'
+                            app.SessionTaskMenu.Mode = 'TaskQueue';
+                        case 'e'
+                            app.SessionTaskMenu.Mode = 'Edit';
+                        case 'r'
+                            app.SessionTaskMenu.Mode = 'Restart';
+                    end
+
+% % %                     lastKeyPressTime = tic; 
+
                 case 'w'
                     app.sendToWorkspace()
             end
@@ -1346,7 +1426,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onKeyReleased(app, src, evt)
-            
+
             if isa(evt, 'java.awt.event.KeyEvent')
                 evt = uim.event.javaKeyEventToMatlabKeyData(evt);
             end
@@ -1354,7 +1434,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             switch evt.Key
                 case {'shift', 'q', 'e', 'r'}
                     app.SessionTaskMenu.Mode = 'Default';
-                    
             end
 
         end
@@ -1658,13 +1737,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             switch updateMode
                 case 'SelectedRows'
+                    app.assertSessionSelected()
+
                     sessionObj = app.getSelectedMetaObjects();
                     rows = app.UiMetaTableViewer.getSelectedEntries();
 
-                    if isempty(sessionObj)
-                        error('No sessions are selected'); 
-                    end
-                    
                 case 'AllEmptyRows'
                     % Todo....
                     
@@ -1769,9 +1846,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
         end
-        
-        
-        
+
         function copySessionIdToClipboard(app)
             
             sessionObj = app.getSelectedMetaObjects();
@@ -1842,6 +1917,28 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
             else
                 app.DLModelApp.Visible = 'on';
+            end
+        end
+
+        function openVariableModelEditor(app)
+        %openVariableModelEditor Open editor app for variable model.
+                    
+            args = {'VariableModel', app.VariableModel, ...
+                'DataLocationModel', app.DataLocationModel};
+    
+            % Open app by creating new instance or showing previous
+            if isempty(app.VariableModelApp) || ~app.VariableModelApp.Valid
+                hApp = nansen.config.varmodel.VariableModelApp(args{:}); 
+                hApp.transferOwnership(app)
+                app.VariableModelApp = hApp;
+                
+                % Not implemented. I don't see any situation where it is
+                % necessary, but maybe later?
+% %                 addlistener(hApp, 'VariableModelChanged', ...
+% %                     @app.onVariableModelChanged);
+                
+            else
+                app.VariableModelApp.Visible = 'on';
             end
         end
 
@@ -2239,311 +2336,312 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onSessionTaskSelected(app, ~, evt)
+        %onSessionTaskSelected Callback for event on session task menu.
+        %
+        % This function prepares tasks to run based on the selected method
+        % from the session task menu, the selected sessions from the
+        % session table and the selected mode for running the task.
+        %
+        %
+        %   Supported modes:
+        %       q   - add task(s) the the task processor's queue.
+        %       e   - edit session method function
+        %       ... - preview options for method 
+
+
+            % Todo: Implement saving or errors to a log file. (right now,
+            % in most cases it is available in the task processor's
+            % history)
             
-            % Todo: Implement error handling.
-            
-            sessionObj = app.getSelectedMetaObjects();
-            numSessions = numel(sessionObj);
-            
+            % If the edit mode was selected, open the function file for
+            % editing and return.
             if strcmp(evt.Mode, 'Edit')
-                edit(func2str(evt.MethodFcn))
+                edit( evt.TaskAttributes.FunctionName )
+                app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode 
                 return
             end
             
+            % Throw error if no sessions are selected.
+            app.assertSessionSelected()
             
-            if numSessions == 0
-                msg = 'No sessions are selected';
-                app.openMessageBox(msg, 'Aborted')
-                return
-            end
+            % Get the session objects that are selected in the metatable
+            sessionObj = app.getSelectedMetaObjects();
             
-            functionName = func2str(evt.MethodFcn);
+            % Get the function name 
+            functionName = evt.TaskAttributes.FunctionName;
             returnToIdle = app.setBusy(functionName); %#ok<NASGU>
                            
-            app.SessionTaskMenu.Mode = 'Default';
+            app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode 
             drawnow
 
-            % Get configuration attributes for session method. 
-            try
-                % Call with no inputs should give configuration struct
-                mConfig = evt.MethodFcn();
-
-                if isa(mConfig, 'struct')
-                    % Add an options manager to the mConfig struct
-                    mConfig.OptionsManager = nansen.manage.OptionsManager(..., 
-                        functionName, mConfig.DefaultOptions);
-                    
-                elseif isa(mConfig, 'nansen.session.SessionMethod')
-                    % Pass
-                    
-                else
-                    %TODO: create proper exception
-                    error('%s is not a valid SessionMethod')
-                end
-
-            catch ME
-                throwAsCaller(ME)
-                %rethrow(ME)
-            end
-            
-            
             % Check if session task should be run in serial or batch
-            isSerial = strcmp(mConfig.BatchMode, 'serial');
+            isSerial = strcmp(evt.TaskAttributes.BatchMode, 'serial');
             
-            % Todo: What if session method is just a function handle???
-            % Should add as ExternalFcn in a SessionMethod instance (make 
-            % subclass for such cases....)
-            
-            % Place session objects in a cell array based on batch mode.
+            % Place session objects in a cell array based on batch mode. If
+            % mode is serial, each cell holds one session, and if mode is
+            % batch, one cell holds all session objects
             if isSerial
                 sessionObj = arrayfun(@(sObj) sObj, sessionObj, 'uni', 0);
             else
                 sessionObj = {sessionObj};
             end
-            
-            sessionMethod = evt.MethodFcn; 
-            
-            % Todo: What if there is a keyword???
+
+            % Todo: Add attribute for maximum number of sessions and check 
+            % if the maximum number of sessions for this method is exceeded.
+
+            % Get the correct optionsSet if a preset optionsSet was
+            % selected. If evt.OptionsSelection is empty, the default is
+            % retrieved
             optsName = evt.OptionsSelection;
-            [opts, optsName] = mConfig.OptionsManager.getOptions(optsName);
-                
-            switch evt.Mode
-                case 'Restart'
-                    app.runTasksWithDefaults(sessionMethod, sessionObj, opts, optsName, true)
-                
-                case 'Default'
-                    app.runTasksWithDefaults(sessionMethod, sessionObj, opts, optsName)
-
-                case 'Preview'
-                    app.runTasksWithPreview(sessionMethod, sessionObj, opts, optsName)
-
-                case 'TaskQueue'
-                    app.addTasksToQueue(sessionMethod, sessionObj, opts, optsName)
-
-            end
-              
-            % Clear the statusfield
-        
-            % Todo: update the session object in the session table if
-            % changes were made...?
+            optsManager = evt.TaskAttributes.OptionsManager;
+            [opts, optsName] = optsManager.getOptions(optsName);
             
+            % Prepare a struct holding task configurations.
+            taskConfiguration = struct;
+            taskConfiguration.Method = evt.TaskAttributes.FunctionHandle;
+            taskConfiguration.Mode = evt.Mode;
+            taskConfiguration.SessionObject = [];
+            taskConfiguration.Options = opts;
+            taskConfiguration.OptionsName = optsName;
+            taskConfiguration.Alternative = evt.Alternative;
+            taskConfiguration.Restart = strcmp(evt.Mode, 'Restart');
+            taskConfiguration.TaskAttributes = evt.TaskAttributes;
             
-        end
-        
-        function sendToWorkspace(app)
-                    
-            sessionObj = app.getSelectedMetaObjects();
 
-% %             switch app.settings.Session.ExportSessionObjectAs
-% %                 case 'Nansen'
-% %                     % Pass
-% %                 case 'NDI'
-% %                     sessionObj = app.getNdiSessionObj(sessionObj);
-% %             end
-            
-            if ~isempty(sessionObj)
-                varName = app.settings.Session.SessionObjectWorkspaceName;
-                assignin('base', varName, sessionObj)
+            % Go through cell array of session objects and initialize tasks
+            numTasks = numel(sessionObj);
+            for i = 1:numTasks
+
+                % Update the status field
+                app.updateStatusField(i-1, numTasks, taskConfiguration.Method)
+
+                taskConfiguration.SessionObject = sessionObj{i};
+
+                % Call the appropriate method based on the selected mode
+                switch evt.Mode
+                    case {'Default', 'Restart'}
+                        app.runTasksWithDefaults(taskConfiguration)
+    
+                    case 'Preview'
+                        app.runTasksWithPreview(taskConfiguration)
+    
+                    case 'TaskQueue'
+                        app.addTasksToQueue(taskConfiguration)
+                end
+
             end
             
         end
         
-        function ndiSessionObj = getNdiSessionObj(app, sessionObj)
-            
-            dataLocation = sessionObj.getDataLocation('Rawdata');
-            dirPath = dataLocation.RootPath;
-            
-            ndiSessionObj = ndi.session.dir('ts_exper', dirPath);
-            
-        end
-        
-        function runTasksWithDefaults(app, sessionMethod, sessionObj, opts, ~, restart)
+        function runTasksWithDefaults(app, taskConfiguration)
         %runTasksWithDefaults Run session method with default options
             
-            if nargin < 6; restart = false; end
-        
-            % Get task name
-            methodName = nansen.session.SessionMethod.getMethodName(sessionMethod);
-                        
-            % Todo: Check if there is a maximum number of tasks for this
-            % method.
+        %    Method         : Function handle of method to run
+        %    SessionObject  : Array of session objects;
+        %    Options        : Struct of options to use
+        %    OptionsName    : Name of options
+        %    Alternative    : Optional, for methods with multiple alternatives
+        %    Restart        : Boolean flag, true if method should be restarted
             
-            numTasks = numel(sessionObj);
-            for i = 1:numTasks
-                
-                % Update the status field
-                app.updateStatusField(i-1, numTasks, sessionMethod)
-                
-                if numel(sessionObj{i}) > 1
-                    taskName = 'Multisession';
-                else
-                    taskName = sessionObj{i}.sessionID;
-                end
 
-                newTask = app.BatchProcessor.createTaskItem(taskName, ...
-                    sessionMethod, 0, sessionObj(i), 'Default', 'Command window task');
+            % Unpack variables from input struct:
+            sessionMethod = taskConfiguration.Method;
+            sessionObj = taskConfiguration.SessionObject;
+            opts = taskConfiguration.Options;
 
-                % cleanupObj makes sure temp logfile is deleted later
-                [cleanUpObj, logfile] = app.BatchProcessor.initializeTempDiaryLog(); %#ok<ASGLU,NASGU>
-                
-                newTask.timeStarted = datetime(now,'ConvertFrom','datenum');
-                
-                % Run the task
-                if app.settings.Session.SessionTaskDebug
-                    sessionMethod(sessionObj{i}, opts);
-                else
+            taskName = app.createTaskName( sessionObj );
 
-                    try
-                        if restart
-                            app.runTaskWithReset(sessionMethod, sessionObj{i}, opts)
-                        else
-                            sessionMethod(sessionObj{i}, opts);
-                        end
-                        if numel(sessionObj{i}) == 1 % Methods which accept multiple session should not be included in pipelines...
-                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-                        end
-                        newTask.status = 'Completed';
-                        diary off
-                        newTask.Diary = fileread(logfile);
-                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
+            newTask = app.BatchProcessor.createTaskItem(taskName, ...
+                sessionMethod, 0, {sessionObj}, 'Default', 'Command window task');
 
-                 
-                    catch ME
-                        newTask.status = 'Failed';
-                        diary off
-                        newTask.Diary = fileread(logfile);
-                        newTask.ErrorStack = ME;
-                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                        app.throwSessionMethodFailedError(ME, taskName, ...
-                            func2str(sessionMethod))
-                    end
-                
-                    clear cleanUpObj
-                end
+            % cleanupObj makes sure temp logfile is deleted later
+            [cleanUpObj, logfile] = app.BatchProcessor.initializeTempDiaryLog(); %#ok<ASGLU,NASGU>
+            
+            newTask.timeStarted = datetime(now,'ConvertFrom','datenum');
+
+            % Prepare arguments for the session method
+            %app.prepareSessionMethodArguments() %todo
+            
+            methodArgs = {sessionObj, opts};
+            if ~isempty(taskConfiguration.Alternative)
+                methodArgs = [methodArgs, {'Alternative', taskConfiguration.Alternative}];
             end
-            
-        end
-        
-        function runTasksWithPreview(app, sessionMethod, sessionObj, opts, optsName)
-            
-            % Get default options
-            % Get task name
 
-            % Use normcorre as an example: how to open the preview mode 
-            % i.e open the image stack in imviewer and open the normcorre
-            % plugin? 
-            %
-            % While still retaining the functionality for session methods
-            % implemented through functions??
-            
-            % Todo: Add task to history.
-            
-            
-            numTasks = numel(sessionObj);
-            for i = 1:numTasks
-                
+            % Run the task
+            if app.settings.Session.SessionTaskDebug % make debug mode instead of having it as a preference?
+                sessionMethod(methodArgs{:});
+            else
+                taskType = taskConfiguration.TaskAttributes.TaskType;
                 try
-                    sMethod = sessionMethod();
-
-                    if numel(sessionObj{i}) > 1
-                        taskName = 'Multisession';
-                    else
-                        taskName = sessionObj{i}.sessionID;
+                    switch taskConfiguration.Mode
+                        case 'Default'
+                            sessionMethod(methodArgs{:});
+                        case 'Restart'
+                            app.runTaskWithReset(sessionMethod, taskType, methodArgs)
+                        case 'Preview'
+                            % Todo
                     end
-                    
-                    
-                    % Open the options / method in preview mode
-                    if isa(sMethod, 'nansen.session.SessionMethod')
-                        sMethod = sessionMethod(sessionObj{i});
-                        sMethod.usePreset(optsName)
 
-                        isSuccess = sMethod.preview();
-
-                        if isSuccess
-                            sMethod.run()
-                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-                        end
-
-                        % Update session task menu (in case new options were defined...)
-                        app.SessionTaskMenu.refresh()
-                        % Todo: Only refresh this submenu.
-                        % Todo: Only refresh if options sets were added. 
-
-                    else
-                        fcnName = func2str(sessionMethod);
-                        
-                        if ~isempty(fieldnames(opts))
-                            optManager = nansen.manage.OptionsManager(fcnName, opts, optsName);
-                            [~, opts, wasAborted] = optManager.editOptions();
-                        else
-                            app.openMessageBox('This method does not have any parameters')
-                            wasAborted = true;
-                        end
-
-                        if ~wasAborted
-                            sessionMethod(sessionObj{i}, opts);
-                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-                        end
+                    if numel(sessionObj) == 1 
+                        % Methods which accept multiple session are not 
+                        % (should not) be included in pipelines...
+                        sessionObj.updateProgress(sessionMethod, 'Completed')
                     end
+
+                    newTask.status = 'Completed';
+                    diary off
+                    newTask.Diary = fileread(logfile);
+                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
 
                 catch ME
+                    newTask.status = 'Failed';
+                    diary off
+                    newTask.Diary = fileread(logfile);
+                    newTask.ErrorStack = ME;
+                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
                     app.throwSessionMethodFailedError(ME, taskName, ...
                         func2str(sessionMethod))
                 end
+            
+                clear cleanUpObj
             end
+        end
 
+        function runTaskWithReset(~, sessionMethod, taskType, methodArgs)
+
+            switch taskType
+                case 'class'
+                    sMethod = sessionMethod(methodArgs{:});
+                    sMethod.RedoIfCompleted = true;
+                    sMethod.runMethod()
+                case 'function'
+                    sessionMethod(methodArgs{:});
+                    warning('Session method does not have reset mode')
+            end
+        end
+
+        function runTasksWithPreview(app, taskConfiguration)
+            
+            % Todo: Move some of this to a separate method, similar to 
+            % runTaskWithReset. Can get rid of some duplciate code, and
+            % also add as task to the taskprocessor using the
+            % runTasksWithDefaults method...
+
+            % Unpack variables from input struct:
+            sessionMethod = taskConfiguration.Method;
+            sessionObj = taskConfiguration.SessionObject;
+            opts = taskConfiguration.Options;
+            optsName = taskConfiguration.OptionsName;
+            
+            taskType = taskConfiguration.TaskAttributes.TaskType;
+            functionName = taskConfiguration.TaskAttributes.FunctionName;
+
+            try
+                
+                taskName = app.createTaskName( sessionObj );
+                % Open the options / method in preview mode
+                if strcmp(taskType, 'class')
+                    sMethod = sessionMethod(sessionObj);
+                    sMethod.usePreset(optsName)
+
+                    isSuccess = sMethod.preview();
+                    wasAborted = ~isSuccess;
+                    
+                    if isSuccess
+                        sMethod.run()
+                    else
+                        return
+                    end
+
+                    % Update session task menu (in case new options were defined...)
+                    app.SessionTaskMenu.refresh()
+                        
+                    %functionName = taskConfiguration.TaskAttributes.FunctionName;
+                    %app.SessionTaskMenu.refreshMenuItem(functionName) % todo
+    
+                    % Todo: Only refresh this submenu.
+                    % Todo: Only refresh if options sets were added. 
+
+                elseif strcmp(taskType, 'function')
+                    
+                    if isempty(fieldnames(opts))
+                        app.openMessageBox('This method does not have any parameters')
+                        wasAborted = true;
+                    else
+                        optManager = taskConfiguration.TaskAttributes.OptionsManager;
+                        %optManager = nansen.manage.OptionsManager(functionName, opts, optsName);
+                        [~, opts, wasAborted] = optManager.editOptions(optsName, opts);
+                    end
+
+                    if ~wasAborted
+                        methodArgs = {sessionObj, opts};
+                        if ~isempty(taskConfiguration.Alternative)
+                            methodArgs = [methodArgs, ...
+                                {'Alternative', taskConfiguration.Alternative}];
+                        end
+                        sessionMethod(methodArgs{:});
+                    else
+                        return
+                    end
+                end
+
+                if numel(sessionObj) == 1 && ~wasAborted
+                    % Methods which accept multiple session are not 
+                    % (should not) be included in pipelines...
+                    sessionObj.updateProgress(sessionMethod, 'Completed')
+                end
+
+            catch ME
+                app.throwSessionMethodFailedError( ME, taskName, ...
+                    functionName )
+            end
         end
         
-        function addTasksToQueue(app, sessionMethod, sessionObj, opts, optsName)
+        function addTasksToQueue(app, taskConfiguration)
             
             % Todo: 
             %   [ ] try/catch
             %   [ ] if session method - should run a "validation" method
-            
+
             if isempty(app.BatchProcessor)
                 app.BatchProcessor = nansen.TaskProcessor;
             end
+                        
+            % Unpack variables from input struct:
+            sessionMethod = taskConfiguration.Method;
+            sessionObj = taskConfiguration.SessionObject;
+            opts = taskConfiguration.Options;
+            optsName = taskConfiguration.OptionsName;
             
-            
-            % Add tasks to the queue
-            numTasks = numel(sessionObj);
-            for i = 1:numTasks
 
-                % Get/create task name
-                if numel(sessionObj{i}) > 1
-                    taskId = 'Multiple sessions';
-                else
-                    taskId = sessionObj{i}.sessionID;
-                end
-                
-                % Todo: Make preliminary test to check if method will run,
-                % i.e check required variables
-                
-                % Prepare input args for function (session object and 
-                % options)
-                
-                methodArgs = {sessionObj{i}, opts};
-                
-                % Add task to the queue / submit the job
-                app.BatchProcessor.submitJob(taskId,...
-                                sessionMethod, 0, methodArgs, optsName )
+            % Get/create task name
+            taskName = app.createTaskName( sessionObj );
+            
+            % Todo: Make preliminary test to check if method will run,
+            % i.e check required variables
+            
+            % Prepare input args for function (session object and 
+            % options)
+            
+            methodArgs = {sessionObj, opts};
+            if ~isempty(taskConfiguration.Alternative)
+                methodArgs = [methodArgs, {'Alternative', taskConfiguration.Alternative}];
             end
+
+            % Add task to the queue / submit the job
+            app.BatchProcessor.submitJob(taskName,...
+                            sessionMethod, 0, methodArgs, optsName )
         end
 
-        function runTaskWithReset(app, sessionMethod, sessionObj, opts)
-            
-            sMethod = sessionMethod();
-            
-            if isa(sMethod, 'nansen.session.SessionMethod')
-                sMethod = sessionMethod(sessionObj, opts);
-                sMethod.RedoIfCompleted = true;
-                sMethod.runMethod()
+        function taskName = createTaskName(~, sessionObjects)
+                
+            if numel(sessionObjects) > 1
+                taskName = 'Multisession';
             else
-                sessionMethod(sessionObj, opts);
-                warning('Session method does not have reset mode')
+                taskName = sessionObjects.sessionID;
             end
         end
-        
+
         function createBatchList2(app, mode)
             
             figName = sprintf( 'List of %s Tasks', mode);
@@ -2639,6 +2737,35 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 utility.system.openFolder(folderPath)
             end
 
+        end
+        
+        function sendToWorkspace(app)
+                    
+            sessionObj = app.getSelectedMetaObjects();
+
+% %             switch app.settings.Session.ExportSessionObjectAs
+% %                 case 'Nansen'
+% %                     % Pass
+% %                 case 'NDI'
+% %                     sessionObj = app.getNdiSessionObj(sessionObj);
+% %             end
+            
+            if ~isempty(sessionObj)
+                varName = app.settings.Session.SessionObjectWorkspaceName;
+                assignin('base', varName, sessionObj)
+            end
+            
+        end
+        
+        % Todo: Make a setting to specify which session definition to use
+        % for creating a session object.
+        function ndiSessionObj = getNdiSessionObj(app, sessionObj)
+            
+            dataLocation = sessionObj.getDataLocation('Rawdata');
+            dirPath = dataLocation.RootPath;
+            
+            ndiSessionObj = ndi.session.dir('ts_exper', dirPath);
+            
         end
         
     end
@@ -2963,38 +3090,56 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     methods (Hidden, Access = private) % Internal methods for app deletion
         
-    function saveFigurePreferences(app)
-            
-            MP = get(0, 'MonitorPosition');
-            nMonitors = size(MP, 1);
-            
-            if nMonitors > 1
-                ML = uim.utility.pos2lim(MP); % Monitor limits
-                figureLocation = app.Figure.Position(1:2);
+        function saveFigurePreferences(app)
                 
-                isOnScreen = all( figureLocation > ML(:, 1:2) & figureLocation < ML(:, 3:4) , 2);
-                currentScreenNum = find(isOnScreen);
+                MP = get(0, 'MonitorPosition');
+                nMonitors = size(MP, 1);
                 
-                if ~isempty(currentScreenNum)
-                    app.setPreference('PreferredScreen', currentScreenNum) %#ok<FNDSB>
+                if nMonitors > 1
+                    ML = uim.utility.pos2lim(MP); % Monitor limits
+                    figureLocation = app.Figure.Position(1:2);
+                    
+                    isOnScreen = all( figureLocation > ML(:, 1:2) & figureLocation < ML(:, 3:4) , 2);
+                    currentScreenNum = find(isOnScreen);
+                    
+                    if ~isempty(currentScreenNum)
+                        app.setPreference('PreferredScreen', currentScreenNum) %#ok<FNDSB>
+                    else
+                        return;
+                    end
+                    
+                    % Save the current position to the PreferredScreenPosition
+                    prefScreenPos = app.getPreference('PreferredScreenPosition');
+                    prefScreenPos{currentScreenNum} = app.Figure.Position;
+                    app.setPreference('PreferredScreenPosition', prefScreenPos)
                 else
-                    return;
+                    prefScreenPos = app.getPreference('PreferredScreenPosition');
+                    prefScreenPos{1} = app.Figure.Position;
+                    app.setPreference('PreferredScreenPosition', prefScreenPos)
                 end
                 
-                % Save the current position to the PreferredScreenPosition
-                prefScreenPos = app.getPreference('PreferredScreenPosition');
-                prefScreenPos{currentScreenNum} = app.Figure.Position;
-                app.setPreference('PreferredScreenPosition', prefScreenPos)
-            else
-                prefScreenPos = app.getPreference('PreferredScreenPosition');
-                prefScreenPos{1} = app.Figure.Position;
-                app.setPreference('PreferredScreenPosition', prefScreenPos)
+                % Save preferences
+                app.savePreferences();
+                
             end
+        
+        function saveMetatableColumnSettingsToProject(app)
             
-            % Save preferences
-            app.savePreferences();
-            
+            columnSettings = app.UiMetaTableViewer.ColumnSettings;
+            currentProjectName = app.ProjectManager.CurrentProject;
+            projectObj = app.ProjectManager.getProjectObject(currentProjectName);
+
+            projectObj.saveData('MetatableColumnSettings', columnSettings)
         end
+
+        function columnSettings = loadMetatableColumnSettingsFromProject(app)
+
+            currentProjectName = app.ProjectManager.CurrentProject;
+            projectObj = app.ProjectManager.getProjectObject(currentProjectName);
+
+            columnSettings = projectObj.loadData('MetatableColumnSettings');
+        end
+
     end
     
     % Display Customization
@@ -3014,6 +3159,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end %function
         
+    end
+
+    methods (Access = private) % Assertions
+
+        function assertSessionSelected(app)
+
+            entryIdx = app.UiMetaTableViewer.getSelectedEntries();
+            
+            if isempty(entryIdx)
+                msg = 'No sessions are selected. Select one or more sessions for this operation.';
+                app.openMessageBox(msg, 'Session Selection Required')
+                error('NansenApp:SessionSelectionRequired', msg)
+            end
+        end
+
     end
    
     methods (Access = private) % Open dialog windows. Todo: make separate class
@@ -3073,7 +3233,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function formattedMessage = getFormattedMessage(~, message)
-            formattedMessage = strcat('\fontsize{12}', message);
+            formattedMessage = strcat('\fontsize{14}', message);
             
             % Fix some characters that are interpreted as tex markup
             formattedMessage = strrep(formattedMessage, '_', '\_');

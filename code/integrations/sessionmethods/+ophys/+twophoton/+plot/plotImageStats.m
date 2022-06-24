@@ -10,7 +10,7 @@ function varargout = plotImageStats(sessionObj, varargin)
 
     
     % % % Initialization block for a session method function.
-    ATTRIBUTES = {'serial', 'nonqueueable'};
+    ATTRIBUTES = {'serial', 'unqueueable'};
     settings = nansen.session.SessionMethod.setAttributes(params, ATTRIBUTES{:});
     
     if ~nargin && nargout > 0

@@ -14,7 +14,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 
 %   [ ] Need to reload datalocationmodel if project is changed. Later
 %   comment: Not sure if this is something that should be controlled from
-%   this app. At best, att a method for reloading default model (i.e
+%   this app. At best, add a method for reloading default model (i.e
 %   current project's model)
 
 %   [ ] Set method for DataLocationModel and method to make sure all UIs
@@ -75,10 +75,10 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             [nvPairs, varargin] = utility.getnvpairs(varargin{:});
             obj.assignPVPairs(nvPairs{:})            
             
-            % Todo: Should be possible to give as input...
             if isempty(obj.DataLocationModel)
                 obj.DataLocationModel = nansen.config.dloc.DataLocationModel;
             end
+            
             obj.DataBackup = obj.DataLocationModel.Data;
             
             if isempty(varargin) && isempty(obj.TabGroup)

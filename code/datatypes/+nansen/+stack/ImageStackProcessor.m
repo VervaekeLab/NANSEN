@@ -185,10 +185,16 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 end
                 
             end
+
+            if nargin >= 2 && isa(varargin{2}, 'struct')
+                opts = varargin{2};
+            else
+                opts = struct.empty;
+            end
             
             % Call the constructor of the DataMethod parent class
             nvPairs = {};
-            obj@nansen.DataMethod(dataLocation, nvPairs{:})
+            obj@nansen.DataMethod(dataLocation, opts, nvPairs{:})
             
             if numel(varargin) == 0
                 return
@@ -322,8 +328,11 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 % the extract plugin has plot objects that can be dragged, 
                 % and in that case the image should not be dragged...)
                 
+                % Note: Important that Modal is set to true, otherwise the
+                % program will go straight to the aligning.
                 h = hImviewer.openPlugin(pluginFcn, obj.OptionsManager, ...
-                    'RunMethodOnFinish', false, 'DataIoModel', obj);
+                    'RunMethodOnFinish', false, 'DestroyOnFinish', false, ...
+                    'DataIoModel', obj, 'Modal', true);
                 % Will pause here until the plugin is closed.
 
                 wasSuccess = obj.finishPreview(h);
@@ -336,7 +345,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %                     'Plugin for %s was not found', CLASSNAME)
 
                 % Todo: use superclass method editOptions
-                [obj.Parameters, wasAborted] = tools.editStruct(obj.Parameters);
+                [obj.Options, wasAborted] = tools.editStruct(obj.Options);
+                %[obj.Parameters, wasAborted] = tools.editStruct(obj.Parameters);
                 wasSuccess = ~wasAborted;
             end
             

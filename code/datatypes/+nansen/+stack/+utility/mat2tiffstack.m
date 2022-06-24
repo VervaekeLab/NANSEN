@@ -46,7 +46,7 @@ if (nDim == 2 || nDim == 3) && ~createRgb
     for f = 1:nFrames
         % Todo: Should this be done for each image/IFD?
         tiffFile.setTag('ImageLength', height);
-        tiffFile.setTag('ImageWidth', width');
+        tiffFile.setTag('ImageWidth', width);
         tiffFile.setTag('Photometric',Tiff.Photometric.MinIsBlack);
         tiffFile.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
         tiffFile.setTag('BitsPerSample', bitsPerSample);

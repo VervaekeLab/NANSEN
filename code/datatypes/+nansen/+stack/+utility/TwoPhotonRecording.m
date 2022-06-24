@@ -71,8 +71,8 @@ classdef TwoPhotonRecording < handle
                     obj.(propertyNames{i}) = value;
                 end
             end
-
         end
+
     end
     
     
@@ -111,10 +111,9 @@ classdef TwoPhotonRecording < handle
         end
         
         function set.NumFlybackLines(obj, newValue)
-                        
             % Todo: Make sure value is valid.
+            % validateattributes(newValue, {'numeric'}, 'integer')
             obj.NumFlybackLines = newValue;
-            
         end
         
     end
@@ -200,11 +199,7 @@ classdef TwoPhotonRecording < handle
         
         function data = correctBidirectionalOffset(obj, data)
             % Todo...
-
-            % Should this be done before or after destretching? I thought
-            % before....
             % [data, bidirBatchSize, colShifts] = correctLineOffsets(data, 100);
-            
         end
 
     end

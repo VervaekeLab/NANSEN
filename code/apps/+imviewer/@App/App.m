@@ -1102,10 +1102,10 @@ methods % App initialization & creation
             % Todo: Create as separate contextmenu on plugin button...
             mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');
             tmpItem = uimenu(mitem, 'Label', 'NoRMCorre', 'Enable', 'on');
-            tmpItem.Callback = @(s,e) imviewer.plugin.NoRMCorre(obj);
+            tmpItem.Callback = @(s,e) imviewer.plugin.NoRMCorre(obj, 'Modal', false);
     
             tmpItem = uimenu(mitem, 'Label', 'FlowReg', 'Enable', 'on');
-            tmpItem.Callback = @(s,e) imviewer.plugin.FlowRegistration(obj);
+            tmpItem.Callback = @(s,e) imviewer.plugin.FlowRegistration(obj, 'Modal', false);
 
             mitem = uimenu(m, 'Label', 'Open Roimanager');   
             mitem.Callback = @(s, e, h) imviewer.plugin.RoiManager(obj);
@@ -2783,6 +2783,11 @@ methods % Event/widget callbacks
             'ConversionFactor', conversionFactor, pvPairs{:});
         
         obj.Annotation.Scalebar = h;
+        
+        if ischar(h.Color) && strcmp(h.Color, 'k')
+            h.Color = [0.5,0.5,0.5];
+        end
+        
     end
 end
 
@@ -2826,8 +2831,11 @@ methods % Handle user actions
         params.BinningMethod_ = {'mean', 'max'};
         
         params.SaveToFile = false;
+
+        % Todo: Autogenerate initial path and select filetypes...
         params.FilePath = '';
-        
+        params.FilePath_ = 'uiputfile';
+
         % Open options editor.
         titleStr = 'Downsample Image Stack';
         [params, wasCanceled] = tools.editStruct(params, [], titleStr, ...

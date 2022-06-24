@@ -299,7 +299,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %
         %   Take care of some preprocessing steps that should be common for
         %   many motion correction methods.
-            
+
+            % Update image stats.
             if ~isempty( obj.ImageStatsProcessor )
                 obj.ImageStatsProcessor.setCurrentPart(obj.CurrentPart);
                 % Todo: set channel and plane
@@ -312,15 +313,14 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % fails on data if the zero value of the data is not subtracted
             Y = obj.subtractPixelBaseline(Y);
             
+
             Y = single(Y); % Cast to single for the alignment
 
-            % Todo: Should this be here or baked into the
-            % getRawStack / getframes method of rawstack?
-            
+
             % Todo, implement options selection
-            % Todo: Does this work for multichannel data???
-            [Y, ~, ~] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
-            
+            if ~strcmp( obj.Options.Preprocessing.BidirectionalCorrection, 'None')
+                Y = obj.correctBidirectionalOffsets(Y);
+            end
                                     
             % Get template for motion correction of current part
             if obj.CurrentPart == 1
@@ -357,10 +357,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             i = 1;
             
-            % Re-add the pixel baseline that was subtracted in the
-            % preprocessing step.
-            Y = obj.addPixelBaseline(Y);
-
             % Correct drift.
             obj.Options.General.correctDrift = true;
             if iPart ~= 1 && obj.Options.General.correctDrift
@@ -384,6 +380,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Save stats based on motion correction shifts
             obj.updateCorrectionStats(iIndices)
 
+            % Re-add the pixel baseline that was subtracted in the
+            % preprocessing step.
+            Y = obj.addPixelBaseline(Y);
+            
             % Check if brightness of output should be adjusted...
             dataTypeIn = obj.SourceStack.DataType;
             dataTypeOut = obj.Options.Export.OutputDataType;
@@ -418,7 +418,16 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 
             % Get file reference for corrected stack
             DATANAME = 'TwoPhotonSeries_Corrected';
-            filePath = obj.getDataFilePath( DATANAME );
+
+            switch obj.Options.Export.OutputFormat
+                case 'Binary'
+                    fileType = '.raw';
+                case 'Tiff'
+                    error('Writing to tiff is not supported yet')
+                    fileType = '.tif';
+            end
+
+            filePath = obj.getDataFilePath(DATANAME, 'FileType', fileType);
             
             % Call method of ImageStackProcessor
             openTargetStack@nansen.stack.ImageStackProcessor(obj, filePath, ...
@@ -430,6 +439,12 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Make sure caching is turned off...
             obj.TargetStack.Data.UseDynamicCache = false;
+
+
+            if isa(obj.TargetStack, 'nansen.stack.virtual.SciScanRaw')
+                % Class takes care of this internally
+                obj.Options.Preprocessing.NumFlybackLines = 0;
+            end
 
         end
         
@@ -779,7 +794,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Get filepath for raw 2p-images
             DATANAME = 'TwoPhotonSeries_Original';
-            filePath = obj.SessionObjects.getDataFilePath(DATANAME);
+            filePath = obj.DataIoModel.getDataFilePath(DATANAME);
             
             % Initialize file reference for raw 2p-images
             rawStack = nansen.stack.ImageStack(filePath);
@@ -925,7 +940,36 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             M = imtranslate(M, [dx,dy] );
             shifts = [dx, dy];
         end
-        
+
+        function Y = correctBidirectionalOffsets(obj, Y)
+            
+            import nansen.wrapper.normcorre.utility.apply_bidirectional_offset
+            % Multiple channels serial
+            % Multiple channels batch
+            
+            if ndims(Y) == 4
+                Ymean = squeeze( mean(Y, 3) );
+                colShift = correct_bidirectional_offset(Ymean, size(Y,4), 10);
+
+                for i = 1:size(Y, 3)
+                    Y(:,:,i,:) = apply_bidirectional_offset(Y(:, :, i, :), colShift);
+                end
+                
+            elseif ndims(Y) == 3
+                [~, Y] = correct_bidirectional_offset(Y, size(Y,3), 10);
+            end
+            
+%             % Todo:
+%             switch obj.Options.Preprocessing.BidirectionalCorrection
+% 
+%                 case {'Constant', 'OneTime'}
+%                     %[~, Y] = correct_bidirectional_offset(Y,   )
+%                 case {'Time Dependent', 'Continuous', 'Adaptive'}
+%                     %[Y, bidirBatchSize, colShifts] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
+%             end
+
+        end
+
     end
     
     methods (Static) % Method in external file (Get default options)

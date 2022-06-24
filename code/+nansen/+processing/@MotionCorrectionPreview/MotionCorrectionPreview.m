@@ -6,9 +6,37 @@ classdef MotionCorrectionPreview < handle
         settings
         ImviewerObj
     end
+
+    properties (Access = private)
+        DefaultOptions = nansen.processing.MotionCorrection.getDefaultOptions();
+    end
     
     methods (Access = protected)
-       
+        
+        function onSettingsChanged(obj, name, value)
+        %onSettingsChanged Update value in settings if value changes.    
+            
+            % Deal with specific fields
+            switch name
+                case 'run'
+                    obj.runTestAlign()
+                case 'BidirectionalCorrection'
+                    if strcmp(value, 'Time Dependent') || strcmp(value, 'Continuous')
+                        msgbox('This is not implemented yet, constant bidirectional correction will be used')
+                    end
+            end
+
+            defaultFields = fieldnames(obj.DefaultOptions);
+            for i = 1:numel(defaultFields)
+                subFields = fieldnames( obj.DefaultOptions.(defaultFields{i}) );
+                
+                if any(strcmp(subFields, name))
+                    obj.settings.(defaultFields{i}).(name) = value;
+                end
+            end
+
+        end
+
         function assertPreviewSettingsValid(obj)
             
             % Check if saveResult or showResults is selected
@@ -19,6 +47,27 @@ classdef MotionCorrectionPreview < handle
             end
         end
         
+        function updateExportPaths(obj, sEditor, methodName)
+            
+            % Create default folderpath for saving results
+            [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            folderPath = fullfile(folderPath, sprintf('motion_correction_%s', methodName) );
+            
+            % Need a better solution for this!
+            idx = strcmp(sEditor.Name, 'Export');
+            sEditor.dataOrig{idx}.SaveDirectory = folderPath;
+            sEditor.dataEdit{idx}.SaveDirectory = folderPath;
+            obj.settings_.Export.SaveDirectory = folderPath;
+            
+            sEditor.dataOrig{idx}.FileName = fileName;
+            sEditor.dataEdit{idx}.FileName = fileName;
+            obj.settings_.Export.FileName = fileName;
+        end
+
+        function folderPath = getExportDirectory(obj)
+            folderPath = fileparts(obj.ImviewerObj.ImageStack.FileName);
+        end
+
         function [saveFolder, datePrefix] = prepareSaveFolder(obj)
         %prepareSaveFolder Prepare save folder for saving preview results.
         
@@ -34,7 +83,7 @@ classdef MotionCorrectionPreview < handle
                 rootDir = obj.DataIoModel.getTargetFolder();
                 saveDir = fullfile(rootDir, 'image_registration');
             else
-                rootDir = obj.settings.Export.SaveDirectory;
+                rootDir = fileparts( obj.settings.Export.SaveDirectory );
                 saveDir = rootDir;
             end
 
@@ -50,7 +99,9 @@ classdef MotionCorrectionPreview < handle
         
         function imArray = loadSelectedFrameSet(obj)
         %loadSelectedFrameSet Load images for frame interval in settings
-            
+                       
+            import nansen.wrapper.normcorre.utility.apply_bidirectional_offset
+
             imArray = [];
                         
             % Get frame interval from settings
@@ -76,7 +127,30 @@ classdef MotionCorrectionPreview < handle
                 
             imArray = obj.ImviewerObj.ImageStack.getFrameSet(firstFrame:lastFrame);
             imArray = squeeze(imArray);
-            %imArray = imArray(9:end, :, :);
+            
+            if obj.settings.Preprocessing.NumFlybackLines ~= 0
+                IND = repmat({':'}, 1, ndims(imArray));
+                IND{1} = obj.settings.Preprocessing.NumFlybackLines : size(imArray, 1);
+                imArray = imArray(IND{:});
+            end
+
+% %             if mod( size(imArray,1), 2 ) ~= 0
+% %                 
+% %             end
+
+            if ~strcmp( obj.settings.Preprocessing.BidirectionalCorrection, 'None')
+                if ndims(imArray) == 4
+                    imArrayMean = squeeze( mean(imArray, 3) );
+                    colShift = correct_bidirectional_offset(imArrayMean, size(imArray,4), 10);
+    
+                    for i = 1:size(imArray, 3)
+                        imArray(:,:,i,:) = apply_bidirectional_offset(imArray(:, :, i, :), colShift);
+                    end
+                    
+                elseif ndims(imArray) == 3
+                    [~, imArray] = correct_bidirectional_offset(imArray, size(imArray,3), 10);
+                end
+            end
             
         end
 
