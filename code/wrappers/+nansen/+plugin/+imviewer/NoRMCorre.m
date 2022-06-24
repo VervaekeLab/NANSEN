@@ -182,6 +182,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         
         function runAlign(obj)
          %runAlign Run correction on full image stack using a dummy session
+         
    
             folderPath = obj.settings.Export.SaveDirectory;
             if ~isfolder(folderPath); mkdir(folderPath); end

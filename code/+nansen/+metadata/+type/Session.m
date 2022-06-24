@@ -782,7 +782,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         
             if ~isExistingEntry % Create variableItem using input options.
                 parameters = struct(varargin{:});
-                S = utility.parsenvpairs(S, [], parameters);
+                S = utility.parsenvpairs(S, 1, parameters);
                 if isempty(S.DataLocation)
                     dlItem = obj.DataLocationModel.getDefaultDataLocation;
                     S.DataLocation = dlItem.Name;

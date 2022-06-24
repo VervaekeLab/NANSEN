@@ -299,7 +299,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %
         %   Take care of some preprocessing steps that should be common for
         %   many motion correction methods.
-            
+
+            % Update image stats.
             if ~isempty( obj.ImageStatsProcessor )
                 obj.ImageStatsProcessor.setCurrentPart(obj.CurrentPart);
                 % Todo: set channel and plane
@@ -318,9 +319,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % getRawStack / getframes method of rawstack?
             
             % Todo, implement options selection
-            % Todo: Does this work for multichannel data???
-            [Y, ~, ~] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
-            
+            if ~strcmp( obj.Options.Preprocessing.BidirectionalCorrection, 'None')
+                Y = obj.correctBidirectionalOffsets(Y);
+            end
                                     
             % Get template for motion correction of current part
             if obj.CurrentPart == 1
@@ -357,10 +358,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             i = 1;
             
-            % Re-add the pixel baseline that was subtracted in the
-            % preprocessing step.
-            Y = obj.addPixelBaseline(Y);
-
             % Correct drift.
             obj.Options.General.correctDrift = true;
             if iPart ~= 1 && obj.Options.General.correctDrift
@@ -384,6 +381,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Save stats based on motion correction shifts
             obj.updateCorrectionStats(iIndices)
 
+            % Re-add the pixel baseline that was subtracted in the
+            % preprocessing step.
+            Y = obj.addPixelBaseline(Y);
+            
             % Check if brightness of output should be adjusted...
             dataTypeIn = obj.SourceStack.DataType;
             dataTypeOut = obj.Options.Export.OutputDataType;
@@ -488,8 +489,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 
             elseif numel(iC) == 1 % Single channel
                 currentStats = obj.ImageStats{iC,iZ};
-                upperValue = max( [currentStats.maximumValue] );
-                % upperValue = max( [currentStats.prctileU2] );
+                %upperValue = mean( [currentStats.maximumValue] );
+                upperValue = max( [currentStats.prctileU2] );
             else
                 error('Unexpected error occurred. Please report')
             end  
@@ -520,8 +521,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
             iC = obj.CurrentChannel;
             iZ = obj.CurrentPlane;
-            
-
             
             if numel(iC) > 1 % Multiple channels
                 currentStats = cat(1, obj.ImageStats{iC, iZ});

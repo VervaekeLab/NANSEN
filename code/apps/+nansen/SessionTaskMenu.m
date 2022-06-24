@@ -438,6 +438,9 @@ classdef SessionTaskMenu < handle
             
             evtData = uiw.event.EventData( nvPairs{:} );
             obj.notify('MethodSelected', evtData)
+
+            obj.Mode = 'Default'; % Reset mode
+
         end
         
     end
@@ -503,6 +506,9 @@ classdef SessionTaskMenu < handle
 
                 count = count + numMatch;
             end
+            
+            % Put custom names at the end...
+            sortIdx(sortIdx == 0) = count + (1:sum(sortIdx==0));
 
             sortedNames = menuNames(sortIdx);
         end

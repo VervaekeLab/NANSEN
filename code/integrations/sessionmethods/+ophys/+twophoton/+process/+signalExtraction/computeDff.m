@@ -9,6 +9,11 @@ classdef computeDff < nansen.session.SessionMethod
         IsQueueable = true;
         OptionsManager = nansen.OptionsManager(mfilename('class')) % todo...
     end
+
+    properties (Constant)
+        DATA_SUBFOLDER = 'roisignals' % defined in nansen.DataMethod
+        VARIABLE_PREFIX	= ''          % defined in nansen.DataMethod
+    end
     
     methods
         
@@ -65,6 +70,10 @@ classdef computeDff < nansen.session.SessionMethod
         function wasSuccess = preview(obj) 
             h = openDffExplorer(obj.SessionObjects);
             wasSuccess = obj.finishPreview(h);
+        end
+
+        function printTask(obj, varargin)
+            fprintf(varargin{:})
         end
         
     end
