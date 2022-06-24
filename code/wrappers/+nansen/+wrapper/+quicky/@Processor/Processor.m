@@ -20,6 +20,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_quicky')
         ROI_VARIABLE_NAME = 'roiArrayQuickyAuto'
+        VARIABLE_PREFIX = 'FluFinder'
     end
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
@@ -145,89 +146,91 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
         end
         
-        function runPreInitialization(obj)
-            runPreInitialization@nansen.processing.RoiSegmentation(obj)
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Combine and refine detected components';
-            obj.StepDescription = [obj.StepDescription, descr];
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Compute roi images & roi stats';
-            obj.StepDescription = [obj.StepDescription, descr];
-        end
-        
         function saveResults(obj)
             tempResults = obj.Results;
             obj.saveData('QuickyResultsTemp', tempResults) 
         end
         
-        function mergeSpatialComponents(obj)
-
-
+        function mergeSpatialComponents(obj, iPlane, iChannel)
+            
+% % %             import flufinder.detect.findUniqueRoisFromComponents
+% % % 
+% % %             %tmpMergedResults = obj.Results{:, iPlane, iChannel};
+% % %             %tmpMergedResults = cat(1, tmpMergedResults{:});
+% % % 
+% % %             imageSize = obj.SourceStack.FrameSize;
+% % %             roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
+% % % 
+% % %             obj.RoiArray(iPlane, iChannel) = roiArrayT;
 
         end
 
-        function mergeResults(obj, iPlane, iChannel)
-        %mergeResults Merge results from each processing part
-                    
-            import flufinder.detect.findUniqueRoisFromComponents
-            
-            obj.displayStartCurrentStep()
-
-            % Combine spatial segments
-            obj.Results = cat(1, obj.Results{:});
-            S = cat(1, obj.Results.spatialComponents );
-                
-            imageSize = obj.SourceStack.FrameSize;
-            roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
-
-            obj.RoiArray = roiArrayT;
-            
-            obj.displayFinishCurrentStep()
-        end
+% %         function mergeResults(obj, iPlane, iChannel)
+% %         %mergeResults Merge results from each processing part
+% %                     
+% %             import flufinder.detect.findUniqueRoisFromComponents
+% %             
+% %             obj.displayStartCurrentStep()
+% % 
+% %             % Combine spatial segments
+% %             obj.Results = cat(1, obj.Results{:});
+% %             S = cat(1, obj.Results.spatialComponents );
+% %                 
+% %             imageSize = obj.SourceStack.FrameSize;
+% %             roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
+% % 
+% %             obj.RoiArray = roiArrayT;
+% %             
+% %             obj.displayFinishCurrentStep()
+% %         end
         
         function finalizeResults(obj)
         %finalizeResults Finalize the results using flufinder's pipeline
-
             import nansen.twophoton.roi.compute.computeRoiImages
-        
-            opts = obj.ToolboxOptions;
-            roiArrayT = obj.RoiArray;
-            imArray = obj.getImageArray();
-            
-            %avgIm = mean( cat(3, obj.Results(1).meanFovImage ), 3);
+            import flufinder.detect.findUniqueRoisFromComponents
 
-            % % Improve estimates of rois which were detected based on activity
-            % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-            
-            fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
-            [fMean, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
-
-            % get images:
-        %     roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
-        %        'ImageType', {'Activity Weighted Mean', 'Local Correlation'});
-%             roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
-%                 'ImageType', 'Local Correlation');
-
-            %roiArrayT = flufinder.module.improveRoiMasks(roiArrayT, roiImages, opts.RoiType);
-            
-            
-            % % Detect rois from a shape-based kernel convolution
-            % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-            if opts.UseShapeDetection
-                fprintf('Searching for %s-shaped cells...\n', ...
-                    opts.MorphologicalShape)%MorphologicalShape)
-                averageImage = mean(imArray, 3);
-
-                roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
-                roiArray = flufinder.utility.combineRoiArrays(roiArrayS, roiArrayT, opts);
-            else
-                roiArray = roiArrayT;
+            if isempty(obj.MergedResults)
+                obj.mergeResults()
             end
+
+
+            [numZ, numC] = size(obj.MergedResults);
             
-            obj.RoiArray = roiArray;
-            
+            obj.RoiArray = cell(numZ, numC);
+
+            opts = obj.ToolboxOptions;
+             
+            obj.StackIterator.reset()
+            for i = 1:obj.StackIterator.NumIterations
+                [iZ, iC] = obj.StackIterator.next();
+                
+                tmpMergedResults = obj.MergedResults{iZ, iC};
+                %tmpMergedResults = cat(1, tmpMergedResults{:});
+                S = cat(1, tmpMergedResults.spatialComponents );
+                imageSize = obj.SourceStack.FrameSize;
+                roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
+
+                imArray = obj.getImageArray();
+
+                fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
+                [fMean, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
+
+
+                % % Detect rois from a shape-based kernel convolution
+                % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+                if opts.UseShapeDetection
+                    fprintf('Searching for %s-shaped cells...\n', ...
+                        opts.MorphologicalShape)%MorphologicalShape)
+                    averageImage = mean(imArray, 3);
+    
+                    roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
+                    roiArray = flufinder.utility.combineRoiArrays(roiArrayS, roiArrayT, opts);
+                else
+                    roiArray = roiArrayT;
+                end
+                
+                obj.RoiArray{iZ, iC} = roiArray;
+            end
         end
 
         function roiArray = getRoiArray(obj)

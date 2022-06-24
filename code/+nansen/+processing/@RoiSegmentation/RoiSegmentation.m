@@ -8,6 +8,21 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 %         getToolboxSpecificOptions
 %         segmentPartition
 %         getRoiArray
+
+
+% NOTE FOR SELF ON IMPLEMENTATION:
+%
+%   This class should take care of all looping across channels/planes
+%   
+%       Provide methods that subclasses can implement:
+%       i.e 
+%           - merge results
+%           - merge spatial components (different from merge results)
+%           - refine spatial components
+%           
+%
+
+
     
     properties (Constant) % Attributes inherited from nansen.DataMethod
         IsManual = false        % Does method require manual supervision
@@ -119,6 +134,8 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 
             [numParts, numZ, numC] = size(obj.Results);
             
+            obj.RoiArray = cell(numZ, numC);
+
             if numParts == 1
                 obj.MergedResults = reshape(obj.Results, numZ, numC);
             elseif numParts > 1
