@@ -1244,7 +1244,7 @@ classdef OptionsManager < handle
 
             for i = 1:numel(obj.PresetOptions_)
                 thisName = obj.PresetOptions_(i).Name;
-                thisOpts = obj.PresetOptions_(i).Options;
+                iReferenceOpts = obj.PresetOptions_(i).Options;
                 
                 if any(strcmp({loadedPresetOptions.Name}, thisName))
                     matchIdx = strcmp({loadedPresetOptions.Name}, thisName);
