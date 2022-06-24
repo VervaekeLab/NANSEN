@@ -33,7 +33,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     end
     
     properties (Access = private)
-        MergedResults
+        %MergedResults
     end
     
     
@@ -59,6 +59,64 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 obj.runMethod()
                 clear obj
             end
+        end
+        
+    end
+        
+    methods (Access = protected) % Implementation of ImageStackProcessor methods
+        
+        % Step 1
+        function onInitialization(obj)
+            
+            onInitialization@nansen.processing.RoiSegmentation(obj)
+            
+            %global fprintf; fprintf = str2func('fprintf');
+            
+            filePath = obj.getDataFilePath('QuickyResultsTemp', '-w',...
+                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
+            
+            if isfile(filePath)
+                obj.Results = obj.loadData('QuickyResultsTemp');
+            end
+            
+        end
+
+        % Step 2
+        function Y = preprocessImageData(obj, Y)
+            % Subclasses may override
+            % Todo: 
+            % Y_ = flufinder.preprocessImages(Y, options);
+            %
+            %   Need to save mean of original to summary/results 
+
+        end
+
+        % Step 3
+        function results = segmentPartition(obj, Y)
+        %segmentPartition Run segmentation on subpart of image stack  
+            options = obj.ToolboxOptions; %todo...
+            
+            % Preprocess and binarize stack
+            fprintf(sprintf('Binarizing images and detecting components...\n'))
+            
+            Y_ = flufinder.module.preprocessImages(Y, options);
+            BW = flufinder.module.binarizeImages(Y_, options);
+            
+            [S, CC] = flufinder.detect.getBwComponentStats(BW, options);
+
+            results.spatialComponents = S;
+            results.meanFovImage = mean(Y, 3);
+            results.meanFovImagePreprocessed = mean(Y_, 3);
+            results.componentMatrix = labelmatrix(CC);          
+        end
+        
+        function onCompletion(obj)
+            onCompletion@nansen.processing.RoiSegmentation(obj)
+        
+                if isempty(obj.MergedResults)
+                    obj.mergeResults()
+                end
+        
         end
         
     end
@@ -104,7 +162,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             obj.saveData('QuickyResultsTemp', tempResults) 
         end
         
-        function mergeResults(obj)
+        function mergeSpatialComponents(obj)
+
+
+
+        end
+
+        function mergeResults(obj, iPlane, iChannel)
         %mergeResults Merge results from each processing part
                     
             import flufinder.detect.findUniqueRoisFromComponents
@@ -173,56 +237,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
     end
     
-    methods (Access = protected) % Implementation of ImageStackProcessor methods
 
-        function onInitialization(obj)
-            
-            onInitialization@nansen.processing.RoiSegmentation(obj)
-            
-            %global fprintf; fprintf = str2func('fprintf');
-            
-            filePath = obj.getDataFilePath('QuickyResultsTemp', '-w',...
-                'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
-            
-            if isfile(filePath)
-                obj.Results = obj.loadData('QuickyResultsTemp');
-            end
-            
-        end
-
-        function Y = preprocessImageData(obj, Y)
-            % Subclasses may override
-            % Todo: 
-            % Y_ = flufinder.preprocessImages(Y, options);
-            %
-            %   Need to save mean of original to summary/results 
-
-        end
-
-        function results = segmentPartition(obj, Y)
-        %segmentPartition Run segmentation on subpart of image stack  
-            options = obj.ToolboxOptions; %todo...
-            
-            % Preprocess and binarize stack
-            fprintf(sprintf('Binarizing images and detecting components...\n'))
-            
-            Y_ = flufinder.module.preprocessImages(Y, options);
-            BW = flufinder.module.binarizeImages(Y_, options);
-            
-            [S, CC] = flufinder.detect.getBwComponentStats(BW, options);
-
-            results.spatialComponents = S;
-            results.meanFovImage = mean(Y, 3);
-            results.meanFovImagePreprocessed = mean(Y_, 3);
-            results.componentMatrix = labelmatrix(CC);          
-        end
-        
-        function onCompletion(obj)
-            onCompletion@nansen.processing.RoiSegmentation(obj)
-        end
-        
-    end
-    
     methods (Static) % Method in external file.
         options = getDefaultOptions()
         
