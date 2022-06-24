@@ -346,7 +346,47 @@ methods (Static)
     function createFile(filePath, arraySize, arrayClass)
         error('Creation of ScanImage Tiffs are not supported.')
     end
-    
+
+    function isValid = fileCheck(pathStr)
+    %fileCheck Check if filepath points to a scanimage file
+        
+        isValid = false;
+
+        if isa(pathStr, 'cell')
+            pathStr = pathStr{1};
+        end
+
+        [~, ~, fileExtension] = fileparts(pathStr);
+
+        switch lower(fileExtension)
+            
+            case {'.tif', '.tiff'}
+                
+                if isfile(pathStr)
+                    % Get tiff info, but supress a common warning
+                    warning('off', 'imageio:tiffmexutils:libtiffWarning')
+                    imInfo = Tiff(pathStr);
+                    warning('on', 'imageio:tiffmexutils:libtiffWarning')
+
+                    % Check if the tiff 'Software' tag contains SI
+                    try 
+                        softwareName = imInfo.getTag('Software');
+                        if strcmp(softwareName(1:2), 'SI')
+                            isValid = true;
+                        end
+                    catch
+                        % Not valid
+                    end
+
+                else
+                    % Not valid
+                end
+            
+            otherwise 
+                % Not valid (not aware of any other file formats)
+        end
+    end
+
 end
 
 end
