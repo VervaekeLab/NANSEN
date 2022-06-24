@@ -117,7 +117,6 @@ classdef VariableModel < utility.data.StorableCatalog
                 S = obj.getVariableInfoFromField(varName, 'FileNameExpression');
             end
             
-            
             isExistingEntry = ~isempty(S);
             
             % Create a default variable structure
@@ -250,6 +249,10 @@ classdef VariableModel < utility.data.StorableCatalog
             isMatch = strcmp(names, varName);
             
             if any(isMatch) && sum(isMatch) == 1
+                S = obj.Data(isMatch);
+            elseif any(isMatch) && sum(isMatch) > 1
+                %warning('Found multiple matched variables, selected to first')
+                isMatch = find(isMatch, 1, 'first');
                 S = obj.Data(isMatch);
             end
         end
