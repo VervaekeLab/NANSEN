@@ -111,6 +111,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     properties % Options manager / preset selection
         OptionsManager = []
         CurrentOptionsSet = ''
+        currentOptionsName = '' % Name of currently selected options set.
     end
     
     properties % Callback properties. Need to clean 
@@ -128,7 +129,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         hControls
         
         wasCanceled = false;
-        currentOptionsName = '' % Name of currently selected options set.
     end
     
     properties (Access = private) % Internal properties. Need to clean
@@ -2426,6 +2426,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             %matchedName = hDropdown.String{matchedInd(1)};
             
             hDropdown.Value = matchedInd;
+
+            obj.currentOptionsName = newName;
             
         end
         

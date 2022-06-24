@@ -32,7 +32,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         %FlowRegistration Create an instance of the FlowRegistration plugin
 
             obj@imviewer.ImviewerPlugin(varargin{:})
-               
+
             if ~ obj.PartialConstruction
                 obj.openControlPanel()
             end
@@ -78,6 +78,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             if ~isa(Y, 'single') || ~isa(Y, 'double') 
                 Y = single(Y);
             end
+
             [Y, bidirBatchSize, colShifts] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
             
             obj.ImviewerObj.displayMessage('Running FlowRegistration...')
@@ -116,18 +117,24 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         
         function run(obj)
             
-            pathStr = obj.ImviewerObj.ImageStack.FileName;
-            
-            hSession = nansen.metadata.schema.dummy.TwoPhotonSession( pathStr );
-            %%hSession = nansen.metadata.type.Session( pathStr );
-            
-            ophys.twophoton.process.motionCorrection.flowreg(hSession, obj.settings);
-            
+            folderPath = obj.settings.Export.SaveDirectory;
+            %folderPath = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            %folderPath = fullfile(folderPath, 'motion_correction_flowreg');
+            if ~isfolder(folderPath); mkdir(folderPath); end
+
+            dataSet = nansen.dataio.dataset.SingleFolderDataSet(folderPath, ...
+                'DataSetID', obj.settings.Export.FileName );
+            dataSet.addVariable('TwoPhotonSeries_Original', ...
+                'Data', obj.ImviewerObj.ImageStack)
+
+            nansen.wrapper.flowreg.Processor(obj.ImviewerObj.ImageStack, ...
+                obj.settings, 'DataIoModel', dataSet)
+                        
         end
         
     end
     
-    methods 
+    methods
         
         function sEditor = openSettingsEditor(obj)
         %openSettingsEditor Open editor for method options.    
@@ -137,7 +144,20 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         
             sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
             sEditor.ValueChangedFcn = @obj.onValueChanged;
-        
+    
+            % Create default folderpath for saving results
+            [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            folderPath = fullfile(folderPath, 'motion_correction_flowreg');
+            
+            % Need a better solution for this!
+            idx = strcmp(sEditor.Name, 'Export');
+            sEditor.dataOrig{idx}.SaveDirectory = folderPath;
+            sEditor.dataEdit{idx}.SaveDirectory = folderPath;
+            obj.settings_.Export.SaveDirectory = folderPath;
+            
+            sEditor.dataOrig{idx}.FileName = fileName;
+            sEditor.dataEdit{idx}.FileName = fileName;
+            obj.settings_.Export.FileName = fileName;
         end
 
     end
@@ -157,6 +177,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         function assignDefaultOptions(obj)
             functionName = 'nansen.wrapper.flowreg.Processor';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
+
             obj.settings = obj.OptionsManager.getOptions;
         end
         
@@ -287,17 +308,17 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         % Todo: Combine these into one method
         
         function onSettingsChanged(obj, name, value)
-           
-            exportFields = fieldnames(obj.settings.Export);
-            previewFields = fieldnames(obj.settings.Preview);
             
+            % Call superclass method to deal with settings that are
+            % general motion correction settings.
+            onSettingsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+
             switch name
                 
                 case 'symmetricKernel'
                     obj.settings.General.symmetricKernel = value;
                     
                 case {'sigmaX', 'sigmaY'}
-
                     if obj.settings.General.symmetricKernel
                         obj.settings.General.sigmaX = value;
                         obj.settings.General.sigmaY = value;
@@ -315,16 +336,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
                     obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.settings.Model.sigma);
                     obj.ImviewerObj.updateImage();        
                     obj.ImviewerObj.updateImageDisplay();
-                    
-                case 'run'
-                    obj.runTestAlign()
-                    
-                case previewFields
-                    obj.settings.Preview.(name) = value;
-                    
-                case exportFields
-                    obj.settings.Export.(name) = value;
-                    
+
             end
         end
         

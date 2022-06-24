@@ -108,7 +108,8 @@ classdef SessionMethod < nansen.DataMethod
             % Parse name-value pairs and assign to parameters property.
             if ~isempty(obj.OptionsManager)
                 params = obj.OptionsManager.getOptions;
-                obj.Parameters = utility.parsenvpairs(params, 1, varargin);
+                %obj.Parameters = utility.parsenvpairs(params, 1, varargin);
+                obj.Options = utility.parsenvpairs(params, 1, varargin);
             end
             
             % Check that required variables for this method exist.
@@ -155,7 +156,8 @@ classdef SessionMethod < nansen.DataMethod
             % Create a subclass??
             if ~isempty(obj.ExternalFcn)
                 sessionObjects = obj.SessionObjects;
-                params = obj.Parameters;
+                %params = obj.Parameters;
+                params = obj.Options;
                 
                 obj.ExternalFcn(sessionObjects, params)
             else
@@ -165,15 +167,15 @@ classdef SessionMethod < nansen.DataMethod
 
         function setup(obj)
                         
-            obj.Parameters = tools.editStruct(obj.Parameters);
+            obj.Options = tools.editStruct(obj.Options);
             
         end
         
         function usePreset(obj, presetName)
             
             obj.OptionsManager.setOptions(presetName)
-            
-            obj.Parameters = obj.OptionsManager.getOptions(presetName);
+            obj.Options = obj.OptionsManager.getOptions(presetName);
+            %obj.Parameters = obj.OptionsManager.getOptions(presetName);
         end
         
     end
@@ -229,7 +231,8 @@ classdef SessionMethod < nansen.DataMethod
             % Fields of output struct with defaults.
             S.BatchMode = 'serial';
             S.IsQueueable = true;
-            
+            S.Alternatives = {};
+
             % Pick out default options from inputs or init to empty struct
             if ~isempty(varargin) && isstruct(varargin{1})
                 defaultOpts = varargin{1};
@@ -240,30 +243,32 @@ classdef SessionMethod < nansen.DataMethod
             
             S.DefaultOptions = defaultOpts;
          
+            % Extract flags from varargin
+            flags = {'batch', 'serial', 'queueable', 'unqueueable'};
+            [flags, varargin] = utility.splitvararginflags(varargin, flags);
             
-            % Make sure that varargin only contains character vectors
-            isChar = cellfun(@(c) ischar(c), varargin);
-            assert(all(isChar), 'Non-character inputs are not allowed')
+            % Check for any name, value pairs in varargin
+            [nvPairs, varargin] = utility.getnvpairs(varargin);
             
-            
-            % Set the attributes based on keywords from varargin
-            if contains('serial', varargin)
+            S = utility.parsenvpairs(S, 1, nvPairs);
+
+            % Update S from input flags
+            if contains('serial', flags)
                 S.BatchMode = 'serial';
             end
             
-            if contains('batch', varargin)
+            if contains('batch', flags)
                 S.BatchMode = 'batch';
             end
             
-            if any( strcmpi('queueable', varargin) )
+            if any( strcmpi('queueable', flags) )
                 S.IsQueueable = true;
             end
             
-            if any( strcmpi('unqueueable', varargin) )
+            if any( strcmpi('unqueueable', flags) )
                 S.IsQueueable = false;
             end
-            
-            
+
             % Get name of calling function:
             % Todo: Get this from varargin if provided.
             fcnName = nansen.session.SessionMethod.getCallingFunction();

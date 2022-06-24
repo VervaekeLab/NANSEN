@@ -63,6 +63,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     
     properties
         RunMethodOnFinish = true    % Should we run method when settings/options are "saved"?
+        DestroyOnFinish = true      % Destory plugin when control panel is closed
         Modal = true                % Is figure modal or not
         DataIoModel                 % Store a data i/o model object if it is provided.
         OptionsManager              % Store optionsmanager handle if plugin is provided with an optionsmanager on construction
@@ -115,14 +116,11 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         end
         
         function delete(obj)
-            
-            obj.PrimaryApp.removePlugin(obj.Name)
 
             % Delete menu items
             if ~isempty(obj.MenuItem)
                 structfun(@delete, obj.MenuItem)
             end
-            
         end
         
     end
@@ -169,10 +167,11 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         function sEditor = openSettingsEditor(obj)
         %openSettingsEditor Open ui dialog for editing plugin options.
             
-            titleStr = sprintf('%s Parameters', obj.Name);
+            titleStr = sprintf('Options Editor (%s)', obj.Name);
 
             if ~isempty(obj.OptionsManager)
                 sEditor = obj.OptionsManager.openOptionsEditor();
+                sEditor.Title = titleStr;
                 sEditor.Callback = @obj.onSettingsChanged;
             else
                 sEditor = structeditor(obj.settings, 'Title', titleStr, ...
@@ -259,21 +258,27 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             % Todo: What if obj is invalid
         
             % Abort if sEditor is invalid (improper exit)
-            if ~isvalid(obj.hSettingsEditor); return; end
+            if ~isvalid(obj.hSettingsEditor)
+                obj.hSettingsEditor = [];
+                return; 
+            end
 
             if ~obj.hSettingsEditor.wasCanceled
-                obj.settings = obj.hSettingsEditor.dataEdit;
+                obj.settings_ = obj.hSettingsEditor.dataEdit;
             end
 
             obj.wasAborted = obj.hSettingsEditor.wasCanceled;
             delete(obj.hSettingsEditor)
-
+            obj.hSettingsEditor = [];
             obj.onSettingsEditorClosed()
-
+            
             if ~obj.wasAborted && obj.RunMethodOnFinish
                 obj.run();
             end
-        
+            
+            if obj.DestroyOnFinish
+                delete(obj)
+            end
         end
         
         function onSettingsEditorClosed(obj)

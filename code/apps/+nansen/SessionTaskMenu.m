@@ -4,48 +4,49 @@ classdef SessionTaskMenu < handle
 %   A session method should be coded according to descriptions in the 
 %   SessionMethod class (or function template). These functions are then
 %   saved in a package hierarchy, and this hierarchy will be used here to
-%   create a uimenu using the same hierarcy.
+%   create a uimenu using the same hierarchy.
 %
 %   Each menu item corresponding to a session method will be configured to
 %   trigger the event MethodSelected when the menu item is selected. The
 %   eventdata for this event contains two properties:
-%       'MethodFcn' : A function handle for the session method
-%       'Mode'      : The mode for which the method should be run
+%       'TaskAttributes' : A struct with attributes for a session task
+%       'Mode' : The mode for which the method should be run
 %
-%   The mode is one of the following: 'Default' | 'Preview' | 'TaskQueue'
+%   The mode is one of the following: 
+%       - 'Default'
+%       - 'Preview' 
+%       - 'TaskQueue'
+%       - 'Edit' 
 %
 %   The mode is determined by the value of the Mode property at the time
 %   when the event is triggered. The Mode property has no functionality in
 %   this class, but can be used by external code for configuring different
 %   ways of running methods (see nansen.App for example...)
 
+%   Note: The nomenclature of this class is inconsistent. A session method
+%   and a session task refers to the same concept. Need to clean up.
 
-% Purpose: Create a folder called SessionTasks with different 
-% packages, all with functions that can be called with sessionIDs.
-% These functions will be organized in the menu according the the
-% packages within the root folder.
-
-    % Questions:
-    %   Where/how to implement the keyword trick...
 
     % TODO
     %   [ ] Make it possible to get session tasks from different
-    %   directories. I.e also directories outside of the nansen repo.
+    %       directories. I.e also directories outside of the nansen repo.
     %   [ ] Add (and save) menu shortcuts (accelerators)
     %   [ ] Method for updating tasks in list
     %   [ ] Can the menus be created more efficiently, with regards to
     %       getting task attributes
+    %   [ ] Add a mode called update (for updating specific menu item)
     
     properties (Constant, Hidden)
-        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Restart'}
+        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Restart'} % Available modes
+        MenuOrder = {'+data', '+process', '+analyze', '+plot'}              % Todo: preference?
     end
     
     properties
-        Mode = 'Default' % Preview | TaskQueue
+        Mode char = 'Default' % Mode for running session task. See doc
     end
     
     properties (SetAccess = private)
-        ParentApp = []
+        ParentApp = [] % Handle of the app for the session task menu
         SessionTasks = struct('Name', {}, 'Attributes', {})
     end
     
@@ -55,12 +56,10 @@ classdef SessionTaskMenu < handle
     end
     
     properties (Access = private)
-        DefaultMethodsPath char % Todo: Tie to a session type. Ie Ephys, ophys etc.
-        ProjectMethodsPath char
-        DefaultMethodsPackage char % not used, remove?
-        ProjectMethodsPackage char % not used, remove?
+        DefaultMethodsPath char % Pathstr for a package folder containing session tasks
+        ProjectMethodsPath char % Pathstr for a project folder containing session tasks
         
-        ProjectChangedListener
+        ProjectChangedListener event.listener % Not implemented yet
     end
     
     
@@ -68,10 +67,20 @@ classdef SessionTaskMenu < handle
         MethodSelected
     end
     
+
     methods
         
         function obj = SessionTaskMenu(appHandle, modules)
-            
+        %SessionTaskMenu Create a SessionTaskMenu object 
+        %
+        %   obj = SessionTaskMenu(appHandle, modules) creates a
+        %   SessionTaskMenu for a given app. appHandle is a handle for the 
+        %   app and modules is a cell array containing session task 
+        %   packages to include when building the menu
+        %
+        %   Currently available modules:
+        %       'ophys.twophoton'
+
             obj.ParentApp = appHandle;
             
             if nargin < 2
@@ -80,18 +89,33 @@ classdef SessionTaskMenu < handle
             
             % NB: This assumes that the ParentApp has a Figure property
             hFig = obj.ParentApp.Figure;
+            assert(~isempty(hFig) && isvalid(hFig), ...
+                'App does not have a valid figure')
             
             obj.assignDefaultMethodsPath(modules)
             obj.assignProjectMethodsPath()
             
             % Todo: Improve performance!
-            obj.createMenuFromDirectory(hFig);
-            
+            obj.buildMenuFromDirectory(hFig);
+        end
+        
+        function delete(obj)
+            isdeletable = @(x) ~isempty(x) & isvalid(x);
+            if isdeletable(obj.ProjectChangedListener)
+                delete(obj.ProjectChangedListener)
+            end
+            if isdeletable(obj.hMenuItems)
+                delete(obj.hMenuItems)
+            end
+            if isdeletable(obj.hMenuDirs)
+                delete(obj.hMenuDirs)
+            end            
         end
 
     end
     
     methods % Set/get
+
         function set.Mode(obj, newMode)
         %set.Mode Set the mode property to one of the valid modes.
         
@@ -101,12 +125,15 @@ classdef SessionTaskMenu < handle
                 obj.Mode = newMode;
                 obj.refreshMenuLabels()
             end
-            
         end
+
     end
     
     methods
+
         function refresh(obj)
+        %refresh Refresh the menu. Delete all items and recreate them.
+
             delete( obj.hMenuDirs )
             delete( obj.hMenuItems )
             
@@ -115,13 +142,19 @@ classdef SessionTaskMenu < handle
             
             obj.SessionTasks = struct('Name', {}, 'Attributes', {});
 
-            
             obj.assignProjectMethodsPath() % Should make this happen only if project is changed... Not urgent
-            obj.createMenuFromDirectory(obj.ParentApp.Figure);
+            obj.buildMenuFromDirectory(obj.ParentApp.Figure);
+        end
+
+        function refreshMenuItem(obj, taskName)
+
+
+
         end
         
-        function menuNames = getTopMenuNames(obj)
-            
+        function menuNames = getRootLevelMenuNames(obj)
+        %getRootLevelMenuNames Get names of the root menu folders.
+
             dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
             ignoreList = {'+abstract', '+template'};
             
@@ -129,219 +162,207 @@ classdef SessionTaskMenu < handle
             menuNames = strrep(menuNames, '+', '');
             menuNames = unique(menuNames);
         end
+    
     end
     
     
-    methods (Access = private)
+    methods (Access = private) % Methods for configuring menu
         
         function assignDefaultMethodsPath(obj, modules)
-            
+        %assignDefaultMethodsPath Assign the default path(s) for tasks
+        %
+        %   Get the absolute path of each module containing tasks and 
+        %   assign it to the property DefaultMethodsPath.
+        %
+        %   A module is the name of a package category of session methods,
+        %   for example: 'ophys.twophoton'
+
             sesMethodRootFolder = nansen.localpath('sessionmethods');
 
             integrationDirs = utility.path.packagename2pathstr(modules);
             obj.DefaultMethodsPath = fullfile(sesMethodRootFolder, integrationDirs);
-            return
-            
-            %Todo: This should depend on session schema.
-            obj.DefaultMethodsPath = fullfile(nansen.rootpath, '+session', '+methods');
-            obj.DefaultMethodsPackage = utility.path.pathstr2packagename(obj.DefaultMethodsPath);
         end
         
         function assignProjectMethodsPath(obj)
-            
+        %assignProjectMethodsPath Assign the path for project-specific tasks
+
             projectRootPath = nansen.localpath('project');
             [~, projectName] = fileparts(projectRootPath);
             obj.ProjectMethodsPath = fullfile(projectRootPath, ...
                 'Session Methods', ['+', projectName] );
             
             if ~isfolder(obj.ProjectMethodsPath); mkdir(obj.ProjectMethodsPath); end
-            obj.ProjectMethodsPackage = utility.path.pathstr2packagename(obj.ProjectMethodsPath);
-            
-        end
-        
-        function packagePathList = listPackageHierarchy(obj)
-        %listPackageHierarchy Get all package folders containing session methods   
-        %
-        %   This function retrieves all package folders that contain
-        %   session method, both default nansen methods and user project
-        %   methods.
-        
-            dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
-            ignoreList = {'+abstract', '+template'};
-            
-            finished = false;
-            packagePathList = {};
-            
-            while ~finished
-                
-                [absPath, ~] = utility.path.listSubDir(dirPath, '', ignoreList);
-
-                if isempty(absPath)
-                    finished = true;
-                else
-                    packagePathList = [packagePathList, absPath];
-                    dirPath = absPath;
-                end
-            end
-
-            packagePathList = obj.sortPackageHierarchy(packagePathList);
-            
-        end
-        
-        function packagePathList = sortPackageHierarchy(obj, packagePathList)
-        %sortPackageHierarchy Sort package folders so that subpackages from
-        %different root directories are put in successive order.
-        
-            packageListLocal = packagePathList;
-            packageListLocal = strrep(packageListLocal, obj.DefaultMethodsPath, '');
-            packageListLocal = strrep(packageListLocal, obj.ProjectMethodsPath, '');
-            
-            [~, sortInd] = sort(packageListLocal);
-            packagePathList = packagePathList(sortInd);
         end
 
-        function createMenuFromDirectory(obj, hParent, dirPath)
-        %createMenuFromDirectory Create menu items from a directory tree
+        function buildMenuFromDirectory(obj, hParent, dirPath)
+        %buildMenuFromDirectory Build menu items from a directory tree
         %
         % Go recursively through a directory tree of matlab packages 
         % and create a menu item for each matlab function which is found 
         % inside. The menu item is configured to trigger an event when it
         % is selected.
         % 
-        % See also SessionMethod (todo: update reference)
+        % See also nansen.session.SessionMethod
 
-        
         % Requires: utility.string.varname2label
         
             if nargin < 3
                 dirPath = [obj.DefaultMethodsPath, {obj.ProjectMethodsPath}];
-                init = true;
+                isRootDirectory = true;
             else
-                init = false;
+                isRootDirectory = false;
             end
         
-            % List contents of directory given in inputs
-            if isa(dirPath, 'cell')
-                L = cellfun(@(pStr) dir(pStr), dirPath, 'uni', 0);
-                L = cat(1, L{:});
-            else
-                L = dir(dirPath);
-            end
+            % List contents of directory given as input
+            L = utility.path.multidir(dirPath);
             
-            L = L(~strncmp({L.name}, '.', 1));
-            
-            if init % Sort menus 
-                
+            if isRootDirectory % Sort listing by names
                 % Sort names to come in a specified order...
-                menuOrder = {'+data', '+process', '+analyze', '+plot'};
-                [~, ~, ic] = intersect(menuOrder, {L.name}, 'stable');
-                mySortIdx = unique( [ic', 1:numel(L)], 'stable');
-                L = L(mySortIdx);
-                
+                [~, sortIdx] = obj.sortMenuNames( {L.name} );
+                L = L( sortIdx );
             end
             
-            % Loop through contents of directory
+            % Loop through contents of directory/directories
             for i = 1:numel(L)
                 
                 % For folders, add submenu
                 if L(i).isdir
-                
-                    menuName = strrep(L(i).name, '+', '');
-                    menuName = utility.string.varname2label(menuName);
-                
-                    if strcmp(menuName, 'Abstract') || strcmp(menuName, 'Template')
+                    isPackageFolder = strncmp( L(i).name, '+', 1);
+                    
+                    if isPackageFolder
+                        obj.addSubmenuForPackageFolder( hParent, L(i) );
+                    else
                         continue
                     end
-                    
-                    % Check if menu already exist.
-                    iMenu = findobj(hParent, 'Type', 'uimenu', '-and', 'Text', menuName, '-depth', 1);
-                    if isempty(iMenu)
-                        iMenu = uimenu(hParent, 'Text', menuName);
-                        obj.hMenuDirs(end+1) = iMenu;
-                    end
-                    
-                    % Recursively add subdirectory as a submenu
-                    subDirPath = fullfile(L(i).folder, L(i).name);
-                    obj.createMenuFromDirectory(iMenu, subDirPath)
-                   
+
                 % For m-files, add submenu item with callback
                 else
-                    [~, fileName, ext] = fileparts(L(i).name);
+                    [~, ~, ext] = fileparts(L(i).name);
                     
-                    if ~strcmp(ext, '.m') &&  ~strcmp(ext, '.mlx')  % Skip files that are not .m
-                        continue
+                    if ~strcmp(ext, '.m') && ~strcmp(ext, '.mlx')  
+                        continue % Skip files that are not .m
                     end
-                    
-                    menuName = utility.string.varname2label(fileName);
-                                        
-                    % Get the full function name (including package names)
-                    functionName = obj.getFunctionStringName(L(i).folder, fileName);
-                    fcnConfig = obj.getTaskAttributes(functionName);
 
+                    mFilePath = fullfile(L(i).folder, L(i).name);
+                    taskAttributes = obj.getTaskAttributes(mFilePath);
                     
-                    % Create menu items with function handle as callback
-                    if ~isempty(meta.class.fromName(functionName))
-                        
-                        % Get attributes for session method/function.
-                        %fcnConfig = obj.getTaskAttributes(functionName);
-                        options = fcnConfig.OptionsManager.AllOptionNames;
-                        iSubMenu = uimenu(hParent, 'Text', menuName);
-                        
-                        if isempty(options) || numel(options)==1
-                            obj.createMenuCallback(iSubMenu, functionName)
-                            obj.registerMenuObject(iSubMenu, fcnConfig)
-                        
-                        else
-                            
-                            % Create menu item for each function option
-                            for j = 1:numel(options)
-                                menuName = utility.string.varname2label(options{j});
-                                menuName = options{j};
-                                iMitem = uimenu(iSubMenu, 'Text', menuName);
-                                
-                                obj.createMenuCallback(iMitem, functionName, options{j})   
-                                obj.registerMenuObject(iMitem, fcnConfig)
-                            end
-                        end
-                        
-                    else
-                        iMitem = uimenu(hParent, 'Text', menuName);
-                        obj.createMenuCallback(iMitem, functionName)
-                        obj.registerMenuObject(iMitem, fcnConfig)
-                        
+                    switch taskAttributes.TaskType
+                        case 'class'
+                            obj.addMenuItemForClassTask(hParent, taskAttributes)
+                        case 'function'
+                            obj.addMenuItemForFunctionTask(hParent, taskAttributes)
+                        otherwise
+                            % pass
                     end
-                    
                 end
-                
             end
-
         end
         
-        function createMenuCallback(obj, hMenu, functionName, keyword)
+        function addSubmenuForPackageFolder(obj, hParent, folderListing)
+        %addSubmenuForPackageFolder Add submenu for a package folder    
+        %
+        %   addSubmenuForPackageFolder(obj, hParent, folderListing) adds a
+        %   submenu under the given parent menu for a package folder.
+        %
+        %   Inputs:
+        %       hParent : handle to a menu item
+        %       folderListing : scalar struct of folder attributes as
+        %           returned from the dir function.
+            
+            % Create a text label for the menu
+            menuName = strrep(folderListing.name, '+', '');
+            menuName = utility.string.varname2label(menuName);
+            
+            % Check if menu with this label already exists
+            hMenuItem = findobj( hParent, 'Type', 'uimenu', '-and', ...
+                                 'Text', menuName, '-depth', 1 );
+            
+            % Create new menu item if menu with this label does not exist
+            if isempty(hMenuItem)
+                hMenuItem = uimenu(hParent, 'Text', menuName);
+                obj.hMenuDirs(end+1) = hMenuItem;
+            end
+            
+            % Recursively build a submenu for the package directory
+            subDirPath = fullfile(folderListing.folder, folderListing.name);
+            obj.buildMenuFromDirectory(hMenuItem, subDirPath)
+        end
+
+        function addMenuItemForClassTask(obj, hParent, taskAttributes)
+        %addMenuItemForClassTask Add menu item for a class-based task.
+        %
+        %   For a class based task, if multiple preset options are
+        %   available, each preset option gets its own submenu item
+            
+            menuName = taskAttributes.MethodName;
+            iSubMenu = uimenu(hParent, 'Text', menuName);
+
+            options = taskAttributes.OptionsManager.AllOptionNames;
+
+            if isempty(options) || numel(options)==1
+                obj.createMenuCallback(iSubMenu, taskAttributes)
+                obj.storeMenuObject(iSubMenu, taskAttributes)
+            
+            else
+                % Create menu item for each task option
+                for j = 1:numel(options)
+                    %menuName = utility.string.varname2label(options{j});
+                    menuName = options{j};
+                    iMitem = uimenu(iSubMenu, 'Text', menuName);
+                    
+                    obj.createMenuCallback(iMitem, taskAttributes, ...
+                        'OptionsSelection', options{j} )   
+                    obj.storeMenuObject(iMitem, taskAttributes)
+                end
+            end
+        end
+
+        function addMenuItemForFunctionTask(obj, hParent, taskAttributes)
+        %addMenuItemForFunctionTask Add menu item for a function-based task
+        %
+        %   Similar to a class based task, but instead of making a submenu
+        %   if multiple options are available, a submenu is created if
+        %   multiple alternatives are available. An alternative is
+        %   different than options in that alternatives are not managed by
+        %   the options manager.
+
+            menuName = taskAttributes.MethodName;
+            iSubMenu = uimenu(hParent, 'Text', menuName);
+            
+            if ~isempty(taskAttributes.Alternatives)
+                % Create one menu item for each task alternative
+                for j = 1:numel(taskAttributes.Alternatives)
+
+                    menuName = taskAttributes.Alternatives{j};
+                    iMitem = uimenu(iSubMenu, 'Text', menuName);
+                    
+                    obj.createMenuCallback(iMitem, taskAttributes, ...
+                        'Alternative', taskAttributes.Alternatives{j} )   
+                    obj.storeMenuObject(iMitem, taskAttributes)
+                end
+            else
+                obj.createMenuCallback(iSubMenu, taskAttributes)
+                obj.storeMenuObject(iSubMenu, taskAttributes)
+            end
+        end
+
+        function createMenuCallback(obj, hMenu, taskAttributes, varargin)
         %createMenuCallback Create a menu callback for the menu item.
         %
         %   If there is a keyword, add it as an input to the callback
         %   function.
-        
-            hfun = str2func(functionName);
             
-            if nargin < 4 || isempty(keyword)
-                callbackFcn = @(s, e, h) obj.onMenuSelected(hfun);
-            elseif nargin == 4 && ~isempty(keyword)
-                callbackFcn = @(s, e, h, kwd) obj.onMenuSelected(hfun, keyword);
-                
-                % Alternative:
-                % hfun = @(sObj, opt) hfun(sObj, 'Preset Selection', keyword, opt);
-                % callbackFcn = @(s, e, h) obj.onMenuSelected(hfun);
-                
-            end
-    
-            hMenu.MenuSelectedFcn = callbackFcn;
+            callbackFcn = @(s, e, h, vararg) obj.onMenuSelected(...
+                    taskAttributes, varargin{:});
 
+            hMenu.MenuSelectedFcn = callbackFcn;
         end
         
-        function registerMenuObject(obj, hMenuItem, taskAttributes)
-        %registerMenuObject Register the menuobject in class properties
+        function storeMenuObject(obj, hMenuItem, taskAttributes)
+        %storeMenuObject Store the menuobject in class properties
+        %
+        %   The menu item and the session task attributes are stored in
+        %   parallell, so they should always match one to one.
         
             numItems = numel(obj.hMenuItems) + 1;
 
@@ -350,7 +371,6 @@ classdef SessionTaskMenu < handle
 
             obj.SessionTasks(numItems).Name = hMenuItem.Text;
             obj.SessionTasks(numItems).Attributes = taskAttributes;
-
         end
            
         function refreshMenuLabels(obj)
@@ -393,126 +413,159 @@ classdef SessionTaskMenu < handle
                         
                     case 'Restart'
                         h.Text = [h.Text, ' (r)'];
-                        
-                 end
+                end
             end
-           
         end
-       
+        
     end
     
-    methods
+    methods (Access = private) % Callback
 
-        function onMenuSelected(obj, funHandle, optionName)
-            
-            nvPairs = {'MethodFcn', funHandle, 'Mode', obj.Mode};
-            
-            if nargin < 3 || isempty(optionName)
-                optionName = '';
-            end
-            nvPairs = [nvPairs, {'OptionsSelection', optionName}];
+        function onMenuSelected(obj, taskAttributes, varargin)
+        %onMenuSelected Callback for menu item selection. Trigger event
+        %
+        %   Create event data containing mode and task attributes ++ and
+        %   trigger the MethodSelected event.
 
+            params = struct;
+            params.Mode = obj.Mode;
+            params.TaskAttributes = taskAttributes;
+            params.OptionsSelection = '';
+            params.Alternative = '';
+
+            params = utility.parsenvpairs(params, 1, varargin);
+            nvPairs = utility.struct2nvpairs(params);
+            
             evtData = uiw.event.EventData( nvPairs{:} );
             obj.notify('MethodSelected', evtData)
-            
-            drawnow
-            
-            % Reset mode to default when item is selected
-            obj.Mode = 'Default';
+        end
+        
+    end
 
+    methods (Access = private) % Utility methods
+        
+        function packagePathList = listPackageHierarchy(obj)
+        %listPackageHierarchy Get all package folders containing session methods   
+        %
+        %   This function retrieves all package folders that contain
+        %   session methods, both default nansen methods and user project
+        %   methods.
+
+        %   Not implemented yet. The idea was to list all packages first,
+        %   then build menus. Now that happens interchangeably.
+        
+            dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
+            ignoreList = {'+abstract', '+template'};
+            
+            finished = false;
+            packagePathList = {};
+            
+            while ~finished
+                
+                [absPath, ~] = utility.path.listSubDir(dirPath, '', ignoreList);
+
+                if isempty(absPath)
+                    finished = true;
+                else
+                    packagePathList = [packagePathList, absPath]; %#ok<AGROW> 
+                    dirPath = absPath;
+                end
+            end
+
+            packagePathList = obj.sortPackageHierarchy(packagePathList);
+        end
+        
+        function packagePathList = sortPackageHierarchy(obj, packagePathList)
+        %sortPackageHierarchy Sort package folders so that subpackages from
+        %different root directories are put in successive order.
+        
+            packageListLocal = packagePathList;
+            packageListLocal = strrep(packageListLocal, obj.DefaultMethodsPath, '');
+            packageListLocal = strrep(packageListLocal, obj.ProjectMethodsPath, '');
+            
+            [~, sortInd] = sort(packageListLocal);
+            packagePathList = packagePathList(sortInd);
+        end
+
+        function [sortedNames, sortIdx] = sortMenuNames(obj, menuNames)
+        %sortMenuNames Sort names in the order of the MenuOrder property
+            
+            sortIdx = zeros(1, numel(menuNames));
+            count = 0;
+
+            for i = 1:numel( obj.MenuOrder )
+                
+                isMatch = strcmp(obj.MenuOrder{i}, menuNames);
+                numMatch = sum(isMatch);
+
+                insertIdx = count + (1:numMatch);
+                sortIdx(insertIdx) = find(isMatch);
+
+                count = count + numMatch;
+            end
+
+            sortedNames = menuNames(sortIdx);
         end
         
     end
     
     methods (Static)
-        
-        function funcStrName = getFunctionStringName(dirPath, fileName)
-        %getFunctionStringName Get full function name (including packages)
-        %
-        %   Example: 
-        %       dirPath = '.../SessionTasks/+data/+open'
-        %       fileName = 'twoPhotonRawImages.m'
-        %       funcStrName = obj.getFunctionStringName(dirPath, fileName)
-        %       
-        %       funcStrName =
-        %
-        %           'data.open.twoPhotonRawImages.m'
-        
-        
-            % Split directory path to get name of each individual folder
-            splitFolders = strsplit(dirPath, filesep);
-            
-            % Determine which folders are package folders
-            isPackage = strncmp(splitFolders, '+', 1);
-            
-            % Combine all package folders with filename using the . symbol
-            packageName = strjoin(splitFolders(isPackage), '.');
-            packageName = strrep(packageName, '+', '');
 
-            funcStrName = strjoin({packageName, fileName}, '.');
+        function taskAttributes = getTaskAttributes(filePathStr)
+        %getTaskAttributes Get task attributes for a session task
+        %
+        %   Task Attributes is a struct containing the following fields
+        %
+        %       FunctionName    : Name of function (including package names)
+        %       FunctionHandle  : Function handle for running session task
+        %       TaskType        : How session task is coded (function or class)
+        %       IsQueueable     : Is session task queuable
+        %       BatchMode       : How should a batch of sessions run (serial or bacth)
+        %       Options         : A set of options to run the session task with
+        %       Alternatives (*): A set of alternatives available for running the session task
+        %       OptionsManager  : An options manager for the session task
+        %
+        %       (*) Alternatives is a optional attribute that may exist or
+        %       some function based session tasks.
+
+        % todo: Move to an external function/class?
+
+            functionName = utility.path.abspath2funcname(filePathStr);
             
-        end
-        
-        function mConfig = getTaskAttributes(functionName)
-                                
-            hfun = str2func(functionName);
-            
+            taskAttributes = struct;
+            taskAttributes.FunctionName = functionName;
+            taskAttributes.FunctionHandle = str2func(functionName);
+
             mc = meta.class.fromName(functionName);
+
             if ~isempty(mc)
+                taskAttributes.TaskType = 'class';
+
                 allPropertyNames = {mc.PropertyList.Name};
-                mConfig = struct;
-                propertyNames = {'BatchMode', 'IsManual', 'IsQueueable', 'OptionsManager'};
+                propertyNames = {'MethodName', 'BatchMode', 'IsManual', ...
+                    'IsQueueable', 'OptionsManager'};
+                
                 for i = 1:numel(propertyNames)
                     thisName = propertyNames{i};
                     isMatch = strcmp(allPropertyNames, propertyNames{i});
-                    mConfig.(thisName) = mc.PropertyList(isMatch).DefaultValue;
+                    taskAttributes.(thisName) = mc.PropertyList(isMatch).DefaultValue;
                 end
-            else
-                mConfig = hfun(); % Call with no input should give configs
-                mConfig.OptionsManager = nansen.OptionsManager(functionName);
-                
-            end
-            
-% %             try
-% %                 mConfig = hfun(); % Call with no input should give configs
-% %             catch % Get defaults it there are no config:
-% %                 mConfig = nansen.session.SessionMethod.setAttributes();
-% %             end
-        end
-        
-    end
 
+            else
+                taskAttributes.TaskType = 'function';
+                try
+                    % Call function without inputs should return attributes
+                    moreAttributes = taskAttributes.FunctionHandle();
+                catch
+                    taskAttributes = struct('TaskType', 'n/a');
+                    return
+                end
+                
+                taskAttributes = utility.struct.mergestruct(taskAttributes, moreAttributes);
+                taskAttributes.OptionsManager = nansen.OptionsManager(functionName);
+            end
+        end
+
+    end
     
 end
-
-
-
-% % %         function S = getTaskAttributes(className)
-% % %         %getTaskAttributes Get attributes for session method
-% % %         %
-% % %         %   the SessionMethod superclass has some abstract and constant
-% % %         %   properties that provide "attributes" for a session method. Get
-% % %         %   the values of the subclass given by className
-% % %         
-% % %         
-% % %             % Todo: Get from superclass constant properties. 
-% % %             % utility.class.findproperties('nansen.session.SessionMethod', 'Constant')
-% % %             
-% % %             attributes = {'BatchMode', 'Alternatives', 'IsQueueable'};
-% % %             S = struct();
-% % %             
-% % %             mc = meta.class.fromName(className);
-% % % 
-% % %             if ~isempty(mc)
-% % %                 
-% % %                 for i = 1:numel(attributes)
-% % %                     iAttribute = attributes{i};
-% % %                     isMatched = contains({mc.PropertyList.Name}, iAttribute);
-% % %                     S.(iAttribute) = mc.PropertyList(isMatched).DefaultValue;
-% % %                 end
-% % %                 
-% % %             else
-% % %                 S = struct.empty();
-% % %             end
-% % %             
-% % %         end
