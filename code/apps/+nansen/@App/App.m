@@ -422,7 +422,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             mitem = uimenu(m, 'Text','New Table Variable...', 'Separator', 'on');
             mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
-            
+
             % Menu with submenus for editing table variable definition:
             mitem = uimenu(m, 'Text','Edit Table Variable Definition');         
             columnVariables = getPublicSessionInfoVariables(app.MetaTable);
@@ -915,7 +915,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             S = app.settings.MetadataTable;
             nvPairs = utility.struct2nvpairs(S);
             nvPairs = [{'AppRef', app}, nvPairs];
-           
+                       
+            try %#ok<TRYNC> 
+                columnSettings = app.loadMetatableColumnSettingsFromProject();
+                nvPairs = [{'ColumnSettings', columnSettings}, nvPairs];
+                %app.UiMetaTableViewer.ColumnSettings = columnSettings;
+            end
+
+
             % Create table + assign to property + set callback
             h = nansen.MetaTableViewer(hTab, app.MetaTable, nvPairs{:});
             app.UiMetaTableViewer = h;
@@ -934,10 +941,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
-            try %#ok<TRYNC> 
-                columnSettings = app.loadMetatableColumnSettingsFromProject();
-                app.UiMetaTableViewer.ColumnSettings = columnSettings;
-            end
 
             app.createSessionTableContextMenu()
             

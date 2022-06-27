@@ -103,12 +103,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     end
     
     properties (Access = private)
+        ColumnSettings_
         lastMousePressTic
         isConstructed = false;
     end
     
     events
         TableUpdated
+        SelectionChanged
     end
     
     
@@ -121,9 +123,15 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
             % Take care of input arguments.
             obj.parseInputs(varargin)
+
+            if ~isempty(obj.ColumnSettings)
+                nvPairs = {'ColumnSettings', obj.ColumnSettings};
+            else
+                nvPairs = {};
+            end
             
             % Initialize the column model.
-            obj.ColumnModel = nansen.ui.MetaTableColumnLayout(obj);
+            obj.ColumnModel = nansen.ui.MetaTableColumnLayout(obj, nvPairs{:});
             
             obj.createUiTable()
             
@@ -173,11 +181,19 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
        
         function set.ColumnSettings(obj, newSettings)
-            obj.ColumnModel.replaceColumnSettings(newSettings);
-            obj.updateColumnLayout()
+            if isempty(obj.ColumnModel) 
+                obj.ColumnSettings_ = newSettings;
+            else
+                obj.ColumnModel.replaceColumnSettings(newSettings);
+                obj.updateColumnLayout()
+            end
         end
         function colSettings = get.ColumnSettings(obj)
-            colSettings = obj.ColumnModel.settings;
+            if isempty(obj.ColumnModel)
+                colSettings = obj.ColumnSettings_;
+            else
+                colSettings = obj.ColumnModel.settings;
+            end
         end
 
         function set.ColumnFilter(obj, newValue)
@@ -513,6 +529,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
             
             obj.HTable.CellEditCallback = @obj.onCellValueEdited;
+            obj.HTable.CellSelectionCallback = @obj.onCellSelectionChanged;
             obj.HTable.JTable.getTableHeader().setReorderingAllowed(true);
             obj.JTable = obj.HTable.JTable;
 
@@ -1088,6 +1105,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
         end
         
+        function onCellSelectionChanged(obj, src, evt)
+            %evtData = event.EventData;
+            evtData = uiw.event.EventData('SelectedRows', evt.SelectedRows);
+            obj.notify('SelectionChanged', evtData) 
+        end
+        
         function onColumnWidthChanged(obj, src, event)
         %onColumnWidthChanged Callback for events where column widths are
         %changed by resizing column widths in from gui.
@@ -1177,11 +1200,17 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             if isempty(obj.ColumnContextMenu)
                 obj.createColumnContextMenu()
             end
-
-            columnType = obj.HTable.ColumnFormat{colNumber};
             
+            % Get column name of column where context menu should open
             [~, varNames] = obj.ColumnModel.getColumnNames();
             currentColumnName = varNames{colNumber};
+            
+            % Get column number according to the underlying java column
+            % models column order.
+            [colIdxJava, ~] = obj.ColumnModel.getColumnModelIndexOrder();
+            colNumber = colIdxJava(colNumber);
+            
+            columnType = obj.HTable.ColumnFormat{colNumber};
             
             isMatch = strcmp( {obj.MetaTableVariableAttributes.Name}, currentColumnName );
             if any(isMatch)

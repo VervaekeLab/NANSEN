@@ -113,10 +113,17 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     
     methods
         
-        function obj = MetaTableColumnLayout(hViewer)
+        function obj = MetaTableColumnLayout(hViewer, varargin)
             
             %obj@applify.mixin.UserSettings;
             %obj.loadSettings()
+
+            % Todo: This should be better integrated...
+            [nvPairs, varargin] = utility.getnvpairs(varargin{:});
+            params = utility.nvpairs2struct(nvPairs);
+            if isfield(params, 'ColumnSettings')
+                obj.settings_ = params.ColumnSettings();
+            end
 
             obj.addColumnOrderToSettings() % temporary
             
@@ -642,7 +649,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % this subclass does not have to invoke the onSettingsChanged when
         % settings are set...
             obj.settings_ = newSettings;
-            
+            obj.updateSettingsIndices
         end
         
         function onSettingsChanged(obj, src, event)
@@ -695,7 +702,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             obj.MetaTable = obj.MetaTableUi.MetaTable; %Todo: Change to TableVariables 
 
             obj.checkAndUpdateColumnEntries()
-            
+            obj.updateSettingsIndices()
+
+        end
+
+        function updateSettingsIndices(obj)
             % Todo: Update Indices based on what variables are present in
             % the metatable.
             
