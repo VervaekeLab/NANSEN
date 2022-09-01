@@ -1129,12 +1129,12 @@ methods % App initialization & creation
         mitem = uimenu(m, 'Text', 'Save');
         mSubItem = uimenu(mitem, 'Text', 'Save Stack', 'Enable', 'off');
         mSubItem.Callback = @obj.saveStack; % Todo: make this one
-        mSubItem = uimenu(mitem, 'Text', 'Export Stack...', 'Enable', 'off');
-        fcnList = imviewer.export.getExportFunctionList();
-        for i = 1:numel(fcnList)
-            mSubSubItem = uimenu(mSubItem, 'Text', fcnList{i});
-            mSubSubItem.Callback = @(s,e) obj.exportStack(s);
-        end
+% %         mSubItem = uimenu(mitem, 'Text', 'Export Stack...', 'Enable', 'off');
+% %         fcnList = imviewer.export.getExportFunctionList();
+% %         for i = 1:numel(fcnList)
+% %             mSubSubItem = uimenu(mSubItem, 'Text', fcnList{i});
+% %             mSubSubItem.Callback = @(s,e) obj.exportStack(s);
+% %         end
                 
         mSubItem = uimenu(mitem, 'Text', 'Save Image', 'Enable', 'on');
         mSubItem.Callback = @(s,e) obj.saveImage; % Todo: make this one
