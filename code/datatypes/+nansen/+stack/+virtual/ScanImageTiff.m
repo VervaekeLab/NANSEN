@@ -339,6 +339,7 @@ methods (Access = private)
         
         % Todo: 
         %       Read info about channel colors...
+        %import nansen.stack.utility.findNumTiffDirectories
 
         % Specify parameters that are required for creating image stack
         paramNames = { ...
@@ -368,8 +369,12 @@ methods (Access = private)
                 numFramesPerFile(i) = sIParams.hStackManager.framesPerSlice;
             end
             
+            if numFramesPerFile(i) == inf
+                numFramesPerFile(i) = nansen.stack.utility.findNumTiffDirectories(obj.tiffInfo(i), 1, 10000);
+            end
+            
         end
-        numFramesPerFile(i) = numFramesPerFile(i) .* sIParams.hChannels.channelSave .* siParams.hStackManager.actualNumSlices;
+        numFramesPerFile(i) = numFramesPerFile(i) .* sIParams.hChannels.channelSave .* sIParams.hStackManager.actualNumSlices;
         obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
         obj.NumTimepoints_ = sum(numFramesPerFile);
         
@@ -377,8 +382,12 @@ methods (Access = private)
     
     function assignScanImageParametersToMetadata(obj, sIParams)
         
-        obj.MetaData.ImageSize = abs( sum(sIParams.hRoiManager.imagingFovUm(1,:) ));
-        %obj.MetaData.PhysicalSizeY = nan;
+        try
+            obj.MetaData.ImageSize = abs( sum(sIParams.hRoiManager.imagingFovUm(1,:) ));
+        catch
+            warning('Could not determine image size. Likely because this is a multi FOV recording. This should be implemented')
+        end
+            %obj.MetaData.PhysicalSizeY = nan;
         %obj.MetaData.PhysicalSizeX = nan;
         
         obj.MetaData.PhysicalSizeYUnit = 'micrometer'; % Todo: Will this always be um?
