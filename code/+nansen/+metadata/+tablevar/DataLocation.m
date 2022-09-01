@@ -71,10 +71,10 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
                         tmpStr = obj.getIconHtmlString('dot_off');
                     elseif isfolder(fullfile(rootPath, subFolder)) && ~isempty(subFolder)
                         tmpStr = obj.getIconHtmlString('dot_on');
-                    elseif isfolder(subFolder) % ref legacy...
-                        tmpStr = obj.getIconHtmlString('dot_on');
                     elseif isempty(subFolder)
                         tmpStr = obj.getIconHtmlString('dot_off');
+                    elseif isfolder(subFolder) % ref legacy...
+                        tmpStr = obj.getIconHtmlString('dot_on');
                     else
                         tmpStr = obj.getIconHtmlString('dot_none');
                     end
