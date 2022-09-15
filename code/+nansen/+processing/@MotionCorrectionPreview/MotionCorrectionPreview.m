@@ -113,7 +113,7 @@ classdef MotionCorrectionPreview < handle
             firstFrame = min(firstFrame, obj.ImviewerObj.ImageStack.NumTimepoints);
             lastFrame = min(lastFrame, obj.ImviewerObj.ImageStack.NumTimepoints);
             
-            if lastFrame-firstFrame < 2
+            if lastFrame-firstFrame < 1
                 errMsg = 'Error: Need at least two frames to run motion correction';
                 obj.ImviewerObj.displayMessage(errMsg)
                 pause(2)

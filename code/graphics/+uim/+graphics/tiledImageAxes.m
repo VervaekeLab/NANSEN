@@ -1,5 +1,5 @@
 classdef tiledImageAxes < uim.handle
-%clib.tiledImageAxes
+%tiledImageAxes Class for creating image tiles in an axes
 %
 %   Create an axes with a grid of tiles, where each tile can hold an image,
 %   a line/patch and a text object. Additionally tiles can be selected

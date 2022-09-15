@@ -201,6 +201,12 @@ classdef StylableTable < uiw.widget.Table
 
             % Todo: Move to columnlayout class...
             %jTableHeader = obj.JTable.getTableHeader();
+
+            if ~isvalid(obj)
+                columnNames = '';
+                return; 
+            end
+
             jTableHeader = obj.JTableHeader;
             jColumnModel = jTableHeader.getColumnModel();
             numColumns = jColumnModel.getColumnCount;
