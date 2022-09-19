@@ -29,6 +29,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         MetaData nansen.stack.metadata.StackMetadata
         DataSize                        % Length of each dimension of the original data array
         DataType                        % Data type for the original data array
+        BitDepth
     end
     
     properties % Specification of data dimension arrangement

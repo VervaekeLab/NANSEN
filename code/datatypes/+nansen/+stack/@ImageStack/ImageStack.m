@@ -314,7 +314,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             doCropImage = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(1:2)));
             % Note: Do crop subsrefing only if necessary. 
             
-            selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(3:end-1)));
+            if contains(obj.Data.StackDimensionArrangement, 'T')
+                selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(3:end-1)));
+            else
+                selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(3:end)));
+            end
             % Note: Selecting frame subset is necessary if getting cached
             % data and some frame dimensions (C, Z) are subsref'ed.
             
@@ -1156,12 +1160,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function clim = get.DataTypeIntensityLimits(obj)
-            clim = obj.getDataTypeIntensityLimits(obj.DataType);
-            if strcmp(obj.DataType, 'single') ||  strcmp(obj.DataType, 'double')
-                clim(1) = min([clim(1), obj.DataIntensityLimits]);
-                clim(2) = max([clim(2), obj.DataIntensityLimits]);
+            if ~isempty(obj.Data.BitDepth)
+                clim = [1, 2^obj.Data.BitDepth];
+            else
+                clim = obj.getDataTypeIntensityLimits(obj.DataType);
+                if strcmp(obj.DataType, 'single') ||  strcmp(obj.DataType, 'double')
+                    clim(1) = min([clim(1), obj.DataIntensityLimits]);
+                    clim(2) = max([clim(2), obj.DataIntensityLimits]);
+                end
             end
-            
         end
         
         function physicalSize = get.ImagePhysicalSize(obj)
@@ -1408,6 +1415,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             	obj.ColorModel = 'Grayscale';
             elseif obj.NumChannels == 3
             	obj.ColorModel = 'RGB';
+                obj.CustomColorModel = [1,0,0;0,1,0;0,0,1];
             else
                 obj.ColorModel = 'Custom';
                 if isempty(obj.CustomColorModel)
