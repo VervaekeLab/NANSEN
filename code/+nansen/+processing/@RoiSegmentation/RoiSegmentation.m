@@ -4,6 +4,11 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     % Todo: 
     %   [ ] Multichannel support
     
+        
+    properties (Constant) % Attributes inherited from nansen.DataMethod
+        IsManual = false        % Does method require manual supervision
+        IsQueueable = true      % Can method be added to a queue
+    end
     
     properties (Abstract, Constant, Hidden) % Todo: move to DataMethod
         DATA_SUBFOLDER  % Name of subfolder(s) where to save results by default

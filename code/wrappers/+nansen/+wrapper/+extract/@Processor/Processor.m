@@ -31,8 +31,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
         MethodName = 'EXTRACT (Autosegmentation)'
-        IsManual = false        % Does method require manual supervision
-        IsQueueable = true      % Can method be added to a queue
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.extract.Processor')
     end
