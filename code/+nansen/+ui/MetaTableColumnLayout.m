@@ -113,10 +113,17 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     
     methods
         
-        function obj = MetaTableColumnLayout(hViewer)
+        function obj = MetaTableColumnLayout(hViewer, varargin)
             
             %obj@applify.mixin.UserSettings;
             %obj.loadSettings()
+
+            % Todo: This should be better integrated...
+            [nvPairs, varargin] = utility.getnvpairs(varargin{:});
+            params = utility.nvpairs2struct(nvPairs);
+            if isfield(params, 'ColumnSettings')
+                obj.settings_ = params.ColumnSettings();
+            end
 
             obj.addColumnOrderToSettings() % temporary
             
@@ -246,6 +253,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % dont remember what the difference is between 
         % obj.MetaTableIndicesAll & obj.SettingsIndices
             
+            colIndices = [];
+            if isempty(obj.MetaTable); return; end
+
             indAll = obj.MetaTableIndicesAll;            
             
             indSkip = [obj.settings(indAll).SkipColumn];
@@ -642,7 +652,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % this subclass does not have to invoke the onSettingsChanged when
         % settings are set...
             obj.settings_ = newSettings;
-            
+            obj.updateSettingsIndices
         end
         
         function onSettingsChanged(obj, src, event)
@@ -695,10 +705,16 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             obj.MetaTable = obj.MetaTableUi.MetaTable; %Todo: Change to TableVariables 
 
             obj.checkAndUpdateColumnEntries()
-            
+            obj.updateSettingsIndices()
+
+        end
+
+        function updateSettingsIndices(obj)
             % Todo: Update Indices based on what variables are present in
             % the metatable.
             
+            if isempty(obj.MetaTable); return; end
+
             varNamesSettings = {obj.settings.VariableName}; % VarNames already in settings.
             varNamesTable = obj.MetaTable.Properties.VariableNames;
             
