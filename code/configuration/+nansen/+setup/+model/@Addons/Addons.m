@@ -212,11 +212,12 @@ classdef Addons < handle
             tf = true;
         end
         
-        function downloadAddon(obj, addonIdx, updateFlag)
+        function downloadAddon(obj, addonIdx, updateFlag, throwErrorIfFails)
         %downloadAddon Download addon to a specified addon folder
         
             if nargin < 3; updateFlag = false; end
-            
+            if nargin < 4; throwErrorIfFails = false; end
+
             if isa(updateFlag, 'char') && strcmp(updateFlag, 'update')
                 updateFlag = true;
             end
@@ -298,7 +299,21 @@ classdef Addons < handle
                 setupFcn = str2func(obj.AddonList(addonIdx).SetupFileName);
                 setupFcn()
             end
-            
+
+            try
+                % Run setup of package if it has a setup function.
+                if ~isempty(obj.AddonList(addonIdx).SetupFileName)
+                    setupFcn = str2func(obj.AddonList(addonIdx).SetupFileName);
+                    setupFcn()
+                end
+            catch ME
+                if throwErrorIfFails
+                    rethrow(ME)
+                else
+                    warning('Setup of the toolbox %s failed with the following error:', addonEntry.Name)
+                    disp(getReport(ME, 'extended'))
+                end
+            end
         end
         
         function updateSearchPath(obj)
