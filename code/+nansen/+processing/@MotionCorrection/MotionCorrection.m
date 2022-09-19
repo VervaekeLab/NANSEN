@@ -259,11 +259,15 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                     obj.saveProjectionImages('maximum-orig', crop)
                 end
             end
-            
-            obj.resaveRGBProjectionImages('average')
-            obj.resaveRGBProjectionImages('average-orig')
-            obj.resaveRGBProjectionImages('maximum')
-            obj.resaveRGBProjectionImages('maximum-orig')
+           
+            if obj.Options.Export.saveAverageProjection
+                obj.resaveRGBProjectionImages('average')
+                obj.resaveRGBProjectionImages('average-orig')
+            end
+            if obj.Options.Export.saveMaximumProjection
+                obj.resaveRGBProjectionImages('maximum')
+                obj.resaveRGBProjectionImages('maximum-orig')
+            end
         end
         
         function S = repeatStructPerDimension(obj, S)
@@ -421,6 +425,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             DATANAME = 'TwoPhotonSeries_Corrected';
             filePath = obj.getDataFilePath( DATANAME );
             
+            % Force file to be saved as .tif if extension was set to .mat
+            filePath = strrep(filePath, '.mat', '.tif');
+
             % Call method of ImageStackProcessor
             openTargetStack@nansen.stack.ImageStackProcessor(obj, filePath, ...
                 stackSize, dataType, 'DataDimensionArrangement', ...
@@ -840,6 +847,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 obj.SourceStack.Data.StackDimensionArrangement, ...
                 'DataSize', size(imageArray), ...
                 'SaveMetadata', true};
+
+            folderPath = fileparts(filePath);
+            if ~isfolder(folderPath); mkdir(folderPath); end
             
             if ~isfile(filePath)
                 imageData = nansen.stack.open(filePath, imageArray, props{:});
