@@ -62,6 +62,11 @@ if isempty(fieldnames(metadata))
         key = char(PvStateItems.item(i-1).getAttribute('key'));
 
         switch key
+
+            case 'bitDepth'
+                bitDepth = PvStateItems.item(i-1).getAttribute('value');
+                metadata.bitDepth = str2double(bitDepth);
+                
             case 'framePeriod'
                 framePeriod = PvStateItems.item(i-1).getAttribute('value');
                 metadata.dt = str2double(framePeriod);
