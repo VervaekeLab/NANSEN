@@ -33,6 +33,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
         ChannelColors = {'r', 'g', 'b'};
         
         Callback = []
+        ChannelColorCallback = []
     end
     
     properties (Access = protected)
@@ -47,17 +48,20 @@ classdef ChannelIndicator < uim.mixin.assignProperties
         hChannelForeground = gobjects(0)
     end
     
-    
     properties (Access = private) % Widget states and internals
         IsConstructed = false
         isMouseOnButton = false
         isMouseButtonPressed = false
+
+        LastChannelPressed
         
         Position_ = [1, 1, 20, 200]; %Initial position
         
         WindowMouseMotionListener
         WindowMouseReleaseListener
         FrameChangedListener
+        
+        ContextMenu
     end
     
     
@@ -73,7 +77,8 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             obj.resolveParent(hParent)
             
             obj.parseInputs(varargin{:})
-            
+            obj.createContextMenu()
+
             obj.IsConstructed = true;
             
             obj.updateSize()
@@ -132,6 +137,52 @@ classdef ChannelIndicator < uim.mixin.assignProperties
         
     end
     
+    methods 
+        function changeChannelColor(obj, src, evt)
+            chNum = obj.LastChannelPressed;
+
+            colorEnum = enumeration('nansen.enum.FluorescenceSpectrumColors');
+            colorLabels = {colorEnum.LongLabel};
+            
+            switch src.Text
+                case colorLabels
+                    isMatch = strcmp(colorLabels, src.Text);
+                    rgb = colorEnum(isMatch).Rgb;
+
+                case 'Select Color...'
+                    rgb = uisetcolor('Select scalebar color');
+                    if isequal( rgb, 0)
+                        return % User canceled
+                    end
+
+                case 'Enter Wavelength...'
+                    answer = inputdlg('Enter wavelength (nm)', 'Set Color', 1);
+                    if isempty(answer); return; end
+                    lambda = str2double(answer{1});
+                    rgb = spectrumRGB(lambda);
+
+                    
+            end
+            evtData = uiw.event.EventData('ChannelNumber', chNum, ...
+                'RgbColor', rgb);
+            
+            if ~isempty(obj.ChannelColorCallback)
+                obj.ChannelColorCallback(obj, evtData)
+            end
+
+            obj.ChannelColors{chNum} = rgb;
+            obj.updateIndicatorColor(chNum, rgb)
+
+        end
+
+        function selectChannel(obj, channelNum)
+            set(obj.hChannelIndicators, 'EdgeColor', ones(1,3)*0.8);
+            set(obj.hChannelIndicators(channelNum), 'LineWidth', 0.5);
+            set(obj.hChannelIndicators(channelNum), 'EdgeColor', ones(1,3));
+            set(obj.hChannelIndicators(channelNum), 'LineWidth', 1);
+        end
+    end
+
     methods (Access = protected) % Widget creation & updates
         
         function resolveParent(obj, hParent)
@@ -179,15 +230,30 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                     obj.hChannelIndicators(i).ButtonDownFcn = @(s, e, num) obj.onChannelIndicatorPressed(i);
                     obj.setPointerBehavior(obj.hChannelIndicators(i))
                     obj.hChannelIndicators(i).Tag = 'ChannelIndicator';
+                    obj.hChannelIndicators(i).ContextMenu = obj.ContextMenu;
 
                 else
                     set(obj.hChannelIndicators(i), 'XData', X, 'YData', Y)
                 end
                 
             end
+        end
+
+        function createContextMenu(obj)
+            hMenu = uicontextmenu(obj.hFigure);
+
+            colorEnum = enumeration('nansen.enum.FluorescenceSpectrumColors');
+            colorLabels = {colorEnum.LongLabel};
             
-            
-            
+            mList = uics.MenuList(hMenu, colorLabels, [], 'SelectionMode', 'none');
+            mList.MenuSelectedFcn = @obj.changeChannelColor;
+
+            mitem = uimenu(hMenu, 'Text', 'Select Color...', 'Separator', 'on');
+            mitem.MenuSelectedFcn = @obj.changeChannelColor;
+            mitem = uimenu(hMenu, 'Text', 'Enter Wavelength...');
+            mitem.MenuSelectedFcn = @obj.changeChannelColor;
+
+            obj.ContextMenu = hMenu;
         end
         
         function drawIndicatorState(obj)
@@ -246,11 +312,15 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                     obj.hChannelForeground(channelNum).Color = ones(1,3)*0.8;
                 end
             end
-            set(obj.hChannelForeground, 'Visible', 'off')
+            %set(obj.hChannelForeground, 'Visible', 'off')
 
             
         end
         
+        function updateIndicatorColor(obj, chNum, rgb)
+            obj.hChannelIndicators(chNum).FaceColor = rgb;
+        end
+
         function updateSize(obj)
         
             w = obj.ChannelIndicatorSize;
@@ -265,14 +335,38 @@ classdef ChannelIndicator < uim.mixin.assignProperties
     methods (Access = private) % User interaction callbacks
        
         function onChannelIndicatorPressed(obj, channelNum)
-
-            %oldSelection = obj.CurrentChannels;
             
-            if ismember(channelNum, obj.CurrentChannels)
-                obj.CurrentChannels = setdiff(obj.CurrentChannels, channelNum);
-            else
-                obj.CurrentChannels = union(obj.CurrentChannels, channelNum);
+            %obj.hFigure.CurrentKey
+            
+            %oldSelection = obj.CurrentChannels;
+            switch obj.hFigure.SelectionType
+                case 'normal'
+                    % pass
+                    obj.CurrentChannels = channelNum;
+
+                case 'extend'
+                    obj.CurrentChannels = union(obj.CurrentChannels, channelNum);
+
+                case 'alt'
+                    obj.LastChannelPressed = channelNum;
+                    return
+
+                case 'open'
+                    if isequal(obj.CurrentChannels, 1:obj.NumChannels)
+                        obj.CurrentChannels = channelNum;
+                    else
+                        obj.CurrentChannels = 1:obj.NumChannels;
+                    end
+                    %obj.selectChannel(channelNum)
+                    %return
+
             end
+
+%             if ismember(channelNum, obj.CurrentChannels)
+%                 obj.CurrentChannels = setdiff(obj.CurrentChannels, channelNum);
+%             else
+%                 obj.CurrentChannels = union(obj.CurrentChannels, channelNum);
+%             end
             
             % If only one channel is visible, and it is deselected, toggle
             % all the other channels on
