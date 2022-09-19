@@ -103,6 +103,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     end
     
     properties (Access = private)
+        ColumnSettings_
         lastMousePressTic
         isConstructed = false;
     end
@@ -122,9 +123,15 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
             % Take care of input arguments.
             obj.parseInputs(varargin)
+
+            if ~isempty(obj.ColumnSettings)
+                nvPairs = {'ColumnSettings', obj.ColumnSettings};
+            else
+                nvPairs = {};
+            end
             
             % Initialize the column model.
-            obj.ColumnModel = nansen.ui.MetaTableColumnLayout(obj);
+            obj.ColumnModel = nansen.ui.MetaTableColumnLayout(obj, nvPairs{:});
             
             obj.createUiTable()
             
@@ -174,11 +181,19 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
        
         function set.ColumnSettings(obj, newSettings)
-            obj.ColumnModel.replaceColumnSettings(newSettings);
-            obj.updateColumnLayout()
+            if isempty(obj.ColumnModel) 
+                obj.ColumnSettings_ = newSettings;
+            else
+                obj.ColumnModel.replaceColumnSettings(newSettings);
+                obj.updateColumnLayout()
+            end
         end
         function colSettings = get.ColumnSettings(obj)
-            colSettings = obj.ColumnModel.settings;
+            if isempty(obj.ColumnModel)
+                colSettings = obj.ColumnSettings_;
+            else
+                colSettings = obj.ColumnModel.settings;
+            end
         end
 
         function set.ColumnFilter(obj, newValue)
