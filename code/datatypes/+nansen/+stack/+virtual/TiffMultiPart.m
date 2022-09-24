@@ -344,6 +344,14 @@ methods % Implementation of abstract methods for readin/writing
         
         % Crop frames:
         data = obj.cropData(data, subs);
+
+        if strcmp(obj.ChannelMode, 'multisample')
+            if numel( subs{3} ) < size(data, 3)
+                tmpSubs = repmat({':'}, 1, ndims(data));
+                tmpSubs{3} = subs{3};
+                data = data(tmpSubs{:});
+            end
+        end
     end
     
     function writeData(obj, subs, data)

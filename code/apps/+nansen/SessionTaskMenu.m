@@ -459,7 +459,7 @@ classdef SessionTaskMenu < handle
         
             dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
             ignoreList = {'+abstract', '+template'};
-
+            
             finished = false;
             packagePathList = {};
             

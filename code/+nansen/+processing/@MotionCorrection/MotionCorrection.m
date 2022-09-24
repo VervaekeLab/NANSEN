@@ -259,11 +259,15 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                     obj.saveProjectionImages('maximum-orig', crop)
                 end
             end
-            
-            obj.resaveRGBProjectionImages('average')
-            obj.resaveRGBProjectionImages('average-orig')
-            obj.resaveRGBProjectionImages('maximum')
-            obj.resaveRGBProjectionImages('maximum-orig')
+           
+            if obj.Options.Export.saveAverageProjection
+                obj.resaveRGBProjectionImages('average')
+                obj.resaveRGBProjectionImages('average-orig')
+            end
+            if obj.Options.Export.saveMaximumProjection
+                obj.resaveRGBProjectionImages('maximum')
+                obj.resaveRGBProjectionImages('maximum-orig')
+            end
         end
         
         function S = repeatStructPerDimension(obj, S)
@@ -313,10 +317,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % fails on data if the zero value of the data is not subtracted
             Y = obj.subtractPixelBaseline(Y);
             
-
             Y = single(Y); % Cast to single for the alignment
 
-
+            % Todo: Should this be here or baked into the
+            % getRawStack / getframes method of rawstack?
+            
             % Todo, implement options selection
             if ~strcmp( obj.Options.Preprocessing.BidirectionalCorrection, 'None')
                 Y = obj.correctBidirectionalOffsets(Y);
@@ -418,17 +423,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 
             % Get file reference for corrected stack
             DATANAME = 'TwoPhotonSeries_Corrected';
-
-            switch obj.Options.Export.OutputFormat
-                case 'Binary'
-                    fileType = '.raw';
-                case 'Tiff'
-                    error('Writing to tiff is not supported yet')
-                    fileType = '.tif';
-            end
-
-            filePath = obj.getDataFilePath(DATANAME, 'FileType', fileType);
+            filePath = obj.getDataFilePath( DATANAME );
             
+            % Force file to be saved as .tif if extension was set to .mat
+            filePath = strrep(filePath, '.mat', '.tif');
+
             % Call method of ImageStackProcessor
             openTargetStack@nansen.stack.ImageStackProcessor(obj, filePath, ...
                 stackSize, dataType, 'DataDimensionArrangement', ...
@@ -439,12 +438,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Make sure caching is turned off...
             obj.TargetStack.Data.UseDynamicCache = false;
-
-
-            if isa(obj.TargetStack, 'nansen.stack.virtual.SciScanRaw')
-                % Class takes care of this internally
-                obj.Options.Preprocessing.NumFlybackLines = 0;
-            end
 
         end
         
@@ -794,7 +787,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Get filepath for raw 2p-images
             DATANAME = 'TwoPhotonSeries_Original';
-            filePath = obj.DataIoModel.getDataFilePath(DATANAME);
+            filePath = obj.SessionObjects.getDataFilePath(DATANAME);
             
             % Initialize file reference for raw 2p-images
             rawStack = nansen.stack.ImageStack(filePath);
@@ -854,6 +847,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 obj.SourceStack.Data.StackDimensionArrangement, ...
                 'DataSize', size(imageArray), ...
                 'SaveMetadata', true};
+
+            folderPath = fileparts(filePath);
+            if ~isfolder(folderPath); mkdir(folderPath); end
             
             if ~isfile(filePath)
                 imageData = nansen.stack.open(filePath, imageArray, props{:});
@@ -940,36 +936,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             M = imtranslate(M, [dx,dy] );
             shifts = [dx, dy];
         end
-
-        function Y = correctBidirectionalOffsets(obj, Y)
-            
-            import nansen.wrapper.normcorre.utility.apply_bidirectional_offset
-            % Multiple channels serial
-            % Multiple channels batch
-            
-            if ndims(Y) == 4
-                Ymean = squeeze( mean(Y, 3) );
-                colShift = correct_bidirectional_offset(Ymean, size(Y,4), 10);
-
-                for i = 1:size(Y, 3)
-                    Y(:,:,i,:) = apply_bidirectional_offset(Y(:, :, i, :), colShift);
-                end
-                
-            elseif ndims(Y) == 3
-                [~, Y] = correct_bidirectional_offset(Y, size(Y,3), 10);
-            end
-            
-%             % Todo:
-%             switch obj.Options.Preprocessing.BidirectionalCorrection
-% 
-%                 case {'Constant', 'OneTime'}
-%                     %[~, Y] = correct_bidirectional_offset(Y,   )
-%                 case {'Time Dependent', 'Continuous', 'Adaptive'}
-%                     %[Y, bidirBatchSize, colShifts] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
-%             end
-
-        end
-
+        
     end
     
     methods (Static) % Method in external file (Get default options)

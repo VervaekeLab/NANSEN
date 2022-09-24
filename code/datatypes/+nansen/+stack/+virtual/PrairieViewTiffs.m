@@ -97,6 +97,8 @@ methods (Access = protected) % Implementation of abstract methods
         
         S = obj.getPrairieViewRecordingInfo();
         
+        obj.BitDepth = S.bitDepth;
+
         % Specify data dimension sizes
         obj.MetaData.SizeX = S.xpixels;
         obj.MetaData.SizeY = S.ypixels;
@@ -206,14 +208,6 @@ methods (Access = protected) % Implementation of abstract methods
     function assignDataType(obj)
         % Todo: what if it is int? What if single or double?
         
-        ind = strfind(obj.DataDimensionArrangement, 'C');
-        if isempty(ind)
-            numChannels = 1;
-        else
-            numChannels = obj.DataSize(ind);
-        end
-        
-        % todo:
         bitsPerSample = obj.ImageInfo.BitDepth;
         obj.DataType = sprintf('uint%d', bitsPerSample);
     end

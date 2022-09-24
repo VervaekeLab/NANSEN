@@ -33,10 +33,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         ImviewerPluginName = 'FluFinder'
     end
     
-    properties (Access = private)
-        %MergedResults
-    end
-    
     
     methods % Constructor
         

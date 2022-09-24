@@ -253,6 +253,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % dont remember what the difference is between 
         % obj.MetaTableIndicesAll & obj.SettingsIndices
             
+            colIndices = [];
+            if isempty(obj.MetaTable); return; end
+
             indAll = obj.MetaTableIndicesAll;            
             
             indSkip = [obj.settings(indAll).SkipColumn];
@@ -710,6 +713,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % Todo: Update Indices based on what variables are present in
             % the metatable.
             
+            if isempty(obj.MetaTable); return; end
+
             varNamesSettings = {obj.settings.VariableName}; % VarNames already in settings.
             varNamesTable = obj.MetaTable.Properties.VariableNames;
             

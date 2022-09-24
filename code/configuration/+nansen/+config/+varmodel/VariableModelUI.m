@@ -172,7 +172,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             hRow.FileTypeSelect.Value =  obj.DEFAULT_FILETYPES{1};
             
             if ~isempty(rowData.FileType)
-                if ~contains(rowData.FileType, hRow.FileTypeSelect.Items)
+                if ~any(strcmp(rowData.FileType, hRow.FileTypeSelect.Items))
                     hRow.FileTypeSelect.Items{end+1} = rowData.FileType;
                 end
 
