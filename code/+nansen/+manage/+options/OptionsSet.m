@@ -10,6 +10,9 @@ classdef OptionsSet < handle
         Name
         Description
         Options
+    end
+    
+    properties (SetAccess = private)
         DateCreatedNum
         DateCreated
         DateModified
@@ -18,7 +21,11 @@ classdef OptionsSet < handle
     end
 
     methods
-
+        
+        function obj = OptionSet(name)
+            obj.Name = name;
+        end
+        
     end
 
 

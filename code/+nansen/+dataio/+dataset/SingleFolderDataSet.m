@@ -83,6 +83,10 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
 
     methods % Public methods
         
+        function id = getDataId(obj)
+            id = obj.DataSetID;
+        end
+
         function [filePath, variableInfo] = getDataFilePath(obj, varName, varargin)
         %getDataFilePath Get filepath for data with the given variable name
         %

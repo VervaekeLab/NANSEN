@@ -3,7 +3,7 @@ classdef RoiGroupFileIoAppMixin < handle
 % for loading and saving rois to file.
 
     properties (Abstract)
-        RoiGroup
+        RoiGroup roimanager.roiGroup
         roiFilePath
     end
     
