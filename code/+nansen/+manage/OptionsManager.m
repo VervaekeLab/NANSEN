@@ -1321,6 +1321,12 @@ classdef OptionsManager < handle
                     assertMsg = 'Provided options already exist but are different from previously saved options, aborting...';
                     
                     isEqual = obj.compareOptions(opts, obj.Options);
+
+                    if ~isEqual && (isempty(opts) || isempty(fieldnames(opts)))
+                        warning('Not implemented yet, forgot if this is necessary')
+                        %return %1st time initialization
+                    end
+
                     assert(isEqual, assertMsg)
                 end
             end
