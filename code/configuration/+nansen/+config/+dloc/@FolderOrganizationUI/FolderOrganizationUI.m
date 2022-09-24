@@ -268,8 +268,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             dataLocationLabelWidth = 110;
             dataLocationSelectorWidth = 100;
             
-            templateLabelWidth = 100;
-            templateSelectorWidth = 100;
+            templateLabelWidth = 80;
+            templateSelectorWidth = 105;
             
             symbolButtonWidth = 30;
             advancedButtonWidth = 135;
@@ -304,7 +304,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.SelectTemplateLabel = uilabel(hPanel);
             obj.SelectTemplateLabel.Position = [Xl(3) Y Wl(3) 22];
             obj.SelectTemplateLabel.HorizontalAlignment = 'right';
-            obj.SelectTemplateLabel.Text = 'Select template:';
+            obj.SelectTemplateLabel.Text = 'Use template:';
             
 
             % Create SelectDataLocationDropDown
@@ -320,7 +320,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             
             obj.SelectTemplateHelpIcon = obj.createHelpIconButton(hPanel);
-            obj.SelectTemplateHelpIcon.Position = [Xl(5) Y+1 Wl(5) 20];
+            obj.SelectTemplateHelpIcon.Position = [Xl(5)-5 Y+1 Wl(5) 20];
             obj.SelectTemplateHelpIcon.Tag = 'Folder Hierarchy Template';
             
                         
@@ -692,7 +692,13 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             % Look for subfolders in the folderpath
             [~, dirName] = utility.path.listSubDir(folderPath, S(iRow).Expression, S(iRow).IgnoreList);
-
+            
+            % Todo: Add something like this if implementing virtual folders
+            % in a datalocation
+% % %             if isempty(dirName)
+% % %                 % show message...
+% % %                 [~, dirName] = utility.path.listFiles(folderPath);
+% % %             end
             
             % Get handle to dropdown control
             hSubfolderDropdown = obj.RowControls(iRow).SubfolderDropdown;

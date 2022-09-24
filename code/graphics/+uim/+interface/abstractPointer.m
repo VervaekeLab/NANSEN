@@ -37,7 +37,7 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
     end
     
     
-    methods (Abstract)
+    methods (Abstract) % Todo: don't have to be abstract
         
         setPointerSymbol(obj)
         onButtonDown(obj, src, event)

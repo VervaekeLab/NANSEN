@@ -38,9 +38,12 @@ function varargout = DownsampleStack(sessionObject, varargin)
     n = params.DownsamplingFactor;
     binMethod = params.BinningMethod;
     
-    options = {'SaveToFile', true, 'UseTransientVirtualStack', false};
-    imageStack.downsampleT(n, binMethod, options{:});
-
+    %options = {'SaveToFile', true, 'UseTransientVirtualStack', false};
+    %imageStack.downsampleT(n, binMethod, options{:});
+    
+    options = {'SaveToFile', true, 'UseTemporaryFile', false};
+    nansen.stack.processor.TemporalDownsampler(imageStack, n, binMethod, options{:});
+    
 end
 
 

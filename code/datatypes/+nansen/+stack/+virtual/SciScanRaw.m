@@ -158,32 +158,28 @@ methods (Access = protected) % Implementation of abstract methods
     function assignDataSize(obj)
     %assignDataSize Assign DataSize (and DataDimensionArrangement)
     
-        % Is this intentional??? I think so, see set dimensionorder...
-        obj.DataSize = [obj.MetaData.SizeX, obj.MetaData.SizeY];
-        dataDimensionArrangement = 'XY';
-
-        % Add length of channels if there is more than one channel
-        if obj.MetaData.SizeC > 1
-            obj.DataSize = [obj.DataSize, obj.MetaData.SizeC];
-            dataDimensionArrangement(end+1) = 'C';
+        assert(~isempty(obj.DataDimensionArrangement), ...
+            'DataDimensionArrangement is not assigned. Please report!')
+    
+        numDimensions = numel(obj.DataDimensionArrangement);
+        dataSize = zeros(1, numDimensions);
+    
+        for i = 1:numDimensions
+            switch obj.DataDimensionArrangement(i)
+                case 'X'
+                    dataSize(i) = obj.MetaData.SizeX;
+                case 'Y'
+                    dataSize(i) = obj.MetaData.SizeY;
+                case 'C'
+                    dataSize(i) = obj.MetaData.SizeC;
+                case 'Z'
+                    dataSize(i) = obj.MetaData.SizeZ;
+                case 'T'
+                    dataSize(i) = obj.MetaData.SizeT;
+            end
         end
         
-        % Add length of planes if there is more than one plane
-        if obj.MetaData.SizeZ > 1
-            obj.DataSize = [obj.DataSize, obj.MetaData.SizeZ];
-            dataDimensionArrangement(end+1) = 'Z';
-        end
-        
-        % Add length of sampling dimension.
-        if obj.MetaData.SizeT > 1
-            obj.DataSize = [obj.DataSize, obj.MetaData.SizeT];
-            dataDimensionArrangement(end+1) = 'T';
-        end
-        
-        % Assign to property (will trigger internal update on virtual data)
-        if isempty(obj.DataDimensionArrangement)
-            obj.DataDimensionArrangement = dataDimensionArrangement;
-        end
+        obj.DataSize = dataSize;
     end
     
     function assignDataType(obj)
@@ -237,15 +233,11 @@ methods % Subclass specific methods
     function metadata = getSciScanRecordingInfo(obj)
     %getSciScanRecordingInfo Get recording info from the sciscan ini file
     
-    
         inifilepath = strrep(obj.FilePath, '.raw', '.ini');
         inistring = fileread(inifilepath);
 
-        
         metadata = struct();
-       
-        metadata.experimentType = obj.readinivar(inistring, 'experiment.type');
-        
+
         % Resolve data type
         fileformat = obj.readinivar(inistring,'file.format');
         switch fileformat
@@ -259,8 +251,14 @@ methods % Subclass specific methods
         metadata.xpixels = obj.readinivar(inistring,'x.pixels');
         metadata.ypixels = obj.readinivar(inistring,'y.pixels');
         
-        % Get nubmer of recording channels
+        dataDimensionArrangement = 'XY';
+        
+        % Get number of recording channels
         metadata.nChannels = obj.readinivar(inistring,'no.of.channels');
+        
+        if metadata.nChannels > 1
+            dataDimensionArrangement(end+1) = 'C'; 
+        end
         
         try
             metadata.nFrames = obj.readinivar(inistring, 'no.of.frames.acquired');
@@ -269,29 +267,32 @@ methods % Subclass specific methods
             metadata.nFrames = obj.getFrameCount(metadata);
         end
         
-        % Get volume scan information
+        % Get info about whether recording is a volume (piezo, multi-plane) 
+        % scan or a zstack
+        metadata.experimentType = obj.readinivar(inistring, 'experiment.type');
         metadata.isPiezoActive = obj.readinivar(inistring, 'piezo.active');
-        if metadata.isPiezoActive
-            metadata.nPlanes =  obj.readinivar(inistring, 'frames.per.z.cycle');
-        else
-            metadata.nPlanes = 1;
-        end
         
-        % Read number of planes is this is a ZStack recording
+        % Read number of planes if this is a ZStack recording or get volume
+        % scan information if recording is a multiplane (piezo) scan
         if strcmp(metadata.experimentType, 'XYTZ')
             metadata.zSpacing = obj.readinivar(inistring, 'z.spacing');
             metadata.numFramesPerPlane = obj.readinivar(inistring, 'frames.per.plane');
             metadata.nPlanes = metadata.nFrames / metadata.numFramesPerPlane;
-            if metadata.nChannels > 1
-                obj.DataDimensionArrangement = 'XYCTZ';
-            else
-                obj.DataDimensionArrangement = 'XYTZ';
-            end
-        else
+            dataDimensionArrangement = [dataDimensionArrangement, 'TZ'];
+
+        elseif metadata.isPiezoActive
+            metadata.nPlanes =  obj.readinivar(inistring, 'frames.per.z.cycle');
+            dataDimensionArrangement = [dataDimensionArrangement, 'ZT'];
+
+            % Todo: Get z-spacing
+        else 
             metadata.zSpacing = 0;
             metadata.numFramesPerPlane = metadata.nFrames;
             metadata.nPlanes = 1;
+            dataDimensionArrangement = [dataDimensionArrangement, 'T'];
         end
+        
+        obj.DataDimensionArrangement = dataDimensionArrangement;
         
         % Get spatial (physical) parameters for recording
         metadata.zoomFactor = obj.readinivar(inistring,'ZOOM');

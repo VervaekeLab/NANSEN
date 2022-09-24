@@ -1,12 +1,16 @@
 function im = localCorrelation(imArray, dim)
 
-    if ndims(imArray) > 3
-        error('Not implemented for matrices with more than 3 dims'); 
-    end
-
-
     [imageHeight, imageWidth, ~] = size(imArray);
 
+    if ndims(imArray) == 4
+        method = 'stack.zproject.localCorrelation';
+        im = stack.createNdStackProjection(imArray, method, dim);
+        return
+        
+    elseif ndims(imArray) > 4
+        error('Not implemented for matrices with more than 4 dims'); 
+    end
+    
     numRows = ceil(imageHeight / 128);
     numCols = ceil(imageWidth / 128);
     

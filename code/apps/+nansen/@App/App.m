@@ -13,6 +13,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     %   [ ] Important: Load task list and start running it if preferences
     %       are set for that, even if gui is not initialized...
+    %
+    %   [ ] Figure out what to do vis a vis multisession methods and pipelines. 
     
 
     properties (Constant, Access=protected) % Inherited from uiw.abstract.AppWindow
@@ -933,6 +935,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %h.HTable.MouseMotionFcn = @(s,e) onMouseMotionInTable(h, s, e);
             
             addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
+            addlistener(h, 'SelectionChanged', @app.onSessionSelectionChanged);
             
             h.UpdateColumnFcn = @app.updateTableVariable;
             h.ResetColumnFcn = @app.resetTableVariable;
@@ -1270,7 +1273,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 fcnName = func2str(task.method);
                 
                 if strcmp(task.status, 'Completed')
-                    sessionObj.updateProgress(fcnName, task.status)
+                    if numel(sessionObj) == 1
+                        sessionObj.updateProgress(fcnName, task.status)
+                    end
                 end
                 
             end
@@ -2312,6 +2317,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isempty(app.UiMetaTableViewer);    return;    end
             app.UiMetaTableViewer.refreshColumnModel()
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
+        end
+        
+        function onSessionSelectionChanged(app, src, evt)
+            
+            % Count number of sessions selected
+            selectedRows = app.UiMetaTableViewer.getSelectedEntries();
+            
+            str = 'Status: Idle';
+            
+            if numel(selectedRows) == 1
+                strA = sprintf( '%d session selected', numel(selectedRows) );
+                str = strjoin({strA, str}, ' | ');
+            elseif numel(selectedRows) > 1
+                strA = sprintf( '%d sessions selected', numel(selectedRows) );
+                str = strjoin({strA, str}, ' | ');
+            end
+            
+            app.h.StatusField.String = str;
+            
         end
         
         function onSessionTaskSelected(app, ~, evt)

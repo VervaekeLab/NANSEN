@@ -10,6 +10,11 @@ classdef Caiman < nansen.session.SessionMethod
         OptionsManager = nansen.OptionsManager(mfilename('class')) % todo...
     end
     
+    properties (Constant)
+        DATA_SUBFOLDER = 'roisignals' % defined in nansen.DataMethod
+        VARIABLE_PREFIX	= ''          % defined in nansen.DataMethod
+    end
+
     methods (Static)
         function options = getDefaultOptions()
         %GETDEFAULTOPTIONS Summary of this function goes here
@@ -57,7 +62,10 @@ classdef Caiman < nansen.session.SessionMethod
             h = openDeconvolutionExplorer(obj.SessionObjects);
             wasSuccess = obj.finishPreview(h);
         end
-        
+                
+        function printTask(obj, varargin)
+            fprintf(varargin{:})
+        end
     end
 
 end

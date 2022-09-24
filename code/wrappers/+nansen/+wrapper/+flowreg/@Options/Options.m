@@ -24,6 +24,10 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
             className = 'nansen.wrapper.flowreg.Processor';
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
             S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
+            
+            % Flowreg should be run with channel processing mode set to batch
+            S.Run.ChannelProcessingMode = 'batch';
+            S.Run.ChannelProcessingMode_ = {'batch', 'single'};
         end
         
         

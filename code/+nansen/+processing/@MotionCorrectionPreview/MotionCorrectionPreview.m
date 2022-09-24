@@ -164,15 +164,17 @@ classdef MotionCorrectionPreview < handle
         %       M: corrected images
         %       getSavepath : function handle to create absolute filepath.
         
-            imAvg = mean(M, 3);
-            imMax = max(M, [], 3);
+            dim = ndims(M);
+        
+            imAvg = mean(M, dim);
+            imMax = max(M, [], dim);
             imAvg = stack.makeuint8(imAvg);
             imMax = stack.makeuint8(imMax);
             imwrite(imAvg, getSavepath('avg_projection.tif'))
             imwrite(imMax, getSavepath('max_projection.tif'))
             
-            imAvg = mean(Y, 3);
-            imMax = max(Y, [], 3);
+            imAvg = mean(Y, dim);
+            imMax = max(Y, [], dim);
             imAvg = stack.makeuint8(imAvg);
             imMax = stack.makeuint8(imMax);
             imwrite(imAvg, getSavepath('avg_projection_raw.tif'))

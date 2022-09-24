@@ -23,7 +23,7 @@ classdef FrameCache < handle %< utility.class.StructAdapter
 
 
 %   Note: For 4D (or 5D stacks), all frames for the 3rd (and 4th) dimension
-%   are cached. This might in some cases no be very efficient, i.e if a
+%   are cached. This might in some cases not be very efficient, i.e if a
 %   stack is open where the current channels (and/or planes) are set to a
 %   subset of all available. An improvement would be to cache subsets of
 %   frames along these dimensions as well, possibly using the frame

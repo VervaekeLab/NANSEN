@@ -61,6 +61,11 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
             obj.createWidgetComponents()
 
         end
+        
+        function delete(obj)
+            delete(obj.hPlaneSwitcherToggleButton)
+            delete(obj.hPlaneSwitcherSlidebar)
+        end
 
     end
     

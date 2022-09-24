@@ -25,6 +25,13 @@ finished = false;
     
 lineShifts = zeros(nFrames, 1);
 
+imHeight = size(IM, 1);
+if mod(imHeight, 2) == 1
+    firstRow = IM(1,:,:);
+    IM = IM(2:end,:,:);
+end
+
+
 % Do it in smaller batches. Mostly relevant in the beginning of a scan
 first = 1;
 while ~finished
@@ -50,6 +57,10 @@ while ~finished
     colShiftPrev = colShift;
     first = last+1;
     
+end
+
+if mod(imHeight, 2) == 1
+    IM = cat(1, firstRow, IM);
 end
 
 end

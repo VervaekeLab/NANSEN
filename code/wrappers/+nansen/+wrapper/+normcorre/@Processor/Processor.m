@@ -22,24 +22,29 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
 %   TODO:
 %       [ ] Print command line output
-%       [ ] Implement multiple channel correction
-%       [ ] Improve initialization of template or leave it to normcorre... 
+%       [ ] Improve initialization of template or leave it to normcorre...
+%       [ ] Option for using precalculated template. 
+%       [ ] Move shifts to results property of ImageStackProcessor
 
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
         MethodName = 'Motion Correction (NoRMCorre)'
-        IsManual = false        % Does method require manual supervision?
-        IsQueueable = true      % Can method be added to a queue?
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.normcorre.Processor')
     end
     
     properties (Constant, Hidden)
-        DATA_SUBFOLDER = 'image_registration'; % Name of subfolder(s) where to save results by default
+        DATA_SUBFOLDER = 'motion_corrected'; % Name of subfolder(s) where to save results by default
+        VARIABLE_PREFIX = 'Normcorre';
     end
     
     properties (Constant) % From motion correction
         ImviewerPluginName = 'NoRMCorre'
+    end
+    
+    properties %(Dependent)
+        ChannelToCorrect = 2 % todo: rename to ReferenceChannel and
+        %update imageStackIterator when this value is set.
     end
     
 % % %     properties (Constant, Access = protected)
@@ -61,8 +66,8 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 return
             end
             
-            % Todo. Move to superclass
-            obj.Options.Export.FileName = obj.SourceStack.Name;
+            % Todo: Make sure channel processing mode is serial or single
+            % (no batch method available for normcorre.)
             
             % Call the appropriate run method
             if ~nargout
@@ -72,6 +77,15 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
         end
         
+    end
+    
+    methods % Set/get
+        function set.ChannelToCorrect(obj, value)
+            obj.ChannelToCorrect = value;
+            % Todo:
+            %obj.Options.Run.PrimaryChannel = value;
+            %obj.StackIterator.PrimaryChannel = value;
+        end
     end
     
     methods (Access = protected) % Implementation of abstract, public methods
@@ -107,18 +121,26 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
         end
         
+        
         function tf = checkIfPartIsFinished(obj, partNumber)
         %checkIfPartIsFinished Check if shift values exist for given part
-        
-            shifts = obj.ShiftsArray;
-            IND = obj.FrameIndPerPart{partNumber};
             
-            tf = all( arrayfun(@(i) ~isempty(shifts(i).shifts), IND) );
-
+            if obj.CurrentChannel == obj.ChannelToCorrect
+                shifts = obj.ShiftsArray{obj.CurrentPlane};
+                IND = obj.FrameIndPerPart{partNumber};
+                tf = all( arrayfun(@(i) ~isempty(shifts(i).shifts), IND) );
+            else
+                im = obj.DerivedStacks.AvgProjectionStackCorr.getFrameSet(partNumber);
+                tf = any(im(:) ~= 0);
+            end
+            
         end
         
         function initializeShifts(obj, numFrames)
         %initializeShifts Load or initialize shifts...
+        
+        % Note: shifts is a cell array of numChannels x numPlanes where
+        % each cell contains the struct array of shifts from normcorre
         
             % Get filepath (initialize if it does not exist)
             filePath = obj.getDataFilePath('NormcorreShifts', '-w', ...
@@ -126,17 +148,28 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             if isfile(filePath)
                 S = obj.loadData('NormcorreShifts');
-            
+                if ~isa(S, 'cell'); S = {S}; end
             else
                 % Initialize blank struct array
                 C = cell(numFrames, 1);
                 S = struct('shifts', C, 'shifts_up', C, 'diff', C);
+                S = obj.repeatStructPerDimension(S);
                 
                 obj.saveData('NormcorreShifts', S)
             end
             
             obj.ShiftsArray = S;
 
+        end
+        
+        function addDriftToShifts(obj, drift)
+        %addDriftToShifts Add drift value to the shifts for current part
+            i = 1;
+            j = obj.CurrentPlane;
+            iIndices = obj.CurrentFrameIndices;
+
+            obj.ShiftsArray{i,j}(iIndices) = obj.addShifts(...
+                    obj.ShiftsArray{i,j}(iIndices), drift);
         end
         
         function saveShifts(obj)
@@ -150,10 +183,13 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 IND = obj.CurrentFrameIndices;
             end
             
-            S = obj.CorrectionStats;
+            i = 1;
+            j = obj.CurrentPlane;
+            
+            S = obj.CorrectionStats{i, j};
             
             % Get the nonrigid shifts as a cell array
-            nrShifts = {obj.ShiftsArray(IND).shifts};
+            nrShifts = {obj.ShiftsArray{i,j}(IND).shifts};
             
             % Compute quantities
             rmsmov = cellfun(@(shifts) sqrt(mean(shifts(:).^2)), nrShifts);
@@ -165,9 +201,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             S.offsetY(IND) = yOffset;
             S.rmsMovement(IND) = rmsmov;
             
+            obj.CorrectionStats{i, j} = S;
+            
             % Save updated image registration stats to data location
-            obj.saveData('MotionCorrectionStats', S)
-            obj.CorrectionStats = S;
+            obj.saveData('MotionCorrectionStats', obj.CorrectionStats)
             
         end
         
@@ -189,24 +226,69 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     end
     
     methods (Access = protected) % Run the motion correction / image registration
+        
+        function onInitialization(obj)
+            onInitialization@nansen.processing.MotionCorrection(obj)
+            warnID = 'MATLAB:mir_warning_maybe_uninitialized_temporary';
+            warning('off', warnID)
             
-        function M = registerImageData(obj, Y)
+            % Save original selection for drift correction. This value will
+            % be adjusted during motion correction to make sure that drifts
+            % are only corrected for the reference channel (will be 
+            % automatically applied to other channels). Note: important to
+            % do this after the superclass' onInitialization method so that
+            % this extra field is not added to the saved options.
+            obj.Options.General.correctDriftUserChoice = obj.Options.General.correctDrift;
+            
+            % todo: get from options
+            obj.StackIterator.PrimaryChannel = obj.ChannelToCorrect;
+            
+            % Start parallell pool
+            % gcp();%parpool()
+        end
+        
+        function [M, results] = registerImageData(obj, Y)
             
             % Get toolbox options and template for motion correction.
             options = obj.ToolboxOptions;
+            options.correct_bidir = false; % should be done elsewhere...
+
+            results = true;
+            
+            i = 1;
+            j = obj.CurrentPlane;
+            
             template = single( obj.CurrentRefImage );
-            
-            [M, shifts, templateOut] = normcorre_batch(Y, options, template);
-            
-            % Add shifts to shiftarray
-            obj.ShiftsArray(obj.CurrentFrameIndices) = shifts;
-            
-            obj.CurrentRefImage = templateOut;
-            
-            % Write reference image to file.
-            templateOut = cast(templateOut, obj.SourceStack.DataType);
-            obj.ReferenceStack.writeFrameSet(templateOut, obj.CurrentPart)
-            
+
+            Y = squeeze(Y);
+
+            if obj.CurrentChannel == obj.ChannelToCorrect
+                
+                obj.Options.General.correctDrift = obj.Options.General.correctDriftUserChoice;
+
+                [M, shifts, templateOut] = normcorre_batch(Y, options, template);
+                obj.CurrentRefImage = templateOut;
+                                
+                % Write reference image to file.
+                templateOut = cast(templateOut, obj.SourceStack.DataType);
+                obj.DerivedStacks.ReferenceStack.writeFrameSet(templateOut, obj.CurrentPart)
+
+                % Add shifts to shiftarray
+                obj.ShiftsArray{i,j}(obj.CurrentFrameIndices) = shifts;
+            else
+                % Make sure drift is not corrected based on this channel:
+                obj.Options.General.correctDrift = false;
+                
+                % Get shifts from shiftarray
+                nc_shifts_part = obj.ShiftsArray{i,j}(obj.CurrentFrameIndices);
+                M = apply_shifts(Y, nc_shifts_part, options);
+            end
+        end
+        
+        function onCompletion(obj)
+            onCompletion@nansen.processing.MotionCorrection(obj)
+            warnID = 'MATLAB:mir_warning_maybe_uninitialized_temporary';
+            warning('on', warnID)
         end
         
     end

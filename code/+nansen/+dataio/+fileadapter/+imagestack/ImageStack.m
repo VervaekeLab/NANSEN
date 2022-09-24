@@ -103,7 +103,9 @@ classdef ImageStack < nansen.dataio.FileAdapter
                     className = 'nansen.stack.virtual.Binary';
                     
                 case {'tif', 'tiff'}
-                    className = 'nansen.stack.virtual.TiffMultiPart';
+                    %NB!! Add funcion here that checks tiff header.
+                    className = 'nansen.stack.virtual.ScanImageTiff';
+                    %className = 'nansen.stack.virtual.TiffMultiPart';
 
                 case 'mdf'
                     className = 'nansen.stack.virtual.MDF';

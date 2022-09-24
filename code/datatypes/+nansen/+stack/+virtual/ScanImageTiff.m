@@ -9,7 +9,7 @@ end
 
 properties (Access = private, Hidden)
     hTiffStack  % TIFFStack object
-    tiffInfo    % TIFF object
+    tiffInfo Tiff    % TIFF object
 end
 
 properties (Access = private, Hidden) % File Info
@@ -19,8 +19,11 @@ properties (Access = private, Hidden) % File Info
     NumPlanes_
     NumTimepoints_
     
+    FileConcatenator
     FrameIndexMap   % Holds frame indices for interleaved dimensions (numC x numZ x numT)
-    % Todo: Replace with deinterleaver..
+                    % Todo: Replace with deinterleaver..
+    
+    FilePathList
 end
 
 methods % Structors
@@ -41,7 +44,9 @@ methods % Structors
         end
         
         if ~isempty(obj.tiffInfo)
-            close(obj.tiffInfo)
+            for i = 1:numel(obj.tiffInfo)
+                close(obj.tiffInfo(i))
+            end
         end
 
     end
@@ -52,6 +57,8 @@ end
 methods (Access = protected) % Implementation of abstract methods
         
     function assignFilePath(obj, filePath, ~)
+        
+        import('nansen.stack.FileConcatenator')
         
         if isa(filePath, 'cell')
             if ischar( filePath{1} )
@@ -64,28 +71,60 @@ methods (Access = protected) % Implementation of abstract methods
         elseif isa(filePath, 'char') || isa(filePath, 'string')
             obj.FilePath = char(filePath);
             
-        elseif isa(filePath, 'Tiff') 
+        elseif isa(filePath, 'Tiff')
             obj.tiffInfo = filePath;
             obj.FilePath = obj.tiffInfo.Filename;
+        end
+        
+        filePath = nansen.stack.FileConcatenator.lookForMultipartFiles(obj.FilePath, 1);
+        
+        if numel(filePath) > 1
+            
+            %idx = strcmp(filePath, obj.FilePath);
+            %obj.tiffInfo([idx, numel(filePath)]) = obj.tiffInfo;
+            
+            for i = 1:numel( filePath )
+                %if i == idx; continue; end
+                obj.tiffInfo(i) = Tiff(filePath{i}, 'r+');
+            end
+            
+            obj.FileConcatenator = nansen.stack.FileConcatenator(filePath);
+        else
+            obj.FileConcatenator = nansen.stack.FileConcatenator({obj.FilePath});
         end
         
         % Determine whether TIFFStack is on path and should be used.
         if exist('TIFFStack', 'file') == 2
             obj.UseTiffStack = false;
         end
-        
     end
     
-    function getFileInfo(obj)
+    function getFileInfoOld(obj)
         
         if isempty( obj.tiffInfo )
             obj.tiffInfo = Tiff(obj.FilePath);
         end
         
-        obj.assignDataSize()
-        
+        obj.assignDataSizeOld()
         obj.assignDataType()
-
+    end
+    
+    function getFileInfo(obj)
+        
+        % Todo: If metadata is assigned, skip 
+        
+        if isempty( obj.tiffInfo )
+            obj.tiffInfo = Tiff(obj.FilePath);
+        end
+        
+        obj.MetaData.SizeY = obj.tiffInfo(1).getTag('ImageLength');
+        obj.MetaData.SizeX = obj.tiffInfo(1).getTag('ImageWidth');
+        
+        scanimageParams = obj.getScanParameters();
+        obj.assignScanImageParametersToMetadata(scanimageParams)
+    
+        obj.assignDataSize();
+        obj.assignDataType()
     end
     
     function createMemoryMap(obj)
@@ -118,11 +157,12 @@ methods (Access = protected) % Implementation of abstract methods
 
     end
     
-    function assignDataSize(obj)
+    function assignDataSizeOld(obj)
         
         % Todo: Verify that data is saved in order y,x,c,z,t
         
         % Get scan image tiff header
+        
         evalc(obj.tiffInfo.getTag('ImageDescription'));
         evalc(obj.tiffInfo.getTag('Software'));
         
@@ -152,7 +192,7 @@ methods (Access = protected) % Implementation of abstract methods
         % Determine dimensions C, Z, T:
         obj.NumChannels_ = numel( SI.hChannels.channelSave );
         obj.NumPlanes_ = SI.hStackManager.numSlices;
-        obj.countNumFrames();
+        %obj.countNumFrames(); Not needed...
 
         % Add length of channels if there is more than one channel
         if obj.NumChannels_ > 1
@@ -173,11 +213,22 @@ methods (Access = protected) % Implementation of abstract methods
         end
     end
     
+    function assignDataSize(obj)
+        
+        dataSize(1) = obj.MetaData.SizeY;
+        dataSize(2) = obj.MetaData.SizeX;
+        dataSize(3) = obj.MetaData.SizeC;
+        dataSize(4) = obj.MetaData.SizeZ;
+        dataSize(5) = obj.MetaData.SizeT;
+        
+        obj.resolveDataSizeAndDimensionArrangement(dataSize)
+    end
+    
     function assignDataType(obj)
         
         % Todo: Should be part of a tiff superclass
-        sampleFormat = obj.tiffInfo.getTag('SampleFormat');
-        bitsPerSample = obj.tiffInfo.getTag('BitsPerSample');
+        sampleFormat = obj.tiffInfo(1).getTag('SampleFormat');
+        bitsPerSample = obj.tiffInfo(1).getTag('BitsPerSample');
         
         switch sampleFormat
             case 1
@@ -255,8 +306,11 @@ methods % Implementation of VirtualArray abstract methods
                     frameNum = frameInd(count);
                     insertSub(3:5) = {i, j, k};
                     
-                    obj.tiffInfo.setDirectory(frameNum);
-                    data(insertSub{:}) = obj.tiffInfo.read();
+                    [fileNum, frameNumInFile] = obj.FileConcatenator.getFrameFileInd(frameNum);
+                    obj.tiffInfo(fileNum).setDirectory(frameNumInFile);
+                    
+                    %obj.tiffInfo.setDirectory(frameNum);
+                    data(insertSub{:}) = obj.tiffInfo(fileNum).read();
 
                     count = count + 1;
             
@@ -281,8 +335,78 @@ end
 
 methods (Access = private)
     
+    function sIParams = getScanParameters(obj)
+        
+        % Todo: 
+        %       Read info about channel colors...
+        %import nansen.stack.utility.findNumTiffDirectories
+
+        % Specify parameters that are required for creating image stack
+        paramNames = { ...
+            'hRoiManager.scanFramePeriod', ...
+            'hRoiManager.imagingFovUm', ...
+            'hRoiManager.scanVolumeRate', ...
+            'hStackManager.actualNumSlices', ...
+            'hStackManager.actualNumVolumes', ...
+            'hStackManager.framesPerSlice', ...
+            'hChannels.channelSave' ...
+            };
+        
+        %obj.ImageSize(1) = SI.hRoiManager.linesPerFrame;
+        %obj.ImageSize(2) = SI.hRoiManager.pixelsPerLine;
+        
+        numFramesPerFile = zeros(obj.FileConcatenator.NumFiles, 1);
+        
+        for i = 1:numel(obj.tiffInfo)
+            scanImageTag = obj.tiffInfo(i).getTag('Software');
+
+            sIParams = ophys.twophoton.scanimage.getScanParameters(...
+                scanImageTag, paramNames);
+            
+            if sIParams.hStackManager.framesPerSlice == 1
+                numFramesPerFile(i) = sIParams.hStackManager.actualNumVolumes;
+            else
+                numFramesPerFile(i) = sIParams.hStackManager.framesPerSlice;
+            end
+            
+            if numFramesPerFile(i) == inf
+                numFramesPerFile(i) = nansen.stack.utility.findNumTiffDirectories(obj.tiffInfo(i), 1, 10000);
+            end
+            
+        end
+        numFramesPerFile(i) = numFramesPerFile(i) .* sIParams.hChannels.channelSave .* sIParams.hStackManager.actualNumSlices;
+        obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
+        obj.NumTimepoints_ = sum(numFramesPerFile);
+        
+    end
+    
+    function assignScanImageParametersToMetadata(obj, sIParams)
+        
+        try
+            obj.MetaData.ImageSize = abs( sum(sIParams.hRoiManager.imagingFovUm(1,:) ));
+        catch
+            warning('Could not determine image size. Likely because this is a multi FOV recording. This should be implemented')
+        end
+            %obj.MetaData.PhysicalSizeY = nan;
+        %obj.MetaData.PhysicalSizeX = nan;
+        
+        obj.MetaData.PhysicalSizeYUnit = 'micrometer'; % Todo: Will this always be um?
+        obj.MetaData.PhysicalSizeXUnit = 'micrometer'; % Todo: Will this always be um?
+        
+        %obj.MetaData.TimeIncrement = sIParams.hRoiManager.scanFramePeriod;
+        obj.MetaData.SampleRate = sIParams.hRoiManager.scanVolumeRate;
+
+        obj.MetaData.SizeC = numel( sIParams.hChannels.channelSave );
+        obj.MetaData.SizeZ = sIParams.hStackManager.actualNumSlices;
+        obj.MetaData.SizeT = obj.NumTimepoints_;
+        
+        obj.NumChannels_ = obj.MetaData.SizeC;
+        obj.NumPlanes_ = obj.MetaData.SizeZ;
+    end
+    
     function dataSize = getOutSize(obj, subs)
-    %getOutSize Get size of data requested by subs...
+    %getOutSize Get size of data requested by subs... % Todo: Move to
+    %superclass
     %
     %   INPUT
     %       subs : subscripts with indices for each dimension of data
@@ -342,7 +466,7 @@ end
 
 
 methods (Static)
-    
+        
     function createFile(filePath, arraySize, arrayClass)
         error('Creation of ScanImage Tiffs are not supported.')
     end

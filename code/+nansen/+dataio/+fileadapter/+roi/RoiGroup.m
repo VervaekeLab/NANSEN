@@ -35,7 +35,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             end
             
             S = load(matFilename);
-            if isfield(S, 'data') % converted from python
+            if numel(fieldnames(S))==1 && isfield(S, 'data') % converted from python
                 data = S.data;
             else
                 data = S;
@@ -153,7 +153,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             
             if nargin < 2 || ~exist('data', 'var')
                 S = load(filepath);
-                if isfield(S, 'data')
+                if numel(fieldnames(S))==1 && isfield(S, 'data')
                     data = S.data; % Assume file was converted from .npy?
                 else
                     data = S;
@@ -164,6 +164,8 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                 roiFormat = 'Nansen';
             elseif obj.isSuite2pRoiFile(filepath, data)
                 roiFormat = 'Suite2p';
+            elseif obj.isVHLabRoiFile(filepath, data)
+                roiFormat = 'VHLab';
             elseif obj.isCaimanRoiFile(filepath, data)
                 roiFormat = 'CaImAn';
             elseif obj.isExtractRoiFile(filepath, data)
@@ -184,6 +186,9 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                 case 'Nansen'
                     conversionFcn = @roimanager.getRoiData;
                 case 'Extract'
+                    
+                case 'VHLab'
+                    conversionFcn = @nansen.dataio.dataconvert.roi.vhlab;
                     
                 otherwise
                     % Todo:
@@ -350,6 +355,16 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                 
             else
                 % What if someone renamed their files...?
+            end
+        end
+        
+        function tf = isVHLabRoiFile(filepath, data)
+            if nargin < 2
+                data = load(filepath);
+            end
+            
+            if isfield(data, 'cellstructs')
+                tf = true;
             end
         end
         

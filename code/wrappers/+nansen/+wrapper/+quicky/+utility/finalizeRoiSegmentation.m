@@ -25,8 +25,8 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     if opt.RingConvolutionSearch
         % Search for ring shaped candidates (spatial footprint only)
         fprintf('Searching for ring-shaped cells...\n')
-        param = struct('InnerRadius', 4, 'OuterRadius', 6, 'BoxSize', [21,21]);
-        roiArrayS = roimanager.autosegment.spatialDonutDetection(single(avgIm), [], param);
+        param = struct('InnerRadius', 4, 'OuterRadius', 6);
+        roiArrayS = flufinder.detect.shapeDetection(single(avgIm), [], param);
         
         if ~isempty(roiArrayS)
             roiArrayS = roimanager.utilities.mergeOverlappingRois(roiArrayS);

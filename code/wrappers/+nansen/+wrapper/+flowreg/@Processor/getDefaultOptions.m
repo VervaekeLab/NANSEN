@@ -11,6 +11,9 @@ function options = getDefaultOptions()
     className = 'nansen.wrapper.flowreg.Processor';
     superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
     options = nansen.mixin.HasOptions.combineOptions(options, superOptions{:});
-
+    
+    % Flowreg should be run with channel processing mode set to batch
+    options.Run.ChannelProcessingMode = 'batch';
+    options.Run.ChannelProcessingMode_ = {'batch', 'single'};
 end
 

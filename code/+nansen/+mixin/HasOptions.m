@@ -178,7 +178,7 @@ classdef HasOptions < handle
                 options = [options, nansen.mixin.HasOptions.getSuperClassOptions(iClassName)];
                 
             end
-
+            
         end
         
         function options = combineOptions(options, varargin)
@@ -187,7 +187,14 @@ classdef HasOptions < handle
                 fields = fieldnames(varargin{i});
 
                 for j = 1:numel(fields)
-                    options.(fields{j}) = varargin{i}.(fields{j});
+                    if isfield(options, fields{j}) && ...
+                            isa(options.(fields{j}), 'struct')
+                        
+                        options.(fields{j}) = utility.struct.mergestruct(...
+                            options.(fields{j}), varargin{i}.(fields{j}) );
+                    else
+                        options.(fields{j}) = varargin{i}.(fields{j});
+                    end
                 end
             end
         end

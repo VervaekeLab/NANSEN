@@ -48,7 +48,7 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
         secondaryMaps % Todo: merge this with roiDisplay
         
         roiSignalArray          % RM
-        
+        ImageDataCache struct
         
         signalOptions           % ?
         deconvolutionOptions    % ?
@@ -648,7 +648,7 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
             
             % Assign the Ancestor App of the roigroup to the app calling
             % for its creation.
-            newRoiMap.roiGroup.ParentApp = obj.StackViewer;
+            newRoiMap.RoiGroup.ParentApp = obj.StackViewer;
             newRoiMap.hRoimanager = obj;
             
             colorMap=cbrewer('qual', 'Set1', 8, 'spline');
@@ -665,9 +665,11 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
                 return
             end
             
-            obj.AppModules(4).hControls.setCurrentRoiGroup.String{end+1} = sprintf('Group %d', numGroups);
-            obj.AppModules(4).hControls.showRoiGroups.String{end+1} = sprintf('Show Group %d', numGroups);            
-            
+            % Todo: Simplify?
+            if isfield(obj.AppModules(4).hControls, 'setCurrentRoiGroup')
+                obj.AppModules(4).hControls.setCurrentRoiGroup.String{end+1} = sprintf('Group %d', numGroups);
+                obj.AppModules(4).hControls.showRoiGroups.String{end+1} = sprintf('Show Group %d', numGroups);            
+            end
         end
                 
         function mode = uiGetModeForAddingRois(obj)
@@ -690,8 +692,12 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
         
 % % % % 
 
-    function Y = prepareImagedata(obj, opts)
-   
+        function Y = prepareImagedata(obj, opts)
+        
+            if nargin < 2
+                opts = obj.settings.Autosegmentation;
+            end
+        
             global fprintf
             fprintf = @(varargin) obj.PrimaryApp.updateMessage(varargin{:});
             
@@ -702,20 +708,39 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
             firstFrame = opts.firstFrame;
             lastFrame = min([firstFrame + opts.numFrames - 1, hImageStack.NumFrames]);
             
-            if hImageStack.IsVirtual
-                fprintf('Loading image data\n')
-                Y = hImageStack.getFrameSet(firstFrame:lastFrame);
-            else
-                Y = hImageStack.Data;
+            frameInd = firstFrame:lastFrame;
+            
+            if ~isempty( obj.ImageDataCache )
+                if isequal(obj.ImageDataCache.FrameInd, frameInd) && ...
+                    isequal(obj.ImageDataCache.DownSamplingFactor, opts.downsamplingFactor)
+                    Y = obj.ImageDataCache.Data; return
+                end
             end
+
+            loadOpts = struct('target', 'Add To Memory');
+            Y = obj.PrimaryApp.loadImageFrames(frameInd, loadOpts);
             
             % Create moving average video.
             if opts.downsamplingFactor > 1 
                 fprintf('Downsampling image data\n')
                 dsFactor = opts.downsamplingFactor;
                 Y = stack.process.framebin.mean(Y, dsFactor); % Adapt this to virtual stack
+                obj.PrimaryApp.clearMessage()
             end
             
+            
+% % %             Todo: implement image mask from avg image. Ie, if image has
+% % %             black regions.
+% % %             mask = hImageStack.getProjection('mean') ~= 0;
+% % %             mask = imdilate(mask, strel('disk', 5));
+% % %             Y = cast(mask, 'like', Y) .* Y; % Adapt this to virtual stack
+
+            
+            % Add data to cache.
+            obj.ImageDataCache = struct();
+            obj.ImageDataCache.FrameInd = frameInd;
+            obj.ImageDataCache.DownSamplingFactor = opts.downsamplingFactor;
+            obj.ImageDataCache.Data = Y;
         end
 
         function runAutoSegmentation(obj)
@@ -752,16 +777,8 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
             switch lower(methodName)
                 
                 case 'quicky'
-                    
-                    switch methodOptions.MorphologicalStructure
-                        %foundRois = obj.runInternalAutosegmentation(Y, methodOptions);
-
-                        case 'Soma'
-                            [foundRois, im, stat] = roimanager.autosegment.autosegmentSoma(Y, mean(Y, 3));
-                        case 'Axonal Bouton'
-                            [foundRois, im, stat] = roimanager.autosegment.autosegmentAxon(Y, methodOptions);
-                    end       
-                    
+                    opts = nansen.wrapper.quicky.Options.convert(methodOptions);
+                    foundRois = flufinder.runAutoSegmentation(Y, opts);
 
                 case 'suite2p'
                     opts = suite2p.Options.convert(methodOptions);
@@ -828,6 +845,30 @@ classdef RoiManager < applify.mixin.AppPlugin & roimanager.RoiGroupFileIoAppMixi
             
         end %RM
         
+        
+        function S = getAutosegmentDefaultOptions(obj, methodName)
+            
+            switch lower(methodName)
+                case 'quicky'
+                    %h = nansen.OptionsManager('flufinder.getDefaultOptions');
+                    S = flufinder.getDefaultOptions();
+                    
+                case 'extract'
+                    S = nansen.wrapper.extract.Options.getDefaults();
+
+                case 'suite2p'
+                    S = nansen.twophoton.autosegmentation.suite2p.Options.getDefaultOptions;
+
+               %case 'cnmf'
+
+                otherwise
+                   error('Not implemented')
+
+            end
+            
+        end
+        
+
         function foundRois = runInternalAutosegmentation(obj, Y, options)
                         
             % Get imageStack from viewer
