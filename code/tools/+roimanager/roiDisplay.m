@@ -149,11 +149,15 @@ classdef roiDisplay < uim.handle
             assert( isa(newValue, 'roimanager.roiGroup'), ...
                 'RoiDisplay:InvalidPropertyValue', msg )
             
+            isInitialization = isempty(obj.RoiGroup);
+
             obj.resetListeners()
             obj.RoiGroup = newValue;
             obj.createListeners()
             
-            obj.onRoiGroupSet()
+            if ~isInitialization
+                obj.onRoiGroupSet()
+            end
             
         end
         
