@@ -1,36 +1,39 @@
 classdef Project < handle
-   
+%Project A class to represent a Project
+
     % Work in progress.
     
     % This object should reflect the content of a project folder and have
     % methods for interacting with data in the project folder.
     
-    
-    properties (Constant, Hidden)
-        % Todo: Folder property, with subfields?
-        METATABLE_FOLDER_NAME = 'Metadata Tables';
-        CONFIG_FOLDER_NAME = 'Configurations';
-    end
-   
+    % Todo : 
+    %   [ ] Define preferences.
+
     properties
-        Name
-        PackageName
+        Name                        % Name of the project
+        PackageName                 % Name of matlab package folder for the project
     end
     
     properties (SetAccess = private)
-        FolderPath
+        FolderPath char             % Path to the project folder
     end
     
     properties (Dependent)
-        MetatableCatalog
-        MetatableViewCatalog
-        DataLocationModel
-        VariableModel
+        Preferences                 % Preferences for the project
+        MetatableCatalog            % Catalog of metadata tables
+        MetatableViewCatalog        % Catalog of metadata table views
+        DataLocationModel           % Data location model for the project
+        VariableModel               % Variable model for the project
     end
     
     properties (Access = private)
         MetatableCatalog_   % internal store if catalog is already loaded. However, this would not be up to date it the catalog is changed. Think it is better that this is just a dependent property... 
-        
+    end
+
+    properties (Constant, Hidden)
+        % Todo: Folder property, with subfields?
+        METATABLE_FOLDER_NAME = 'Metadata Tables';
+        CONFIG_FOLDER_NAME = 'Configurations';
     end
 
     
@@ -68,11 +71,35 @@ classdef Project < handle
         
         function renameProject(obj, newName)
             
+            % Change name property
+            obj.Name = newName;
+            obj.PackageName = strcat('+', obj.Name);
+            
+            % Change name of folder
+            oldFolderpath = obj.FolderPath;
+            newFolderpath = fullfile(fileparts(oldFolderpath), obj.Name);
+            movefile(oldFolderpath, newFolderpath);
+            obj.FolderPath = newFolderpath;
         end
-        
     end
     
     methods % Set/get
+
+        function preferences = get.Preferences(obj)
+            filePath = fullfile(obj.FolderPath, 'nansen_project_configuration.mat');
+            S = load(filePath, 'ProjectConfiguration');
+            if isfield(S.ProjectConfiguration, 'Preferences')
+                preferences = S.ProjectConfiguration.Preferences;
+            else
+                preferences = struct;
+            end
+        end
+        function set.Preferences(obj, preferences)
+            filePath = fullfile(obj.FolderPath, 'nansen_project_configuration.mat');
+            S = load(filePath, 'ProjectConfiguration');
+            S.ProjectConfiguration.Preferences = preferences;
+            save(filePath, '-struct', 'S');
+        end
         
         function metatableCatalog = get.MetatableCatalog(obj)
             filePath = obj.getCatalogPath('MetaTableCatalog');
