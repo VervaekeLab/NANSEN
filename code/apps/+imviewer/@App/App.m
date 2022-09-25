@@ -249,8 +249,8 @@ methods % Structors
             obj.ImageStack = dataref;
             obj.DeleteImageStackOnQuit = false;
         end
-        
-        
+        drawnow
+
         obj.matlabVersionCheck() % Todo: This should not be a method of imviewer...
 
         % Run this after imageArray is parsed. Basically, varargins can 
@@ -272,7 +272,19 @@ methods % Structors
         obj.resizePanel(obj.Panel)
         
         obj.isConstructed = true; %obj.onThemeChanged()
+        drawnow
+
+        % Create message box
+        obj.uiwidgets.msgBox = uim.widget.messageBox(obj.uiaxes.imdisplay);
+        obj.textStrings.Status = '';
         
+        %Create toolbars
+        obj.addAppToolbar()
+        obj.addImageToolbar()
+        obj.createThumbnailViewerToggleButton()
+
+
+
         if ~all(isnan(obj.DisplayedImage(:)))
             set(obj.hDropbox, 'Visible', 'off')
         end
@@ -319,6 +331,20 @@ methods % Structors
             delete(obj.ImageStack)
         end
         
+        if ~isfield(obj.settings_.ImageDisplay, 'imageBrightnessLimits')
+            i = 1;
+            while true
+                newFieldName = sprintf('imageBrightnessLimitsCh%d',i);
+                if isfield(obj.settings_.ImageDisplay, newFieldName)
+                    obj.settings_.ImageDisplay = rmfield(obj.settings_.ImageDisplay, newFieldName);
+                else
+                    break
+                end
+                i = i+1;
+            end
+            obj.settings_.ImageDisplay.imageBrightnessLimits = [0,1];
+        end
+
         obj.unregisterApp()
         obj.saveSettings()
         delete(obj.Figure)
@@ -438,6 +464,14 @@ methods % App initialization & creation
         
         obj.settings_.ImageDisplay.VolumeDisplayMode = 'Single Plane';
         
+        if obj.ImageStack.NumChannels > 1
+            for i = 1:obj.ImageStack.NumChannels
+                newFieldName = sprintf('imageBrightnessLimitsCh%d',i);
+                obj.settings_.ImageDisplay.(newFieldName) = obj.settings_.ImageDisplay.imageBrightnessLimits;
+            end
+            obj.settings_.ImageDisplay = rmfield(obj.settings_.ImageDisplay, 'imageBrightnessLimits');
+        end
+
         obj.createUiAxes(axesSize)
         
         obj.updateImage()
@@ -451,7 +485,6 @@ methods % App initialization & creation
             obj.createPlaybackWidget()
 %         end
 
-        obj.createThumbnailViewerToggleButton()
 
         obj.onThemeChanged() % Apply theme colors...
         
@@ -465,7 +498,6 @@ methods % App initialization & creation
         
         % obj.setDefaultFigureCallbacks() Should be done onConstruction in superclass.
 
-        obj.uiwidgets.msgBox = uim.widget.messageBox(obj.uiaxes.imdisplay);
         %obj.displayMessage('Initializing...')
         
         % Initialize the pointer interface.
@@ -484,13 +516,15 @@ methods % App initialization & creation
         setappdata(obj.Figure, 'UIComponentCanvas', uicc);
         
         
-        obj.createBrightnessSlider()
+        %obj.createBrightnessSlider()
 
         
         % Create toolbars
-        obj.addImageToolbar()
-        obj.addAppToolbar()
-        
+        %obj.addAppToolbar()
+        %obj.addImageToolbar()
+        %obj.createThumbnailViewerToggleButton()
+
+
         % obj.addTaskbar()
 % %         obj.openThumbnailSelector()
 
@@ -501,7 +535,7 @@ methods % App initialization & creation
 % % %          t.TimerFcn = @(myTimerObj, thisEvent) obj.postStartup(t);
 % % %          start(t)
                  
-        obj.clearMessage()
+        %obj.clearMessage()
         obj.Panel.SizeChangedFcn = @obj.resizePanel;
         
         drawnow
@@ -964,14 +998,14 @@ methods % App initialization & creation
                 switch ext
                     case '.mat'
                         S = whos('-file', evt.Data{1});
-                        if ~isempty(S) && contains(S.name, 'roiArray')
-                            S = load(evt.Data{1});
+                        if ~isempty(S) && contains('roiArray', {S.name})
+                            S = load(evt.Data{1}, 'roiArray');
                             numColors = size(obj.Axes.ColorOrder, 1);
                             color = obj.Axes.ColorOrder(randi(numColors), :);
                             h = imviewer.plot.plotRoiArray(obj.Axes, S.roiArray);
                             set(h, 'Color', color);
-                        elseif ~isempty(S) && contains(S.name, 'roi_arr')
-                            S = load(evt.Data{1});
+                        elseif ~isempty(S) && contains('roi_arr', {S.name})
+                            S = load(evt.Data{1}, 'roi_arr');
                             numColors = size(obj.Axes.ColorOrder, 1);
                             color = obj.Axes.ColorOrder(randi(numColors), :);
                             h = imviewer.plot.plotRoiArray(obj.Axes, S.roi_arr);
@@ -1099,7 +1133,8 @@ methods % App initialization & creation
         mitem = uimenu(m, 'Label', 'Load Images...', 'Separator', 'on');
         mitem.Callback = @(s, e, bool) obj.onLoadImageDataPressed(true);
 
-        mitem = uimenu(m, 'Text', 'Save Images');
+        mitem = uimenu(m, 'Text', 'Save');
+        
         mSubItem = uimenu(mitem, 'Text', 'Save Stack', 'Enable', 'off');
         mSubItem.Callback = @obj.saveStack; % Todo: make this one
         mSubItem = uimenu(mitem, 'Text', 'Export Stack...', 'Enable', 'off');
@@ -1108,10 +1143,8 @@ methods % App initialization & creation
             mSubSubItem = uimenu(mSubItem, 'Text', fcnList{i});
             mSubSubItem.Callback = @(s,e) obj.exportStack(s);
         end
-                
-
         mSubItem = uimenu(mitem, 'Text', 'Save Image', 'Enable', 'on');
-        mSubItem.Callback = @(s,e) obj.saveImage;
+        mSubItem.Callback = @(s,e) obj.saveImage; % Todo: make this one
         mSubItem = uimenu(mitem, 'Text', 'Export Image As...', 'Enable', 'off');
         mSubItem.Callback = @obj.exportImage; % Todo: make this one
         
@@ -1124,37 +1157,52 @@ methods % App initialization & creation
         
         uicc = getappdata(obj.Figure, 'UIComponentCanvas');
         
-        % Create brightness slider
-        obj.brightnessSlider = uim.widget.rangeslider(uicc, ...
-            'Location', 'northeast', 'Margin', [0,0,60,30], ...
-            'Size', [120, 25], 'Visible', 'off', 'Padding', [10, 5, 10, 5]);
-
-        obj.uiwidgets.BrightnessSlider = obj.brightnessSlider;
+        yMargin = 30 * (1:obj.ImageStack.NumChannels);
         
-        obj.setSliderExtremeLimits()
-        obj.setSliderLimits()
+        obj.brightnessSlider = uim.widget.rangeslider.empty;
+        obj.uiwidgets.BrightnessSlider = uim.widget.rangeslider.empty;
+        obj.uiwidgets.BrightnessToolbar = uim.widget.toolbar.empty;
+
+        for i = 1:obj.ImageStack.NumChannels
+
+            label = sprintf('Ch%d', i);
+
+        % Create brightness slider
+        obj.brightnessSlider(i) = uim.widget.rangeslider(uicc, ...
+            'Location', 'northeast', 'Margin', [0,0,30,yMargin(i)], ...
+            'Size', [120, 25], 'Visible', 'off', 'Padding', [10, 5, 10, 5], ...
+            'NumTicks', 256, 'Label', label);
+
+        obj.uiwidgets.BrightnessSlider(i) = obj.brightnessSlider(i);
+        
+        obj.setSliderExtremeLimits([], i)
+        obj.setSliderLimits([], i)
 
         % Do this after setting limits and low/high.
-        obj.brightnessSlider.Callback = @obj.onSliderChanged;
+        obj.brightnessSlider(i).Callback = @(s,e,idx)obj.onSliderChanged(s,e,i);
 
         
         % Create toolbar
         hToolbar = uim.widget.toolbar(uicc, 'Location', 'northeast', ...
-            'Margin', [0,0,10,30], 'ComponentAlignment', 'left', ...
+            'Margin', [0,0,10,yMargin(i)], 'ComponentAlignment', 'left', ...
             'BackgroundAlpha', 0, 'Size', [50, 25], 'NewButtonSize', [21,21],...
             'Spacing', 5, 'Padding', [5,2,5,2], 'Visible', 'off');
-        hToolbar.Size = [50,25];
+        hToolbar.Size = [25,25];
         hToolbar.Location = 'northeast';
         hToolbar.SizeMode = 'manual';
         % Add buttons
-        hToolbar.addButton('Icon', obj.ICONS.auto, 'Type', 'togglebutton', 'Tag', 'auto', 'Tooltip', 'Auto', 'ButtonDownFcn', @obj.onAutoAdjustLimitsPressed)
-        hToolbar.addButton('Icon', obj.ICONS.hist, 'Type', 'pushbutton', 'Tag', 'hist', 'Tooltip', 'Show Histogram', 'ButtonDownFcn', @(s,e) obj.openBrightnessHistogram)        
-        obj.uiwidgets.BrightnessToolbar = hToolbar;
+        hToolbar.addButton('Icon', obj.ICONS.auto, 'Type', 'pushbutton', 'Tag', 'auto', 'Tooltip', 'Auto', 'ButtonDownFcn', @(s,e,idx)obj.onAutoAdjustLimitsPressed(s,e,i))
+        %hToolbar.addButton('Icon', obj.ICONS.hist, 'Type', 'pushbutton', 'Tag', 'hist', 'Tooltip', 'Show Histogram', 'ButtonDownFcn', @(s,e) obj.openBrightnessHistogram)        
+        obj.uiwidgets.BrightnessToolbar(i) = hToolbar;
 
-        obj.changeBrightness([obj.brightnessSlider.Low, obj.brightnessSlider.High])
+        %obj.changeBrightness([obj.brightnessSlider.Low, obj.brightnessSlider.High])
         
-        return
-
+        end
+        
+        % this should be internal to uicc, but on the other hand, it is
+        % more efficient to call it here once instead of having it invoked
+        % for every individual component which is added...
+        uicc.bringTooltipToFront()
     end
     
     function openThumbnailSelector(obj, showMessage)
@@ -1935,20 +1983,32 @@ methods % App update
     end
         
     function im = adjustMultichannelImage(obj, im)
-        switch obj.ImageStack.DataType
-            case 'uint8'
-                lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^8;
-            case 'uint16'
-                lowhigh_in = obj.settings.ImageDisplay.imageBrightnessLimits /2^16;
-            case 'int16' %#%&$#
-                lowhigh_in = (obj.settings.ImageDisplay.imageBrightnessLimits+2^15) /2^16;
-            case {'single', 'double'}
-                cLim = obj.settings.ImageDisplay.imageBrightnessLimits;
-                lowhigh_in = (cLim - min(cLim)) ./ range(obj.settings.ImageDisplay.brightnessSliderLimits);
-        end
 
-        %im = imadjust(im, lowhigh_in);
-        im = imadjustn(im, lowhigh_in);
+        for i = 1:size(im, 3)
+
+            if i > numel(obj.currentChannel)
+                iCh = 1;
+            else
+                iCh = obj.currentChannel(i);
+            end
+            
+            fieldName = sprintf('imageBrightnessLimitsCh%d',iCh);
+            bLimAbs = obj.settings.ImageDisplay.(fieldName);
+
+            switch obj.ImageStack.DataType
+                case 'uint8'
+                    lowhigh_in = bLimAbs /2^8;
+                case 'uint16'
+                    lowhigh_in = bLimAbs /2^16;
+                case 'int16' %#%&$#
+                    lowhigh_in = (bLimAbs+2^15) /2^16;
+                case {'single', 'double'}
+                    lowhigh_in = (bLimAbs - min(bLimAbs)) ./ range(bLimAbs);
+            end
+    
+            %im = imadjust(im, lowhigh_in);
+            im(:,:,i) = imadjustn(im(:,:,i), lowhigh_in);
+        end
     end
     
     function updateImageDisplay(obj)
@@ -1991,8 +2051,8 @@ methods % App update
         end
         
         if displayChannelColors
-            im = obj.setChColors(im);
             im = adjustMultichannelImage(obj, im);
+            im = obj.setChColors(im);
         end
         
         if isempty(im)
@@ -2227,52 +2287,83 @@ methods % Event/widget callbacks
     
     % Methods for updating brightness slider
 
-    function setSliderExtremeLimits(obj, newLimits)
+    function setSliderExtremeLimits(obj, newLimits, chNum)
         
-        if nargin < 2
+        if nargin < 2 || isempty(newLimits)
             newLimits = obj.ImageStack.DataTypeIntensityLimits;
             obj.settings_.ImageDisplay.brightnessSliderLimits = newLimits;
         end
+
+        if nargin < 3 || isempty(chNum)
+            chNum = 1:obj.ImageStack.NumChannels;
+        end
+
+        if isempty(obj.brightnessSlider); return; end
         
         assert(newLimits(1) < newLimits(2), 'L(1) must be smaller than L(2)')
         
-        obj.brightnessSlider.Min = newLimits(1);
-        obj.brightnessSlider.Max = newLimits(2);
+        set(obj.brightnessSlider(chNum), 'Min', newLimits(1) );
+        set(obj.brightnessSlider(chNum), 'Max', newLimits(2) );
         
         if newLimits(2) <= 1
-            obj.brightnessSlider.NumTicks = max( [100, diff(newLimits)] );
+            numTicks = max( [100, diff(newLimits)] );
+        elseif newLimits(2) <= 256
+            numTicks = max( [255, diff(newLimits)] );
         else
-            obj.brightnessSlider.NumTicks = max( [255, diff(newLimits)] );
+            numTicks = max( [1024, diff(newLimits)] );
         end
+
+        set(obj.brightnessSlider(chNum), 'NumTicks', numTicks );
     end
    
-    function setSliderLimits(obj, newLimits)
+    function setSliderLimits(obj, newLimits, chNum)
         
         % Todo: Should get slider limits from imagestack method, which is
         % based on the datatype of the image data..
         
-        if nargin < 2
+        if nargin < 2 || isempty(newLimits)
             %newLimits = obj.settings.ImageDisplay.imageBrightnessLimits;
             newLimits = obj.ImageStack.DataIntensityLimits;
             if isempty(obj.ImageStack.DataIntensityLimits)
                 newLimits = obj.ImageStack.DataTypeIntensityLimits;
             end
-            obj.settings_.ImageDisplay.imageBrightnessLimits = newLimits;
+            updateSettings = true;
         else
-            %Use internal property to avoid triggering on settings changed callback
-            obj.settings_.ImageDisplay.imageBrightnessLimits = newLimits;
+            updateSettings = false;
         end
+
+        if nargin < 3 || isempty(chNum)
+            chNum = 1:obj.ImageStack.NumChannels;
+        end
+        
+        if updateSettings
+            for iCh = chNum
+                if isfield(obj.settings.ImageDisplay, 'imageBrightnessLimits')
+                    fieldName = sprintf('imageBrightnessLimits');
+                else
+                    fieldName = sprintf('imageBrightnessLimitsCh%d', iCh);
+                end
+                % Use internal property to avoid triggering on settings changed callback
+                obj.settings_.ImageDisplay.(fieldName) = newLimits;
+            end
+        end
+
+        if isempty(obj.brightnessSlider); return; end
         
         % Todo: Do i need to round?
         newLimits = double(newLimits);
+
+        for iCh = chNum
         
-        % The high value must be set first in some cases:
-        if newLimits(1) > obj.brightnessSlider.High
-            obj.brightnessSlider.High = min([newLimits(2), obj.brightnessSlider.Max]);
-            obj.brightnessSlider.Low = max([newLimits(1), obj.brightnessSlider.Min]);
-        else
-            obj.brightnessSlider.Low = max([newLimits(1), obj.brightnessSlider.Min]);
-            obj.brightnessSlider.High = min([newLimits(2), obj.brightnessSlider.Max]);
+            % The high value must be set first in some cases:
+            if newLimits(1) > obj.brightnessSlider(iCh).High
+                obj.brightnessSlider(iCh).High = min([newLimits(2), obj.brightnessSlider(iCh).Max]);
+                obj.brightnessSlider(iCh).Low = max([newLimits(1), obj.brightnessSlider(iCh).Min]);
+            else
+                obj.brightnessSlider(iCh).Low = max([newLimits(1), obj.brightnessSlider(iCh).Min]);
+                obj.brightnessSlider(iCh).High = min([newLimits(2), obj.brightnessSlider(iCh).Max]);
+            end
+
         end
         
         
@@ -2284,11 +2375,8 @@ methods % Event/widget callbacks
 %         if obj.settings.ImageDisplay.imageBrightnessLimits(1) == 1
 %             obj.settings.ImageDisplay.imageBrightnessLimits(1) = 0;
 %         end
-        
-        
-        
+
     end
-    
     
     function goToFrame(obj, frameNumber) % todo: remove but fix roisignal video which use this
         src = struct('String', num2str(frameNumber));
@@ -2417,30 +2505,31 @@ methods % Event/widget callbacks
         obj.uiwidgets.playback.Maximum = obj.nFrames;
     end
     
-    function changeChannel(obj, channelNum, mode)
+    function changeChannel(obj, newChannelInd, mode)
         
         if nargin < 3 || isempty(mode)
             mode = 'select';
         end
         
+        oldChannelInd = obj.currentChannel;
         numChannels = obj.ImageStack.NumChannels;
         
         % If channelnum is 'all', convert to numbers
-        if ischar(channelNum) && strcmp(channelNum, 'all')
-            channelNum = 1:obj.ImageStack.NumChannels;
+        if ischar(newChannelInd) && strcmp(newChannelInd, 'all')
+            newChannelInd = 1:obj.ImageStack.NumChannels;
         end
         
         % Dont select channel which is not present
-        if any(channelNum > numChannels)
-            msg = sprintf('Channels are not available: %s', num2str(channelNum(channelNum > numChannels)));
+        if any(newChannelInd > numChannels)
+            msg = sprintf('Channels are not available: %s', num2str(newChannelInd(newChannelInd > numChannels)));
             obj.displayMessage(msg, [], 2)
-            channelNum(channelNum > numChannels) = [];
-            if isempty(channelNum)
+            newChannelInd(newChannelInd > numChannels) = [];
+            if isempty(newChannelInd)
                 return
             end
         end
         
-        if isempty(channelNum)
+        if isempty(newChannelInd)
             obj.currentChannel = obj.currentChannel;
             obj.displayMessage('At least one channel must be displayed', [], 2)
             return
@@ -2449,13 +2538,26 @@ methods % Event/widget callbacks
         % Set new selection
         switch mode
             case 'toggle'
-                if ismember(channelNum, obj.currentChannel)
-                    obj.currentChannel = setdiff(obj.currentChannel, channelNum);
+                if ismember(newChannelInd, obj.currentChannel)
+                    obj.currentChannel = setdiff(obj.currentChannel, newChannelInd);
                 else
-                    obj.currentChannel = union(obj.currentChannel, channelNum);
+                    obj.currentChannel = union(obj.currentChannel, newChannelInd);
                 end
             case 'select'
-                obj.currentChannel = channelNum;
+                obj.currentChannel = newChannelInd;
+        end
+
+        % Register the action with the undo manager
+        s = dbstack;
+        isUndoRedo = any(strcmp({s.name}, 'uiundo'));
+        if ~isUndoRedo && ~isempty(obj.Figure)
+            cmd.Name            = 'Change Current Channel';
+            cmd.Function        = @obj.changeChannel; % Redo action
+            cmd.Varargin        = {newChannelInd, mode};
+            cmd.InverseFunction = @obj.changeChannel; % Undo action
+            cmd.InverseVarargin = {oldChannelInd, mode};
+
+            uiundo(obj.Figure, 'function', cmd);
         end
         
     end
@@ -2594,7 +2696,7 @@ methods % Event/widget callbacks
         
     end
     
-    function changeBrightness(obj, newCLim)
+    function changeBrightness(obj, newCLim, channelNumber)
         % Callback function for value change of brightness slider
 %         min_brightness = slider.Low;
 %         max_brightness = slider.High;
@@ -2610,11 +2712,17 @@ methods % Event/widget callbacks
 %             newCLim = newCLim/100;
 %         end
         
+        if isfield(obj.settings.ImageDisplay, 'imageBrightnessLimits')
+            fieldName = sprintf('imageBrightnessLimits');
+        else
+            fieldName = sprintf('imageBrightnessLimitsCh%d',channelNumber);
+        end
         
+        oldLim = obj.settings.ImageDisplay.(fieldName);
         
         % Prevent setting upper limit lower than lower limit.
         if newCLim(2) <= newCLim(1)
-            if obj.settings.ImageDisplay.imageBrightnessLimits(2) <= 1
+            if oldLim(2) <= 1
                 newCLim(2) = newCLim(1)+0.01;
             else
                 newCLim(2) = newCLim(1)+1;
@@ -2623,14 +2731,15 @@ methods % Event/widget callbacks
         
         % Update settings, but use protected property, dont need to trigger
         % settings changed, because update is invoked below.
-        obj.settings_.ImageDisplay.imageBrightnessLimits = newCLim;
+        obj.settings_.ImageDisplay.(fieldName) = newCLim;
 
         if obj.ImageStack.NumChannels > 1
             if ~isempty(obj.imObj)
                 imdata = obj.DisplayedImage;
                 imdata = obj.prepareMultiplaneImageForDisplay(imdata);
+                imdata = obj.adjustMultichannelImage(imdata);
                 imdata = obj.setChColors(imdata);
-                obj.imObj.CData = obj.adjustMultichannelImage(imdata);
+                obj.imObj.CData = imdata;
             end
         else
             obj.uiaxes.imdisplay.CLim = newCLim;
@@ -2713,6 +2822,16 @@ methods % Event/widget callbacks
              obj.hSettingsEditor.replaceEditedStruct(obj.settings)
         end
                 
+    end
+    
+    function changeChannelColor(obj, src, evtData)
+        rgbColor = evtData.RgbColor;
+        channelNumber = evtData.ChannelNumber;
+        if ~strcmp(obj.ImageStack.ColorModel, 'Custom')
+            obj.ImageStack.ColorModel = 'Custom';
+        end
+        obj.ImageStack.CustomColorModel(channelNumber, :) = rgbColor;
+        obj.updateImageDisplay()
     end
 
     function showScalebar(obj)
@@ -3214,18 +3333,25 @@ methods % Misc, most can be outsourced
         
     end
     
-    function onAutoAdjustLimitsPressed(obj, src, ~)
+    function onAutoAdjustLimitsPressed(obj, src, ~, chNum)
         
-        if src.Value
-            obj.autoAdjustLimits = true;
-            P = prctile(double(obj.image(:)), [0.05, 99.95]);
-            if all(isnan(P)); return; end
-            obj.brightnessSlider.Low = P(1);
-            obj.brightnessSlider.High = P(2);
-            %obj.changeBrightness(P)
-        else
-            obj.autoAdjustLimits = false;
+        [~, iA, ~] = intersect(obj.currentChannel, chNum, 'stable');
+        if isempty(iA); 
+            obj.displayMessage('Can not adjust brightness when channel is not shown.', [], 2)
+            return; 
         end
+        %chNum = obj.currentChannel(chNum);  
+%         if src.Value
+            %obj.autoAdjustLimits = true;
+            tmpImage = obj.image(:,:,iA);
+            P = prctile(double(tmpImage(:)), [0.05, 99.95]);
+            if all(isnan(P)); return; end
+            obj.brightnessSlider(chNum).Low = P(1);
+            obj.brightnessSlider(chNum).High = P(2);
+            %obj.changeBrightness(P)
+%         else
+%             obj.autoAdjustLimits = false;
+%         end
 
 %         obj.updateImage()
 %         obj.updateImageDisplay()
@@ -3242,14 +3368,20 @@ methods % Misc, most can be outsourced
     function showBrightnessSlider(obj)
         % Todo: rename to toggleVisibility....
         
-        isVisible = strcmp(obj.brightnessSlider.Visible, 'on');
+        if isempty(obj.brightnessSlider)
+            obj.createBrightnessSlider()
+        end
+
+        isVisible = strcmp(obj.brightnessSlider(1).Visible, 'on');
         
-        if isVisible
-            obj.uiwidgets.BrightnessToolbar.Visible = 'off';
-            obj.brightnessSlider.Visible = 'off';
-        else
-            obj.uiwidgets.BrightnessToolbar.Visible = 'on';
-            obj.brightnessSlider.Visible = 'on';            
+        for i = 1:numel(obj.brightnessSlider)
+            if isVisible
+                obj.uiwidgets.BrightnessToolbar(i).Visible = 'off';
+                obj.brightnessSlider(i).Visible = 'off';
+            else
+                obj.uiwidgets.BrightnessToolbar(i).Visible = 'on';
+                obj.brightnessSlider(i).Visible = 'on';            
+            end
         end
         
     end
@@ -4141,7 +4273,10 @@ methods % Misc, most can be outsourced
         obj.editSettings@applify.mixin.UserSettings()
 
         % Why? Is this if the cancel button is hit?
-        obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
+        % obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
+    
+    
+    
     end
 
     function uiEditStackMetadata(obj)
@@ -4672,14 +4807,14 @@ methods (Access = protected) % Event callbacks
         
     end
     
-    function onSliderChanged(obj, ~, evtData)
+    function onSliderChanged(obj, ~, evtData, channelNumber)
         
         if evtData.High <= evtData.Low
             evtData.High = evtData.Low;
         end
 
         newCLim = [evtData.Low, evtData.High];
-        obj.changeBrightness(newCLim)
+        obj.changeBrightness(newCLim, channelNumber)
         
     end
     
@@ -4722,7 +4857,7 @@ methods (Access = protected) % Event callbacks
         for i = 1:numWidgets
             if ~isfield(obj.uiwidgets, widgetName{i}); continue; end
             if isempty(obj.uiwidgets.(widgetName{i})); continue; end
-            if strcmp(obj.uiwidgets.(widgetName{i}).Visible, 'off'); continue; end
+            if strcmp(obj.uiwidgets.(widgetName{i})(1).Visible, 'off'); continue; end
         
             widgetPosition = obj.uiwidgets.(widgetName{i}).Position;
             widgetLim = uim.utility.pos2lim(widgetPosition);
