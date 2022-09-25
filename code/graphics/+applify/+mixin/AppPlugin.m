@@ -83,9 +83,15 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         %getPluginIcon()
     end
 
+    methods (Abstract, Access = protected) % todo: Is this abstract?? 
+        onPluginActivated % Todo: find better name..
+    end
+
     methods % Constructor
         
-        function obj = AppPlugin(hApp, options, varargin)
+        function obj = AppPlugin(hApp, varargin)
+            
+            [options, varargin] = applify.mixin.AppPlugin.optionsCheck(varargin);
             
             if nargin > 2
                 obj.parseVarargin(varargin{1:end})
@@ -334,5 +340,23 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             end
         end
         
+    end
+
+    methods (Static)
+    
+        function [opts, cellOfArgs] = optionsCheck(cellOfArgs)
+            
+            opts = [];
+
+            if numel(cellOfArgs) >= 1
+                containsOpts = isa(cellOfArgs{1}, 'struct') || ...
+                    isa(cellOfArgs{1}, 'nansen.manage.OptionsManager');
+
+                if containsOpts
+                    opts = cellOfArgs{1}; cellOfArgs(1) = [];
+                end
+            end
+        end
+
     end
 end
