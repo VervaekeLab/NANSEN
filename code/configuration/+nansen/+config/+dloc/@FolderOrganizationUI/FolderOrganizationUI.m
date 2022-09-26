@@ -368,9 +368,11 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             currentDlName = obj.SelectDataLocationDropDown.Value;
             idx = find( strcmp({obj.DataLocationModel.Data.Name}, currentDlName) ); 
             
-            S = obj.getSubfolderStructure();
-            
-            obj.DataLocationModel.updateSubfolderStructure(S, idx)
+            sNew = obj.getSubfolderStructure();
+            sOld = obj.DataLocationModel.Data(idx).SubfolderStructure; 
+            if ~isequal(sNew, sOld)
+                obj.DataLocationModel.updateSubfolderStructure(sNew, idx)
+            end
             
         end
         
