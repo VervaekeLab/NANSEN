@@ -83,9 +83,9 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         %getPluginIcon()
     end
 
-    methods (Abstract, Access = protected) % todo: Is this abstract?? 
-        onPluginActivated % Todo: find better name..
-    end
+% %     methods (Abstract, Access = protected) % todo: Is this abstract?? 
+% %         onPluginActivated % Todo: find better name..
+% %     end
 
     methods % Constructor
         
