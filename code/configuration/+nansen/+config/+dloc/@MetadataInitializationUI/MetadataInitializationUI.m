@@ -13,7 +13,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %    [ ] Do the centering when getting the cell locations.
 %    [ ] Set fontsize/bg color and other properties in batch.
 %
-%    [ ] Update DL Model whenever new values are entered.
+%    [ ] Update DL Model whenever new values are entered. - Why???
 %
 %    [ ] Fix error that will occur if several subfolders are
 %        given the same subfolder type?
@@ -178,8 +178,14 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         
         function onFolderNameSelectionChanged(obj, src, ~)
         % Add value to tooltip of control
-        
+                        
+            rowNumber = obj.getComponentRowNumber(src);
+            idx = obj.getSubfolderLevel(rowNumber);
+            
+            obj.Data(rowNumber).SubfolderLevel = idx;
+
             src.Tooltip = src.Value;
+            obj.IsDirty = true;
         end
 
         function onSelectSubstringButtonPushed(obj, src, evt)
@@ -346,8 +352,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             dlIdx = obj.DataLocationIndex;
             thisDataLocation = obj.DataLocationModel.Data(dlIdx);
             
-            % Update Items and Value of subfolder dropdown
+            % Update Items of subfolder dropdown
             obj.setFolderSelectionItems()
+            
+            % Update values of subfolder dropdown based on the metadata
+            % defintions
+            M = thisDataLocation.MetaDataDef;
+            obj.updateFolderSelectionValue(M)
             
             % Update value in string detection input
             
@@ -384,44 +395,60 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             folderChoices(cellfun(@isempty, folderChoices)) = deal({'Foldername not found'});
             set(h, 'Items', folderChoices)
-            
+        end
+
+        function updateFolderSelectionValue(obj, M)
+        %updateFolderSelectionValue Set the dropdown value based on the model
+            % Get all the folder selector controls
+            h = [obj.RowControls.FolderNameSelector];
+
             for i = 1:numel(h)
                 %itemInd = oldValues(i);
-                itemInd = M(i).SubfolderLevel;
+                itemIdx = M(i).SubfolderLevel;
                 
                 % If there is no selection, try to infer from the data
                 % organization.
-                if isempty(itemInd)
-                    switch obj.RowControls(i).VariableName.Text
-                        case 'Animal ID'
-                            isMatched = strcmp({subFolderStructure.Type}, 'Animal');
-                            if any(isMatched)
-                                itemInd = find(isMatched);
-                            end
-                        case 'Session ID'
-                            isMatched = strcmp({subFolderStructure.Type}, 'Session');
-                            if any(isMatched)
-                                itemInd = find(isMatched);
-                            end
-                        case {'Date', 'Experiment Date'}
-                            isMatched = strcmp({subFolderStructure.Type}, 'Date');
-                            if any(isMatched)
-                                itemInd = find(isMatched);
-                            end
-                        case {'Time', 'Experiment Time'}
-                            itemInd = 0; 
-                        otherwise
-                            itemInd = 0; 
+                if isempty(itemIdx)
+                    itemIdx = obj.initFolderSelectionItemIndex(i, subFolderStructure);
+                end
+                
+                if isempty(itemIdx)
+                    itemIdx = 0;
+                elseif numel(itemIdx)>1
+                    itemIdx = itemIdx(1);
+                end
+                
+                set(h(i), 'Value', h(i).Items{itemIdx+1})
+            end
+        end
+
+        function itemIdx = initFolderSelectionItemIndex(obj, rowNumber, subFolderStructure)
+        %initFolderSelectionItemIndex Guess which index should be selected
+        %
+        %   For each subfolder level in the folder organization, there is a
+        %   type. If the type matches with the current row, use the index
+        %   of that subfolder level as the initial choice.
+        
+            switch obj.RowControls(rowNumber).VariableName.Text
+                case 'Animal ID'
+                    isMatched = strcmp({subFolderStructure.Type}, 'Animal');
+                    if any(isMatched)
+                        itemIdx = find(isMatched);
                     end
-                end
-                
-                if isempty(itemInd)
-                    itemInd = 0;
-                elseif numel(itemInd)>1
-                    itemInd = itemInd(1);
-                end
-                
-                set(h(i), 'Value', folderChoices{itemInd+1})
+                case 'Session ID'
+                    isMatched = strcmp({subFolderStructure.Type}, 'Session');
+                    if any(isMatched)
+                        itemIdx = find(isMatched);
+                    end
+                case {'Date', 'Experiment Date'}
+                    isMatched = strcmp({subFolderStructure.Type}, 'Date');
+                    if any(isMatched)
+                        itemIdx = find(isMatched);
+                    end
+                case {'Time', 'Experiment Time'}
+                    itemIdx = 0; 
+                otherwise
+                    itemIdx = 0; 
             end
         end
 
@@ -616,17 +643,24 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                     % Currently, only the first data location requires an
                     % update of this ui.
                     if idx == obj.DataLocationIndex
-                        obj.onModelSet()
+
+                        obj.setFolderSelectionItems()
+                        obj.updateFolderSelectionValue(obj.Data)
+
+                        % Update result of string indexing based on model...
+                        for i = 1:obj.NumRows
+                            hComp = obj.RowControls(i).StrfindInputEditbox;
+                            obj.onStringInputValueChanged(hComp)
+                        end
+
+                        %%%obj.onModelSet()
                     end
                     
                 otherwise
                     % No change is necessary
-                
             end
-            
         end
         
-
     end
         
     
