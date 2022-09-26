@@ -36,11 +36,13 @@ function metaTable = fixMetaTableDataLocations(metaTable, dataLocationModel)
                 rootPaths = {dataLocation.RootPath.Value};
 
                 for k = 1:numel(rootPaths)
-                    tf = contains( entries(j).DataLocation.(name), rootPaths{k} );
-                    if ~isempty(tf)
-                        root = rootPaths{k};
-                        rootIdx = k;
-                        break
+                    if isfield(entries(j).DataLocation, name)
+                        tf = contains( entries(j).DataLocation.(name), rootPaths{k} );
+                        if ~isempty(tf)
+                            root = rootPaths{k};
+                            rootIdx = k;
+                            break
+                        end
                     end
                 end
 
