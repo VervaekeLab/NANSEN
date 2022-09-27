@@ -16,9 +16,7 @@ function metaTable = fixMetaTableDataLocations(metaTable, dataLocationModel)
     if all(dataLocationCount == numDataLocations) && all(hasUuid)
         return
     end
-
-    if isfield(entries(1).DataLocation, 'Uuid'); return; end
-
+    
     newDataLocation = cell(numel(entries), 1);
     
     for j = 1:numel(entries)
