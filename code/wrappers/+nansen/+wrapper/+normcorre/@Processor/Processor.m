@@ -43,7 +43,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     end
     
     properties %(Dependent)
-        ChannelToCorrect = 2 % todo: rename to ReferenceChannel and
+        ChannelToCorrect = 1 % todo: rename to ReferenceChannel and
         %update imageStackIterator when this value is set.
     end
     

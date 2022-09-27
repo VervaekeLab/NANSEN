@@ -12,7 +12,7 @@ function S = getDefaultOptions()
     S.Preprocessing.BidirectionalCorrection_ = {'None', 'Constant', 'Continuous'};
     %S.Preprocessing.BidirectionalCorrection_ = {'None', 'One Time', 'Continuous'};
     
-    %S.General.correctDrift = false;
+    S.General.correctDrift = false;
     
     
     S.Preview.firstFrame = 1;

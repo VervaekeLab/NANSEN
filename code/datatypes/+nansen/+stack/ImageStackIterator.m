@@ -205,6 +205,12 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
             mode = obj.ChannelProcessingMode;
             numC = obj.NumChannels;
             refC = obj.PrimaryChannel;
+            
+            if refC > obj.NumChannels
+                warning('The stack has %d channels, but the reference channel was set to %d. Resetting the reference channel to 1.', obj.NumChannels, refC)
+                refC = 1;
+            end
+            
             obj.IterationValuesC = obj.getIterationValues(mode, numC, refC);
         end
         
@@ -230,7 +236,7 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
         %getIterationValues Get iteration values depending on mode
         %
         %   values = getIterationValues(mode, numItems, primaryItem)
-        %   returns a cell array where each cells contain the values for 
+        %   returns a cell array where each cell contains the values for 
         %   one iteration step.
         %
         %   mode is a char which can have the following values:
