@@ -83,15 +83,20 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             dsFactor = obj.getTemporalDownsamplingFactor();
             
             if dsFactor > 1
-                % Todo: more specific....:
-% %                 [tf, filePath] = obj.SourceStack.hasDownsampledStack('temporal_mean', dsFactor);
-% %                 if ~tf
-% %                     tf = nansen.stack.ImageStack.isStackComplete(filePath);
-% %                     if ~tf
+                [existFile, filePath] = obj.SourceStack.hasDownsampledStack('temporal_mean', dsFactor);
+
+                if existFile
+                    fileComplete = nansen.stack.ImageStack.isStackComplete(filePath);
+                    
+                    if fileComplete
+                        fprintf('Downsampled stack already exists. Skipping downsampling...\n')
+                        downsampledStack = nansen.stack.ImageStack(filePath);
+                        obj.replaceSourceStackWithDownsampledStack(downsampledStack)
+                    else
                         obj.RequireDownsampleStack = true;
                         obj.addStep('downsample', 'Downsample stack in time', 'beginning')
-% %                     end
-% %                 end
+                    end
+                end
             end
             
         end
@@ -109,10 +114,13 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             % Get downsampled stack if required
             dsFactor = obj.getTemporalDownsamplingFactor();
             if dsFactor > 1
-                
-                obj.displayStartStep('downsample')
-                obj.downsampleStack(dsFactor)
-                obj.displayFinishStep('downsample')
+                if obj.RequireDownsampleStack
+                    obj.displayStartStep('downsample')
+                    obj.downsampleStack(dsFactor)
+                    obj.displayFinishStep('downsample')
+                else
+
+                end
                 
                 % Redo the splitting
                 obj.configureImageStackSplitting()
@@ -271,10 +279,13 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             downsampler.IsSubProcess = true;
             downsampler.runMethod()
             
-            downsampledStack = downsampler.getDownsampledStack();
+            downsampledStack = downsampler.getDownsampledStack();            
             
-            
-            
+            obj.replaceSourceStackWithDownsampledStack(downsampledStack)
+        end
+
+        function replaceSourceStackWithDownsampledStack(obj, downsampledStack)
+
             % Store original stack and assign the downsampled stack as
             % source stack. Original stack might be needed later.
             obj.OriginalStack = obj.SourceStack;
