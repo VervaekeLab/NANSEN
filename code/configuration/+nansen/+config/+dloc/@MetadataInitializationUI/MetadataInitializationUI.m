@@ -230,6 +230,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                     
                     shortName = strrep(hRow.VariableName.Text, 'Experiment', '');
     
+                    substring = obj.getFolderSubString(rowNumber);
                     [dtInFormat, dtOutFormat] = obj.uiGetDateTimeFormat(hRow.VariableName.Text, substring);
                     
                     if ~isempty(dtInFormat)
