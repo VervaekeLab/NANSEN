@@ -24,6 +24,10 @@ classdef ImageStackData < uim.mixin.assignProperties
         DEFAULT_DIMENSION_ARRANGEMENT = 'YXCZT'
         DIMENSION_NAMES = {'Height', 'Width', 'Channel', 'Plane', 'Time'}
     end
+
+    properties
+        Description = '';
+    end
        
     properties (SetAccess = protected) % Size and type of original data
         MetaData nansen.stack.metadata.StackMetadata
@@ -67,7 +71,12 @@ classdef ImageStackData < uim.mixin.assignProperties
     
         function varargout = size(obj, dim)
         %SIZE Implement size function to mimick array functionality.
-        
+            
+            numObj = numel(obj);
+            if numObj > 1
+                varargout = {numObj}; return
+            end
+
             stackSize = obj.StackSize;
             
             % Return length of each dimension in a row vector
@@ -121,7 +130,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         
         function dataType = class(obj)
         %CLASS Implement class function to mimick array functionality.
-            dataType = sprintf('%s (%s ImageStackData)', obj.DataType, obj.StackDimensionArrangement);
+            dataType = sprintf('%s (%s ImageStackData)', obj(1).DataType, obj(1).StackDimensionArrangement);
         end
                 
         function varargout = subsref(obj, s, varargin)
@@ -132,60 +141,62 @@ classdef ImageStackData < uim.mixin.assignProperties
             % Todo: use numArgumentsFromSubscript instead of try catch
             % blocks below.
 
-            switch s(1).type
+            useBuiltin = strcmp(s(1).type, '.') || numel(obj) > 1;
 
-                % Use builtin if a property/method is requested.
-                case '.'
-                    if nargout > 0
-                        [varargout{:}] = builtin('subsref', obj, s);
-                    else
-                        try
-                            varargout{1} = builtin('subsref', obj, s);
-                        catch ME
-                            switch ME.identifier
-                                case {'MATLAB:TooManyOutputs', 'MATLAB:maxlhs'}
-                                    try
-                                        builtin('subsref', obj, s)
-                                    catch ME
-                                        throwAsCaller(ME)
-                                    end
-                                otherwise
+            if useBuiltin
+                if nargout > 0
+                    [varargout{:}] = builtin('subsref', obj, s);
+                else
+                    try
+                        varargout{1} = builtin('subsref', obj, s);
+                    catch ME
+                        switch ME.identifier
+                            case {'MATLAB:TooManyOutputs', 'MATLAB:maxlhs'}
+                                try
+                                    builtin('subsref', obj, s)
+                                catch ME
                                     throwAsCaller(ME)
-                            end
+                                end
+                            otherwise
+                                throwAsCaller(ME)
                         end
                     end
+                end
+                return
+                
+            % Return image data if using ()-style referencing
+            elseif strcmp(s(1).type, '()')
+                
+                numRequestedDim = numel(s.subs);
+                
+                if isequal(s.subs, {':'})
+                    varargout{1} = obj.getLinearizedData();
                     return
-                    
-                % Return image data if using ()-style referencing
-                case '()'
-                    
-                    numRequestedDim = numel(s.subs);
-                    
-                    if isequal(s.subs, {':'})
-                        varargout{1} = obj.getLinearizedData();
-                        return
-                    elseif numRequestedDim == ndims(obj)
-                        subs = obj.rearrangeSubs(s.subs);
-                    elseif numRequestedDim == 1
-                        % todo:
-                        [subs{1:ndims(obj)}] = ind2sub(obj.DataSize, s.subs{1});
-                    else
-                        error('Requested number of dimensions does not match number of data dimensions')
-                        % Todo: If there are too many dimensions in subs,
-                        % it is fine if they are singletons. Same, if there
-                        % are too few, treat the leftout dimensions as
-                        % one.?
-                    end
-                    
-                    % Todo: check that subs are not exceeding data/array bounds 
-                    % obj.validateSubs() % Todo: make this method...
-                    
-                    data = obj.getData(subs);
-                    
-                    % Permute data according to the stack dimension order
-                    data = permute(data, obj.StackDimensionOrder);
-                    
-                    [varargout{:}] = data;
+                elseif numRequestedDim == ndims(obj)
+                    subs = obj.rearrangeSubs(s.subs);
+                elseif numRequestedDim == 1
+                    % todo:
+                    [subs{1:ndims(obj)}] = ind2sub(obj.DataSize, s.subs{1});
+                else
+                    error('Requested number of dimensions does not match number of data dimensions')
+                    % Todo: If there are too many dimensions in subs,
+                    % it is fine if they are singletons. Same, if there
+                    % are too few, treat the leftout dimensions as
+                    % one.?
+                end
+                
+                % Todo: check that subs are not exceeding data/array bounds 
+                % obj.validateSubs() % Todo: make this method...
+                
+                data = obj.getData(subs);
+                
+                % Permute data according to the stack dimension order
+                data = permute(data, obj.StackDimensionOrder);
+                
+                [varargout{:}] = data;
+
+            else
+                error('Indexing is not implemented.')
             end
         end
         

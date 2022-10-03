@@ -7,12 +7,17 @@ properties (Constant, Hidden)
     FILE_PERMISSION = 'read'
 end
 
-properties (Access = private, Hidden)
+properties (Hidden)
+    AutoConcatenateFiles = true     % Automatically concatenate files if multiple files are detected in file location
+    ConcatenationMode = 1           % Mode for file concatenation. See nansen.stack.FileConcatenator/lookForMultipartFiles
+end
+
+properties (Access = protected, Hidden)
     hTiffStack  % TIFFStack object
     tiffInfo Tiff    % TIFF object
 end
 
-properties (Access = private, Hidden) % File Info
+properties (Access = protected, Hidden) % File Info
     UseTiffStack = false % Flag whether to use DylanMuirs TIFFStack class
 
     NumChannels_
@@ -76,26 +81,29 @@ methods (Access = protected) % Implementation of abstract methods
             obj.FilePath = obj.tiffInfo.Filename;
         end
         
-        filePath = nansen.stack.FileConcatenator.lookForMultipartFiles(obj.FilePath, 1);
+        if obj.AutoConcatenateFiles
+            filePath = nansen.stack.FileConcatenator.lookForMultipartFiles(...
+                obj.FilePath, obj.ConcatenationMode);
         
-        if numel(filePath) > 1
-            
-            %idx = strcmp(filePath, obj.FilePath);
-            %obj.tiffInfo([idx, numel(filePath)]) = obj.tiffInfo;
-            
-            for i = 1:numel( filePath )
-                %if i == idx; continue; end
-                obj.tiffInfo(i) = Tiff(filePath{i}, 'r+');
+            if numel(filePath) > 1
+                
+                %idx = strcmp(filePath, obj.FilePath);
+                %obj.tiffInfo([idx, numel(filePath)]) = obj.tiffInfo;
+                
+                for i = 1:numel( filePath )
+                    %if i == idx; continue; end
+                    obj.tiffInfo(i) = Tiff(filePath{i}, 'r+');
+                end
+                
+                obj.FileConcatenator = nansen.stack.FileConcatenator(filePath);
+            else
+                obj.FileConcatenator = nansen.stack.FileConcatenator({obj.FilePath});
             end
-            
-            obj.FileConcatenator = nansen.stack.FileConcatenator(filePath);
-        else
-            obj.FileConcatenator = nansen.stack.FileConcatenator({obj.FilePath});
         end
         
         % Determine whether TIFFStack is on path and should be used.
         if exist('TIFFStack', 'file') == 2
-            obj.UseTiffStack = false;
+            obj.UseTiffStack = false; % Todo: Change to true, but make dependent on some preference.
         end
     end
     
@@ -333,7 +341,7 @@ methods % Implementation of VirtualArray abstract methods
 end
 
 
-methods (Access = private)
+methods (Access = protected) % Todo: Scan image and subclass
     
     function sIParams = getScanParameters(obj)
         
@@ -350,7 +358,7 @@ methods (Access = private)
             'hStackManager.actualNumVolumes', ...
             'hStackManager.framesPerSlice', ...
             'hChannels.channelSave' ...
-            };
+            'objectiveResolution'};
         
         %obj.ImageSize(1) = SI.hRoiManager.linesPerFrame;
         %obj.ImageSize(2) = SI.hRoiManager.pixelsPerLine;
@@ -385,7 +393,11 @@ methods (Access = private)
         try
             obj.MetaData.ImageSize = abs( sum(sIParams.hRoiManager.imagingFovUm(1,:) ));
         catch
-            warning('Could not determine image size. Likely because this is a multi FOV recording. This should be implemented')
+            try
+                obj.MetaData.ImageSize = fliplr(sIParams.fovInfo.pixelResolutionXY);
+            catch
+                error('Could not determine image size')
+            end
         end
             %obj.MetaData.PhysicalSizeY = nan;
         %obj.MetaData.PhysicalSizeX = nan;
@@ -510,7 +522,53 @@ methods (Static)
                 % Not valid (not aware of any other file formats)
         end
     end
+    
+    function [isMultiRoi, numRois] = checkIfMultiRoi(tiffRef)
+    %checkIfMultiRoi Checks if ScanImage recording is a multi roi recording
+    %
+    %   isMultiRoi = checkIfMultiRoi(tiffRef) returns true if the ScanImage
+    %   recording represented by tiffRef is a multi roi (fov) recording.
+    %   The input, tiffRef can be the absolute file path to a tiff file or
+    %   a Tiff object.
 
+        tiffObject = nansen.stack.utility.getTiffObject(tiffRef);
+        
+        if numel(tiffObject) > 1
+            scanImageTag = arrayfun(@(tiff) tiff.getTag('Software'), ...
+                tiffObject, 'UniformOutput', false);
+
+            %   - Check light paths
+            info = cellfun( @(str) ...
+                ophys.twophoton.scanimage.getScanParameters(str, 'imagingSystem'), ...
+                scanImageTag, 'UniformOutput', true);
+            
+            imagingSystem = {info.imagingSystem};
+            numImagingSystems = numel( unique(imagingSystem) );
+            if numImagingSystems > 1
+                assert(numImagingSystems == numel(tiffObject), 'Number of light paths must match number of tiff files')
+                numRois = zeros(1, numImagingSystems);
+                for j = 1:numel(tiffObject)
+                    [~, numRois(j)] = nansen.stack.virtual.ScanImageTiff.checkIfMultiRoi(tiffObject(j));
+                end
+                numRois = sum(numRois);
+                isMultiRoi = numRois > 1;
+                if isMultiRoi; return; end
+            end
+            %   - Todo: Check FoV Position + FoV Size
+
+            %   - Todo: Check start time
+        else
+            % ScanImage writes information about Rois to the Artist tag
+            artistTagValue = tiffObject.getTag('Artist');
+            data = jsondecode(artistTagValue);
+            numRois = numel( data.RoiGroups.imagingRoiGroup.rois );
+            isMultiRoi = numRois > 1;
+        end
+
+        if nargout == 1
+            clear numRois
+        end
+    end
 end
 
 end
