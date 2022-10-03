@@ -363,8 +363,11 @@ methods (Access = protected) % Todo: Scan image and subclass
         %obj.ImageSize(1) = SI.hRoiManager.linesPerFrame;
         %obj.ImageSize(2) = SI.hRoiManager.pixelsPerLine;
         
-        numFramesPerFile = zeros(obj.FileConcatenator.NumFiles, 1);
-        
+        if ~isempty(obj.FileConcatenator)
+            numFramesPerFile = zeros(obj.FileConcatenator.NumFiles, 1);
+        else
+            numFramesPerFile = 1;
+        end
         for i = 1:numel(obj.tiffInfo)
             scanImageTag = obj.tiffInfo(i).getTag('Software');
 
