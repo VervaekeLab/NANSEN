@@ -414,6 +414,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             % Get all the folder selector controls
             h = [obj.RowControls.FolderNameSelector];
 
+            dlIdx = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            subFolderStructure = thisDataLocation.SubfolderStructure;
+
             for i = 1:numel(h)
                 %itemInd = oldValues(i);
                 itemIdx = M(i).SubfolderLevel;
@@ -440,7 +444,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %   For each subfolder level in the folder organization, there is a
         %   type. If the type matches with the current row, use the index
         %   of that subfolder level as the initial choice.
-        
+            
+            itemIdx = 0;
             switch obj.RowControls(rowNumber).VariableName.Text
                 case 'Animal ID'
                     isMatched = strcmp({subFolderStructure.Type}, 'Animal');
