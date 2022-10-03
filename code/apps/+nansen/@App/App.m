@@ -420,9 +420,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
             % % Section with menu items for creating table variables
 
-            mitem = uimenu(m, 'Text','New Table Variable...', 'Separator', 'on');
-            mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
-
+            mitem = uimenu(m, 'Text','New Table Variable', 'Separator', 'on');
+            uimenu( mitem, 'Text', 'Create...', 'MenuSelectedFcn', @(s,e, cls) app.addTableVariable('session'));
+            uimenu( mitem, 'Text', 'Import...', 'MenuSelectedFcn', @(s,e, cls) app.importTableVariable('session'));
+            
             % Menu with submenus for editing table variable definition:
             mitem = uimenu(m, 'Text','Edit Table Variable Definition');         
             columnVariables = getPublicSessionInfoVariables(app.MetaTable);
@@ -1681,6 +1682,35 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             initValue = nansen.metadata.utility.getDefaultValue(S.DataType);
             
             app.MetaTable.addTableVariable(S.VariableName, initValue)
+            app.UiMetaTableViewer.refreshColumnModel();
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+            % Refresh menus that show the variables of the session table...
+            app.updateSessionInfoDependentMenus()
+        end
+        
+        function importTableVariable(app, metadataClass)
+            
+            [filename, folder] = uigetfile('*.m', 'Select a Table Variable File');
+            if isequal(filename, 0)
+                return
+            end
+
+            filePath = fullfile(folder, filename);
+            
+            rootPathTarget = nansen.localpath('Custom Metatable Variable', 'current');
+            fcnTargetPath = fullfile(rootPathTarget, ['+', lower(metadataClass)] );
+            if ~isfolder(fcnTargetPath); mkdir(fcnTargetPath); end
+
+            copyfile(filePath, fullfile(fcnTargetPath, filename))
+
+             % Todo: Add variable to table and table settings....
+            fcnName = utility.path.abspath2funcname(fullfile(fcnTargetPath, filename));
+            tablevarFcn = str2func(fcnName);
+            initValue = tablevarFcn();
+            
+            [~, variableName] = fileparts(filename);
+            app.MetaTable.addTableVariable(variableName, initValue)
             app.UiMetaTableViewer.refreshColumnModel();
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
