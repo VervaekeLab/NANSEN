@@ -1523,7 +1523,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 
                 obj.FileName = obj.Data.FilePath;
                 [~, obj.Name] = fileparts(obj.Data.FilePath);
-                
+                if ~isempty(obj.Data.Description)
+                    obj.Name = strjoin({obj.Name, obj.Data.Description}, '_');
+                end
             else
                 
                 obj.IsVirtual = false;

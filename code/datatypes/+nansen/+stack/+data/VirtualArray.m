@@ -93,6 +93,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         
         function obj = VirtualArray(filePath, varargin)
         %VirtualArray Constructor for VirtualArray class
+            
+            if isempty(filePath); return; end
         
             [nvPairs, varargin] = utility.getnvpairs(varargin{:});
 

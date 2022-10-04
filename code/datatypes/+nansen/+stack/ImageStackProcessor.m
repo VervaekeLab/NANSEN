@@ -960,6 +960,9 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
             if isfile(filePath)
                 obj.MergedResults = obj.loadData(variableName);
+                if ~isempty(obj.MergedResults) && isempty(obj.MergedResults{1}) % Todo: Is this a necessary precaution?
+                    obj.MergedResults = {};
+                end
             end
         end
         

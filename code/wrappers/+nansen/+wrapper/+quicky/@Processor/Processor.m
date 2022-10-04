@@ -149,15 +149,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
         function mergeSpatialComponents(obj, iPlane, iChannel)
             
-% % %             import flufinder.detect.findUniqueRoisFromComponents
-% % % 
-% % %             %tmpMergedResults = obj.Results{:, iPlane, iChannel};
-% % %             %tmpMergedResults = cat(1, tmpMergedResults{:});
-% % % 
-% % %             imageSize = obj.SourceStack.FrameSize;
-% % %             roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
-% % % 
-% % %             obj.RoiArray(iPlane, iChannel) = roiArrayT;
+            import flufinder.detect.findUniqueRoisFromComponents
+
+            tmpMergedResults = cat(1, obj.Results{:, iPlane, iChannel});
+            obj.MergedResults{iPlane, iChannel} = tmpMergedResults;
 
         end
 
@@ -201,7 +196,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 [iZ, iC] = obj.StackIterator.next();
                 
                 tmpMergedResults = obj.MergedResults{iZ, iC};
-                %tmpMergedResults = cat(1, tmpMergedResults{:});
+                
                 S = cat(1, tmpMergedResults.spatialComponents );
                 imageSize = obj.SourceStack.FrameSize;
                 roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function

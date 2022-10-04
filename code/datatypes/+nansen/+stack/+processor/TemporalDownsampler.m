@@ -178,8 +178,10 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             % added.
             
             if ~isempty(obj.TargetStack)
-                nansen.stack.ImageStack.isStackComplete(obj.TargetStack)
+                tf = nansen.stack.ImageStack.isStackComplete(obj.TargetStack);
             end
+
+            if tf; return; end
             
             if isempty(obj.TargetStack)
                 obj.openTargetStack()
