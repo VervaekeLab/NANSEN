@@ -10,6 +10,13 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     %       passed on...
     %   [ ] Create a reset method for reseting all roi-related data, i.e
     %       roimap, roitable etc. 
+
+
+    %   [ ] Dashboard should not be a subclass of roimanager
+    %       What dependencies exist?
+    %           - settings...
+    %           - methods for changing settings...
+
     
     properties
         ApplicationName = 'Roimanager'
@@ -35,11 +42,19 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
        
        ShowImagePanel = true;
        
-       RoiThumbnailViewer = []
        UiControls = []
        
        TempControlPanel
        TempControlPanelDestroyedListener
+    end
+
+
+    properties (Access = protected) % App modules
+        Imviewer
+        RoiTable
+        %SignalViewer
+        RoiThumbnailViewer = []
+        OptionsEditor
     end
     
     
@@ -92,7 +107,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
 
             % 4) Roi image display
             obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), obj.RoiGroup);
-            obj.RoiThumbnailViewer.ImageStack = obj.StackViewer.ImageStack;
+            obj.RoiThumbnailViewer.ImageStack = obj.ImviewerObj.ImageStack;
             obj.RoiThumbnailViewer.Dashboard = obj;
             
             % Button bar on bottom switching between different panels.
@@ -387,6 +402,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         
         function onRoiDisplayPreferencesChanged(obj, name, value)
             
+            % todo: roimanager
+
 % %             if isa(value, 'structeditor.eventdata.ValueChanged')
 % %                 name = value.Name; %
 % %             end
@@ -427,7 +444,9 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         end
         
         function onRoiSelectionPreferencesChanged(obj, name, value)
-                    
+        
+            % todo: roimanager
+ 
             obj.settings.RoiSelectionPreferences.(name) = value;
             
             switch name
