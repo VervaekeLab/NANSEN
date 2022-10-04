@@ -2149,6 +2149,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Temp fix. Todo: remove
                 metaTable = nansen.metadata.temp.fixMetaTableDataLocations(metaTable, app.DataLocationModel);
                 
+                % Temp fix. Todo: remove
+                if any(strcmp(metaTable.entries.Properties.VariableNames, 'Data'))
+                    metaTable.removeTableVariable('Data')
+                end
+                
                 % Update data location paths based on the local
                 % DataLocation model and make sure paths are according to
                 % operating system.
