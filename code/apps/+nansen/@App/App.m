@@ -37,6 +37,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         NotesViewer % Auxiliary app, that we need to keep track of.
         DLModelApp % Auxiliary app, that we need to keep track of.
         VariableModelApp % Auxiliary app, that we need to keep track of.
+
+        SchemaViewerApp
     end
     
     properties (Constant, Hidden = true) % Inherited from UserSettings
@@ -156,6 +158,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             if ~isempty(PipelineViewer)
                 delete(PipelineViewer); PipelineViewer = [];
+            end
+
+            if ~isempty(app.SchemaViewerApp)
+                delete( app.SchemaViewerApp );
             end
             
             app.settings.Session.SessionTaskDebug = false; % Reset debugging on quit
@@ -432,11 +438,37 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
 
 
-% %             for iVar = 1:numel(columnVariables)
-% %                 hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
-% %                 hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
-% %             end
+            % TODO: Include table variables from a metadata model.
+            % TODO: Turn this section for creating a submenu into a function.
+
+            % Get metadata models to include from project preferences
+            % metadataModelList = app.CurrentProject.getMetadataModelList(); % This is not implemented yet!
+            % metadataModelList = {nanomi.openMINDS}; % Concrete implementation for testing... NOTE: External package. 
             
+            metadataModelList = {};
+            % Get terms to include from metadata model
+            for i = 1:numel(metadataModelList)
+                % Get name of metadata model
+                iMetadataModel = metadataModelList{i};
+                mitem = uimenu(m, 'Text', sprintf('Add %s Schema', iMetadataModel.Name));
+
+                % Get list of terms/schemas. QUESTION: Should these names
+                % be dependent on the current metatable type? Ideally - yes.
+                schemaNames = iMetadataModel.listSchemaNames();
+
+                mItem = uics.MenuList(mitem, schemaNames, '', 'SelectionMode', 'none');
+                mItem.MenuSelectedFcn = @(s,e) app.addMetadataSchema(s, iMetadataModel);
+
+            end
+
+            mItem.MenuSelectedFcn = @app.addOpenMindsSchema;
+
+
+% % %             for iVar = 1:numel(columnVariables)
+% % %                 hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
+% % %                 hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
+% % %             end
+% % %             
 
 
 % %             menuAlternatives = {'Enter values manually...', 'Get values from function...', 'Get values from dropdown...'};
@@ -1144,7 +1176,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.loadMetaTable()
 
             drawnow
-                        
+            currentProjectName = app.ProjectManager.CurrentProject;
+            currentProject = app.ProjectManager.getProjectObject(currentProjectName);
+            app.SessionTaskMenu.CurrentProject = currentProject;
+
             app.SessionTaskMenu.refresh()
             app.createSessionTableContextMenu()
             app.updatePipelineItemsInMenu()
@@ -1709,6 +1744,53 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
         end
         
+        function addMetadataSchema(app, src, metadataModel)
+            import nansen.metadata.utility.createClassForCustomTableVar
+
+            schemaName = src.Text;
+            schemaInstanceNames = metadataModel.listSchemaInstances(schemaName);
+            
+            S = struct();
+            S.VariableName = schemaName;
+            S.MetadataClass = 'session';
+            S.DataType = 'text';
+            S.InputMode = 'Get values from list';
+
+            %S.DataType_ = {'numeric', 'text', 'logical'};
+            S.SelectionList = schemaInstanceNames;
+            createClassForCustomTableVar(S)
+
+             % Todo: Add variable to table and table settings....
+            initValue = nansen.metadata.utility.getDefaultValue(S.DataType);
+            
+            app.MetaTable.addTableVariable(S.VariableName, initValue)
+            app.UiMetaTableViewer.refreshColumnModel();
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+            % Refresh menus that show the variables of the session table...
+            app.updateSessionInfoDependentMenus()
+        end
+
+        function viewSchemaInfo(app, src, evt)
+            
+            if isempty(app.SchemaViewerApp)
+                app.SchemaViewerApp = schemaViewer;
+            else
+                app.SchemaViewerApp.Visible = 'on';
+            end
+            
+            s = app.getSelectedMetaObjects();
+            s = s(1);
+
+            % Todo: Get schema type...
+            % Todo: Get schema name
+            
+            s = getSchemaItem(schemaName, instance);
+
+            app.SchemaViewerApp.Schema = s;
+
+        end
+
         function resetTableVariable(app, src, evt)
             app.updateTableVariable(src, evt, true)
         end
