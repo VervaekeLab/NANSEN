@@ -54,7 +54,7 @@ classdef extractSignals < nansen.session.SessionMethod
             roiArray = sessionData.RoiArray;
             
             extractF = @nansen.twophoton.roisignals.extractF;
-            [signalArray, P] = extractF(imageStack, roiArray, 'verbose', true, obj.Parameters);
+            [signalArray, P] = extractF(imageStack, roiArray, 'verbose', true, obj.Options);
             
             % Todo: Save results...
             obj.saveData('RoiSignals_MeanF', squeeze(signalArray(:, 1, :)) )

@@ -117,7 +117,7 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
                 tmpGradient = updateGradientImage(tmpGradient, innerBoundarySmooth);
             else
                 %fprintf('outer\n')
-                innerBoundarySmooth = zeros(1, size(tmpGradient, 2));
+                innerBoundarySmooth = ones(1, size(tmpGradient, 2));
             end
         
         else
@@ -139,7 +139,7 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
         
                 
         if showPlot
-            showDetectedEdges(grad, tmpUnrolled, innerBoundary, ...
+            showDetectedEdges(grad(:,:,i), tmpUnrolled, innerBoundary, ...
                 outerBoundary, innerBoundarySmooth, outerBoundarySmooth)              %#ok<UNRCH> % Local function
         end
 
@@ -161,7 +161,8 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
     
         
         if returnStats
-            args = {im, tmpUnrolled, innerBoundarySmooth, outerBoundarySmooth, ...
+            %Todo: finn ut hvorfor allen bildene ble lagt ved her
+            args = {im(:, :, i), tmpUnrolled, innerBoundarySmooth, outerBoundarySmooth, ...
                 imSizeUs, thetaRad};
             
             stat(i) = getStats(args{:});
@@ -367,7 +368,11 @@ function stat = getStats(im, tmpUnrolled, innerBoundarySmooth, ...
 
 
     indCenter = sub2ind(size(tmpUnrolled), round(centerLine), (1:size(tmpUnrolled,2))');
+    try
     indInner = sub2ind(size(tmpUnrolled), round(innerBoundarySmooth)', (1:size(tmpUnrolled,2))');
+    catch
+        disp('a')
+    end
     indOuter = sub2ind(size(tmpUnrolled), round(outerBoundarySmooth)', (1:size(tmpUnrolled,2))');
 
     VAL = double(tmpUnrolled(indCenter));

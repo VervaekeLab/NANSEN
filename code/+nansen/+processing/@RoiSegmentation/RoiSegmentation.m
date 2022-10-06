@@ -96,7 +96,11 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                         obj.RequireDownsampleStack = true;
                         obj.addStep('downsample', 'Downsample stack in time', 'beginning')
                     end
+                else
+                    obj.RequireDownsampleStack = true;
                 end
+            else
+                % No downsampling
             end
             
         end
