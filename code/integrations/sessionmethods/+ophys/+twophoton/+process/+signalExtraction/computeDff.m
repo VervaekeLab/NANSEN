@@ -56,13 +56,13 @@ classdef computeDff < nansen.session.SessionMethod
             else
                 signalArray = signalArray.RoiSignals_MeanF;
                 signalArray = reshape(signalArray, size(signalArray, 1), 1, []);
-                if ~strcmp(obj.Parameters.dffFcn, 'dffClassic')
-                    errMsg = sprintf('Neuropil signals are required for the method "%s", but were not available.', obj.Parameters.dffFcn );
+                if ~strcmp(obj.Options.dffFcn, 'dffClassic')
+                    errMsg = sprintf('Neuropil signals are required for the method "%s", but were not available.', obj.Options.dffFcn );
                     error(errMsg);
                 end
             end
             
-            dff = computeDff(signalArray, obj.Parameters);
+            dff = computeDff(signalArray, obj.Options);
             obj.saveData('RoiSignals_Dff', dff) 
             
         end
