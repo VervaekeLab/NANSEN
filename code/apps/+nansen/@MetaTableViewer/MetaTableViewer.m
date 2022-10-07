@@ -1045,6 +1045,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     return % Command click on mac should not count as right click
                 end
 
+                if ispc && evt.Button == 3 && evt.ControlOn
+                    return % Control click on windows should not count as right click
+                end
+
                 % Get row where mouse press ocurred.
                 row = evt.Cell(1); col = evt.Cell(2);
                 
