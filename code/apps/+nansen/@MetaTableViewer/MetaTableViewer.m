@@ -1045,7 +1045,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     return % Command click on mac should not count as right click
                 end
 
-                if ispc && evt.Button == 3 && evt.ControlOn
+                if ispc && evt.Button == 1 && evt.ControlOn
                     return % Control click on windows should not count as right click
                 end
 
