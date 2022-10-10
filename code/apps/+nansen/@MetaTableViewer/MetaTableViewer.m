@@ -124,11 +124,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Take care of input arguments.
             obj.parseInputs(varargin)
 
-            if ~isempty(obj.ColumnSettings)
+            %if ~isempty(obj.ColumnSettings)
                 nvPairs = {'ColumnSettings', obj.ColumnSettings};
-            else
-                nvPairs = {};
-            end
+            %else
+            %    nvPairs = {};
+            %end
             
             % Initialize the column model.
             obj.ColumnModel = nansen.ui.MetaTableColumnLayout(obj, nvPairs{:});
@@ -680,7 +680,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             dataTypes = cellfun(@(cell) class(cell), T(1,:), 'uni', 0);
             colFormatData = arrayfun(@(i) [], 1:numel(dataTypes), 'uni', 0);
             
-            
+            dataTypes(strcmp(dataTypes, 'string')) = {'char'};
+            dataTypes(strcmp(dataTypes, 'categorical')) = {'char'};
 % % %             % Note: Important to reset this before updating. Columns can be 
 % % %             % rearranged and number of columns can change. If 
 % % %             % ColumnFormatData does not match the specified column format
@@ -694,7 +695,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             isDatetime = cellfun(@(cell) isdatetime(cell), T(1,:), 'uni', 1);
             dataTypes(isDatetime) = {'date'};
-        
+            
             % Todo: get from nansen preferences...      
             colFormatData(isDatetime) = {'MMM-dd-yyyy    '};      
             
