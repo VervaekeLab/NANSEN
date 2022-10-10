@@ -951,10 +951,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                        
             try %#ok<TRYNC> 
                 columnSettings = app.loadMetatableColumnSettingsFromProject();
-                nvPairs = [{'ColumnSettings', columnSettings}, nvPairs];
                 %app.UiMetaTableViewer.ColumnSettings = columnSettings;
+            catch 
+                columnSettings = struct.empty;
             end
-
+            nvPairs = [{'ColumnSettings', columnSettings}, nvPairs];
 
             % Create table + assign to property + set callback
             h = nansen.MetaTableViewer(hTab, app.MetaTable, nvPairs{:});
