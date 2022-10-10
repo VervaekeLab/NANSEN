@@ -592,7 +592,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     end
     
     methods (Access = protected)
-                
+
         function checkAndUpdateColumnEntries(obj)
         %checkAndUpdateColumnEntries Check if new variables are present in
         % the metatable that are missing from the settings.
@@ -629,7 +629,16 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 % Get data type of this variable and check if it is valid
                 dataValue = tableRow.(iVarName);          % Todo: Check if this works if dataValue is cell array....
                 isValidDatatype = obj.checkIfColumnDataIsValid(dataValue);
-                isEditable = obj.checkIfColumnIsEditable(iVarName);
+
+                if isa(dataValue, 'nansen.metadata.abstract.TableVariable')
+                    if isempty(dataValue)
+                        isEditable = eval(sprintf('%s.IS_EDITABLE', class(dataValue)));
+                    else
+                        isEditable = dataValue.IS_EDITABLE;
+                    end
+                else
+                    isEditable = obj.checkIfColumnIsEditable(iVarName);
+                end
                 
                 iColumn = numOldEntries + i;
                 obj.settings_(iColumn).VariableName = iVarName;
@@ -791,11 +800,15 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 tf = true;
             elseif isa(value, 'logical') && numel(value) <= 1
                 tf = true;
-            elseif isa(value, 'char')
+            elseif isa(value, 'char') || isa(value, 'string')
                 tf = true;
             elseif isa(value, 'struct') % TODO.
                 tf = true;
             elseif isa(value, 'datetime') % TODO.
+                tf = true;
+            elseif isa(value, 'categorical') % TODO.
+                tf = true;
+            elseif isa(value, 'nansen.metadata.abstract.TableVariable')
                 tf = true;
             else
                 tf = false;
@@ -826,6 +839,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             end
             
         end
+        
     end
-    
 end

@@ -490,6 +490,28 @@ classdef MetaTable < handle
                 [tempStruct(:).(thisColumnName)] = deal( str{:} );
                 
             end
+
+            isCategorical = cellfun(@iscategorical, firstRowData);
+            columnNumbers = find(isCategorical);
+            columnNames = T.Properties.VariableNames(columnNumbers);
+
+            for jColumn = 1:numel(columnNumbers)
+                thisColumnName = columnNames{jColumn};
+                thisValue = { tempStruct.(thisColumnName) };
+                thisValue = cellfun(@char, thisValue, 'uni', 0);
+                [tempStruct(:).(thisColumnName)] = deal( thisValue{:} );
+            end
+
+            isString = cellfun(@isstring, firstRowData);
+            columnNumbers = find(isString);
+            columnNames = T.Properties.VariableNames(columnNumbers);
+
+            for jColumn = 1:numel(columnNumbers)
+                thisColumnName = columnNames{jColumn};
+                thisValue = { tempStruct.(thisColumnName) };
+                thisValue = cellfun(@char, thisValue, 'uni', 0);
+                [tempStruct(:).(thisColumnName)] = deal( thisValue{:} );
+            end
             
             T = struct2table(tempStruct, 'AsArray', true); % Convert back to table.
             
