@@ -617,14 +617,22 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     
     methods (Access = {?nansen.MetaTableViewer, ?nansen.ui.MetaTableColumnLayout, ?nansen.ui.MetaTableColumnFilter})
           
-        function updateTableView(obj, visibleRows)
+        function updateTableView(obj, visibleRows, requestFocus)
+
+            % visibleRows : list of indices of rows to show
+            % requestFocus : boolean, whether table should request focus.
+
+            % Note: When updating filters (especially search autocomplete)
+            % the table should not request focus. In other cases, I dont
+            % remember why the table should request focus...
 
             if isempty(obj.ColumnModel); return; end % On construction...
                         
             [numRows, numColumns] = size(obj.MetaTableCell); %#ok<ASGLU>
 
-            if nargin < 2; visibleRows = 1:numRows; end
-            
+            if nargin < 2 || isempty(visibleRows); visibleRows = 1:numRows; end
+            if nargin < 3 || isempty(requestFocus); requestFocus = true; end
+
             % Get based on user selection of which columns to display
             visibleColumns = obj.getCurrentColumnSelection();
             
@@ -646,7 +654,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Assign updated table data to the uitable property
             obj.HTable.Data = tableDataView;
             obj.HTable.Visible = 'on';
-            obj.HTable.JTable.requestFocus()
+            
+            % Why????
+            if requestFocus
+                obj.HTable.JTable.requestFocus()
+            end
 
             drawnow
         end
@@ -828,7 +840,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function onFilterUpdated(obj, src, evt)
         %onFilterUpdated Callback for table filter update events
             
-            obj.updateTableView()
+            obj.updateTableView([], false)
             
             if ~isempty(obj.ExternalFilterMap)
                 visibleRows = find( obj.ExternalFilterMap );

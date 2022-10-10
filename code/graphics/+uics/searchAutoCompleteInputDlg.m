@@ -73,6 +73,10 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             end
 
             obj.Items_ = varargin{1};
+            if isnumeric(obj.Items_{1})
+                obj.Items_ = cellfun(@num2str, obj.Items_, 'UniformOutput', false);
+            end
+
             varargin = varargin(2:end);
 
             obj.Parent = hParent;
@@ -419,15 +423,15 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                         
             if isempty(searchText); return; end
             
+            searchText = char(searchText);
             searchText = strrep(char(searchText), '*', '.*');  % turn into a valid regexp
             if strcmp(obj.lastSearchText, searchText); return; end
-
+        
             % If we got this far, it means the user is typing something
             % into the search field. Look for search string in the list of
             % choices and update the dropdown selection list.
             matchInd = ~cellfun('isempty', regexpi(obj.Items_, searchText));
 
-            
              % Compute the filtered names
             newNames = obj.Items_(matchInd);
  

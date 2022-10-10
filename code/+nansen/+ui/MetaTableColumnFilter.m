@@ -305,6 +305,11 @@ classdef MetaTableColumnFilter < handle
                     
                 case {'searchField', 'autocomplete'}
                     currentSelection = h.SelectedItems;
+
+                    if isnumeric(columnData{1})
+                        columnData = cellfun(@num2str, columnData, 'UniformOutput', false);
+                    end
+
                     if isempty(currentSelection) || all(strcmp(currentSelection, 'Show All')) 
                         obj.isColumnFilterActive(columnIdx) = false;
                         obj.MetaTableUi.DataFilterMap(:, columnIdx) = true;
@@ -384,7 +389,7 @@ classdef MetaTableColumnFilter < handle
                     return
                 end
             end
-            
+
             for i = 1:numel(obj.hColumnFilterPopups)
                 if ~isempty(obj.hColumnFilterPopups{i})
                     if strcmp(obj.hColumnFilterPopups{i}.Visible, 'on')
