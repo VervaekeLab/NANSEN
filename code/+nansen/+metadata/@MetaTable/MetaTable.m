@@ -28,6 +28,7 @@ classdef MetaTable < handle
         MTABVARS = struct(  'IsMaster', false, ...
                             'MetaTableName', '', ...
                             'MetaTableClass', '', ...
+                            'MetaTableIdVarname', '', ...
                             'MetaTableKey', '', ...
                             'SavePath', '', ...
                             'FileName', '', ...
@@ -42,6 +43,7 @@ classdef MetaTable < handle
         MetaTableKey = '';
         MetaTableName = '';
         MetaTableClass = '';
+        MetaTableIdVarname = '';
         
         MetaTableMembers = {}
         
@@ -65,7 +67,22 @@ classdef MetaTable < handle
         
         function obj = MetaTable(varargin)
             
-            
+            if nargin > 1 && isa(varargin{1}, 'table') 
+                obj.entries = varargin{1};
+                varargin(1) = [];
+
+                % Todo: Make parser
+                [nvPairs, ~] = utility.getnvpairs(varargin{:});
+                s = utility.nvpairs2struct(nvPairs);
+
+                if isfield(s, 'MetaTableClass')
+                    obj.MetaTableClass = s.MetaTableClass;
+                end
+                if isfield(s, 'MetaTableIdVarname')
+                    obj.MetaTableIdVarname = s.MetaTableIdVarname;
+                    obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+                end
+            end
         end
         
     end
@@ -97,7 +114,11 @@ classdef MetaTable < handle
         
         function schemaIdName = get.SchemaIdName(obj)
         %GET.SCHEMAIDNAME Get the propertyname of the ID of current schema   
-            schemaIdName = eval(strjoin({obj.MetaTableClass, 'IDNAME'}, '.'));
+            if ~isempty(obj.MetaTableIdVarname)
+                schemaIdName = obj.MetaTableIdVarname;
+            else
+                schemaIdName = eval(strjoin({obj.MetaTableClass, 'IDNAME'}, '.'));
+            end
         end
         
         function members = get.members(obj)
