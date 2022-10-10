@@ -101,6 +101,7 @@ classdef SessionMethod < nansen.DataMethod
             
             % Assign session objects to properties
             obj.SessionObjects = varargin{1};
+            varargin(1) = [];
             
             % Set session object as data I/O model
             obj.DataIoModel = obj.SessionObjects;

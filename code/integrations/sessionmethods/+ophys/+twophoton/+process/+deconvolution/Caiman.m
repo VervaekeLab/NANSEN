@@ -46,14 +46,14 @@ classdef Caiman < nansen.session.SessionMethod
             signalArray = obj.loadData('RoiSignals_Dff');
             
             dff = signalArray.RoiSignals_Dff;
-            [deconvolved, denoised] = deconvolveDff(dff, obj.Parameters);
+            [deconvolved, denoised] = deconvolveDff(dff, obj.Options);
             
             obj.SessionObjects.saveData('RoiSignals_Deconvolved', deconvolved)
             obj.SessionObjects.saveData('RoiSignals_Denoised', denoised)
             
             % Todo: get computed timeconstants and other params and save
             
-            obj.saveData('OptionsDeconvolution', obj.Parameters, ...
+            obj.saveData('OptionsDeconvolution', obj.Options, ...
                 'Subfolder', 'roisignals', 'IsInternal', true)
             
         end

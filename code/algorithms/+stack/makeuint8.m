@@ -2,6 +2,8 @@ function imArray = makeuint8(imArray, bLims, tolerance, cropAmount)
 % Very similar to imadjustn, but scales between 1 and 255. 
 %
 %   imArray = makeuint8(imArray, bLims)
+%       bLims should be a 1x2 vector for 3D arrays and a 1x2xn fo 4D arrays
+%       with n colors
 %
 %   imArray = makeuint8(imArray, bLims, tolerance)
 %
@@ -43,8 +45,8 @@ if nargin < 2 || isempty(bLims)
 %     imMax = max(imArray, [], 3);
 %     maxVal = prctile(imMax(:), 99.9);
 else
-    minVal = single(bLims(1));
-    maxVal = single(bLims(2));
+    minVal = single(bLims(:, 1, :));
+    maxVal = single(bLims(:, 2, :));
 end
 
 imArray = uint8((imArray - minVal) ./ (maxVal-minVal) .* 255);
