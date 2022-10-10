@@ -425,6 +425,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             DATANAME = 'TwoPhotonSeries_Corrected';
             filePath = obj.getDataFilePath( DATANAME );
             
+            folderPath = fileparts(filePath);
+            if ~isfolder(folderPath); mkdir(folderPath); end
+            
             % Force file to be saved as .tif if extension was set to .mat
             filePath = strrep(filePath, '.mat', '.tif');
 
