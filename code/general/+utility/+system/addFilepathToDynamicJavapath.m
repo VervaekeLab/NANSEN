@@ -11,6 +11,7 @@ function addFilepathToDynamicJavapath(jFilepath)
     if isrow(dPath); dPath = transpose(dPath); end
        
     dPath = vertcat(dPath, jFilepath);
+    dPath = unique(dPath);
 
     javaclasspath(dPath)
 end
