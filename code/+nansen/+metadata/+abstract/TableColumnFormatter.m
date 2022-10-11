@@ -1,4 +1,4 @@
-classdef TableColumnFormatter < handle
+classdef TableColumnFormatter
 %TableColumnFormatter Abstract mixin class for formatting column data.
 %
 %   This class should be inherited by concrete table variable classes which
