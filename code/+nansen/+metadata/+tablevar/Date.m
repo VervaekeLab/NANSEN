@@ -20,14 +20,19 @@ classdef Date < nansen.metadata.abstract.TableVariable & nansen.metadata.abstrac
         end
         
         function str = getCellDisplayString(obj)
-            
-            if isa(obj.Value, 'datetime')
-                obj.Value.Format = obj.DisplayFormat;
-                str = sprintf(['\t\t', char(obj.Value)]);
-            elseif isa(obj.Value, 'char')
-                str = obj.Value;
+
+            if isa(obj(1).Value, 'datetime')
+                dtVector = [obj.Value];
+                dtVector.Format = obj.DisplayFormat;
+                dtChar = char(dtVector);
+                dtChar = [repmat( sprintf('\t\t'), numel(obj), 1) , dtChar];
+                str = mat2cell(dtChar, ones(numel(obj),1), size(dtChar,2) );
+                
+            elseif isa(obj(1).Value, 'char')
+                str = {obj.Value};
+                
             else
-                str = 'N/A';
+                str = repmat({'N/A'}, 1, numel(obj));
             end
         end
         
