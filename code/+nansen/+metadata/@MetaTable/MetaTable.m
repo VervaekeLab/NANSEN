@@ -495,6 +495,8 @@ classdef MetaTable < handle
                     catch ME
                         if contains(ME.message, 'rgb2hsv')
                             warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
+                        else
+                            warning('Failed to format data for display for table colum "%s"', jColumnName)
                         end
                         formattedValue = repmat({''}, numRows, 1);
                     end
