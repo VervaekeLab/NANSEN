@@ -43,6 +43,7 @@ classdef SessionTaskMenu < handle
     
     properties
         Mode char = 'Default' % Mode for running session task. See doc
+        CurrentProject
     end
     
     properties (SetAccess = private)
@@ -92,6 +93,12 @@ classdef SessionTaskMenu < handle
             assert(~isempty(hFig) && isvalid(hFig), ...
                 'App does not have a valid figure')
             
+
+            pm = nansen.ProjectManager();
+            currentProject = pm.getProjectObject( pm.CurrentProject );
+            obj.CurrentProject = currentProject;
+
+            % Todo: These should be set when current project is set...
             obj.assignDefaultMethodsPath(modules)
             obj.assignProjectMethodsPath()
             
@@ -126,6 +133,10 @@ classdef SessionTaskMenu < handle
                 obj.refreshMenuLabels()
             end
         end
+               
+        function set.CurrentProject(obj, project)
+            obj.CurrentProject = project;
+        end
 
     end
     
@@ -141,6 +152,7 @@ classdef SessionTaskMenu < handle
             obj.hMenuItems = matlab.ui.container.Menu.empty;
             
             obj.SessionTasks = struct('Name', {}, 'Attributes', {});
+
 
             obj.assignProjectMethodsPath() % Should make this happen only if project is changed... Not urgent
             obj.buildMenuFromDirectory(obj.ParentApp.Figure);
@@ -177,8 +189,18 @@ classdef SessionTaskMenu < handle
         %   A module is the name of a package category of session methods,
         %   for example: 'ophys.twophoton'
 
+            projectPref = obj.CurrentProject.Preferences;
+            if isfield(projectPref, 'DataModule')
+                modules = projectPref.DataModule;
+            end
+            
+            if isempty(modules)
+                obj.DefaultMethodsPath = '';
+                return
+            end
+            
             sesMethodRootFolder = nansen.localpath('sessionmethods');
-
+            
             integrationDirs = utility.path.packagename2pathstr(modules);
             obj.DefaultMethodsPath = fullfile(sesMethodRootFolder, integrationDirs);
         end
@@ -543,7 +565,7 @@ classdef SessionTaskMenu < handle
             taskAttributes.FunctionHandle = str2func(functionName);
 
             mc = meta.class.fromName(functionName);
-
+            
             if ~isempty(mc)
                 taskAttributes.TaskType = 'class';
 
