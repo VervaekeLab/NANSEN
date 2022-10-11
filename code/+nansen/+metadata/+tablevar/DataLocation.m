@@ -1,4 +1,4 @@
-classdef DataLocation < nansen.metadata.abstract.TableVariable
+classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata.abstract.TableColumnFormatter
 %DataLocation Controls behavior of table cells containing datalocation items.
 %
 %   

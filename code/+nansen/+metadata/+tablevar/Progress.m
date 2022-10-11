@@ -1,4 +1,4 @@
-classdef Progress < nansen.metadata.abstract.TableVariable
+classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abstract.TableColumnFormatter
 %nansen.metadata.tablevar.Progress is a table variable for showing progress
 %
 %   Display the progress of a pipeline as a progressbar or list of steps

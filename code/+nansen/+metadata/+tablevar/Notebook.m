@@ -1,4 +1,4 @@
-classdef Notebook < nansen.metadata.abstract.TableVariable
+classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abstract.TableColumnFormatter
 %Notebook A table variable implementation for a notebook variable.
 %
 %   See also nansen.metadata.abstract.TableVariable nansen.notes.Note

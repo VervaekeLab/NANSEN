@@ -1,4 +1,4 @@
-classdef Date < nansen.metadata.abstract.TableVariable
+classdef Date < nansen.metadata.abstract.TableVariable & nansen.metadata.abstract.TableColumnFormatter
 %DATE Definition for table variable
 %   Detailed explanation goes here
 %
@@ -15,6 +15,7 @@ classdef Date < nansen.metadata.abstract.TableVariable
     
     methods
         function obj = Date(S)
+            if ~nargin; S = ''; end
             obj@nansen.metadata.abstract.TableVariable(S);
         end
         
