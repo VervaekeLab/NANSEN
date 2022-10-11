@@ -9,5 +9,3 @@ function pathStr = getTableVariableUserFunctionPath(variableName, tableClass)
     pathStr = fullfile(fcnTargetPath, fcnFilename);
     
 end
-    
-    

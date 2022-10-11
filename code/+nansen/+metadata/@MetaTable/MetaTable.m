@@ -421,7 +421,9 @@ classdef MetaTable < handle
         % Some columns might have special data types, and this function
         % formats data of such cells into a data type that can be displayed
         % in the table, typically into a formatted string.
-        
+            
+            import nansen.metadata.utility.getColumnFormatter
+
             if nargin < 2 % Get all columns
                 columnIndices = 1:size(obj.entries, 2);
             end
@@ -430,95 +432,81 @@ classdef MetaTable < handle
             end
             
             if isempty(obj.entries)
-                T = obj.entries;
-                return
+                T = obj.entries; return
             end
-        
-            % Todo: implement better way for detecting variables that have
-            % their own display functions...
             
+            % Subselect the part of the table that should be formatted
+            T = obj.entries(rowIndices, columnIndices);
+            variableNames = T.Properties.VariableNames;
+
             % Check if any of the columns contain structs
             firstRowData = table2cell( obj.entries(1, columnIndices) );
-            isStruct = cellfun(@(c) isstruct(c), firstRowData);
             
-            T = obj.entries(rowIndices, columnIndices);
+            % Create a cell array to hold formatting functions for each column
+            formattingFcn = cell(size(firstRowData));
             
-            % Todo: This should not depend on if type is struct
-            if ~any(isStruct);    return;    end
-
-            % Todo: Make method to get private and public typedef functions.
-            columnNumbers = find(isStruct);
-            columnNames = T.Properties.VariableNames(columnNumbers);
-            
-            if any(strcmp(T.Properties.VariableNames, 'Time'))
-                columnNames = ['Time', columnNames];
-            end
-               
-            % Note: Right now, this brute forces a formatting function
-            % handle from the internal package for tablevars.
-            tmpfun = @(name) sprintf('nansen.metadata.tablevar.%s', name);
-            typeDef = cellfun(@(name) str2func(tmpfun(name)), columnNames, 'uni', 0);
-            
-            % Convert table to struct for the formatting of values.
-            % Can't change the datatype of the table columns otherwise...?
-            tempStruct = table2struct(T);
-            
-            % Format data column by column
-            numRows = numel(tempStruct);
-            numCols = numel(columnNames);
-            
-            for jColumn = 1:numCols % Go through columns
-                
-                thisColumnName = columnNames{jColumn};
-                thisValue = { tempStruct.(thisColumnName) };
-                    
-                try % Since we dont know if the function exists, use try/catch
-                    tmpObj = typeDef{jColumn}( thisValue );
-                    str = tmpObj.getCellDisplayString();
-                catch ME
-                    if contains(ME.message, 'rgb2hsv')
-                        warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
-                    end
-                    
-                    % Todo: have a better backup if there is no typeDef for column
-                    % i.e a general struct viewer...
-                    str = repmat({''}, numRows, 1);
-                end
-                
-                % Add formatted character vectors for all meta items for
-                % current column:
-                [tempStruct(:).(thisColumnName)] = deal( str{:} );
-                
-            end
-
+            % Step 1: Specify formatting based on special data types.
             isCategorical = cellfun(@iscategorical, firstRowData);
-            columnNumbers = find(isCategorical);
-            columnNames = T.Properties.VariableNames(columnNumbers);
-
-            for jColumn = 1:numel(columnNumbers)
-                thisColumnName = columnNames{jColumn};
-                thisValue = { tempStruct.(thisColumnName) };
-                thisValue = cellfun(@char, thisValue, 'uni', 0);
-                [tempStruct(:).(thisColumnName)] = deal( thisValue{:} );
-            end
+            formattingFcn(isCategorical) = {'char'};
 
             isString = cellfun(@isstring, firstRowData);
-            columnNumbers = find(isString);
-            columnNames = T.Properties.VariableNames(columnNumbers);
+            formattingFcn(isString) = {'char'}; % uiw.widget.Table does is not compatible with strings.
 
-            for jColumn = 1:numel(columnNumbers)
-                thisColumnName = columnNames{jColumn};
-                thisValue = { tempStruct.(thisColumnName) };
-                thisValue = cellfun(@char, thisValue, 'uni', 0);
-                [tempStruct(:).(thisColumnName)] = deal( thisValue{:} );
+            isStruct = cellfun(@(c) isstruct(c), firstRowData);
+            formattingFcn(isStruct) = {'dispStruct'};
+
+            % Step 2: Get nansen table variables formatters.
+            tableClass = 'session'; % Todo: make this variable
+            [fcnHandles, names] = getColumnFormatter(variableNames, tableClass);
+            
+            for i = 1:numel(names)
+                isMatch = strcmp(variableNames, names{i});
+                if any( isMatch )
+                    formattingFcn{isMatch} = fcnHandles{i};
+                end
             end
             
-            T = struct2table(tempStruct, 'AsArray', true); % Convert back to table.
-            
-            % NOTE/TODO: This should be made efficient if tables are going
-            % to get large. Typedef functions should be made to work on
-            % vectors! (And maybe also use static methods for formatting)
+            % Step 3: Format all the table columns that needs formatting
 
+            % Convert table to struct for the formatting of values.
+            % (Can't change the datatype of the table columns otherwise...?)
+            tempStruct = table2struct(T);
+            numRows = numel(tempStruct);
+
+            numCols = numel(formattingFcn);
+            for jColumn = 1:numCols % Go through columns
+
+                if isempty(formattingFcn{jColumn})
+                    continue
+                end
+
+                jColumnName = T.Properties.VariableNames{jColumn};
+                jColumnValues = { tempStruct.(jColumnName) };
+                thisFormatter = formattingFcn{jColumn};
+
+                if isa( thisFormatter, 'char' )
+                    tmpFcn = str2func( thisFormatter );
+                    formattedValue = cellfun(@(s) tmpFcn(s), jColumnValues, 'uni', 0);
+
+                elseif isa( thisFormatter, 'function_handle')
+                    try
+                        tmpObj = thisFormatter( jColumnValues );
+                        formattedValue = tmpObj.getCellDisplayString();
+                    catch ME
+                        if contains(ME.message, 'rgb2hsv')
+                            warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
+                        end
+                        formattedValue = repmat({''}, numRows, 1);
+                    end
+                else
+                    % This should not kick in
+                end
+
+                [tempStruct(:).(jColumnName)] = deal(formattedValue{:});
+            end
+            
+            % Convert back to table.
+            T = struct2table(tempStruct, 'AsArray', true); 
         end
         
 % % % % Methods for modifying entries
@@ -546,7 +534,6 @@ classdef MetaTable < handle
             end
         
             obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
-
         end
 
         function removeTableVariable(obj, variableName)
@@ -576,7 +563,6 @@ classdef MetaTable < handle
             obj.sort()
             
             obj.IsModified = true;
-            
         end
         
         % Add entry/entries to MetaTable table
@@ -646,7 +632,6 @@ classdef MetaTable < handle
             obj.sort()
             
             obj.IsModified = true;
-            
         end
 
         function entries = getEntry(obj, listOfEntryIds)
@@ -669,7 +654,6 @@ classdef MetaTable < handle
             else
                 obj.entries{rowInd, varName} = newValue;
             end
-            
         end
         
         function replaceDataColumn(obj, columnName, columnValues)
@@ -683,7 +667,6 @@ classdef MetaTable < handle
             tempS = table2struct(obj.entries);
             [tempS(:).(columnName)] = deal( columnValues{:} );
             obj.entries = struct2table(tempS, 'AsArray', true);
-            
         end
         
         % Remove entry/entries from MetaTable
@@ -707,7 +690,6 @@ classdef MetaTable < handle
             obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
             
             obj.IsModified = true;
-
         end
         
         function updateEntries(obj, listOfEntryIds)
@@ -731,7 +713,6 @@ classdef MetaTable < handle
                 S = obj.toStruct('metatable_file');
                 obj.synchToMaster(S)
             end
-            
         end
         
         function onEntriesChanged(obj)
@@ -744,7 +725,6 @@ classdef MetaTable < handle
                 obj.entries = obj.entries(ind, :);
                 obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
             end
-
         end
         
         % Set current MetaTable to default in MetaTable Catalog
@@ -767,7 +747,6 @@ classdef MetaTable < handle
             MT(isClass&isKey&isName, 'IsDefault') = {true};
             
             nansen.metadata.MetaTableCatalog.quicksave(MT);
-            
         end
         
         function openDefault(obj)
@@ -853,7 +832,6 @@ classdef MetaTable < handle
             
             % Save master MetaTable.
             save(masterFilePath, '-struct', 'sMaster')
-            
         end
         
         function synchFromMaster(obj)
@@ -873,7 +851,6 @@ classdef MetaTable < handle
             
             % Todo: what if some entries are not present in master?
             obj.entries = sMaster.MetaTableEntries(iA, :);
-            
         end
         
         function masterFilePath = getMasterMetaTableFile(obj)
@@ -897,7 +874,6 @@ classdef MetaTable < handle
                 %deprecated, not compatible with multiple file locations...
                 %masterFilePath = fullfile( MT{ IND, {'SavePath', 'FileName'} }{:} );
             end
-
         end
         
 % % % % Get names of all (dummy) MetaTables connected to the current master
@@ -918,7 +894,6 @@ classdef MetaTable < handle
             if nargin < 2 || isempty(mode)
                 mode = 'same_master'; % Alt: 'same_class' | 'all'
             end
-            
             
             switch mode
                 case 'same_master'
@@ -944,7 +919,6 @@ classdef MetaTable < handle
             
             % Sort names alphabetically..
             names(~MT.IsMaster) = sort(names(~MT.IsMaster));
-
         end
         
     end
@@ -958,14 +932,12 @@ classdef MetaTable < handle
             % from the MetaTableCatalog or browse for a file
             
             % Open dialog base on user's choice
-            
         end
         
         function openMetaTableFromFilepath(obj, filePath)
             
             obj.filepath = filePath;
             obj.load()
-            
         end
         
         function openMetaTableFromName(obj, inputName)
@@ -986,7 +958,6 @@ classdef MetaTable < handle
             end
             
             obj.load()
-
         end
         
     end
@@ -1021,7 +992,6 @@ classdef MetaTable < handle
                 error('Not implemented yet.')
                 metaTable.setMaster(varargin{1})
             end
-            
         end
         
         function metaTable = open(varargin)
@@ -1047,7 +1017,6 @@ classdef MetaTable < handle
                 message = 'Can not open MetaTable based on current input';
                 error(message)
             end
-            
         end
         
         function filename = createFileName(S)
@@ -1066,7 +1035,6 @@ classdef MetaTable < handle
             end
             
             filename = sprintf('%s_%s.mat', filename, nameExtension);
-            
         end
         
         function tf = hasDefault(className)
@@ -1081,7 +1049,6 @@ classdef MetaTable < handle
             
             S = table2struct( MT(isClassMatch & isDefault, :) );
             tf = ~isempty(S);
-            
         end
         
         function T = addTableVariableStatic(T, variableName, initValue)
@@ -1099,4 +1066,8 @@ classdef MetaTable < handle
         
     end
 
+end
+
+function str = dispStruct(s)
+    str = sprintf('%dx%d struct', size(s));
 end

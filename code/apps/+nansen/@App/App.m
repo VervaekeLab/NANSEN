@@ -334,8 +334,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function createMenu(app)
         %createMenu Create menu components for the main gui.
-    
-        import nansen.metadata.utility.getPublicSessionInfoVariables
+   
 
         % % % % Create a nansen main menu
             m = uimenu(app.Figure, 'Text', 'Nansen');
@@ -431,13 +430,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uimenu( mitem, 'Text', 'Import...', 'MenuSelectedFcn', @(s,e, cls) app.importTableVariable('session'));
             
             % Menu with submenus for editing table variable definition:
-            mitem = uimenu(m, 'Text','Edit Table Variable Definition');         
-            columnVariables = getPublicSessionInfoVariables(app.MetaTable);
-            
-            % Create a menu list with items for each variable
-            mItem = uics.MenuList(mitem, columnVariables, '', 'SelectionMode', 'none');
-            mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
-
+            mitem = uimenu(m, 'Text','Edit Table Variable Definition');
+            app.updateTableVariableMenuItems(mitem)
 
             % TODO: Include table variables from a metadata model.
             % TODO: Turn this section for creating a submenu into a function.
@@ -462,7 +456,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             end
 
-            mItem.MenuSelectedFcn = @app.addOpenMindsSchema;
+            % mItem.MenuSelectedFcn = @app.addOpenMindsSchema;
 
 
 % % %             for iVar = 1:numel(columnVariables)
@@ -684,6 +678,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %                 hSubmenuItem.MenuSelectedFcn = @app.removeTableVariable;
 % %             end
             
+        end
+
+        function updateTableVariableMenuItems(app, hMenu)
+            
+            import nansen.metadata.utility.getPublicSessionInfoVariables
+
+            if nargin < 2
+                hMenu = findobj(app.Figure, 'Text', 'Edit Table Variable Definition');
+                if ~isempty(hMenu.Children)
+                    delete(hMenu.Children)
+                end
+            end
+
+            columnVariables = getPublicSessionInfoVariables(app.MetaTable);
+
+            % Create a menu list with items for each variable
+            mItem = uics.MenuList(hMenu, columnVariables, '', 'SelectionMode', 'none');
+            mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
         end
         
         function updatePipelineItemsInMenu(app, hMenu)
@@ -1040,6 +1052,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onMouseMoveInTable(app, src, evt)
             
+            import nansen.metadata.utility.getColumnFormatter
+
             if app.TableIsUpdating; return; end
             
             persistent prevRow prevCol
@@ -1063,13 +1077,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             colNames = app.UiMetaTableViewer.ColumnModel.getColumnNames;
             thisColumnName = colNames{thisCol};
-            
-            
+            tableRow = app.UiMetaTableViewer.getMetaTableRows(thisRow);
+
             % Todo: This SHOULD NOT be hardcoded like this...
             if contains(thisColumnName, {'Notebook', 'Progress', 'DataLocation'})
                 
                 dispFcn = str2func(strjoin({'nansen.metadata.tablevar', thisColumnName}, '.') );
-                tableRow = app.UiMetaTableViewer.getMetaTableRows(thisRow);
                 
                 if strcmp(thisColumnName, 'DataLocation')
                     
@@ -1091,7 +1104,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 tmpObj = dispFcn(tableValue);
                 str = tmpObj.getCellTooltipString();
             else
-                str = '';
+                formatterFcnHandle = getColumnFormatter(thisColumnName, 'session');
+                
+                if ~isempty(formatterFcnHandle)
+                    tableValue = app.MetaTable.entries{tableRow, thisColumnName};
+                    tmpObj = formatterFcnHandle{1}(tableValue);
+                    str = tmpObj.getCellTooltipString();
+                else
+                    str = '';
+                end
             end
 
             set(app.UiMetaTableViewer.HTable.JTable, 'ToolTipText', str)
@@ -1181,10 +1202,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             currentProjectName = app.ProjectManager.CurrentProject;
             currentProject = app.ProjectManager.getProjectObject(currentProjectName);
             app.SessionTaskMenu.CurrentProject = currentProject;
-
+            
+            % Update menus
             app.SessionTaskMenu.refresh()
             app.createSessionTableContextMenu()
             app.updatePipelineItemsInMenu()
+            app.updateTableVariableMenuItems()
             
             % Make sure project list is displayed correctly
             % Indicating current project
@@ -2284,6 +2307,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %                 end
             catch ME
                 app.openErrorDialog(ME.message, 'Could Not Load Session Table')
+                disp(getReport(ME, 'extended'))
             end
             
             % Add name of loaded inventory to figure title
