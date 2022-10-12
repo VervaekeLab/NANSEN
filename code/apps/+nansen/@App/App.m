@@ -1114,12 +1114,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     str = '';
                 end
             end
-            disp(str)
             set(app.UiMetaTableViewer.HTable.JTable, 'ToolTipText', str)
-            %disp('a')
-
-
-            
         end
         
         function createSidePanelComponents(app)
@@ -1242,6 +1237,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.MetaTable, app.DataLocationModel);
             
             close(d)
+        end
+
+        function onVariableModelChanged(app, src, evt)
+            % Reload model.
+            app.VariableModel.load();
         end
         
     % % Get meta objects from table selections
@@ -2072,10 +2072,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 hApp.transferOwnership(app)
                 app.VariableModelApp = hApp;
                 
-                % Not implemented. I don't see any situation where it is
-                % necessary, but maybe later?
-% %                 addlistener(hApp, 'VariableModelChanged', ...
-% %                     @app.onVariableModelChanged);
+                % Add listener for when the model is changed.
+                addlistener(hApp, 'VariableModelChanged', ...
+                    @app.onVariableModelChanged);
                 
             else
                 app.VariableModelApp.Visible = 'on';
@@ -3255,7 +3254,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         
         function saveMetatableColumnSettingsToProject(app)
-            
+            if isempty(app.UiMetaTableViewer); return; end
             columnSettings = app.UiMetaTableViewer.ColumnSettings;
             currentProjectName = app.ProjectManager.CurrentProject;
             projectObj = app.ProjectManager.getProjectObject(currentProjectName);

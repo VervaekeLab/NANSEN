@@ -175,8 +175,9 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 return
             end
             
-            obj.DataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
-            varNames = {obj.DataFilePathModel.VariableList.VariableName};
+            %obj.DataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
+            obj.DataFilePathModel = nansen.config.varmodel.VariableModel();
+            varNames = {obj.DataFilePathModel.Data.VariableName};
             
             for i = 1:numel(varNames)
                 try
@@ -185,7 +186,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                     if isfile(filePath)
                         if ~isprop(obj, varNames{i})
                             obj.addDataProperty(varNames{i})
-                            obj.appendToVariableList(obj.DataFilePathModel.VariableList(i))
+                            obj.appendToVariableList(obj.DataFilePathModel.Data(i))
                         end
                     end
                 catch

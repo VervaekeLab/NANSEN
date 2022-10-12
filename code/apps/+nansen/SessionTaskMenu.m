@@ -590,7 +590,12 @@ classdef SessionTaskMenu < handle
                 end
                 
                 taskAttributes = utility.struct.mergestruct(taskAttributes, moreAttributes);
-                taskAttributes.OptionsManager = nansen.OptionsManager(functionName);
+                try
+                    taskAttributes.OptionsManager = nansen.OptionsManager(functionName);
+                catch ME
+                    warning('Could not resolve options for method %s', functionName)
+                    disp(getReport(ME))
+                end
             end
         end
 
