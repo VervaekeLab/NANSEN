@@ -64,6 +64,10 @@ classdef FileViewer < handle
         
         ParentSizeChangedListener event.listener
     end
+
+    events
+        VariableModelChanged
+    end
     
     
     methods % Constructor
@@ -727,6 +731,7 @@ classdef FileViewer < handle
             % this will always happen, but it should be explicit!
             VM = VariableModel();
             VM.insertItem(varItem)
+            obj.notify('VariableModelChanged', event.EventData)
             
             % Todo: Display error message if variable already exists.
             % And/or ask if variable should be replaced?

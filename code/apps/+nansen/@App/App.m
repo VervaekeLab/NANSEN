@@ -943,6 +943,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     case 'File Viewer'
                         h = nansen.FileViewer(hTab);
                         app.UiFileViewer = h;
+                       
+                        % Add listener for when the variable model is changed.
+                        addlistener(app.UiFileViewer, 'VariableModelChanged', ...
+                            @app.onVariableModelChanged);
                         
                     case 'Task Processor'
 
