@@ -514,7 +514,7 @@ classdef MetaTable < handle
 % % % % Methods for modifying entries
 
         function tf = isVariable(obj, varName)
-            tf = contains(varName, obj.entries.Properties.VariableNames);
+            tf = any(strcmp(varName, obj.entries.Properties.VariableNames));
         end
 
         function addTableVariable(obj, variableName, initValue)

@@ -1759,12 +1759,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function importTableVariable(app, metadataClass)
+        %importTableVariable Import a table variable definition (.m file)    
             
             [filename, folder] = uigetfile('*.m', 'Select a Table Variable File');
-            if isequal(filename, 0)
-                return
-            end
-
+            if isequal(filename, 0); return; end
+            
+            % Copy selected file into the table variable package
             filePath = fullfile(folder, filename);
             
             rootPathTarget = nansen.localpath('Custom Metatable Variable', 'current');
@@ -1773,13 +1773,31 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             copyfile(filePath, fullfile(fcnTargetPath, filename))
 
-             % Todo: Add variable to table and table settings....
-            fcnName = utility.path.abspath2funcname(fullfile(fcnTargetPath, filename));
-            tablevarFcn = str2func(fcnName);
-            initValue = tablevarFcn();
-            
+            % Does the variable exist in the table from before?
             [~, variableName] = fileparts(filename);
-            app.MetaTable.addTableVariable(variableName, initValue)
+            
+            if ~app.MetaTable.isVariable( variableName )
+                % Add a new table column to the table for new variable
+                
+                % Get the class/function handle in order to determine default
+                % values.
+                fcnName = utility.path.abspath2funcname(fullfile(fcnTargetPath, filename));
+    
+                tableVarMetaClass = meta.class.fromName(fcnName);
+                if isempty(tableVarMetaClass)
+                    tablevarFcn = str2func(fcnName);
+                    initValue = tablevarFcn();
+                else
+                    tablevarFcn = strjoin({fcnName, 'DEFAULT_VALUE'}, '.');
+                    initValue = eval( tablevarFcn );
+                end
+
+                [~, variableName] = fileparts(filename);
+                app.MetaTable.addTableVariable(variableName, initValue)
+            else
+                % Table variable exists, so we only need the update below
+            end
+
             app.UiMetaTableViewer.refreshColumnModel();
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
