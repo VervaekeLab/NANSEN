@@ -1775,15 +1775,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Does the variable exist in the table from before?
             [~, variableName] = fileparts(filename);
-            
+           
+            fcnName = utility.path.abspath2funcname(fullfile(fcnTargetPath, filename));
+            tableVarMetaClass = meta.class.fromName(fcnName);
+
             if ~app.MetaTable.isVariable( variableName )
                 % Add a new table column to the table for new variable
                 
-                % Get the class/function handle in order to determine default
-                % values.
-                fcnName = utility.path.abspath2funcname(fullfile(fcnTargetPath, filename));
-    
-                tableVarMetaClass = meta.class.fromName(fcnName);
+                % Determine default value of ths variable.
                 if isempty(tableVarMetaClass)
                     tablevarFcn = str2func(fcnName);
                     initValue = tablevarFcn();
@@ -1794,13 +1793,32 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 [~, variableName] = fileparts(filename);
                 app.MetaTable.addTableVariable(variableName, initValue)
+
+
+                app.UiMetaTableViewer.refreshColumnModel();
+                app.UiMetaTableViewer.refreshTable(app.MetaTable)
             else
-                % Table variable exists, so we only need the update below
+                if ~isempty(tableVarMetaClass)
+                    clear(fcnName) % clear class
+                    rehash
+                end
+
+                % Table variable exists, so we only need to reformat the 
+                % table colum and refresh
+
+                % This should ideally be done in a better way. It is not
+                % this app's responsibility to do this, but unfortunate side
+                % effect of having decided to set metatable of
+                % metatableviewer to type table...
+                columnIndex = app.MetaTable.getColumnIndex(variableName);
+                columnData = app.MetaTable.getFormattedTableData(columnIndex);
+                app.UiMetaTableViewer.updateFormattedTableColumnData(variableName, columnData)
+
+                app.UiMetaTableViewer.refreshColumnModel();
+                app.UiMetaTableViewer.refreshTable([])
+                drawnow
             end
 
-            app.UiMetaTableViewer.refreshColumnModel();
-            app.UiMetaTableViewer.refreshTable(app.MetaTable)
-            
             % Refresh menus that show the variables of the session table...
             app.updateSessionInfoDependentMenus()
         end

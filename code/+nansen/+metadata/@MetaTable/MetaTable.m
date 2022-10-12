@@ -414,6 +414,16 @@ classdef MetaTable < handle
             
             
         end
+
+        function columnIndex = getColumnIndex(obj, columnName)
+        %getColumnIndex Get column index for given column name    
+            isMatch = strcmp(obj.entries.Properties.VariableNames, columnName);
+            if any(isMatch)
+                columnIndex = find(isMatch);
+            else
+                error('Column with name "%s" does not exist in table', columnName)
+            end
+        end
         
         function T = getFormattedTableData(obj, columnIndices, rowIndices)
         %formatTableData Format cells of columns with special data types.

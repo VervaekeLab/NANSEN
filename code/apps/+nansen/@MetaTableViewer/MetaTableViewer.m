@@ -317,6 +317,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.updateCells(rowIdxData, colIdx, newData)
         end        
 
+        function updateFormattedTableColumnData(obj, columnName, columnData)
+        %reformatTableColumnData Reformat data for specified column
+            columnIndex = find(strcmp(obj.MetaTable.Properties.VariableNames, columnName));
+            obj.MetaTableCell(:, columnIndex) = table2cell(columnData);
+        end
+
         function appendTableRow(obj, rowData)
             % Would be neat, but havent found a way to do it.
         end
