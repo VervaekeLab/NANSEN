@@ -1114,7 +1114,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     str = '';
                 end
             end
-
+            disp(str)
             set(app.UiMetaTableViewer.HTable.JTable, 'ToolTipText', str)
             %disp('a')
 
@@ -1272,7 +1272,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
             schema = str2func(class(app.MetaTable));
             
-            schema = @nansen.metadata.type.Session;
+            %schema = @nansen.metadata.type.Session;
             
             if isempty(entries)
                 expression = strjoin({class(app.MetaTable), 'empty'}, '.');
@@ -1288,7 +1288,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
 
                 metaObjects = schema(entries, nvPairs{:});
-                addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
+                try
+                    addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
+                catch
+                    % Todo: Either throw warning or implement inteface for
+                    % easily implementing PropertyChanged on any table
+                    % class..
+                end
             end
             
             
@@ -2759,7 +2765,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if numel(sessionObjects) > 1
                 taskName = 'Multisession';
             else
-                taskName = sessionObjects.sessionID;
+                try % Todo: Use metatable class to determine variablename of id 
+                    taskName = sessionObjects.sessionID;
+                catch
+                    taskName = sessionObjects.id;
+                end
             end
         end
 
