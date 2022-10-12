@@ -193,6 +193,8 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         
             cacheLength = obj.CacheLength;
             cacheSize = obj.DataSize(3:end);
+            if isempty(cacheSize); cacheSize = 1; end
+
 
 %             if isscalar(cacheLength)
 %                 cacheSize(end) = cacheLength ./ prod(cacheSize(1:end-1));       
