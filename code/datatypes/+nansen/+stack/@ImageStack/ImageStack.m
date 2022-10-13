@@ -1125,8 +1125,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function set.DynamicCacheEnabled(obj, newValue)
-            obj.Data.UseDynamicCache = newValue;
-            obj.onDynamicCacheEnabledChanged()
+            if obj.IsVirtual
+                obj.Data.UseDynamicCache = newValue;
+                obj.onDynamicCacheEnabledChanged()
+            end
         end
         
         function state = get.DynamicCacheEnabled(obj)
