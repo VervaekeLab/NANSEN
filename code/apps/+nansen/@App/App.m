@@ -2526,6 +2526,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode 
                 return
             end
+
+            if strcmp(evt.Mode, 'Preview')
+                if isempty( app.UiMetaTableViewer.getSelectedEntries )
+                    % Just edit options for this method.
+                    % optsName = evt.OptionsSelection;
+                    optsManager = evt.TaskAttributes.OptionsManager;
+                    optsManager.editOptions()
+                    return
+                end
+            end
             
             % Throw error if no sessions are selected.
             app.assertSessionSelected()
