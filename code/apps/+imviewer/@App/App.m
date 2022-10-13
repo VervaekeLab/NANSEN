@@ -5707,6 +5707,10 @@ methods (Access = private) % Methods that runs when properties are set
         obj.imHeight = obj.ImageStack.ImageHeight;
         obj.imWidth = obj.ImageStack.ImageWidth;
         obj.nFrames = obj.ImageStack.NumTimepoints;
+
+        if obj.nFrames == 1
+            obj.ImageStack.DynamicCacheEnabled = 'off';
+        end
         
         obj.currentFrameNo = 1;
         obj.currentPlane = obj.ImageStack.CurrentPlane;
