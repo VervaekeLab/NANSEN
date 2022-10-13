@@ -67,7 +67,7 @@ classdef MetaTable < handle
         
         function obj = MetaTable(varargin)
             
-            if nargin > 1 && isa(varargin{1}, 'table') 
+            if nargin >= 1 && isa(varargin{1}, 'table') 
                 obj.entries = varargin{1};
                 varargin(1) = [];
 
@@ -466,7 +466,14 @@ classdef MetaTable < handle
                 end
             end
             
-            % Step 3: Format all the table columns that needs formatting
+% %             In progress:
+% %             % Step 3: does the data type have it's own formatter?
+% %             dataHasTableFormatter = cellfun(@(c) isa(c, 'nansen.metadata.tablevar.mixin.HasTableColumnFormatter'), firstRowData);
+% %             formattingFcn(dataHasTableFormatter) = cellfun(@(c) ...
+% %                 str2func(class(eval( strjoin({class(c), 'TableColumnFormatter'}, '.')))), ...
+% %                 firstRowData(dataHasTableFormatter), 'uni', 0);
+            
+            % Step 4: Format all the table columns that needs formatting
 
             % Convert table to struct for the formatting of values.
             % (Can't change the datatype of the table columns otherwise...?)
@@ -497,6 +504,7 @@ classdef MetaTable < handle
                             warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
                         else
                             warning('Failed to format data for display for table colum "%s"', jColumnName)
+                            disp(getReport(ME))
                         end
                         formattedValue = repmat({''}, numRows, 1);
                     end
