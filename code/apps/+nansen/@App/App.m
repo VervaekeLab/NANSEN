@@ -372,6 +372,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             mitem = uimenu(m, 'Text','Preferences...');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;
+
+            if exist('bot.Preferences', 'class')
+                mitem = uimenu(m, 'Text','BOT Preferences...');
+                mitem.MenuSelectedFcn = @(s,e) bot.Preferences.edit;
+            end
             
             mitem = uimenu(m, 'Text', 'Refresh Menu', 'Separator', 'on');
             mitem.MenuSelectedFcn = @app.onRefreshSessionMethodMenuClicked;
@@ -1261,21 +1266,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Get selected entries from the metatable.
             entries = app.MetaTable.entries(entryIdx, :);
-                    
         end
         
         function metaObjects = getSelectedMetaObjects(app)
-                        
+        %getSelectedMetaObjects Get session objects for the selected table rows     
+            returnToIdle = app.setBusy('Creating session objects...'); %#ok<NASGU> 
             entries = app.getSelectedMetaTableEntries();
             metaObjects = app.tableEntriesToMetaObjects(entries);
-            
         end
         
         function metaObjects = tableEntriesToMetaObjects(app, entries)
         %tableEntriesToMetaObjects Create meta objects from table rows
         
             schema = str2func(class(app.MetaTable));
-            
             %schema = @nansen.metadata.type.Session;
             
             if isempty(entries)
@@ -1300,8 +1303,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     % class..
                 end
             end
-            
-            
         end
         
         function onMetaObjectPropertyChanged(app, src, evt)
@@ -1565,6 +1566,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
             app.IsIdle = false;
             app.Figure.Pointer = 'watch';
+            drawnow
             
             app.updateFigureTitle()
             
@@ -2779,7 +2781,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if numel(sessionObj) == 1 && ~wasAborted
                     % Methods which accept multiple session are not 
                     % (should not) be included in pipelines...
-                    sessionObj.updateProgress(sessionMethod, 'Completed')
+                    if ismethod(sessionObj, 'updateProgress')
+                        sessionObj.updateProgress(sessionMethod, 'Completed')
+                    end
                 end
 
             catch ME
@@ -2955,12 +2959,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % Todo: Make a setting to specify which session definition to use
         % for creating a session object.
         function ndiSessionObj = getNdiSessionObj(app, sessionObj)
-            
             dataLocation = sessionObj.getDataLocation('Rawdata');
             dirPath = dataLocation.RootPath;
             
             ndiSessionObj = ndi.session.dir('ts_exper', dirPath);
-            
         end
         
     end
@@ -2994,6 +2996,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     [success, projectName] = ProjectManagerUI().addExistingProject();
                     
                     if success
+                        app.ProjectManager.loadCatalog() % reload
                         app.promptOpenProject(projectName)
                     end
                     
