@@ -11,6 +11,8 @@ S.MetadataTable.AllowTableEdits = true;
 % % S.Session.ExportSessionObjectAs = 'Nansen';
 % % S.Session.ExportSessionObjectAs_ = {'Nansen', 'NDI'};
 S.Session.SessionObjectWorkspaceName = 'sessionObjects';
+S.Session.OptionEditMode = 'Only once';
+S.Session.OptionEditMode_ = {'Only once', 'For each session'};
 S.Session.SessionTaskDebug = false;
 
 % Task processor settings:

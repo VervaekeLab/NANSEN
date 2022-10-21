@@ -841,6 +841,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 hTxt.FontSize = 14;
                 hTxt.FontName = obj.FontName;
                 hTxt.FontWeight = 'normal';
+                hTxt.Interpreter = 'none';
                 obj.headerTitle = hTxt;
             else
                 obj.headerTitle = uicontrol(obj.header.hPanel, 'style', 'text');
@@ -1919,7 +1920,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                     case 'char'
                         if strcmp(hControl.Style, 'popupmenu')
-                            value = find(contains(hControl.String, value));
+                            value = find(strcmp(hControl.String, value));
+                            if isempty(value)
+                                warning('No items in popup menu for "%s" matched the value "%s"', hControl.Tag, value);
+                                value = 1;
+                            elseif numel(value)>1
+                                warning('Multiple items in popup menu for "%s" matched the value "%s"', hControl.Tag, value);
+                                value = value(1);
+                            end
+
                             hControl.Value = value;
                         else
                             hControl.String = value;
@@ -2431,10 +2440,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             %matchedName = hDropdown.String{matchedInd(1)};
             
-            hDropdown.Value = matchedInd;
-
-            obj.currentOptionsName = newName;
-            
+            if ~isempty(matchedInd)
+                hDropdown.Value = matchedInd;
+                obj.currentOptionsName = newName;
+            else
+                error('Trying to select an options set that does not exist.')
+            end
         end
         
         function name = getCurrentOptionsSetSelection(obj, hDropdown)

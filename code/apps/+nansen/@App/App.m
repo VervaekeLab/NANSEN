@@ -2587,9 +2587,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             taskConfiguration.Restart = strcmp(evt.Mode, 'Restart');
             taskConfiguration.TaskAttributes = evt.TaskAttributes;
             
-
             % Go through cell array of session objects and initialize tasks
             numTasks = numel(sessionObj);
+
+            % Only edit options once when multiple sessions are selected if
+            % this is spedified in preferences.
+            if strcmp(evt.Mode, 'Preview') && numTasks > 1 && ...
+                   strcmp( app.settings.Session.OptionEditMode, 'Only once' )
+                optsManager = evt.TaskAttributes.OptionsManager;
+                [optsName, optsStruct, wasAborted] = optsManager.editOptions();
+                if wasAborted; return; end
+                taskConfiguration.Options = optsStruct;
+                taskConfiguration.OptionsName = optsName;
+                evt.Mode = 'Default';
+                taskConfiguration.Mode = 'Default';
+            end
+
             for i = 1:numTasks
 
                 % Update the status field
