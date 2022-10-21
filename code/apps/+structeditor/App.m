@@ -841,6 +841,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 hTxt.FontSize = 14;
                 hTxt.FontName = obj.FontName;
                 hTxt.FontWeight = 'normal';
+                hTxt.Interpreter = 'none';
                 obj.headerTitle = hTxt;
             else
                 obj.headerTitle = uicontrol(obj.header.hPanel, 'style', 'text');
@@ -2431,10 +2432,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             %matchedName = hDropdown.String{matchedInd(1)};
             
-            hDropdown.Value = matchedInd;
-
-            obj.currentOptionsName = newName;
-            
+            if ~isempty(matchedInd)
+                hDropdown.Value = matchedInd;
+                obj.currentOptionsName = newName;
+            else
+                error('Trying to select an options set that does not exist.')
+            end
         end
         
         function name = getCurrentOptionsSetSelection(obj, hDropdown)

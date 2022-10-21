@@ -470,9 +470,15 @@ classdef OptionsManager < handle
                 optsStruct = sEditor.dataEdit;
                 optsName = sEditor.currentOptionsName;
             end
-            
-            obj.Options = optsStruct;
-            obj.OptionsName = optsName;
+
+            % Clear modified options!
+            transientOptionNames = obj.EditedOptionNames;
+            obj.resetModifiedOptions()
+
+            if ~any(strcmp(transientOptionNames, optsName))
+                obj.Options = optsStruct;
+                obj.OptionsName = optsName;
+            end
             
             if nargout == 2
                 clear wasAborted
