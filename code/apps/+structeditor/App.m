@@ -1920,7 +1920,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                     case 'char'
                         if strcmp(hControl.Style, 'popupmenu')
-                            value = find(contains(hControl.String, value));
+                            value = find(strcmp(hControl.String, value));
+                            if isempty(value)
+                                warning('No items in popup menu for "%s" matched the value "%s"', hControl.Tag, value);
+                                value = 1;
+                            elseif numel(value)>1
+                                warning('Multiple items in popup menu for "%s" matched the value "%s"', hControl.Tag, value);
+                                value = value(1);
+                            end
+
                             hControl.Value = value;
                         else
                             hControl.String = value;
