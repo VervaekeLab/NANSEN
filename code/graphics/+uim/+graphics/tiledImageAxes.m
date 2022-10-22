@@ -20,7 +20,7 @@ classdef tiledImageAxes < uim.handle
 %
 %
 %   Examples:
-%       See clib.manualClassifier &
+%       See mclassifier.manualClassifier &
 %       imviewer.widgets.ThumbnailSelector for practical examples.
 
 

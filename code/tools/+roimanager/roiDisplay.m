@@ -33,16 +33,11 @@ classdef roiDisplay < uim.handle
 %
 %       onRoiGroupSet              : handle changes on the roi display
 %                                    when a RoiGroup is set.
-%                                   
-
 
 %   TODO: 
 %       [ ] selectRois should be a method of the roidisplay
 %       [ ] hittest (or similar name) should be a method of the roi display
 %       [ ] Should have a onRoisSelected method 
-
-
-
 
 % Work in progress.
     
@@ -62,7 +57,8 @@ classdef roiDisplay < uim.handle
     end
     
     properties
-        RoiGroup            % The handle of a roigroup object
+        % The handle of a roigroup object
+        RoiGroup %roimanager.roiGroup % Todo: Add property validation, but see comment in roimanager.RoiGroupFileIoAppMixin      
     end
     
     properties (SetAccess = protected)

@@ -1,24 +1,39 @@
 classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager.RoiGroupFileIoAppMixin
-    
-    % todo, mouse tools are quite slow. should I use polygons instead of
-    % patches?
-    
-    % classify roi methods, listeners
-    % select roi methods/listeners
-    % remove rois
-    % reshape rois (keyboard/mousetools)
-    
-    % Why are superclass keyPress and onKeyPressed both activated on
-    % keypress.....
-    
-    % Todo: selectedItem is the same as roiDisplay's SelectedRois and 
-    %  displayedItems is the same as roiDisplay's VisibleRois
-    
-    
-%   Inherited properties:
-%       RoiGroup            % RoiGroup object (roiDisplay)
-    
-    % Todo: roiFilePath = dataFilePath....
+%roiClassifier.App App for classifying rois in a tiled montage view
+%
+%   roiClassifier.App(filename) initializes the app using rois from file
+%   specified by filename. Filename is a character vector containing the
+%   path to a file containing a roi group
+%   
+%   roiClassifier.App(roiGroup) initializes the app with an existing roi
+%   group.
+
+
+    % Todo: 
+    % [ ] selectedItem is the same as roiDisplay's SelectedRois and 
+    %     displayedItems is the same as roiDisplay's VisibleRois
+    %    
+    % [ ] roiFilePath = dataFilePath....
+    %
+    % [ ] old comment: mouse tools are quite slow. should I use polygons 
+    %     instead of patches? Is this still a problem
+    %
+    % [ ] old comment: Why are superclass keyPress and onKeyPressed both 
+    %     activated on keypress? - Is this still a problem
+    % [ ] Fix imprecise coordinate representations of rois
+
+    % This class requires a big upgrade. 
+    %   1) Should make a clear distinction between the app and the 
+    %      "classifier". The classifier widget consist of the tiled image 
+    %      axes and added functionality for classification of tiles, but
+    %      the app contains more functionality, like roi load/save etc.
+    % 
+    %   2) Roi editing tools should be moved/joined in a RoiEditor class.
+    %   3) Roi display should be a property of the App class?
+
+    %   Inherited properties: Note: Inherited from both roiDisplay and
+    %   RoiGroupFileIoAppMixin. This needs to be fixed.
+    %       RoiGroup            % RoiGroup object (roiDisplay)
 
     properties
         
@@ -32,13 +47,15 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 %         guiColors = struct('Background', ones(1,3)*0.1, ...
 %                            'Foreground', ones(1,3)*0.7 )
          guiColors = struct('Background',  [0.1020 0.1137 0.1294], ...
-                           'Foreground', [0.8196 0.8235 0.8275])                  
+                            'Foreground', [0.8196 0.8235 0.8275])                  
                       
     
     end
     
-    properties
+    properties (Dependent)
         dataFilePath            % Filepath to load/save data from
+    end
+    properties
         roiFilePath
     end
     
@@ -49,7 +66,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         itemImages              % Struct array of different images per item
         itemStats               % Struct array of different stats per item
         itemClassification      % Vector with classification status per item
-
     end
     
     properties (Access = public, SetObservable = true)
@@ -74,12 +90,12 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         function obj = App(varargin)
         %roiClassifier Construct roi classifier app
             
-            % Todo: Should units always be scaledby default??
+            % Todo: Should units always be scaled by default??
             varargin = [varargin, {'tileUnits', 'scaled'}];
             obj@mclassifier.manualClassifier(varargin{:})
                         
             obj.hFigure.Name = 'Roi Classifier';
-%             obj.hFigure.KeyPressFcn = @obj.onKeyPressed;
+            % obj.hFigure.KeyPressFcn = @obj.onKeyPressed;
             obj.hFigure.WindowKeyPressFcn = @obj.onKeyPressed;
             obj.initializePointerManager()
             obj.modifyControls()
@@ -89,12 +105,10 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             obj.setTileCallbacks()
             
             setappdata(obj.hFigure, 'ViewerObject', obj);
-
             
             if ~nargout
                 clear obj
             end
-
         end
         
         function delete(obj)
@@ -120,7 +134,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 varargin = varargin(2:end);
             end
             nvpairs = varargin;
-                        
         end
         
         function preInitialization(obj)
@@ -144,8 +157,9 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 % % %                             'circleSelect', 'autoDetect'};
             
             pointerNames = {'selectObject', 'circleSelect', 'autoDetect'};
-            % Specify where pointer tools are defind:
             
+            % Specify where pointer tools are defind:
+            % Todo: Constant property or some roimanager constant class
             pointerRoot = strjoin({'roimanager', 'pointerTool'}, '.');
             
             hMap = obj;
@@ -165,7 +179,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             % axes when the image resolution or number of tiles is changed,
             % the autodetection tool must listen for axes limit changes.
             obj.pointerManager.pointers.autoDetect.addAxesLimitChangeListener()
-
         end
         
         function modifyControls(obj)
@@ -1029,6 +1042,14 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
     
     
     methods %Set/get
+
+        function set.dataFilePath(obj, value)
+            obj.roiFilePath = value;
+        end
+        function filePath = get.dataFilePath(obj)
+            filePath = obj.roiFilePath;
+        end
+
         function specs = get.itemSpecs(obj)
             specs = obj.RoiGroup.roiArray;
         end

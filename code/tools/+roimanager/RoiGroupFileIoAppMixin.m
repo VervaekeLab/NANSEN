@@ -3,7 +3,7 @@ classdef RoiGroupFileIoAppMixin < handle
 % for loading and saving rois to file.
 
     properties (Abstract)
-        RoiGroup roimanager.roiGroup
+        RoiGroup % roimanager.roiGroup % Todo: Add property validation, but need to upgrade roiClassifier.App first.
         roiFilePath
     end
     
