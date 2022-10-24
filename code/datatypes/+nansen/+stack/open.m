@@ -51,7 +51,7 @@ function virtualData = open(pathStr, varargin)
                 if strcmp(softwareName(1:2), 'SI')
                     isMultiFov = nansen.stack.virtual.ScanImageTiff.checkIfMultiRoi(imInfo);
                     if isMultiFov
-                        virtualData = nansen.stack.virtual.ScanImageMultiRoiTiff(pathStr, varargin{:}, nvPairs{:});
+                        ophys.twophoton.ScanImageMultiRoi2PSeries(pathStr).view()
                     else
                         virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
                     end
