@@ -46,7 +46,10 @@ classdef MetaTable < handle
         MetaTableIdVarname = '';
         
         MetaTableMembers = {}
-        
+    end
+
+    properties (Dependent)
+        VariableNames
     end
     
     % Public properties to access MetaTable contents
@@ -120,6 +123,10 @@ classdef MetaTable < handle
                 schemaIdName = eval(strjoin({obj.MetaTableClass, 'IDNAME'}, '.'));
             end
         end
+
+        function variableNames = get.VariableNames(obj)
+            variableNames = obj.entries.Properties.VariableNames;
+        end
         
         function members = get.members(obj)
             members = obj.MetaTableMembers;
@@ -136,6 +143,10 @@ classdef MetaTable < handle
           
         function key = getKey(obj)
             key = obj.MetaTableKey;
+        end
+
+        function variableName = getVariableName(obj, colIndex)
+            variableName = obj.entries.Properties.VariableNames{colIndex};
         end
 
         function setMaster(obj, keyword)
@@ -476,12 +487,11 @@ classdef MetaTable < handle
                 end
             end
             
-% %             In progress:
-% %             % Step 3: does the data type have it's own formatter?
-% %             dataHasTableFormatter = cellfun(@(c) isa(c, 'nansen.metadata.tablevar.mixin.HasTableColumnFormatter'), firstRowData);
-% %             formattingFcn(dataHasTableFormatter) = cellfun(@(c) ...
-% %                 str2func(class(eval( strjoin({class(c), 'TableColumnFormatter'}, '.')))), ...
-% %                 firstRowData(dataHasTableFormatter), 'uni', 0);
+            % Step 3: does the data type have it's own formatter?
+            dataHasTableFormatter = cellfun(@(c) isa(c, 'nansen.metadata.tablevar.mixin.HasTableColumnFormatter'), firstRowData);
+            formattingFcn(dataHasTableFormatter) = cellfun(@(c) ...
+                str2func(class(eval( strjoin({class(c), 'TableColumnFormatter'}, '.')))), ...
+                firstRowData(dataHasTableFormatter), 'uni', 0);
             
             % Step 4: Format all the table columns that needs formatting
 

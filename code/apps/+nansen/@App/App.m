@@ -1665,7 +1665,33 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isa(evt.NewValue, 'datetime')
                 evt.NewValue.TimeZone = '';
             end
+
             app.MetaTable.entries(evt.Indices(1), evt.Indices(2)) = {evt.NewValue};
+            
+
+            % The following is hopefully a temporary solution. If user
+            % ticks the ignore checkbox for a session, and the settings are
+            % set to hide ignored sessions, the table should be updated and
+            % the session should disappear. However, there is some delays,
+            % when refreshing the table and in the meantime the user could 
+            % go on and select more sessions to ignore. Since the visible
+            % table in this small delay will not match the table model, the
+            % wrong session could be ticked for ignoring. To avoid this,
+            % the table is temporily made un-editable.
+
+            if strcmp(app.MetaTable.getVariableName(evt.Indices(2)), 'Ignore')
+                if ~app.settings.MetadataTable.ShowIgnoredEntries
+                    % Make table temporarily uneditable
+                    allowTableEdits = app.UiMetaTableViewer.AllowTableEdits;
+                    if allowTableEdits
+                        app.UiMetaTableViewer.AllowTableEdits = false;
+                    end
+                    app.UiMetaTableViewer.refreshTable(app.MetaTable)
+                    if allowTableEdits
+                        app.UiMetaTableViewer.AllowTableEdits = true;
+                    end
+                end
+            end
         end
         
         function addTableVariable(app, metadataClass)
@@ -2041,6 +2067,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             clipboard('copy', sessionIDStr)
 
         end
+
+        function removeSessionFromTable(app)
+            selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
+            app.MetaTable.removeEntries(selectedEntries)
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+        end
         
         function onAssignPipelinesMenuItemClicked(app, src, ~)
         %onAssignPipelinesMenuItemClicked Session context menu callback            
@@ -2062,6 +2094,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             sessionObj.addNote(noteObj)
             
+        end
+
+        function onRemoveSessionMenuClicked(app)
+            app.removeSessionFromTable()
         end
         
         function onViewSessionNotesContextMenuClicked(app)
@@ -3266,7 +3302,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onRefreshTableMenuItemClicked(app, ~, ~)
              
-            returnToIdle = app.setBusy('Updating table');
+            returnToIdle = app.setBusy('Updating table'); %#ok<NASGU> 
             %uipopup(app.Figure, 'Updating table')
             app.UiMetaTableViewer.resetTable()            
             onNewMetaTableSet(app)
