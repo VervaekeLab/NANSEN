@@ -54,7 +54,11 @@ App for viewing and interacting with videos & image stacks
 ### Fovmanager
 App for registering cranial implants, injection spots and imaging field of views (and RoIs) on an atlas of the dorsal surface of the cortex.
 
-<img src="https://ehennestad.github.io/images/fovmanager.png" alt="Imviewer instance" width="500"/>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/17237719/197357426-248bc6e4-cbe4-4f80-9fae-3d54382edcd9.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://ehennestad.github.io/images/fovmanager.png">
+  <img alt="Fovmanager." src="https://ehennestad.github.io/images/fovmanager.png" width="500">
+</picture>
 
 ## Plugins
 Example of toolbox plugins that are included in NANSEN

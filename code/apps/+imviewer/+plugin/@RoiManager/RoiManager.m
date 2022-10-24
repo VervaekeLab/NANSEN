@@ -1087,6 +1087,12 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
     methods (Access = private) % Initialization
         
         function initializeRoiGroup(obj)
+            
+            % Todo: Remove when type of roiGroup is properly defined in
+            % property block of superclass
+            if isempty(obj.RoiGroup)
+                obj.RoiGroup = roimanager.roiGroup.empty;
+            end
 
             % Create one roigroup object for each channel and each plane
             for i = 1:obj.ImviewerObj.NumPlanes

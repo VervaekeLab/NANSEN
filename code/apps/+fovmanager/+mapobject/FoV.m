@@ -629,7 +629,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 case 'Custom Size'
                     input = inputdlg({'Enter Width in um', 'Enter Height in um'});
                     if isempty(input); return; end
-                    fovSize = [str2double(input{2}), str2double(input{1})];
+                    fovSize = [str2double(input{1}), str2double(input{2})]; % X,Y
                 otherwise
                     zoomFactor = str2double(choice);
             end
