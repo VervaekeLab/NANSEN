@@ -49,7 +49,12 @@ function virtualData = open(pathStr, varargin)
             try
                 softwareName = imInfo.getTag('Software');
                 if strcmp(softwareName(1:2), 'SI')
-                    virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
+                    isMultiFov = nansen.stack.virtual.ScanImageTiff.checkIfMultiRoi(imInfo);
+                    if isMultiFov
+                        virtualData = nansen.stack.virtual.ScanImageMultiRoiTiff(pathStr, varargin{:}, nvPairs{:});
+                    else
+                        virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
+                    end
                 elseif contains(softwareName, 'Prairie View')
                     virtualData = nansen.stack.virtual.PrairieViewTiffs(pathStr, varargin{:}, nvPairs{:});
                 end
