@@ -397,8 +397,11 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             opts.Run.runOnSeparateWorker = false;
             
             % Todo: should reconcile this, using a dataiomodel
-            %args = {obj.SourceStack, opts};
-            args = {obj.SessionObjects, opts};
+            if isprop(obj, 'SessionObjects') % Some subclasses
+                args = {obj.SessionObjects, opts};
+            else
+                args = {obj.SourceStack, opts};
+            end
 
             batchFcn = str2func( class(obj) );
             

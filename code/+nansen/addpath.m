@@ -18,10 +18,10 @@ function addpath()
 
     pathList = genpath(nansenRootPath);
     
-    pathListCell = strsplit(pathList, ':');
+    pathListCell = strsplit(pathList, pathsep);
     keep = ~contains(pathListCell, '.git');
     pathListCell = pathListCell(keep);
-    pathListNoGit = strjoin(pathListCell, ':');
+    pathListNoGit = strjoin(pathListCell, pathsep);
     
     addpath(pathListNoGit)
     
