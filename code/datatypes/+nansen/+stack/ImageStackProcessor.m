@@ -1,7 +1,7 @@
 classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous  
 %NANSEN.STACK.IMAGESTACKPROCESSOR Super class for image stack method.
 %
-%   This is a super class for methods that will run on an imagestack
+%   This is a super class for methods that will run on an ImageStack
 %   object. This class provides functionality for splitting the stack in
 %   multiple parts and running the processing on each part in sequence. The
 %   class is designed so that methods can be started over and skip over 
@@ -14,10 +14,12 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %   Constructing an object of this class will not start the processing, use
 %   the runMethod for this.
 %
-%   Subclasses must implement:
+%   Subclasses must implement the following properties:
 %       DATA_SUBFOLDER : Name for folder to save results in
 %       VARIABLE_PREFIX : Prefix to use for variable names and filenames
-
+%
+%   Subclasses must implement the following methods:
+%       Y = processPart(obj, Y, iIndices);
 
 
 
@@ -35,9 +37,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %       - Inherit from matlab.mixin.Heterogenous
 %       - A loop within runMethod to loop over an array of class objects
 %       - A method to make sure the sourceStack of all objs are the same
-
-
-
 
 
 
@@ -63,7 +62,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %     [v] Make option for reseting results before running. I.e when you
 %         want to rerun the method and overwrite previous results.
 %         Implemented on superclass DataMethod.
-
+%
 %     [ ] Make sure above works for all subclasses. Have an abstract method 
 %         called reset?
 %
@@ -72,6 +71,10 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 %         is also saved (see e.g. RoiSegmentation)
 %
 %     [ ] Don't show msg if all parts are processed
+%
+%     [ ] Implement file format for results of processing (TargetStack)
+%     some options should be Binary, Tiff etc.
+
 %
 %       
 %     Display/logging
@@ -155,7 +158,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             S.Run.ChannelProcessingMode_ = {'serial', 'batch', 'single'};
             S.Run.PlaneProcessingMode = 'serial';
             S.Run.PlaneProcessingMode_ = {'serial', 'batch'};             
-            
         end
     end
     
@@ -166,7 +168,29 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
     methods % Constructor
         
         function obj = ImageStackProcessor(varargin)
-                  
+        %ImageStackProcessor Construct an ImageStackProcessor instance
+        %
+        %   h = nansen.stack.ImageStackProcessor() creates a handle for an
+        %   ImageStackProcessor which needs to be configured later
+        %
+        %   h = nansen.stack.ImageStackProcessor(imageStack) specifies the
+        %   given ImageStack as a SourceStack for the processor.
+        %
+        %   h = nansen.stack.ImageStackProcessor(filename) tries to open
+        %   the file given by filename as an ImageStack and assign as the
+        %   SourceStack.
+        %
+        %   h = nansen.stack.ImageStackProcessor(__, options) additionally
+        %   specifies the options to use for the processor.
+        %
+        %   h = nansen.stack.ImageStackProcessor(__, Name, Value, ...) 
+        %   additionally specifies parameters as name, value pairs.
+        %
+        %   Parameters:
+        %       DataIoModel : An instance of a DataIoModel class
+
+        %   Not documented yet: The first input can alo be a DataIoModel
+        
             if numel(varargin) == 0
                 dataLocation = struct.empty;
                 
@@ -192,7 +216,7 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 opts = struct.empty;
             end
             
-            % Call the constructor of the DataMethod parent class
+            % Call the constructor for the superclass (DataMethod)
             nvPairs = {};
             obj@nansen.DataMethod(dataLocation, opts, nvPairs{:})
             
@@ -214,7 +238,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             elseif isa(varargin{1}, 'struct')
                 % Todo. Subclass must implement....
             end
-            
         end
         
         function delete(obj)
@@ -349,7 +372,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                 %[obj.Parameters, wasAborted] = tools.editStruct(obj.Parameters);
                 wasSuccess = ~wasAborted;
             end
-            
         end
         
     end
@@ -412,7 +434,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             job.Tag = jobDescription;
             
             toc
-            
         end
         
         function matchConfiguration(obj, referenceProcessor)
@@ -463,7 +484,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             
             % Todo: display message showing number of parts...
             obj.IsInitialized = true;
-            
         end
         
         function processStack(obj)
@@ -656,7 +676,8 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
                     obj.SourceStack = nansen.stack.ImageStack(imageStackRef);
                     obj.DeleteSourceStackOnDestruction = true;
                 catch
-                    error('Input must be transferable to an ImageStack')
+                    error('NANSEN:ImageStackProcessor:InvalidInput', ...
+                            'Input could not be opened as an ImageStack')
                 end
             end
         end
@@ -745,7 +766,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
             % Todo: Make sure this method is not resuming from previous
             % instance that used a different stack splitting configuration
-            
         end
 
         function configureStackIterator(obj)
@@ -777,7 +797,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             imArray = squeeze(imArray);
             
             obj.printTask('Finished loading data')
-            
         end
         
         function S = repeatStructPerDimension(obj, S)
@@ -898,7 +917,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             assert( min(partsToProcess) >= 1, msgA)
             msgB = 'PartsToProcess can not be larger than the last part';
             assert( max(partsToProcess) <= obj.NumParts, msgB)
-
         end
         
         function onNumFramesPerPartSet(obj)
@@ -914,7 +932,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             % Assign to property values
             obj.FrameIndPerPart = IND;
             obj.NumParts = numParts;
-            
         end
         
         function initializeStackIterator(obj)
@@ -1008,7 +1025,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             if obj.SourceStack.NumChannels > 1
                 frameIndices{end+1} = obj.StackIterator.CurrentChannel;
             end
-            
         end
         
     end
@@ -1119,8 +1135,6 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
             % Print size of stack (number of frames, channels, planes)
             
             % Print channel processing mode...
-            
-            
         end
         
         function printStackProcessingDetails(obj)
