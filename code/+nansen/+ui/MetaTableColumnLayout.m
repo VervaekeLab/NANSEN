@@ -313,7 +313,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             [~, indSort] = sort(colOrder);
             colNames = colNames(indSort);
             varNames = varNames(indSort);
-
             
             if nargout == 1
                 clear varNames
