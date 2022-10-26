@@ -50,6 +50,10 @@ classdef SessionTaskMenu < handle
         ParentApp = [] % Handle of the app for the session task menu
         SessionTasks = struct('Name', {}, 'Attributes', {})
     end
+
+    properties (Access = private)
+        IsModeLocked = false
+    end
     
     properties (Access = private)
         hMenuDirs matlab.ui.container.Menu
@@ -125,7 +129,8 @@ classdef SessionTaskMenu < handle
 
         function set.Mode(obj, newMode)
         %set.Mode Set the mode property to one of the valid modes.
-        
+            if obj.isModeLocked(); return; end
+
             newMode = validatestring(newMode, obj.ValidModes);
             
             if ~isequal(newMode, obj.Mode)
@@ -180,6 +185,10 @@ classdef SessionTaskMenu < handle
     
     methods (Access = private) % Methods for configuring menu
         
+        function tf = isModeLocked(obj)
+            tf = obj.IsModeLocked;
+        end
+
         function assignDefaultMethodsPath(obj, modules)
         %assignDefaultMethodsPath Assign the default path(s) for tasks
         %
@@ -349,7 +358,13 @@ classdef SessionTaskMenu < handle
         %   the options manager.
 
             menuName = taskAttributes.MethodName;
-            iSubMenu = uimenu(hParent, 'Text', menuName);
+
+            % Check if menu with this label already exists
+            iSubMenu = findobj( hParent, 'Type', 'uimenu', '-and', ...
+                                 'Text', menuName, '-depth', 1 );
+            if isempty(iSubMenu)
+                iSubMenu = uimenu(hParent, 'Text', menuName);
+            end
             
             if ~isempty(taskAttributes.Alternatives)
                 % Create one menu item for each task alternative
@@ -458,10 +473,15 @@ classdef SessionTaskMenu < handle
             params = utility.parsenvpairs(params, 1, varargin);
             nvPairs = utility.struct2nvpairs(params);
             
+            obj.Mode = 'Default'; % Reset mode
+            obj.IsModeLocked = true; % Prevent sticky keys
+
             evtData = uiw.event.EventData( nvPairs{:} );
             obj.notify('MethodSelected', evtData)
 
-            obj.Mode = 'Default'; % Reset mode
+            %obj.Mode = 'Default'; % Reset mode
+            pause(0.5)
+            obj.IsModeLocked = false;
 
         end
         
