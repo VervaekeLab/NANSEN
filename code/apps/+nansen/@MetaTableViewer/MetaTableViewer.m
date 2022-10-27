@@ -763,6 +763,25 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.HTable.Theme = obj.HTable.Theme;
 
         end
+
+        function updateColumnLabelFilterIndicator(obj, filterActive)
+            onColor = '#017100';
+
+            colIndices = obj.ColumnModel.getColumnIndices();
+            filterActive = filterActive(colIndices);
+
+            columnNames = obj.ColumnModel.getColumnNames();
+
+            for i = 1:numel(obj.HTable.ColumnName)
+                if filterActive(i)
+                    columnNames{i} = sprintf('<HTML><FONT color="%s">%s</Font>', onColor, columnNames{i});
+                    %columnNames{i} = sprintf('<HTML><FONT
+                    %color="%s"><b>%s</Font>', onColor, columnNames{i});
+                    %makes very bold
+                end
+            end
+            obj.changeColumnNames(columnNames)
+        end
         
         function updateColumnEditable(obj)
         %updateColumnEditable Update the ColumnEditable property of table
