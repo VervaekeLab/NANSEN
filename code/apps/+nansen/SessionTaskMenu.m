@@ -36,6 +36,19 @@ classdef SessionTaskMenu < handle
     %       getting task attributes
     %   [ ] Add a mode called update (for updating specific menu item)
     
+
+%   Generalization: 
+%       If inheriting from a MultiModalMenu:
+%
+%       Should this class have project information? Preferably not, the
+%       project session method module should be assigned on construction,
+%       and there should be a method for changing it...
+%       So when a project is changed in nansen, it is nansen's
+%       responsibility to set a property TempPackageDirectory (come up
+%       with better name) instead of having a project changed listener
+%       here...
+
+
     properties (Constant, Hidden)
         ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Restart'} % Available modes
         MenuOrder = {'+data', '+process', '+analyze', '+plot'}              % Todo: preference?

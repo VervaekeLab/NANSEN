@@ -405,8 +405,9 @@ classdef ImageStackProcessor < nansen.DataMethod  %& matlab.mixin.Heterogenous
 
             batchFcn = str2func( class(obj) );
             
+            % Todo: This stopped(?) working. Should I use parfeval instead?
             job = batch(batchFcn, 0, args, ...
-                    'AutoAddClientPath',false, 'AutoAttachFiles', false, ...
+                    'AutoAddClientPath', false, 'AutoAttachFiles', false, ...
                     'AdditionalPaths', dependentPaths);
             
             job.Tag = jobDescription;

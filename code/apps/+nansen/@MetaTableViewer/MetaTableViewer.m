@@ -700,13 +700,23 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             dataTypes(strcmp(dataTypes, 'string')) = {'char'};
             dataTypes(strcmp(dataTypes, 'categorical')) = {'char'};
+
 % % %             % Note: Important to reset this before updating. Columns can be 
 % % %             % rearranged and number of columns can change. If 
 % % %             % ColumnFormatData does not match the specified column format
 % % %             % an error might occur.
 % % %             obj.HTable.ColumnFormatData = colFormatData;
-            
-            
+
+            % Enums: (here we need to use non-cell version). Todo: Find
+            % better solution...
+            isEnumeration = cellfun(@(cell) isenum(cell), table2cell(obj.MetaTable(1,:)), 'uni', 1);
+            dataTypes(isEnumeration) = {'popup'};
+            enumerationIdx = find(isEnumeration);
+            for i = enumerationIdx
+                [~, m] = enumeration( T{1,i} );
+                colFormatData{i} = [T(1,i); m];
+            end
+
             % All numeric types should be called 'numeric'
             isNumeric = cellfun(@(cell) isnumeric(cell), T(1,:), 'uni', 1);
             dataTypes(isNumeric) = {'numeric'};
