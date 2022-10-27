@@ -3148,7 +3148,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function metatable = MenuCallback_CreateMetaTable(app, src, evt)
             
             metatable = [];
-            
+            currentTableClass = class(app.MetaTable);
+            if ~strcmp(currentTableClass, 'nansen.metadata.type.Session') %#ok<STISA> 
+                errordlg(sprintf('This operation is not supported for tables with "%s" items yet...', currentTableClass))
+                return
+            end
+
             S = struct();
             S.MetaTableName = '';
             S.MakeDefault = false;
@@ -3158,6 +3163,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             [S, wasAborted] = tools.editStruct(S, [], 'New Metatable Collection', 'Prompt', 'Configure new metatable');
             if wasAborted; return; end
             
+            if isempty(S.MetaTableName)
+                errordlg('Please enter a name to create a new metatable...')
+                return
+            end
+
             S_ = struct;
             S_.MetaTableName = S.MetaTableName;
             S_.IsDefault = S.MakeDefault;
@@ -3169,6 +3179,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             MT = nansen.metadata.MetaTableCatalog.quickload();
             isMaster = MT.IsMaster; %#ok<PROP>
             
+            S_.MetaTableIdVarname = MT{isMaster, 'MetaTableIdVarname'}{1};
             S_.MetaTableKey = MT{isMaster, 'MetaTableKey'}{1};
             S_.MetaTableClass = MT{isMaster, 'MetaTableClass'}{1};
             
