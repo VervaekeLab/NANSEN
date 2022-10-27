@@ -52,6 +52,17 @@ classdef MetaTableCatalog < uim.handle
                     save(filePath, '-struct', 'S')
                 end
             end
+
+            % Append a table column that was added october 2022
+            if ~any(strcmp(obj.Table.Properties.VariableNames, 'MetaTableIdVarname') )
+                numRows = size(obj.Table,1);
+                metaTableIdColumn = repmat({'sessionID'}, numRows, 1);
+                newTableColumn = cell2table(metaTableIdColumn, "VariableNames", {'MetaTableIdVarname'});
+                newTable = cat(2, obj.Table, newTableColumn);
+                columnOrder = [1:3, 8, 4:7]; % MetaTable.MTABVARS
+                obj.Table = newTable(:, columnOrder);
+                obj.save()
+            end
         end
         
         function disp(obj)
@@ -113,10 +124,7 @@ classdef MetaTableCatalog < uim.handle
                 else
                     obj.Table = [obj.Table; newEntry]; % Concatenate vertically
                 end
-                
-                
             end
-            
         end
         
         function removeEntry(obj, entryName)

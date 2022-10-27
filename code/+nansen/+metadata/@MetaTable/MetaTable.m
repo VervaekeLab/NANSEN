@@ -604,6 +604,8 @@ classdef MetaTable < handle
             message = 'MetaTable entries must inherit from the BaseSchema class';            
             assert(isValid, message)
         
+            %schemaIdName = obj.MetaTableIdVarname; % todo...Support other
+            %sessions, i.e bot sessions.
             schemaIdName = newEntries(1).IDNAME;
             
             % If this is the first time entries are added, we need to set
