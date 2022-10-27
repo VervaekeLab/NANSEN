@@ -37,7 +37,7 @@ classdef SessionTaskMenu < handle
     %   [ ] Add a mode called update (for updating specific menu item)
     
     properties (Constant, Hidden)
-        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Restart'} % Available modes
+        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Help', 'Restart'} % Available modes
         MenuOrder = {'+data', '+process', '+analyze', '+plot'}              % Todo: preference?
     end
     
@@ -426,6 +426,7 @@ classdef SessionTaskMenu < handle
                 h.Text = strrep(h.Text, ' (q)', '');
                 h.Text = strrep(h.Text, ' (e)', '');
                 h.Text = strrep(h.Text, ' (r)', '');
+                h.Text = strrep(h.Text, ' (h)', '');
                 h.Enable = 'on';
 
                 % Append token to text
@@ -447,6 +448,9 @@ classdef SessionTaskMenu < handle
                         
                     case 'Edit'
                         h.Text = [h.Text, ' (e)'];
+                        
+                    case 'Help'
+                        h.Text = [h.Text, ' (h)'];
                         
                     case 'Restart'
                         h.Text = [h.Text, ' (r)'];

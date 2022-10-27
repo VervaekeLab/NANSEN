@@ -1468,7 +1468,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             switch evt.Key
         
-                case {'shift', 'q', 'e', 'r'}
+                case {'shift', 'q', 'e', 'r', 'h'}
 
 % % %                     timeSinceLastPress = toc(lastKeyPressTime);
 % % %                     timeSinceLastPress
@@ -1486,6 +1486,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             app.SessionTaskMenu.Mode = 'Edit';
                         case 'r'
                             app.SessionTaskMenu.Mode = 'Restart';
+                        case 'h'
+                            app.SessionTaskMenu.Mode = 'Help';
                     end
 
 % % %                     lastKeyPressTime = tic; 
@@ -1503,7 +1505,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             switch evt.Key
-                case {'shift', 'q', 'e', 'r'}
+                case {'shift', 'q', 'e', 'r', 'h'}
                     app.SessionTaskMenu.Mode = 'Default';
             end
 
@@ -2564,6 +2566,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if strcmp(evt.Mode, 'Edit')
                 edit( evt.TaskAttributes.FunctionName )
                 app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode 
+                return
+            elseif strcmp(evt.Mode, 'Help')
+                help(evt.TaskAttributes.FunctionName)
                 return
             end
 

@@ -952,7 +952,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
 
         function onMousePressedInHeader(obj, src, evt)
-            
+        %onMousePressedInHeader Handles mouse press in the table header.
+
             buttonNum = get(evt, 'Button');
             obj.lastMousePressTic = tic;
 
@@ -967,7 +968,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 return
             end
             
-            
+            % The action of pressing and holding for a split second should
+            % open the column filter. This is managed by a timer, and here,
+            % if a timer is not already active we start it and set the
+            % sortable to false
             if buttonNum == 1 && get(evt, 'ClickCount') == 1
                 
                 if isempty(obj.ColumnPressedTimer)
@@ -979,6 +983,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     obj.HTable.JTable.getModel().setSortable(0)
                 end
                 
+            % For right clicks, open the context menu.
             elseif buttonNum == 3 %rightclick
                 
                 % These are coords in table
@@ -986,10 +991,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 clickPosY = get(evt, 'Y');
                 
                 % todo: get column header x- and y positions in figure.
-                
                 obj.openColumnContextMenu(clickPosX, clickPosY);
             end
-
         end
         
         function onMouseDraggedInTableHeader(obj, src, evt)
