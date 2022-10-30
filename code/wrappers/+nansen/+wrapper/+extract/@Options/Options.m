@@ -56,12 +56,8 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
                     SOut.(configNames{j}) = S.(fieldsTopLevel{i}).(configNames{j});
                 end
             end
-
         end
         
     end
-    
-    
-    
     
 end

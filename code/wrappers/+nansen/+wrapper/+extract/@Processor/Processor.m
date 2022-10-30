@@ -1,13 +1,23 @@
 classdef Processor < nansen.processing.RoiSegmentation & ...
                         nansen.wrapper.abstract.ToolboxWrapper
-%nansen.wrapper.extract.Processor Wrapper for running EXTRACT on nansen
+%nansen.wrapper.extract.Processor Wrapper for running EXTRACT within nansen
 %
-%   h = nansen.wrapper.extract.Processor(imageStackReference)
+%   h = nansen.wrapper.extract.Processor(imageStackReference) runs extract
+%   on the ImageStack referred to by the imageStackReference. Valid
+%   references are an ImageStack object or a filepath to a file that can be
+%   opened as an ImageStack object.
 %
-%   This class provides functionality for running EXTRACT within
-%   the nansen package.
-
-
+%   h = nansen.wrapper.extract.Processor(__, options) additionally
+%       specifies the options to use for the processor. 
+% 
+%   To get the default options:
+%       defOptions = nansen.wrapper.extract.Processor.getDefaultOptions()
+%
+%   For additional optional parameters that can be used for configuring the 
+%   processor;
+%   See also nansen.stack.ImageStackProcessor 
+%
+%
 %   This class creates the following data variables:
 %
 %     * <strong>ExtractOptions</strong> : Struct with options used.
@@ -21,6 +31,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %     * <strong>roiArrayExtractAuto</strong> : array of RoI objects
 %           resulting from running EXTRACT autosegmentation
 
+
+% Todo: Load temp results
 
 % Rename to ExtractorS??
 
@@ -45,8 +57,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         function obj = Processor(varargin)
         %nansen.wrapper.extract.Processor Construct extract processor
         %
-        %   h = nansen.wrapper.extract.Processor(imageStackReference)
-            
+        %   h = nansen.wrapper.extract.Processor(imageStack) specifies the
+        %   given ImageStack as a SourceStack for the EXTRACT processor.
+        %
+        %   See also nansen.stack.ImageStackProcessor/ImageStackProcessor
+
             obj@nansen.processing.RoiSegmentation(varargin{:})
         
             % Return if there are no inputs.
@@ -59,12 +74,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 obj.runMethod()
                 clear obj
             end
-            
         end
-        
+
     end
     
-    methods (Access = protected) % Implementation of ImageStackProcessor methods
+    methods (Access = protected) % Implementation of superclass methods
         
         % Step 1
         function onInitialization(obj)
@@ -112,27 +126,20 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
             
             %obj.createRoiClassificationData()
-            
         end
         
     end
-    
     
     methods (Access = protected) % Implementation of RoiSegmentation methods
         
         function opts = getToolboxSpecificOptions(obj, varargin)
         %getToolboxSpecificOptions Get EXTRACT options from parameters or file
         %
-        %   OPTS = getToolboxSpecificOptions(OBJ, STACKSIZE) return a
+        %   OPTS = getToolboxSpecificOptions(OBJ) return a
         %   struct of parameters for the EXTRACT pipeline.
-        %
-        %
-        %   Todo: Need to adapt to aligning on multiple channels/planes.
-            % validate/assert that arg is good
-            %stackSize = varargin{1};
             
             import nansen.wrapper.extract.Options
-            opts = Options.convert(obj.Options);%, stackSize);
+            opts = Options.convert(obj.Options);
             
             % Make sure gpu option is turned off if running macOS version
             % 10.14 or above.
@@ -148,10 +155,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 
             optionsVarname = 'ExtractOptions';
 
-            % Initialize options (Load from session if options already
-            % exist, otherwise save to session)
+            % Initialize options (Load from data folder if options already
+            % exist, otherwise initialize and save to data folder)
             opts = obj.initializeOptions(opts, optionsVarname);
-            
         end
         
         function dsFactor = getTemporalDownsamplingFactor(obj)
@@ -168,24 +174,23 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             else
                 dsFactor = 1;
             end
-
         end
         
         function mergeSpatialComponents(obj, iPlane, iChannel)
-        %mergeSpatialComponentsLiberal    
+        %mergeSpatialComponents Merge spatial components.
 
             iMergedResults = obj.Results{1, iPlane, iChannel};
             [h, w, ~] = size(iMergedResults.spatial_weights);
+            
+            numParts = size(obj.Results, 1);
 
-            for i = 2:size(obj.Results, 1)
+            for i = 2:numParts
 
                 % Find matching indices between two sets of spatial masks
                 S{1} = iMergedResults.spatial_weights;
-                T{1} = iMergedResults.temporal_weights;
-                S_{1} = reshape(S{1}, [], size(S{1}, 3));
+                S_{1} = reshape(S{1}, [], size(S{1}, 3)); % pixel x n
 
                 S{2} = obj.Results{i, iPlane, iChannel}.spatial_weights;
-                T{2} = obj.Results{i, iPlane, iChannel}.temporal_weights;
                 S_{2} = reshape(S{2}, [], size(S{2}, 3));
 
                 idx_match = match_sets(S_{1}, S_{2});
@@ -198,18 +203,24 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     Smerged{j} = reshape(Smerged{j}, h, w, []);
                     S{j}(:, :, idx_match(j, :)) = [];
                 end
-
+                
+                % Merge rois by finding the average of the masks. 
+                % Todo: weight by number of parts.
                 SMerged = mean( cat(4, Smerged{:}), 4 );
 
                 % Insert merged components back to original rois and combine
                 S{1} = utility.insertIntoArray(S{1}, SMerged, idx_match(1, :), 3);
                 iMergedResults.spatial_weights = cat(3, S{:});
 
+                % For merging temporal weights (deprecated)
+                % % % T{1} = iMergedResults.temporal_weights;
+                % % % T{2} = obj.Results{i, iPlane, iChannel}.temporal_weights;
+
             end
 
             obj.MergedResults{iPlane, iChannel} = iMergedResults;
         end
-        
+
         function roiArrayCell = getRoiArray(obj)
         %getRoiArray Get results as a roi array
             
@@ -228,10 +239,12 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         end
         
         function getRoiAppData(obj)
+        %getRoiAppData Extends superclass method to include spatial weights
+        %
+        %   Include spatial weights as images for all rois.
+
             getRoiAppData@nansen.processing.RoiSegmentation(obj)
-            
-            %obj.runMethodOnEachPlane('addSpatialWeightsToRoiImages')
-            
+                        
             [numZ, numC] = size(obj.RoiArray);
             
             for iZ = 1:numZ
@@ -239,7 +252,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     obj.addSpatialWeightsToRoiImages(iZ, iC)
                 end
             end
-            
         end
 
     end
@@ -248,6 +260,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
         function createRoiClassificationData(obj)
             
+            % Note: Similar to getRoiAppData, but looks like it's
+            % deprecated
+
             % Load subset of downsampled image stack
             N = obj.SourceStack.chooseChunkLength();
             imArray = obj.SourceStack.getFrameSet(1:N);
@@ -260,7 +275,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             % Downsample signals
             if isprop(obj.SourceStack, 'DownsamplingFactor')
-                
                 q = obj.SourceStack.DownsamplingFactor;
                 roiSignalsDs = resample(double(roiSignals)', 1, q)';
                 roiSignals = roiSignalsDs;
@@ -286,12 +300,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             save(filePath, '-struct', 'S', '-append') 
             
             %tic; S = load(filePath); toc
-            
         end
         
         function addSpatialWeightsToRoiImages(obj, iZ, iC)
         %addSpatialWeightsToRoiImages Add spatial weights to roi images
         %
+        %   Add the spatial weights from the extract output as thumbnail
+        %   images for each roi.
 
             if isempty(obj.RoiArray{iZ, iC}); return; end
         
@@ -300,9 +315,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             roiArray = obj.RoiArray{iZ, iC};
             roiImages = obj.RoiImages{iZ, iC};
-            numRois = numel(roiArray);
-            
-            
+            numRois = numel(roiArray);            
 
             % Get spatial weigths as uin8 roi thumbnail images.
             imArray = nansen.wrapper.extract.util.convertSpatialWeightsToThumbnails(...
@@ -325,46 +338,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 setdiff(fieldNames, 'SpatialWeights', 'stable')' ];
 
             obj.RoiImages{iZ, iC} = orderfields(roiImages, newFieldnameOrder);
-
-        end
-        
-        function mergeSpatialComponentsOld(obj, iPlane, iChannel)
-                        
-            mergedResults = obj.Results{1, iPlane, iChannel};
-            [h, w, n] = size(mergedResults.spatial_weights);
-            
-            for i = 2:numel(obj.Results)
-                
-                % Find matching indices between two sets of spatial masks
-                S{1} = mergedResults.spatial_weights;
-                S{1} = reshape(S{1}, [], size(S{1}, 3));
-                
-                S{2} = obj.Results{i}.spatial_weights;
-                S{2} = reshape(S{2}, [], size(S{2}, 3));
-                
-                idx_match = match_sets(S{1}, S{2});
-                                
-                Skeep = cell(1,2);
-                
-                for j = 1:2
-                    Skeep{j} = S{j}(:, idx_match(j, :));
-                    Skeep{j} = reshape(Skeep{j}, h, w, []);
-                end
-                
-                SMerged = mean( cat(4, Skeep{:}), 4 );
-                mergedResults.spatial_weights = SMerged;
-                
-                T{1} = mergedResults.temporal_weights(:, idx_match(1, :));
-                T{2} = obj.Results{i}.temporal_weights(:, idx_match(2, :));
-                
-                TMerged = cat(1, T{:});
-
-                mergedResults.temporal_weights = TMerged;
-                
-            end
-            
-            obj.MergedResults = mergedResults;
-            
         end
         
         function adjustNumCellsToFind(obj)
@@ -380,7 +353,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     obj.ToolboxOptions.cellfind_max_steps = obj.ToolboxOptions.cellfind_max_steps ./ numPartitions;
                 end
             end
-            
         end
 
     end

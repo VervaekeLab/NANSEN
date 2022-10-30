@@ -190,6 +190,14 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
     
     methods (Access = protected)
         
+        function variableName = getVariableName(obj, variableNameSuffix)
+        %getVariableName Get variable name for a data variable
+        % 
+        % The variable name contains both the prefix (method specific) 
+        % and the suffix (type specific)
+            variableName = [obj.VARIABLE_PREFIX, variableNameSuffix];
+        end
+
         function initializeVariables(obj)
         %initializeVariables Initialize variables that is created by method
             
@@ -205,9 +213,9 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
             end
             
             % Todos:
-            % 1) Implement the DataVariableNames property
-            % 2) Implement a DATA_SUBFOLDER abstract property
-            % 3) Implement a setVariable on the DataIoModel / VariableModel
+            % 1) [ ] Implement the DataVariableNames property
+            % 2) [x] Implement a DATA_SUBFOLDER abstract property
+            % 3) [ ] Implement a setVariable on the DataIoModel / VariableModel
             
         end
         

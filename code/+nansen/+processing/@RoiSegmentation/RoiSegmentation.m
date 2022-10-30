@@ -209,9 +209,38 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 
     methods (Access = protected) % Methods specific for roi segmentation
         
+        function configureImageStackSplitting(obj)
+        %configureImageStackSplitting Get split configuration from options
+        %
+        %   Redefine method for ImageStackProcessor. For Roi Segmentation
+        %   it is important that chunks are as long as possible, so we
+        %   equalize the chunk size to make sure there is not one small
+        %   part at the end.
+        
+            % Get number of frames per part
+            N = obj.NumFramesPerPart;
+
+            % If there will be more than one chunk, adjust so that all
+            % chunks will be approximately the same size.
+            numParts = ceil( obj.SourceStack.NumTimepoints / N );
+            remainder = mod( obj.SourceStack.NumTimepoints , N  );
+            
+            if remainder/N < 1/3
+                numParts = numParts - 1;
+            end
+
+            N = ceil( obj.SourceStack.NumTimepoints / numParts );
+            obj.NumFramesPerPart = N;
+        end
+
         % Todo: Should this be an ImageStackProcessor method?
         function opts = initializeOptions(obj, opts, optionsVarname)
         % Get filepath for saving options file to session folder
+            
+            if nargin < 3 || isempty(optionsVarname)
+                optionsVarname = obj.getVariableName('Options');
+            end
+            
             filePath = obj.getDataFilePath(optionsVarname, '-w', ...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
             

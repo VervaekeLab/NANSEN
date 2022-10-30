@@ -1,13 +1,23 @@
 classdef Processor < nansen.processing.RoiSegmentation & ...
                         nansen.wrapper.abstract.ToolboxWrapper
-%nansen.wrapper.quicky.Processor Wrapper for running Quicky on nansen
+%nansen.wrapper.quicky.Processor Wrapper for running Quicky within nansen
 %
-%   h = nansen.wrapper.quicky.Processor(imageStackReference)
+%   h = nansen.wrapper.quicky.Processor(imageStackReference) runs quicky
+%       on the ImageStack referred to by the imageStackReference. Valid
+%       references are an ImageStack object or a filepath to a file that 
+%       can be opened as an ImageStack object.
 %
-%   This class provides functionality for running Quicky within
-%   the nansen package.
+%   h = nansen.wrapper.quicky.Processor(__, options) additionally
+%       specifies the options to use for the processor.
 %
+%   To get the default options:
+%       defOptions = nansen.wrapper.quicky.Processor.getDefaultOptions()
 %
+%   For additional optional parameters that can be used for configuring the 
+%   processor;
+%   See also nansen.stack.ImageStackProcessor
+
+
 %   This class creates the following data variables:
 %
 %     * <strong>QuickyOptions</strong> : Struct with options used.
@@ -15,12 +25,16 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %     * <strong>QuickyResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack. 
 %           Struct contains output from Quicky
 %
-%     * <strong>roiArrayQuickyAuto</strong> : 
-%
+%     * <strong>roiArrayQuickyAuto</strong> :
+
+% Todo: delegate saving of results to superclasses, and have relevant
+% superclass check if results already exists.
+
+
     properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_quicky')
-        ROI_VARIABLE_NAME = 'roiArrayQuickyAuto'
-        VARIABLE_PREFIX = 'FluFinder'
+        ROI_VARIABLE_NAME = 'roiArrayQuickyAuto' %roiArrayFlufinderAuto
+        VARIABLE_PREFIX = 'Quicky' %'FluFinder'
     end
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
@@ -29,7 +43,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             nansen.OptionsManager('nansen.wrapper.quicky.Processor')
     end
     
-    properties (Constant) % From imagestack...
+    properties (Constant) % Implement property from ImageStackProcessor
         ImviewerPluginName = 'FluFinder'
     end
     
@@ -40,7 +54,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %nansen.wrapper.quicky.Processor Construct quicky processor
         %
         %   h = nansen.wrapper.quicky.Processor(imageStackReference)
-            
+        %
+        %   See also nansen.stack.ImageStackProcessor/ImageStackProcessor
+
             obj@nansen.processing.RoiSegmentation(varargin{:})
         
             % Return if there are no inputs.
@@ -75,7 +91,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             if isfile(filePath)
                 obj.Results = obj.loadData('QuickyResultsTemp');
             end
-            
         end
 
         % Step 2
@@ -85,7 +100,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             % Y_ = flufinder.preprocessImages(Y, options);
             %
             %   Need to save mean of original to summary/results 
-
         end
 
         % Step 3
@@ -109,11 +123,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
         function onCompletion(obj)
             onCompletion@nansen.processing.RoiSegmentation(obj)
-        
-                if isempty(obj.MergedResults)
-                    obj.mergeResults()
-                end
-        
+            
+            if isempty(obj.MergedResults)
+                obj.mergeResults()
+            end
         end
         
     end
@@ -123,23 +136,17 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         function opts = getToolboxSpecificOptions(obj, varargin)
         %getToolboxSpecificOptions Get options from parameters or file
         %
-        %   OPTS = getToolboxSpecificOptions(OBJ, STACKSIZE) return a
-        %   struct of parameters for the EXTRACT pipeline.
-        %
-        %
-        %   Todo: Need to adapt to aligning on multiple channels/planes.
-            % validate/assert that arg is good
-            %stackSize = varargin{1};
-            
+        %   OPTS = getToolboxSpecificOptions(OBJ) return a
+        %   struct of parameters for the quicky algorithm.
+
             import nansen.wrapper.quicky.Options
             opts = Options.convert(obj.Options);
             
             optionsVarname = 'QuickyOptions';
 
-            % Initialize options (Load from session if options already
-            % exist, otherwise save to session)
+            % Initialize options (Load from data folder if options already
+            % exist, otherwise initialize and save to data folder)
             opts = obj.initializeOptions(opts, optionsVarname);
-            
         end
         
         function saveResults(obj)
@@ -153,7 +160,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             tmpMergedResults = cat(1, obj.Results{:, iPlane, iChannel});
             obj.MergedResults{iPlane, iChannel} = tmpMergedResults;
-
         end
 
 % %         function mergeResults(obj, iPlane, iChannel)
@@ -183,7 +189,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             if isempty(obj.MergedResults)
                 obj.mergeResults()
             end
-
 
             [numZ, numC] = size(obj.MergedResults);
             

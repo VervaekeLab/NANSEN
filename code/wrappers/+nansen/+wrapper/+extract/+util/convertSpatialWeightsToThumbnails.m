@@ -17,6 +17,8 @@ function imArray = convertSpatialWeightsToThumbnails(roiArray, spatialWeights, t
 %       imArray : Array of roi thumbnail images (thumbnailSize x numRois)
 
 
+% Todo: Move to flufinder...
+
 % Todo: % Adjust size based on average size of rois.
 % roiRadius = round( mean( sqrt( [roiArray.area] / pi ) ) );
 % thumbnailSize = 2*roiRadius + 1;

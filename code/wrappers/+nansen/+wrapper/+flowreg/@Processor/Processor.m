@@ -402,10 +402,18 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         
     end
     
-    methods (Static) % Method in external file.
-        options = getDefaultOptions()
+    methods (Static) 
+        function options = getDefaultOptions()
+            import nansen.wrapper.abstract.ToolboxWrapper
+            className = mfilename('class');
+            options = ToolboxWrapper.getDefaultOptions(className);
+
+            % Flowreg should be run with channel processing mode set to batch
+            options.Run.ChannelProcessingMode = 'batch';
+            options.Run.ChannelProcessingMode_ = {'batch', 'single'};
+        end
         
-        pathList = getDependentPaths()
+        pathList = getDependentPaths() % Method in external file.
     end
 
 end

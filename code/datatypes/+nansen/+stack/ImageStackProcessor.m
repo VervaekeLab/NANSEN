@@ -484,6 +484,8 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
             obj.initializeResults()
             
             % Todo: display message showing number of parts...
+            obj.displayImageStackSplittingInfo()
+
             obj.IsInitialized = true;
         end
         
@@ -757,7 +759,7 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
             
             % Get number of frames per part
             N = obj.NumFramesPerPart;
-            
+
             % Get cell array of frame indices per part (IND) and numParts
             [IND, numParts] = obj.SourceStack.getChunkedFrameIndices(N);
 
@@ -975,7 +977,8 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
             info.ImageStackName = obj.SourceStack.Name;
             
             % Load merged results if they are available.
-            variableName = sprintf('%sResultsFinal', obj.VARIABLE_PREFIX);
+            %variableName = sprintf('%sResultsFinal', obj.VARIABLE_PREFIX);
+            variableName = obj.getVariableName('ResultsFinal');
             filePath = obj.getDataFilePath(variableName, '-w',...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
             
@@ -1105,7 +1108,7 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
         
     end
     
-    methods (Access = private) % Should these methods be part of a data method logger class?
+    methods (Access = private) % Should these methods be part of a data method logger class? Yes, but not all
         
         function printInitializationMessage(obj)
         %printInitializationMessage Display message when method starts
@@ -1119,7 +1122,6 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
             fprintf(newline)
         end
 
-        
         function printCompletionMessage(obj)
         %printCompletionMessage Display message when method is completed
         
@@ -1168,10 +1170,16 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
             end
         end
         
+        function displayImageStackSplittingInfo(obj)
+            obj.printTask(sprintf('The ImageStack has %d frames and will be split in %d parts.', obj.SourceStack.NumTimepoints, obj.NumParts))
+            obj.printTask(sprintf('Each part will consist of %d frames.', obj.NumFramesPerPart))
+            fprintf('-\n')
+        end
+
     end
     
     methods (Static)
-        function printTask(varargin)
+        function printTask(varargin) % Todo: move to datamethod
             msg = sprintf(varargin{:});
             nowstr = datestr(now, 'HH:MM:ss');
             fprintf('%s: %s\n', nowstr, msg)

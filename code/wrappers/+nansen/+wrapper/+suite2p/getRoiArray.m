@@ -12,13 +12,13 @@ function roiArray = getRoiArray(stat, imsize)
     mask = zeros(imsize, 'single');
     
     if isfield(stat(1), 'ipix') % matlab version
-
+        mask = logical(mask);
         for i = 1:numel(stat)
 
            mask(stat(i).ipix) = true;
            roiArray(i) = RoI('Mask', mask, imsize);
 
-           mask(stat(i).ipix) = true;
+           mask(stat(i).ipix) = false;
         
         end
         
