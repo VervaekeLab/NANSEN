@@ -713,7 +713,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             dataTypes(isEnumeration) = {'popup'};
             enumerationIdx = find(isEnumeration);
             for i = enumerationIdx
-                [~, m] = enumeration( T{1,i} );
+                enumObject = obj.MetaTable{1,i};
+                if iscell(enumObject); enumObject = enumObject{1}; end
+                [~, m] = enumeration( enumObject ); % need to get enum for original....
                 colFormatData{i} = [T(1,i); m];
             end
 
