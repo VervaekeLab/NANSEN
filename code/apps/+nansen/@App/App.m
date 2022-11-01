@@ -1341,11 +1341,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 fcnName = func2str(task.method);
                 
                 if strcmp(task.status, 'Completed')
-                    if ismethod(sessionObj, 'updateProgress')
+                    if ismethod(sessionObj, 'updateProgress') && numel(sessionObj) == 1
                         sessionObj.updateProgress(fcnName, task.status)
                     end
                 end
-                
             end
         
         end

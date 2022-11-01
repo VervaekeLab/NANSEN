@@ -100,6 +100,7 @@ classdef CatalogViewerApp < applify.AppWindow
                 try
                     obj.UITable.DataTable = obj.Catalog.TabularData;
                 catch
+                    % If uitable does not support table data type
                     cellTable = table2cell( obj.Catalog.TabularData );
                     isStructCell = cellfun(@isstruct, cellTable);
                     

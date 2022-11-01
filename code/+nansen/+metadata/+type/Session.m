@@ -407,6 +407,17 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
     end
     
     methods % Data location
+        function replaceDataLocation(obj, dataLocationStruct)
+        %replaceDataLocation Brute force replace the data location struct.
+        %
+        %   This should be a private method.
+
+            obj.DataLocation = dataLocationStruct;
+
+            eventData = uiw.event.EventData('Property', 'DataLocation', ...
+                'NewValue', dataLocationStruct);
+            obj.notify('PropertyChanged', eventData)
+        end
         
         function updateDataLocations(obj)
             
@@ -702,8 +713,11 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         
         function tf = existVariable(obj, varName)
             %variableModel = nansen.config.varmodel.VariableModel;
-            variableModel = obj.VariableModel;
-            [~, tf] = variableModel.getVariableStructure(varName);
+            filePath = obj.getDataFilePath(varName);
+            tf = isfile(filePath);
+
+           % variableModel = obj.VariableModel;
+           % [~, tf] = variableModel.getVariableStructure(varName);
         end
 
         function createVariable(obj, varName, varargin)
@@ -939,6 +953,26 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             S = obj.getDataLocation(dataLocationName);
             
             folderPath = S.RootPath;
+        end
+
+        function updateRootDirPath(obj, dataLocationName, newRootPath)
+        %updateRootDirPath Update root directory path for a data location
+        
+            i = strcmp({obj.DataLocation.Name}, dataLocationName);
+            dlItem = obj.DataLocationModel.getItem(dataLocationName);
+            
+            oldRootPath = obj.DataLocation(i).RootPath;
+
+            if ~strcmp(oldRootPath, newRootPath)
+                
+                % Find the uid of the new root directory
+                rootIdx = strcmp({dlItem.RootPath.Value}, newRootPath);
+                obj.DataLocation(i).RootUid = dlItem.RootPath(rootIdx).Key;
+                obj.DataLocation(i).RootPath = newRootPath;
+                  
+                eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', obj.DataLocation);
+                obj.notify('PropertyChanged', eventData)
+            end
         end
         
         function updateRootDir(obj, rootdirStruct)
