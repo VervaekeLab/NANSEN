@@ -247,7 +247,11 @@ classdef Addons < handle
                     if contains(path, pkgInstallationDir)
                         rmpath(genpath(pkgInstallationDir))
                     end
-                    rmdir(pkgInstallationDir, 's')
+                    try
+                        rmdir(pkgInstallationDir, 's')
+                    catch
+                        warning('Could not remove old installation... Please report')
+                    end
                 end
             else
                 
@@ -335,10 +339,10 @@ classdef Addons < handle
             pathList = genpath(obj.AddonList(addonIdx).FilePath);
             
             % Remove all .git subfolders from this list
-            pathListCell = strsplit(pathList, ':');
+            pathListCell = strsplit(pathList, pathsep);
             keep = ~contains(pathListCell, '.git');
             pathListCell = pathListCell(keep);
-            pathListNoGit = strjoin(pathListCell, ':');
+            pathListNoGit = strjoin(pathListCell, pathsep);
 
             % Add all remaining folders to path.
             addpath(pathListNoGit); 
