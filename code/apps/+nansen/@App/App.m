@@ -2468,6 +2468,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
             app.openMessageBox(sprintf('%d sessions were successfully added', numel(newSessionObjects)))
+            % Display sessions that were added on the commandline
+            fprintf('The following sessions were added: \n%s\n', strjoin({newSessionObjects.sessionID}, '\n'))
 
         end
         
