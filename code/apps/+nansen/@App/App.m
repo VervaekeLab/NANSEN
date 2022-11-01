@@ -3178,7 +3178,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             projectRootDir = getpref('Nansen', 'CurrentProjectPath');
             S_.SavePath = fullfile(projectRootDir, 'Metadata Tables');
 
-            MT = nansen.metadata.MetaTableCatalog.quickload();
+            metaTableCatalog = nansen.metadata.MetaTableCatalog();
+            MT = metaTableCatalog.Table;
             isMaster = MT.IsMaster; %#ok<PROP>
             
             S_.MetaTableIdVarname = MT{isMaster, 'MetaTableIdVarname'}{1};

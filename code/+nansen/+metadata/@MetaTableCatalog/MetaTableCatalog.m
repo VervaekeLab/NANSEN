@@ -29,10 +29,10 @@ classdef MetaTableCatalog < uim.handle
             end
             
             obj.load();
-            obj.fixMetatable()
+            obj.fixCatalog()
         end
         
-        function fixMetatable(obj)
+        function fixCatalog(obj)
             % Todo: Remove this
             
             if size(obj.Table, 1) >= 1
