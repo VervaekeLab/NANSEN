@@ -42,7 +42,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     properties (Access = private)
         SessionObject
         DataLocationModel
-        DataFilePathModel
+        DataVariableModel
     end
     
     properties (Access = private)
@@ -175,9 +175,8 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 return
             end
             
-            %obj.DataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
-            obj.DataFilePathModel = nansen.config.varmodel.VariableModel();
-            varNames = {obj.DataFilePathModel.Data.VariableName};
+            obj.DataVariableModel = nansen.config.varmodel.VariableModel();
+            varNames = {obj.DataVariableModel.Data.VariableName};
             
             for i = 1:numel(varNames)
                 try
@@ -186,7 +185,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                     if isfile(filePath)
                         if ~isprop(obj, varNames{i})
                             obj.addDataProperty(varNames{i})
-                            obj.appendToVariableList(obj.DataFilePathModel.Data(i))
+                            obj.appendToVariableList(obj.DataVariableModel.Data(i))
                         end
                     end
                 catch
@@ -200,20 +199,20 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         end
 
         function varNames = getDataType(obj, typeName)
-            
-            % Todo: get from session object.
-            dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
-            
-            fileAdapters = {dataFilePathModel.VariableList.FileAdapter};
-            
+        %getDataType Get variable names for specified data type
+        
+            % Todo: get from session object:
+            dataVariableModel = nansen.config.varmodel.VariableModel();
+            fileAdapters = {dataVariableModel.Data.FileAdapter};
+
             switch typeName
                 case {'RoiGroup', 'RoiArray', 'roiArray'}
                     tf = strcmp(fileAdapters, 'RoiGroup');
-                    varNames = {dataFilePathModel.VariableList(tf).VariableName};
+                    varNames = {dataVariableModel.Data(tf).VariableName};
                     
                 otherwise
                     tf = strcmp(fileAdapters, typeName);
-                    varNames = {dataFilePathModel.VariableList(tf).VariableName};
+                    varNames = {dataVariableModel.Data(tf).VariableName};
             end
             
             tf = false(1, numel(varNames));
