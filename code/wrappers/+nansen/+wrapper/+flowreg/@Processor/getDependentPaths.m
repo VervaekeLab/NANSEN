@@ -1,5 +1,5 @@
 function pathList = getDependentPaths()
-%getDependentPaths Get paths that are needed for running normcorre
+%getDependentPaths Get paths that are needed for running flowreg
 
     toolboxInfo.ToolboxName = 'FlowRegistration';
     toolboxInfo.FunctionName = 'OF_options';

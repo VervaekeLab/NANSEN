@@ -1028,7 +1028,7 @@ classdef OptionsManager < handle
             if isempty(s)
                 return
             elseif numel(s) > 1
-                warning('Multiple instances of function "%s" was found on the path.')
+                warning('Multiple instances of function "%s" was found on the path.', obj.FunctionName)
                 % Note: If this happens when running a job on a parallell
                 % pool of workers, it might be necessary to reset the
                 % pool(?) by deleting it from Matlab's Job Monitor...

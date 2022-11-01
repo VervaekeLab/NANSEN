@@ -66,7 +66,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     
     
     
-    properties(Constant, Hidden = true)
+    properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false
         DEFAULT_SETTINGS = nansen.ui.MetaTableColumnLayout.getDefaultSettings()
         DEFAULT_COLUMN_WIDTH = 100
@@ -122,7 +122,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             [nvPairs, varargin] = utility.getnvpairs(varargin{:});
             params = utility.nvpairs2struct(nvPairs);
             if isfield(params, 'ColumnSettings')
-                obj.settings_ = params.ColumnSettings();
+                obj.settings_ = params.ColumnSettings;
+            end
+          
+            if isfield(params, 'ColumnSettings')
+                obj.settings_ = params.ColumnSettings;
             end
 
             obj.addColumnOrderToSettings() % temporary
@@ -130,7 +134,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % The editable property depends on the metatable and the
             % associated project-dependent variables and should be updated
             % on each instance creation.
-            obj.updateColumnEditableState()
+            % Todo: This is not good solution. 
+            %obj.updateColumnEditableState();
 
             obj.MetaTableUi = hViewer;
             
@@ -313,7 +318,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             [~, indSort] = sort(colOrder);
             colNames = colNames(indSort);
             varNames = varNames(indSort);
-
             
             if nargout == 1
                 clear varNames
@@ -630,7 +634,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 dataValue = tableRow.(iVarName);          % Todo: Check if this works if dataValue is cell array....
                 isValidDatatype = obj.checkIfColumnDataIsValid(dataValue);
 
-                if isa(dataValue, 'nansen.metadata.abstract.TableVariable')
+                if isa(dataValue, 'nansen.metadata.abstract.TableVariable') %|| isa(dataValue, 'nansen.metadata.tablevar.mixin.HasTableColumnFormatter')
                     if isempty(dataValue)
                         isEditable = eval(sprintf('%s.IS_EDITABLE', class(dataValue)));
                     else

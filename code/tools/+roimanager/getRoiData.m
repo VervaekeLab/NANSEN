@@ -8,7 +8,7 @@ function [roiArray, classification, stats, images] = getRoiData(S)
     
     dataVariableNames = fieldnames(S);
 
-    if contains('sessionData', fieldnames(S))
+    if any( contains(fieldnames(S), 'sessionData') )
         S = S.sessionData;
         dataVariableNames = fieldnames(S);
     end
@@ -45,7 +45,7 @@ function [roiArray, classification, stats, images] = getRoiData(S)
     
     numRois = numel(roiArray);
     
-    if contains( 'roiClassification', dataVariableNames)
+    if any( strcmp(dataVariableNames, 'roiClassification') )
         classification = S.roiClassification;
         if numel(classification) ~= numRois
             warning('Roi classification vector did not match size of Roi Array. Classification vector was reset')
@@ -56,7 +56,7 @@ function [roiArray, classification, stats, images] = getRoiData(S)
         classification = zeros(numRois, 1);
     end
     
-    if contains( 'roiStats', dataVariableNames)
+    if any( strcmp(dataVariableNames, 'roiStats') )
         stats = S.roiStats;
         if ~isempty(stats)
             if ~isstruct(stats) || numel(stats) ~= numRois
@@ -66,7 +66,7 @@ function [roiArray, classification, stats, images] = getRoiData(S)
         end
     end
     
-    if contains( 'roiImages', dataVariableNames)
+    if any( strcmp(dataVariableNames, 'roiImages') )
         images = S.roiImages;
         if ~isempty(images)
             if ~isstruct(images) || numel(images) ~= numRois

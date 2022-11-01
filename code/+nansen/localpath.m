@@ -56,7 +56,7 @@ function pathStr = localpath(pathKeyword, projectName)
             
         case 'subfolder_list'
             initPath = fullfile(nansen.localpath('nansen_root'), 'code');
-            folderPath = strsplit(genpath(initPath), ':');
+            folderPath = strsplit(genpath(initPath), pathsep);
             folderPath = folderPath(1:end-1);
 
         case {'_user_data', 'user_data', '_userdata', 'userdata'} % Todo...

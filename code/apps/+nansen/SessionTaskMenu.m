@@ -36,8 +36,21 @@ classdef SessionTaskMenu < handle
     %       getting task attributes
     %   [ ] Add a mode called update (for updating specific menu item)
     
+
+%   Generalization: 
+%       If inheriting from a MultiModalMenu:
+%
+%       Should this class have project information? Preferably not, the
+%       project session method module should be assigned on construction,
+%       and there should be a method for changing it...
+%       So when a project is changed in nansen, it is nansen's
+%       responsibility to set a property TempPackageDirectory (come up
+%       with better name) instead of having a project changed listener
+%       here...
+
+
     properties (Constant, Hidden)
-        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Restart'} % Available modes
+        ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Help', 'Restart'} % Available modes
         MenuOrder = {'+data', '+process', '+analyze', '+plot'}              % Todo: preference?
     end
     
@@ -49,6 +62,10 @@ classdef SessionTaskMenu < handle
     properties (SetAccess = private)
         ParentApp = [] % Handle of the app for the session task menu
         SessionTasks = struct('Name', {}, 'Attributes', {})
+    end
+
+    properties (Access = private)
+        IsModeLocked = false
     end
     
     properties (Access = private)
@@ -125,7 +142,8 @@ classdef SessionTaskMenu < handle
 
         function set.Mode(obj, newMode)
         %set.Mode Set the mode property to one of the valid modes.
-        
+            if obj.isModeLocked(); return; end
+
             newMode = validatestring(newMode, obj.ValidModes);
             
             if ~isequal(newMode, obj.Mode)
@@ -180,6 +198,10 @@ classdef SessionTaskMenu < handle
     
     methods (Access = private) % Methods for configuring menu
         
+        function tf = isModeLocked(obj)
+            tf = obj.IsModeLocked;
+        end
+
         function assignDefaultMethodsPath(obj, modules)
         %assignDefaultMethodsPath Assign the default path(s) for tasks
         %
@@ -349,7 +371,13 @@ classdef SessionTaskMenu < handle
         %   the options manager.
 
             menuName = taskAttributes.MethodName;
-            iSubMenu = uimenu(hParent, 'Text', menuName);
+
+            % Check if menu with this label already exists
+            iSubMenu = findobj( hParent, 'Type', 'uimenu', '-and', ...
+                                 'Text', menuName, '-depth', 1 );
+            if isempty(iSubMenu)
+                iSubMenu = uimenu(hParent, 'Text', menuName);
+            end
             
             if ~isempty(taskAttributes.Alternatives)
                 % Create one menu item for each task alternative
@@ -411,6 +439,7 @@ classdef SessionTaskMenu < handle
                 h.Text = strrep(h.Text, ' (q)', '');
                 h.Text = strrep(h.Text, ' (e)', '');
                 h.Text = strrep(h.Text, ' (r)', '');
+                h.Text = strrep(h.Text, ' (h)', '');
                 h.Enable = 'on';
 
                 % Append token to text
@@ -432,6 +461,9 @@ classdef SessionTaskMenu < handle
                         
                     case 'Edit'
                         h.Text = [h.Text, ' (e)'];
+                        
+                    case 'Help'
+                        h.Text = [h.Text, ' (h)'];
                         
                     case 'Restart'
                         h.Text = [h.Text, ' (r)'];
@@ -458,10 +490,15 @@ classdef SessionTaskMenu < handle
             params = utility.parsenvpairs(params, 1, varargin);
             nvPairs = utility.struct2nvpairs(params);
             
+            obj.Mode = 'Default'; % Reset mode
+            obj.IsModeLocked = true; % Prevent sticky keys
+
             evtData = uiw.event.EventData( nvPairs{:} );
             obj.notify('MethodSelected', evtData)
 
-            obj.Mode = 'Default'; % Reset mode
+            %obj.Mode = 'Default'; % Reset mode
+            pause(0.5)
+            obj.IsModeLocked = false;
 
         end
         

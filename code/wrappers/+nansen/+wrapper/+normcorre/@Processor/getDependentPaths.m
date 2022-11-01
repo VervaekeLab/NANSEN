@@ -2,7 +2,7 @@ function pathList = getDependentPaths()
 %getDependentPaths Get paths that are needed for running normcorre
 
     rootDir = utility.path.getAncestorDir( mfilename('fullpath'), 5 );
-    nansenDir = strsplit(genpath(rootDir), ':');
+    nansenDir = strsplit(genpath(rootDir), pathsep);
     
     % Find local normcorre location
     S = which('NoRMCorreSetParms');

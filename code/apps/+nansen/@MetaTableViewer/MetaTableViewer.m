@@ -700,13 +700,25 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             dataTypes(strcmp(dataTypes, 'string')) = {'char'};
             dataTypes(strcmp(dataTypes, 'categorical')) = {'char'};
+
 % % %             % Note: Important to reset this before updating. Columns can be 
 % % %             % rearranged and number of columns can change. If 
 % % %             % ColumnFormatData does not match the specified column format
 % % %             % an error might occur.
 % % %             obj.HTable.ColumnFormatData = colFormatData;
-            
-            
+
+            % Enums: (here we need to use non-cell version). Todo: Find
+            % better solution...
+            isEnumeration = cellfun(@(cell) isenum(cell), table2cell(obj.MetaTable(1,:)), 'uni', 1);
+            dataTypes(isEnumeration) = {'popup'};
+            enumerationIdx = find(isEnumeration);
+            for i = enumerationIdx
+                enumObject = obj.MetaTable{1,i};
+                if iscell(enumObject); enumObject = enumObject{1}; end
+                [~, m] = enumeration( enumObject ); % need to get enum for original....
+                colFormatData{i} = [T(1,i); m];
+            end
+
             % All numeric types should be called 'numeric'
             isNumeric = cellfun(@(cell) isnumeric(cell), T(1,:), 'uni', 1);
             dataTypes(isNumeric) = {'numeric'};
@@ -752,6 +764,25 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % stuff better.
             obj.HTable.Theme = obj.HTable.Theme;
 
+        end
+
+        function updateColumnLabelFilterIndicator(obj, filterActive)
+            onColor = '#017100';
+
+            colIndices = obj.ColumnModel.getColumnIndices();
+            filterActive = filterActive(colIndices);
+
+            columnNames = obj.ColumnModel.getColumnNames();
+
+            for i = 1:numel(obj.HTable.ColumnName)
+                if filterActive(i)
+                    columnNames{i} = sprintf('<HTML><FONT color="%s">%s</Font>', onColor, columnNames{i});
+                    %columnNames{i} = sprintf('<HTML><FONT
+                    %color="%s"><b>%s</Font>', onColor, columnNames{i});
+                    %makes very bold
+                end
+            end
+            obj.changeColumnNames(columnNames)
         end
         
         function updateColumnEditable(obj)
@@ -933,7 +964,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
 
         function onMousePressedInHeader(obj, src, evt)
-            
+        %onMousePressedInHeader Handles mouse press in the table header.
+
             buttonNum = get(evt, 'Button');
             obj.lastMousePressTic = tic;
 
@@ -948,7 +980,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 return
             end
             
-            
+            % The action of pressing and holding for a split second should
+            % open the column filter. This is managed by a timer, and here,
+            % if a timer is not already active we start it and set the
+            % sortable to false
             if buttonNum == 1 && get(evt, 'ClickCount') == 1
                 
                 if isempty(obj.ColumnPressedTimer)
@@ -960,6 +995,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     obj.HTable.JTable.getModel().setSortable(0)
                 end
                 
+            % For right clicks, open the context menu.
             elseif buttonNum == 3 %rightclick
                 
                 % These are coords in table
@@ -967,10 +1003,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 clickPosY = get(evt, 'Y');
                 
                 % todo: get column header x- and y positions in figure.
-                
                 obj.openColumnContextMenu(clickPosX, clickPosY);
             end
-
         end
         
         function onMouseDraggedInTableHeader(obj, src, evt)

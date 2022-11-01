@@ -3,17 +3,17 @@ function pathListOut = excludeItemsFromPathList(pathListIn, expr)
 %
 
     if ischar(pathListIn)
-        if strcmp(pathListIn(end), ':')
+        if strcmp(pathListIn(end), pathsep)
             pathListIn(end) = [];
         end
-        pathList = strsplit(pathListIn, ':');
+        pathList = strsplit(pathListIn, pathsep);
     end
     
     keep = ~contains(pathList, expr);
     pathListOut = pathList(keep);
     
     if ischar(pathListIn)
-        pathListOut = strjoin(pathListOut, ':');
+        pathListOut = strjoin(pathListOut, pathsep);
     end
 
 end

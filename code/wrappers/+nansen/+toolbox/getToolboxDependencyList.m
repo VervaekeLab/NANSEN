@@ -40,12 +40,15 @@ function pathList = getToolboxDependencyList(toolboxInfo)
         toolboxPathList = utility.path.excludeItemsFromPathList(toolboxPathList, iToken);
     end
     
-    toolboxPathListCell = strsplit(toolboxPathList, ':');
+    toolboxPathListCell = strsplit(toolboxPathList, pathsep);
     
     pathList = [nansenPathList, toolboxPathListCell];
     
     if isrow(pathList)
        pathList = transpose(pathList);
     end
+
+    isEmpty = cellfun(@isempty, pathList);
+    pathList(isEmpty) = [];
     
 end
