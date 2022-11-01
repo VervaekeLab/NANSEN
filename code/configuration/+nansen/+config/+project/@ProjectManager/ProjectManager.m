@@ -176,8 +176,13 @@ classdef ProjectManager < handle
             obj.Catalog(IND).Path = newProjectFolder;
             
             obj.saveCatalog()
-            
-            % Todo: If project is current project, need to update prefs...
+
+            % If project is current project, need to update prefs...
+            if strcmp(obj.CurrentProject, projectName)
+                setpref('Nansen', 'CurrentProjectPath', newProjectFolder);
+            end
+
+            %Todo: Update project folder in project instance. 
         end
         
         function moveProject(obj, projectName, newLocation)

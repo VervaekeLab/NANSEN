@@ -8,6 +8,8 @@ classdef Project < handle
     
     % Todo : 
     %   [ ] Define preferences.
+    %   [ ] Consider whether project folder should be dependent, i.e if it
+    %       is changed from project manager, instances need to be updated.
 
     properties
         Name                        % Name of the project

@@ -355,12 +355,14 @@ classdef ProjectManagerUI < handle
             end
 
             obj.notify('ProjectChanged', event.EventData)
-            
         end
         
         function changeProjectFolder(obj, rowIdx, projectFolderPath)
             projectName = obj.getNameFromRowIndex(rowIdx);
-            obj.ProjectManager.changeProjectFolder(projectName, projectFolderPath)
+            if ~isequal(projectName, 0)
+                obj.ProjectManager.changeProjectFolder(projectName, projectFolderPath)
+                obj.UIControls.ProjectTable.Data(rowIdx, 'Path') = {projectFolderPath};
+            end
         end
         
         function deleteProject(obj, rowIdx)
@@ -658,6 +660,7 @@ classdef ProjectManagerUI < handle
             if isempty(obj.SelectedRow)
                 msg = 'No project is selected. Please select a project and try again.';
                 obj.uialert(msg, 'No project is selected', 'error')
+                return
             end
             
             switch src.Text
