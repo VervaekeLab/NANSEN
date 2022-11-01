@@ -304,7 +304,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             MP = get(0, 'MonitorPosition');
             nMonitors = size(MP, 1);
             
-            if nMonitors >= 1
+            if nMonitors > 1
                 screenNumber = app.getPreference('PreferredScreen', 1);
                 
                 prefScreenPos = app.getPreference('PreferredScreenPosition', [1, 1, 1180, 700]);
