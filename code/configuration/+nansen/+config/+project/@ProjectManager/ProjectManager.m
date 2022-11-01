@@ -170,6 +170,16 @@ classdef ProjectManager < handle
             if ~nargout; clear projectName; end
         end
         
+        function changeProjectFolder(obj, projectName, newProjectFolder)
+            
+            IND = strcmp({obj.Catalog.Name}, projectName);
+            obj.Catalog(IND).Path = newProjectFolder;
+            
+            obj.saveCatalog()
+            
+            % Todo: If project is current project, need to update prefs...
+        end
+        
         function moveProject(obj, projectName, newLocation)
             
             project = obj.getProject(projectName);

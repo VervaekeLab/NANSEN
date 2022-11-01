@@ -304,6 +304,7 @@ classdef ProjectManagerUI < handle
                 'Set current project', ...
                 'Remove project', ...
                 'Delete project', ...
+                'Change project folder location', ...
                 'Open project folder' };
             
             hMenuItem = gobjects(numel(contextMenuItemNames), 1);
@@ -355,6 +356,11 @@ classdef ProjectManagerUI < handle
 
             obj.notify('ProjectChanged', event.EventData)
             
+        end
+        
+        function changeProjectFolder(obj, rowIdx, projectFolderPath)
+            projectName = obj.getNameFromRowIndex(rowIdx);
+            obj.ProjectManager.changeProjectFolder(projectName, projectFolderPath)
         end
         
         function deleteProject(obj, rowIdx)
@@ -668,6 +674,11 @@ classdef ProjectManagerUI < handle
                     folderPath = obj.UIControls.ProjectTable.Data{obj.SelectedRow, 4};
                     utility.system.openFolder(folderPath{1})
                     
+                case 'Change project folder location'
+                    folderPath = uigetdir();
+                    if ~isequal(folderPath, 0)
+                        obj.changeProjectFolder(obj.SelectedRow, folderPath)
+                    end
             end
         end
        
