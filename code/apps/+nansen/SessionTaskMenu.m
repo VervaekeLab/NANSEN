@@ -295,6 +295,18 @@ classdef SessionTaskMenu < handle
                             obj.addMenuItemForClassTask(hParent, taskAttributes)
                         case 'function'
                             obj.addMenuItemForFunctionTask(hParent, taskAttributes)
+                        case 'n/a' % Something went wrong
+                            methodName = utility.string.varname2label(taskAttributes.FunctionName);
+                            str = getReport(taskAttributes.Error, 'basic', 'hyperlinks', 'off');
+
+                            str = strsplit(str, newline);
+                            str = strjoin(str(2:end), '\n');
+
+                            linkStr = regexp(str, '<a href="matlab: opentoline(.*)">', 'match', 'once');
+                            str = strrep(str, linkStr, '');
+                            str = strrep(str, '</a>', '');
+
+                            errordlg(sprintf('Could not add the session method "%s" to the menu. Caused by:\n\n%s\n', methodName,  str) )
                         otherwise
                             % pass
                     end
@@ -621,8 +633,9 @@ classdef SessionTaskMenu < handle
                 try
                     % Call function without inputs should return attributes
                     moreAttributes = taskAttributes.FunctionHandle();
-                catch
-                    taskAttributes = struct('TaskType', 'n/a');
+                catch ME
+                    taskAttributes.TaskType = 'n/a';
+                    taskAttributes.Error = ME;
                     return
                 end
                 
