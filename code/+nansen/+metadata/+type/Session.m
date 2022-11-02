@@ -50,7 +50,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         Protocol char       % What is the name of the protocol
         Description char    % A description of the session
 
-        DataLocation struct % Where is session data stored
+        DataLocation struct % Where is session data stored % todo: setaccess should be private
         Progress struct     % Whats the pipeline status / progress
         
     end
@@ -407,6 +407,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
     end
     
     methods % Data location
+        
         function replaceDataLocation(obj, dataLocationStruct)
         %replaceDataLocation Brute force replace the data location struct.
         %
@@ -418,7 +419,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 'NewValue', dataLocationStruct);
             obj.notify('PropertyChanged', eventData)
         end
-        
+
         function updateDataLocations(obj)
             
             error('This method is down for maintenance')
@@ -541,8 +542,12 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             [filePath, variableInfo] = obj.getDataFilePath(varName, '-r', varargin{:});
             
-            obj.assertValidFileAdapter(variableInfo, 'load')
-            fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
+            if ~isempty( utility.getnvparametervalue(varargin, 'FileAdapter') )
+                fileAdapterFcn = str2func( utility.getnvparametervalue(varargin, 'FileAdapter') );
+            else
+                obj.assertValidFileAdapter(variableInfo, 'load')
+                fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
+            end
             
             if isfile(filePath)
                 
@@ -712,12 +717,13 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         end
         
         function tf = existVariable(obj, varName)
-            %variableModel = nansen.config.varmodel.VariableModel;
             filePath = obj.getDataFilePath(varName);
             tf = isfile(filePath);
+        end
 
-           % variableModel = obj.VariableModel;
-           % [~, tf] = variableModel.getVariableStructure(varName);
+        function tf = existVariableInModel(obj, varName)
+            variableModel = obj.VariableModel;
+            [~, tf] = variableModel.getVariableStructure(varName);
         end
 
         function createVariable(obj, varName, varargin)
@@ -954,7 +960,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             folderPath = S.RootPath;
         end
-
+        
         function updateRootDirPath(obj, dataLocationName, newRootPath)
         %updateRootDirPath Update root directory path for a data location
         
