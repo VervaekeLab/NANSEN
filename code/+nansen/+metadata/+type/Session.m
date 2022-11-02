@@ -994,26 +994,30 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             wasModified = false;
         
             for i = 1:numel(obj.DataLocation)
-                thisDataLocName = obj.DataLocation(i).Name;
-                
-                oldRootDir = obj.DataLocation(i).RootPath;
-                newRootDir = rootdirStruct.(thisDataLocName).RootPath;
-                if ~strcmp( oldRootDir, newRootDir )
-                    thisModel = obj.DataLocationModel.getItem(i);
+                try
+                    thisDataLocName = obj.DataLocation(i).Name;
                     
-                    % Find the uid of the new root directory
-                    rootIdx = strcmp({thisModel.RootPath.Value}, newRootDir);
-                    obj.DataLocation(i).RootUid = thisModel.RootPath(rootIdx).Key;
-                    obj.DataLocation(i).RootPath = newRootDir;
+                    oldRootDir = obj.DataLocation(i).RootPath;
+                    newRootDir = rootdirStruct.(thisDataLocName).RootPath;
+                    if ~strcmp( oldRootDir, newRootDir )
+                        thisModel = obj.DataLocationModel.getItem(i);
+                        
+                        % Find the uid of the new root directory
+                        rootIdx = strcmp({thisModel.RootPath.Value}, newRootDir);
+                        obj.DataLocation(i).RootUid = thisModel.RootPath(rootIdx).Key;
+                        obj.DataLocation(i).RootPath = newRootDir;
+                        
+                        wasModified = true;
+                    end
                     
-                    wasModified = true;
-                end
-                
-                oldSubfolder = obj.DataLocation(i).Subfolders;
-                newSubfolder = rootdirStruct.(thisDataLocName).Subfolder;
-                if ~strcmp( oldSubfolder, newSubfolder )
-                    obj.DataLocation(i).Subfolders = newSubfolder;
-                    wasModified = true;
+                    oldSubfolder = obj.DataLocation(i).Subfolders;
+                    newSubfolder = rootdirStruct.(thisDataLocName).Subfolder;
+                    if ~strcmp( oldSubfolder, newSubfolder )
+                        obj.DataLocation(i).Subfolders = newSubfolder;
+                        wasModified = true;
+                    end
+                catch
+                    fprintf('Failed to set data location root for %s\n', thisDataLocName)
                 end
             end
             

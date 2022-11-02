@@ -687,15 +687,16 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             newColumnWidths = obj.ColumnModel.getColumnWidths();
             obj.changeColumnWidths(newColumnWidths)
             
-            
-            T = obj.MetaTableCell; % Column format is determined from the cell version of table.
+            C = obj.MetaTableCell; % Column format is determined from the cell version of table.
+            C = C(:, colIndices);
+            T = obj.MetaTable(1,:); % Need to check original data for special data types, i.e enums
             T = T(:, colIndices);
             
             % Return if table has no rows. 
-            if size(T,1)==0; return; end
+            if size(C,1)==0; return; end
             
             % Set column format and formatdata
-            dataTypes = cellfun(@(cell) class(cell), T(1,:), 'uni', 0);
+            dataTypes = cellfun(@(cell) class(cell), C(1,:), 'uni', 0);
             colFormatData = arrayfun(@(i) [], 1:numel(dataTypes), 'uni', 0);
             
             dataTypes(strcmp(dataTypes, 'string')) = {'char'};
@@ -709,21 +710,21 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             % Enums: (here we need to use non-cell version). Todo: Find
             % better solution...
-            isEnumeration = cellfun(@(cell) isenum(cell), table2cell(obj.MetaTable(1,:)), 'uni', 1);
+            isEnumeration = cellfun(@(cell) isenum(cell), table2cell(T(1,:)), 'uni', 1);
             dataTypes(isEnumeration) = {'popup'};
             enumerationIdx = find(isEnumeration);
             for i = enumerationIdx
-                enumObject = obj.MetaTable{1,i};
+                enumObject = T{1,i};
                 if iscell(enumObject); enumObject = enumObject{1}; end
                 [~, m] = enumeration( enumObject ); % need to get enum for original....
-                colFormatData{i} = [T(1,i); m];
+                colFormatData{i} = [C(1,i); m];
             end
 
             % All numeric types should be called 'numeric'
-            isNumeric = cellfun(@(cell) isnumeric(cell), T(1,:), 'uni', 1);
+            isNumeric = cellfun(@(cell) isnumeric(cell), C(1,:), 'uni', 1);
             dataTypes(isNumeric) = {'numeric'};
             
-            isDatetime = cellfun(@(cell) isdatetime(cell), T(1,:), 'uni', 1);
+            isDatetime = cellfun(@(cell) isdatetime(cell), C(1,:), 'uni', 1);
             dataTypes(isDatetime) = {'date'};
             
             % Todo: get from nansen preferences...      
