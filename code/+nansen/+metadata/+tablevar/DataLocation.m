@@ -2,7 +2,9 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
 %DataLocation Controls behavior of table cells containing datalocation items.
 %
 %   
-    
+
+    % Todo: Add an update function
+
     properties (Constant)
         IS_EDITABLE = false
         DEFAULT_VALUE = struct.empty
@@ -179,6 +181,11 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     S.(fieldName).RootPath_ = allRootPaths;
                        
                     S.(fieldName).Subfolder = obj.Value(i).Subfolders;
+                    if isempty(S.(fieldName).Subfolder)
+                        if isa(S.(fieldName).Subfolder, 'double')
+                            S.(fieldName).Subfolder = '';
+                        end
+                    end
                     
                     %structeditor is not advanced enough for this yet.. 
                     % todo for the future
