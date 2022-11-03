@@ -1043,7 +1043,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
             
             newXLimB = [1, obj.SliderAxes.Position(3)];
             if ~all( newXLimB == obj.SliderAxes.XLim )
-                obj.SliderAxes.XLim = newXLimB;
+                obj.SliderAxes.XLim = sort(newXLimB);
             end
 
             % Update component coordinates
