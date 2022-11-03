@@ -1066,6 +1066,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         function folderPath = createSessionFolder(obj, dataLocationName)
         %createSessionFolder Create a session folder if it does not exist
         
+            if nargin < 2
+                dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+            end
+        
             [~, dlIdx] = obj.DataLocationModel.containsItem(dataLocationName);
             
             % Get the datalocation for this session object for the rootpath
