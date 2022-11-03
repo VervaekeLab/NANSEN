@@ -40,7 +40,7 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
 % Implementation of the method : Add you code here:
-        
+    
     filePath = sessionObj.getDataFilePath('TwoPhotonSeries_Original');
     
     if ~isfile(filePath)
@@ -53,7 +53,20 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
         imviewer(imData)
         
     else
-        imviewer(filePath)
+        imageStack = sessionObj.loadData('TwoPhotonSeries_Original');
+        numStacks = numel(imageStack);
+        
+        if numStacks > 1
+            [indx,~] = listdlg('ListString', arrayfun(@(i)sprintf('Fov %d', i), 1:numStacks, 'uni', 0), 'SelectionMode', 'multi'); 
+        else
+            indx=1;
+        end
+        
+        for i = indx
+            imviewer(imageStack(i))
+        end
+        
+        %eeimviewer(filePath)
     end
 
 end
