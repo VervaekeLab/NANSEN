@@ -215,7 +215,6 @@ classdef BatchProcessorUI < handle
                     hTable = obj.UITableHistory;
                     taskList = obj.BatchProcessor.TaskHistory;
             end
-            
         end
         
         function taskTable = getTableData(~, taskList, tableType)
@@ -257,8 +256,6 @@ classdef BatchProcessorUI < handle
             
             hTable.Table.Data = table2cell(taskTable);
             %hTable.Table.ColumnNames = obj.getTableVariableNames(tableType);
-            
-
         end
         
         function refreshRow(obj, rowIdx, tableType)
@@ -299,7 +296,6 @@ classdef BatchProcessorUI < handle
             
             % Add the task to the uitable.
             obj.UITableQueue.addTask(tableEntry, 'end')
-
         end
         
         function insertTaskToHistoryTable(obj, ~, evt)
@@ -361,6 +357,11 @@ classdef BatchProcessorUI < handle
             
         end
         
+        function onTableUpdated(obj, ~, ~)
+            obj.refreshTable('queue')
+            obj.refreshTable('history')
+        end
+
         function updateQueueContextMenu(obj, taskList)
         %updateQueueContextMenu Set enabled state of menu items
         %
@@ -609,7 +610,9 @@ classdef BatchProcessorUI < handle
             
             addlistener(obj.BatchProcessor, 'TaskOrderChanged', ...
                 @obj.onTaskOrderChanged);
-            
+
+            addlistener(obj.BatchProcessor, 'TableUpdated', ...
+                @obj.onTableUpdated);
         end
         
         function onMouseRightClickedInTable(obj, src, evt)

@@ -1,20 +1,41 @@
 classdef TaskProcessor < uiw.mixin.AssignPVPairs
 % This class implemements a manager for adding tasks to a queue-based
 % processor.
-    
+%
+%   Syntax:
+%
+%       obj = TaskProcessor(filepath) initializes the task processor
+%           and opens the task list specified by filepath.
+%
+%       obj = TaskProcessor(filepath, name, value) initializes the task 
+%           processor using optinal name value pairs to specify 
+%           configuration parameters.
+%
+%   Parameters:
+%       TimerPeriod         : Time in seconds between each time the processor updates. Default = 10   
+%       RunTasksWhenQueued  : Whether to initialize/run tasks when they are added to queue. Default = false
+%       RunTasksOnStartup   : Whether to initialize/run tasks when tasks are loaded from file. Default = false 
+
+
 % Todo: 
 %   [ ] Separate between recently finished tasks and the complete log
 %   [ ] Dont accept job that already exists when using submitJob. 
 %        - compare at sessionID, taskName and optionsName.
 %   [ ] Need to save jobs list on a project basis
-%   [ ] need to send session info back to the metatable when a job
+%   [ ] Need to send session info back to the metatable when a job
 %       finishes.
 %
-%   [ ] Should sessionobject have its own field in a task item? its a bit
+%   [ ] Should Session object have its own field in a task item? its a bit
 %       weird to pull it out from the argsfield when needed
 
 %   [ ] Happened once that task is set to running but state in table is not
 %       updated...
+%
+%   [ ] Consider wheter we can "pause" a runnning task. This would mean
+%   canceling it, but keeping it in the top of the queue for resuming...
+%
+%   [ ] Convert session object to struct when placing in history, and get a
+%       new session object if putting back to queue
 
 
 % Note: If changes are made on session class, it will not work to load task
@@ -22,19 +43,19 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 
 %% PROPERTIES
 
-    properties
+    properties % Configuration parameters
         TimerPeriod = 10
         RunTasksWhenQueued = false
         RunTasksOnStartup = false
     end
     
     properties (Dependent)
-        NumQueuedTasks
-        NumArchivedTasks
+        NumQueuedTasks      % Number of tasks on queue
+        NumArchivedTasks    % Number of tasks in history
     end
     
     properties (SetAccess = private, SetObservable) % Taskprocessor status
-    	Status      % Status of processor (typically busy or idle)
+    	Status % = categorical({'idle'}, {'idle','busy','running'})     % Status of processor (typically busy or idle)
     end
     
     properties (SetAccess = private) % Properties keeping track of tasks and status
@@ -46,6 +67,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         Timer % Timer object for regularly checking status
         runningTask % Handle to the task that is currently running
         isRunning = false; % Flag for whether the QueueProcessor is running
+        TaskListFilepath = '' % Filepath for file containing tasklists.
     end
     
     properties (Dependent, Access = private)
@@ -58,30 +80,27 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         TaskRemoved
         TaskStateChanged
         TaskOrderChanged
+        TableUpdated
     end
     
 %% METHODS
 
     methods % Structors
                 
-        function obj = TaskProcessor(varargin)
+        function obj = TaskProcessor(filepath, varargin)
         %TaskProcessor Create a batch processor for tasks.
-            
-            obj.loadTaskLists()
+        %
+        %   obj = TaskProcessor(filepath) initializes the task processor
+        %   and opens the task list specified by filepath.
+        %
+        %   obj = TaskProcessor(filepath, name, value, ...) initializes the
+        %   task processor using optional parameters
+
             obj.assignPVPairs(varargin{:})
-            
-            
-            if obj.RunTasksOnStartup
-                obj.setTaskStatus('Initialize', 1:obj.NumQueuedTasks)
-            else
-                obj.setTaskStatus('Uninitialized', 1:obj.NumQueuedTasks)
-            end
-            
+
             obj.createTimer()
 
-            obj.isRunning = true;
-            obj.Status = 'idle';
-            
+            obj.openTaskList(filepath)
         end
         
         function delete(obj)
@@ -97,7 +116,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % Todo: set state to queued?
             
             obj.saveTaskLists()
-                    
         end
         
     end
@@ -122,7 +140,52 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     
     methods % Public 
         
-        function tf = promptQuit(obj)
+        function openTaskList(obj, filepath)
+
+            if ~isempty(obj.TaskQueue)
+                obj.closeTaskList()
+            end
+
+            if ~isempty(filepath)
+                obj.loadTaskLists(filepath)
+                obj.TaskListFilepath = filepath;
+    
+                obj.notify('TableUpdated', event.EventData)
+
+                if obj.RunTasksOnStartup
+                    obj.setTaskStatus('Initialize', 1:obj.NumQueuedTasks)
+                else
+                    obj.setTaskStatus('Uninitialized', 1:obj.NumQueuedTasks)
+                end
+            end
+
+            obj.startTimer()
+        end
+        
+        function closeTaskList(obj)
+        %closeTaskList Stop tasks and save the current task list
+
+            obj.stopTimer()
+
+            % Set all other tasks to uninitalized
+            obj.setTaskStatus('Uninitialized', 1:obj.NumQueuedTasks)
+
+            % Stop running tasks
+            if ~isempty(obj.runningTask)
+                obj.stopRunningTask()
+            end
+
+            % Save task list
+            obj.saveTaskLists()
+
+            obj.TaskListFilepath = '';
+
+            obj.TaskQueue = struct.empty;
+            obj.TaskHistory = struct.empty;
+            obj.notify('TableUpdated', event.EventData)
+        end
+
+        function tf = promptQuit(obj, titleStr, promptStr)
         %promptQuit Prompt user to quit processor
         %
         %   tf = promptQuit(obj) returns true if user wants to quit,
@@ -134,18 +197,23 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 return
             end
             
-            titleStr = 'Quit?';
-            promptStr = 'Tasks are still running. Are you sure you want to quit?';
-            
+            if nargin < 2 || isempty(titleStr)
+                titleStr = 'Quit?';
+            end
+
+            if nargin < 3 || isempty(promptStr)
+                promptStr = 'Tasks are still running. Are you sure you want to quit?';
+            end
+
             answer = questdlg(promptStr, titleStr, 'Yes', 'No', 'Yes');
             switch lower(answer)
                 case 'yes'
+                    %obj.stopRunningTask()
                     obj.cancelRunningTask()
                     tf = true;
                 case 'no'
                     tf = false;
-            end 
-            
+            end
         end
         
         function updateSessionObjectListeners(obj, hReferenceApp)
@@ -178,7 +246,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                     @hReferenceApp.onMetaObjectPropertyChanged);
             end
         end
-        
 
         function submitJob(obj, name, func, numOut, args, optsName, comments)
         % submitJob Submit a job to the task processor
@@ -317,7 +384,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
             % Get filepath
             if nargin < 2
-                filePath = obj.getDefaultTaskListFilePath();
+                %filePath = obj.getDefaultTaskListFilePath();
+                filePath = obj.TaskListFilepath;
             end
             
             S = struct();
@@ -328,16 +396,29 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end
         
+        function stopAllTasks(obj)
+            
+        end
+
         function createTimer(obj)
                         
             t = timer('Name', 'TaskProcessorTimer', 'ExecutionMode', ...
                 'fixedRate', 'Period', obj.TimerPeriod);
             
             t.TimerFcn = @(myTimerObj, thisEvent) obj.checkStatus();
-            start(t)
-            
             obj.Timer = t;
-            
+        end
+
+        function startTimer(obj)
+            start(obj.Timer)
+            obj.isRunning = true;
+            obj.Status = 'idle';
+        end
+
+        function stopTimer(obj)
+            stop(obj.Timer)
+            obj.isRunning = false;
+            obj.Status = 'idle';
         end
 
         function onTimerPeriodSet(obj)
@@ -434,7 +515,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % If not task was started, return here.
             if isempty(obj.runningTask); return ; end
             
-            
             status = obj.runningTask.State;
             
             switch lower( status )
@@ -485,6 +565,17 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             obj.finishTask('cancel')
 
         end
+
+        function stopRunningTask(obj)
+        %stopRunningTask Stop the running task
+        %
+        % Note the task is aborted, but can be restarted from the queue.
+
+            obj.setTaskStatus('Pause', 1)
+
+            cancel( obj.runningTask )
+            obj.runningTask = [];
+        end
         
         function finishTask(obj, mode)
         %finishTask Method to execute when a task has finished
@@ -500,8 +591,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         % added to the history simultaneously? Test/debug some time?
         
         % Question/todo: add mode for canceling task be retain in queue..?
-        
-        
+
             if nargin < 2; mode = ''; end
                 
             completedTask = obj.TaskQueue(1);

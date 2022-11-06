@@ -17,6 +17,8 @@ classdef MetaTable < handle
 %   additional step that data is saved to disk. 
 %
 
+% Todo:
+%   [ ] Inherit from VersionedFile
     
     properties (Constant, Access = private) % Variable names for export
         
@@ -61,8 +63,12 @@ classdef MetaTable < handle
 
     end
 
-    properties (Dependent = true, Hidden = true) % Dunno what this is
-        SchemaIdName
+    properties (Access = private)
+        VersionNumber int64
+    end
+
+    properties (Dependent = true, Hidden = true)
+        SchemaIdName % The property name for id of a schema/object of this table
     end
     
     
@@ -175,7 +181,6 @@ classdef MetaTable < handle
             else
                 obj.MetaTableName = metaTableName;
             end
-
         end
         
 % % % %  Methods for saving/loading MetaTable from/to file
@@ -183,6 +188,48 @@ classdef MetaTable < handle
         % Load contents of MetaTable file
         % Todo: Check if file is present in MetaTable Catalog
         
+        function tf = isLatestVersion(obj)
+            if isempty(obj.VersionNumber)
+                tf = true; 
+                return
+            end
+
+            S = load(obj.filepath, 'VersionNumber');
+            if isfield(S, 'VersionNumber')
+                tf = S.VersionNumber == obj.VersionNumber;
+            else
+                tf = true;
+            end
+        end
+
+        function tf = resolveCurrentVersion(obj)
+        %resolveCurrentVersion Resolve which version to keep in case of conflict
+        %
+        %   tf = resolveCurrentVersion(obj) returns true if newer version
+        %   is loaded to override current and false if current version 
+        %   should override newer version
+        
+        %   Todo: Find better function name... Confusing that it loads, but
+        %   does not overwrite.
+
+            titleStr = 'Newer version exists';
+
+            msg = ['The metatable has been updated outside this instance of Nansen. ' ...
+                'What do you want to do?'];
+            
+            options = {'Overwrite newer version with this version', ...
+                'Load newer version and drop recent changes'};
+
+            answer = questdlg(msg, titleStr, options{:}, options{1});
+            switch lower(answer)
+                case 'overwrite newer version with this version'
+                    tf = false;
+                case 'load newer version and drop recent changes'
+                    tf = true;
+                    obj.load()
+            end
+        end
+
         function load(obj)
         %LOAD Load contents of a MetaTable from file.
         %
@@ -210,7 +257,7 @@ classdef MetaTable < handle
             
             % Load variables from MetaTable file.
             S = load(obj.filepath);
-
+            
             % Check if the loaded struct contains the variable 
             % MetaTableClass. If not, this is not a valid MetaTable file.
             if ~isfield(S, 'MetaTableClass')
@@ -223,6 +270,10 @@ classdef MetaTable < handle
             % Assign the variables from the loaded file to properties of
             % the current MetaClass instance.
             obj.fromStruct(S)
+
+            if isempty(obj.VersionNumber)
+                obj.VersionNumber = 0; 
+            end
             
             % Check if file is part of MetaTable Catalog (adds if missing)
             %metaCatalogEntry = obj.toStruct('metatable_catalog');
@@ -260,7 +311,14 @@ classdef MetaTable < handle
                 obj.archive()
                 return
             end
-            
+
+            if obj.isClean(); return; end
+
+            if ~obj.isLatestVersion()
+                doCancel = obj.resolveCurrentVersion();
+                if doCancel; return; end
+            end
+
             % Get MetaTable variables which will be saved to file.
             S = obj.toStruct('metatable_file');
             
@@ -272,6 +330,9 @@ classdef MetaTable < handle
                 obj.synchToMaster(S)
                 S.MetaTableEntries = {};
             end
+
+            obj.VersionNumber = obj.VersionNumber + 1;
+            S.VersionNumber = obj.VersionNumber;
 
             % Save metatable variables to file
             save(obj.filepath, '-struct', 'S')
@@ -372,7 +433,6 @@ classdef MetaTable < handle
                     end
             end
             
-            
             varNames = fieldnames(S);
 
             for i = 1:numel(varNames)
@@ -395,10 +455,8 @@ classdef MetaTable < handle
                         
                     otherwise
                         S.(varNames{i}) = obj.(varNames{i});
-                        
                 end
             end
-            
         end
         
         function fromStruct(obj, S)
@@ -422,8 +480,6 @@ classdef MetaTable < handle
                         obj.(varNames{i}) = S.(varNames{i});
                 end
             end
-            
-            
         end
 
         function columnIndex = getColumnIndex(obj, columnName)
@@ -726,6 +782,8 @@ classdef MetaTable < handle
         
         function updateEntries(obj, listOfEntryIds)
             
+            % Note: not implemented
+
             if nargin < 2 % Update all...
                 listOfEntryIds = obj.members;
             end
@@ -738,8 +796,7 @@ classdef MetaTable < handle
                     fprintf( 'Failed for session %s\n', listOfEntryIds{i})
                 end
             end
-            
-            
+
             % Synch changes to master
             if ~obj.IsMaster && ~isempty(obj.filepath)
                 S = obj.toStruct('metatable_file');
@@ -1029,7 +1086,6 @@ classdef MetaTable < handle
         function metaTable = open(varargin)
             
             metaTable = nansen.metadata.MetaTable();
-
             
             % If no input is provided, open a list selection and let user
             % select a MetaTable to open from the MetaTableCatalog

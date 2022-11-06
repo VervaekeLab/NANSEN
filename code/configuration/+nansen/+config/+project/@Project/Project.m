@@ -10,7 +10,7 @@ classdef Project < handle
     %   [ ] Define preferences.
     %   [ ] Consider whether project folder should be dependent, i.e if it
     %       is changed from project manager, instances need to be updated.
-
+    
     properties
         Name                        % Name of the project
         PackageName                 % Name of matlab package folder for the project
@@ -35,7 +35,7 @@ classdef Project < handle
     properties (Constant, Hidden)
         % Todo: Folder property, with subfields?
         METATABLE_FOLDER_NAME = 'Metadata Tables';
-        CONFIG_FOLDER_NAME = 'Configurations';
+        CONFIG_FOLDER_NAME = 'Configurations'; % models
     end
 
     
@@ -51,7 +51,18 @@ classdef Project < handle
     
     methods
         function initializeProjectFolder(obj)
-            % Todo: Create all folders.
+            % Todo: Create all folders that belong to a project
+            if ~isfolder(obj.FolderPath); mkdir(obj.FolderPath); end
+            
+            if ~isfolder(fullfile(obj.FolderPath, obj.METATABLE_FOLDER_NAME))
+                mkdir(fullfile(obj.FolderPath, obj.METATABLE_FOLDER_NAME))
+            end
+
+            if ~isfolder(fullfile(obj.FolderPath, obj.CONFIG_FOLDER_NAME))
+                mkdir(fullfile(obj.FolderPath, obj.CONFIG_FOLDER_NAME))
+            end
+
+            mkdir(fullfile(obj.FolderPath, 'Session Methods', obj.PackageName))
         end
 
         % todo: implement a dataiomodel on project
@@ -65,6 +76,20 @@ classdef Project < handle
             filePathStr = obj.getDataFilePath(varName);
             S = load(filePathStr, varName);
             data = S.(varName);
+        end
+
+        function filePathStr = getDataFilePath(obj, varName)
+            switch varName
+                case 'MetatableColumnSettings'
+                    foldername = obj.METATABLE_FOLDER_NAME;
+                    filename = 'metatable_column_settings';
+                case 'TaskList'
+                    foldername = obj.CONFIG_FOLDER_NAME;
+                    filename = 'task_list.mat';                    
+            end
+
+            folderPathStr = fullfile(obj.FolderPath, foldername);
+            filePathStr = fullfile(folderPathStr, filename);
         end
         
     end
@@ -153,17 +178,6 @@ classdef Project < handle
             filePathStr = fullfile(folderPathStr, filename);
         end
 
-        function filePathStr = getDataFilePath(obj, varName)
-            switch varName
-                case 'MetatableColumnSettings'
-                    foldername = obj.METATABLE_FOLDER_NAME;
-                    filename = 'metatable_column_settings';
-            end
-
-            folderPathStr = fullfile(obj.FolderPath, foldername);
-            filePathStr = fullfile(folderPathStr, filename);
-        end
-        
     end
    
 end
