@@ -17,9 +17,14 @@ classdef ProjectManager < handle
 %       project is added. Need to rename metatable etc...?
 %       % Only rootpath???
 %   [ ] Add method for renaming project.
-
+%   [ ] Add standard preferences
+%   [ ] Add option for loading & saving as json
 
     properties
+        CatalogSaveFormat string {mustBeMember(CatalogSaveFormat, ["mat", "json"])} = "mat" % not implemented yet
+    end
+
+    properties % SetAccess = private
         Catalog             % A catalog of available projects
     end
     
@@ -34,6 +39,7 @@ classdef ProjectManager < handle
     
     properties (Dependent, SetAccess = private)
         NumProjects
+        ProjectNames
         CurrentProjectPath
     end
     
@@ -142,7 +148,6 @@ classdef ProjectManager < handle
 
             % Set as current project
             obj.changeProject(name)
-
         end
         
         function projectName = addExistingProject(obj, filePath)
@@ -221,7 +226,6 @@ classdef ProjectManager < handle
             nansen.metadata.MetaTableCatalog.quicksave(MTC)
 
             obj.changeProject(currentProject)
-            
         end
         
         function disp(obj)
@@ -246,13 +250,31 @@ classdef ProjectManager < handle
                 S = load(obj.CatalogPath, 'projectCatalog');
             end
             
+            % Add preferences to each project entry if missing.
+            if ~isfield( S.projectCatalog, 'Preferences' )
+                % Todo: Fill out struct with default preference names?
+                [S.projectCatalog(:).Preferences] = deal(struct);
+            end
+
             obj.Catalog = S.projectCatalog;
         end
        
         function saveCatalog(obj)
         %saveCatalog Save the project catalog
+
             projectCatalog = obj.Catalog;  %#ok<NASGU
-            save(obj.CatalogPath, 'projectCatalog')
+
+            if obj.CatalogSaveFormat == "mat"
+                save(obj.CatalogPath, 'projectCatalog')
+            elseif obj.CatalogSaveFormat == "json"
+                jsonStr = jsonencode(projectCatalog, 'PrettyPrint', true);
+                jsonPath = replace(obj.CatalogPath, '.mat', '.json');
+                fid=fopen(jsonPath, 'w');
+                fwrite(fid, jsonStr);
+                fclose(fid);
+            else
+
+            end
         end
         
         function addProject(obj, varargin)
@@ -279,7 +301,6 @@ classdef ProjectManager < handle
             obj.Catalog(nextInd) = pStruct;
             
             obj.saveCatalog()
-            
         end
        
         function removeProject(obj, name, deleteProjectFolder)
@@ -330,7 +351,6 @@ classdef ProjectManager < handle
                 
                 msg = sprintf('Project "%s" removed from project catalog\n', name);
                 fprintf(msg)
-
             end
 
             obj.saveCatalog()
@@ -345,11 +365,16 @@ classdef ProjectManager < handle
             else
                 s = struct.empty;
             end
-            
         end
         
         function projectObj = getProjectObject(obj, name)
             s = obj.getProject(name);
+            projectObj = nansen.config.project.Project(s.Name, s.Path);
+        end
+
+        function projectObj = getCurrentProject(obj)
+            currentProjectName = obj.CurrentProject;
+            s = obj.getProject(currentProjectName);
             projectObj = nansen.config.project.Project(s.Name, s.Path);
         end
         
@@ -360,7 +385,6 @@ classdef ProjectManager < handle
             else
                 idx = find(strcmp({obj.Catalog.Name}, projectName));
             end
-            
         end
         
         function msg = changeProject(obj, name)
@@ -396,7 +420,6 @@ classdef ProjectManager < handle
                     nansenPreferences.localPath = containers.Map;
                 end
             end
-            
         end
         
         function tf = uiSelectProject(obj, projectNames)
@@ -413,9 +436,15 @@ classdef ProjectManager < handle
             
             projectName = projectNames{ind};
             obj.changeProject(projectName);
-            
         end
         
+        function updateProjectItem(obj, projectName, name, value)
+            IND = obj.getProjectIndex(projectName);
+            if any(IND)
+                obj.Catalog(IND).(name) = value;
+                obj.saveCatalog()
+            end
+        end
     end
    
     methods % Todo: Create a project class and put these methods there...
@@ -436,9 +465,7 @@ classdef ProjectManager < handle
                 
                 figNames = strrep({L2.name}, '+', '');
                 S(i).FigureNames = figNames;
-                
             end
-            
         end
         
     end
@@ -493,9 +520,7 @@ classdef ProjectManager < handle
             else
                 
                 error('Unknown location')
-                
             end
-            
         end
         
         function pathStr = getProjectCatalogPath(catalogName, subfolder)
@@ -523,7 +548,6 @@ classdef ProjectManager < handle
             if ~exist(folderPath, 'dir');  mkdir(folderPath);    end
             
             pathStr = fullfile(folderPath, fileName);
-            
         end
         
         function pathStr = getProjectSubPath(keyword, projectRootDir)
@@ -588,8 +612,6 @@ classdef ProjectManager < handle
         function pathStr = getFilePath(keyword)
             pathStr = nansen.config.project.ProjectManager.getProjectSubPath(keyword);
         end
-        
     end
-   
     
 end
