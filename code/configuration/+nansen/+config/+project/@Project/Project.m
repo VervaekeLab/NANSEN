@@ -82,14 +82,24 @@ classdef Project < handle
             switch varName
                 case 'MetatableColumnSettings'
                     foldername = obj.METATABLE_FOLDER_NAME;
+                    folderPathStr = fullfile(obj.FolderPath, foldername);
                     filename = 'metatable_column_settings';
                 case 'TaskList'
-                    foldername = obj.CONFIG_FOLDER_NAME;
-                    filename = 'task_list.mat';                    
+                    %folderpath = obj.CONFIG_FOLDER_NAME;
+                    folderPathStr = obj.getLocalProjectFolderPath();
+                    filename = 'task_list.mat';
             end
 
-            folderPathStr = fullfile(obj.FolderPath, foldername);
             filePathStr = fullfile(folderPathStr, filename);
+        end
+
+        function folderPath = getLocalProjectFolderPath(obj)
+
+            nansenRoot = utility.path.getAncestorDir(nansen.rootpath, 1);
+            localProjectPath = fullfile(nansenRoot, '_userdata', 'projects');
+            
+            folderPath = fullfile(localProjectPath, obj.Name);
+            if ~exist(folderPath, 'dir'); mkdir(folderPath); end
         end
         
     end
