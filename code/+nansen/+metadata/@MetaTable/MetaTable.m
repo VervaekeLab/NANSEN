@@ -307,6 +307,15 @@ classdef MetaTable < handle
             
         end
         
+        function versionNumber = loadVersionNumber(obj)
+            S = load(obj.filepath, 'VersionNumber');
+            if isfield(S, 'VersionNumber')
+                versionNumber = S.VersionNumber;
+            else
+                versionNumber = [];
+            end
+        end
+
         function wasSaved = save(obj, force)
         %Save Save MetaTable to file
         %
@@ -347,7 +356,8 @@ classdef MetaTable < handle
                 S.MetaTableEntries = {};
             end
 
-            obj.VersionNumber = obj.VersionNumber + 1;
+            versionNumber = obj.loadVersionNumber();
+            obj.VersionNumber = versionNumber + 1;
             S.VersionNumber = obj.VersionNumber;
 
             % Save metatable variables to file
