@@ -36,11 +36,14 @@ classdef MetaTable < handle
                             'FileName', '', ...
                             'IsDefault', false  );
     end
+
+    properties (SetAccess=private, SetObservable)
+        IsModified = false;
+    end
     
     properties (Access = private)
         
         IsMaster = true
-        IsModified = false;
 
         MetaTableKey = '';
         MetaTableName = '';
@@ -217,16 +220,22 @@ classdef MetaTable < handle
             msg = ['The metatable has been updated outside this instance of Nansen. ' ...
                 'What do you want to do?'];
             
-            options = {'Overwrite newer version with this version', ...
-                'Load newer version and drop recent changes'};
+            options = {'Keep current version'};
+            
+            if obj.isClean()
+                options{end+1} = 'Load newer version';
+            else
+                options{end+1} = 'Load newer version and drop unsaved changes';
+            end
 
             answer = questdlg(msg, titleStr, options{:}, options{1});
             switch lower(answer)
-                case 'overwrite newer version with this version'
+                case 'keep current version'
                     tf = false;
                 case 'load newer version and drop recent changes'
                     tf = true;
-                    obj.load()
+                case 'load newer version'
+                    tf = true;
             end
         end
 
@@ -298,32 +307,39 @@ classdef MetaTable < handle
             
         end
         
-        function save(obj)
+        function wasSaved = save(obj, force)
         %Save Save MetaTable to file
         %
         %   Note: MetaTables are not saved directly as class instances, 
         %   instead the entries are saved as a table and the entry ids 
         %   (members) are saved as a cell array. This way, the MetaTables
         %   can be read even if the MetaTable class is not on Matlabs path.
-            
+        
+            wasSaved = false;
+
+            if nargin < 2; force = false; end
+
             % If MetaTable has no filepath, use archive method.
             if isempty(obj.filepath)
                 obj.archive()
+                wasSaved = true;
+                if ~nargout; clear wasSaved; end
                 return
             end
 
-            if obj.isClean(); return; end
+            if obj.isClean() && ~force; return; end
 
-            if ~obj.isLatestVersion()
+            if ~obj.isLatestVersion() && ~force
                 doCancel = obj.resolveCurrentVersion();
-                if doCancel; return; end
+                if doCancel; obj.load(); return; end
             end
 
             % Get MetaTable variables which will be saved to file.
             S = obj.toStruct('metatable_file');
             
             % Sort MetaTable entries based on the entry ID.
-            obj.sort()
+            % Todo: Consider whether to reinstate this
+            % obj.sort()
             
             % Synch with master if this is a dummy MetaTable.
             if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
@@ -337,8 +353,10 @@ classdef MetaTable < handle
             % Save metatable variables to file
             save(obj.filepath, '-struct', 'S')
             fprintf('MetaTable saved to %s\n', obj.filepath)
-            
+                            
+            wasSaved = true;
             obj.IsModified = false;
+            if ~nargout; clear wasSaved; end
         end
         
         function saveCopy(obj, savePath)
@@ -356,6 +374,8 @@ classdef MetaTable < handle
         %   Before saving the MetaTable a unique key is generated (or
         %   inherited from a master MetaTable) and the info about the
         %   MetaTable is added to the MetaTableCatalog.
+
+        % rename to saveas?
         
             S = obj.toStruct('metatable_catalog');
 
@@ -403,7 +423,6 @@ classdef MetaTable < handle
             end
             
             obj.save()
-            
         end
         
         function S = toStruct(obj, source)
@@ -648,7 +667,7 @@ classdef MetaTable < handle
             
             obj.sort()
             
-            obj.IsModified = true;
+            %obj.IsModified = true;
         end
         
         % Add entry/entries to MetaTable table
@@ -719,7 +738,7 @@ classdef MetaTable < handle
             
             obj.sort()
             
-            obj.IsModified = true;
+            %obj.IsModified = true;
         end
 
         function entries = getEntry(obj, listOfEntryIds)
@@ -777,7 +796,7 @@ classdef MetaTable < handle
             obj.entries(IND, :) = [];
             obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
             
-            obj.IsModified = true;
+            %obj.IsModified = true;
         end
         
         function updateEntries(obj, listOfEntryIds)

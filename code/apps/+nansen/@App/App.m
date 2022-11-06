@@ -175,6 +175,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if ~isempty(app.SchemaViewerApp)
                 delete( app.SchemaViewerApp );
             end
+
+            if ~isempty(app.RegularTimer)
+                stop(app.RegularTimer)
+                delete(app.RegularTimer)
+            end
             
             app.settings.Session.SessionTaskDebug = false; % Reset debugging on quit
             app.saveSettings()
@@ -220,10 +225,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Todo: Whis is called twice, because of some weird reason
             % in (uiw.abstract.BaseFigure?)
-            
-            % Todo: Save settings and inventories...
-            % app.saveMetaTable()
-            
+
             app.onExit@uiw.abstract.AppWindow(h);
             %delete(app) % Not necessary, happens in superclass' onExit method
         end
@@ -417,7 +419,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Reload Metatable');
             mitem.MenuSelectedFcn = @(src, event) app.reloadMetaTable;
             mitem = uimenu(m, 'Text','Save Metatable', 'Enable', 'on');
-            mitem.MenuSelectedFcn = @app.saveMetaTable;
+            mitem.MenuSelectedFcn = @(src, event, forceSave) app.saveMetaTable(src, event, true);
 
             
             mitem = uimenu(m, 'Text','Manage Metatables...', 'Enable', 'off');
@@ -932,6 +934,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Prepare inputs
             S = app.settings.MetadataTable;
+            S = rmfield(S, 'AutosaveMetaTable'); % Used elsewhere 
             nvPairs = utility.struct2nvpairs(S);
             nvPairs = [{'AppRef', app}, nvPairs];
                        
@@ -1010,8 +1013,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function initializeTimer(app)
             app.RegularTimer = timer('Name', 'Nansen App Timer');
             app.RegularTimer.ExecutionMode = 'fixedRate';
-            app.RegularTimer.Period = 60; % Once a minute. Consider setting from preference
-            app.RegularTimer.TimerFcn = @(timer, event) obj.regularCheckup();
+            app.RegularTimer.Period = 30; % Consider setting from preference
+            app.RegularTimer.TimerFcn = @(timer, event) app.regularCheckup();
+            start(app.RegularTimer)
         end
     end
 
@@ -1117,10 +1121,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Check that we have the newest version of the metatable 
             if ~isempty(app.MetaTable) && ~app.TableIsUpdating
-                if ~app.MetaTable.isCurrentVersion()
-                    discardNewer = app.MetaTable.resolveCurrentVersion();
-                    if discardNewer 
-                        app.saveMetaTable()
+                if ~app.MetaTable.isLatestVersion()
+                    discardNewest = app.MetaTable.resolveCurrentVersion();
+                    if discardNewest 
+                        app.reloadMetaTable()
+                    else
+                        app.saveMetaTable([], [], true) % tru = force save current version
                     end
                 end
             end
@@ -1746,7 +1752,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             app.MetaTable.entries(evt.Indices(1), evt.Indices(2)) = {evt.NewValue};
-            
 
             % The following is hopefully a temporary solution. If user
             % ticks the ignore checkbox for a session, and the settings are
@@ -2102,8 +2107,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isempty(rows); return; end
             
             % Update values in the metatable..
-            app.MetaTable.editEntries(rows, varName, updatedValues);
-            
+            app.MetaTable.editEntries(rows, varName, updatedValues);            
 
             % Need to keep selected entries before refreshing table. 
             if numSessions < 20
@@ -2399,6 +2403,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
         end
+
+        function onMetaTableModifiedChanged(app, src, evt)
+            if app.settings.MetadataTable.AutosaveMetaTable
+                if evt.AffectedObject.IsModified
+                    app.saveMetaTable()
+                end
+            end
+        end
         
         function loadMetaTable(app, loadPath)
             
@@ -2455,7 +2467,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
                 
                 app.MetaTable = metaTable;
-                
+
+                addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
+                    @app.onMetaTableModifiedChanged);
+                                
 % %                 if app.initialized % todo
 % %                     app.updateRelatedInventoryLists()
 % %                 end
@@ -2472,13 +2487,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateMetaTableMenu()
         end
         
-        function saveMetaTable(app, src, ~)
+        function saveMetaTable(app, src, ~, forceSave)
             
+            if nargin < 4; forceSave = false; end
+
             if app.settings.MetadataTable.AllowTableEdits
-                app.MetaTable.save()
+                wasSaved = app.MetaTable.save(forceSave);
                 
-                app.h.StatusField.String = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
-                app.clearStatusIn(5)
+                if wasSaved
+                    app.h.StatusField.String = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
+                    app.clearStatusIn(5)
+                end
             else
                 error('Can not save metatable because access is read only')
             end
@@ -2541,6 +2560,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             answer = app.openQuestionDialog(qstring, title, alternatives{:}, default);
             doExit = strcmp(answer, 'Yes'); 
         end
+    
     end
     
     methods (Access = protected) % Callbacks
