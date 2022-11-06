@@ -223,12 +223,12 @@ methods (Access = protected)
         numRois = numel( data.RoiGroups.imagingRoiGroup.rois );
         
         thisFov = data.RoiGroups.imagingRoiGroup.rois(obj.FovId);
-        sIFovParams.pixelResolutionXY = thisFov.scanfields.pixelResolutionXY';
-        sIFovParams.centerXY = thisFov.scanfields.centerXY';
+        sIFovParams.pixelResolutionXY = thisFov.scanfields(1).pixelResolutionXY';
+        sIFovParams.centerXY = thisFov.scanfields(1).centerXY';
         
         % Get height of each individual FOV in pixels
         heightPerFov = arrayfun(@(s) ...
-            s.scanfields.pixelResolutionXY(2), ...
+            s.scanfields(1).pixelResolutionXY(2), ...
             data.RoiGroups.imagingRoiGroup.rois );
         
         % Calculate number of flyback lines per FOV

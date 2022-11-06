@@ -312,7 +312,7 @@ classdef MetaTable < handle
             if isfield(S, 'VersionNumber')
                 versionNumber = S.VersionNumber;
             else
-                versionNumber = [];
+                versionNumber = 0;
             end
         end
 

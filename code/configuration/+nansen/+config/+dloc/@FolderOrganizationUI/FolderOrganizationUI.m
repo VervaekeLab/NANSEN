@@ -755,7 +755,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 obj.RowControls(iRow).AddImage.Enable = 'on';
             end
             
-            %obj.IsDirty = true;
+            obj.IsDirty = true;
             
             if ~nargout; clear success; end
             
