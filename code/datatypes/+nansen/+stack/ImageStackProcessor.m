@@ -428,9 +428,13 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
             batchFcn = str2func( class(obj) );
             
             % Todo: This stopped(?) working. Should I use parfeval instead?
-            job = batch(batchFcn, 0, args, ...
-                    'AutoAddClientPath', false, 'AutoAttachFiles', false, ...
-                    'AdditionalPaths', dependentPaths);
+            job = batch(batchFcn, 0, args);%, ...
+%                     'AutoAddClientPath', false, 'AutoAttachFiles', false, ...
+%                     'AdditionalPaths', dependentPaths);
+            % Note: The problem with letting batch "inherit" the savepath
+            % of matlab is that it can be very slow if the savepath
+            % conatins a lot of files (especially if git repos are part of
+            % it).
             
             job.Tag = jobDescription;
             
