@@ -77,6 +77,19 @@ function S = getAddonList()
     S(i).HasSetupFile = false;
     S(i).SetupFileName = '';
     S(i).FunctionName = 'CNMFSetParms';
+    i = i + 1;
+
+    S(i).Name = 'suite2P-Matlab';
+    S(i).Description = 'Fast, accurate and complete two-photon pipeline';
+    S(i).IsRequired = false;
+    S(i).Type = 'Neuroscience';
+    S(i).Source = 'Github';
+    S(i).WebUrl = 'https://github.com/cortex-lab/Suite2P';
+    S(i).DownloadUrl = 'https://github.com/cortex-lab/Suite2P/archive/refs/heads/master.zip';
+    S(i).HasSetupFile = false;
+    S(i).SetupFileName = '';
+    S(i).FunctionName = 'build_ops3';
+
     
     i = i + 1;
     S(i).Name = 'EXTRACT';
