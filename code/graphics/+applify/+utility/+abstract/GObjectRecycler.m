@@ -97,7 +97,7 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
             end
             
             h = obj.GObjects(1:n);
-            obj.GObjects(1:n, :) = [];
+            obj.GObjects(1:n, :) = []; % Need to use both row and column indices when removing elements to preserve GObjects as column vector if it becomes empty.
 
             set(h, 'HandleVisibility', 'on')
             set(h, 'Visible', 'on'); % Turn visibility on.

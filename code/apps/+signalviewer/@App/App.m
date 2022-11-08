@@ -191,6 +191,10 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         nSamples = 1
         currentFrameNo = 1
     end
+
+    properties (Access = private)
+        AxisDragReleaseListener event.listener
+    end
     
     
 % - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - 
@@ -1063,6 +1067,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 set(obj.ax.YAxis, 'LimitsMode', 'auto')
                 mItem.Checked = 'on';
                 set(h, 'Visible', 'on');
+                drawnow
                 set(obj.ax.YAxis, 'LimitsMode', 'manual')
             else
                 mItem.Checked = 'off';
@@ -1070,11 +1075,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             end
             
             drawnow
-
-
         end
-        
-        
         
         function editSettings(obj, ~, ~)
         
@@ -1082,9 +1083,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             newSettings = tools.editStruct(oldSettings, 'all', ...
                 'Signal Viewer Settings', 'Callback', @obj.onSettingsChanged);
             obj.settings = newSettings;
-            
-            
-            
         end
         
         function onSettingsChanged(obj, name, value)
@@ -1096,7 +1094,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                         obj.updateDownsampledData()
                     end
             end
-            
         end
         
         function h = plotTimeSeries(obj, tsArray)
@@ -2210,6 +2207,16 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 
                 obj.interactiveFrameChangeRequest(src, event, 'mousepress')
             
+                isOnAxis = obj.isPointOnAxis(obj.PreviousMouseClickPoint);
+
+                if strcmp(isOnAxis, 'y') || strcmp(isOnAxis, 'x')
+                    % This listener is necessary to make sure axis drag is
+                    % released when button is released, als in dashboards
+                    % where the mouse release might happen outside the
+                    % current app.
+                    obj.AxisDragReleaseListener = listener(obj.Figure, ...
+                        'WindowMouseRelease', @obj.onAxisDragButtonUp);
+                end
                 
             elseif strcmp(obj.Figure.SelectionType, 'open')
                 xPoint = round( obj.ax.CurrentPoint(1) );
@@ -2276,8 +2283,15 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             obj.isMouseDown = false;
             obj.PreviousMouseClickPoint = [];
         end
+
+        function onAxisDragButtonUp(obj, ~, ~)
+            obj.isMouseDown = false;
+            obj.PreviousMouseClickPoint = [];
+            delete(obj.AxisDragReleaseListener)
+            obj.AxisDragReleaseListener = event.listener.empty;
+        end
     end
-    
+
     methods (Static)
         
         function pathStr = getIconPath()
