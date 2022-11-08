@@ -36,7 +36,7 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
     end
 
     properties (Access = private)
-        GObjects = gobjects(0)
+        GObjects = gobjects(0,1)
         GObjectPropertyNames
     end
     
@@ -94,11 +94,10 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
                 set(h, 'Visible', 'off', 'HandleVisibility', 'off')
 
                 obj.GObjects = cat(1, obj.GObjects, h);
-
             end
             
             h = obj.GObjects(1:n);
-            obj.GObjects(1:n) = [];
+            obj.GObjects(1:n, :) = [];
 
             set(h, 'HandleVisibility', 'on')
             set(h, 'Visible', 'on'); % Turn visibility on.
