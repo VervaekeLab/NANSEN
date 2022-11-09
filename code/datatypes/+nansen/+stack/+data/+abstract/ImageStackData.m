@@ -357,8 +357,10 @@ classdef ImageStackData < uim.mixin.assignProperties
             % represented in DataSize, even if it has length 1
             if numel(obj.DataSize) < numel(obj.DataDimensionArrangement)
                 nDims = numel(obj.DataDimensionArrangement);
-                obj.DataSize(nDims) = 1;
-                obj.DataSize(obj.DataSize==0) = 1;             
+                if ~isempty(obj.DataSize)
+                    obj.DataSize(nDims) = 1;
+                    obj.DataSize(obj.DataSize==0) = 1;
+                end    
             end
 
             % Check if any dimensions were redefined
