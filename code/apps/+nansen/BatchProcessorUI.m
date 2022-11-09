@@ -598,7 +598,7 @@ classdef BatchProcessorUI < handle
 
             if strcmp(hTask.status, 'Running')
                 msgbox('Can not edit options for a running task')
-                continue
+                return
             end
 
             optsName = hTask.parameters;

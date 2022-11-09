@@ -77,6 +77,8 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 %           for each signaltype.. Can I find a cleaner way?
 %       [ ] Prepare colors for lines.
 %       [x] Append and overwrite modes
+%       [ ] Add property to hold names of signals that should be plotted on
+%           left and right yaxis respectively.
 
 
 %   Inherited properties:
@@ -784,6 +786,15 @@ classdef App < signalviewer.App & roimanager.roiDisplay
                 end
                 
                 obj.tsArray(isMatched).Data(:, insertIdx) = signalData;
+
+                % Update extreme limits
+                switch signalName
+                    case {'dff', 'denoised', 'deconvolved'}
+                        obj.YLimExtreme.right(2) = max([obj.YLimExtreme.right(2), max(signalData(:))]);
+                    
+                    otherwise
+                        obj.YLimExtreme.left(2) = max([obj.YLimExtreme.right(2), max(signalData(:))]);
+                end
                 
                 obj.onTimeseriesDataUpdated(signalName, insertIdx);
                 
