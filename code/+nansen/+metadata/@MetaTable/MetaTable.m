@@ -309,6 +309,7 @@ classdef MetaTable < handle
             warning('on', 'MATLAB:load:variableNotFound')
             if isfield(S, 'VersionNumber')
                 versionNumber = S.VersionNumber;
+                if isempty(versionNumber); versionNumber = 0; end
             else
                 versionNumber = 0;
             end
