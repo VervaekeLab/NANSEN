@@ -1,5 +1,7 @@
 function variableList = getVariableList()
 
+    % Todo: get variables by name...
+
     NUM_VARS = 9; % Should be updated if variables are added.
 
     % Initialize struct array with default fields.
@@ -16,7 +18,7 @@ function variableList = getVariableList()
     variableList(i).VariableName = 'TwoPhotonSeries_Corrected';
     variableList(i).IsDefaultVariable = true;
     variableList(i).DataLocation = 'DEFAULT';
-    variableList(i).Subfolder = 'image_registration';
+    variableList(i).Subfolder = 'motion_correction';
     variableList(i).FileNameExpression = 'two_photon_corrected';
     variableList(i).FileType = '.raw';
     variableList(i).FileAdapter = 'ImageStack';
