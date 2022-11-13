@@ -4,7 +4,10 @@
 
 A collection of apps and modules for processing, analysis and visualization of two-photon imaging data. Check out the introduction to Nansen on [YouTube](https://youtu.be/_u0Aw1n5gHg) and/or see the [Wiki](https://github.com/VervaekeLab/NANSEN/wiki) for more details.
 
+<img src="https://user-images.githubusercontent.com/17237719/201542036-3be1b9b2-b59c-4e2d-9104-52f6d3806f02.gif?raw=true" alt="Session table demo" width="100%"/>
+<!---
 <img src="https://github.com/ehennestad/ehennestad.github.io/blob/main/images/app_overview.png?raw=true" alt="Imviewer instance" width="100%"/>
+--->
 
 ## Contents
 
