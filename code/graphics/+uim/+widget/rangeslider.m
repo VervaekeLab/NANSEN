@@ -453,7 +453,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                     obj.onValueChanging(newValue, 'high')
                     obj.updateValuetipString('high')
                 otherwise
-                    % Move the know which is closest to where the track was
+                    % Move the knob which is closest to where the track was
                     % pressed
                     if newValue <= obj.Low
                         whichValue = 'low';
@@ -469,7 +469,14 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                     
                     obj.onValueChanging(newValue, whichValue)
                     obj.updateValuetipString(whichValue)  
-                    
+            end
+
+            % make sure the callback is executed if source is the track
+            if strcmp(src.Tag, 'Range Slider Track')
+                if ~isempty(obj.Callback)
+                    evtData = struct('Low', obj.Low, 'High', obj.High);
+                    obj.Callback(obj, evtData)
+                end
             end
         end
         
@@ -477,7 +484,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
 
             obj.IsKnobPressed = false;
 
-            
             delete(obj.WindowButtonUpListener)
             delete(obj.WindowMouseMotionListener)
             obj.WindowButtonUpListener = [];
