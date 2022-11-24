@@ -44,7 +44,7 @@ function metaTable = fixMetaTableDataLocations(metaTable, dataLocationModel)
                 for k = 1:numel(rootPaths)
                     if isfield(entries(j).DataLocation, name)
                         tf = contains( entries(j).DataLocation.(name), rootPaths{k} );
-                        if ~isempty(tf)
+                        if ~isempty(tf) && tf
                             thisRootPath = rootPaths{k};
                             rootIdx = k;
                             break
