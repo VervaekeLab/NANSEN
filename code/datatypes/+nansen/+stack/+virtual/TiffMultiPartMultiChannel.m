@@ -4,7 +4,7 @@ classdef TiffMultiPartMultiChannel < nansen.stack.virtual.TiffMultiPart
     % channels (and planes)...
     
     properties (Constant, Hidden)
-        FilenameExpression = 'ch\d{1}_part_\d{3}'
+        FilenameExpression = 'ch\d{1}_part_\d{3}.*tif'
         DATA_DIMENSION_ARRANGEMENT = 'YXTCZ';
     end
     
