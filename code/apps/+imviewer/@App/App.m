@@ -1167,36 +1167,35 @@ methods % App initialization & creation
 
             label = sprintf('Ch%d', i);
 
-        % Create brightness slider
-        obj.brightnessSlider(i) = uim.widget.rangeslider(uicc, ...
-            'Location', 'northeast', 'Margin', [0,0,30,yMargin(i)], ...
-            'Size', [120, 25], 'Visible', 'off', 'Padding', [10, 5, 10, 5], ...
-            'NumTicks', 256, 'Label', label);
+            % Create brightness slider
+            obj.brightnessSlider(i) = uim.widget.rangeslider(uicc, ...
+                'Location', 'northeast', 'Margin', [0,0,30,yMargin(i)], ...
+                'Size', [120, 25], 'Visible', 'off', 'Padding', [10, 5, 10, 5], ...
+                'NumTicks', 256, 'Label', label);
+    
+            obj.uiwidgets.BrightnessSlider(i) = obj.brightnessSlider(i);
+            
+            obj.setSliderExtremeLimits([], i)
+            obj.setSliderLimits([], i)
+    
+            % Do this after setting limits and low/high.
+            obj.brightnessSlider(i).Callback = @(s,e,idx)obj.onSliderChanged(s,e,i);
+    
+            
+            % Create toolbar
+            hToolbar = uim.widget.toolbar(uicc, 'Location', 'northeast', ...
+                'Margin', [0,0,10,yMargin(i)], 'ComponentAlignment', 'left', ...
+                'BackgroundAlpha', 0, 'Size', [50, 25], 'NewButtonSize', [21,21],...
+                'Spacing', 5, 'Padding', [5,2,5,2], 'Visible', 'off');
+            hToolbar.Size = [25,25];
+            hToolbar.Location = 'northeast';
+            hToolbar.SizeMode = 'manual';
+            % Add buttons
+            hToolbar.addButton('Icon', obj.ICONS.auto, 'Type', 'pushbutton', 'Tag', 'auto', 'Tooltip', 'Auto', 'ButtonDownFcn', @(s,e,idx)obj.onAutoAdjustLimitsPressed(s,e,i))
+            %hToolbar.addButton('Icon', obj.ICONS.hist, 'Type', 'pushbutton', 'Tag', 'hist', 'Tooltip', 'Show Histogram', 'ButtonDownFcn', @(s,e) obj.openBrightnessHistogram)        
+            obj.uiwidgets.BrightnessToolbar(i) = hToolbar;
 
-        obj.uiwidgets.BrightnessSlider(i) = obj.brightnessSlider(i);
-        
-        obj.setSliderExtremeLimits([], i)
-        obj.setSliderLimits([], i)
-
-        % Do this after setting limits and low/high.
-        obj.brightnessSlider(i).Callback = @(s,e,idx)obj.onSliderChanged(s,e,i);
-
-        
-        % Create toolbar
-        hToolbar = uim.widget.toolbar(uicc, 'Location', 'northeast', ...
-            'Margin', [0,0,10,yMargin(i)], 'ComponentAlignment', 'left', ...
-            'BackgroundAlpha', 0, 'Size', [50, 25], 'NewButtonSize', [21,21],...
-            'Spacing', 5, 'Padding', [5,2,5,2], 'Visible', 'off');
-        hToolbar.Size = [25,25];
-        hToolbar.Location = 'northeast';
-        hToolbar.SizeMode = 'manual';
-        % Add buttons
-        hToolbar.addButton('Icon', obj.ICONS.auto, 'Type', 'pushbutton', 'Tag', 'auto', 'Tooltip', 'Auto', 'ButtonDownFcn', @(s,e,idx)obj.onAutoAdjustLimitsPressed(s,e,i))
-        %hToolbar.addButton('Icon', obj.ICONS.hist, 'Type', 'pushbutton', 'Tag', 'hist', 'Tooltip', 'Show Histogram', 'ButtonDownFcn', @(s,e) obj.openBrightnessHistogram)        
-        obj.uiwidgets.BrightnessToolbar(i) = hToolbar;
-
-        %obj.changeBrightness([obj.brightnessSlider.Low, obj.brightnessSlider.High])
-        
+            %obj.changeBrightness([obj.brightnessSlider.Low, obj.brightnessSlider.High])
         end
         
         % this should be internal to uicc, but on the other hand, it is
@@ -2291,13 +2290,22 @@ methods % Event/widget callbacks
         
         if nargin < 2 || isempty(newLimits)
             newLimits = obj.ImageStack.DataTypeIntensityLimits;
-            obj.settings_.ImageDisplay.brightnessSliderLimits = newLimits;
         end
 
         if nargin < 3 || isempty(chNum)
             chNum = 1:obj.ImageStack.NumChannels;
         end
 
+        for iCh = chNum
+            if isfield(obj.settings.ImageDisplay, 'imageBrightnessLimits')
+                fieldName = sprintf('imageBrightnessLimits');
+            else
+                fieldName = sprintf('imageBrightnessLimitsCh%d', iCh);
+            end
+            % Use internal property to avoid triggering on settings changed callback
+            obj.settings_.ImageDisplay.(fieldName) = newLimits;
+        end
+        
         if isempty(obj.brightnessSlider); return; end
         
         assert(newLimits(1) < newLimits(2), 'L(1) must be smaller than L(2)')
@@ -2337,15 +2345,7 @@ methods % Event/widget callbacks
         end
         
         if updateSettings
-            for iCh = chNum
-                if isfield(obj.settings.ImageDisplay, 'imageBrightnessLimits')
-                    fieldName = sprintf('imageBrightnessLimits');
-                else
-                    fieldName = sprintf('imageBrightnessLimitsCh%d', iCh);
-                end
-                % Use internal property to avoid triggering on settings changed callback
-                obj.settings_.ImageDisplay.(fieldName) = newLimits;
-            end
+            obj.updateBrightnessInSettings(newLimits, chNum)
         end
 
         if isempty(obj.brightnessSlider); return; end
@@ -2378,6 +2378,23 @@ methods % Event/widget callbacks
 
     end
     
+    function updateBrightnessInSettings(obj, newLimits, chNum)
+
+        if nargin < 3
+            chNum = 1:obj.ImageStack.NumChannels;
+        end
+
+        for iCh = chNum
+            if isfield(obj.settings.ImageDisplay, 'imageBrightnessLimits')
+                fieldName = sprintf('imageBrightnessLimits');
+            else
+                fieldName = sprintf('imageBrightnessLimitsCh%d', iCh);
+            end
+            % Use internal property to avoid triggering on settings changed callback
+            obj.settings_.ImageDisplay.(fieldName) = newLimits;
+        end
+    end
+
     function goToFrame(obj, frameNumber) % todo: remove but fix roisignal video which use this
         src = struct('String', num2str(frameNumber));
         obj.changeFrame(src, [], 'jumptoframe')
@@ -4101,9 +4118,16 @@ methods % Misc, most can be outsourced
 
     end
     
+    function frame = savePlot(obj, savePath)
+    %savePlot Save the current plot in the imviewer axes    
+        frame = frame2im(getframe(obj.Axes));
+        imwrite(frame, savePath, 'PNG' );
+        if ~nargout
+            clear frame
+        end
+    end
     
     function saveImage(obj, savePath)
-        
         
         if nargin < 2 || isempty(savePath)
             savePath = obj.getImageFilePath();
@@ -4126,7 +4150,6 @@ methods % Misc, most can be outsourced
             otherwise % This will need to be fixed at some point
                 imwrite(uint8(im), savePath)
         end
-
     end
     
     
@@ -5727,7 +5750,9 @@ methods (Access = private) % Methods that runs when properties are set
         % Set brightness limits. Will trigger callback to set slider Low
         % and High value.
         obj.settings_.ImageDisplay.brightnessSliderLimits = obj.ImageStack.DataTypeIntensityLimits;
-        obj.settings_.ImageDisplay.imageBrightnessLimits = obj.ImageStack.getDataIntensityLimits();
+
+        newLimits = obj.ImageStack.getDataIntensityLimits();
+        obj.updateBrightnessInSettings(newLimits)
         
         
 % %         % If a "blank" stack is opened, need to readjust limits.
