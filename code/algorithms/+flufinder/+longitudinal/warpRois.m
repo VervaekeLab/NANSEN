@@ -16,9 +16,7 @@ nRois = numel(roiArray);
 shiftedRoiArray = roiArray;
     
 % Get the number of patches/squares of nonrigid displacements.s
-fovShifts.ShiftsNr.shifts_up = imresize(fovShifts.ShiftsNr.shifts, roiArray(1).imagesize);
-[nrows, ncols, ~, ~] = size(fovShifts.ShiftsNr.shifts_up);
-
+[nrows, ncols, ~, ~] = size(fovShifts.ShiftsNr);
 
 % Go through each roi and find how much it should be shifted.
 for i = 1:nRois
@@ -48,6 +46,7 @@ for i = 1:nRois
     
     roiNrSub = fliplr(round(centerNew)); % y, x position in matrix.
 
+    % Make sure new centers dont end up outside image
     if roiNrSub(1) < 1; roiNrSub(1) = 1; end
     if roiNrSub(2) < 1; roiNrSub(2) = 1; end
     if roiNrSub(1) > ncols; roiNrSub(1) = ncols; end
@@ -55,7 +54,7 @@ for i = 1:nRois
     
     % Find the nonrigid shifts for the part of the image which roi belongs to.
     % flip left right because normcorre shifts are y, x.
-    nrShift = fliplr( squeeze( fovShifts.ShiftsNr.shifts_up(roiNrSub(1), roiNrSub(2), 1, :))');
+    nrShift = fliplr( squeeze( fovShifts.ShiftsNr(roiNrSub(1), roiNrSub(2), 1, :))');
     
     centerNew = centerNew + nrShift;
     
