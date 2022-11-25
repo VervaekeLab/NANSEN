@@ -42,6 +42,7 @@ classdef RoiSignalArray < handle
     %   [ ] Where to get settings from? A handle class?
     %
     
+    %   [ ] CurrentChannel, Current plane...
     
     
     properties (Constant)
@@ -74,6 +75,7 @@ classdef RoiSignalArray < handle
         % Should these be properties of the roi signal array class???
         ImageStack
         RoiGroup
+        ActiveChannel = 1
     end
     
     properties (Dependent) % Info properties
@@ -111,7 +113,6 @@ classdef RoiSignalArray < handle
         %   Data and Parameters arrays are set when ImageStack is set.
             obj.RoiGroup = roiGroup;
             obj.ImageStack = imageStack;
-            
         end
         
     end
@@ -138,7 +139,7 @@ classdef RoiSignalArray < handle
             if isempty(obj.RoiGroup)
                 numRois = 0;
             else
-                numRois = obj.RoiGroup.roiCount;
+                numRois = [obj.RoiGroup.roiCount];
             end
         end
         
@@ -177,7 +178,7 @@ classdef RoiSignalArray < handle
             
             % Set default channel ind if none is given (1 channel)
             if nargin < 2 || isempty(channelInd)
-                channelInd = 1;
+                channelInd = 1:obj.NumChannels;
             end
             
             if obj.isVirtual; return; end
@@ -193,7 +194,7 @@ classdef RoiSignalArray < handle
             % Initialize arrays across channels
             for i = channelInd
                 
-                nSamples = obj.NumFrames(i);
+                nSamples = obj.NumFrames;
                 nRois = max( [INT, ceilN(obj.NumRois(i), INT)] );
                 
                 for j = 1:numel(signalNames)
@@ -536,7 +537,7 @@ classdef RoiSignalArray < handle
             %       subset of frames or fram the whole stack.
             
             if nargin < 4; options = struct(); end
-            if nargin < 3; channelNum = 1; end
+            if nargin < 3; channelNum = obj.ActiveChannel; end
             
             options = obj.SignalExtractionOptions;
             
@@ -548,7 +549,7 @@ classdef RoiSignalArray < handle
             % Todo: What to do with virtual stacks????
 
             % Todo: get options from somewhere!
-            signalData = extractF(imageStack, roiArray, options, 'roiInd', roiInd);
+            signalData = extractF(imageStack, roiArray, options, 'roiInd', roiInd, 'channelNum', channelNum);
 
             obj.Data(channelNum).roiMeanF(:, roiInd) = signalData(:, 1, :);
             

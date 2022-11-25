@@ -1267,8 +1267,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 
                 switch thisDim
                     case 'C'
-                        subs{i} = obj.CurrentChannel;
-                        
+                        if isfield(S, 'C')
+                            subs{i} = S.C;
+                        else
+                            subs{i} = obj.CurrentChannel;
+                        end
+
                     case 'Z'
                         
                         if ~contains(obj.Data.DataDimensionArrangement, 'T')

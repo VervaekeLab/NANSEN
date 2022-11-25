@@ -10,17 +10,19 @@ classdef roiMap < roimanager.roiDisplay
     %       and add it to visible rois...?
     
     %   [ ] Set method for roigroup.
+    %   [ ] Outsource all "roi creation" methods to a RoiEditor class
+
+
+    % properties inherited from RoiDisplay:
+    %   RoiGroup            A roi group containing all roi data
+    %   SelectedRois        Indices of selected rois
+    %   VisibleRois         Indices of visible rois
     
     properties (Access = public) % Preferences / States
         defaultColor = ones(1,3)*0.8; % Add color picker to settings...
         
         RoiOutlineWidth = 1 % Todo: implement this and make it adjustable from settings
         Visible matlab.lang.OnOffSwitchState = true
-    end
-
-    properties (Dependent)
-        %roiArray      (property of roigroup)
-        %roiCount      % A counter for the number of rois that have been drawn
     end
     
     properties (Dependent)
@@ -29,8 +31,18 @@ classdef roiMap < roimanager.roiDisplay
     end
     
     properties (Access = public)
+        % Todo: Why are these properties public?
+
+        % Todo: Replace with ImageStack (will go to roi editor) and Logger.
+        % Additionally, is used for zooming in on roi and getting current
+        % displayed image.
         displayApp  % aka. app aka. hViewer...
+
         hAxes       % Axes where roi map is plotted. Most often axes of display app
+    end
+
+    properties
+        ActiveChannel % Active channel corresponds to channel of imagestack that current roi map represents
     end
     
     properties (Access = public, SetObservable=true) % Preferences 
@@ -187,9 +199,11 @@ classdef roiMap < roimanager.roiDisplay
 
                     roiBoundaryCellArray = obj.getAllRoiBoundaries(evt.roiArray);
                     
-                    set(obj.roiPlotHandles(evt.roiIndices), ...
-                        {'XData'}, roiBoundaryCellArray(1,:)', ...
-                        {'YData'}, roiBoundaryCellArray(2,:)' );
+                    if ~isempty(roiBoundaryCellArray)
+                        set(obj.roiPlotHandles(evt.roiIndices), ...
+                            {'XData'}, roiBoundaryCellArray(1,:)', ...
+                            {'YData'}, roiBoundaryCellArray(2,:)' );
+                    end
                     
                     if strcmp(obj.EnableLinkedRois, 'on')
                         obj.updateLinkPlot(evt.roiIndices)
@@ -212,7 +226,6 @@ classdef roiMap < roimanager.roiDisplay
                     % Throw a warning, then redraw just to be safe
                     warning('onRoiGroupChanged:UnhandledEvent',...
                         'Unhandled event type: %s',evt.EventType);
-                    
             end %switch
             
             % Make sure visible roi indices are updated if rois are added
@@ -345,6 +358,8 @@ classdef roiMap < roimanager.roiDisplay
             % Remove plothandles and reset roi index map
             roiIndices = 1:numel(obj.roiPlotHandles);
             obj.removeRoiPlots(roiIndices)
+
+            if isempty(obj.RoiGroup); return; end
 
             % Plot all rois of set roigroup
             roiArray = obj.RoiGroup.roiArray;
@@ -1025,6 +1040,13 @@ classdef roiMap < roimanager.roiDisplay
             %   Edgedetection current frame
             %   Edgedetection enhanced avg
             
+            if numel(obj.ActiveChannel) > 1
+                newRoi = RoI.empty;
+                obj.displayApp.displayMessage('Can not autodetect rois from multiple channels simultaneously. Please set the active channel to an insividual channel')
+                return
+            end
+
+
             if nargin < 6; doReplace = false; end
             if nargin < 5; autodetectMethod = 'threshold'; end
             
@@ -1045,8 +1067,9 @@ classdef roiMap < roimanager.roiDisplay
             xInd = S(1):L(1);
             yInd = S(2):L(2);
 
+            
             imChunk = obj.displayApp.ImageStack.getFrameSet('cache', '', ...
-                'X', xInd, 'Y', yInd);
+                'X', xInd, 'Y', yInd, 'C', obj.ActiveChannel);
             
             chunkSize = size(imChunk);
             if chunkSize(end) < 10
@@ -1169,6 +1192,13 @@ classdef roiMap < roimanager.roiDisplay
             
             if nargin < 6; doReplace = false; end
             
+
+            if numel(obj.ActiveChannel) > 1
+                newRoi = RoI.empty;
+                obj.displayApp.displayMessage('Can not autodetect rois from multiple channels simultaneously. Please set the active channel to an insividual channel')
+                return
+            end
+
             switch autodetectionMode
                 case 1
                     % continue
@@ -1197,7 +1227,17 @@ classdef roiMap < roimanager.roiDisplay
             imArray = obj.displayApp.ImageStack.getFrameSet('cache');
             [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, pad, 'boundaryMethod', 'none');
             imChunk = roimanager.imtools.getPixelChunk(imArray, S, L);
-                       
+            
+            % Make sure image chunk is 3D
+            currentChannels = obj.displayApp.ImageStack.CurrentChannel;
+            if numel(currentChannels) > 1
+                if ndims(imChunk) == 4
+                    channelIndex = find(obj.ActiveChannel == currentChannels);
+                    imChunk = squeeze(imChunk(:, :, channelIndex, :));
+                elseif ndims(imChunk) > 4
+                    error('Can not autodetect rois from hyperstacks')
+                end
+            end
 
             % Get x- and y-coordinate for the image subset.
             x_ = x - S(1)+1; 
@@ -1260,7 +1300,6 @@ classdef roiMap < roimanager.roiDisplay
             end
             
             obj.RoiGroup.modifyRois(newRois, obj.SelectedRois)
-            
         end
         
         function pObj = patchRoi(obj, mask, tag, color)
@@ -1372,6 +1411,8 @@ classdef roiMap < roimanager.roiDisplay
 % % %                 pixelIdxList = obj.RoiGroup.roiArray(i).getPixelIdxList();
 % % %                 tic;obj.roiIndexMap(pixelIdxList) = i;toc
 % % %             end
+
+            if isempty(obj.RoiGroup); return; end
             
             if obj.RoiGroup.roiCount == 0
                 obj.roiIndexMap = [];

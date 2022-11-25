@@ -44,13 +44,14 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             obj.RoiGroupArray = roiGroupArray;
             
             obj.roiArray = cat(2, obj.RoiGroupArray.roiArray);
-            obj.roiCount = numel(obj.roiArray);
 
-            % Update roi array property based on all individual roi groups.
-            obj.roiImages = getappdata(obj.roiArray, 'roiImages');
-            obj.roiStats = getappdata(obj.roiArray, 'roiStats');       
-            obj.roiClassification = getappdata(obj.roiArray, 'roiClassification'); 
-            
+            if obj.roiCount > 0
+                % Update roi array property based on all individual roi groups.
+                obj.roiImages = getappdata(obj.roiArray, 'roiImages');
+                obj.roiStats = getappdata(obj.roiArray, 'roiStats');       
+                obj.roiClassification = getappdata(obj.roiArray, 'roiClassification'); 
+            end
+
             obj.ParentApp = obj.RoiGroupArray(1).ParentApp;
             obj.assignRoiGroupIndex()
             
@@ -65,6 +66,7 @@ classdef CompositeRoiGroup < roimanager.roiGroup
     methods (Access = public)
         
         function addRois(~, ~, ~, ~, ~)
+            errordlg('Can not add rois when viewing multiple channels, please select one channel to add rois.')
             error('Nansen:NotImplementedYet', 'Can not add rois to a collection of roi groups')
         end
 
@@ -147,9 +149,11 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             
             roiInd = find(isThisGroup & isMatchingRoiIdx);
             
+            fprintf('debug this (compositeRoiGroup/individualRoiGroupModified)\n');
             eventData = roimanager.eventdata.RoiGroupChanged(...
                 eventData.roiArray, roiInd, 'modify');
-                
+% %             eventData = roimanager.eventdata.RoiGroupChanged(...
+% %                 eventData.roiArray, roiInd, eventData.eventType);
             obj.notify('roisChanged', eventData)
         end
 
@@ -170,10 +174,15 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             % - Count number of rois per roigroup
             numRois = arrayfun(@(rg) rg.roiCount, obj.RoiGroupArray);
             
+            if sum(numRois) == 0; return; end
+
             transitionIdx = cumsum([1, numRois(1:end-1)]);
 
             indexVectorInit = zeros(1, sum( numRois ));
             indexVectorInit(transitionIdx) = 1;
+            if numel(indexVectorInit) > numRois
+                indexVectorInit = indexVectorInit(1:numRois);
+            end
             obj.RoiGroupIndex = cumsum(indexVectorInit);
 
             roiIndexPerGroup = arrayfun(@(n) 1:n, numRois, 'uni', 0);
