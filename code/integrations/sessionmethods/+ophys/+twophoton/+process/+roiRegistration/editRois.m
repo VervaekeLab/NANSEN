@@ -2,25 +2,10 @@ function varargout = editRois(sessionObject, varargin)
 %EDITROIS Summary of this function goes here
 %   Detailed explanation goes here
 
-% Instructions on how to use this template:
-%   1) If the session method should have parameters, these should be
-%      defined in the local function getDefaultParameters at the bottom of
-%      this script.
-%   2) Scroll down to the custom code block below and write code to do
-%   operations on the sessionObjects and it's data.
-%   3) Add documentation (summary and explanation) for the session method
-%      above. PS: Don't change the function defintion (inputs/outputs)
-%
-%   For examples: Press e on the keyboard while browsing the session
-%   methods. (e) should appear after the name, and when you select a
-%   session method, the m-file will open.
-
 
 % % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % % 
 % Create a struct of default parameters (if applicable) and specify one or 
-% more attributes (see nansen.session.SessionMethod.setAttributes) for 
-% details. You can use the local function "getDefaultParameters" at the 
-% bottom of this file to define default parameters.
+% more attributes (see nansen.session.SessionMethod.setAttributes)
     
     % Get struct of parameters from local function
     params = getDefaultParameters();
@@ -45,30 +30,50 @@ function varargout = editRois(sessionObject, varargin)
     
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Implementation of the method : Add your code here:    
     
-    % Do something with the sessionObject variable:
-    
+    % - Load FOV images for all sessions
+
     numSessions = numel(sessionObject);
     fovImages = cell(1, numSessions);
+
     for i = 1:numSessions
         if sessionObject(i).existVariable('FovAverageProjection')
             thisFovImage = sessionObject(i).loadData('FovAverageProjection');
         elseif sessionObject(i).existVariable('FovAverageProjectionCorr')
             thisFovImage = sessionObject(i).loadData('FovAverageProjectionCorr');
         else
-            error(['Did not find Fov Average Projection image for session %s.\n', ...
-                'Please make sure an image exists for all selected sessions.'], sessionIDs{i})
+            throwError('MultiDayRoiEdit:FovMissing', sessionObject(i).sessionID)
         end
-        if thisFovImage.NumChannels > 1
-            fovImages{i} = mean( thisFovImage.getFrameSet(1), 3 );
-        else
-            fovImages{i} = thisFovImage.getFrameSet(1);
+        thisImage = thisFovImage.getFrameSet(1);
+        if thisFovImage.NumChannels == 2
+            thisImage = cat(3, thisImage, thisImage(:,:,1));
         end
+        fovImages{i} = thisImage;
     end
 
-    fovImageArray = cat(3, fovImages{:});
-    MultiSessionFovSwitcher(fovImageArray)
+    % Get multisession roi
+    sessionObjectStruct = struct();
+
+    for i = 1:numel(sessionObject) % todo: use s.Data instead!!
+        sessionObjectStruct(i).sessionID = sessionObject(i).sessionID;
+        sessionObjectStruct(i).ImageStack = sessionObject(i).loadData( params.ImageStackVariableName );
+        sessionObjectStruct(i).RoiArray = sessionObject(i).loadData('RoiArrayLongitudinal');
+        sessionObjectStruct(i).FovImage = fovImages{i};
+    end
+
+    roimanagerApp = roimanager.RoimanagerDashboard(sessionObjectStruct(1).ImageStack);
+    roimanagerApp.addRois(sessionObjectStruct(1).RoiArray)
+
+
+    h = MultiSessionFovSwitcher(sessionObject, sessionObjectStruct, roimanagerApp);
+
+    % Load multi session rois and add to fov switcher
+    
+    % Todo
+
+    % Mount switcher in roimanager gui...
+    % Todo
+
 end
 
 
@@ -81,5 +86,18 @@ function params = getDefaultParameters()
     % Add fields to this struct in order to define parameters for this
     % session method:
     params = struct();
+    params.ImageStackVariableName = 'TwoPhotonSeries_Corrected';
 
+end
+
+function throwError(errorID, sessionID)
+
+    switch errorID
+        case 'MultiDayRoiEdit:FovMissing'
+            message = sprintf( [ 'Did not find FOV average projection ', ...
+                'image for for session %s.\nPlease make sure an image ', ...
+                'exists for all selected sessions.'], sessionID );
+    end
+
+    error(errorID, message) %#ok<SPERR> 
 end
