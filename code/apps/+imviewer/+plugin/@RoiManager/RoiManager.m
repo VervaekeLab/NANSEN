@@ -13,6 +13,15 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         %       keep drack of polydraw vs editdraw etc...
         %
         % Implement settings.
+        %
+        %   [ ] Consider whether to add the RoiGroupFileIoAppMixin to a
+        %   property instead. Startegy pattern might be better than
+        %   inheritance here, because if a session object is added to
+        %   roimanager, we want to save to "data variables" instead of
+        %   files (and this functionality could have it's own class).
+        %
+        %   [ ] ActiveChannel property
+        %       [ ] Add option for selecting active channel.
 
 
 %     % Multichannel rois todos:
@@ -45,7 +54,9 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
     end
     
     properties
-        roiFilePath             % RM
+        roiFilePath             % RM 
+        DataSet % DataSet?
+        %Todo: Should be dependent based on filepath set in file io mixin
     end
 
     properties % Outline/ thinking around roi groups...
@@ -67,7 +78,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         % whatever rois are added to it. However, if multiple roigroups
         % (i.e different named roigroups) are added, there should be one
         % display per group?
-
         ActiveRoiGroup  % Handle to an active roi group
         RoiGroup
     end
@@ -77,8 +87,13 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
     end
 
     properties (SetAccess = protected)
-        CurrentRoiGroupIndex
-        RoiGroupList
+        % Active channel. The value of this property determines which rois 
+        % are displayed in the viewer. Also, if multiple channels are set, 
+        % adding and removing rois is not possible
+        ActiveChannel = 1
+
+        CurrentRoiGroupIndex % Placeholder
+        RoiGroupList % Placeholder
     end
 
     properties (Access = protected)
@@ -177,19 +192,43 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         function roiGroup = get.CurrentRoiGroup(obj)
             roiGroup = obj.getCurrentRoiGroup();
         end
-
+        
+        function set.ActiveChannel(obj, newValue)
+            obj.assertValidChannelIndex(newValue)
+            obj.ActiveChannel = newValue;
+            obj.onActiveChannelSet()
+        end
     end
 
     methods
         function activatePlugin(obj, h)
 
             hImviewer = imviewer.plugin.RoiManager.validateApp(h);
-            activatePlugin@applify.mixin.AppPlugin(obj, hImviewer)
+            activatePlugin@imviewer.ImviewerPlugin(obj, hImviewer)
         end
     end
     
     methods % User methods.
         
+        function changeSession(obj, imageStack, roiArray)
+        
+            % Todo: Bug when changing image stack. brightness slider is not
+            % updated correctly to multi-session
+            for i = 1:numel(obj.RoiGroup)
+                obj.RoiGroup(i).removeRois()
+            end
+
+            obj.ImviewerObj.replaceStack(imageStack, false)
+            
+            for i = 1%;%2:numel(obj.RoiGroup)
+                % use obj.addRois!
+                obj.ImviewerObj.displayMessage('Updating rois...')
+                obj.RoiGroup(i).addRois(roiArray, [], 'initialize')
+                obj.ImviewerObj.clearMessage()
+            end
+            obj.onCurrentChannelChanged()
+        end
+
         function [initPath, fileName] = getInitPath(obj)
             
             if ~isempty(obj.roiFilePath)
@@ -213,7 +252,12 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             obj.PrimaryApp.displayMessage('Loading Rois...')
             C = onCleanup(@(s,e) obj.PrimaryApp.clearMessage);
            
+%             variableName = obj.DataSet.uiSelectVariableName('RoiGroup');
+%             if isempty(variableName); return; end
+%             if isa(variableName, 'cell'); variableName = variableName{1}; end
+            
             try
+                %rois = obj.DataSet.loadData(variableName);
                 rois = loadRois@roimanager.RoiGroupFileIoAppMixin(obj, loadPath);
             catch ME
                 clear C % Reset message display
@@ -233,58 +277,79 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             currentRoiGroup = obj.RoiGroup;
             loadedRoiGroup = rois;
             if ~nargout; clear rois; end
+
+
+            % Make sure size of loaded and size of current roi groups is
+            % the same.
+            assert( isequal( size(currentRoiGroup), size(loadedRoiGroup) ), ...
+                'Loaded roi group does not match the dimensions of the image stack')
+
+            % Todo: Load through all roi groups:
+            for i = 1:numel(loadedRoiGroup)
             
-            % If rois already exist, determine how to add new ones
-            if ~isempty(currentRoiGroup.roiArray)
-                % If the loaded rois are identical, abort here
-                if isequal(currentRoiGroup.roiArray, loadedRoiGroup.roiArray)
-                    return
+                % If rois already exist, determine how to add new ones
+                if ~isempty(currentRoiGroup(i).roiArray)
+                    % If the loaded rois are identical, abort here
+                    if isequal(currentRoiGroup(i).roiArray, loadedRoiGroup(i).roiArray)
+                        return
+                    else
+                        addMode = obj.uiGetModeForAddingRois();
+                    end
                 else
-                    addMode = obj.uiGetModeForAddingRois();
+                    addMode = 'initialize';
                 end
-            else
-                addMode = 'initialize';
-            end
-            
-            % Todo: Check that the imagesize of rois match the imagesize of
-            % the loaded images, and take appropriate action if not!
-% %             imSize = [obj.imHeight, obj.imWidth] %<- Todo...
-% %             if ~assertImageSize(loadedRoiGroup.roiArray, imSize)
-% %                 for i = 1:numel(loadedRoiGroup.roiArray)
-% %                     loadedRoiGroup.roiArray(i).imagesize = imSize;
-% %                 end
-% %             end
-            
-            % If rois should be replaced, remove current rois. Also remove
-            % overlapping rois if that is requested.
-            switch addMode
-                case 'replace'
-                    roiInd = 1:currentRoiGroup.roiCount;
-                    currentRoiGroup.removeRois(roiInd);
                 
-                case 'append non-overlapping'
-                    addMode = 'append';
+                % Todo: Check that the imagesize of rois match the imagesize of
+                % the loaded images, and take appropriate action if not!
+    % %             imSize = [obj.imHeight, obj.imWidth] %<- Todo...
+    % %             if ~assertImageSize(loadedRoiGroup.roiArray, imSize)
+    % %                 for i = 1:numel(loadedRoiGroup.roiArray)
+    % %                     loadedRoiGroup.roiArray(i).imagesize = imSize;
+    % %                 end
+    % %             end
+                
+                % If rois should be replaced, remove current rois. Also remove
+                % overlapping rois if that is requested.
+                switch addMode
+                    case 'replace'
+                        roiInd = 1:currentRoiGroup(i).roiCount;
+                        currentRoiGroup(i).removeRois(roiInd);
                     
-                    [iA, ~] = roimanager.utilities.findOverlappingRois(...
-                    	loadedRoiGroup.roiArray, currentRoiGroup.roiArray);
-                    
-                    loadedRoiGroup.removeRois(iA)
+                    case 'append non-overlapping'
+                        addMode = 'append';
+                        
+                        [iA, ~] = roimanager.utilities.findOverlappingRois(...
+                    	    loadedRoiGroup(i).roiArray, currentRoiGroup(i).roiArray);
+                        
+                        loadedRoiGroup(i).removeRois(iA)
+                end
+                
+                %tic
+                %profile on
+                if loadedRoiGroup(i).roiCount > 0
+                    obj.RoiGroup(i).addRois(loadedRoiGroup(i), [], addMode)
+                end
+                %profile viewer
+                %toc
+
             end
-            
-            %tic
-            %profile on
-            obj.RoiGroup.addRois(loadedRoiGroup, [], addMode)
-            %profile viewer
-            %toc
 
             if strcmp(addMode, 'replace') || strcmp(addMode, 'initialize')
                 obj.RoiGroup.markClean()
+            end
+
+            if i > 1
+                obj.onCurrentChannelChanged()
             end
         end
         
         function saveRois(obj, initPath)
         %saveRois Save rois with confirmation message in app.    
             if nargin < 2; initPath = ''; end
+
+% %             obj.DataSet.saveType('RoiGroup', obj.RoiGroup, 'Subfolder', ...
+% %                 'roidata', 'FileAdapter', 'RoiGroup', 'IsCustom', true )
+% %             return
             saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
             
             saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);            
@@ -294,6 +359,8 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         function addRois(obj, roiArray)
             currentRoiGroup = obj.getCurrentRoiGroup();
             currentRoiGroup.addRois(roiArray, [], 'append')
+            %obj.updateActiveRoiGroup()
+            obj.onActiveChannelSet()
         end
         
         function newGroup = createNewRoiGroup(obj)
@@ -862,6 +929,8 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                                  
             obj.PrimaryApp.displayMessage('Activating roimanager...', [], 2)
 
+            onPluginActivated@imviewer.ImviewerPlugin(obj)
+
             % Update menu, by adding some roimanager options:
             if obj.CreateContextMenu
                 obj.createMenu()
@@ -875,6 +944,8 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             % Todo: move to imviewer plugin?
             obj.ImageStackChangedListener = addlistener(obj.ImviewerObj, ...
                 'ImageStack', 'PostSet', @obj.onImageStackChanged);
+            
+            obj.ActiveChannel = 1:obj.NumChannels;
 
             obj.PrimaryApp.clearMessage()
         end
@@ -943,50 +1014,25 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             end
         end
         
+        function onActiveChannelSet(obj)
+            obj.updateActiveRoiGroup()
+            
+            % Todo:
+            % Tell roiMap (roiEdior) about the active channel 
+            obj.roiDisplay.ActiveChannel = obj.ActiveChannel;
+            if ~isempty(obj.roiSignalArray)
+                obj.roiSignalArray.ActiveChannel = obj.ActiveChannel;
+            end
+        end
 
 % % % % Imviewer callback methods
 
         function onCurrentChannelChanged(obj, src, evt)
-            
-            currentPlane = obj.ImviewerObj.currentPlane;
-            currentChannel = obj.ImviewerObj.currentChannel;
-            %disp(currentChannel)
-            
-            numChannels = numel(currentChannel);
-            numPlanes = numel(currentPlane);
-
-            if numChannels * numPlanes > 1
-                
-                multiRoiGroup = roimanager.CompositeRoiGroup(...
-                    obj.RoiGroup(currentPlane, currentChannel) );
-
-                obj.roiDisplay.RoiGroup = multiRoiGroup;
-                obj.PointerManager.pointers.selectObject.RoiDisplay = obj.roiDisplay;
-                return
-            end
-
-            for i = 1:numel(currentChannel)
-                roiGroup = obj.RoiGroup(currentPlane, currentChannel(i));
-                if i > numel(obj.roiDisplay)
-                    obj.roiDisplay(i) = roimanager.roiMap(obj.ImviewerObj, obj.ImviewerObj.Axes, roiGroup);
-                end
-                obj.roiDisplay(i).RoiGroup = roiGroup;
-            end
-            
-            if i < numel(obj.roiDisplay)
-                delete(obj.roiDisplay(i+1:end))
-                obj.roiDisplay(i+1:end) = [];
-            end
-
-            obj.PointerManager.pointers.selectObject.RoiDisplay = obj.roiDisplay;
-
-            % Deactivate the rois that are currently active
-
-            % Activate rois for the newly selected slice (and primary channel)
+            obj.updateActiveRoiGroup()
         end
 
         function onCurrentPlaneChanged(obj, src, evt)
-
+            obj.updateActiveRoiGroup()
         end
     
         
@@ -1301,13 +1347,78 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
     methods (Access = private)
 
         function roiGroup = getCurrentRoiGroup(obj)
-            %currentChannel = obj.ImviewerObj.CurrentChannel(1);
-            %currentPlane = obj.ImviewerObj.CurrentPlane;
+%             currentChannel = obj.ImviewerObj.CurrentChannel(1);
+%             currentPlane = obj.ImviewerObj.CurrentPlane;
             currentChannel = 1;
             currentPlane = 1;
             roiGroup = obj.RoiGroup(currentPlane, currentChannel);
         end
 
+        function updateActiveRoiGroup(obj)
+        %updateActiveRoiGroup Update active roi group based on current channel and plane selection    
+            
+            currentPlane = obj.ImviewerObj.currentPlane;
+            currentChannel = obj.ImviewerObj.currentChannel;
+            
+            currentChannel = intersect(currentChannel, obj.ActiveChannel);
+
+            numChannels = numel(currentChannel);
+            numPlanes = numel(currentPlane);
+
+            if numChannels * numPlanes > 1
+
+                roiGroup = roimanager.CompositeRoiGroup(...
+                    obj.RoiGroup(currentPlane, currentChannel) );
+
+            elseif numChannels * numPlanes == 1
+
+                roiGroup = obj.RoiGroup(currentPlane, currentChannel);
+
+            elseif numChannels * numPlanes == 0
+                % Todo: Should make this a static roi group, i.e should not
+                % be allowed to add or remove rois from it.
+                roiGroup = roimanager.roiGroup.empty;
+            end
+
+            obj.roiDisplay.RoiGroup = roiGroup;
+            obj.PointerManager.pointers.selectObject.RoiDisplay = obj.roiDisplay;
+
+            obj.ActiveRoiGroup = roiGroup;
+
+            return
+
+            % Deprecated, but keep for reference;
+            % Creating multiple roi displays:
+            for i = 1:numel(currentChannel)
+                roiGroup = obj.RoiGroup(currentPlane, currentChannel(i));
+                if i > numel(obj.roiDisplay)
+                    obj.roiDisplay(i) = roimanager.roiMap(obj.ImviewerObj, obj.ImviewerObj.Axes, roiGroup);
+                end
+                obj.roiDisplay(i).RoiGroup = roiGroup;
+                obj.ActiveRoiGroup = roiGroup;
+            end
+            
+            if i < numel(obj.roiDisplay)
+                delete(obj.roiDisplay(i+1:end))
+                obj.roiDisplay(i+1:end) = [];
+            end
+
+            obj.PointerManager.pointers.selectObject.RoiDisplay = obj.roiDisplay;
+
+            % Deactivate the rois that are currently active
+
+            % Activate rois for the newly selected slice (and primary channel)
+        end
+    
+        function assertValidChannelIndex(obj, value, message)
+        %assertValidChannelIndex Check that channel indices are in valid range
+            if nargin < 3 || isempty(message)
+                msg = sprintf('Channel numbers must be in range [1, %d]', ...
+                    obj.NumChannels);
+            end
+
+            assert( all( ismember( value, 1:obj.NumChannels) ), msg )
+        end
     end
 
     methods (Static)
@@ -1339,9 +1450,3 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
 
 end
 
-
-
- 
- 
- 
- 
