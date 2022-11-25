@@ -1,5 +1,6 @@
 classdef ManualClassification
-    
+%ManualClassification Enumeration for manual classification labels for rois
+
     enumeration
         Unclassified(0)
         Accepted(1)
@@ -37,12 +38,12 @@ classdef ManualClassification
             
         function labels = index2labels(indexVector)
             
-            enums = enumeration('roimanager.ManualClassification');
+            enums = enumeration('roimanager.enum.ManualClassification');
             labels = cell(1, numel(indexVector));
             
             for i = 1:numel(enums)
                 labels(indexVector == enums(i).Index) = {char(enums(i))};
-            end 
+            end
         end
         
     end

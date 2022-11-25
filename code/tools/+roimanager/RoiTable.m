@@ -53,7 +53,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 obj.Figure.Position = obj.initializeFigurePosition();
             end
             
-            roiTable = obj.rois2table(roiGroup.roiArray);
+            roiTable = obj.rois2table(cat(1, roiGroup.roiArray));
             obj.roiTable = roiTable;
             
             nansen.assert('WidgetsToolboxInstalled')
@@ -126,6 +126,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             roiIdxToRemove = obj.SelectedRois;
             
             obj.UITable.HTable.Enable = 'off';
+            C = onCleanup(@obj.enableTable);
+            
             % Important:  Change roi selection to first element in list
             % which is slected. Then, after rois are removed, "next" row in
             % table is selected
@@ -135,9 +137,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             newSelection = obj.UITable.getSelectedEntries();
             obj.RoiGroup.changeRoiSelection([], newSelection)
             obj.UITable.HTable.JTable.requestFocus()
-                        
-            obj.UITable.HTable.Enable = 'on';
+        end
 
+        function enableTable(obj)
+            obj.UITable.HTable.Enable = 'on';
         end
         
         function classifyRois(obj, classificationIdx, currentRoiInd)
@@ -290,7 +293,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         end
         
         function roiTable = rois2table(obj, roiArray)
-                
+            
+            roiTable = table.empty;
+            if isempty(roiArray); return; end
+
             S = roimanager.utilities.roiarray2struct(roiArray);
             
             S = rmfield(S, {'coordinates', 'imagesize', 'boundary', ...
@@ -305,7 +311,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 
                 roiClassification = getappdata(roiArray, 'roiClassification');
                 if ~isempty(roiClassification)
-                    roiClassification = roimanager.ManualClassification.index2labels(roiClassification);
+                    roiClassification = roimanager.enum.ManualClassification.index2labels(roiClassification);
                     roiClassification = struct('Classification', roiClassification);
                     S = utility.struct.mergestruct(S, roiClassification);
                 end
@@ -366,6 +372,17 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     
     methods (Access = protected) % Inherited from roimanager.roiDisplay
         
+        function onRoiGroupSet(obj, ~)
+            obj.roiTable = obj.rois2table(obj.RoiGroup.roiArray);
+
+            obj.UITable.resetTable()
+            obj.UITable.refreshTable(obj.roiTable)
+
+            if obj.RoiGroup.roiCount > 0
+                obj.updateRoiLabels()
+            end
+        end
+
         function onRoiGroupChanged(obj, evtData)
             
             oldTable = obj.roiTable;
