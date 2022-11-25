@@ -162,37 +162,38 @@ classdef roiGroup < handle
         end
         
         function markClean(obj)
-            obj.isDirty_ = false;
+            for i = 1:numel(obj)
+                obj(i).isDirty_ = false;
+            end
         end
         
         function addRois(obj, newRois, roiInd, mode, isUndoRedo)
         % addRois Add new rois to the roiGroup.
 
             if isempty(newRois); return; end  %Just in case
-        
+
+            if nargin < 4; mode = 'append'; end
             if nargin < 5; isUndoRedo = false; end
-            
-            
+
             % Check if input is a roigroup or a roiArray.
+            % Todo: Parse rois method.
             if isa(newRois, 'roimanager.roiGroup')
                 newRois = newRois.roiArray;
             end
-            
-            if isempty(obj.FovImageSize)
-                obj.FovImageSize = newRois(1).imagesize;
-            end
-            
+
             % Count number of rois
             nRois = numel(newRois);
-            
-            if iscolumn(newRois); newRois = newRois'; end
-
-            if nargin < 4; mode = 'append'; end
             
             if nargin < 3 || isempty(roiInd)
                 roiInd = obj.roiCount + (1:nRois);
             end
             
+            if isempty(obj.FovImageSize)
+                obj.FovImageSize = newRois(1).imagesize;
+            end
+
+            if iscolumn(newRois); newRois = newRois'; end
+
             if obj.roiCount == 0; mode = 'initialize'; end
 
             % Convert rois to RoI or struct depending on channel status.
@@ -309,6 +310,7 @@ classdef roiGroup < handle
         function removeRois(obj, roiInd, isUndoRedo)
         %removeRois Remove rois from the roiGroup.
         
+            if nargin < 2; roiInd = 1:obj.roiCount; end
             if nargin < 3; isUndoRedo = false; end
             
             roiInd = sort(roiInd);

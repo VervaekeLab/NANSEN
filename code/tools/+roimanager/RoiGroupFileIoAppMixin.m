@@ -108,7 +108,7 @@ classdef RoiGroupFileIoAppMixin < handle
         
             wasAborted = true;
                         
-            if ~isempty(obj.RoiGroup) && obj.RoiGroup.IsDirty
+            if ~isempty(obj.RoiGroup) && any( [obj.RoiGroup.IsDirty] )
             
                 message = 'Save changes to rois?';
                 title = 'Confirm Exit';
@@ -137,6 +137,9 @@ classdef RoiGroupFileIoAppMixin < handle
         function importRois(obj, initPath)
         %importRois Import rois using uidialog
         
+            obj.loadRois(); return
+
+
             if nargin < 2; initPath = ''; end
             loadPath = obj.getRoiPath(initPath, 'load');
             if isempty(loadPath); return; end

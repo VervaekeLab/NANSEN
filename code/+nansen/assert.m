@@ -5,7 +5,8 @@ function assert(keyword)
 %   keyword is not valid.
 
 % Todo: make assertIsInstalled function? Improve that before using the
-% code
+% code. Can use the same method for checking for presence as in addon
+% manager
 
     switch keyword
         
@@ -22,6 +23,12 @@ function assert(keyword)
                    'found on MATLAB''s search path.'];
             assertionValid = exist('run_extract', 'file') == 2;
 
+        case 'Suite2pOnSavepath'
+            errID = 'Nansen:Suite2pNotFoundOnPath';
+            msg = ['suite2p is required for this operation, but is not ', ...
+                   'found on MATLAB''s search path.'];
+            assertionValid = exist('build_ops3', 'file') == 2;
+            
         case 'WidgetsToolboxInstalled'
             errID = 'Nansen:WidgetsToolboxNotInstalled';
             msg = ['The Widgets Toolbox is required, but is not ', ...

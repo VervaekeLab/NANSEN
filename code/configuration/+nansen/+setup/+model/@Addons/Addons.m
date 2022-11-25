@@ -297,12 +297,6 @@ classdef Addons < handle
             obj.markDirty()
             
             addpath(genpath(pkgInstallationDir))
-            
-            % Run setup of package if it has a setup function.
-            if ~isempty(obj.AddonList(addonIdx).SetupFileName)
-                setupFcn = str2func(obj.AddonList(addonIdx).SetupFileName);
-                setupFcn()
-            end
 
             try
                 % Run setup of package if it has a setup function.
@@ -595,7 +589,6 @@ classdef Addons < handle
             renamedDir = fullfile(rootDir, newName);
             movefile(newDir, renamedDir)
             folderPath = renamedDir;
-            
         end
     end
 

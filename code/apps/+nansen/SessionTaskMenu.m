@@ -171,7 +171,8 @@ classdef SessionTaskMenu < handle
             
             obj.SessionTasks = struct('Name', {}, 'Attributes', {});
 
-
+            modules = {'ophys.twophoton'}; % Default for now
+            obj.assignDefaultMethodsPath(modules)
             obj.assignProjectMethodsPath() % Should make this happen only if project is changed... Not urgent
             obj.buildMenuFromDirectory(obj.ParentApp.Figure);
         end

@@ -45,7 +45,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     end
     
     properties (Constant) % From ImageStack Processor...
-        %ImviewerPluginName = ''
+        ImviewerPluginName = ''
     end
 
     
@@ -58,6 +58,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %   given ImageStack as a SourceStack for the suite2p processor.
         %
         %   See also nansen.stack.ImageStackProcessor/ImageStackProcessor
+            
+            nansen.assert('Suite2pOnSavepath')
 
             obj@nansen.processing.RoiSegmentation(varargin{:})
         

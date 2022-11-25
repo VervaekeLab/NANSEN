@@ -296,6 +296,11 @@ classdef ProjectManager < handle
             end
             
             nextInd = numel(obj.Catalog) + 1;
+
+            % Add a preference struct if it does not exist
+            if ~isfield(pStruct, 'Preferences')
+                pStruct.Preferences = struct;
+            end
             
             % Add project info struct to catalog
             obj.Catalog(nextInd) = pStruct;

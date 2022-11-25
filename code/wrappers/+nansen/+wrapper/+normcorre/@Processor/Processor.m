@@ -159,7 +159,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             end
             
             obj.ShiftsArray = S;
-
         end
         
         function addDriftToShifts(obj, drift)
@@ -205,7 +204,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             % Save updated image registration stats to data location
             obj.saveData('MotionCorrectionStats', obj.CorrectionStats)
-            
         end
         
         function template = initializeTemplate(obj, imArray, options)
@@ -220,7 +218,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             template = mean(M, 3);
             
             obj.CurrentRefImage = template;
-            
         end
 
     end

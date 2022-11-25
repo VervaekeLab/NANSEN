@@ -4,7 +4,9 @@ fieldnames = {  'uid', 'shape', 'coordinates', 'pixelweights', ...
                 'imagesize', 'boundary', 'area', 'center', ...
                 'connectedrois', 'group', 'celltype', ...
                 'structure', 'layer', 'tags', 'enhancedImage'};
-            
+
+if isempty(roiArray); roiStruct = struct.empty; return; end
+
 intermediateCellArray = cell(numel(roiArray), numel(fieldnames));
 for i = 1:numel(fieldnames)
     intermediateCellArray(:, i) = {roiArray.(fieldnames{i})};

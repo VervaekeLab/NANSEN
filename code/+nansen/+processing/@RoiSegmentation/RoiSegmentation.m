@@ -389,8 +389,8 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 [iZ, iC] = obj.StackIterator.next();
 
                 roiGroupStruct = struct();
-                roiGroupStruct.ChannelNum = obj.StackIterator.CurrentChannel;
-                roiGroupStruct.PlaneNum = obj.StackIterator.CurrentPlane;
+                roiGroupStruct.ChannelNumber = obj.StackIterator.CurrentChannel;
+                roiGroupStruct.PlaneNumber = obj.StackIterator.CurrentPlane;
 
                 roiGroupStruct.roiArray = obj.RoiArray{iZ,iC};
                 roiGroupStruct.roiImages = obj.RoiImages{iZ,iC};

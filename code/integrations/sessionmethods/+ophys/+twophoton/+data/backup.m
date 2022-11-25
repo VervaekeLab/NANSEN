@@ -3,6 +3,11 @@ function varargout = backup(sessionObject, varargin)
 %
 %   backup(sessionObject) backs up data for the selected data location.
 
+% Todo: 
+%   [ ] Add mirror mode. (I.e delete files in target that are missing )
+%   [ ] List all files in target
+%   [ ] Delete files that are not present in list of files in source
+
 import nansen.session.SessionMethod
 
 % % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % % 

@@ -387,6 +387,11 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 %filePath = obj.getDefaultTaskListFilePath();
                 filePath = obj.TaskListFilepath;
             end
+
+            if isempty(obj.TaskListFilepath)
+                disp('No path set for task list')
+                return
+            end
             
             S = struct();
             S.taskListQueue = obj.TaskQueue;

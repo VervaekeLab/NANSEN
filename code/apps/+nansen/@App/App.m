@@ -11,9 +11,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     %   [x] Remove vars from table on load if vars are not represented in
     %       tablevar folder.
     
-    %   [ ] Important: Load task list and start running it if preferences
+    %   [v] Important: Load task list and start running it if preferences
     %       are set for that, even if gui is not initialized...
-    %   [ ] Keep track of session objects.
+    %   [v] Keep track of session objects.
     %   [ ] Delete session objects from list and reset list when changing
     %       project.
     %   [ ] Send session object to task manager as a struct.
@@ -393,6 +393,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Refresh Table');
             mitem.MenuSelectedFcn = @(s,e) app.onRefreshTableMenuItemClicked;
             
+            mitem = uimenu(m, 'Text','Refresh Data Locations');
+            mitem.MenuSelectedFcn = @app.onDataLocationModelChanged;
+            
+
             % % % % % % Create EXIT menu items % % % % % % 
 
             mitem = uimenu(m, 'Text','Close All Figures', 'Separator', 'on');
@@ -1122,12 +1126,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Check that we have the newest version of the metatable 
             if ~isempty(app.MetaTable) && ~app.TableIsUpdating
                 if ~app.MetaTable.isLatestVersion()
+                    stop(app.RegularTimer) % Stop timer while waiting for user's response
                     discardNewest = app.MetaTable.resolveCurrentVersion();
                     if discardNewest 
                         app.reloadMetaTable()
                     else
                         app.saveMetaTable([], [], true) % tru = force save current version
                     end
+                    start(app.RegularTimer)
                 end
             end
         end
@@ -1250,13 +1256,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onDataLocationModelChanged(app, src, evt)
         %onDataLocationModelChanged Event callback for datalocation model
-        
-            d = src.openProgressDialog('Update Model');
-        
+            
+            try
+                d = src.openProgressDialog('Update Model');
+            end
+
             app.MetaTable = nansen.manage.updateSessionDatalocations(...
                 app.MetaTable, app.DataLocationModel);
-            
-            close(d)
+            app.saveMetaTable()
+            try
+             close(d)
+            end
         end
 
         function onVariableModelChanged(app, src, evt)
@@ -1302,21 +1312,27 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 idName = app.MetaTable.SchemaIdName;
                 ids = entries.(idName);
 
-                if isnumeric(ids) && numel(ids) == 1
-                    ids = num2str(ids);
-                elseif isnumeric(ids) && numel(ids) > 1
-                    ids = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
+                if isnumeric(ids)
+                    if isnumeric(ids) && numel(ids) == 1
+                        ids = num2str(ids);
+                        ids = {ids};
+                    elseif isnumeric(ids) && numel(ids) > 1
+                        ids = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
+                    end
+                    allIds = cellfun(@num2str, app.MetaObjectMembers, 'UniformOutput', false);
+                else
+                    allIds = app.MetaObjectMembers;
                 end
-
-                [matchedIds, indInTableEntries, indInMetaObjects] = ...
-                    intersect(ids, app.MetaObjectMembers, 'stable');
                 
+                [matchedIds, indInTableEntries, indInMetaObjects] = ...
+                    intersect(ids, allIds, 'stable');
+
                 metaObjectsOld = app.MetaObjectList(indInMetaObjects);
                 entries(indInTableEntries, :) = []; % Don't need these anymore
                 
                 % Create meta objects for remaining entries if any
                 metaObjectsNew = app.createMetaObjects(entries);
-                
+
                 if isequal(matchedIds, ids)
                     metaObjects = metaObjectsOld;
                 elseif ~isempty(matchedIds)
@@ -1333,7 +1349,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             schema = str2func(class(app.MetaTable));
 
             if isempty(tableEntries)
-                metaObjects = schema().empty;
+                try
+                    metaObjects = schema().empty;
+                catch
+                    metaObjects = [];
+                end
                 return;
             end
 

@@ -1,6 +1,7 @@
 function roiArray = struct2roiarray(roiStruct)
 
 if isa(roiStruct, 'RoI')
+    roiArray = roiStruct;
     return
 end
 

@@ -999,6 +999,8 @@ methods
         
         data = cell(numel(obj), 1);
         
+        if numel(obj)==0; return; end
+
         for i = 1:numel(obj)
             if ~isfield(obj(i).ApplicationData, name)
                 data{i} = [];
@@ -1042,9 +1044,10 @@ methods
                 pixelIdxList = sub2ind(imsize, round(obj.coordinates(:,2)), round(obj.coordinates(:,1)));
             case 'Polygon'
                 pixelIdxList = find(obj.mask);
-                
-                
         end
+
+        isValid = pixelIdxList>=1 & pixelIdxList<=prod(imsize);
+        pixelIdxList(~isValid) = [];
     end
     
     function [localMask, globalSubs] = getLocalMask(obj)

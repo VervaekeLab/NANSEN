@@ -518,6 +518,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         function IND = getIndicesToShowInLayoutEditor(obj)
         %getIndicesToShowInLayoutEditor For indexing the settings struct 
         
+            if isempty(obj.settings); IND = []; return; end
+
             % Indices of those variables in settings that are present in
             % current metatable.
             indA = obj.MetaTableIndicesAll;
@@ -754,6 +756,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         function IND = getIndicesToShowInMetaTable(obj)
         %getIndicesToShowInMetaTable For indexing the settings struct
         
+            if isempty(obj.settings); IND = []; return; end
+
             % Indices of those variables in settings that should be 
             % displayed from the current metatable.
             indA = obj.getIndicesToShowInLayoutEditor();
