@@ -18,12 +18,20 @@ classdef RoiArray < nansen.dataio.FileAdapter
             
             % Todo: Check all variables in file, to see if any are of type
             % RoI or struct, and try to resolve...
+
             
-            S = load(obj.Filename, 'roiArray');
-            if ~isfield(S, 'roiArray')
-                error('This file does not contain a variable named roiArray');
+            % Keep backwards compatibility (Todo: remove at some point):
+            refVariableNames = {'roi_arr', 'RoiArray', 'roiArray'};
+            varInfo = whos('-file', obj.Filename);
+            varNames = {varInfo.name};
+
+            isMatch = strcmp(refVariableNames, varNames);
+            if any(isMatch)
+                varName = refVariableNames{isMatch};
+                S = load(obj.Filename, varName);
+                roiArray = S.(varName);
             else
-                roiArray = S.roiArray;
+                error('This file does not contain a variable named roiArray');
             end
         end
         
