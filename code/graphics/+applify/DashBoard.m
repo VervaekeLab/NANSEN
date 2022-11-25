@@ -93,7 +93,7 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
         
     end
     
-    methods %Set/Get
+    methods % Set/Get
         function set.IsConstructed(obj, newValue)
            
             assert(islogical(newValue), 'IsConstructed must be logical')
@@ -322,11 +322,11 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
             end
             
         end
+    
     end
     
-    
     methods (Access = protected)
-        
+
         function [pos, siz] = computePanelPositions(obj, sizeSpecs, dim, availableLength)
             
             mainPanelPos = getpixelposition(obj.hMainPanel);
@@ -390,8 +390,31 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
             pos = cumsum( [1, siz(1:end-1)] ) + (0:numPanels-1) .* SPACING;
 
         end
- 
-        
+    
+    end
+
+    methods (Access = protected)
+
+        function moduleHandle = getModuleHandle(obj, moduleName)
+        %getModuleHandle Get module handle by name
+            moduleIndex = strcmp( {obj.AppModules.AppName}, moduleName );
+            if any(moduleIndex)
+                moduleHandle = obj.AppModules(moduleIndex);
+            else
+                error('Module %s does not exist', moduleName)
+            end
+        end
+               
+        function setModuleHandle(obj, moduleName, moduleHandle)
+        %setModuleHandle Set module handle by name
+            moduleIndex = strcmp( {obj.AppModules.AppName}, moduleName );
+            if any(moduleIndex)
+                obj.AppModules(moduleIndex) = moduleHandle;
+            else
+                obj.AppModules(end+1) = moduleHandle;
+            end
+        end
+    
     end
     
     methods (Access = protected) % Interactive callbacks
