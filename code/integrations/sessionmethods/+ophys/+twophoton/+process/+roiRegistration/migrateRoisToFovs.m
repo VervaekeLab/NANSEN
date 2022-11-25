@@ -122,20 +122,52 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     imviewer( fullfile(saveFolder, {L.name}) )
     
     % Ask to save results
-    
-    
+    % Todo
 
-    % Save results
-    for i = 2:numSessions
-        sessionObject(i).saveData('RoiArray', roiArrayMigrated{i-1})
+    % Initialize MultiSession Roi Array
+    multiSessionRoiFilename = sprintf('%s_multi_session_roi_collection.mat', sessionIDs{1});
+    multiSessionRoiFilepath = fullfile(saveFolder, multiSessionRoiFilename);
+    
+    % todo: rois is a vector (i.e multichannel/plane)
+    S = struct;
+    S.multiSessionRois = flufinder.longitudinal.MultiSessionRoiCollection.empty;
+    %S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{1}, fovImageArray(:,:,1), roiArray);
+    %S.multiSessionRois = sortEntries(S.multiSessionRois);
+
+    % Save results for all other sessions
+    for i = 1:numSessions
+        if i == 1
+            thisRoiArray = roiArray;
+        else
+            % Todo: Ensure we are not overwriting data
+            thisRoiArray = roiArrayMigrated{i-1};
+        end
+        S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{i}, fovImageArray(:,:,i), thisRoiArray);
+        sessionObject(i).saveData('RoiArrayLongitudinal', thisRoiArray, 'Subfolder', 'roi_data')
+        sessionObject(i).saveData('MultisessionRoiCrossReference', multiSessionRoiFilepath, 'Subfolder', 'roi_data')
     end
+
+    S.multiSessionRoisStruct = S.multiSessionRois.toStruct();
+    save(multiSessionRoiFilepath, '-struct', 'S')
+    fprintf('Rois saved to multi-session RoI file (%s) \n', multiSessionRoiFilepath);
+end
+
+function initializeMultiSessionRois()
+
 
 end
 
+function saveMultiSessionRois()
+    
+
+end
 
 function S = getDefaultParameters()
     
     S = struct();
-    % Add more fields:
+    %  S.MultisessionRoiSynchMode ?
+    % 'LoadFromMaster', struct('Alternatives', {{'Use Master', 'Use Single', 'Merge'}}, 'Selection', {'Merge'}), ...
+    % 'SaveToMaster', struct('Alternatives', {{'Only Add', 'Mirror'}}, 'Selection', {'Mirror'}), ...
 
+    % Add more fields:
 end
