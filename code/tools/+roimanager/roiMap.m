@@ -204,7 +204,7 @@ classdef roiMap < roimanager.roiDisplay
                             {'XData'}, roiBoundaryCellArray(1,:)', ...
                             {'YData'}, roiBoundaryCellArray(2,:)' );
                     end
-                    
+
                     if strcmp(obj.EnableLinkedRois, 'on')
                         obj.updateLinkPlot(evt.roiIndices)
                     end
@@ -722,6 +722,10 @@ classdef roiMap < roimanager.roiDisplay
             % Get mean image of stack
             avgIm = obj.displayApp.ImageStack.getProjection('average');
 
+            if obj.displayApp.ImageStack.NumChannels > 1
+                avgIm = obj.displayApp.ImageStack.convertToRgb(avgIm);
+            end
+
             obj.hStaticFovImage = imagesc(avgIm, 'Parent', obj.hAxes);
             
             % Make sure this layer does not capture mouseclicks.
@@ -755,6 +759,9 @@ classdef roiMap < roimanager.roiDisplay
                 obj.plotStaticFovImage()
             else
             	avgIm = obj.displayApp.ImageStack.getProjection('average');
+                if obj.displayApp.ImageStack.NumChannels > 1
+                    avgIm = obj.displayApp.ImageStack.convertToRgb(avgIm);
+                end
                 obj.hStaticFovImage.CData = avgIm;
             end
             

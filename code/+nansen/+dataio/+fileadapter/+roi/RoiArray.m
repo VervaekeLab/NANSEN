@@ -25,11 +25,14 @@ classdef RoiArray < nansen.dataio.FileAdapter
             varInfo = whos('-file', obj.Filename);
             varNames = {varInfo.name};
 
-            isMatch = strcmp(refVariableNames, varNames);
-            if any(isMatch)
-                varName = refVariableNames{isMatch};
+            refVariableNames = intersect(refVariableNames, varNames);
+            if ~isempty(refVariableNames)
+                varName = refVariableNames{1};
                 S = load(obj.Filename, varName);
                 roiArray = S.(varName);
+                if numel(refVariableNames) > 1
+                    warning('Multiple roi variables were detected in file, selected first one')
+                end
             else
                 error('This file does not contain a variable named roiArray');
             end

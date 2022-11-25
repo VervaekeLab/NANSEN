@@ -394,6 +394,13 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
         end
         
+        function imArray = getFrameSetRGB(obj, frameInd, mode, varargin)
+        %getFrameSetRGB Get image array with 3 color channels (r,g,b)
+            if nargin < 3 || isempty(mode); mode = 'standard'; end
+            imArray = obj.getFrameSet(frameInd, mode, varargin{:});
+            imArray = obj.convertToRgb(imArray);
+        end
+
         function writeFrameSet(obj, imageArray, frameInd)
         %writeFrameSet Write set of image frames to image stack
             
@@ -554,6 +561,61 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
     % - Methods for getting processed versions of data
     
+        function imageRgb = convertToRgb(obj, image)
+        %convertToRgb Creates an rgb frame based on channel color settings
+        
+            assert(obj.NumChannels > 1, 'Can not convert single channel image to RGB, use colormap instead.')
+            assert(size(image, 3)==obj.NumChannels, 'Image datamust have the same number of channels as ImageStack.')
+
+            % Preallocate new frame
+            imSize = size(image);
+            imageRgb = zeros([imSize(1), imSize(2), 3, imSize(4:end)], 'single');
+    
+            if strcmp(obj.ColorModel, 'RGB')
+                %channelColors = {'red', 'green', 'blue'};
+                channelColors = {[1,0,0], [0,1,0], [0,0,1]};
+            
+            elseif strcmp(obj.ColorModel, 'Custom')
+                channelColors = obj.CustomColorModel;
+                if ~isa(channelColors, 'cell')
+                    numCh = size(channelColors, 1);
+                    channelColors = mat2cell(channelColors, ones(1,numCh), 3);
+                end
+            end
+            
+            colorArray = cat(1, channelColors{:});
+            
+            % Restrict colors to range between 0 and 1
+            if any(colorArray > 1) % If rgb in range (1,255)
+                colorArray = colorArray / 255;
+            end
+            
+    % % %         colorArraySum = sum(colorArray, 1);
+    % % %                
+    % % %         % Weight colors, so as not to saturate them...
+    % % %         if any(colorArraySum(:) > 1)
+    % % %             colorArray = colorArray ./ max(colorArraySum(:));
+    % % %         end
+             
+            numCh = size(colorArray, 1);
+            channelColors = mat2cell(colorArray, ones(1,numCh), 3);
+            
+            % Go through image for each loaded channel and put in right
+            % color channel of newFrame
+            subs = repmat({':'}, 1, ndims(image));
+            newShape = ones(1, ndims(image));
+            newShape(3) = 3; 
+            
+            for i = 1:numel(obj.CurrentChannel)
+                chNum = obj.CurrentChannel(i);
+                color = channelColors{chNum};
+                subs{3} = chNum;
+                imageRgb = imageRgb + single( repmat(image(subs{:}), newShape)) .* reshape(color, newShape);
+            end
+            
+            imageRgb = cast(imageRgb, 'like', image);
+        end
+
         function [tf, filePath] = hasDownsampledStack(obj, method, downsampleFactor)
             
             % Todo; make this work for spatial downsampling as well.
@@ -949,7 +1011,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if nargout == 1
                 clear IND
             end
-            
         end
         
     % - Methods for getting data specific information

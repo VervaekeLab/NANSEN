@@ -149,11 +149,12 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             
             roiInd = find(isThisGroup & isMatchingRoiIdx);
             
-            fprintf('debug this (compositeRoiGroup/individualRoiGroupModified)\n');
-            eventData = roimanager.eventdata.RoiGroupChanged(...
-                eventData.roiArray, roiInd, 'modify');
+            % Should it always be modify? This was hardcoded, but dont
+            % remember if it was on purpose.
 % %             eventData = roimanager.eventdata.RoiGroupChanged(...
-% %                 eventData.roiArray, roiInd, eventData.eventType);
+% %                 eventData.roiArray, roiInd, 'modify');
+            eventData = roimanager.eventdata.RoiGroupChanged(...
+                eventData.roiArray, roiInd, eventData.eventType);
             obj.notify('roisChanged', eventData)
         end
 

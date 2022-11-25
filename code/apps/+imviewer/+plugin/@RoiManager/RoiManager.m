@@ -198,6 +198,14 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             obj.ActiveChannel = newValue;
             obj.onActiveChannelSet()
         end
+
+        function set.ActiveRoiGroup(obj, newValue)
+            if isa(obj.ActiveRoiGroup, 'roimanager.CompositeRoiGroup')
+                delete(obj.ActiveRoiGroup) % Delete old before setting new 
+            end
+            obj.ActiveRoiGroup = newValue;
+            obj.updateRoiDisplay()
+        end
     end
 
     methods
@@ -212,14 +220,25 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         
         function changeSession(obj, imageStack, roiArray)
         
-            % Todo: Bug when changing image stack. brightness slider is not
-            % updated correctly to multi-session
+            % Delete composite rois before removing rois! Todo: Make this
+            % more intuitive. Should not have to do this explicitly!
+            if isa(obj.ActiveRoiGroup, 'roimanager.CompositeRoiGroup')
+                delete(obj.ActiveRoiGroup)
+                obj.roiDisplay.RoiGroup = roimanager.roiGroup.empty;
+            end
+
             for i = 1:numel(obj.RoiGroup)
                 obj.RoiGroup(i).removeRois()
             end
 
             obj.ImviewerObj.replaceStack(imageStack, false)
             
+            % Delete composite rois before adding rois! Todo: See above
+            if isa(obj.ActiveRoiGroup, 'roimanager.CompositeRoiGroup')
+                delete(obj.ActiveRoiGroup)
+                obj.roiDisplay.RoiGroup = roimanager.roiGroup.empty;
+            end
+
             for i = 1%;%2:numel(obj.RoiGroup)
                 % use obj.addRois!
                 obj.ImviewerObj.displayMessage('Updating rois...')
@@ -357,6 +376,11 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         end
         
         function addRois(obj, roiArray)
+            if isa(obj.ActiveRoiGroup, 'roimanager.CompositeRoiGroup')
+                delete(obj.ActiveRoiGroup)
+                obj.roiDisplay.RoiGroup = roimanager.roiGroup.empty;
+            end
+
             currentRoiGroup = obj.getCurrentRoiGroup();
             currentRoiGroup.addRois(roiArray, [], 'append')
             %obj.updateActiveRoiGroup()
@@ -752,13 +776,17 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             obj.deconvolutionOptions = tools.editStruct(obj.deconvolutionOptions);
         end %? 
         
-        function openSignalViewer(obj, hPanel)
+        function openSignalViewer(obj, hPanel, roiGroup)
             
 %             if obj.ImviewerObj.imageStack.isVirtual
 %                 obj.PrimaryApp.displayMessage('Can not show signals with virtual stack, aborting...', [], 2);
 %                 return
 %             end
             
+            if nargin < 3
+                roiGroup = obj.RoiGroup;
+            end
+
             if isempty(obj.roiSignalArray)
                 obj.initializeSignalArray()
             end
@@ -778,7 +806,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 %obj.SignalViewer.Theme = signalviewer.theme.Dark;
                 
                 % Add the roigroup reference to the signalviewer
-                obj.SignalViewer.RoiGroup = obj.RoiGroup;
+                obj.SignalViewer.RoiGroup = roiGroup;
                 
                 % Create listener for signalviewer being destroyed
                 l = addlistener(obj.SignalViewer, 'ObjectBeingDestroyed', ...
@@ -945,7 +973,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             obj.ImageStackChangedListener = addlistener(obj.ImviewerObj, ...
                 'ImageStack', 'PostSet', @obj.onImageStackChanged);
             
-            obj.ActiveChannel = 1:obj.NumChannels;
+            obj.ActiveChannel = 1;
 
             obj.PrimaryApp.clearMessage()
         end
@@ -953,7 +981,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         function onSettingsChanged(obj, name, value)
         %onSettingsChanged Callback for value change on a settings field.
         
-        obj.settings.(name) = value;
+            obj.settings.(name) = value;
         
             switch name
                 case 'showTags'
@@ -1380,11 +1408,9 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 roiGroup = roimanager.roiGroup.empty;
             end
 
-            obj.roiDisplay.RoiGroup = roiGroup;
-            obj.PointerManager.pointers.selectObject.RoiDisplay = obj.roiDisplay;
-
             obj.ActiveRoiGroup = roiGroup;
-
+            %obj.roiDisplay.RoiGroup = roiGroup;
+            %obj.PointerManager.pointers.selectObject.RoiDisplay = obj.roiDisplay;
             return
 
             % Deprecated, but keep for reference;
@@ -1410,6 +1436,11 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             % Activate rois for the newly selected slice (and primary channel)
         end
     
+        function updateRoiDisplay(obj)
+            obj.roiDisplay.RoiGroup = obj.ActiveRoiGroup;
+            obj.PointerManager.pointers.selectObject.RoiDisplay = obj.roiDisplay;
+        end
+
         function assertValidChannelIndex(obj, value, message)
         %assertValidChannelIndex Check that channel indices are in valid range
             if nargin < 3 || isempty(message)

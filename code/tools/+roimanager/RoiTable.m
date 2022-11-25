@@ -417,10 +417,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     elseif numel(evtData.roiIndices) == 0
                         return
                     end
-                    
                     newTable = oldTable;
                     newTable(evtData.roiIndices, :) = T;
-                    
+                
                 case 'remove'
                     newTable = obj.roiTable;
                     newTable(evtData.roiIndices,:) = [];

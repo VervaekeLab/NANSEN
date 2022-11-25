@@ -5,6 +5,11 @@ if isa(roiStruct, 'RoI')
     return
 end
 
+if isempty(roiStruct)
+    roiArray = RoI.empty;
+    return
+end
+
 nRois = numel(roiStruct);
 roiArray(nRois, 1) = RoI;
 

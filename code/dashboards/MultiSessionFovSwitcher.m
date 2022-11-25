@@ -8,8 +8,10 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
     % [x] Initialize or load a multisession roi array
     % [x] Add tile selection callback for opening selected session in
     %     roimanager.
-    % [ ] dock i roimanager
-    % [ ] save rois an multi rois when changing sessions
+    % [ ] Add support for multichannel rois
+    % [ ] Dock i roimanager
+
+    % [x] save rois an multi rois when changing sessions
     
 
     properties (Constant)
@@ -116,12 +118,28 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
             % Todo: 
             % Check that all sessions are present in multisession
+            
+            obj.Figure.CloseRequestFcn = @obj.onQuit;
+            addlistener(obj.RoimanagerApp, 'ObjectBeingDestroyed', @obj.onQuit);
         end
         
         function onVisibleChanged(obj)
             if obj.isConstructed
                 set(obj.Axes.Children, 'Visible', true)
                 %obj.hScrollbar.Visible = obj.Visible;
+            end
+        end
+
+        function onQuit(obj, src, ~)
+            % Important to save rois first.
+
+            if strcmp( src.Name, 'Multisession Fov Selector' )
+                obj.saveCurrentRoiArray(obj.SelectedSession)
+                obj.saveMultiSessionRois()
+                delete(obj.RoimanagerApp)
+                delete(obj)
+            else
+                close(obj.Figure)
             end
         end
         
@@ -312,35 +330,20 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             if ~isequal(newSelection, oldSelection)
                 obj.SelectedSession = newSelection;
                 
-                oldSessonId = obj.SessionObjectStruct(oldSelection).sessionID;
                 newSessonId = obj.SessionObjectStruct(newSelection).sessionID;
 
-                % Get roi array from roimanager
-                roiArray = obj.RoimanagerApp.ActiveRoiGroup.roiArray;
-
-                % Add to multi session rois
-                obj.MultiSessionRoiCollection = ...
-                    obj.MultiSessionRoiCollection.updateEntry(oldSessonId, roiArray, 'replace');
-
-                synchMode = 'Mirror';
-                obj.MultiSessionRoiCollection = ...
-                    obj.MultiSessionRoiCollection.synchEntries(oldSessonId, synchMode);
-                
-                updatedRois = obj.MultiSessionRoiCollection.getRoiArray(oldSessonId);
-
-                % Update in session object struct
-                obj.SessionObjectStruct(oldSelection).RoiArray = updatedRois; %todo;
-                %obj.SessionObjects(oldSelection).saveData('RoiArrayLongitudinal', updatedRois)
+                % Save roi array (also adds it to multi session roi collection)
+                obj.saveCurrentRoiArray(oldSelection)
 
                 S = obj.SessionObjectStruct(newSelection);
                 newRoiArray = obj.MultiSessionRoiCollection.getRoiArray(newSessonId);
 
                 obj.RoimanagerApp.changeSession(S.ImageStack, newRoiArray)
-
+                
+                obj.saveMultiSessionRois()
             end
 
             %disp(obj.SelectedSession)
-
         end
 
         function loadMultisessionRois(obj)
@@ -350,6 +353,44 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             S = load(filePath);
             obj.MultiSessionRoiCollection = S.multiSessionRois;
         end
+
+        function saveMultiSessionRois(obj)
+            varName = 'MultisessionRoiCrossReference';
+            filePath = obj.SessionObjects(1).loadData(varName);
+
+            S = struct;
+            S.multiSessionRois = obj.MultiSessionRoiCollection;
+            S.multiSessionRoisStruct = S.multiSessionRois.toStruct();
+            save(filePath, '-struct', 'S')
+        end
+
+        function saveCurrentRoiArray(obj, sessionIdx)
+            disp('saving rois')
+            sessionID = obj.SessionObjects(sessionIdx).sessionID;
+            
+            %if ~isvalid(obj.RoimanagerApp); return; end
+
+            % Get roi array from roimanager (Todo: Multichannel rois)
+            roiArray = obj.RoimanagerApp.ActiveRoiGroup.roiArray;
+
+            % Add to multi session rois
+            pushMode = 'replace';
+            obj.MultiSessionRoiCollection = ...
+                obj.MultiSessionRoiCollection.updateEntry(sessionID, roiArray, pushMode);
+
+            synchMode = 'Mirror';
+            obj.MultiSessionRoiCollection = ...
+                obj.MultiSessionRoiCollection.synchEntries(sessionID, synchMode);
+            
+            % Get updated rois (if adding the to multisession array modifies them)
+            updatedRois = obj.MultiSessionRoiCollection.getRoiArray(sessionID);
+
+            % Update in session object struct
+            obj.SessionObjectStruct(sessionIdx).RoiArray = updatedRois; %todo;
+            obj.SessionObjects(sessionIdx).saveData('RoiArrayLongitudinal', updatedRois)
+            disp('saved rois')
+        end
+
     end
 
 end

@@ -88,9 +88,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             % Todo: This dashboard should implement roimanager as a 
             % property, not a superclass...
             
-            jLabel.setText('Initializing signal viewer...')
-            obj.initializeSignalViewer()
-            
+
             % Todo: Why do I need this. Should not roimanager take care of
             % this?
             if numel(obj.RoiGroup) > 1
@@ -98,7 +96,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             else
                 roiGroup = obj.RoiGroup;
             end
-            
+
+            jLabel.setText('Initializing signal viewer...')
+            obj.initializeSignalViewer(roiGroup)
+
             jLabel.setText('Initializing roi table...')
             obj.initializeRoiTable(roiGroup)
 
@@ -310,10 +311,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.DialogBox = h.uiwidgets.msgBox;
         end
 
-        function initializeSignalViewer(obj)
+        function initializeSignalViewer(obj, roiGroup)
         %initializeSignalViewer Initialize the signalviewer module
             if ~obj.Imviewer.ImageStack.isDummyStack()
-                obj.openSignalViewer(obj.hPanels(4))
+                obj.openSignalViewer(obj.hPanels(4), roiGroup)
                 obj.addPanelResizeButton(obj.hPanels(4).Children(1))
                 obj.AppModules(end+1) = obj.SignalViewer;
             end

@@ -59,20 +59,30 @@ function [fovShifts, imArrayNR] = alignFovs(imArray)
     
     % Crop effects of rigid shifts, because these can impair the nonrigid 
     imArrayCropped = imArrayRot(cropUD(1):end-cropUD(2), cropLR(1):end-cropLR(2), :);
-    imSize = size(imArrayCropped(:,:,1));
     
     % Do non-rigid correction:
     % Try to use flowreg, otherwise use normcorre
+    useNormcorre = true;
     if exist('compensate_inplace', 'file')==2
-        [imArrayNR, shiftsNr] = compensate_inplace(imArrayCropped(:, :, 2:end), imArrayCropped(:, :, 1));
-        % Rearrange shifts to be [y, x, n, delta] where the delta dimension
-        % is dy, dx and the shifts are negated.
-        
-        shiftsNr = permute(shiftsNr, [1,2,4,3]);
-        shiftsNr = - flip(shiftsNr, 4);
-    else
+        try
+            [imArrayNR, shiftsNr] = compensate_inplace(imArrayCropped(:, :, 2:end), imArrayCropped(:, :, 1));
+            % Rearrange shifts to be [y, x, n, delta] where the delta dimension
+            % is dy, dx and the shifts are negated.
+            
+            shiftsNr = permute(shiftsNr, [1,2,4,3]);
+            shiftsNr = - flip(shiftsNr, 4);
+            % Restore shifts to original image size
+            shiftsNr = padarray(shiftsNr, [cropUD(1)-1, cropLR(1)-1], 'replicate', 'pre');
+            shiftsNr = padarray(shiftsNr, [cropUD(2), cropLR(2)], 'replicate', 'post');
+            useNormcorre = false;
+        catch
+            % Use normcorre
+        end
+    end
+
+    if useNormcorre
         [imArrayNR, ~, shiftsNrStruct] = nonrigid(imArrayCropped(:, :, 2:end), imArrayCropped(:, :, 1), 'finetune');
-        shiftsNr = zeros([size(imArrayNR), 2]);
+        shiftsNr = zeros([imSize, nSessions, 2]);
         for i = 1:nSessions
             shiftsNr(:, :, i, :) = imresize(shiftsNrStruct(i).shifts, imSize);
         end
