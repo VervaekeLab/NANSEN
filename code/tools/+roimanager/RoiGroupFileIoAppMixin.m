@@ -137,9 +137,6 @@ classdef RoiGroupFileIoAppMixin < handle
         function importRois(obj, initPath)
         %importRois Import rois using uidialog
         
-            obj.loadRois(); return
-
-
             if nargin < 2; initPath = ''; end
             loadPath = obj.getRoiPath(initPath, 'load');
             if isempty(loadPath); return; end
