@@ -20,7 +20,7 @@ A collection of apps and modules for processing, analysis and visualization of t
 
 
 ## Disclaimer
-The NANSEN toolbox is still under development, so don't be surprised if you find occasional bugs here and there! If you manage to break something, please report under the issues section! Secondly, suggestions for improvements and general feedback are very welcome!
+The NANSEN toolbox is still under development, so don't be surprised if you find occasional bugs here and there! If you manage to break something, please report under the issues section! Also, suggestions for improvements and general feedback are very welcome!
 
 ## Installation
  1) Clone the repository and add all subfolders to MATLAB's search path. 
