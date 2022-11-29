@@ -205,6 +205,83 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             
         end
         
+        % % Variable interaction and utility methods
+
+        function varName = findVariableByFilename(obj, filePath)
+            
+            [~, filename, ext] = fileparts(filePath);
+
+            filenameExpressions = {obj.Data.FileNameExpression};
+            fileTypes = {obj.Data.FileType};
+            
+            isEmpty = cellfun(@isempty, filenameExpressions);
+            matchesFiletype = strcmp(fileTypes, ext);
+            matchesFilename = cellfun(@(expr) contains(filename, expr), filenameExpressions);
+
+            isMatch = matchesFiletype & matchesFilename & ~isEmpty;
+
+            warnMultiple = false;
+            if ~any(isMatch)
+                isMatch = matchesFiletype;
+                if sum(isMatch) == 1
+                    matchedIdx = find(isMatch);
+                else
+                    matchedIdx = [];
+                end
+
+            elseif sum(isMatch) > 1
+                matchedIdx = find(isMatch, 1, 'first');
+                warnMultiple = true;
+            else
+                matchedIdx = find(isMatch);
+            end
+            
+            if ~isempty(matchedIdx)
+                varName = obj.Data(matchedIdx).VariableName;
+                if warnMultiple
+                    warning('Multiple matching variables were detected, selected first one (%s)' )
+                end
+            else
+                varName = '';
+            end
+        end
+
+
+        function fileAdapter = getFileAdapter(obj, variableName)
+                    
+            [filePath, variableInfo] = obj.getDataFilePath(variableName);
+            fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
+            fileAdapter = fileAdapterFcn(filePath);
+        end
+
+        function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
+        %getFileAdapterFcn Get function handle for creating file adapter                
+            
+% %             %Todo: Make fileAdapter class for this....
+% %             %persistent fileAdapterList
+% %             
+% %             if isempty(fileAdapterList)
+% %                 fileAdapterList = nansen.dataio.listFileAdapters();
+% %             end
+
+            fileAdapterList = nansen.dataio.listFileAdapters();
+
+            if ischar(variableInfo)
+                [~, variableInfo] = obj.getDataFilePath(variableInfo);
+            end
+            
+            % Get file adapter % Todo: make this more persistent...
+            isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
+            
+            if ~any(isMatch)
+                error('File adapter was not found')
+            elseif sum(isMatch) > 1
+                error('This is a bug. Please report')
+            end
+            
+            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+        end
+
     end
     
     methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?NansenSetupApp2})

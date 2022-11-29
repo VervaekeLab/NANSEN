@@ -442,7 +442,28 @@ classdef FileViewer < handle
                 
                 %setIdle = obj.setBusy('Opening File...'); %#ok<NASGU>
 
-                [~, ~, fileExt] = fileparts(currentNode.Name);
+                [~, fileName, fileExt] = fileparts(currentNode.Name);
+
+                % Look in the data variable model for items / elements that
+                % match the filename and file extension.
+
+                varModel = obj.CurrentSessionObj.VariableModel;                
+                varName = varModel.findVariableByFilename([fileName, fileExt]);
+                
+                if ~isempty( varName )
+                    [variableInfo, ~] = varModel.getVariableStructure(varName);
+                    fileAdapterFcn = varModel.getFileAdapterFcn(variableInfo);
+                    fileAdapter = fileAdapterFcn(currentNode.UserData.filePath);
+                    try
+                        fileAdapter.view()
+                    catch ME
+                        errordlg(ME.message)
+                    end
+                    return
+                end
+
+                % - If no file adapter was found, use standard ways of
+                % opening files:
 
                 switch fileExt
                     
