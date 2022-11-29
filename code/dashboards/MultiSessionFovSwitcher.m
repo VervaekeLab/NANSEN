@@ -71,6 +71,8 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             obj.SessionObjectStruct = sessionObjectStruct;
             obj.RoimanagerApp = roimanagerApp;
 
+            obj.NumVisibleImages = min([obj.NumVisibleImages, numel(obj.SessionObjects)]);
+
             obj.assignThumbnailData()
 
             obj.createFovSelectorWidget()
