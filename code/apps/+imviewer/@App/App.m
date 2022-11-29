@@ -3363,8 +3363,14 @@ methods % Misc, most can be outsourced
             tmpImage = obj.image(:,:,iA);
             P = prctile(double(tmpImage(:)), [0.05, 99.95]);
             if all(isnan(P)); return; end
-            obj.brightnessSlider(chNum).Low = P(1);
-            obj.brightnessSlider(chNum).High = P(2);
+            
+            if P(1) > obj.brightnessSlider(chNum).High
+                obj.brightnessSlider(chNum).High = P(2);
+                obj.brightnessSlider(chNum).Low = P(1);
+            else
+                obj.brightnessSlider(chNum).Low = P(1);
+                obj.brightnessSlider(chNum).High = P(2);
+            end
             %obj.changeBrightness(P)
 %         else
 %             obj.autoAdjustLimits = false;
