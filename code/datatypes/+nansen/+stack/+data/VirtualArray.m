@@ -57,6 +57,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     properties (Dependent)
         HasStaticCache
         HasCachedData
+        StaticCacheRange
     end
     
     properties (Access = private)
@@ -181,7 +182,11 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         
         function tf = get.HasStaticCache(obj)
             tf = ~isempty(obj.StaticFrameCache);
-        end 
+        end
+
+        function cacheRange = get.StaticCacheRange(obj)
+            cacheRange = obj.StaticFrameCache.CacheRange;
+        end
 
     end
     

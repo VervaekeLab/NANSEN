@@ -49,6 +49,7 @@ classdef FrameCache < handle %< utility.class.StructAdapter
     properties (Dependent)
         NumFrames               % Number of image frames to cache (along last dimension)
         CacheSize               % Size of data in cache
+        CacheRange
     end
     
     properties (SetAccess = private)
@@ -115,6 +116,11 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         
         function cacheSize = get.CacheSize(obj)
             cacheSize = obj.CacheSize_;
+        end
+
+        function cacheRange = get.CacheRange(obj)
+            cacheRange = [min(obj.CachedFrameIndices), ...
+                max(obj.CachedFrameIndices)];
         end
         
         function numFrames = get.NumFrames(obj)

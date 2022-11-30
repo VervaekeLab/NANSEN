@@ -1059,8 +1059,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     % Make sure editable cell is not in focus, because that
                     % shit is ugly...
                     colIdx = find( ~obj.HTable.ColumnEditable, 1, 'first');
-                    selectionModel = obj.HTable.JTable.getColumnModel.getSelectionModel;
-                    set(selectionModel, 'LeadSelectionIndex', colIdx-1)
+                    if ~isempty(colIdx)
+                        selectionModel = obj.HTable.JTable.getColumnModel.getSelectionModel;
+                        set(selectionModel, 'LeadSelectionIndex', colIdx-1)
+                    end
                 end
                 
                     

@@ -65,6 +65,10 @@ classdef App < applify.ModularApp & applify.mixin.UserSettings & applify.AppWith
 %
 %   [ ] Create annotation axes, for plotting things... But hide image
 %       axes from properties
+%   [ ] Add method to brightness slider (range slider) to set the range
+%       The range is dependent, but makes sure there is no error if lower 
+%       limit is larger then old upper limit and vice versa...
+
 
 properties (Constant, Hidden = true) % Move to appwindow superclass
     DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
@@ -5702,7 +5706,13 @@ methods (Access = private) % Methods that runs when properties are set
             %uistack(obj.imObj, 'up')
             
             obj.uiwidgets.playback.resetRangeSelector()
-            
+
+            if obj.ImageStack.HasStaticCache
+                cacheRange = obj.ImageStack.Data.StaticCacheRange;
+                obj.uiwidgets.playback.RangeSelectorEnabled = 'on';
+                obj.uiwidgets.playback.ActiveRange = cacheRange;
+            end
+
             if ~all(isnan(obj.DisplayedImage(:)))
                 set(obj.hDropbox, 'Visible', 'off')
             end

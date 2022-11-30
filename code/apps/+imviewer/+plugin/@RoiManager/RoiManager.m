@@ -861,8 +861,12 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 obj.SignalViewer.initializeTimeSeriesObjects()
             
                 obj.SignalViewer.setNewXLims()
+                
+                if obj.roiSignalArray.ImageStack.IsVirtual && ...
+                        obj.roiSignalArray.ImageStack.HasStaticCache
+                    obj.SignalViewer.hideVirtualDataDisclaimer()
 
-                if obj.roiSignalArray.ImageStack.IsVirtual
+                elseif obj.roiSignalArray.ImageStack.IsVirtual
                     obj.SignalViewer.showVirtualDataDisclaimer()
                 else
                     obj.SignalViewer.hideVirtualDataDisclaimer()
