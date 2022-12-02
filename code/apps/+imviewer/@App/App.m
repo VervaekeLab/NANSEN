@@ -3082,10 +3082,11 @@ methods % Misc, most can be outsourced
     
         obj.isPlaying = true;
         
-        dt = 1 / obj.ImageStack.getSampleRate;
-        if isnan(dt)
-            dt = 1/30;
-        end
+        dt = 1/30;
+% %         dt = 1 / obj.ImageStack.getSampleRate;
+% %         if isnan(dt)
+% %             dt = 1/30;
+% %         end
         
         currentPlaybackSpeed = obj.playbackspeed;
         
