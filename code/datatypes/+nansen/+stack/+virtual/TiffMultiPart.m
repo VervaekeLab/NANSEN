@@ -21,6 +21,7 @@ end
 
 properties (Hidden)
     SaveMetadata = false;   % Boolean flag specifying if Metadata should be saved. Default = false
+    PreferredChunkSize = 2000; % Number of frames per part (when creating file)
 end
 
 properties (Access = protected, Hidden)
@@ -411,9 +412,7 @@ methods % Implementation of abstract methods for readin/writing
                     waitbar(i/dataSize(end), 'Loading image frames')
                 end
             end
-
         end
-        
     end
     
     function writeFrames(obj, data, frameIndices)
@@ -489,7 +488,7 @@ methods (Static)
     %   stackSize and dataType
     
     %   Todo: Accept number of parts from inputs and write to multiple parts
-    
+
         if numel(varargin) >= 2
             arraySize = varargin{1};
             arrayClass = varargin{2};
@@ -502,7 +501,15 @@ methods (Static)
         
         [imHeight, imWidth, n] = size(imArray); % Save as interleaved
         imArray = reshape(imArray, imHeight, imWidth, n);
-        nansen.stack.utility.mat2tiffstack( imArray, filePath )
+
+        s = whos("imArray");
+        if s.bytes >= 4*1024^3
+            useBigTiff = true;
+        else
+            useBigTiff = false;
+        end
+
+        nansen.stack.utility.mat2tiffstack( imArray, filePath, false, useBigTiff )
     end
     
     function filepath = lookForMultipartFiles(filepath)

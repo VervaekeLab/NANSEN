@@ -1,4 +1,4 @@
-function mat2tiffstack( mat, stackPath, createRgb)
+function mat2tiffstack( mat, stackPath, createRgb, useBigTiff)
 %mat2tiffstack writes an uint8 array to a tiff-stack
 %
 %   mat2tiffstack(A, filepath) saves 3D array as a tiff stack in 
@@ -8,6 +8,7 @@ function mat2tiffstack( mat, stackPath, createRgb)
 % Note: only works for 3D stack or 4D RGB stack
 
 if nargin < 3; createRgb = false; end
+if nargin < 4; useBigTiff = false; end
 
 nDim = numel(size(mat));
 className = class(mat);
@@ -37,11 +38,16 @@ switch className
     otherwise
 end
 
+if useBigTiff
+    tiffMode = 'w8';
+else
+    tiffMode = 'w';
+end
 
 if (nDim == 2 || nDim == 3) && ~createRgb
     [height, width, nFrames] = size(mat);
 
-    tiffFile = Tiff(stackPath, 'w');
+    tiffFile = Tiff(stackPath, tiffMode);
 
     for f = 1:nFrames
         % Todo: Should this be done for each image/IFD?
@@ -59,8 +65,8 @@ if (nDim == 2 || nDim == 3) && ~createRgb
             tiffFile.writeDirectory();
         end
     end
-
     tiffFile.close();
+
 
 elseif nDim == 4 || createRgb
     
@@ -69,11 +75,11 @@ elseif nDim == 4 || createRgb
     if nColors ~= 3
         % Write as interleaved 3D stack instead
         mat = reshape(mat, height, width, []);
-        nansen.stack.utility.mat2tiffstack(mat, stackPath, false)
+        nansen.stack.utility.mat2tiffstack(mat, stackPath, false, tiffMode)
     else
         %assert(nColors == 3)
 
-        tiffFile = Tiff(stackPath,'w');
+        tiffFile = Tiff(stackPath, tiffMode);
 
         for f = 1:nFrames
             tiffFile.setTag('ImageLength', height);
@@ -87,13 +93,15 @@ elseif nDim == 4 || createRgb
             tiffFile.write(mat(:, :, :, f));
             tiffFile.writeDirectory();
         end
+        
+        tiffFile.close();
     end
 
 else
     [height, width, nFrames] = size(mat);
 
     mat = reshape(mat, height, width, []);
-    nansen.stack.utility.mat2tiffstack(mat, stackPath, false)
+    nansen.stack.utility.mat2tiffstack(mat, stackPath, false, tiffMode)
     %error('No implementation for %d-dimensional stacks', nDim) 
 end
 
