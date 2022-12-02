@@ -142,7 +142,7 @@ function infoStrCell = splitStringIntoRows(infoStr)
     infoStrCell = infoStrCell{1};
 
     % Remove empty cells
-    infoStrCell = utility.cell.removeEmptyCells(infoStrCell);
+    infoStrCell = removeEmptyCells(infoStrCell);
 end
 
 function C = splitRowsIntoColumns(infostrCell, splitIdx)
@@ -214,6 +214,12 @@ function infoStr = getWindowsTestStr()
      '\n', ...
      '\n']);
 end
+
+function cellArray = removeEmptyCells(cellArray)
+    isEmptyCell = cellfun(@isempty, cellArray);
+    cellArray( isEmptyCell ) = [];
+end
+
 
 % % % function filename = filewrite(filename, textString)
 % % %     
