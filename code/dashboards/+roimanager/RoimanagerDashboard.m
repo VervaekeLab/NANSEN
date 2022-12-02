@@ -175,7 +175,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             h = obj.getModuleHandle('Options Editor');
         end
         function set.OptionsEditor(obj, handleObj)
-            obj.setModuleHandle('OptionsEditor', handleObj)
+            obj.setModuleHandle('Options Editor', handleObj)
         end
         
     end
@@ -663,11 +663,15 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             subs = struct('type', {'.'}, 'subs', strsplit(targetName, '.'));
             obj.settings = subsasgn(obj.settings, subs, S);
             
-            delete(obj.OptionsEditor)
-            delete(hPlugin)
-            obj.OptionsEditor = obj.MainControlPanel;
+            % Replace the OptionsEditor appmodule with the original main
+            % control panel.
+            closingOptionsEditor = obj.OptionsEditor;
+            obj.OptionsEditor = obj.MainControlPanel; % Need to reassign, because appmodule is updated behind the scenes
             obj.hPanels(1).Title = 'Controls';
-            
+
+            delete(closingOptionsEditor)
+            delete(hPlugin)
+
             delete(obj.TempControlPanelDestroyedListener)
             obj.TempControlPanelDestroyedListener=[];
         end
