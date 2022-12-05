@@ -34,6 +34,17 @@ classdef DiskConnectionMonitor < handle
 
     end
 
+    methods
+        function pause(obj)
+            stop(obj.Timer)
+        end
+
+        function resume(obj)
+            start(obj.Timer)
+        end
+        
+    end
+
     methods % Set/get
         
         function set.TimerUpdateInterval(obj, newValue)
@@ -75,6 +86,9 @@ classdef DiskConnectionMonitor < handle
             oldNames = {obj.VolumeList.Name};
             newNames = {updatedVolumeList.Name};
             
+            % Update volumelist
+            obj.VolumeList = updatedVolumeList;
+            
             [addedNames, idx] = setdiff(newNames, oldNames);
             if ~isempty(addedNames)
                 fprintf('Added drives %s\n', addedNames{1});
@@ -87,8 +101,6 @@ classdef DiskConnectionMonitor < handle
                 fprintf('Removed drives %s\n', removedNames{1});
                 obj.notify('DiskRemoved', event.EventData)
             end
-
-            obj.VolumeList = updatedVolumeList;
         end
 
 

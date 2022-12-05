@@ -89,6 +89,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         WindowKeyPressedListener
         Timer
         RegularTimer    % Timer that regularly looks for updates
+        DiskConnectionMonitor (1,1) nansen.internal.system.DiskConnectionMonitor
     end
     
     properties (Access = private)
@@ -156,6 +157,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.initializeTimer()
             app.ApplicationState = 'idle';
+
+            app.initDiskConnectionMonitor()
             
             if nargout == 0
                 clear app
@@ -179,6 +182,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if ~isempty(app.RegularTimer)
                 stop(app.RegularTimer)
                 delete(app.RegularTimer)
+            end
+
+            if ~isempty(app.DiskConnectionMonitor)
+                delete(app.DiskConnectionMonitor)
             end
             
             app.settings.Session.SessionTaskDebug = false; % Reset debugging on quit
@@ -1021,6 +1028,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.RegularTimer.TimerFcn = @(timer, event) app.regularCheckup();
             start(app.RegularTimer)
         end
+    
+        function initDiskConnectionMonitor(app)
+        
+            app.DiskConnectionMonitor = nansen.internal.system.DiskConnectionMonitor();
+            
+            addlistener(app.DiskConnectionMonitor, 'DiskAdded', ...
+                @app.onAvailableDisksChanged);
+
+            addlistener(app.DiskConnectionMonitor, 'DiskRemoved', ...
+                @app.onAvailableDisksChanged);
+
+        end
+            
     end
 
     methods (Access = private) % Internal callbacks
@@ -1120,6 +1140,29 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             set(app.UiMetaTableViewer.HTable.JTable, 'ToolTipText', str)
         end
     
+        function onAvailableDisksChanged(app, src, evt)
+            
+            returnToIdle = app.setBusy('Disk added, updating data locations'); %#ok<NASGU> 
+            
+            % - [ ] Update volume info in the DataLocationModel
+            % volumeInfo = evt.VolumeInfo;
+
+            returnToIdle = app.setBusy('Updating table'); %#ok<NASGU> 
+
+            app.DataLocationModel.updateVolumeInfo() % volumeInfo;
+
+            % - [ ] Update data location structs
+            if any(strcmp(app.MetaTable.entries.Properties.VariableNames, 'DataLocation'))
+                dataLocationStructs = app.MetaTable.entries.DataLocation;
+                dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
+                app.MetaTable.entries.DataLocation = dataLocationStructs;
+                app.MetaTable.markClean() % This change does not make the table dirty.
+            end
+
+            % - [ ] Refresh table on these events
+            app.onRefreshTableMenuItemClicked()
+        end
+
         function regularCheckup(app)
         %regularCheckup Timer callback
             
@@ -2485,7 +2528,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     metaTable.entries.DataLocation = dataLocationStructs;
                     metaTable.markClean() % This change does not make the table dirty.
                 end
-                
+
                 app.MetaTable = metaTable;
 
                 addlistener(app.MetaTable, 'IsModified', 'PostSet', ...

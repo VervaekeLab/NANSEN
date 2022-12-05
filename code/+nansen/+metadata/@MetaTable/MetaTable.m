@@ -232,6 +232,8 @@ classdef MetaTable < handle
                     tf = true;
                 case 'load newer version'
                     tf = true;
+                otherwise
+                    tf = [];
             end
         end
 
@@ -339,6 +341,7 @@ classdef MetaTable < handle
 
             if ~obj.isLatestVersion() && ~force
                 doCancel = obj.resolveCurrentVersion();
+                if isempty(doCancel); return; end
                 if doCancel; obj.load(); return; end
             end
 

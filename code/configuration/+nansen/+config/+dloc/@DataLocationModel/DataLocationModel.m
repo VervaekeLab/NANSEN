@@ -1,8 +1,7 @@
 classdef DataLocationModel < utility.data.StorableCatalog
 %DataLocationModel Interface for detecting path of data/session folders
     
-
-    % TODOS:
+     % TODOS:
     %   [x] Combine code from getSubjectId and getSessionId into separate
     %       methods.
     
@@ -20,6 +19,10 @@ classdef DataLocationModel < utility.data.StorableCatalog
     properties (Dependent)
         IsDirty % Todo: Dependent on whether data bakcup is different than data
         DefaultDataLocation
+    end
+
+    properties (Access = private)
+        VolumeInfo table
     end
     
     properties (Access = private)
@@ -97,22 +100,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
             dirty = false;
             
             % Add default data location to preferences
-            % Todo: Add uuid, not name
             if ~isfield(obj.Preferences, 'DefaultDataLocation')
-                if obj.NumDataLocations == 1
-                    obj.DefaultDataLocation = obj.Data(1).Name;
-                elseif obj.NumDataLocations > 1
-                    obj.Data(2).Type = nansen.config.dloc.DataLocationType('PROCESSED');
-                    obj.DefaultDataLocation = obj.Data(2).Name;
-                end
-                
+                obj.fixDefaultDataLocation()
                 dirty = true;
             end
             
             % Rootpath field changed from cell array with 2 cells to root
-            % array with 1 to many cells ( remove empty cell(s) ) 
+            % array with single to multiple cells ( remove empty cell(s) )
             for i = 1:numel(obj.Data)
-                
                 rootPath = obj.Data(i).RootPath;
                 
                 if any(strcmp(rootPath, ''))
@@ -125,16 +120,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             % Add 'Type' as a table variable on the third column
             if ~isfield(obj.Data, 'Type')
-                fieldNamesOld = fieldnames(obj.Data);
-                for i = 1:numel(obj.Data)
-                    obj.Data(i).Type = 'recorded';
-                end
-                
-                obj.Data = orderfields(obj.Data, ...
-                    [fieldNamesOld(1:2); 'Type'; fieldNamesOld(3:end)]);
+                obj.addTypeAsTableVariable()
                 dirty = true;
             end
             
+            % Reorder so that Type is the third table variable
             fieldNames = fieldnames(obj.Data);
             if ~strcmp(fieldNames{3}, 'Type')
                 fieldNamesNew = setdiff(fieldNames, 'Type', 'stable');
@@ -149,11 +139,20 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 obj.Preferences.SourceID = utility.system.getComputerName(true);
                 dirty = true;
             end
-            
+
+            % Add a third variable (DiskName) to root path cell array.
+            if ~isfield( obj.Data(1).RootPath, 'DiskName' )
+                for i = 1:numel(obj.Data)
+                    for j = 1:numel(obj.Data(i).RootPath)
+                        obj.Data(i).RootPath(j).DiskName = ...
+                            obj.resolveDiskName(obj.Data(i).RootPath(j).Value);
+                    end
+                end
+            end
+
             if dirty
                 obj.save()
             end
-            
         end
     end
     
@@ -238,6 +237,16 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
         end
         
+        function diskName = resolveDiskName(obj, rootPath)
+            if ismac
+                diskName = obj.resolveDiskNameMac(rootPath);
+            elseif ispc
+                diskName = obj.resolveDiskNamePc(rootPath);
+            elseif isunix
+                error('Not implemented for unix, please create github issue')
+            end
+        end
+
     end
     
     methods % Methods for updating substructs of data location
@@ -301,8 +310,10 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function dataLocationStruct = validateDataLocationPaths(obj, dataLocationStruct)
         %validateSubfolders Validate subfolders of data locations
         %
-        %   This method is used to make sure the file separator of
-        %   subfolders is matched to the operating system
+        %   This method is used to 
+        %       1) Update the root path from the model
+        %       2) Ensure the file separator of subfolders is matched to
+        %          the operating system
             
             if isempty(dataLocationStruct); return; end
             if ~isfield(dataLocationStruct, 'Subfolders'); return; end
@@ -323,10 +334,17 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     rootIdx = find( strcmp( {dlInfo.RootPath.Key}, rootUid ) );
                     
                     if ~isempty(rootIdx)
-                        dataLocationStruct(j, i).RootPath = dlInfo.RootPath(rootIdx).Value;
+                        rootPathStr = dlInfo.RootPath(rootIdx).Value;
+                        
+                        if ispc
+                            % Todo: % Assign correct drive letter.
+                            % Check and assign correct drive letter
+                        end
+
+                        dataLocationStruct(j, i).RootPath = rootPathStr;
                     end
                     
-                    % Make sure file separators maths the file system.
+                    % Make sure file separators match the file system.
                     iSubfolder = dataLocationStruct(j,i).Subfolders;
                     if isempty(iSubfolder)
                         continue
@@ -340,6 +358,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
         end
         
+        function updateVolumeInfo(obj, volumeInfo)
+        %updateVolumeInfo Update the volume info table
+            import nansen.external.fex.sysutil.listPhysicalDrives
+            if nargin < 2
+                volumeInfo = listPhysicalDrives();
+            end
+            obj.VolumeInfo = volumeInfo;
+        end
     end
     
     methods % Methods for accessing/modifying items
@@ -405,7 +431,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             oldValue = obj.Data(idx).(field);
             obj.Data(idx).(field) = value;
             
-            if strcmp(field, 'Name') % Special case if name is change
+            if strcmp(field, 'Name') % Special case if name is changed
                 obj.onDataLocationRenamed(dataLocationName, value)
                 dataLocationName = value;
             end
@@ -507,8 +533,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %   following fields to a data location structure:
         %       Name : Name of datalocation
         %       Type : Datalocation type
-        %       RootPath : Key,Value pair of local rootpath.
+        %       RootPath : Key, Value pair of local rootpath.
         
+            % Todo: Why is this sometimes a cell?
+            if isa(dlStruct, 'cell')
+                dlStruct = dlStruct{1};
+                warning('Data is in an unexpected format. This is not critical, but should be investigated.')
+            end
+
             for iDl = 1:numel(dlStruct) %obj.NumDataLocations
 
                 dlUuid = dlStruct(iDl).Uuid;
@@ -658,6 +690,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             % Get local root paths...
             S = obj.importLocalRootPaths(S);
+
+            S = obj.updateRootPathFromDiskName(S);
             
         end
         
@@ -758,6 +792,50 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
         end
         
+        function S = updateRootPathFromDiskName(obj, S)
+        %updateRootPathFromDiskName Ensure path matches diskname for root 
+        %
+        %   On windows, drive mounts for external drives are dynamic, and a
+        %   drive might be mounted with different letter from time to time.
+        %   Here the root path is updated based on the name of the disk and
+        %   the current letter assignment of that disk (if it is present)
+
+            if nargin < 2
+                S = obj.Data;
+            end
+
+            if ispc
+                volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
+                
+                for i = 1:numel(S) % Loop through DataLocations
+                    for j = 1:numel(S(i).RootPath) % Loop through root folders
+                        jDiskName = S(i).RootPath(j).DiskName;
+                        isMatch = volumeInfo.VolumeName == jDiskName;
+                        if any(isMatch)
+                            if sum(isMatch) > 1
+                                warning('Multiple disks have the same name (%s)', jDiskName);
+                            end
+                            diskLetter = volumeInfo.DeviceID(isMatch);
+                            S(i).RootPath(j).Value(1:2) = diskLetter;
+                            if ~isfolder( S(i).RootPath(j).Value )
+                                warning('Root not available')
+                            end
+                        else
+                            S(i).RootPath(j).Value(1:2) = '~:';
+                        end
+                    end
+                end
+            else
+                % Pass
+            end
+
+            if nargin < 2
+                obj.Data = S;
+                if ~nargout
+                    clear S
+                end
+            end
+        end
     end
     
     methods (Access = private)
@@ -773,11 +851,37 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
         end
     end
-    
-    methods (Hidden, Access = protected) 
+ 
+    methods (Access = private) % Internal
+        % Todo: these should not be methods of this class
+        function diskName = resolveDiskNamePc(obj, rootPath)
+        %resolveDiskName Resolve disk name given disk letter
+            
+            if isempty(obj.VolumeInfo)
+                obj.updateVolumeInfo()
+            end
+            
+            diskLetter = string(regexp(rootPath, '.*:', 'match'));
+            matchIdx = find( volumeInfo.DeviceID == diskLetter );
+            if ~isempty(matchIdx)
+                diskName = volumeInfo.VolumeName(matchIdx);
+            else
+                diskName = '';
+            end
+        end
+
+        function diskName = resolveDiskNameMac(obj, rootPath)
+            splitPath = strsplit(rootPath, '/');
+            diskNameIdx = find( strcmp(splitPath, 'Volumes') ) + 1;
+            if isempty(diskNameIdx)
+                diskName = '';
+            else
+                diskName = splitPath{diskNameIdx};
+            end
+        end
         
     end
-    
+   
     methods (Static)
         
         function pathString = getDefaultFilePath()
@@ -789,7 +893,43 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 pathString = '';
             end
         end
-        
+
+    end
+
+
+    %%  Temporary methods for fixing various introduced changes
+    %
+    %   The remaining methods of this class should be deprecated. They have
+    %   been added when necessary to make sure that things kept working as
+    %   this class and the DataLocation concept has evolved.
+
+    methods (Access = private)
+
+        function fixDefaultDataLocation(obj)
+
+            % Todo: Add uuid, not name
+
+            if obj.NumDataLocations == 1
+                obj.DefaultDataLocation = obj.Data(1).Name;
+            elseif obj.NumDataLocations > 1
+                obj.Data(2).Type = nansen.config.dloc.DataLocationType('PROCESSED');
+                obj.DefaultDataLocation = obj.Data(2).Name;
+            end
+        end
+
+        function addTypeAsTableVariable(obj)
+            fieldNamesOld = fieldnames(obj.Data);
+            for i = 1:numel(obj.Data)
+                obj.Data(i).Type = 'recorded';
+            end
+            
+            obj.Data = orderfields(obj.Data, ...
+                [fieldNamesOld(1:2); 'Type'; fieldNamesOld(3:end)]);
+        end
+    
+    end
+    
+    methods (Static)
         
         function S = updateRootPathDataType(S) % TEMP: Todo: remove
         %updateRootPathDataType 
@@ -828,8 +968,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
                         S.Data(i).RootPath(1).Key = nansen.util.getuuid();
                         S.Data(i).RootPath(1).Value = S.Data(i).RootPath(1).Value{1};
                     end
-                    
-                    
                 end
             end
         end
