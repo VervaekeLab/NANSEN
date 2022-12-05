@@ -253,7 +253,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             if ~isempty(obj.roiFilePath)
                 initPath = obj.roiFilePath;
             else
-                initPath = obj.PrimaryApp.filePath;
+                initPath = obj.PrimaryApp.ImageStack.FileName;
             end
 
             if exist(initPath, 'file') == 2
@@ -617,7 +617,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         function foundRois = runInternalAutosegmentation(obj, Y, options)
                         
             % Get imageStack from viewer
-            hImageStack = obj.PrimaryApp.imageStack;
+            hImageStack = obj.PrimaryApp.ImageStack;
             
             % Todo: implement image mask form avg image. Ie, if image has
             % black regions.
@@ -667,7 +667,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             
             
             % % Get image stack and rois. Cancel if there are no rois
-            imageStack = obj.ImviewerObj.imageStack;
+            imageStack = obj.ImviewerObj.ImageStack;
             roiArray = obj.RoiGroup.roiArray;
             
             if isempty(roiArray)
@@ -778,7 +778,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         
         function openSignalViewer(obj, hPanel, roiGroup)
             
-%             if obj.ImviewerObj.imageStack.isVirtual
+%             if obj.ImviewerObj.ImageStack.isVirtual
 %                 obj.PrimaryApp.displayMessage('Can not show signals with virtual stack, aborting...', [], 2);
 %                 return
 %             end
