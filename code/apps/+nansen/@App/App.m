@@ -378,6 +378,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uimenu( mitem, 'Text', 'Datalocations...', ...
                 'MenuSelectedFcn', @(s,e) app.openDataLocationEditor )
             
+            % Todo: Update this on project change
+            uiSubMenu = uimenu( mitem, 'Text', 'Data Location Roots' );
+            app.updateDatalocationRootConfigurationSubMenu(uiSubMenu)
+
             uimenu( mitem, 'Text', 'Variables...', ...
                 'MenuSelectedFcn', @(s,e) app.openVariableModelEditor );
             
@@ -385,7 +389,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 @(s,e)nansen.config.watchfolder.WatchFolderManagerApp, ...
                 'Enable', 'off');
 
-            
             mitem = uimenu(m, 'Text','Preferences...');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;
 
@@ -757,6 +760,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
         
+        function updateDatalocationRootConfigurationSubMenu(app, hMenu)
+            
+            if nargin < 2
+                hMenu = findobj(app.Figure, 'Text', 'Data Location Roots');
+                if ~isempty(hMenu.Children)
+                    delete(hMenu.Children)
+                end
+            end
+
+            itemNames = app.DataLocationModel.DataLocationNames;
+            mItem = uics.MenuList(hMenu, itemNames, '', 'SelectionMode', 'none');
+            mItem.MenuSelectedFcn = @(s, e) app.onConfigureDatalocationRootMenuClicked(s, e);
+        end
+
         function createMenuFromDir(app, hParent, dirPath)
         %createMenuFromDir Create menu components from a folder/folder tree
         %
@@ -1272,6 +1289,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createSessionTableContextMenu()
             app.updatePipelineItemsInMenu()
             app.updateTableVariableMenuItems()
+            app.updateDatalocationRootConfigurationSubMenu()
             
             % Make sure project list is displayed correctly
             % Indicating current project
@@ -2295,6 +2313,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 app.VariableModelApp.Visible = 'on';
             end
+        end
+
+        function onConfigureDatalocationRootMenuClicked(app, src, evt)
+            
+            import nansen.dataio.dialog.editDataLocationRootDeviceName
+
+            dataLocationName = src.Text;
+            dlIdx = app.DataLocationModel.getItemIndex(dataLocationName);
+            rootConfig = app.DataLocationModel.Data(dlIdx).RootPath;
+
+            updatedRootConfig = editDataLocationRootDeviceName(rootConfig);
+            app.DataLocationModel.modifyDataLocation(dataLocationName, ...
+                'RootPath', updatedRootConfig);
+            app.DataLocationModel.save()
         end
 
         function removeTableVariable(app, src, evt)
