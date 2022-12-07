@@ -658,7 +658,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     % data = fileAdapterFcn(filePath).load(varName); %Todo
 
             end
-            
+            obj.Data.resetCache(varName)
         end
         
         function validateVariable(obj, variableName)
