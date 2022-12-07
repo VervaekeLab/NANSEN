@@ -804,6 +804,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     if ~isfield(S(i), 'RootPath')
                         continue
                     end
+
                     if ~isfield(S(i).RootPath, 'DiskName')
                         S(i).RootPath = obj.addDiskNameToRootPathStruct(S(i).RootPath);
                     end
@@ -862,7 +863,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
             
             diskLetter = string(regexp(rootPath, '.*:', 'match'));
-            matchIdx = find( volumeInfo.DeviceID == diskLetter );
+            try
+                matchIdx = find( volumeInfo.DeviceID == diskLetter );
+            catch 
+                matchIdx = [];
+            end
             if ~isempty(matchIdx)
                 diskName = volumeInfo.VolumeName(matchIdx);
             else
