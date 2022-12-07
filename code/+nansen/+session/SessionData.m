@@ -102,9 +102,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             
             for i = 1:numel(varNames)
                 varName_ = strcat( varNames{i}, '_' );
-                obj.(varName_) = [];
+                if isprop(obj, varName_)
+                    obj.(varName_) = [];
+                end
             end
-            
         end
         
     end
@@ -198,9 +199,11 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             
         end
 
-        function varNames = getDataType(obj, typeName)
+        function varNames = getDataType(obj, typeName, mustExist)
         %getDataType Get variable names for specified data type
-        
+            
+            if nargin < 3; mustExist = true; end
+
             % Todo: get from session object:
             dataVariableModel = nansen.config.varmodel.VariableModel();
             fileAdapters = {dataVariableModel.Data.FileAdapter};
@@ -215,11 +218,15 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                     varNames = {dataVariableModel.Data(tf).VariableName};
             end
             
-            tf = false(1, numel(varNames));
-            for i = 1:numel(varNames)
-                tf(i) = isprop(obj, varNames{i} );
+            if mustExist
+                tf = false(1, numel(varNames));
+                for i = 1:numel(varNames)
+                    tf(i) = isprop(obj, varNames{i} );
+                end
+            else
+                tf = true(1, numel(varNames));
             end
-            
+                
             varNames = varNames(tf);
         end
         
@@ -268,9 +275,33 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             else
                 varNames = {};
             end
-            
         end
         
+        function variableName = uiSetVariableName(obj, dataType)
+            
+            if nargin < 2
+                varNames = obj.VariableNames;
+            else
+                varNames = obj.getDataType(dataType, false);
+            end
+
+            nameLabel = 'data variable name';
+
+            variableName = uics.inputOrSelect(varNames, 'Title', ...
+                'Set Variablename', 'ItemName', nameLabel);
+        end
+           
+        function saveType(obj, typeName, data, varargin)
+            
+            variableName = obj.uiSetVariableName(typeName);
+            
+            if isempty(variableName); return; end
+
+            obj.getDataFilePath(variableName, '-w', varargin{:});
+            obj.saveData(variableName, data)
+            obj.updateDataVariables();
+        end
+    
     end
     
     methods (Access = protected)
@@ -522,7 +553,8 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         
             
             % Todo: 
-            %   [ ] (Why) do I need mode here?
+            %   [v] (Why) do I need mode here? If -w, variable is added to
+            %       model
             %   [ ] Implement load/save differences, and default datapath
             %       for variable names that are not defined.
             %   [ ] Implement ways to grab data spread over multiple files, i.e
