@@ -88,7 +88,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
     
     methods % Constructor 
         function obj = DataLocationModel(varargin)
-            
             % Superclass constructor. Loads given (or default) archive 
             obj@utility.data.StorableCatalog(varargin{:})
             
@@ -142,12 +141,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             % Add a third variable (DiskName) to root path cell array.
             if ~isfield( obj.Data(1).RootPath, 'DiskName' )
-                for i = 1:numel(obj.Data)
-                    for j = 1:numel(obj.Data(i).RootPath)
-                        obj.Data(i).RootPath(j).DiskName = ...
-                            obj.resolveDiskName(obj.Data(i).RootPath(j).Value);
-                    end
-                end
+                obj.addDiskNameToAllRootPaths()
+                dirty = true;
             end
 
             if dirty
@@ -413,7 +408,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %   dataLocationName is the name of the data location to modify. If
         %   the modification is on the name itself, the dataLocationName
         %   should be the current (old) name.
-        
         
             [tf, idx] = obj.containsItem(dataLocationName);
             
@@ -692,7 +686,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             S = obj.importLocalRootPaths(S);
 
             S = obj.updateRootPathFromDiskName(S);
-            
         end
         
         function filePath = getLocalRootPathSettingsFile(obj)
@@ -808,6 +801,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
                 
                 for i = 1:numel(S) % Loop through DataLocations
+                    
+                    if ~isfield(S(i).RootPath, 'DiskName')
+                        S(i).RootPath = obj.addDiskNameToRootPathStruct(S(i).RootPath);
+                    end
+
                     for j = 1:numel(S(i).RootPath) % Loop through root folders
                         jDiskName = S(i).RootPath(j).DiskName;
                         isMatch = volumeInfo.VolumeName == jDiskName;
@@ -896,7 +894,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
     end
 
-
     %%  Temporary methods for fixing various introduced changes
     %
     %   The remaining methods of this class should be deprecated. They have
@@ -927,6 +924,18 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 [fieldNamesOld(1:2); 'Type'; fieldNamesOld(3:end)]);
         end
     
+        function addDiskNameToAllRootPaths(obj)
+            for i = 1:numel(obj.Data)
+                obj.Data(i).RootPath = obj.addDiskNameToRootPathStruct(obj.Data(i).RootPath);
+            end
+        end
+
+        function rootPathStruct = addDiskNameToRootPathStruct(obj, rootPathStruct)
+            for i = 1:numel(rootPathStruct)
+                rootPathStruct(i).DiskName = ...
+                    obj.resolveDiskName(rootPathStruct(i).Value);
+            end
+        end
     end
     
     methods (Static)
@@ -975,4 +984,3 @@ classdef DataLocationModel < utility.data.StorableCatalog
     end
     
 end
-
