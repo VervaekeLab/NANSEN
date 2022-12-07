@@ -801,7 +801,9 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
                 
                 for i = 1:numel(S) % Loop through DataLocations
-                    
+                    if ~isfield(S(i), 'RootPath')
+                        continue
+                    end
                     if ~isfield(S(i).RootPath, 'DiskName')
                         S(i).RootPath = obj.addDiskNameToRootPathStruct(S(i).RootPath);
                     end
