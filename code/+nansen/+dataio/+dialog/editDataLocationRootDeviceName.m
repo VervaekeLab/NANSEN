@@ -15,6 +15,13 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     dataTable = rmfield(dataLocationRootInfo, 'Key');
     dataTable = orderfields(dataTable, {'DiskName', 'Value'});
     dataTable = struct2table(dataTable);
+    
+    % Fix data type issue. Todo: Should be done upstream
+    for i = 1:size(dataTable, 1)
+        if isempty(dataTable.DiskName{i}) && isa(dataTable.DiskName{i}, 'double')
+            dataTable.DiskName{i} = '';
+        end
+    end
 
     % Get name of all connected volumes, and all volumes in root info
     mountedVolumeNames = volumeInfo.VolumeName;
