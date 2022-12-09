@@ -685,7 +685,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % Get local root paths...
             S = obj.importLocalRootPaths(S);
 
-            S = obj.updateRootPathFromDiskName(S);
+            S.Data = obj.updateRootPathFromDiskName(S.Data);
         end
         
         function filePath = getLocalRootPathSettingsFile(obj)
@@ -811,6 +811,13 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
                     for j = 1:numel(S(i).RootPath) % Loop through root folders
                         jDiskName = S(i).RootPath(j).DiskName;
+                        
+                        % If not assigned previously, diskName defaults to
+                        % an empty double, so make sure it is a string.
+                        if isempty(jDiskName) && isa(jDiskName, 'double')
+                            jDiskName = "";
+                        end
+
                         isMatch = volumeInfo.VolumeName == jDiskName;
                         if any(isMatch)
                             if sum(isMatch) > 1
@@ -864,12 +871,12 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             diskLetter = string(regexp(rootPath, '.*:', 'match'));
             try
-                matchIdx = find( volumeInfo.DeviceID == diskLetter );
+                matchedIdx = find( volumeInfo.DeviceID == diskLetter );
             catch 
-                matchIdx = [];
+                matchedIdx = [];
             end
-            if ~isempty(matchIdx)
-                diskName = volumeInfo.VolumeName(matchIdx);
+            if ~isempty(matchedIdx)
+                diskName = volumeInfo.VolumeName(matchedIdx);
             else
                 diskName = '';
             end
@@ -877,11 +884,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
         function diskName = resolveDiskNameMac(obj, rootPath)
             splitPath = strsplit(rootPath, '/');
-            diskNameIdx = find( strcmp(splitPath, 'Volumes') ) + 1;
-            if isempty(diskNameIdx)
-                diskName = '';
+            matchedIdx = find( strcmp(splitPath, 'Volumes') ) + 1;
+            if ~isempty(matchedIdx)
+                diskName = splitPath{matchedIdx};
             else
-                diskName = splitPath{diskNameIdx};
+                diskName = '';
             end
         end
         
@@ -989,5 +996,5 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
         
     end
-    
+
 end
