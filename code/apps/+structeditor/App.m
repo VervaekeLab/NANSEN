@@ -205,6 +205,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if nargin < 1
                 return
             end
+
+            cleanupObj = onCleanup(@obj.onConstructorExit);
             
             obj.Panel.Units = 'normalized'; 
             % Todo: Fix this. Why does panel get pixel units from superclass
@@ -295,6 +297,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 if isvalid(obj.Figure)
                     delete(obj.Figure)
                 end
+            end
+        end
+
+        function onConstructorExit(obj)
+            if ~obj.isConstructed
+                delete(obj)
+                fprintf('Window self destructed because something went wrong\n')
             end
         end
         
@@ -1627,9 +1636,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             inputbox.String = strjoin(val, ', ');
                         end
 
-                    case 'char'
+                    case {'char', 'string'}
                         inputbox = uicontrol(guiPanel, 'style', 'edit');
-                        inputbox.String = val;
+                        inputbox.String = char( val );
                         
                     case 'struct'
                         % Not implemented
@@ -2213,10 +2222,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             try
                 newVal = eval(val);
-            catch
+            catch ME
                 obj.setControlValue(src, oldVal)
-                msgbox('Invalid value'); return
-                
+                msgbox('Invalid value'); 
+                disp( getReport(ME.message) )
+                return
                 %error('Invalid value')
             end
 
@@ -2228,7 +2238,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 tmpVal(idx) = newVal;
                 newVal = tmpVal;
             end
-            
 
             if isequal(newVal, oldVal) % Todo: Rounding errors....
                 return
