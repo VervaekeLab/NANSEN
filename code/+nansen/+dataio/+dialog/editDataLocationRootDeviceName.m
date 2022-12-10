@@ -15,11 +15,18 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     dataTable = rmfield(dataLocationRootInfo, 'Key');
     dataTable = orderfields(dataTable, {'DiskName', 'Value'});
     dataTable = struct2table(dataTable);
+    
+    % Fix data type issue. Todo: Should be done upstream
+    for i = 1:size(dataTable, 1)
+        if isempty(dataTable.DiskName{i}) && isa(dataTable.DiskName{i}, 'double')
+            dataTable.DiskName{i} = '';
+        end
+    end
 
     % Get name of all connected volumes, and all volumes in root info
     mountedVolumeNames = volumeInfo.VolumeName;
     otherVolumeNames = string(dataTable.DiskName);
-    allVolumeNames = unique([mountedVolumeNames, otherVolumeNames]);
+    allVolumeNames = unique(cat(1,mountedVolumeNames, otherVolumeNames));
     allVolumeNames = arrayfun(@(str) char(str), allVolumeNames, 'uni', 0);
 
     % Create and configure a figure
@@ -95,7 +102,7 @@ function onTableDataChanged(src, evt, volumeInfo)
 
     assert(colIdx == 1, 'Something unexpected happen!')
     
-    currentRoot = src.Data(rowIdx, 2);
+    currentRoot = src.Data{rowIdx, 2};
 
     if ismac
         oldString = sprintf('Volumes/%s/', evt.OldValue);
@@ -104,7 +111,7 @@ function onTableDataChanged(src, evt, volumeInfo)
     
     elseif ispc
         oldLetter = currentRoot(1:2);
-        isMatch = volumeInfo.DeviceName == evt.NewValue;
+        isMatch = volumeInfo.VolumeName == string(evt.NewValue);
         newLetter = volumeInfo.DeviceID(isMatch);
         currentRoot = replace(currentRoot, oldLetter, newLetter);
 
@@ -112,5 +119,5 @@ function onTableDataChanged(src, evt, volumeInfo)
         error('Not implemented yet')
     end
 
-    src.Data(rowIdx, 2) = currentRoot;    
+    src.Data{rowIdx, 2} = currentRoot;    
 end

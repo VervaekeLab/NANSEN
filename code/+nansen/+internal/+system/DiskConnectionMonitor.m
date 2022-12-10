@@ -85,7 +85,7 @@ classdef DiskConnectionMonitor < handle
             % Check if any names were added
             oldNames = {obj.VolumeList.Name};
             newNames = {updatedVolumeList.Name};
-            
+
             % Update volumelist
             obj.VolumeList = updatedVolumeList;
             
@@ -107,10 +107,13 @@ classdef DiskConnectionMonitor < handle
         function checkDiskPc(obj)
             %volumeList = system.
             volumeInfoTable = nansen.external.fex.sysutil.listPhysicalDrives();
-
-            volumeList = struct('Name', {volumeInfoTable.VolumeName}, ...
-                                'MountLetter', {volumeInfoTable.DeviceID} );
-
+            
+            % Convert string array to cell array of character vectors in
+            % order to create struct array below
+            string2cellchar = @(strArray) arrayfun(@char, strArray, 'uni', false);
+            volumeList = struct('Name', string2cellchar(volumeInfoTable.VolumeName), ...
+                                'MountLetter', string2cellchar(volumeInfoTable.DeviceID) );
+            
             obj.updateDiskList(volumeList)
         end
 
