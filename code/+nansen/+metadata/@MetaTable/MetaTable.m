@@ -214,17 +214,26 @@ classdef MetaTable < handle
             titleStr = 'Newer version exists';
 
             msg = ['The metatable has been updated outside this instance of Nansen. ' ...
-                'What do you want to do?'];
-            
-            options = {'Keep current version'};
+                'Select "Load newer version" to update the table from the latest ', ...
+                'version, or "Keep current version" to continue using the ',...
+                'version which is currently open. \n\n\\bfNote: Selecting "Keep ', ...
+                'current version" will overwrite the newer version for all', ...
+                'nansen instances.'];
             
             if obj.isClean()
-                options{end+1} = 'Load newer version';
+                choices = {'Load newer version'};
             else
-                options{end+1} = 'Load newer version and drop unsaved changes';
+                choices = {'Load newer version and drop unsaved changes'};
             end
 
-            answer = questdlg(msg, titleStr, options{:}, options{1});
+            choices{end+1} = 'Keep current version';
+            %choices = strcat('<html><font size="4">', choices);
+
+            options = struct('Default', choices{1}, 'Interpreter', 'tex');
+            %formattedMessage = strcat('\fontsize{14}', sprintf( msg) );
+            formattedMessage = sprintf( msg);
+            answer = questdlg(formattedMessage, titleStr, choices{:}, options);
+
             switch lower(answer)
                 case 'keep current version'
                     tf = false;
