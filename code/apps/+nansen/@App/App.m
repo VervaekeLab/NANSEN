@@ -1127,16 +1127,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if strcmp(thisColumnName, 'DataLocation')
                     
                     % 10x slower when getting the session object.
-                    metaEntry = app.MetaTable.entries(tableRow, :);
-                    metaObject = app.tableEntriesToMetaObjects(metaEntry);
-                    tableValue = metaObject.DataLocation;
+                    %metaEntry = app.MetaTable.entries(tableRow, :);
+                    %metaObject = app.tableEntriesToMetaObjects(metaEntry);
+                    %tableValue = metaObject.DataLocation;
 
-% %                     % Alternative: Old version when datalocation was
-% %                     % hardcoded in the table row
-% %                     tableValue = app.MetaTable.entries{tableRow, thisColumnName};
-% %                     tmpObj = dispFcn(tableValue);
-% %                     str = tmpObj.getCellTooltipStringOld();
-                
+                    % Alternative: Old version when datalocation was
+                    % hardcoded in the table row
+                    tableValue = app.MetaTable.entries{tableRow, thisColumnName};
                 else
                     tableValue = app.MetaTable.entries{tableRow, thisColumnName};
                 end

@@ -110,7 +110,7 @@ classdef DiskConnectionMonitor < handle
             
             % Convert string array to cell array of character vectors in
             % order to create struct array below
-            string2cellchar = @(strArray) arrayfun(@char, strArray, 'uni', false);
+            string2cellchar = @(strArray) arrayfun(@char, strArray, 'uni', false); %convertStringsToChars, cellstr
             volumeList = struct('Name', string2cellchar(volumeInfoTable.VolumeName), ...
                                 'MountLetter', string2cellchar(volumeInfoTable.DeviceID) );
             
