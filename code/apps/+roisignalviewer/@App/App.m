@@ -462,7 +462,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             obj.DffOptions.(name) = value;
                         
             obj.RoiSignalArray.DffOptions = obj.DffOptions;
-            obj.RoiSignalArray.resetSignals('all', {'dff'})
+            obj.RoiSignalArray.resetSignals('all', {'dff', 'deconvolved', 'denoised'})
             
             %obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace', {'dff'}, true);
             
