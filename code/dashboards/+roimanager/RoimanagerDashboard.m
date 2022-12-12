@@ -712,7 +712,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                         
             switch evt.Character
                 case 's'
-                    if strcmp(evt.Modifier, {'command'}) || strcmp(evt.Modifier, 'control')
+                    if isequal(evt.Modifier, {'command'}) || isequal(evt.Modifier, {'control'})
                         obj.saveRois(obj.roiFilePath)
                         return
                     end
