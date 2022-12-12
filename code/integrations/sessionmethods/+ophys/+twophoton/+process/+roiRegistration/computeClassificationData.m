@@ -71,6 +71,22 @@ function varargout = computeClassificationData(sessionObject, varargin)
         % obj.SourceStack.addToStaticCache(imArray, 1:N)
         imArray = squeeze(imArray);
 
+        if ~isempty(thisRoiArray)
+            [roiImages, roiStats] = getRoiAppData(imArray, thisRoiArray); % Imported function
+
+            roiImages{iZ, iC} = roiImages;
+            roiStats{iZ, iC} = roiStats;
+        end
+    end
+
+    % Collect data and save roigroup
+
+end
+
+
+function params = getDefaultParameters()
+%getDefaultParameters Get the default parameters for this session method
+%
 %   params = getDefaultParameters() should return a struct, params, which 
 %   contains fields and values for parameters of this session method.
 

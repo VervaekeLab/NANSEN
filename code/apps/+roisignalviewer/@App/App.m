@@ -804,13 +804,13 @@ classdef App < signalviewer.App & roimanager.roiDisplay
                     case 'roiMeanF'
                         colorName = 'Greens';
                     case 'npilMediF'
-                        colorName = 'Blues';
+                        colorName = 'Reds';
                     case 'dff'
                         colorName = 'Oranges';
                     case {'denoised', 'deconvolved'}
-                        colorName = 'Reds';
-                    otherwise
                         colorName = 'Greys';
+                    otherwise
+                        colorName = 'Blues';
                 end
                 
                 nRois = numel(roiInd);
