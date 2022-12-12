@@ -369,10 +369,15 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
 % %             obj.DataSet.saveType('RoiGroup', obj.RoiGroup, 'Subfolder', ...
 % %                 'roidata', 'FileAdapter', 'RoiGroup', 'IsCustom', true )
 % %             return
-            saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
+            wasSaved = saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath);
             
-            saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);            
-            obj.PrimaryApp.displayMessage(saveMsg, 2)
+            if wasSaved
+                saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);            
+                obj.PrimaryApp.displayMessage(saveMsg, [], 2)
+            else
+                saveMsg = sprintf('Could not save rois');
+                obj.PrimaryApp.displayMessage(saveMsg, [], 2)
+            end
         end
         
         function addRois(obj, roiArray)

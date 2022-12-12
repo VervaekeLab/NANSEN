@@ -707,6 +707,19 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         
         function onKeyPressed(obj, src, evt, module)
             
+            % Handle key events that should be taken care of by the main
+            % application:
+                        
+            switch evt.Character
+                case 's'
+                    if strcmp(evt.Modifier, {'command'}) || strcmp(evt.Modifier, 'control')
+                        obj.saveRois(obj.roiFilePath)
+                        return
+                    end
+            end
+
+
+            % If key event was not handled so far, defer to submodules.
             if nargin < 4
                 onKeyPressed@applify.DashBoard(obj, src, evt)
             else
@@ -720,6 +733,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                                 if ~isempty(obj.RoiThumbnailViewer)
                                     obj.RoiThumbnailViewer.onKeyPressed(src, evt)
                                 end
+
                         end
                 end
             end
