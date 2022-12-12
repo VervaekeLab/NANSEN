@@ -203,6 +203,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 tmpMergedResults = obj.MergedResults{iZ, iC};
                 
                 S = cat(1, tmpMergedResults.spatialComponents );
+                if isempty(S)
+                    obj.RoiArray{iZ, iC} = RoI.empty;
+                end
+
                 imageSize = obj.SourceStack.FrameSize;
                 roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
 

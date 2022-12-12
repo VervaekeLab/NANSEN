@@ -2,6 +2,10 @@ classdef RoiGroup < nansen.dataio.FileAdapter
     %UNTITLED Summary of this class goes here
     %   Detailed explanation goes here
     
+    % Note to self: this needs a cleanup
+
+    % How to save multichannel/multiplane data?
+
     properties (Constant)
         DataType = 'RoiGroup'
         Description = 'This file contains information about a group of rois';
@@ -22,6 +26,14 @@ classdef RoiGroup < nansen.dataio.FileAdapter
     properties (Constant, Hidden, Access = protected)
         SUPPORTED_FILE_TYPES = {'mat', 'npy'}
     end
+
+    % Constant properties used to valdiate the variables that are present
+    % in a roi group file
+    properties (Constant)
+        % Variable names that are required to be part of a roi group file.
+        REQUIRED_VARIABLE_NAMES = {'roiArray', 'roiImages', 'roiStats', 'roiClassification'}
+        OPTIONAL_VARIABLE_NAMES = {'ChannelNumber', 'PlaneNumber'}
+    end
     
     
     methods (Access = protected)
@@ -41,7 +53,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                 data = S;
             end
 
-            roiFormat = obj.determineRoiFormat(data);
+            roiFormat = obj.determineRoiFormat(data); % Todo: Outsource
             
             if strcmp(roiFormat, 'Suite2p') && ~isa(data, 'struct')
                 % Suite2p exports to stats and ops, we need both
@@ -49,6 +61,16 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             end
             
             conversionFcn = obj.getDataConversionFunction(roiFormat);
+            
+            % Todo: Account for multipe channels/planes.
+            % Temporaray quick fix - Perhaps a permanent solution.
+            if strcmp(roiFormat, 'Nansen') && iscell(data.roiArray)
+                roiGroupStruct = obj.makeNonScalarStruct(data);
+                roiGroup = arrayfun(@(s) roimanager.roiGroup(s), roiGroupStruct);
+                roiGroup.markClean()
+                return
+            end
+
             [roiArray, classification, stats, images] = conversionFcn(data);
             
             % Todo: Varargin might specify variables...
@@ -78,34 +100,28 @@ classdef RoiGroup < nansen.dataio.FileAdapter
         end
         
         function writeData(obj, data, varName)
+        %writeData Takes care of writing roi group to file as a struct 
             
-            % Todo: convert data to struct and add to S....
-            
-            % Use superclass method to write to mat...
-                          
             if isa(data, 'RoI')
-                [rois, images, stats, clsf] = obj.unpackFromRoiArray(data);
+                S = obj.createStructFromRoiArray(data);
             elseif isa(data, 'roimanager.roiGroup')
-                [rois, images, stats, clsf] = obj.unpackFromRoiGroup(data);
+                S = obj.createStructFromRoiGroup(data);
             elseif obj.isRoigroupStruct(data)
-                [rois, images, stats, clsf] = obj.unpackFromStruct(data);
+                S = data;
             else
                 error('Can not save data as a RoiGroup')
             end
             
-            if isa(rois, 'RoI')
-                rois = roimanager.utilities.roiarray2struct(rois);
+            %S = createStructForSaving(obj, data);
+
+            if ~isscalar(S)
+                S = obj.makeScalarStruct(S); % Todo: Should this be done in roigroup?
             end
-            
-            S = struct;
-            S.roiArray = rois;
-            S.roiImages = images;
-            S.roiStats = stats;
-            S.roiClassification = clsf;
+
+            S = validateStruct(obj, S);
 
             % Use superclass method to write to mat...
             obj.writeDataToMat(S);
-            
         end
         
     end
@@ -262,6 +278,29 @@ classdef RoiGroup < nansen.dataio.FileAdapter
     
     methods (Access = private) % Methods for writing %Todo: simplify...
 
+        function S = createStructForSaving(obj, data)
+            
+            if isa(data, 'RoI')
+                [rois, images, stats, clsf] = obj.unpackFromRoiArray(data);
+            elseif isa(data, 'roimanager.roiGroup')
+                [rois, images, stats, clsf] = obj.unpackFromRoiGroup(data);
+            elseif obj.isRoigroupStruct(data)
+                [rois, images, stats, clsf] = obj.unpackFromStruct(data);
+            else
+                error('Can not save data as a RoiGroup')
+            end
+            
+            if isa(rois, 'RoI')
+                rois = roimanager.utilities.roiarray2struct(rois);
+            end
+            
+            S = struct;
+            S.roiArray = rois;
+            S.roiImages = images;
+            S.roiStats = stats;
+            S.roiClassification = clsf;
+        end
+
         function [rois, images, stats, clsf] = unpackFromRoiArray(obj, data)
             rois = data;
             images = rois.getappdata('roiImages');
@@ -282,7 +321,43 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             stats = data.roiStats;
             clsf = data.roiClassification;
         end
-    
+        
+        function S = obj.createStructFromRoiArray(data)
+            
+        end
+
+        function S = createStructFromRoiGroup(~, data)
+            
+            varNames = {'roiArray', 'roiImages', 'roiStats', 'roiClassification'};
+
+            S = struct;
+            for i = 1:size(data, 1)
+                for j = 1:size(data, 2)
+                    for k = 1:numel(varNames)
+                        S(i,j).(varNames{k}) = data(i,j).(varNames{k});
+                    end
+                end
+            end
+        end
+
+        function S = validateStruct(obj, S)
+
+            assert( all(isfield(S, obj.REQUIRED_VARIABLE_NAMES)), ...
+                'RoiGroup must contain the following fields:\n%s', ...
+                strjoin(obj.REQUIRED_VARIABLE_NAMES, ', ') )
+            
+            if iscell(S.roiArray)
+                % Make sure all roi arrays are converted to struct arrays.
+                for i = 1:numel(S.roiArray)
+                    if isa( S.roiArray{i}, 'RoI')
+                        S.roiArray{i} = roimanager.utilities.roiarray2struct(S.roiArray{i});
+                    end
+                end
+            elseif isa( S.roiArray, 'RoI')
+                S.roiArray = roimanager.utilities.roiarray2struct(S.roiArray);
+            end
+        end
+
     end
     
     methods (Static)
@@ -373,6 +448,26 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             tf = isstruct(data) && all( isfield(data, fields) );
         end
         
+        % Todo, these are general, move to structutil
+        function scalarStruct = makeScalarStruct(nonScalarStruct)
+            scalarStruct = struct;
+
+            structSize = size(nonScalarStruct);
+            fieldNames = fieldnames(nonScalarStruct);
+            
+            for i = 1:numel(fieldNames)
+                scalarStruct.(fieldNames{i}) = {nonScalarStruct.(fieldNames{i})};
+                scalarStruct.(fieldNames{i}) = reshape(scalarStruct.(fieldNames{i}), structSize);
+            end
+        end
+
+        function nonScalarStruct = makeNonScalarStruct(scalarStruct)
+            fieldNames = fieldnames(scalarStruct);
+            fieldValues = struct2cell(scalarStruct);
+
+            fieldValuePairs = [fieldNames'; fieldValues'];
+            nonScalarStruct = struct(fieldValuePairs{:});
+        end
     end
 end
 
