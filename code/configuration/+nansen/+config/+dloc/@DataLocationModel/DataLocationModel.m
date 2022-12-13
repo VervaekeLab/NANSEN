@@ -829,7 +829,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                                 warning('Root not available')
                             end
                         else
-                            S(i).RootPath(j).Value(1:2) = '~:';
+                            S(i).RootPath(j).Value(1:2) = sprintf('%d:', i);
                         end
                     end
                 end
