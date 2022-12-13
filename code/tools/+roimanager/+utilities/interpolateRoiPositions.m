@@ -1,4 +1,13 @@
 function roiArrayDiff = interpolateRoiPositions(roiArray1, roiArray2)
+%interpolateRoiPositions Interpolate positions of rois between two roi
+%arrays
+%
+%   This functions finds the group of rois that are present in both roi
+%   arrays (1 and 2) and use these for interpolating positions for those
+%   rois that are only present in roi array 1. The the rois that are only
+%   present in roiArray1 are shifted to new interpolated positions and
+%   returned in a new roi array (roiArrayDiff)
+
 
     % Create vectors of x and y positions of each roi.
     

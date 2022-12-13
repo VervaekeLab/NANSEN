@@ -10,8 +10,7 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 %   INPUTS:
 %       metaTable : a session metatable
 %       dataLocationName : (Optional) Name of datalocation. Default is 'all'
-%
-    
+
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
     
@@ -19,7 +18,6 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
     % where another datalocation model should be used?
     filePath = nansen.localpath('DataLocationSettings');    
     dataLocationModel = nansen.config.dloc.DataLocationModel(filePath);
-    
     
     if nargin < 2 || isempty(dataLocationName)
         %dataLocationName = dataLocationModel.DefaultDataLocation;
@@ -59,6 +57,7 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 
     newSessionArray = sessionArray(iA);
     
+    % todo: deprecated?
     sessionArray = validateDataLocationStruct(metaTable, ...
         sessionArray, dataLocationModel); % local function
     
@@ -71,12 +70,8 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
             newSessionArray = [];
             return
         end
-    end
-    
-    
-            
+    end       
 end
-
 
 function sessionArray = validateDataLocationStruct(metaTable, sessionArray, dataLocationModel)
     
@@ -87,6 +82,7 @@ function sessionArray = validateDataLocationStruct(metaTable, sessionArray, data
     if iscell(dataLocationOriginal)
         dataLocationOriginal = dataLocationOriginal{1};
     end
+
     fieldsOriginal = fieldnames(dataLocationOriginal);
     dataLocationNew = sessionArray(1).DataLocation;
     fieldNamesNew = fieldnames(dataLocationNew);
@@ -101,7 +97,5 @@ function sessionArray = validateDataLocationStruct(metaTable, sessionArray, data
         else
             error('Not implemented yet. Please report')
         end
-        
     end
 end
-

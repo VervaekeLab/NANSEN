@@ -10,6 +10,11 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
 %       [ ] Is it possible to indicate that the diskname is a dropdown?
 %       [ ] Update dropdowns if drives are connected or disconnected
 
+    if isunix && ~ismac
+        errordlg('This feature is not implemented for linux/unix systems')
+        return
+    end
+
     volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
     
     % Make table with 2 columns, device name and root path
@@ -103,14 +108,20 @@ function onTableDataChanged(src, evt, volumeInfo)
 
     assert(colIdx == 1, 'Something unexpected happen!')
     
-    currentRoot = src.Data{rowIdx, 2};
+    currentRoot = src.Data{rowIdx, 2}; % Path is on 2nd column
 
+    % Todo: combine / use DataLocationModel/replaceDiskMountInPath
+    
     % Determine what format old string is:
     isCurrentPathMacStyle = ~isempty(regexp(currentRoot, '^/Volumes', 'match'));
     isCurrentPathPcStyle = ~isempty(regexp(currentRoot, '^\w{1}\:', 'match'));
     
+    if ~isCurrentPathMacStyle && ~isCurrentPathPcStyle
+        warndlg('Could not determine format of path...')
+    end
+
     if isCurrentPathMacStyle && ispc
-        oldString = ['\Volumes\', evt.OldValue];
+        oldString = ['\Volumes\', evt.OldValue]; % because / -> \ below 
         isMatch = volumeInfo.VolumeName == string(evt.NewValue);
         newString = volumeInfo.DeviceID(isMatch);
         currentRoot = strrep(currentRoot, '/', '\');
@@ -120,20 +131,22 @@ function onTableDataChanged(src, evt, volumeInfo)
         newString = sprintf('/Volumes/%s/', evt.NewValue);
     
     elseif isCurrentPathPcStyle && ispc
-        oldString = currentRoot(1:2);
+        oldString = regexp(currentRoot, '^\w{1}\:', 'match', 'once');
         isMatch = volumeInfo.VolumeName == string(evt.NewValue);
         newString = volumeInfo.DeviceID(isMatch);
     
     elseif isCurrentPathPcStyle && ismac
-        oldString = regexp(currentRoot, '^\w{1}\:', 'match');
-        newString = sprintf('Volumes/%s', evt.NewValue);
+        oldString = regexp(currentRoot, '^\w{1}\:', 'match', 'once');
+        newString = sprintf('/Volumes/%s', evt.NewValue);
         currentRoot = strrep(currentRoot, '\', '/');
 
     elseif isunix
         error('Not implemented yet')
     end
     
-    currentRoot = replace(currentRoot, oldString, newString);
+    if exist('oldString', 'var') && exist('newString', 'var')
+        currentRoot = replace(currentRoot, oldString, newString);
+    end
 
     src.Data{rowIdx, 2} = currentRoot;    
 end

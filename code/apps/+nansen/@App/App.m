@@ -2505,12 +2505,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
         
-        function updateDataLocationFromModel(app)
-            if any(strcmp(app.MetaTable.entries.Properties.VariableNames, 'DataLocation'))
-                dataLocationStructs = app.MetaTable.entries.DataLocation;
+        function metaTable = updateDataLocationFromModel(app, metaTable)
+        %updateDataLocationFromModel Update dataLocations in meta table 
+            if nargin < 2
+                metaTable = app.MetaTable;
+            end
+
+            if any(strcmp(metaTable.entries.Properties.VariableNames, 'DataLocation'))
+                dataLocationStructs = metaTable.entries.DataLocation;
                 dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
-                app.MetaTable.entries.DataLocation = dataLocationStructs;
-                app.MetaTable.markClean() % This change does not make the table dirty.
+                metaTable.entries.DataLocation = dataLocationStructs;
+                metaTable.markClean() % This change does not make the table dirty.
+            end
+
+            if nargin < 2 && ~nargout
+                app.MetaTable = metaTable;
+                clear metaTable
             end
         end
         
@@ -2561,12 +2571,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Update data location paths based on the local
                 % DataLocation model and make sure paths are according to
                 % operating system.
-                if any(strcmp(metaTable.entries.Properties.VariableNames, 'DataLocation'))
-                    dataLocationStructs = metaTable.entries.DataLocation;
-                    dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
-                    metaTable.entries.DataLocation = dataLocationStructs;
-                    metaTable.markClean() % This change does not make the table dirty.
-                end
+                metaTable = app.updateDataLocationFromModel(metaTable);
 
                 app.MetaTable = metaTable;
 

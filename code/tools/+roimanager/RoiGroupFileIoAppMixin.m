@@ -29,24 +29,41 @@ classdef RoiGroupFileIoAppMixin < handle
             end           
         end
         
-        function saveRois(obj, initPath)
+        function wasSaved = saveRois(obj, initPath)
         %saveRois Save rois to file.
-        
+            
+            doSaveRois = true;
+            wasSaved = false;
+            
             if nargin < 2; initPath = ''; end
             savePath = obj.getRoiPath(initPath, 'save');
-            if isempty(savePath); return; end
+            if isempty(savePath); doSaveRois=false; end
             
-            % Save roigroup using roigroup fileadapter
-            fileObj = nansen.dataio.fileadapter.roi.RoiGroup(savePath, '-w');
-            fileObj.save(obj.RoiGroup);
-            
-            %Todo....
-            saveMsg = sprintf('Rois Saved to %s\n', savePath);
-            fprintf(saveMsg)
-                                    
-            obj.roiFilePath = savePath;
-            
-            obj.RoiGroup.markClean()
+            if isfile(savePath) && doSaveRois
+                doOverwrite = obj.promptOverwriteRois();
+                if ~doOverwrite
+                    doSaveRois = false;
+                end
+            end
+
+            if doSaveRois
+                % Save roigroup using roigroup fileadapter
+                fileObj = nansen.dataio.fileadapter.roi.RoiGroup(savePath, '-w');
+                fileObj.save(obj.RoiGroup);
+                
+                %Todo....
+                saveMsg = sprintf('Rois Saved to %s\n', savePath);
+                fprintf('%s', saveMsg) 
+                                        
+                obj.roiFilePath = savePath;
+                
+                obj.RoiGroup.markClean()
+                wasSaved = true;
+            end
+
+            if ~nargout
+                clear wasSaved
+            end
         end
          
     end
@@ -85,7 +102,10 @@ classdef RoiGroupFileIoAppMixin < handle
                         'Load Roi File', initPath, 'MultiSelect', 'on');
                     
                 case 'save'
-                    if exist('fileName', 'var') && ~isempty(fileName)
+                    if ~isempty(initPath) && isfile(initPath)
+                        filePath = initPath; return;
+
+                    elseif exist('fileName', 'var') && ~isempty(fileName)
                         if ~contains(fileName, '_roi')
                             initPath = fullfile(initPath, strcat(fileName, '_rois.mat'));
                         else
@@ -132,6 +152,22 @@ classdef RoiGroupFileIoAppMixin < handle
                 wasAborted = false;
             end
             
+        end
+
+        function doOverwrite = promptOverwriteRois(obj)
+            
+            message = 'File already exists, do you want to overwrite this file?';
+            title = 'Confirm Save';
+
+            selection = questdlg(message, title, ...
+                'Yes', 'No', 'Cancel', 'Yes');
+
+            switch selection
+                case 'Yes'
+                    doOverwrite = true;
+                otherwise
+                    doOverwrite = false;
+            end
         end
 
         function importRois(obj, initPath)

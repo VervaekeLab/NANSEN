@@ -568,7 +568,12 @@ classdef Addons < handle
             % Find the repository folder
             L = dir(folderPath);
             L = L(~strncmp({L.name}, '.', 1));
-                
+            
+            if numel(L) > 1
+                % This is unexpected, there should only be one folder.
+                return
+            end
+
             % Move folder up one level
             oldDir = fullfile(folderPath, L.name);
             newDir = fullfile(rootDir, L.name);
