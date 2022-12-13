@@ -205,6 +205,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 S = cat(1, tmpMergedResults.spatialComponents );
                 if isempty(S)
                     obj.RoiArray{iZ, iC} = RoI.empty;
+                    continue
                 end
 
                 imageSize = obj.SourceStack.FrameSize;
