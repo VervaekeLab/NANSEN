@@ -315,12 +315,16 @@ classdef MetaTable < handle
         end
         
         function versionNumber = loadVersionNumber(obj)
-            warning('off', 'MATLAB:load:variableNotFound')
-            S = load(obj.filepath, 'VersionNumber');
-            warning('on', 'MATLAB:load:variableNotFound')
-            if isfield(S, 'VersionNumber')
-                versionNumber = S.VersionNumber;
-                if isempty(versionNumber); versionNumber = 0; end
+            if isfile(obj.filepath)
+                warning('off', 'MATLAB:load:variableNotFound')
+                S = load(obj.filepath, 'VersionNumber');
+                warning('on', 'MATLAB:load:variableNotFound')
+                if isfield(S, 'VersionNumber')
+                    versionNumber = S.VersionNumber;
+                    if isempty(versionNumber); versionNumber = 0; end
+                else
+                    versionNumber = 0;
+                end
             else
                 versionNumber = 0;
             end
