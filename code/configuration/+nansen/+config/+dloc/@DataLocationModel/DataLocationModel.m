@@ -140,9 +140,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
 
             % Add a third variable (DiskName) to root path cell array.
-            if ~isfield( obj.Data(1).RootPath, 'DiskName' )
-                obj.addDiskNameToAllRootPaths()
-                dirty = true;
+            if ~isempty(obj.Data)
+                if ~isfield( obj.Data(1).RootPath, 'DiskName' )
+                    obj.addDiskNameToAllRootPaths()
+                    dirty = true;
+                end
             end
 
             if dirty
