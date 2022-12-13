@@ -51,16 +51,17 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
     %   [ ] Support for multiple planes.
 
 
+
     % Get default parameters and assertion functions.
     
     [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
     P.showTimer      = false;    V.showTimer = @(x) assert(islogical(x), 'Value must be logical');
     P.verbose        = false;    V.verbose = @(x) assert(islogical(x), 'Value must be logical');
     P.signalDataType = 'single'; V.signalDataType = @(x) assert(any(strcmp(x, {'single', 'double'})), 'Value must be ''single'' or ''double''');
-    
+    P.channelNum     = 1;       V.channelNum = @(x) not(isempty(x));
+
     % Parse potential parameters from input arguments
     params = utility.parsenvpairs(P, V, varargin{:});
-
     
     % Validate roidata
     if isa(roiData, 'roimanager.roiGroup')
@@ -76,7 +77,22 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
     imageStack = nansen.stack.ImageStack.validate(imageData);
     
     validateInputDimensions(imageStack, roiArray) % Local function
-    
+
+    % If multiple channels are selected, extract from each individually
+    numChannels = numel( imageStack.CurrentChannel );
+    if numChannels > 1
+        if ~isempty(params.channelNum)
+            currentChannel = imageStack.CurrentChannel;
+            imageStack.CurrentChannel = params.channelNum;
+            signalArray = extractFromMultipleChannels(imageStack, roiData, varargin{:});
+            imageStack.CurrentChannel = currentChannel;
+        else
+            signalArray = extractFromMultipleChannels(imageStack, roiData, varargin{:});
+        end
+        return
+    end
+
+
     % Update some fields in parameters if they are not set.
     params = updateParameters(params, imageStack, roiArray); % Local function
     
@@ -212,5 +228,20 @@ function params = updateParameters(params, imageStack, roiArray)
         end
     end
 
+end
+
+function signalArray = extractFromMultipleChannels(imageStack, roiData, varargin)
+    currentChannels = imageStack.CurrentChannel;
+    numChannels = numel(currentChannels);
+    signalArray = cell(numChannels, 1);
+
+    for i = currentChannels
+        imageStack.CurrentChannel = i;
+        iRoiData = roiData(i);
+        signalArray{i} = nansen.twophoton.roisignals.extractF(imageStack, iRoiData, varargin{:});
+    end
+    %signalArray = cellfun(@(c) reshape(c, [1, size(c)]), signalArray, 'UniformOutput', false);
+    signalArray = cat(ndims(signalArray)+1, signalArray{:});
+    imageStack.CurrentChannel = currentChannels;
 end
 

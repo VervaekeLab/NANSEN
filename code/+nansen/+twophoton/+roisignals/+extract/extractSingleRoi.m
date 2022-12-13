@@ -38,6 +38,8 @@ function signalArray = extractSingleRoi(imArray, roiData, method, n)
     if nargin < 3; method = 'mean'; end % Default is mean
     if nargin < 4; n = 50; end % Default percentile is median
 
+    imArray = squeeze(imArray);
+
     numSamples = size(imArray, 3);
     numSubregions = size(roiData.Masks, 3);
 

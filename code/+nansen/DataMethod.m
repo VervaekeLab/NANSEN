@@ -161,6 +161,7 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
         function saveData(obj, varargin)
             if ischar(obj.DataIoModel) && isfile(obj.DataIoModel)
                 % Skip saving...
+                error('Saving not implemented yet...')
             else
                 obj.DataIoModel.saveData(varargin{:})
             end

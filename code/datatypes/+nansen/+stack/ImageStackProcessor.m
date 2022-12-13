@@ -270,7 +270,11 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
         
         function runOnSeparateWorker = get.RunOnSeparateWorker(obj)
             if isfield(obj.Options, 'Run')
-                runOnSeparateWorker = obj.Options.Run.runOnSeparateWorker;
+                if isfield(obj.Options.Run, 'runOnSeparateWorker')
+                    runOnSeparateWorker = obj.Options.Run.runOnSeparateWorker;
+                else
+                    runOnSeparateWorker = false;
+                end
             else
                 S = nansen.stack.ImageStackProcessor.getDefaultOptions();
                 runOnSeparateWorker = S.Run.runOnSeparateWorker;
@@ -406,39 +410,6 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
         function runFinalization(obj)
         %runFinalization Run the processor finalization stage.
             obj.finish()
-        end
-        
-        function runOnWorker(obj)
-            
-            tic
-            
-            jobDescription = sprintf('%s : %s', obj.MethodName, obj.SourceStack.Name);
-            dependentPaths = obj.getDependentPaths();
-            
-            opts = obj.Options;
-            opts.Run.runOnSeparateWorker = false;
-            
-            % Todo: should reconcile this, using a dataiomodel
-            if isprop(obj, 'SessionObjects') % Some subclasses
-                args = {obj.SessionObjects, opts};
-            else
-                args = {obj.SourceStack, opts};
-            end
-
-            batchFcn = str2func( class(obj) );
-            
-            % Todo: This stopped(?) working. Should I use parfeval instead?
-            job = batch(batchFcn, 0, args);%, ...
-%                     'AutoAddClientPath', false, 'AutoAttachFiles', false, ...
-%                     'AdditionalPaths', dependentPaths);
-            % Note: The problem with letting batch "inherit" the savepath
-            % of matlab is that it can be very slow if the savepath
-            % conatins a lot of files (especially if git repos are part of
-            % it).
-            
-            job.Tag = jobDescription;
-            
-            toc
         end
         
         function matchConfiguration(obj, referenceProcessor)
@@ -637,6 +608,39 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
    
     methods (Access = protected) % Subroutines (Subclasses may override)
         
+        function runOnWorker(obj)
+            
+            tic
+            
+            jobDescription = sprintf('%s : %s', obj.MethodName, obj.SourceStack.Name);
+            dependentPaths = obj.getDependentPaths();
+            
+            opts = obj.Options;
+            opts.Run.runOnSeparateWorker = false;
+            
+            % Todo: should reconcile this, using a dataiomodel
+            if isprop(obj, 'SessionObjects') % Some subclasses
+                args = {obj.SessionObjects, opts};
+            else
+                args = {obj.SourceStack, opts};
+            end
+
+            batchFcn = str2func( class(obj) );
+            
+            % Todo: This stopped(?) working. Should I use parfeval instead?
+            job = batch(batchFcn, 0, args);%, ...
+%                     'AutoAddClientPath', false, 'AutoAttachFiles', false, ...
+%                     'AdditionalPaths', dependentPaths);
+            % Note: The problem with letting batch "inherit" the savepath
+            % of matlab is that it can be very slow if the savepath
+            % conatins a lot of files (especially if git repos are part of
+            % it).
+            
+            job.Tag = jobDescription;
+            
+            toc
+        end
+
         function onSourceStackSet(obj)
 
         end
