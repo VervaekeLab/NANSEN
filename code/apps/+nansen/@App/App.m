@@ -1162,16 +1162,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % volumeInfo = evt.VolumeInfo;
 
             returnToIdle = app.setBusy('Updating table'); %#ok<NASGU> 
-
+            
             app.DataLocationModel.updateVolumeInfo() % volumeInfo;
 
             % - [ ] Update data location structs
-            if any(strcmp(app.MetaTable.entries.Properties.VariableNames, 'DataLocation'))
-                dataLocationStructs = app.MetaTable.entries.DataLocation;
-                dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
-                app.MetaTable.entries.DataLocation = dataLocationStructs;
-                app.MetaTable.markClean() % This change does not make the table dirty.
-            end
+            app.updateDataLocationFromModel()
 
             % - [ ] Refresh table on these events
             app.onRefreshTableMenuItemClicked()
@@ -2315,15 +2310,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onConfigureDatalocationRootMenuClicked(app, src, evt)
             
             import nansen.dataio.dialog.editDataLocationRootDeviceName
-
+            
+            % - Get selected item from data location model
             dataLocationName = src.Text;
             dlIdx = app.DataLocationModel.getItemIndex(dataLocationName);
             rootConfig = app.DataLocationModel.Data(dlIdx).RootPath;
 
+            % - Update data location model
             updatedRootConfig = editDataLocationRootDeviceName(rootConfig);
             app.DataLocationModel.modifyDataLocation(dataLocationName, ...
                 'RootPath', updatedRootConfig);
             app.DataLocationModel.save()
+            
+            % - Update data location structs
+            app.updateDataLocationFromModel()
+
+            % - Refresh table on these events
+            app.onRefreshTableMenuItemClicked()
         end
 
         function removeTableVariable(app, src, evt)
@@ -2477,7 +2480,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             referenceVarNames = {variableAttributes.Name};
             customVarNames = referenceVarNames([variableAttributes.IsCustom]);
             
-            
             % Check if any functions are present the tablevar folder, but
             % the corresponding variable is missing from the table.
             missingVarNames = setdiff(customVarNames, tableVarNames);
@@ -2493,7 +2495,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
                 metaTable.addTableVariable(thisName, defaultValue)
             end
-
         end
 
         function onMetaTableModifiedChanged(app, src, evt)
@@ -2501,6 +2502,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if evt.AffectedObject.IsModified
                     app.saveMetaTable()
                 end
+            end
+        end
+        
+        function updateDataLocationFromModel(app)
+            if any(strcmp(app.MetaTable.entries.Properties.VariableNames, 'DataLocation'))
+                dataLocationStructs = app.MetaTable.entries.DataLocation;
+                dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
+                app.MetaTable.entries.DataLocation = dataLocationStructs;
+                app.MetaTable.markClean() % This change does not make the table dirty.
             end
         end
         

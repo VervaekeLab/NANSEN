@@ -5,6 +5,9 @@ classdef DataLocationModel < utility.data.StorableCatalog
     %   [x] Combine code from getSubjectId and getSessionId into separate
     %       methods.
     
+    %   Todo: when resolving disk name, need to cross check different
+    %   platforms...
+    
     % QUESTIONS:
     
     properties (Constant, Hidden)
@@ -304,7 +307,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
         end
         
-        function dataLocationStruct = validateDataLocationPaths(obj, dataLocationStruct)
+        function dataLocationStructArray = validateDataLocationPaths(obj, dataLocationStructArray)
         %validateSubfolders Validate subfolders of data locations
         %
         %   This method is used to 
@@ -312,22 +315,27 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %       2) Ensure the file separator of subfolders is matched to
         %          the operating system
             
-            if isempty(dataLocationStruct); return; end
-            if ~isfield(dataLocationStruct, 'Subfolders'); return; end
+            if isempty(dataLocationStructArray); return; end
+            
+            if isa(dataLocationStructArray, 'cell')
+                dataLocationStructArray = utility.struct.structcat(1, dataLocationStructArray{:});
+            end
+            
+            if ~isfield(dataLocationStructArray, 'Subfolders'); return; end
             
             % Assume all subfolders are equal...
             
-            [numItems, numDatalocations] = size(dataLocationStruct);
+            [numItems, numDatalocations] = size(dataLocationStructArray);
             
             for i = 1:numDatalocations
                        
-                dlUuid = dataLocationStruct(1,i).Uuid;
+                dlUuid = dataLocationStructArray(1,i).Uuid;
                 dlInfo = obj.getItem(dlUuid); 
 
                 for j = 1:numItems
 
                     % Update the root directory from the model
-                    rootUid = dataLocationStruct(j, i).RootUid;
+                    rootUid = dataLocationStructArray(j, i).RootUid;
                     rootIdx = find( strcmp( {dlInfo.RootPath.Key}, rootUid ) );
                     
                     if ~isempty(rootIdx)
@@ -338,11 +346,17 @@ classdef DataLocationModel < utility.data.StorableCatalog
                             % Check and assign correct drive letter
                         end
 
-                        dataLocationStruct(j, i).RootPath = rootPathStr;
+                        dataLocationStructArray(j, i).RootPath = rootPathStr;
+                        diskName = dlInfo.RootPath(rootIdx).DiskName;
+                    else
+                        rootIdx = nan;
+                        diskName = 'N/A';
                     end
+                    dataLocationStructArray(j, i).RootIdx = rootIdx;
+                    dataLocationStructArray(j, i).Diskname = diskName;
                     
                     % Make sure file separators match the file system.
-                    iSubfolder = dataLocationStruct(j,i).Subfolders;
+                    iSubfolder = dataLocationStructArray(j,i).Subfolders;
                     if isempty(iSubfolder)
                         continue
                     elseif isunix && contains(iSubfolder, '\')              % convert file separator from unix style to windows
@@ -350,7 +364,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     elseif ispc && contains(iSubfolder, '/')                % convert file separator from windows style to unix
                         iSubfolder = strrep(iSubfolder, '/', filesep);  
                     end
-                    dataLocationStruct(j,i).Subfolders = iSubfolder;
+                    dataLocationStructArray(j,i).Subfolders = iSubfolder;
                 end
             end
         end
@@ -362,6 +376,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 volumeInfo = listPhysicalDrives();
             end
             obj.VolumeInfo = volumeInfo;
+            obj.updateRootPathFromDiskName()
         end
     end
     
@@ -821,17 +836,28 @@ classdef DataLocationModel < utility.data.StorableCatalog
                         end
 
                         isMatch = volumeInfo.VolumeName == jDiskName;
+                        
                         if any(isMatch)
                             if sum(isMatch) > 1
                                 warning('Multiple disks have the same name (%s)', jDiskName);
                             end
                             diskLetter = volumeInfo.DeviceID(isMatch);
-                            S(i).RootPath(j).Value(1:2) = diskLetter;
-                            if ~isfolder( S(i).RootPath(j).Value )
-                                warning('Root not available')
-                            end
                         else
-                            S(i).RootPath(j).Value(1:2) = sprintf('%d:', i);
+                            diskLetter = sprintf('%d:', j);
+                        end
+                         
+                        platformName = obj.pathIsWhichPlatform(S(i).RootPath(j).Value);
+                        conversion = [platformName, '2', 'pc'];
+
+                        try
+                            updatedPath = obj.replaceDiskMountInPath(S(i).RootPath(j).Value, diskLetter, conversion);
+                        catch
+                            updatedPath = S(i).RootPath(j).Value;
+                        end
+                        S(i).RootPath(j).Value = updatedPath;
+
+                        if ~isfolder( S(i).RootPath(j).Value )
+                            %warning('Root not available')
                         end
                     end
                 end
@@ -873,12 +899,12 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             diskLetter = string(regexp(rootPath, '.*:', 'match'));
             try
-                matchedIdx = find( volumeInfo.DeviceID == diskLetter );
+                matchedIdx = find( obj.VolumeInfo.DeviceID == diskLetter );
             catch 
                 matchedIdx = [];
             end
             if ~isempty(matchedIdx)
-                diskName = volumeInfo.VolumeName(matchedIdx);
+                diskName = obj.VolumeInfo.VolumeName(matchedIdx);
             else
                 diskName = '';
             end
@@ -907,7 +933,48 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 pathString = '';
             end
         end
+        
+        function platformName = pathIsWhichPlatform(pathStr)
+                        
+            platformNameList = {'mac', 'pc', 'unix'};
+            strPattern = {'^/Volumes', '^\w{1}\:', '^n/a'};
+            
+            for i = 1:numel(platformNameList)
+                if ~isempty(regexp(pathStr, strPattern{i}, 'match'))
+                    platformName = platformNameList{i}; 
+                    return
+                end
+            end
+            platformName = 'N/A';
+        end
+        
+        function pathStr = replaceDiskMountInPath(pathStr, mount, conversionType)
+            
+           switch conversionType
+               case 'mac2pc'
+                   splitPath = strsplit(pathStr, '/');
+                   oldStr = ['/', strjoin(splitPath(2:3), '/')];
+                   %oldStr = regexp(pathStr, '^/Volumes/.*/', 'match'); %todo...
+                   newStr = char(mount);
 
+               case 'mac2mac'
+                   
+               case 'pc2mac'
+                   
+               case 'pc2pc'
+                   oldStr = pathStr(1:2);
+                   newStr = char(mount); 
+           end
+           
+           pathStr = char( strrep(pathStr, oldStr, newStr) );
+          
+           switch conversionType
+               case 'mac2pc'
+                   pathStr = strrep(pathStr, '/', '\');
+               case 'pc2mac'
+                   pathStr = strrep(pathStr, '\', '/');
+           end
+        end
     end
 
     %%  Temporary methods for fixing various introduced changes

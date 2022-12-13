@@ -8,6 +8,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
 %   Todo
 %       [ ] Add some instructions in a textbox
 %       [ ] Is it possible to indicate that the diskname is a dropdown?
+%       [ ] Update dropdowns if drives are connected or disconnected
 
     volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
     
@@ -104,20 +105,35 @@ function onTableDataChanged(src, evt, volumeInfo)
     
     currentRoot = src.Data{rowIdx, 2};
 
-    if ismac
-        oldString = sprintf('Volumes/%s/', evt.OldValue);
-        newString = sprintf('Volumes/%s/', evt.NewValue);
-        currentRoot = replace(currentRoot, oldString, newString);
+    % Determine what format old string is:
+    isCurrentPathMacStyle = ~isempty(regexp(currentRoot, '^/Volumes', 'match'));
+    isCurrentPathPcStyle = ~isempty(regexp(currentRoot, '^\w{1}\:', 'match'));
     
-    elseif ispc
-        oldLetter = currentRoot(1:2);
+    if isCurrentPathMacStyle && ispc
+        oldString = ['\Volumes\', evt.OldValue];
         isMatch = volumeInfo.VolumeName == string(evt.NewValue);
-        newLetter = volumeInfo.DeviceID(isMatch);
-        currentRoot = replace(currentRoot, oldLetter, newLetter);
+        newString = volumeInfo.DeviceID(isMatch);
+        currentRoot = strrep(currentRoot, '/', '\');
+        
+    elseif isCurrentPathMacStyle && ismac
+        oldString = sprintf('/Volumes/%s/', evt.OldValue);
+        newString = sprintf('/Volumes/%s/', evt.NewValue);
+    
+    elseif isCurrentPathPcStyle && ispc
+        oldString = currentRoot(1:2);
+        isMatch = volumeInfo.VolumeName == string(evt.NewValue);
+        newString = volumeInfo.DeviceID(isMatch);
+    
+    elseif isCurrentPathPcStyle && ismac
+        oldString = regexp(currentRoot, '^\w{1}\:', 'match');
+        newString = sprintf('Volumes/%s', evt.NewValue);
+        currentRoot = strrep(currentRoot, '\', '/');
 
     elseif isunix
         error('Not implemented yet')
     end
+    
+    currentRoot = replace(currentRoot, oldString, newString);
 
     src.Data{rowIdx, 2} = currentRoot;    
 end

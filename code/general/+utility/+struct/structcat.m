@@ -18,14 +18,14 @@ function structArray = structcat(dim, varargin)
     end
     
     uniqueFields = unique(cat(1, fieldNames{:}));
-
+        
     % Add missing fields for structs with missing fields
     for i = 1:numStructs
         hasFields = isfield(structCellArray{i}, uniqueFields);
         if any(~hasFields)
             missingFields = uniqueFields(~hasFields);
             for j = 1:numel(missingFields)
-                structCellArray{i}.(missingFields{j}) = [];
+                [structCellArray{i}(:).(missingFields{j})] = deal([]);
             end
         end
     end
