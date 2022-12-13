@@ -54,14 +54,16 @@ classdef MetaTableCatalog < uim.handle
             end
 
             % Append a table column that was added october 2022
-            if ~any(strcmp(obj.Table.Properties.VariableNames, 'MetaTableIdVarname') )
-                numRows = size(obj.Table,1);
-                metaTableIdColumn = repmat({'sessionID'}, numRows, 1);
-                newTableColumn = cell2table(metaTableIdColumn, "VariableNames", {'MetaTableIdVarname'});
-                newTable = cat(2, obj.Table, newTableColumn);
-                columnOrder = [1:3, 8, 4:7]; % MetaTable.MTABVARS
-                obj.Table = newTable(:, columnOrder);
-                obj.save()
+            if ~isempty(obj.Table)
+                if ~any(strcmp(obj.Table.Properties.VariableNames, 'MetaTableIdVarname') )
+                    numRows = size(obj.Table,1);
+                    metaTableIdColumn = repmat({'sessionID'}, numRows, 1);
+                    newTableColumn = cell2table(metaTableIdColumn, "VariableNames", {'MetaTableIdVarname'});
+                    newTable = cat(2, obj.Table, newTableColumn);
+                    columnOrder = [1:3, 8, 4:7]; % MetaTable.MTABVARS
+                    obj.Table = newTable(:, columnOrder);
+                    obj.save()
+                end
             end
         end
         
