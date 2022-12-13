@@ -400,6 +400,29 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             imArray = obj.getFrameSet(frameInd, mode, varargin{:});
             imArray = obj.convertToRgb(imArray);
         end
+        
+        function dataSize = getFrameSetSize(obj, frameInd, mode, varargin)
+        %getFrameSetSize Get size of frame set for a given number of frames    
+            
+            if nargin < 3 || isempty(mode); mode = 'standard'; end
+            
+            switch mode
+                case 'standard'
+                    indexingSubs = obj.getDataIndexingStructure(frameInd, varargin);
+                case 'extended'
+                    indexingSubs = obj.getFullDataIndexingStructure(frameInd);
+            end
+            
+            dataSize = zeros(size(indexingSubs));
+
+            for i = 1:numel(dataSize)
+                if strcmp(indexingSubs{i}, ':')
+                    dataSize(i) = size(obj.Data, i);
+                else
+                    dataSize(i) = numel(indexingSubs{i});
+                end
+            end
+        end
 
         function writeFrameSet(obj, imageArray, frameInd)
         %writeFrameSet Write set of image frames to image stack

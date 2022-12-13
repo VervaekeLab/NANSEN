@@ -1457,7 +1457,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function resetMetaObjectList(app)
         %resetMetaObjectList Delete all meta objects from the list    
-            for i = 1:numel(app.MetaObjectList)
+            for i = numel(app.MetaObjectList):-1:1
                 if isvalid( app.MetaObjectList(i) )
                     delete( app.MetaObjectList(i) )
                 end
