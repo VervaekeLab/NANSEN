@@ -845,6 +845,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
                         else
                             diskLetter = sprintf('%d:', j);
                         end
+                        
+                        % Todo: Remove:
+                        % Replace symbol that was meant to indicate drive
+                        % is not connected, which turned out to be
+                        % troublesome:
+                        if strncmp(S(i).RootPath(j).Value, '~', 1)
+                            S(i).RootPath(j).Value(1)=num2str(i);
+                        end
                          
                         platformName = obj.pathIsWhichPlatform(S(i).RootPath(j).Value);
                         conversion = [platformName, '2', 'pc'];
