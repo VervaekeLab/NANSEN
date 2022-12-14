@@ -1470,8 +1470,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             sessionID = src.sessionID;
             metaTableEntryIdx = find(strcmp(app.MetaTable.members, sessionID));
-            app.MetaTable.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
             
+            if numel(metaTableEntryIdx) > 1
+                metaTableEntryIdx = metaTableEntryIdx(1);
+                msg = sprintf('Multiple sessions have the sessionID "%s"', sessionID);
+                warndlg(msg)
+            end
+            
+            app.MetaTable.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
             
             rowIdx = metaTableEntryIdx;
             colIdx = find(strcmp(app.MetaTable.entries.Properties.VariableNames, evt.Property));
@@ -2562,7 +2568,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 % Temp fix. Todo: remove
                 metaTable = nansen.metadata.temp.fixMetaTableDataLocations(metaTable, app.DataLocationModel);
-                
+                metaTable = nansen.metadata.temp.fixDataLocationSubfolders(metaTable);
+
                 % Temp fix. Todo: remove
                 if any(strcmp(metaTable.entries.Properties.VariableNames, 'Data'))
                     metaTable.removeTableVariable('Data')
