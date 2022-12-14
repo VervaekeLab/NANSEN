@@ -10,6 +10,10 @@ classdef Project < handle
     %   [ ] Define preferences.
     %   [ ] Consider whether project folder should be dependent, i.e if it
     %       is changed from project manager, instances need to be updated.
+    %   [ ] Should preferences be saved in project configuration or in
+    %       project catalog?
+    %   [ ] Should there be a project preference whether to save task lists
+    %       for a project?
     
     properties
         Name                        % Name of the project

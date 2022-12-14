@@ -830,7 +830,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                         jDiskName = S(i).RootPath(j).DiskName;
                         
                         % If not assigned previously, diskName defaults to
-                        % an empty double, so make sure it is a string.
+                        % an empty double, but here, change it to a string.
                         if isempty(jDiskName) && isa(jDiskName, 'double')
                             jDiskName = "";
                         end
@@ -871,6 +871,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 end
             else
                 % Pass
+                % Todo: root path was created in windows
             end
 
             if nargin < 2
@@ -943,7 +944,10 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
         
         function platformName = pathIsWhichPlatform(pathStr)
-                        
+        %pathIsWhichPlatform Determine platform which a path is native to
+            
+            % Todo: get pattern for unix from preferences?
+
             platformNameList = {'mac', 'pc', 'unix'};
             strPattern = {'^/Volumes', '^\w{1}\:', '^n/a'};
             
@@ -959,19 +963,24 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function pathStr = replaceDiskMountInPath(pathStr, mount, conversionType)
             
            switch conversionType
-               case 'mac2pc'
-                   splitPath = strsplit(pathStr, '/');
-                   oldStr = ['/', strjoin(splitPath(2:3), '/')];
-                   %oldStr = regexp(pathStr, '^/Volumes/.*/', 'match'); %todo...
-                   newStr = char(mount);
+                case 'mac2pc'
+                    splitPath = strsplit(pathStr, '/');
+                    oldStr = ['/', strjoin(splitPath(2:3), '/')];
+                    %oldStr = regexp(pathStr, '^/Volumes/.*/', 'match'); %todo...
+                    newStr = char(mount);
 
-               case 'mac2mac'
+                case 'mac2mac'
+                    splitPath = strsplit(pathStr, '/');
+                    oldStr = splitPath{3};
+                    newStr = mount;
+                    
+                case 'pc2mac'
+                    oldStr = regexp(currentRoot, '^\w{1}\:', 'match', 'once');
+                    newStr = sprintf('/Volumes/%s', mount);
                    
-               case 'pc2mac'
-                   
-               case 'pc2pc'
-                   oldStr = pathStr(1:2);
-                   newStr = char(mount); 
+                case 'pc2pc'
+                    oldStr = pathStr(1:2);
+                    newStr = char(mount); 
            end
            
            pathStr = char( strrep(pathStr, oldStr, newStr) );

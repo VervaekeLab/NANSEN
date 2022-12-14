@@ -362,7 +362,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         
         function setColumnWidths(obj, columnWidths)
         %setColumnWidths Set column width of current metatable columns.
-        
+            
+            if isempty(obj.settings); return; end
+            
             % Todo: Maybe IND should be given in input...
             IND = obj.getIndicesToShowInMetaTable();
             

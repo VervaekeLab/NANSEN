@@ -42,6 +42,7 @@ classdef roiMap < roimanager.roiDisplay
     end
 
     properties
+        % Todo: Should this be on the roidisplay???
         ActiveChannel % Active channel corresponds to channel of imagestack that current roi map represents
     end
     
@@ -155,6 +156,11 @@ classdef roiMap < roimanager.roiDisplay
         
         function addRois(obj, newRoi)
             
+            if isempty(obj.RoiGroup)
+                errordlg('Could not add rois because no roi group is active. Make sure one active channel is selected and that the channel is visible.')
+                return
+            end
+
             % Todo: Dependent on settings.
             newRoi = obj.addUserData(newRoi);
             

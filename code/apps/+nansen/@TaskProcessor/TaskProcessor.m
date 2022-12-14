@@ -371,9 +371,18 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             end
             
             if isfile(filePath)
-                S = load(filePath, 'taskListQueue', 'taskListHistory');
-                obj.TaskQueue = S.taskListQueue;
-                obj.TaskHistory = S.taskListHistory;
+                try
+                    S = load(filePath, 'taskListQueue', 'taskListHistory');
+                    obj.TaskQueue = S.taskListQueue;
+                    obj.TaskHistory = S.taskListHistory;
+                catch ME
+                    % Back up file
+                    dateStr = datestr(now, 'yyyymmdd_HH_MM_SS');
+                    filePathBackup = strrep(filePath, '.mat', 'corrupted_%s.mat', dateStr);
+                    movefile(filePath, filePathBackup);
+                    
+                    warning('Could not load the task list. This might be due to the file being corrupt. The file is backed up, and the task list is reset. If you see this warning several times, please report!')
+                end
             end
             
         end

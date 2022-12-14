@@ -18,6 +18,13 @@ function [formatterFcnHandle, varNames] = getColumnFormatter(varNames, tableClas
 %   A column formatter is any class that inherits from the 
 %   nansen.metadata.abstract.TableVariable class
     
+
+% Todo. Turn this into an enumeration class similar to
+% uiw.enum.TableColumnFormat?
+% Right now this is constantly being triggered on mouseover. Should only
+% have to be called if table changes...
+
+
     % Set default variables.
     if nargin < 1 || isempty(varNames); varNames = {}; end
     if nargin < 2 || isempty(tableClass); tableClass = 'session'; end
@@ -45,7 +52,7 @@ function [formatterFcnHandle, varNames] = getColumnFormatter(varNames, tableClas
     % List .m files in these folders
     [mFiles, fileNames] = utility.path.listFiles(rootFolderPath, '.m');
     fileNames = strrep(fileNames, '.m', ''); % Remove file extension
-
+    
     % Filter by variable names
     if ~isempty(varNames)
         [fileNames, iA] = intersect(fileNames, varNames, 'stable');

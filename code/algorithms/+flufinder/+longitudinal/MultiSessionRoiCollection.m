@@ -87,7 +87,9 @@ classdef MultiSessionRoiCollection < handle
         
         % Update a roi array from master
         function [obj, roiArray] = updateFromOthers(obj, sessionID)
-        %UPDATEFROMOTHERS update RoIs for given session from "master"
+        %UPDATEFROMOTHERS update RoIs for given session from reference sess
+        %
+        % Todo: Rename to updateFromReference
 
             refRois = roimanager.utilities.struct2roiarray(obj(1).RoIArray);
             
@@ -106,8 +108,8 @@ classdef MultiSessionRoiCollection < handle
             newRois = newRois.removeTag('missing');
             newRois = newRois.addTag('imported');
                 
-            % Check if any of the unique rois from the master are
-            % overlapping with any rois from the current session. If
+            % Check if any of the unique rois from the reference session 
+            % are overlapping with any rois from the current session. If
             % yes, rois in the current session should inherit unique
             % ids. All other rois are added to current session.
             if ~isempty(newRois)
