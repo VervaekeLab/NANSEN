@@ -282,6 +282,10 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             summary.maxPixelValue = max(data(:));
         end
         
+        function saveResults(obj)
+            % Not implemented yet
+        end
+
         function onCompletion(obj)
               
             obj.TargetStack.DataIntensityLimits = [obj.MinPixelValue, obj.MaxPixelValue];
