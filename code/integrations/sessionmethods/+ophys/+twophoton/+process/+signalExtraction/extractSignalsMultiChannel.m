@@ -19,7 +19,7 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
     end
 
     properties 
-        RequiredVariables = {'TwoPhotonSeries_Corrected', 'roiArray'}
+        RequiredVariables = {'TwoPhotonSeries_Corrected', 'RoiArray'}
     end
     
     
