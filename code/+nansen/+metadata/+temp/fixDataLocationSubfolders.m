@@ -7,8 +7,10 @@ function metaTable = fixDataLocationSubfolders(metaTable)
     
     dataLocationStructs = metaTable.entries.DataLocation;
     
-    for iSession = 1:size(dataLocationStructs, 1)
-        for jDataLoc = 1:size(dataLocationStructs, 2)
+    [numSessions, numDataLocations] = size(dataLocationStructs);
+
+    for iSession = 1:numSessions
+        for jDataLoc = 1:numDataLocations
             thisRoot = dataLocationStructs(iSession, jDataLoc);
             if isa(thisRoot.Subfolders, 'char') && isa(thisRoot.RootPath, 'char')
                 if contains(thisRoot.Subfolders, thisRoot.RootPath)
@@ -18,7 +20,7 @@ function metaTable = fixDataLocationSubfolders(metaTable)
             end
         end
     end
-    dataLocationStructs = mat2cell(dataLocationStructs, ones(1,size(dataLocationStructs, 1)), 2);
+    dataLocationStructs = mat2cell(dataLocationStructs, ones(1, numSessions), numDataLocations);
     
     %dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
     metaTable.replaceDataColumn('DataLocation', dataLocationStructs );
