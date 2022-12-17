@@ -314,6 +314,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %       1) Update the root path from the model
         %       2) Ensure the file separator of subfolders is matched to
         %          the operating system
+
+        %   % Todo: Consolidate with session/fixDataLocations
             
             if isempty(dataLocationStructArray); return; end
             
@@ -512,8 +514,13 @@ classdef DataLocationModel < utility.data.StorableCatalog
             if isfield(S, 'StringFormat') && ~isempty(S.StringFormat)
                 %if isempty(substring)
                 %end
-                value = datetime(substring, 'InputFormat', S.StringFormat);
-                value.Format = 'HH:mm:ss'; % Format output as a time.
+                try
+                    value = datetime(substring, 'InputFormat', S.StringFormat);
+                    value.Format = 'HH:mm:ss'; % Format output as a time.
+                catch ME
+                    value = NaT;
+                    warning(ME.message)
+                end
             else
                 value = substring;
             end
