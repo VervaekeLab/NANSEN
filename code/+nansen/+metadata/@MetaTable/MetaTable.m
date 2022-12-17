@@ -350,7 +350,10 @@ classdef MetaTable < handle
                 return
             end
 
-            if obj.isClean() && ~force; return; end
+            if obj.isClean() && ~force
+                if ~nargout; clear wasSaved; end
+                return; 
+            end
 
             if ~obj.isLatestVersion() && ~force
                 doCancel = obj.resolveCurrentVersion();
