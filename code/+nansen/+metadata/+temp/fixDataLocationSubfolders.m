@@ -5,25 +5,33 @@ function metaTable = fixDataLocationSubfolders(metaTable)
 %   All datalocation items has all the datalocations
 %   All datalocation items has all the 6 fields (see below)
     
-    dataLocationStructs = metaTable.entries.DataLocation;
+    if ~contains('DataLocation', metaTable.entries.Properties.VariableNames )
+        return
+    end
+
+    dataLocationStructArray = metaTable.entries.DataLocation;
     
-    [numSessions, numDataLocations] = size(dataLocationStructs);
+    if isa(dataLocationStructArray, 'cell')
+        dataLocationStructArray = utility.struct.structcat(1, dataLocationStructArray{:});
+    end
+
+    [numSessions, numDataLocations] = size(dataLocationStructArray);
 
     for iSession = 1:numSessions
         for jDataLoc = 1:numDataLocations
-            thisRoot = dataLocationStructs(iSession, jDataLoc);
+            thisRoot = dataLocationStructArray(iSession, jDataLoc);
             if isa(thisRoot.Subfolders, 'char') && isa(thisRoot.RootPath, 'char')
                 if contains(thisRoot.Subfolders, thisRoot.RootPath)
                     thisRoot.Subfolders = strrep(thisRoot.Subfolders, thisRoot.RootPath, '');
-                    dataLocationStructs(iSession, jDataLoc) = thisRoot;
+                    dataLocationStructArray(iSession, jDataLoc) = thisRoot;
                 end
             end
         end
     end
-    dataLocationStructs = mat2cell(dataLocationStructs, ones(1, numSessions), numDataLocations);
+    dataLocationStructArray = mat2cell(dataLocationStructArray, ones(1, numSessions), numDataLocations);
     
     %dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
-    metaTable.replaceDataColumn('DataLocation', dataLocationStructs );
+    metaTable.replaceDataColumn('DataLocation', dataLocationStructArray );
     %metaTable.entries.DataLocation = dataLocationStructs;
     metaTable.markClean() 
 end
