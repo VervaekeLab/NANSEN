@@ -79,6 +79,7 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
                 iZ = obj.StackIterator.CurrentPlane;
 
                 iRoiArray = obj.RoiGroupArray(iZ, iC).roiArray;
+                if isempty(iRoiArray); continue; end
 
                 % Prepare extraction parameters for each channel and plane
                 obj.ExtractionParameters{iZ, iC} = obj.updateParameters(....
@@ -99,7 +100,11 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
         
         function [Y, results] = processPart(obj, Y)
             signalExtractionFcn = obj.SignalExtractionFcn{obj.CurrentPlane, obj.CurrentChannel};
-            results = signalExtractionFcn(Y);
+            if ~isempty(signalExtractionFcn)
+                results = signalExtractionFcn(Y);
+            else
+                results = [];
+            end
             Y = [];
         end
 
@@ -121,13 +126,23 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
             % Determine channel indices and plane indices for each roi:
             numRois = size(signalArray, 3);
             [PlaneIndices, ChannelIndices] = deal(zeros(1, numRois));
-
-            idxTransition = cellfun(@(c) size(c, 3), obj.MergedResults);
-
-            PlaneIndices(idxTransition(1:end-1, 1)+1) = 1; 
-            ChannelIndices(idxTransition(1, 1:end-1)+1) = 1;
             PlaneIndices(1) = 1; ChannelIndices(1) = 1;
+
+            idxTransition = arrayfun(@(c) c.roiCount, obj.RoiGroupArray);
             
+            planeTransitions = sum(idxTransition, 2);
+            channelTranisitions = sum(idxTransition, 1);
+
+            for i = 1:size(idxTransition, 1) - 1
+                thisIdx = planeTransitions(i) + 1;
+                PlaneIndices(thisIdx) = PlaneIndices(thisIdx) + 1;
+            end
+            
+            for i = 1:size(idxTransition, 2) - 1
+                thisIdx = channelTranisitions(i) + 1;
+                ChannelIndices(thisIdx) = ChannelIndices(thisIdx) + 1;
+            end
+
             PlaneIndices = cumsum(PlaneIndices);
             ChannelIndices = cumsum(ChannelIndices);
 
