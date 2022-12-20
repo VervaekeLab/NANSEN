@@ -296,20 +296,21 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             currentRoiGroup = obj.RoiGroup;
             loadedRoiGroup = rois;
             if ~nargout; clear rois; end
-
-
+            
             % Make sure size of loaded and size of current roi groups is
             % the same.
-            assert( isequal( size(currentRoiGroup), size(loadedRoiGroup) ), ...
-                'Loaded roi group does not match the dimensions of the image stack')
+            %assert( isequal( size(currentRoiGroup), size(loadedRoiGroup) ), ...
+            %    'Loaded roi group does not match the dimensions of the image stack')
 
             % Todo: Load through all roi groups:
             for i = 1:numel(loadedRoiGroup)
-            
+                iC = loadedRoiGroup(i).ChannelNumber;
+                iZ = loadedRoiGroup(i).PlaneNumber;
                 % If rois already exist, determine how to add new ones
-                if ~isempty(currentRoiGroup(i).roiArray)
+                if ~isempty(currentRoiGroup(iZ, iC).roiArray)
                     % If the loaded rois are identical, abort here
-                    if isequal(currentRoiGroup(i).roiArray, loadedRoiGroup(i).roiArray)
+                    if isequal(currentRoiGroup(iZ, iC).roiArray, ...
+                                loadedRoiGroup(iZ, iC).roiArray)
                         return
                     else
                         addMode = obj.uiGetModeForAddingRois();
@@ -331,26 +332,21 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 % overlapping rois if that is requested.
                 switch addMode
                     case 'replace'
-                        roiInd = 1:currentRoiGroup(i).roiCount;
-                        currentRoiGroup(i).removeRois(roiInd);
+                        roiInd = 1:currentRoiGroup(iZ, iC).roiCount;
+                        currentRoiGroup(iZ, iC).removeRois(roiInd);
                     
                     case 'append non-overlapping'
                         addMode = 'append';
                         
                         [iA, ~] = roimanager.utilities.findOverlappingRois(...
-                    	    loadedRoiGroup(i).roiArray, currentRoiGroup(i).roiArray);
+                    	    loadedRoiGroup(i).roiArray, currentRoiGroup(iZ, iC).roiArray);
                         
                         loadedRoiGroup(i).removeRois(iA)
                 end
                 
-                %tic
-                %profile on
                 if loadedRoiGroup(i).roiCount > 0
-                    obj.RoiGroup(i).addRois(loadedRoiGroup(i), [], addMode)
+                    obj.RoiGroup(iZ, iC).addRois(loadedRoiGroup(i), [], addMode)
                 end
-                %profile viewer
-                %toc
-
             end
 
             if strcmp(addMode, 'replace') || strcmp(addMode, 'initialize')

@@ -69,6 +69,11 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                 roiGroup = arrayfun(@(s) roimanager.roiGroup(s), roiGroupStruct);
                 roiGroup.markClean()
                 return
+            elseif strcmp(roiFormat, 'Nansen') && isstruct(data) ...
+                    && isfield(data, 'ChannelNumber')
+                roiGroup = roimanager.roiGroup(data);
+                roiGroup.markClean()
+                return
             end
 
             [roiArray, classification, stats, images] = conversionFcn(data);

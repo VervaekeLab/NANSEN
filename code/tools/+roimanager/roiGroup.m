@@ -34,6 +34,8 @@ classdef roiGroup < handle
     
     properties (SetAccess = private)
         FovImageSize = [] % Todo: Make dependent
+        ChannelNumber = 1
+        PlaneNumber = 1
     end
     
     properties (SetAccess = protected) % RoiGroupData...
@@ -722,6 +724,10 @@ classdef roiGroup < handle
                         if numel(S.roiClassification) == numRois
                             obj.roiClassification = S.roiClassification;
                         end
+                    case 'ChannelNumber'
+                        obj.ChannelNumber = S.ChannelNumber;
+                    case 'PlaneNumber'
+                        obj.PlaneNumber = S.PlaneNumber;
                 end
             end
                         
@@ -733,7 +739,6 @@ classdef roiGroup < handle
             obj.roiArray = setappdata(obj.roiArray, 'roiImages', S.roiImages);
             obj.roiArray = setappdata(obj.roiArray, 'roiStats', S.roiStats);
         end
-        
     end
     
     methods (Access = private)
