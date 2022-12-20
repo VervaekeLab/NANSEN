@@ -265,7 +265,6 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
             obj.SourceStack = value;
             obj.onSourceStackSet()
             obj.initializeStackIterator()
-            obj.configureStackIterator()
         end
         
         function runOnSeparateWorker = get.RunOnSeparateWorker(obj)
@@ -449,6 +448,7 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
             % start over.
             
             % Todo: Why not run this after onInitialization?
+            obj.configureStackIterator()
             obj.configureImageStackSplitting()
 
             % Run onInitialization ( Subclass may implement this method)
