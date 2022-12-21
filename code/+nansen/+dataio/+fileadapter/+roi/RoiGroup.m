@@ -333,7 +333,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
 
         function S = createStructFromRoiGroup(~, data)
             
-            varNames = {'roiArray', 'roiImages', 'roiStats', 'roiClassification'};
+            varNames = {'roiArray', 'roiImages', 'roiStats', 'roiClassification', 'ChannelNumber', 'PlaneNumber'};
 
             S = struct;
             for i = 1:size(data, 1)
