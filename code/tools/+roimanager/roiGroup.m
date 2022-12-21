@@ -735,9 +735,9 @@ classdef roiGroup < handle
                 obj.roiClassification = zeros(size(obj.roiArray));
             end
             
-            obj.roiArray = setappdata(obj.roiArray, 'roiClassification', S.roiClassification);
-            obj.roiArray = setappdata(obj.roiArray, 'roiImages', S.roiImages);
-            obj.roiArray = setappdata(obj.roiArray, 'roiStats', S.roiStats);
+            obj.roiArray = setappdata(obj.roiArray, 'roiClassification', obj.roiClassification);
+            obj.roiArray = setappdata(obj.roiArray, 'roiImages', obj.roiImages);
+            obj.roiArray = setappdata(obj.roiArray, 'roiStats', obj.roiStats);
         end
     end
     

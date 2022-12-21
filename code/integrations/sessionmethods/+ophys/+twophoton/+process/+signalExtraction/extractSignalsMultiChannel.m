@@ -46,6 +46,7 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
     methods
         
         function runMethod(obj)
+            import roimanager.utilities.ensureRoiGroupMatchImageStack
             
             sessionData = nansen.session.SessionData(obj.SessionObjects);
             sessionData.updateDataVariables()
@@ -54,9 +55,11 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
             currentChannels = imageStack.CurrentChannel;
             imageStack.CurrentChannel = 1:imageStack.NumChannels;
 
-            roiArray = sessionData.RoiArray;
+            roiGroup = sessionData.RoiArray;
             
-            nansen.processing.SignalExtractor(imageStack, obj.Options, roiArray, obj.SessionObjects)
+            roiGroup = ensureRoiGroupMatchImageStack(roiGroup, imageStack);
+            
+            nansen.processing.SignalExtractor(imageStack, obj.Options, roiGroup, obj.SessionObjects)
             
             % Reset channels
             imageStack.CurrentChannel = currentChannels;
