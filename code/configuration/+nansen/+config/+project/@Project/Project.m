@@ -99,7 +99,7 @@ classdef Project < handle
 
         function folderPath = getLocalProjectFolderPath(obj)
 
-            nansenRoot = utility.path.getAncestorDir(nansen.rootpath, 1);
+            nansenRoot = utility.path.getAncestorDir(nansen.rootpath, 2);
             localProjectPath = fullfile(nansenRoot, '_userdata', 'projects');
             
             folderPath = fullfile(localProjectPath, obj.Name);

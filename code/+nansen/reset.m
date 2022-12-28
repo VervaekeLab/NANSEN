@@ -25,7 +25,7 @@ function reset()
     
     
     %% Remove folders with userdata
-    nansenRootPath = utility.path.getAncestorDir(nansen.rootpath, 1);
+    nansenRootPath = utility.path.getAncestorDir(nansen.rootpath, 2);
 
     % Remove folder with external toolboxes, project specific- and general
     % settings

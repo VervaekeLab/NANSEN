@@ -2296,8 +2296,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         
         function pathStr = getIconPath()
             % Set system dependent absolute path for icons.
-
-            rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 0);
+            rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 1);
             pathStr = fullfile(rootDir, 'resources', 'icons');
 
         end

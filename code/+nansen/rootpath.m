@@ -4,6 +4,6 @@ function folder = rootpath()
 
     % Todo (need to change all references to rootpath across code files): 
     % Now go two steps up:
-    % folder = utility.path.getAncestorDir(folder, 1);
+    % folder = utility.path.getAncestorDir(folder, 2);
     
 end

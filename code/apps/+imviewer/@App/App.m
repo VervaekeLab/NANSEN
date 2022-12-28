@@ -5853,7 +5853,7 @@ methods (Static)
         % Set system dependent absolute path for icons.
         
         %rootDir = fileparts(fileparts(mfilename('fullpath')));
-        rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 1);
+        rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 2);
         pathStr = fullfile(rootDir, 'resources', 'icons');
 
         %iconPath = @(iconName) fullfile(iconDir, [iconName, '.mat']);

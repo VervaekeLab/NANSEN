@@ -23,7 +23,7 @@ function hFigure = openAtlas(varargin)
 
       
     % Version were we are agnostic to package name
-    pkgFolderPath = utility.path.getAncestorDir( mfilename('fullpath'), 1);
+    pkgFolderPath = utility.path.getAncestorDir( mfilename('fullpath'), 2);
     atlasFolderPath = fullfile(pkgFolderPath, 'resources', 'brain_atlas');
     
     % Version were we know package name but local path is centrally hardcoded.
