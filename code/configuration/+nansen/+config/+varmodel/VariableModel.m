@@ -218,6 +218,17 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             matchesFiletype = strcmp(fileTypes, ext);
             matchesFilename = cellfun(@(expr) contains(filename, expr), filenameExpressions);
 
+            % Find the longest match
+            matchedFilenameExpressions = filenameExpressions(matchesFilename);
+            matchLength = cellfun(@numel, matchedFilenameExpressions);
+            maxLength = max(matchLength);
+            matchedFilenameExpressions = unique( matchedFilenameExpressions(matchLength == maxLength) );
+            
+            % Refine match by only the longest matches
+            matchesFilename = cellfun(@(expr) ...
+                any(strcmp(matchedFilenameExpressions, expr)), ...
+                filenameExpressions, 'UniformOutput', true);
+            
             isMatch = matchesFiletype & matchesFilename & ~isEmpty;
 
             warnMultiple = false;
@@ -246,9 +257,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             end
         end
 
-
         function fileAdapter = getFileAdapter(obj, variableName)
-                    
             [filePath, variableInfo] = obj.getDataFilePath(variableName);
             fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
             fileAdapter = fileAdapterFcn(filePath);

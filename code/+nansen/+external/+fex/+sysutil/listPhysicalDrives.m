@@ -44,6 +44,7 @@ function infoTable = listPhysicalDrives()
     infoTable = postprocessTable(infoTable);
 end
 
+% % Local functions:
 
 function infoTable = convertListToTableMac(infoStr)
 %convertListToTableMac Split string containing list of drive info into a table
@@ -202,24 +203,10 @@ function infoTable = postprocessTable(infoTable)
     infoTable.Properties.RowNames = arrayfun(@num2str, 1:size(infoTable,1), 'uni', 0)';
 end
 
-% Windows test:
-function infoStr = getWindowsTestStr()
-    infoStr = sprintf(['DeviceID  FileSystem  Size           VolumeName                 VolumeSerialNumber\n', ...  
-     'C:        NTFS        487263825920   Windows                    362B9C03            \n', ...
-     'D:        NTFS        23300403200    Recovery Image             8C270C51            \n', ...
-     'E:        NTFS        4000768323584  Data                       A029F36B            \n', ...
-     'F:        exFAT       5000669429760  One Touch                  5FD3B355            \n', ...
-     'H:        exFAT       5000669429760  One Touch                  5FD3B355            \n', ...
-     'I:        NTFS        5000845586432  Seagate Backup Plus Drive  C45AD2BE            \n', ...
-     '\n', ...
-     '\n']);
-end
-
 function cellArray = removeEmptyCells(cellArray)
     isEmptyCell = cellfun(@isempty, cellArray);
     cellArray( isEmptyCell ) = [];
 end
-
 
 % % % function filename = filewrite(filename, textString)
 % % %     
