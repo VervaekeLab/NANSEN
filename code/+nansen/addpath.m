@@ -4,13 +4,16 @@ function addpath()
 %   This function makes sure nansen is on top of the path...Important,
 %   because some functions in Nansen should take precedence over other
 %   functions from toolboxes..
+
+%   Note (Todo): This should be solved in a different way, or users need to be
+%   informed of this behavior...
     
     currentpath = path;
-    firstPathOnPath = regexp(currentpath, '.*?(?=:)', 'match', 'once');
+    expression = sprintf('.*?(?=%s)', pathsep); % Everything before the first pathsep
+    firstPathOnPath = regexp(currentpath, expression, 'match', 'once');
 
-    %nansenRootPath = nansen.localpath('root');
-    nansenRootPath = utility.path.getAncestorDir(nansen.rootpath, 2);
-    if isequal(firstPathOnPath, nansenRootPath); return; end
+    nansenRootPath = nansen.rootpath();
+    if isequal( firstPathOnPath, nansenRootPath ); return; end
     
     warning('off', 'MATLAB:rmpath:DirNotFound')
     rmpath(genpath(nansenRootPath))

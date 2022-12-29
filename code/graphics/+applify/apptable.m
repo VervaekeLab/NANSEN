@@ -178,14 +178,12 @@ classdef apptable < applify.UiControlTable
         function hIconButton = createHelpIconButton(obj, hContainer)
         %createHelpIconButton Create a help button
         
-            rootPath = fileparts(nansen.rootpath);
-            imgPath = fullfile(rootPath, 'setup', '_icons');
+            imgPath = fullfile(nansen.rootpath, 'code', 'setup', '_icons');
             
             hIconButton = uiimage(hContainer);
             hIconButton.Tooltip = 'Press for help';
             hIconButton.ImageSource = fullfile(imgPath, 'help.png');
             hIconButton.ImageClickedFcn = @obj.onHelpButtonClicked;
-            
         end
         
         function setTableScrolling(obj, state)
@@ -216,7 +214,6 @@ classdef apptable < applify.UiControlTable
             imageArgs = {'BorderType', 'bottom', 'Selection', selection};
             imagePathStr = obj.getTableRowBackground(imageArgs{:});
             hRow.HDivider.ImageSource = imagePathStr;
-            
         end
         
         function pathStr = getTableRowBackground(obj, varargin)

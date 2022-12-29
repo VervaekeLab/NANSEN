@@ -453,15 +453,12 @@ classdef Addons < handle
         function pathStr = getPathForAddonList(obj)
         %getPathForAddonList Get path where local addon list is saved.
         
-            %Todo: What do I call this?
-            nansenDir = nansen.rootpath;
-            rootDir = utility.path.getAncestorDir(nansenDir, 1);
+            rootDir = nansen.rootpath();
             pathStr = fullfile(rootDir, '_userdata', 'settings');
             
             if ~exist(pathStr, 'dir'); mkdir(pathStr); end
             
             pathStr = fullfile(pathStr, 'installed_addons.mat');
-            
         end
         
         function fileType = getFileTypeFromUrl(obj, addonEntry)
@@ -550,9 +547,10 @@ classdef Addons < handle
         
             % Assign Installation dir
             nansenDir = nansen.rootpath;
-            rootDir = utility.path.getAncestorDir(nansenDir, 1);
-            pathStr = fullfile(rootDir, 'external');
-            
+            pathStr = fullfile(nansenDir, 'external');
+
+            % Todo:
+            % pathStr = fullfile(userpath, 'Nansen-Addons');
         end
         
         function folderPath = moveGithubAddonDirectory(folderPath)

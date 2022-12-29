@@ -37,10 +37,7 @@ function wasSuccess = createNewSessionMethod(app)
             mFilename = 'sessionMethodClassTemplate';
     end
     
-    templateFolderDir = fullfile(nansen.rootpath, '+session', '+methods', ...
-        '+template');
-    
-
+    templateFolderDir = nansen.localpath('session_method_templates');
     fcnSourcePath = fullfile(templateFolderDir, [mFilename, '.m']);
     
     

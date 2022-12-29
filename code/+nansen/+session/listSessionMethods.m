@@ -1,10 +1,6 @@
 function sessionMethodPathList = listSessionMethods(integrationNames)
 %collectSessionMethods Collect known session methods for current project
 
-    % Get folders where session methods functions are located.
-    %defaultMethodsPath = fullfile(nansen.rootpath, '+session', '+methods');
-    
-    
     if nargin < 1
         integrationNames = 'ophys.twophoton';
     end
@@ -13,7 +9,6 @@ function sessionMethodPathList = listSessionMethods(integrationNames)
     
     integrationDirs = utility.path.packagename2pathstr(integrationNames);
     sesMethodRootPathList = fullfile(sesMethodRootFolder, integrationDirs);
-    
     
     % Todo: create a function for this....
     projectRootPath = nansen.localpath('project');

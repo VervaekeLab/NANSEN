@@ -303,9 +303,9 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
             if nargin < 2
                 iconSize = 16;
             end
-        
-            iconPath = fullfile(nansen.rootpath, '+metadata', '+tablevar', '_symbols');
-            iconPath = fullfile(iconPath, sprintf('%s.png', iconName));
+            
+            folderPath = nansen.localpath('table_variable_templates');
+            iconPath = fullfile(folderPath, '_symbols', sprintf('%s.png', iconName));
             
             sizeSpec = sprintf('width="%d" height="%d"', iconSize, iconSize);
             str = sprintf('<img src="file:%s" %s margin="0">', iconPath, sizeSpec);

@@ -38,7 +38,7 @@ function [formatterFcnHandle, varNames] = getColumnFormatter(varNames, tableClas
     for i = 1:numel(scope)
         switch scope{i}
             case 'builtin'
-                rootFolderPath{i} = fullfile(nansen.rootpath, '+metadata', '+tablevar');
+                rootFolderPath{i} = nansen.localpath('table_variable_templates');
             case 'project'
                 projPath = nansen.localpath('Custom Metatable Variable', 'current');
                 rootFolderPath{i} = fullfile(projPath, ['+', lower(tableClass)]);

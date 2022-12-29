@@ -45,7 +45,7 @@ function pathStr = localpath(pathKeyword, projectName)
             % Get folder for nansen root.
             thisPath = fileparts( mfilename( 'fullpath' ) );
             folderPath = utility.path.getAncestorDir(thisPath, 2);
-            
+
         case 'integrations'
             rootPath = fullfile(nansen.localpath('root'));
             folderPath = fullfile(rootPath, 'code', 'integrations');
@@ -53,7 +53,19 @@ function pathStr = localpath(pathKeyword, projectName)
         case 'sessionmethods'
             rootPath = fullfile(nansen.localpath('integrations'));
             folderPath = fullfile(rootPath, 'sessionmethods');
-            
+
+        case 'session_method_templates'
+            rootPath = fullfile(nansen.rootpath, 'code', '+nansen');
+            folderPath = fullfile(rootPath, '+session', '+methods', '+template');
+                
+        case 'table_variable_templates'
+            rootPath = fullfile(nansen.rootpath, 'code', '+nansen');
+            folderPath = fullfile(rootPath, '+metadata', '+tablevar');
+        
+        case 'builtin_file_adapter'
+            rootPath = fullfile(nansen.rootpath, 'code', '+nansen');
+            folderPath = fullfile(rootPath, '+dataio', '+fileadapter');
+
         case 'subfolder_list'
             initPath = fullfile(nansen.localpath('nansen_root'), 'code');
             folderPath = strsplit(genpath(initPath), pathsep);
