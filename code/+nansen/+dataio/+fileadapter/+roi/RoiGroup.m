@@ -64,7 +64,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             
             % Todo: Account for multipe channels/planes.
             % Temporaray quick fix - Perhaps a permanent solution.
-            if strcmp(roiFormat, 'Nansen') && iscell(data.roiArray)
+            if strcmp(roiFormat, 'Nansen') && isfield(data, 'roiArray') && iscell(data.roiArray)
                 roiGroupStruct = obj.makeNonScalarStruct(data);
                 roiGroup = arrayfun(@(s) roimanager.roiGroup(s), roiGroupStruct);
                 roiGroup.markClean()

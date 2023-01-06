@@ -532,6 +532,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 
                 % Find the uid of the new root directory
                 rootIdx = strcmp({dlItem.RootPath.Value}, newRootPath);
+                if ~any(rootIdx)
+                    error('The specified rootpath does not match any rootpaths in the data location model')
+                end
                 obj.DataLocation(i).RootUid = dlItem.RootPath(rootIdx).Key;
                 obj.DataLocation(i).RootPath = newRootPath;
                 obj.DataLocation(i).RootIdx = rootIdx;

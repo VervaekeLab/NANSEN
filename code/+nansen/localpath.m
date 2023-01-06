@@ -43,8 +43,7 @@ function pathStr = localpath(pathKeyword, projectName)
         
         case {'nansen_root', 'root'}
             % Get folder for nansen root.
-            thisPath = fileparts( mfilename( 'fullpath' ) );
-            folderPath = utility.path.getAncestorDir(thisPath, 2);
+            folderPath = nansen.rootpath();
 
         case 'integrations'
             rootPath = fullfile(nansen.localpath('root'));

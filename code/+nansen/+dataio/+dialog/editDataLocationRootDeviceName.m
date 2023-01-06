@@ -23,6 +23,9 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     dataTable = struct2table(dataTable);
     
     % Fix data type issue. Todo: Should be done upstream
+    if isa(dataTable.DiskName, 'char')
+        dataTable.DiskName = cellstr(dataTable.DiskName);
+    end
     for i = 1:size(dataTable, 1)
         if isempty(dataTable.DiskName{i}) && isa(dataTable.DiskName{i}, 'double')
             dataTable.DiskName{i} = '';
