@@ -118,7 +118,9 @@ function onTableDataChanged(src, evt, volumeInfo)
         return
     end
     
-    currentRoot = src.Data{rowIdx, 3}; % Path is on 2nd column
+    pathColIdx = 3; % Path is on 3rd column
+
+    currentRoot = src.Data{rowIdx, pathColIdx}; 
 
     % Todo: combine / use DataLocationModel/replaceDiskMountInPath
     
@@ -158,5 +160,5 @@ function onTableDataChanged(src, evt, volumeInfo)
         currentRoot = replace(currentRoot, oldString, newString);
     end
 
-    src.Data{rowIdx, 2} = currentRoot;    
+    src.Data{rowIdx, pathColIdx} = currentRoot;    
 end

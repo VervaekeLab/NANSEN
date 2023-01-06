@@ -755,7 +755,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             if isfile(filePath) && ~isSource
                 S_ = load(filePath);
                 reference = S_.RootPathListLocal;
-                S.Data = obj.updateRootPathFromReference(S.Data, reference, 'mirror');
+                S.Data = obj.updateRootPathFromReference(S.Data, reference);
             end
         end
         
@@ -782,7 +782,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
         end
         
-        function target = updateRootPathFromReference(obj, target, source, mode)
+        function target = updateRootPathFromReference(obj, target, source)
         %updateRootPathFromReference Update rootpath struct from reference
         %
         %   Reference can refer to the local settings for root paths or the
@@ -795,10 +795,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %   This is in order to be able to switch between drives that
         %   should be equal across different systems and drives that should
         %   not (i.e local drives)
-
-            if nargin < 4 || isempty(mode)
-                mode = 'default';
-            end
         
             for iDloc = 1:numel(source)
 
@@ -828,19 +824,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
                             end
 
                             if isfield(iSource.RootPath, 'DiskName')
-                                updateDiskName = false;
-                                switch mode
-                                    case 'default'
-                                        if isfield(iTarget.RootPath, 'DiskType') && ...
-                                                strcmp(iTarget.RootPath(keyIdx).DiskType, 'Local')
-                                            updateDiskName = true;
-                                        end
-
-                                    case 'mirror'
-                                        updateDiskName = true;
-                                end
-                                
-                                if updateDiskName
+                                if isfield(iTarget.RootPath, 'DiskType') && ...
+                                        strcmp(iTarget.RootPath(keyIdx).DiskType, 'Local')
                                     iTarget.RootPath(keyIdx).DiskName = iSource.RootPath(jKey).DiskName;
                                 end
                             end
