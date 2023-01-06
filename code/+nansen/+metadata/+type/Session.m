@@ -531,14 +531,14 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             if ~strcmp(oldRootPath, newRootPath)
                 
                 % Find the uid of the new root directory
-                rootIdx = strcmp({dlItem.RootPath.Value}, newRootPath);
-                if ~any(rootIdx)
+                isMatch = strcmp({dlItem.RootPath.Value}, newRootPath);
+                if ~any(isMatch)
                     error('The specified rootpath does not match any rootpaths in the data location model')
                 end
-                obj.DataLocation(i).RootUid = dlItem.RootPath(rootIdx).Key;
+                obj.DataLocation(i).RootUid = dlItem.RootPath(isMatch).Key;
                 obj.DataLocation(i).RootPath = newRootPath;
-                obj.DataLocation(i).RootIdx = rootIdx;
-                obj.DataLocation(i).Diskname = dlItem.RootPath(rootIdx).DiskName;
+                obj.DataLocation(i).RootIdx = find(isMatch);
+                obj.DataLocation(i).Diskname = dlItem.RootPath(isMatch).DiskName;
                   
                 eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', obj.DataLocation);
                 obj.notify('PropertyChanged', eventData)

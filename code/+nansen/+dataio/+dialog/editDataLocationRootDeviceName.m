@@ -16,10 +16,14 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     end
 
     volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
-    
-    % Make table with 2 columns, device name and root path
+
+    if ~isfield(dataLocationRootInfo, 'DiskType')
+        [dataLocationRootInfo(:).DiskType] = deal('External');
+    end
+
+    % Make table with 3 columns, device name and root path, and disk type
     dataTable = rmfield(dataLocationRootInfo, 'Key');
-    dataTable = orderfields(dataTable, {'DiskName', 'Value'});
+    dataTable = orderfields(dataTable, {'DiskName', 'DiskType', 'Value'});
     dataTable = struct2table(dataTable);
     
     % Fix data type issue. Todo: Should be done upstream
@@ -59,16 +63,16 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
         'Position', [20 20 960 160] );
     
     hTable.Units = 'normalized';
-    hTable.changeColumnWidths([200,750]);
+    hTable.changeColumnWidths([150,150,650]);
     hTable.ColumnResizePolicy = 'last';
 
     % Format device name as dropdown, add 
-    colDataTypes = {'popup', 'char'};
-    colFormatData = {allVolumeNames, ''};
+    colDataTypes = {'popup', 'popup', 'char'};
+    colFormatData = {allVolumeNames, {'External', 'Local'}, ''};
 
     % Update the column formatting properties
-    hTable.ColumnName = {'Select Disk Name', 'Root Path'};
-    hTable.ColumnEditable = [true, false];
+    hTable.ColumnName = {'Select Disk Name', 'Select Disk Type', 'Root Path'};
+    hTable.ColumnEditable = [true, true, false];
     hTable.ColumnFormat = colDataTypes;
     hTable.ColumnFormatData = colFormatData;
     
@@ -85,8 +89,9 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     tableData = hTable.Data;
     
     for i = 1:size(tableData, 1)
-        dataLocationRootInfo(i).Value = tableData{i,2};
+        dataLocationRootInfo(i).Value = tableData{i,3};
         dataLocationRootInfo(i).DiskName = tableData{i,1};
+        dataLocationRootInfo(i).DiskType = tableData{i,2};
     end
 
     delete(hFigure)
@@ -109,9 +114,11 @@ function onTableDataChanged(src, evt, volumeInfo)
     rowIdx = evt.Indices(1);
     colIdx = evt.Indices(2);
 
-    assert(colIdx == 1, 'Something unexpected happen!')
+    if colIdx ~= 1 % Only handle if first column (disk/device name) is changed
+        return
+    end
     
-    currentRoot = src.Data{rowIdx, 2}; % Path is on 2nd column
+    currentRoot = src.Data{rowIdx, 3}; % Path is on 2nd column
 
     % Todo: combine / use DataLocationModel/replaceDiskMountInPath
     

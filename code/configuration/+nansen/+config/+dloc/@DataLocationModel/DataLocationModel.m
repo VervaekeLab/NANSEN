@@ -150,6 +150,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 end
             end
 
+            % Add a fourth variable (DiskType) to root path cell array.
+            if ~isempty(obj.Data)
+                if ~isfield( obj.Data(1).RootPath, 'DiskType' )
+                    obj.addDiskTypeToAllRootPaths()
+                    dirty = true;
+                end
+            end
+
             if dirty
                 obj.save()
             end
@@ -747,9 +755,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
             if isfile(filePath) && ~isSource
                 S_ = load(filePath);
                 reference = S_.RootPathListLocal;
-                S.Data = obj.updateRootPathFromReference(S.Data, reference);
+                S.Data = obj.updateRootPathFromReference(S.Data, reference, 'mirror');
             end
-            
         end
         
         function S = exportLocalRootPaths(obj, S)
@@ -772,12 +779,26 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 % 2) Restore originals 
                 reference = obj.RootPathListOriginal; % struct array
                 S.Data = obj.updateRootPathFromReference(S.Data, reference);
-
             end
         end
         
-        function target = updateRootPathFromReference(obj, target, source)
+        function target = updateRootPathFromReference(obj, target, source, mode)
         %updateRootPathFromReference Update rootpath struct from reference
+        %
+        %   Reference can refer to the local settings for root paths or the
+        %   original ones. 
+        %
+        %   This method updates the rootpath struct based on the reference.
+        %   If mode is mirror, the struct is copied, otherwise, the
+        %   diskname is only copied if the disktype is local.
+        %
+        %   This is in order to be able to switch between drives that
+        %   should be equal across different systems and drives that should
+        %   not (i.e local drives)
+
+            if nargin < 4 || isempty(mode)
+                mode = 'default';
+            end
         
             for iDloc = 1:numel(source)
 
@@ -800,8 +821,30 @@ classdef DataLocationModel < utility.data.StorableCatalog
                             continue; 
                         else
                             iTarget.RootPath(keyIdx).Value = iSource.RootPath(jKey).Value;
-                        end
+                            
+                            if isfield(iTarget.RootPath, 'DiskType')
+                                % Do nothing, this should always be kept
+                                % based on the current selection.
+                            end
 
+                            if isfield(iSource.RootPath, 'DiskName')
+                                updateDiskName = false;
+                                switch mode
+                                    case 'default'
+                                        if isfield(iTarget.RootPath, 'DiskType') && ...
+                                                strcmp(iTarget.RootPath(keyIdx).DiskType, 'Local')
+                                            updateDiskName = true;
+                                        end
+
+                                    case 'mirror'
+                                        updateDiskName = true;
+                                end
+                                
+                                if updateDiskName
+                                    iTarget.RootPath(keyIdx).DiskName = iSource.RootPath(jKey).DiskName;
+                                end
+                            end
+                        end
                     end
                     
                     target(targetIdx) = iTarget;
@@ -1041,6 +1084,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
             for i = 1:numel(rootPathStruct)
                 rootPathStruct(i).DiskName = ...
                     obj.resolveDiskName(rootPathStruct(i).Value);
+            end
+        end
+
+        function addDiskTypeToAllRootPaths(obj)
+            for i = 1:numel(obj.Data)
+                for j = 1:numel(obj.Data(i).RootPath)
+                    obj.Data(i).RootPath(j).DiskType = 'External';
+                end
             end
         end
     end
