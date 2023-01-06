@@ -354,6 +354,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 S(i).StringDetectInput = obj.getStrSearchPattern(i);
                 S(i).SubfolderLevel = obj.getSubfolderLevel(i);
                 S(i).StringFormat = obj.StringFormat{i};
+
+                if isnan(S(i).SubfolderLevel)
+                    % Revert to the original value if current value is nan.
+                    % Current value might be nan if there are currently no
+                    % available folders in the dropdown selector.
+                    S(i).SubfolderLevel = obj.Data(i).SubfolderLevel;
+                end
             end
         end
         
@@ -539,12 +546,25 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function num = getSubfolderLevel(obj, rowNumber)
             
             hDropdown = obj.RowControls(rowNumber).FolderNameSelector;
-            items = hDropdown.Items(2:end); % Exclude first choice.
-            num = find(strcmp(items, hDropdown.Value));
+
+            if strcmp(hDropdown.Value, 'Foldername not found') || ...
+                    strcmp(hDropdown.Value, 'Data location root folder not found')
+                num = nan;
+            else
+                items = hDropdown.Items(2:end); % Exclude first choice.
+                num = find(strcmp(items, hDropdown.Value));
+                
+                % Note: important to exclude first entry. If no folder was
+                % explicitly selected, the value of num should be empty.
+            end
             
-            % Note: important to exclude first entry. If no folder was
-            % explicitly selected, the value of num should be empty.
-            
+            % Todo: Make this more robust. Is it ever going to happen
+            % unless the folder is not found like above?
+            if numel( num ) > 1
+                num = num(1);
+                warning(['Multiple folders has the same name. Selected the first ' ...
+                    'one in the list to use for metadata detection' ] )
+            end
         end
         
     end
