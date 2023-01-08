@@ -1066,10 +1066,23 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
 
         function onCurrentChannelChanged(obj, src, evt)
             obj.updateActiveRoiGroup()
+
+            if ~isempty(obj.roiSignalArray)
+                if ~isempty(obj.roiSignalArray.ImageStack)
+                    obj.roiSignalArray.ImageStack.CurrentChannel = obj.ImviewerObj.currentChannel;
+                end
+            end
         end
 
         function onCurrentPlaneChanged(obj, src, evt)
             obj.updateActiveRoiGroup()
+
+            if ~isempty(obj.roiSignalArray)
+                if ~isempty(obj.roiSignalArray.ImageStack)
+                    obj.roiSignalArray.ImageStack.CurrentPlane = obj.ImviewerObj.currentPlane;
+                end
+            end
+
         end
     
         

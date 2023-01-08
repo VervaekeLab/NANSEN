@@ -683,16 +683,20 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         function onCurrentChannelChanged(obj, ~, ~)
             onCurrentChannelChanged@imviewer.plugin.RoiManager(obj)
 
-            obj.RoiTable.RoiGroup = obj.ActiveRoiGroup;
-            obj.SignalViewer.RoiGroup = obj.ActiveRoiGroup;
-            obj.RoiThumbnailViewer.RoiGroup = obj.ActiveRoiGroup;
+            if obj.IsConstructed
+                obj.RoiTable.RoiGroup = obj.ActiveRoiGroup;
+                obj.SignalViewer.RoiGroup = obj.ActiveRoiGroup;
+                obj.RoiThumbnailViewer.RoiGroup = obj.ActiveRoiGroup;
+            end
         end
 
         function onCurrentPlaneChanged(obj, ~, ~)
             onCurrentPlaneChanged@imviewer.plugin.RoiManager(obj)
 
-            obj.RoiTable.RoiGroup = obj.ActiveRoiGroup;
-            obj.RoiThumbnailViewer.RoiGroup = obj.ActiveRoiGroup;
+            if obj.IsConstructed
+                obj.RoiTable.RoiGroup = obj.ActiveRoiGroup;
+                obj.RoiThumbnailViewer.RoiGroup = obj.ActiveRoiGroup;
+            end
         end
 
         function onActiveChannelSet(obj)
@@ -701,9 +705,11 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             % Todo:
             % Change active channel in signal viewer and in thumbnail
             % display
-            obj.RoiTable.RoiGroup = obj.ActiveRoiGroup;
-            obj.SignalViewer.RoiGroup = obj.ActiveRoiGroup;
-            obj.RoiThumbnailViewer.RoiGroup = obj.ActiveRoiGroup;
+            if obj.IsConstructed
+                obj.RoiTable.RoiGroup = obj.ActiveRoiGroup;
+                obj.SignalViewer.RoiGroup = obj.ActiveRoiGroup;
+                obj.RoiThumbnailViewer.RoiGroup = obj.ActiveRoiGroup;
+            end
         end
     end
 

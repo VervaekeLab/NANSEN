@@ -498,8 +498,8 @@ classdef App < signalviewer.App & roimanager.roiDisplay
         
         function onRoiGroupSet(obj)
         %onRoiGroupSet Is called when roigroup is set.    
-            if obj.RoiGroup.roiCount >= 1 % -> Select first roi.
-                obj.RoiGroup.changeRoiSelection([], 1) 
+            if obj.RoiGroup.roiCount >= 1 % -> Select first roi. Why?
+                %obj.RoiGroup.changeRoiSelection([], 1) 
             end
         end
         
