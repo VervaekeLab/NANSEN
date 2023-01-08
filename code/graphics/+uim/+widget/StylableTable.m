@@ -261,6 +261,22 @@ classdef StylableTable < uiw.widget.Table
             position = [positionX, positionY];
             
         end
+    
+        function enableCallbacks(obj)
+            
+            % Note: See disableCallbacks
+            obj.CallbacksEnabled = true;
+        end
+            
+        function disableCallbacks(obj)
+
+            % Note: The uiw.widget.Table onCellSelection is sometimes triggered
+            % by a drawnow statement. Added this method in order to
+            % programmatically prevent this from happening by setting the 
+            % CallbacksEnabled property of uiw.abstract.JavaControl
+            obj.CallbacksEnabled = false;
+        end
+    
     end
     
     methods % Set / get methods

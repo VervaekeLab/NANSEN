@@ -242,8 +242,20 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.ColumnModel.updateColumnEditableState()
         end
         
-        function resetTable(obj)
+        function resetTable(obj, resetView)
+            
+            % Note: There is an option here to not reset the table view,
+            % This is useful for aethetic reasons, to prevent flickering
+            % when updating a table.
+            if nargin < 2
+                resetView = true; % todo: make nv pair args
+            end
+
             obj.MetaTable = table.empty;
+            
+            if resetView
+                obj.refreshTable(table.empty, true)
+            end
         end
         
         function resetColumnFilters(obj)
@@ -431,9 +443,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             IND = visibleRowInd(IND);
         end
        
-        function setSelectedEntries(obj, IND)
+        function setSelectedEntries(obj, IND, preventCallback)
         %setSelectedEntries Set row selection
         
+            if nargin < 3
+                preventCallback = false; % todo: make nv pair args
+            end
+
             % Get currently visible row indices.
             visibleRowInd = obj.getCurrentRowSelection();
             
@@ -451,10 +467,15 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             selectedRows = find(ismember(visibleRowInd, IND));
 
             % Set the row selection
-            obj.HTable.SelectedRows = selectedRows;
-            
+            if preventCallback
+                obj.HTable.disableCallbacks();
+                obj.HTable.SelectedRows = selectedRows;
+                drawnow
+                obj.HTable.enableCallbacks();
+            else
+                obj.HTable.SelectedRows = selectedRows;
+            end
         end
-
     end
    
     methods (Access = private) % Create components
