@@ -3495,7 +3495,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
              
             returnToIdle = app.setBusy('Updating table'); %#ok<NASGU> 
             %uipopup(app.Figure, 'Updating table')
-            app.UiMetaTableViewer.resetTable()            
+            resetView = false;
+            app.UiMetaTableViewer.resetTable(resetView)
             onNewMetaTableSet(app)
         end
         

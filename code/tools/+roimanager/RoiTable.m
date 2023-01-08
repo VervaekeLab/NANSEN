@@ -373,14 +373,24 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     methods (Access = protected) % Inherited from roimanager.roiDisplay
         
         function onRoiGroupSet(obj, ~)
-            obj.roiTable = obj.rois2table(obj.RoiGroup.roiArray);
 
-            obj.UITable.resetTable()
+            obj.resetRoiDisplay()
+
+            if ~isempty(obj.RoiGroup)
+                obj.roiTable = obj.rois2table(obj.RoiGroup.roiArray);
+            else
+                obj.roiTable = table.empty;
+            end
+
             obj.UITable.refreshTable(obj.roiTable)
 
-            if obj.RoiGroup.roiCount > 0
+            if ~isempty(obj.RoiGroup) && obj.RoiGroup.roiCount > 0
                 obj.updateRoiLabels()
             end
+        end
+
+        function resetRoiDisplay(obj)
+            obj.UITable.resetTable()
         end
 
         function onRoiGroupChanged(obj, evtData)
@@ -394,10 +404,11 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 
                 case {'initialize', 'append'}
                     T = obj.rois2table(evtData.roiArray);
+
                     if isempty(oldTable)
                         newTable = T;
                     else
-                        newTable = cat(1, oldTable, T);
+                        newTable = nansen.external.fex.datautil.merge_tables(oldTable, T);
                     end
                 case 'insert'
                     T = obj.rois2table(evtData.roiArray);
@@ -475,7 +486,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             if ~isequal( sort(currentRowSelection), sort(newRowSelection) )
                 %~all( ismember(currentRowSelection, newRowSelection) )
                 
-                obj.UITable.setSelectedEntries(newRowSelection);
+                % Note: Had to explicitly prevent callbacks from being
+                % executed here, because a drawnow in the updateSignalPlot
+                % method of roiSignalViewer app would trigger the
+                % onSelectionChanged callback in uiw.widget.Table
+                preventCallback = true;
+                obj.UITable.setSelectedEntries(newRowSelection, preventCallback);
                 obj.SelectedRois = newRowSelection;
             else
                 obj.SelectedRois = newRowSelection;

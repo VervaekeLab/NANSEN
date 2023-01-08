@@ -28,6 +28,17 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 %       [ ] Also, use context menu for adding or removing signals from
 %           signals to show... (not legend)
 %
+%       [ ] Need preference in order to store which signal types the user
+%       has selected to show.
+%       
+%       [ ] Add preference for showing deconvolved signals above dff.
+%      
+%       [ ] Need preference to set colors of signals.
+%       
+%       [x] Implement one color for each signal and color each roi in a
+%           color shade.
+%       [ ] Improve roi coloring, and implement light mode and dark mode
+%           colors.
 %
 %       [x] Signals are calculated twice... Fix!
 %
@@ -45,9 +56,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 %            - Should multiple signals belong to one time series array or
 %            multiple??
 %   
-%       [ ] Should this class inherit the roidisplay??? i guess...
-%       [ ] Implement one color for each signal and color each roi in a
-%           color shade.
+
 %       [ ] Implement alternative way of displaying deconvolved signals...
 %       [ ] Implement construction based on nSamples x nRois matlab array.
 %       [ ] Implement method for when gui is activated... (made visible)
@@ -69,7 +78,9 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 %
 %       [ ] Label showing number of roi(s) that are selected
 
-    
+%       [ ] Improve label switching... Consider system to toggle between
+%       arbitrary number of labels.
+
 %       Roimanager functionality that can be made into methods
 %       [ ] Switching between left and right y-axis and making sure each
 %           ylim is updated.
@@ -100,6 +111,8 @@ classdef App < signalviewer.App & roimanager.roiDisplay
         RoiSignalArray      % RoiSignalArray object
         DisplayedRoiIndices % List of indices for currently displayed rois
         % Todo: Replace above with SelectedRois and VisibleRois
+
+        ActiveChannel
     end
 
     properties (Access = protected)
@@ -121,6 +134,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 
     properties (Access = private)
         isBusy = false
+        AxesLabel (1,1) signalviewer.signalViewerLabel
     end
     
     properties (Transient, Access=private)
@@ -134,6 +148,9 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             
             obj@signalviewer.App(varargin{:})
             
+            obj.AxesLabel = signalviewer.signalViewerLabel(obj.Axes, '');
+            obj.AxesLabel.FontColor = [obj.Theme.AxesForegroundColor, 0.5] .* 0.5;
+
             tf = cellfun(@(c) isa(c, 'nansen.roisignals.RoiSignalArray'), varargin);
             roiSignalArray = varargin{tf};
             
@@ -205,9 +222,12 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             
             obj.SignalsToDisplay = newValue;
             obj.onSignalToDisplaySet()
-            
         end
         
+        function set.ActiveChannel(obj, newValue)
+            obj.ActiveChannel = newValue;
+            obj.onActiveChannelSet()
+        end
     end
     
     methods (Access = protected) % General methods
@@ -539,7 +559,6 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             % pass
         end
         
-        
         function onSignalToDisplaySet(obj)
             
             % TODO: Update plots for new signal types.
@@ -700,6 +719,8 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             
             if isempty(signalNames); return; end
             
+            signalNames = obj.sortSignalNames(signalNames);
+
             if strcmp(mode, 'append')
                 roiInd = setdiff(roiInd, obj.DisplayedRoiIndices, 'stable'); 
             end
@@ -753,7 +774,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
                 signalName = signalNames{i};
                 
                 % Get signaldata based on signal name to plot
-                signalData = obj.RoiSignalArray.getSignals(roiInd, signalName, obj.Parameters, 1, forceUpdate);
+                signalData = obj.RoiSignalArray.getSignals(roiInd, signalName, obj.Parameters, [], forceUpdate);
                 
                 if isempty(signalData); return; end
                 
@@ -784,7 +805,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
                 if numDisplayedLines + numNewLines > size(obj.tsArray(isMatched).Data, 2)
                     obj.expandLineObjects(signalName, numDisplayedLines + numNewLines)
                 end
-                
+
                 obj.tsArray(isMatched).Data(:, insertIdx) = signalData;
 
                 % Update extreme limits
@@ -838,11 +859,20 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             isMatched = strcmp( signalName, obj.tsNames );
 
             yData = obj.tsArray(isMatched).Data(:, insertInd);
+
+
+            if strcmp(signalName, 'deconvolved')
+                if any(strcmp(obj.SignalsToDisplay, 'dff'))
+                    dff = obj.tsArray(strcmp('dff', obj.tsNames )).Data(:,insertInd);
+                    dffMax = max(dff);
+                    yData = yData + dffMax;
+                end
+            end
             
             yData = mat2cell(yData, size(yData,1), ones(size(yData,2), 1));
 
             set(obj.hLineObjects.(signalName)(insertInd), {'YData'}, yData')
-
+            
         end
 
         function resetSignalPlot(obj, roiInd, signalNames)
@@ -1085,39 +1115,41 @@ classdef App < signalviewer.App & roimanager.roiDisplay
         end
         
         function showVirtualDataDisclaimer(obj)
-            % Todo: update if limits change...
             
-            x = obj.ax.XLim(1) + (obj.ax.XLim(2)-obj.ax.XLim(1))/2;
-            y = obj.ax.YLim(1) + (obj.ax.YLim(2)-obj.ax.YLim(1))*0.75;
-            
-            h = findobj(obj.ax, 'Tag', 'Virtual Stack Disclaimer');
-            if ~isempty(h)
-                h.Visible = 'on';
-                h.Position(1:2)=[x,y];
-                return
-            end
-
             str = 'Signals are not available for virtual stacks';
-            
-            hTxt = text(obj.ax, x, y, str);
-            hTxt.FontUnits = 'pixels';
-            hTxt.FontSize = 18;
-            hTxt.HorizontalAlignment='center';
-            hTxt.VerticalAlignment='middle';
-            hTxt.Color = [obj.Theme.AxesForegroundColor, 0.5] .* 0.5;
-            hTxt.Tag = 'Virtual Stack Disclaimer';
-            
+
+            if isempty( obj.AxesLabel.Text )
+                obj.AxesLabel.Text = str;
+            end
         end
         
         function hideVirtualDataDisclaimer(obj)
             
-            h = findobj(obj.ax, 'Tag', 'Virtual Stack Disclaimer');
-            if ~isempty(h)
-                h.Visible = 'off';
+            str = 'Signals are not available for virtual stacks';
+
+            if strcmp( obj.AxesLabel.Text, str )
+                obj.AxesLabel.Text = '';
             end
-            
+
+            obj.onActiveChannelSet() % Call this to update label appropriately...
+        end
+              
+        function showMultiChannelDisclaimer(obj)
+            str = 'Signals are not available when multiple channels are active';
+
+            if isempty( obj.AxesLabel.Text )
+                obj.AxesLabel.Text = str;
+            end
         end
         
+        function hideMultiChannelDisclaimer(obj)
+            str = 'Signals are not available when multiple channels are active';
+
+            if strcmp( obj.AxesLabel.Text, str )
+                obj.AxesLabel.Text = '';
+            end
+        end
+         
     end
     
     methods (Access = private)
@@ -1190,9 +1222,23 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             
         end
         
+        function signalNames = sortSignalNames(obj, signalNames)
+
+            persistent referenceNames
+            if isempty(referenceNames)
+                referenceNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+            end
+
+            signalNames = intersect(referenceNames, signalNames, "stable");
+        end
+        
+        function onActiveChannelSet(obj)
+            if numel(obj.ActiveChannel)>1
+                obj.showMultiChannelDisclaimer()
+            else
+                obj.hideMultiChannelDisclaimer()
+            end
+        end
     end
-    
-    
-    
-    
+
 end

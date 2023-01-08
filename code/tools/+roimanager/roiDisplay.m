@@ -154,6 +154,8 @@ classdef roiDisplay < uim.handle
             
             if ~isInitialization && ~isempty(obj.RoiGroup)
                 obj.onRoiGroupSet()
+            elseif ~isInitialization && isempty(obj.RoiGroup)
+                obj.resetRoiDisplay()
             end
         end
         
@@ -185,6 +187,11 @@ classdef roiDisplay < uim.handle
         
         function onRoiGroupSet(obj)
             % Subclasses may implement
+        end
+
+        function resetRoiDisplay(obj)
+            % Subclasses may implement
+            % Todo: Make abstract?
         end
         
         function updateVisibleRois(obj, roiInd, eventType)

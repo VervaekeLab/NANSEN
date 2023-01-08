@@ -1048,6 +1048,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         end
         
         function onActiveChannelSet(obj)
+
             obj.updateActiveRoiGroup()
             
             % Todo:
@@ -1055,6 +1056,9 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             obj.roiDisplay.ActiveChannel = obj.ActiveChannel;
             if ~isempty(obj.roiSignalArray)
                 obj.roiSignalArray.ActiveChannel = obj.ActiveChannel;
+            end
+            if ~isempty(obj.SignalViewer)
+                obj.SignalViewer.ActiveChannel = obj.ActiveChannel;
             end
         end
 
@@ -1390,6 +1394,10 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         function updateActiveRoiGroup(obj)
         %updateActiveRoiGroup Update active roi group based on current channel and plane selection    
             
+            if ~isempty( obj.ActiveRoiGroup )
+                obj.ActiveRoiGroup.changeRoiSelection(nan, []) 
+            end
+
             currentPlane = obj.ImviewerObj.currentPlane;
             currentChannel = obj.ImviewerObj.currentChannel;
             

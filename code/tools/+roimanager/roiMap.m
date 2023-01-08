@@ -252,7 +252,7 @@ classdef roiMap < roimanager.roiDisplay
         %   deselection
 
             newIndices = evtData.NewIndices;
-
+            
             selectedRoiIdx = setdiff(newIndices, obj.SelectedRois);
             deselectedRoiIdx = setdiff(obj.SelectedRois, newIndices);
             
@@ -361,9 +361,7 @@ classdef roiMap < roimanager.roiDisplay
 
         function onRoiGroupSet(obj)
 
-            % Remove plothandles and reset roi index map
-            roiIndices = 1:numel(obj.roiPlotHandles);
-            obj.removeRoiPlots(roiIndices)
+            obj.resetRoiDisplay % Remove plothandles and reset roi index map
 
             if isempty(obj.RoiGroup); return; end
 
@@ -377,6 +375,12 @@ classdef roiMap < roimanager.roiDisplay
             obj.VisibleRois = roiIndices;
         end
 
+        function resetRoiDisplay(obj)
+            roiIndices = 1:numel(obj.roiPlotHandles);
+            obj.removeRoiPlots(roiIndices)
+
+            obj.roiIndexMap = [];
+        end
     end
 
     methods (Access = private)

@@ -23,49 +23,61 @@ classdef RoiSignalArray < handle
 %       RoiSignalArray(roiGroup, imageStack) opens a signal array instance
 %       based on an instance of a roigroup and an imagestack
 
-%   QUESTIONS:
-%    - Why do I need this??
-%    - Make 2 classes? One for loaded signals, and one for "live" signals
 
-
-    % NOTE: Multiple channels are not implemented yet.
-
-    % Todo
+    % Todo:
     %   [ ] Improve performance when removing rois, should not rearrange
-    %   data, only indices for accessing data. 
-    
-    
+    %       data, only indices for accessing data. 
     %   [ ] Generalize so that signalArray can be loaded from file
     %   [ ] Come up with better names for signals
     %   [ ] What parameters should be included?
     %   [ ] What parameters are used if none are given?
     %   [ ] Where to get settings from? A handle class?
-    %
-    
+    %   [ ] Outsource signal parameters to special classes?
     %   [ ] CurrentChannel, Current plane...
+    %
+    % Note: 
+    %   * Multiple planes should either be implemented as multiple
+    %     instances of this class, or, all rois across multiple planes should
+    %     be contcatenated into one list in this class. Leaning towards the
+    %     first option...
+    %
+    % Questions: 
+    %
+    %   - Should this class be listening for changes on a roigroup?  
+    %     This is the job of the roi signal viewer, no? Are there any 
+    %     circumstances where a roi signal array need to "live update" based on
+    %     a roi group unless signals are to be shown in the signalviewer??
+    %
+    %   - Why do I need this??
+    %
+    %   - Make 2 classes? One for loaded signals, and one for "live" signals
     
     
     properties (Constant)
+        % Todo: Make enum for this. Include full names, short names. Add a
+        % way to set color options...
         SIGNAL_NAMES = {'roiMeanF', 'npilMediF', 'demixedMeanF', 'dff', ...
             'deconvolved', 'denoised' ...
             };
-                        
-        PARAMETER_NAMES = {'spkThr', 'spkSnr', 'lamPr', 'taurise', 'taudecay'}
         
-        STEPSIZE = 100; % NAME??? How many rois to expand array by
+        % Todo: This belongs with a signal deconvolution method.
+        % In this class, there should be possibiltiy for one value per
+        % signal
+        PARAMETER_NAMES = {'spkThr', 'spkSnr', 'lamPr', 'taurise', 'taudecay'}
     end
     
     properties % Options properties
-        UpdateMode = 'OnRequest'; % 'OnDemand' | 'OnRequest' 
+        UpdateMode = 'OnRequest'; % 'OnDemand' | 'OnRequest' % Todo: Rename to OnChange and OnDemand
         
         % Todo: Rename? Active vs Passive. Active: always update if signal is reset. Passive, only update if signal is requested.
     end
-    
     
     properties % Data properties
         Data = struct           % Struct array (1 x nCh) with fields for each signal type. Each field is numSamples x numRois
         Parameters = struct     % Struct array (1 x nCh) with fields for each signal type. Each field is 1 x numRois
     
+        % Todo: All of these should be outsourced to different methods /
+        % Calculators.
         SignalExtractionOptions = nansen.twophoton.roisignals.extract.getDefaultParameters();
         DffOptions = nansen.twophoton.roisignals.computeDff();
         DeconvolutionOptions = nansen.twophoton.roisignals.getDeconvolutionParameters();
@@ -79,27 +91,29 @@ classdef RoiSignalArray < handle
     end
     
     properties (Dependent) % Info properties
-        NumChannels         % int : Number of channels
-        NumFrames           % vector : 1 x numCh with number of frames per channel
         NumRois             % vector : 1 x numCh with number of rois per channel
+        NumFrames           % vector : 1 x numCh with number of frames per channel
+        NumChannels         % int : Number of channels
     end
     
     properties (Access = protected)
-        NumFrames_ = 0      % needed for subclass where signals are extracted
+        NumFrames_ = 0      % Needed for subclass where signals are extracted
     end
-    
-    
-    
+
     properties (Access = private)
         RoisChangedListener
     end
+
+    properties (Constant, Access = protected)
+        STEPSIZE = 100; % NAME??? How many rois to expand array by
+    end
     
+
     events
         RoiSignalsChanged % Triggered when one or more signals are changed
     end
     
     
-
     methods % Constructor
         
         function obj = RoiSignalArray(imageStack, roiGroup)
@@ -121,7 +135,7 @@ classdef RoiSignalArray < handle
         
         function set.ImageStack(obj, newValue)
             VALID_CLASS = 'nansen.stack.ImageStack';
-            obj.validatePropertValue('ImageStack', newValue, VALID_CLASS)
+            obj.validatePropertyValue('ImageStack', newValue, VALID_CLASS)
 
             obj.ImageStack = newValue;
             obj.onImageStackSet()
@@ -129,7 +143,7 @@ classdef RoiSignalArray < handle
         
         function set.RoiGroup(obj, newValue)
             VALID_CLASS = 'roimanager.roiGroup';
-            obj.validatePropertValue('RoiGroup', newValue, VALID_CLASS)
+            obj.validatePropertyValue('RoiGroup', newValue, VALID_CLASS)
             
             obj.RoiGroup = newValue;
             obj.onRoiGroupSet()
@@ -170,7 +184,7 @@ classdef RoiSignalArray < handle
     methods (Access = protected)
         
         function initializeSignalArray(obj, channelInd)
-        %initializeSignalArray Initialize signalArray for given channels
+        %initializeSignalArray - Initialize signalArray for given channels
         %
         %   initializeSignalArray(obj, channelInd) initializes one struct
         %   for each channel and adds them the the Data struct array. Does
@@ -206,12 +220,10 @@ classdef RoiSignalArray < handle
                 end
 
             end
-                        
         end
         
         function modifySignalArray(obj, roiInd, action, chInd, editFields)
-        %modifySignalArray
-        %
+        %modifySignalArray Custom modifications of the roi signal array
         %
         %   INPUTS:
         %       obj : handle to class instance
@@ -223,7 +235,7 @@ classdef RoiSignalArray < handle
             % Editfield was added to only reset some (not all fields).
             
             % Set default values for options inputs.
-            if nargin < 4 || isempty(chInd); chInd = 1; end
+            if nargin < 4 || isempty(chInd); chInd = obj.ActiveChannel; end
             if nargin < 5 || isempty(editFields); editFields = 'all'; end
             
             if obj.isVirtual; return; end
@@ -272,7 +284,7 @@ classdef RoiSignalArray < handle
                         case 'reset'
                             if isequal(thisField, 'spikeThreshold')
                                 continue
-                            elseif ~contains(thisField, editFields)
+                            elseif ~any(strcmp(thisField, editFields))
                                 continue
                             end
                             obj.Data(iCh).(thisField)(:, roiInd) = nan;
@@ -310,13 +322,35 @@ classdef RoiSignalArray < handle
             
             evtData = roimanager.eventdata.RoiSignalsChanged(roiInd, fields, action);
             obj.notify('RoiSignalsChanged', evtData);
-            
-            
         end
         
         function [TF, roiInd] = isSignalMissing(obj, signalName, ...
-                                                        roiInd, channelNum)
-        
+                                    roiInd, channelNum)
+        %isSignalMissing - Check if signal with given name is missing
+        %
+        %   [TF, roiInd] = isSignalMissing(obj, signalName, roiInd, channelNum)
+        %       returns a logical vector (and indices) for rois which signal
+        %       is missing for the given signal name and channel number
+        %
+        %   INPUT:          SIZE, CLASS & DESCRIPTION
+        %   --------------  ----------------------------------------------
+        %      obj          (1,1) RoiSignalArray
+        %                   An instance of the roi signal array class
+        %      signalName   (1,1) string / character vector
+        %                   Name of the signal to check if is missing
+        %      roiInd       (1,n) double
+        %                   Indices of rois to check if signal is missing
+        %      channelNum   (1,1) double (OPTIONAL)
+        %                   Which channel to check (Default is active channel)
+        %
+        %   OUTPUT:
+        %   --------------  ----------------------------------------------
+        %       tf          (1,n) logical
+        %       roiInd      (1,n) double
+        %                   Indices of rois to check if signal is missing
+
+            if nargin < 3; channelNum = obj.ActiveChannel; end
+            
             signalData = obj.Data(channelNum).(signalName)(:, roiInd);
             isMissingSignal = any(isnan(signalData));
             
@@ -327,15 +361,19 @@ classdef RoiSignalArray < handle
                 TF = false;
                 roiInd = [];
             end
-
         end
         
     end
-        
     
     methods 
         
         function tf = isVirtual(obj)
+        %isVirtual - Todo: Description
+        %
+        %    tf = isVirtual(obj)
+        %
+        %
+        %
             if isempty(obj.ImageStack)
                 tf = true;
             else
@@ -344,13 +382,19 @@ classdef RoiSignalArray < handle
         end
         
         function signalData = getSignals(obj, roiInd, signalName, options, channelNum, forceUpdate)
+        %getSignals - Todo: Description
+        %
+        %    signalData = getSignals(obj, roiInd, signalName, options, channelNum, forceUpdate)
+        %
+        %
+        %
             
             if nargin < 6 || isempty(forceUpdate)
                 forceUpdate = false; 
             end
             
             if nargin < 5 || isempty(channelNum)
-                channelNum = 1; 
+                channelNum = obj.ActiveChannel; 
             end
             
             if nargin < 4
@@ -359,6 +403,7 @@ classdef RoiSignalArray < handle
             
             signalData = [];
             if obj.isVirtual; return; end
+            if numel(obj.ActiveChannel) > 1; return; end
             
             % Get image stack and roi array based on channel number
             
@@ -379,16 +424,21 @@ classdef RoiSignalArray < handle
                 obj.updateSignals(roiInd(isMissingSignal), signalName, options)
                 signalData = obj.Data(channelNum).(signalName)(:, roiInd);
             end
-            
         end
         
         function resetSignals(obj, roiInd, signalNames, channelNum)
+        %resetSignals - Todo: Description
+        %
+        %    resetSignals(obj, roiInd, signalNames, channelNum)
+        %
+        %
+        %
             if nargin < 4
-                channelNum = 1;
+                channelNum = obj.ActiveChannel;
             end
             
             if ischar(roiInd) && strcmp(roiInd, 'all')
-                roiInd = 1:obj.NumRois;
+                roiInd = 1:obj.NumRois(channelNum);
             end
             
             obj.modifySignalArray(roiInd, 'reset', channelNum, signalNames)
@@ -399,12 +449,24 @@ classdef RoiSignalArray < handle
     methods (Access = private) % Listener callback methods
         
         function onImageStackSet(obj)
-            if obj.NumRois > 0
+        %onImageStackSet - Todo: Description
+        %
+        %    onImageStackSet(obj)
+        %
+        %
+        %
+            if any(obj.NumRois > 0)
                 obj.initializeSignalArray()
             end
         end
         
         function onRoiGroupSet(obj)
+        %onRoiGroupSet - Todo: Description
+        %
+        %    onRoiGroupSet(obj)
+        %
+        %
+        %
                         
             if ~isempty(obj.RoisChangedListener)
                 delete(obj.RoisChangedListener)
@@ -416,31 +478,27 @@ classdef RoiSignalArray < handle
             
             
             obj.Data = [];
-            if ~obj.isVirtual
+            if ~obj.isVirtual && any(obj.NumRois > 0)
                 obj.initializeSignalArray()
             end
         end
 
         function onRoisChanged(obj, src, evtData)
-            
-            % Todo: 
-            %   Rois are added      obj.modifySignalArray(roiInd, mode, ch)
-            %   Rois are removed    obj.modifySignalArray(roiInd, 'remove', ch)
-            %   Rois are modified   obj.modifySignalArray(obj.selectedRois, 'reset')
-            
+        %onRoisChanged Callback for changes on roi group 
             
             % Todo: 
             %   [ ] add handling of parameters struct
             
             if obj.isVirtual; return; end
-            
+            channelIdx = obj.ActiveChannel;
             
             % Make needed changes to the data
             switch evtData.eventType
                 case 'initialize'
                     obj.initializeSignalArray()
+
                 case 'append'
-                    if obj.NumRois > size(obj.Data(1).(obj.SIGNAL_NAMES{1}), 2)
+                    if obj.NumRois(channelIdx) > size(obj.Data(channelIdx).(obj.SIGNAL_NAMES{1}), 2)
                         obj.modifySignalArray(evtData.roiIndices, evtData.eventType)
                     end
                     
@@ -450,9 +508,9 @@ classdef RoiSignalArray < handle
                     else
                         obj.modifySignalArray(evtData.roiIndices, 'reset')
                     end
+
                 case 'remove'
                     obj.modifySignalArray(evtData.roiIndices, 'remove')
-
             end
             
             switch evtData.eventType
@@ -465,9 +523,15 @@ classdef RoiSignalArray < handle
 
     end
     
-    methods (Access = private)
+    methods (Access = private) % Fetch signals : Todo: Use calculators
         
         function updateSignals(obj, roiInd, signalTypes, options, triggerEvent)
+        %updateSignals - Todo: Description
+        %
+        %    updateSignals(obj, roiInd, signalTypes, options, triggerEvent)
+        %
+        %
+        %
             
             if nargin < 5
                 triggerEvent = false;
@@ -477,7 +541,7 @@ classdef RoiSignalArray < handle
                 options = struct;
             end
             
-            chNo = 1;
+            chNo = obj.ActiveChannel;
             
             if nargin < 3 || isempty(signalTypes) || strcmp(signalTypes, 'all')
                 signalTypes = obj.SIGNAL_NAMES;
@@ -522,10 +586,15 @@ classdef RoiSignalArray < handle
                 evtData = roimanager.eventdata.RoiSignalsChanged(roiInd, signalTypes, 'updated');
                 obj.notify('RoiSignalsChanged', evtData);
             end
-
         end
         
-        function signalData = extractSignals(obj, roiInd, channelNum, options) %[signal] = extractSignal(obj, roiInd, signalName)
+        function signalData = extractSignals(obj, roiInd, channelNum, options)         %extractSignals - Todo: Description
+        %
+        %    signalData = extractSignals(obj, roiInd, channelNum, options)
+        %
+        %
+        %
+%[signal] = extractSignal(obj, roiInd, signalName)
 
             % Todo: 
             %   [ ] Need roi numbers, channel numbers, sample numbers (?) and
@@ -558,7 +627,6 @@ classdef RoiSignalArray < handle
             elseif size(signalData,2) > 2
                 obj.Data(channelNum).npilMediF(:, roiInd) = mean(signalData(:, 2:end, :), 2);
             end
-            
         end
         
         function signalData = getDeltaFOverF(obj, roiInd, channelNum)
@@ -575,7 +643,6 @@ classdef RoiSignalArray < handle
             dff = nansen.twophoton.roisignals.computeDff(signalData, obj.DffOptions);
             
             obj.Data(channelNum).dff(:, roiInd) = dff;
-            
         end
         
         function getDeconvolved(obj, roiInd, channelNum, options)
@@ -597,25 +664,28 @@ classdef RoiSignalArray < handle
            
             % Normalize deconvolved signals?
             %signalData = signalData ./ max(signalData(:));
-
         end
         
         function discretizeSignals(obj, roiInd, channelNum)
-            
+        %discretizeSignals - Todo: Description
+        %
+        %    discretizeSignals(obj, roiInd, channelNum)
+        %
+        %
+        %
         end
         
     end
     
-    
-    methods (Static, Access = 'private')
+    methods (Static, Access = 'private') % Misc
+        % Todo : specify type in property block
         
-        function validatePropertValue(propertyName, newValue, validClass)
-                        
+        function validatePropertyValue(propertyName, newValue, validClass)
+        %validatePropertyValue Used by set methods to validate data type                 
             msg = sprintf('%s must be an instance of %s', propertyName, ...
                 validClass);
             
             assert(isa(newValue, validClass), msg)
-            
         end
         
     end
