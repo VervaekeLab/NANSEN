@@ -2193,14 +2193,16 @@ methods % App update
         end
         
         global fprintf
-        
+
         switch mode
             case 'display'
-                fprintf = @(msg)obj.uiwidgets.msgBox.displayMessage(msg);
+                fprintfFcn = @(msg)obj.uiwidgets.msgBox.displayMessage(msg);
             case 'update'
-                fprintf = @(varargin)obj.uiwidgets.msgBox.displayMessage(varargin{:});
+                fprintfFcn = @(varargin)obj.uiwidgets.msgBox.displayMessage(varargin{:});
         end
         
+        fprintf = @(varargin) imviewer.App.displayMessageGlobal(varargin{:}, fprintfFcn);
+
         C = onCleanup(@obj.deactivateGlobalMessageDisplay);
         
     end
@@ -2208,7 +2210,11 @@ methods % App update
     function deactivateGlobalMessageDisplay(obj)
         global fprintf
         fprintf = str2func('fprintf');
-        obj.uiwidgets.msgBox.clearMessage()
+        try
+            obj.uiwidgets.msgBox.clearMessage()
+        catch ME
+            warning('Could not clear message from message display. The following error was caught: %s', ME.message)
+        end
     end
     
     function updateMessage(obj, message, varargin)
@@ -5059,7 +5065,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         isRight = isRight & ~any(isBottom) & ~any(isTop) & ~isOutside;
         isLeft = isLeft & ~any(isBottom) & ~any(isTop) & ~isOutside;
         
-        if isfield(obj.uiwidgets, 'Toolbar')
+        if isfield(obj.uiwidgets, 'Toolbar') && ~isa(obj.uiwidgets.Toolbar, 'struct')
             
             if contains(obj.uiwidgets.Toolbar.Location, 'north')
                 isTouch = isTop(1) & ~isOutside;
@@ -5795,6 +5801,22 @@ end
 methods (Static)
     
     S = getDefaultSettings()
+
+    function displayMessageGlobal(varargin)
+        
+        % Note. This is a quick fix for a stupid design that needs to be
+        % improved with a proper dialog interface.
+
+        if isa(varargin{end}, 'function_handle')
+            try
+                varargin{end}( varargin{1:end-1} )
+            catch
+                builtin('fprintf', varargin{1:end-1})
+            end
+        else
+            builtin('fprintf', varargin{:})
+        end
+    end
     
     function [screenSize, screenNum] = getCurrentMonitorSize(hFigure)
     % Todo: Method of nansen.app superclass
