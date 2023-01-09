@@ -21,8 +21,11 @@ classdef roiGroup < handle
 %   applications.
 
 
-%   Todo: Better solution to visible rois. Specifically: Now, everytime a
-%   roi is added or removed the filtering for visible rois is reset.
+%   Todo: 
+%       [ ] Better solution to visible rois. Specifically: Now, everytime a
+%           roi is added or removed the filtering for visible rois is reset.
+%       [ ] Add channel number and plane number as arguments that can be
+%           passed on construction
 
     properties
         ParentApp = [] % Used for storing undo/redo commands.
@@ -30,12 +33,12 @@ classdef roiGroup < handle
     
     properties
         Description
+        ChannelNumber = 1
+        PlaneNumber = 1
     end
     
     properties (SetAccess = private)
         FovImageSize = [] % Todo: Make dependent
-        ChannelNumber = 1
-        PlaneNumber = 1
     end
     
     properties (SetAccess = protected) % RoiGroupData...

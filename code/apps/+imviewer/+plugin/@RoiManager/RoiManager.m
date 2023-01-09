@@ -1195,6 +1195,8 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 for j = 1:obj.ImviewerObj.NumChannels
                     obj.RoiGroup(i,j) = roimanager.roiGroup();
                     obj.RoiGroup(i,j).ParentApp = obj.PrimaryApp;
+                    obj.RoiGroup(i,j).ChannelNumber = j;
+                    obj.RoiGroup(i,j).PlaneNumber = i;
                 end
             end
         end
