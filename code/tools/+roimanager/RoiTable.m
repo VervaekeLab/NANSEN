@@ -61,7 +61,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             % Set table properties
             obj.UITable.HTable.hideHorizontalScroller()
-            obj.UITable.HTable.hideVerticalScroller()
+            %obj.UITable.HTable.hideVerticalScroller()
             obj.UITable.HTable.RowHeight = 18;
             obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;
             obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressedInTable;
