@@ -1584,6 +1584,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     end
                 end
             end
+
+% % %             % Alternative version:
+% % %             fieldIdx = strcmp(currentFieldName, allFieldNames);
+% % %             configIdx = strcmp([currentFieldName,'_'], allFieldNames);
+% % % 
+% % %             if ~isempty(fieldIdx) && ~isempty(configIdx)
+% % %                 ind = configIdx;
+% % %             end
         end
         
         % Note inputbox belongs to guiPanel
@@ -2964,7 +2972,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function pathStr = getIconPath()
             % Set system dependent absolute path for icons.
 
-            rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 0);
+            rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 1);
             pathStr = fullfile(rootDir, 'resources', 'icons');
 
         end
