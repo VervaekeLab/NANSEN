@@ -42,6 +42,10 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                 % Get roi group
                 roiGroup = h.RoiGroup;
 
+                if numel(roiGroup) > 1
+                    roiGroup = roimanager.CompositeRoiGroup(roiGroup);
+                end
+
                 %TODO: Make sure roigroup has images and stat, otherwise generate
                 % it
                 

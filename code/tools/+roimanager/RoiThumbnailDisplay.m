@@ -32,6 +32,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
     end
     
     properties
+        ActiveChannel
         ImageStack  % Handle of an ImageStack object. Necessary for creating roi images.
         PointerManager
     end
@@ -399,8 +400,14 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             im = [];
             if isempty(obj.ImageStack); return; end
                 
-            imArray = obj.ImageStack.getFrameSet('cache');
-            
+            imArray = obj.ImageStack.getFrameSet('cache', [], 'C', obj.ActiveChannel);
+            imArray = squeeze(imArray);
+
+            if ndims(imArray) > 3
+                % Todo, throw error or display message...
+                return
+            end
+
             if size(imArray, 3) < 100
                 if obj.ShowRoiImageUpdateErrorMessage
                     obj.createImageTextbox()

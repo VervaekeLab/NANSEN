@@ -681,11 +681,13 @@ classdef roiGroup < handle
             
             hasApp = ~isempty(obj.ParentApp);
 
-            hasFigure = isprop(obj.ParentApp, 'Figure') && ...
-                            ~isempty(obj.ParentApp.Figure) && ...
-                                isvalid(obj.ParentApp.Figure);
-
-            tf = hasApp && hasFigure;
+            if hasApp
+                tf = isprop(obj.ParentApp, 'Figure') && ...
+                                ~isempty(obj.ParentApp.Figure) && ...
+                                    isvalid(obj.ParentApp.Figure);
+            else
+                tf = false;
+            end
         end
 
     end

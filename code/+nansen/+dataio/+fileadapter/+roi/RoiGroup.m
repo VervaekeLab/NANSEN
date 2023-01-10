@@ -109,6 +109,8 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             
             if isa(data, 'RoI')
                 S = obj.createStructFromRoiArray(data);
+            elseif isa(data, 'roimanager.CompositeRoiGroup')
+                S = obj.createStructFromCompositeRoiGroup(data);
             elseif isa(data, 'roimanager.roiGroup')
                 S = obj.createStructFromRoiGroup(data);
             elseif obj.isRoigroupStruct(data)
@@ -343,6 +345,11 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                     end
                 end
             end
+        end
+
+        function S = createStructFromCompositeRoiGroup(obj, data)
+            roiGroups = data.getAllRoiGroups();
+            S = obj.createStructFromRoiGroup(roiGroups);
         end
 
         function S = validateStruct(obj, S)

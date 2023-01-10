@@ -65,6 +65,10 @@ classdef CompositeRoiGroup < roimanager.roiGroup
 
     methods (Access = public)
         
+        function roiGroups = getAllRoiGroups(obj)
+            roiGroups = obj.RoiGroupArray;
+        end
+
         function addRois(~, ~, ~, ~, ~)
             errordlg('Can not add rois when viewing multiple channels, please select one channel to add rois.')
             error('Nansen:NotImplementedYet', 'Can not add rois to a collection of roi groups')
@@ -90,21 +94,19 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             numAffectedRoiGroups = numel(affectedRoiGroupIdx);
             
             roiDataPerGroup = cell(numAffectedRoiGroups, 4);
-
                        
-            % Update roi array before the update of indivisual roi groups 
+            % Update roi array before the update of individual roi groups 
             % (poor design, should be adressed).
             obj.roiArray(roiInd) = modifiedRois;
             obj.roiImages = getappdata(obj.roiArray, 'roiImages');
             obj.roiStats = getappdata(obj.roiArray, 'roiStats');       
             obj.roiClassification = getappdata(obj.roiArray, 'roiClassification');   
 
-
             count = 0;
             for i = affectedRoiGroupIdx
                 count = count + 1;
 
-                % Get indices belonging th current group...
+                % Get indices belonging the current group...
                 isThisGroup = tempRoiGroupIdx == i;
 
                 thisModifiedRois = modifiedRois(isThisGroup);
@@ -125,14 +127,37 @@ classdef CompositeRoiGroup < roimanager.roiGroup
                 {'roiGroup', 'oldRois', 'newRois', 'roiInd'}, 2);    
 
             % Register with undo manager...
-            if ~isUndoRedo && obj.isUiUndoSupported
+            if ~isUndoRedo && obj.isUiUndoSupported()
                 obj.registerUndoAction('modifyRois', 'modifyRois', roiDataPerGroup)
             end
         end
 
-        function setRoiClassification(obj)
-            % Todo: Run superclass methods
-            % Update classification of rois in each roi group...
+        function setRoiClassification(obj, roiInd, newClass)
+        % Update classification of rois in each roi group...
+
+            tempRoiGroupIdx = obj.RoiGroupIndex(roiInd);
+            tempRoiIndInGroup = obj.RoiIndexInGroup(roiInd);
+
+            affectedRoiGroupIdx = unique( tempRoiGroupIdx );
+
+            roiClassification = getappdata(obj.roiArray, 'roiClassification');   
+            roiClassification(roiInd) = newClass;
+            setappdata(obj.roiArray, 'roiClassification', roiClassification);  
+            
+            for i = affectedRoiGroupIdx
+
+                % Get indices belonging the current group...
+                isThisGroup = tempRoiGroupIdx == i;
+                thisRoiInd = tempRoiIndInGroup(isThisGroup);
+                
+                % Call modify roi, but set the isUndoRedo flag to true to
+                % avoid registering the undo/redo per group
+                obj.RoiGroupArray(i).setRoiClassification(thisRoiInd, newClass)
+            end
+
+            evtData = roimanager.eventdata.RoiClsfChanged(roiInd, newClass);
+            obj.roiClassification(roiInd) = newClass;
+            obj.notify('classificationChanged', evtData)
         end
 
     end
@@ -174,17 +199,20 @@ classdef CompositeRoiGroup < roimanager.roiGroup
  
             % - Count number of rois per roigroup
             numRois = arrayfun(@(rg) rg.roiCount, obj.RoiGroupArray);
-            
-            if sum(numRois) == 0; return; end
-
-            transitionIdx = cumsum([1, numRois(1:end-1)]);
-
-            indexVectorInit = zeros(1, sum( numRois ));
-            indexVectorInit(transitionIdx) = 1;
-            if numel(indexVectorInit) > numRois
-                indexVectorInit = indexVectorInit(1:numRois);
-            end
-            obj.RoiGroupIndex = cumsum(indexVectorInit);
+% %             
+% %             if sum(numRois) == 0; return; end
+% % 
+% %             % Todo: Look at roigroup file io
+% %             transitionIdx = cumsum([1, numRois(1:end-1)]);
+% % 
+% %             indexVectorInit = zeros(1, sum( numRois ));
+% %             indexVectorInit(transitionIdx) = 1;
+% %             if numel(indexVectorInit) > numRois
+% %                 indexVectorInit = indexVectorInit(1:numRois);
+% %             end
+% % 
+            roiArrays = arrayfun(@(c) c.roiArray, obj.RoiGroupArray, 'UniformOutput', false);
+            obj.RoiGroupIndex = utility.cell.getCellIndices(roiArrays);
 
             roiIndexPerGroup = arrayfun(@(n) 1:n, numRois, 'uni', 0);
             obj.RoiIndexInGroup = cat(2, roiIndexPerGroup{:});

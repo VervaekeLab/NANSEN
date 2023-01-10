@@ -408,6 +408,10 @@ classdef roiMap < roimanager.roiDisplay
             obj.updateRoiIndexMap()
         end
         
+        function tf = skipPreferenceCallback(obj)
+            tf = ~obj.IsConstructed || isempty(obj.RoiGroup) || ...
+                obj.RoiGroup.roiCount == 0;
+        end
     end
 
     methods % Set / get
@@ -465,7 +469,7 @@ classdef roiMap < roimanager.roiDisplay
         
         function onNeuropilMaskVisibleChanged(obj)
         %onNeuropilMaskVisibleChanged Callback for property set method
-            if ~obj.IsConstructed || obj.RoiGroup.roiCount == 0; return; end
+            if obj.skipPreferenceCallback(); return; end
             
             if obj.neuropilMaskVisible
                 for i = obj.SelectedRois
@@ -502,7 +506,7 @@ classdef roiMap < roimanager.roiDisplay
         
         function onRoiLabelVisibleSet(obj)
         %onRoiLabelVisibleSet Callback for property set method    
-            if ~obj.IsConstructed || obj.RoiGroup.roiCount==0; return; end
+            if obj.skipPreferenceCallback(); return; end
         
             % Show text labels of rois
             if obj.roiLabelVisible
@@ -523,7 +527,7 @@ classdef roiMap < roimanager.roiDisplay
         
         function onMaskRoiInteriorSet(obj)
         %onMaskRoiInteriorSet Callback for property set method    
-            if ~obj.IsConstructed || obj.RoiGroup.roiCount == 0; return; end
+            if  obj.skipPreferenceCallback(); return; end
 
             if obj.MaskRoiInterior % mask roi interior
                 if isempty(obj.hStaticFovImage)
@@ -541,7 +545,7 @@ classdef roiMap < roimanager.roiDisplay
         end
         
         function onRoiColorSchemeChanged(obj)
-            if ~obj.IsConstructed || obj.RoiGroup.roiCount == 0; return; end
+            if obj.skipPreferenceCallback(); return; end
             obj.updateRoiColors()
         end
         

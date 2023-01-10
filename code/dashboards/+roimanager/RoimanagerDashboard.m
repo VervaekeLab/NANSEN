@@ -709,6 +709,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 obj.RoiTable.RoiGroup = obj.ActiveRoiGroup;
                 obj.SignalViewer.RoiGroup = obj.ActiveRoiGroup;
                 obj.RoiThumbnailViewer.RoiGroup = obj.ActiveRoiGroup;
+                obj.RoiThumbnailViewer.ActiveChannel = obj.ActiveChannel;
             end
         end
     end
