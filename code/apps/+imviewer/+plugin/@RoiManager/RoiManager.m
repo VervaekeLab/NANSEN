@@ -311,7 +311,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                     % If the loaded rois are identical, abort here
                     if isequal(currentRoiGroup(iZ, iC).roiArray, ...
                                 loadedRoiGroup(iZ, iC).roiArray)
-                        return
+                        continue
                     else
                         addMode = obj.uiGetModeForAddingRois();
                     end
@@ -1066,7 +1066,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
 
         function onCurrentChannelChanged(obj, src, evt)
             obj.updateActiveRoiGroup()
-
+            
             if ~isempty(obj.roiSignalArray)
                 if ~isempty(obj.roiSignalArray.ImageStack)
                     obj.roiSignalArray.ImageStack.CurrentChannel = obj.ImviewerObj.currentChannel;
