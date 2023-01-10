@@ -361,7 +361,8 @@ classdef roiMap < roimanager.roiDisplay
 
         function onRoiGroupSet(obj)
 
-            obj.resetRoiDisplay % Remove plothandles and reset roi index map
+            obj.resetRoiDisplay() % Remove plothandles and reset roi index map
+            drawnow
 
             if isempty(obj.RoiGroup); return; end
 
@@ -371,14 +372,16 @@ classdef roiMap < roimanager.roiDisplay
             obj.plotRoi(roiArray, roiIndices, 'initialize')
 
             obj.updateRoiIndexMap()
+            obj.updateStaticFovImage()
 
             obj.VisibleRois = roiIndices;
         end
 
         function resetRoiDisplay(obj)
             roiIndices = 1:numel(obj.roiPlotHandles);
+            obj.resetStaticFovImage()
             obj.removeRoiPlots(roiIndices)
-
+            
             obj.roiIndexMap = [];
         end
     end

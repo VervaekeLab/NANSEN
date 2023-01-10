@@ -588,7 +588,16 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %convertToRgb Creates an rgb frame based on channel color settings
         
             assert(obj.NumChannels > 1, 'Can not convert single channel image to RGB, use colormap instead.')
-            assert(size(image, 3)==obj.NumChannels, 'Image datamust have the same number of channels as ImageStack.')
+            
+            if size(image, 3) == obj.NumChannels
+                channelIndices = 1:obj.NumChannels;
+            elseif size(image, 3) == numel(obj.CurrentChannel)
+                channelIndices = obj.CurrentChannel;
+            else
+                error('Number of channels in image to convert to RGB is ambiguous')
+                % Todo: Add option for specifying arbitrary channel indices
+                % on input
+            end
 
             % Preallocate new frame
             imSize = size(image);
@@ -621,7 +630,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     % % %         end
              
             numCh = size(colorArray, 1);
-            channelColors = mat2cell(colorArray, ones(1,numCh), 3);
+            channelColors = mat2cell(colorArray, ones(1, numCh), 3);
             
             % Go through image for each loaded channel and put in right
             % color channel of newFrame
@@ -629,10 +638,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             newShape = ones(1, ndims(image));
             newShape(3) = 3; 
             
-            for i = 1:numel(obj.CurrentChannel)
-                chNum = obj.CurrentChannel(i);
+            for i = 1:numel(channelIndices)
+                chNum = channelIndices(i);
                 color = channelColors{chNum};
-                subs{3} = chNum;
+                subs{3} = i;
                 imageRgb = imageRgb + single( repmat(image(subs{:}), newShape)) .* reshape(color, newShape);
             end
             
@@ -976,6 +985,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
             % Make sure chunk length does not exceed number of frames.
             numFramesPerChunk = min([numFramesPerChunk, numFramesDim]);
+
+            if isempty(numFramesPerChunk)
+                % Is it possible that this is empty?
+                error('Something unexpected has happened. Image stack has %d frames along dimension %s', numFramesDim, dim)
+            end
             
             % If there will be more than one chunk... Adjust so that last
             % chunkSize so that last chunk is not smaller than 1/3rd of
@@ -1069,7 +1083,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 case {'Y', 'Height', 'ImageHeight'}
                     length = obj.ImageHeight;
             end
-            
         end
 
         function tf = isDummyStack(obj)
