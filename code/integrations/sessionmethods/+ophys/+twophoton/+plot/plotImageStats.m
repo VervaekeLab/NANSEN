@@ -77,9 +77,9 @@ function varargout = plotImageStats(sessionObj, varargin)
 end
 
 
-function S = getDefaultParameters()
-    S = struct();
-    S.ShowExtremes = true;
-    S.ShowPrctile1 = true;
-    S.ShowPrctile2 = true;
+function params = getDefaultParameters()
+    params = struct();
+    params.ShowExtremes = true;
+    params.ShowPrctile1 = true;
+    params.ShowPrctile2 = true;
 end

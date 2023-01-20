@@ -360,7 +360,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             iIndices = obj.CurrentFrameIndices;
             iPart = obj.CurrentPart;
             
-            i = 1;
+            %i = 1;
             
             % Correct drift.
             obj.Options.General.correctDrift = true;
@@ -491,19 +491,42 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             iC = obj.CurrentChannel;
             iZ = obj.CurrentPlane;
             
+            switch obj.Options.Export.IntensityAdjustmentMode
+                case 'mean for all frames'
+                    getLimitFcn = str2func('mean');
+                case 'brightest/darkest frame'
+                    getLimitFcn = str2func('max');
+            end
+            
+            if obj.Options.Export.IntensityAdjustmentPercentile == 0.05
+                statsFieldName = 'prctileU1';
+            elseif obj.Options.Export.IntensityAdjustmentPercentile == 0.005
+                statsFieldName = 'prctileU2';
+            elseif obj.Options.Export.IntensityAdjustmentPercentile == 0
+                statsFieldName = 'maximumValue';
+            else
+                error('This is an invalid value. Please report')
+            end
+            
+            
             if numel(iC) > 1 % Multiple channels
                 currentStats = cat(1, obj.ImageStats{iC, iZ});
-                upperValue = max( [currentStats.maximumValue] );
+                %upperValue = mean( [currentStats.maximumValue] );
+                
+                upperValue = mean( [currentStats.prctileU1Ds] );
+                %upperValue = getLimitFcn( [currentStats.(statsFieldName)] );
+
                 % upperValue = max( [currentStats.prctileU2] );
+                % upperValue = max( [currentStats.prctileU2] );
+                
                 upperValue = reshape(upperValue, 1, 1, []);
                 
             elseif numel(iC) == 1 % Single channel
                 currentStats = obj.ImageStats{iC,iZ};
-                %upperValue = mean( [currentStats.maximumValue] );
-                upperValue = max( [currentStats.prctileU2] );
+                upperValue = getLimitFcn( [currentStats.(statsFieldName)] );
             else
                 error('Unexpected error occurred. Please report')
-            end  
+            end
             
             % Todo: Optimize this. Should also adjust to the data! I.e if
             % the data is very noisy, the maximum is too high, whereas if
@@ -532,14 +555,31 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             iC = obj.CurrentChannel;
             iZ = obj.CurrentPlane;
             
+            switch obj.Options.Export.IntensityAdjustmentMode
+                case 'mean for all frames'
+                    getLimitFcn = str2func('mean');
+                case 'brightest/darkest frame'
+                    getLimitFcn = str2func('max');
+            end
+            
+            if obj.Options.Export.IntensityAdjustmentPercentile == 0.05
+                statsFieldName = 'prctileL1';
+            elseif obj.Options.Export.IntensityAdjustmentPercentile == 0.005
+                statsFieldName = 'prctileL2';
+            elseif obj.Options.Export.IntensityAdjustmentPercentile == 0
+                statsFieldName = 'minimumValue';
+            else
+                error('This is an invalid value. Please report')
+            end
+            
             if numel(iC) > 1 % Multiple channels
                 currentStats = cat(1, obj.ImageStats{iC, iZ});
-                baselineValue = prctile( [currentStats.prctileL2], 5);
+                baselineValue = getLimitFcn( [currentStats.(statsFieldName)] );
                 baselineValue = reshape(baselineValue, 1, 1, []);
                 
             elseif numel(iC) == 1 % Single channel
                 currentStats = obj.ImageStats{iC,iZ};
-                baselineValue = prctile( [currentStats.prctileL2], 5);
+                baselineValue = getLimitFcn( currentStats.(statsFieldName) );
             else
                 error('Unexpected error occurred. Please report')
             end

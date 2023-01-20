@@ -170,6 +170,12 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
                 S.prctileU1 = nanArray;
                 S.prctileU2 = nanArray;
                 
+                nanArrayDs = nan(ceil(numFrames/5), 1);
+                S.prctileL1Ds = nanArrayDs;
+                S.prctileL2Ds = nanArrayDs;
+                S.prctileU1Ds = nanArrayDs;
+                S.prctileU2Ds = nanArrayDs;
+                
                 S.pctSaturatedValues = nanArray;
                 
                 S = obj.repeatStructPerDimension(S);
@@ -218,7 +224,23 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             obj.ImageStats{i,j}.prctileU1(IND) = prctValues(:, 3);
             obj.ImageStats{i,j}.prctileU2(IND) = prctValues(:, 4);
             
-            obj.ImageStats{i,j}.pctSaturatedValues(IND) = mean(Y_ == obj.SaturationValue, 1);
+            nFramesKeep = floor(size(Y, 3)/5)*5;
+            YDs = stack.downsample.binprojection(Y(:,:,1:nFramesKeep), 5);
+            YDs_ = reshape(YDs, [], size(YDs, 3));
+            % Collect different stats.
+            prctValuesDs = prctile(YDs_, pLevels)';
+            if iscolumn(prctValuesDs); prctValuesDs = prctValuesDs'; end % If size(Y, 3)==1. 
+            
+            prctValuesUs = repmat(prctValuesDs, 1,1,5);
+            prctValuesUs = permute(prctValuesUs, [3,1,2]);
+            prctValuesUs = reshape(prctValuesUs, [], 4);
+            
+            IND = IND(1:size(prctValuesUs, 1)); %Cut according to length of resampled values
+            
+            obj.ImageStats{i,j}.prctileL1Ds(IND) = prctValuesUs(:, 1);
+            obj.ImageStats{i,j}.prctileL2Ds(IND) = prctValuesUs(:, 2);
+            obj.ImageStats{i,j}.prctileU1Ds(IND) = prctValuesUs(:, 3);
+            obj.ImageStats{i,j}.prctileU2Ds(IND) = prctValuesUs(:, 4);
         end
         
         function saveImageStats(obj)
