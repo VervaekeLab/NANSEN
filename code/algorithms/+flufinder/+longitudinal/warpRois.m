@@ -47,10 +47,13 @@ for i = 1:nRois
     roiNrSub = fliplr(round(centerNew)); % y, x position in matrix.
 
     % Make sure new centers dont end up outside image
+
+    % TODO: Verify order of nrows and ncols
+
     if roiNrSub(1) < 1; roiNrSub(1) = 1; end
     if roiNrSub(2) < 1; roiNrSub(2) = 1; end
-    if roiNrSub(1) > ncols; roiNrSub(1) = ncols; end
-    if roiNrSub(2) > nrows; roiNrSub(2) = nrows; end
+    if roiNrSub(1) > nrows; roiNrSub(1) = nrows; end
+    if roiNrSub(2) > ncols; roiNrSub(2) = ncols; end
     
     % Find the nonrigid shifts for the part of the image which roi belongs to.
     % flip left right because normcorre shifts are y, x.

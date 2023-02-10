@@ -179,8 +179,10 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
             thisRoiArray = roiArrayMigrated{i-1};
         end
         if isa(thisRoiArray, 'cell')
-            thisRoiArray = thisRoiArray{1};
+            thisRoiArray = thisRoiArray{params.WorkingChannel};
         end
+        
+        % Todo: Save working channel on multisessionrois
 
         S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{i}, fovImageArray(:,:,i), thisRoiArray);
         sessionObject(i).saveData('RoiArrayLongitudinal', thisRoiArray, 'Subfolder', 'roi_data')
@@ -205,6 +207,9 @@ end
 function S = getDefaultParameters()
     
     S = struct();
+    S.WorkingChannel = 2;
+    S.WorkingChannel_ = {1,2};
+
     %  S.MultisessionRoiSynchMode ?
     % 'LoadFromMaster', struct('Alternatives', {{'Use Master', 'Use Single', 'Merge'}}, 'Selection', {'Merge'}), ...
     % 'SaveToMaster', struct('Alternatives', {{'Only Add', 'Mirror'}}, 'Selection', {'Mirror'}), ...
