@@ -33,18 +33,23 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
 % Implementation of the method : Add your code here:    
     
-    % Choose reference session
+    % Count number of sessions
+    numSessions = numel(sessionObject);
+
+    % Let user choose reference session
     sessionIDs = {sessionObject.sessionID};
     refSessionID = nansen.ui.dialog.uiSelectString(sessionIDs, 'single', 'reference session');
     if isempty(refSessionID); return; end % User canceled
-
+    
     % Reorder sessions to place the reference session first in the list.
-    % Todo...
+    idx = find(strcmp(refSessionID, sessionIDs));
+    newOrder = unique( [idx, 1:numSessions], "stable" );
+    sessionObject = sessionObject(newOrder); 
+    sessionIDs = sessionIDs(newOrder);
 
     % Initialize a struct array
 
     % Load all fov images
-    numSessions = numel(sessionObject);
     fovImages = cell(1, numSessions);
     for i = 1:numSessions
         if sessionObject(i).existVariable('FovAverageProjection')
@@ -55,13 +60,18 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
             error(['Did not find Fov Average Projection image for session %s.\n', ...
                 'Please make sure an image exists for all selected sessions.'], sessionIDs{i})
         end
+
+        if thisFovImage.NumPlanes > 1
+            error('Not implemented for multiplane imaging sessions yet.')
+        end
+
         if thisFovImage.NumChannels > 1
             fovImages{i} = mean( thisFovImage.getFrameSet(1), 3 );
         else
             fovImages{i} = thisFovImage.getFrameSet(1);
         end
-
     end
+
     % Todo: If Fov is multi-channel, should we require all sessions to have
     % the same channels? Probably yes...
 
@@ -71,7 +81,6 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     fovImageArray = cat(3, fovImages{:});
     % Todo: Add method for concatenation if images are not the same size.
 
-
     % Register images for each fov/session to reference fov/session
     [fovShifts, imArrayNR] = flufinder.longitudinal.alignFovs(fovImageArray);
 
@@ -79,13 +88,19 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     sessionData = sessionObject(1).Data;
     
     varName = sessionData.uiSelectVariableName('roiArray', 'single');
-    roiArray = sessionObject(1).loadData(varName{1}, 'FileAdapter', 'nansen.dataio.fileadapter.roi.RoiArray');
-    roiArray = roimanager.utilities.struct2roiarray(roiArray);
+    roiArray = sessionObject(1).loadData(varName{1}, 'FileAdapter', 'nansen.internal.dataio.fileadapter.RoiArray');
+
+    if ~isa(roiArray, 'cell'); roiArray = {roiArray}; end
+
+    [flatRoiArray, numRois] = utility.cell.flatten(roiArray);
+
+    flatRoiArray = roimanager.utilities.struct2roiarray(flatRoiArray);
 
     % Shift rois for each session based on shifts from image registration
     roiArrayMigrated = cell(1, numSessions-1);
     for i = 1:numSessions-1
-        roiArrayMigrated{i} = flufinder.longitudinal.warpRois(roiArray, fovShifts(i));
+        warpedRois = flufinder.longitudinal.warpRois(flatRoiArray, fovShifts(i));
+        roiArrayMigrated{i} = utility.cell.unflatten(warpedRois, numRois);
     end
 
     % Get save folder
@@ -94,28 +109,49 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
                     sprintf('reference_session_%s', sessionIDs{1}));
     if ~isfolder(saveFolder); mkdir(saveFolder); end
 
-    frame = cell(1, numSessions-1);
+    % Todo: Do this per plane and channel?
+    numChannels = size(roiArray, 2);
+    channelColors = cbrewer('qual', 'Pastel1', max([3, numChannels]));
+    hRois = cell(1, numChannels);
+
     % Show results
-    
-    [h, w, ~] = size(fovImageArray);
-    hFigure = figure('MenuBar', 'none', 'Position', [1,1,w,h]);
+    [imageHeight, imageWidth, ~] = size(fovImageArray);
+    figureSize = [imageHeight, imageWidth];
+    hFigure = figure('MenuBar', 'none', 'Position', [1,1,figureSize]);
     hAxes = axes(hFigure, 'Position', [0,0,1,1]);
-    hImage = imshow(uint8(fovImageArray(:, :, 1)));
-    hold(hAxes, 'on')
-    hRois = imviewer.plot.plotRoiArray(hAxes, roiArray);
-    
+
     for i = 1:numSessions
         
         fileName = sprintf('fov_roi_registration_%s.png', sessionIDs{i});
         savePath = fullfile(saveFolder, fileName);
         
-        if i ~= 1
+        if i == 1 % Reference session
+            hImage = imshow(uint8(fovImageArray(:, :, 1)));
+            hold(hAxes, 'on')
+            
+            thisRoiArray = roiArray;
+        else
             hImage.CData = uint8( fovImageArray(:, :, i) );
-            delete(hRois)
-            hRois = imviewer.plot.plotRoiArray(hAxes, roiArrayMigrated{i-1});
+            cellfun(@delete, hRois)
+            thisRoiArray = roiArrayMigrated{i-1};
         end
+        
+        for jChannel = 1:numChannels
+            hRois{jChannel} = imviewer.plot.plotRoiArray(hAxes, thisRoiArray{jChannel});
+            set(hRois{jChannel}, 'Color', channelColors(jChannel,:))
+        end
+        
+        % Add legend for roi channels
+        legendLines = cellfun(@(c) c(1), hRois);
+        legendLabels = arrayfun(@(i) sprintf('Rois Channel %d', i), 1:numChannels, 'uni', 0);
+        hLegend = legend(hAxes, legendLines, legendLabels, 'AutoUpdate', 'off');
+        hLegend.Box = 'off';
+        hLegend.TextColor = [0.9,0.9,0.9];
+        hLegend.FontSize = 10;
+
         print(hFigure, savePath, '-dpng', '-r300')
     end
+
     close(hFigure);
     L = dir( fullfile(saveFolder, 'fov_roi_registration_*.png') );
 
@@ -128,7 +164,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     multiSessionRoiFilename = sprintf('%s_multi_session_roi_collection.mat', sessionIDs{1});
     multiSessionRoiFilepath = fullfile(saveFolder, multiSessionRoiFilename);
     
-    % todo: rois is a vector (i.e multichannel/plane)
+    % todo: rois is a vector/matrix (i.e multichannel/plane)
     S = struct;
     S.multiSessionRois = flufinder.longitudinal.MultiSessionRoiCollection.empty;
     %S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{1}, fovImageArray(:,:,1), roiArray);
@@ -142,6 +178,10 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
             % Todo: Ensure we are not overwriting data
             thisRoiArray = roiArrayMigrated{i-1};
         end
+        if isa(thisRoiArray, 'cell')
+            thisRoiArray = thisRoiArray{1};
+        end
+
         S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{i}, fovImageArray(:,:,i), thisRoiArray);
         sessionObject(i).saveData('RoiArrayLongitudinal', thisRoiArray, 'Subfolder', 'roi_data')
         sessionObject(i).saveData('MultisessionRoiCrossReference', multiSessionRoiFilepath, 'Subfolder', 'roi_data')

@@ -33,9 +33,9 @@ function varargout = openRoiManager(sessionObj, varargin)
     %sessionObj.validateVariable('TwoPhotonSeries_Corrected')
 
 
-    filepath = fullfile(nansen.localpath('root'), 'docs', 'resources', 'nansen_roiman.png');
-    [jFrame, jLabel, C] = nansen.ui.showSplashScreen(filepath, 'RoiManager'); %#ok<ASGLU>
-    jLabel.setText('Retrieving Session Data')
+%     filepath = fullfile(nansen.localpath('root'), 'docs', 'resources', 'nansen_roiman.png');
+%     [jFrame, jLabel, C] = nansen.ui.showSplashScreen(filepath, 'RoiManager'); %#ok<ASGLU>
+%     jLabel.setText('Retrieving Session Data')
     
     sessionData = nansen.session.SessionData( sessionObj );
     sessionData.updateDataVariables()
@@ -44,7 +44,7 @@ function varargout = openRoiManager(sessionObj, varargin)
         error('Did not find "TwoPhotonSeries_Corrected" for session.')
     end
 
-    jLabel.setText('Opening Image Stack')
+%     jLabel.setText('Opening Image Stack')
 
     imageStack = sessionData.TwoPhotonSeries_Corrected;
     imageStack.DynamicCacheEnabled = true;
@@ -52,16 +52,24 @@ function varargout = openRoiManager(sessionObj, varargin)
     hRoimanager = nansen.roimanager(imageStack);
     
     try
-        roiFilePath = sessionObj.getDataFilePath('RoiArray');
-        
-        if ~isfile(roiFilePath)
-            return
-        else
-            jLabel.setText('Loading rois')
-            hRoimanager.loadRois(roiFilePath)
+% %         roiFilePath = sessionObj.getDataFilePath('RoiArray');
+            
+        varName = sessionData.uiSelectVariableName('roiArray');
+        if ~isempty(varName)
+            if isa(varName, 'cell'); varName = varName{1}; end
+            roiFilePath = sessionObj.getDataFilePath(varName);
+            
+            if ~isfile(roiFilePath)
+                return
+            else
+    %             jLabel.setText('Loading rois')
+                hRoimanager.loadRois(roiFilePath)
+                hRoimanager.DataSet = sessionData;
+            end
         end
-        
-    catch
+
+    catch ME
+        disp(getReport(ME))
         return
     end
 end

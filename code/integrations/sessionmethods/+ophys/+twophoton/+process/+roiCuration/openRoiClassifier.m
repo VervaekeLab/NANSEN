@@ -51,7 +51,15 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     else
         roiGroup = roiData;
     end
+
+
+    % Todo: Need to adapt to multichannel roigroups. The best would be to
+    % transform roigroup into a 1d thing. See composite roi group.
     
+    if numel(roiGroup) > 1
+        roiGroup = roimanager.CompositeRoiGroup(roiGroup);
+    end
+
     try
         if isempty(roiGroup.roiImages)
             imageStack = sessionData.TwoPhotonSeries_Corrected;
@@ -60,7 +68,7 @@ function varargout = openRoiClassifier(sessionObject, varargin)
             hClassifier = roiclassifier.openRoiClassifier(roiGroup);
         end
 
-        hClassifier.dataFilePath = sessionObject.getDataFilePath('RoiArray'); % todo: varName{1}
+        hClassifier.dataFilePath = sessionObject.getDataFilePath(varName{1});
     
         % Todo: uiwait and then retrieve results and save when closing?
         

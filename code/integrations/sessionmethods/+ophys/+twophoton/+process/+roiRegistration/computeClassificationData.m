@@ -32,9 +32,13 @@ function varargout = computeClassificationData(sessionObject, varargin)
 % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % %
         
     import nansen.twophoton.roi.compute.computeRoiImages
-    
+    import nansen.twophoton.roi.getRoiAppData
     % - Load roi array
     roiArray = sessionObject.loadData('RoiArrayLongitudinal');
+
+    % % % Todo remove:
+    warning('Temp shortcut during dev')
+    roiArray = {RoI.empty, roiArray};
 
     % - Get imagestack
     imageStack = sessionObject.loadData( params.ImageStackVariableName );
@@ -44,14 +48,17 @@ function varargout = computeClassificationData(sessionObject, varargin)
     numZ = imageStack.NumPlanes;
     stackIterator = nansen.stack.ImageStackIterator(numC, numZ);
 
-    % 
-    [numZ_, numC_] = size(roiArray);
-    assert( (numC==numC_) && (numZ==numZ_), 'Size of roi array does not match size of image stack.')
+    % Check that size of roi array matches size of image stack (numC and numZ)
+%     [numZ_, numC_] = size(roiArray);
+%     assert( (numC==numC_) && (numZ==numZ_), ...
+%         'Size of roi array does not match size of image stack.')
+%                 
+% 
+    roiGroupCellArrayOfStruct = cell(numZ, numC);
+
+    %[roiImages, roiStats] = deal( cell(numZ, numC) );
     
-    [roiImages, roiStats] = deal( cell(numZ, numC) );
-    
-    N = obj.SourceStack.chooseChunkLength();
-    
+    N = imageStack.chooseChunkLength();
 
     stackIterator.reset()
     for i = 1:stackIterator.NumIterations
@@ -61,26 +68,47 @@ function varargout = computeClassificationData(sessionObject, varargin)
         iZ = stackIterator.CurrentIterationZ;
         
         thisRoiArray = roiArray{iZ, iC};
-        
-        % Load images:
-        imageStack.CurrentChannel = stackIterator.CurrentChannel;
-        imageStack.CurrentPlane = stackIterator.CurrentPlane;
-        
-        imArray = imageStack.getFrameSet(1:N);
-        % Todo: Include this but fix caching for multichannel data...
-        % obj.SourceStack.addToStaticCache(imArray, 1:N)
-        imArray = squeeze(imArray);
+        if isa(thisRoiArray, 'struct')
+            thisRoiArray = roimanager.utilities.struct2roiarray(thisRoiArray);
+        end
 
         if ~isempty(thisRoiArray)
-            [roiImages, roiStats] = getRoiAppData(imArray, thisRoiArray); % Imported function
-
-            roiImages{iZ, iC} = roiImages;
-            roiStats{iZ, iC} = roiStats;
+            imageStack.CurrentChannel = stackIterator.CurrentChannel;
+            imageStack.CurrentPlane = stackIterator.CurrentPlane;
+            
+            imArray = imageStack.getFrameSet(1:N);
+            
+            % Todo: Include this but fix caching for multichannel data...
+            % obj.SourceStack.addToStaticCache(imArray, 1:N)
+            imArray = squeeze(imArray);
+    
+            [roiImages, roiStats] = ...
+                getRoiAppData(imArray, thisRoiArray); % Imported function
+        else
+            [roiImages, roiStats] = deal(struct.empty);
         end
+        
+        % Load images:
+
+
+        thisRoiGroupStruct = struct();
+        thisRoiGroupStruct.ChannelNumber = stackIterator.CurrentChannel;
+        thisRoiGroupStruct.PlaneNumber = stackIterator.CurrentPlane;
+
+        thisRoiGroupStruct.roiArray = thisRoiArray;
+        thisRoiGroupStruct.roiImages = roiImages;
+        thisRoiGroupStruct.roiStats = roiStats;
+        thisRoiGroupStruct.roiClassification = zeros(numel(thisRoiArray), 1);
+
+        roiGroupCellArrayOfStruct{iZ, iC} = thisRoiGroupStruct;
     end
-
+    
     % Collect data and save roigroup
+    roiGroupStruct = cell2mat(roiGroupCellArrayOfStruct);
 
+    % Save as roigroup.
+    sessionObject.saveData('RoiGroupLongitudinal', roiGroupStruct, ...
+        'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
 end
 
 

@@ -10,6 +10,8 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 
 
     % Todo: 
+    % [ ] Save composite roi group in roi classifier...
+    %
     % [ ] selectedItem is the same as roiDisplay's SelectedRois and 
     %     displayedItems is the same as roiDisplay's VisibleRois
     %    
@@ -944,14 +946,25 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             % Save clean version of rois....
             % Todo: Show have setting for this, and default should be to
             % not save...
-            keep = obj.itemClassification ~= 2;
-            
+
+            if isa(obj.RoiGroup, 'roimanager.CompositeRoiGroup')
+                tempRoiGroup = obj.RoiGroup.getAllRoiGroups();
+            else
+                tempRoiGroup = obj.RoiGroup;
+            end
+
             roiGroupStruct = struct;
-            roiGroupStruct.roiArray = obj.RoiGroup.roiArray(keep);
-            roiGroupStruct.roiImages = obj.RoiGroup.roiImages(keep);
-            roiGroupStruct.roiStats = obj.RoiGroup.roiStats(keep);
-            roiGroupStruct.roiClassification = obj.RoiGroup.roiClassification(keep);
-            
+
+            for i = 1:numel(tempRoiGroup)
+
+                keep = tempRoiGroup(i).roiClassification ~= 2;
+                
+                roiGroupStruct(i).roiArray = tempRoiGroup(i).roiArray(keep);
+                roiGroupStruct(i).roiImages = tempRoiGroup(i).roiImages(keep);
+                roiGroupStruct(i).roiStats = tempRoiGroup(i).roiStats(keep);
+                roiGroupStruct(i).roiClassification = tempRoiGroup(i).roiClassification(keep);
+            end
+
             savePath = strrep(savePath, '.mat', '_clean.mat');
 
             % Save roigroup using roigroup fileadapter

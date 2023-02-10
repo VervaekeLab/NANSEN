@@ -12,6 +12,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
     % [ ] Dock i roimanager
 
     % [x] save rois an multi rois when changing sessions
+    % [ ] migrate rois to all sessions when closing
     
 
     properties (Constant)
