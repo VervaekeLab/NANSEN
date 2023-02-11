@@ -2,13 +2,12 @@ classdef MultiSessionRoiCollection < handle
 %MultiSessionRoiCollection is a class for managing rois of multiple sessions.
 
 % Todo:
-%   Add save method and save as a struct array
-%   Add static load method, and initialize from calling it.
-
-% Todo: 
+%   [ ] Add save method and save as a struct array
+%   [ ] Add static load method, and initialize from calling it.
 %   [ ] Should this be a non-scalar? Why is it??? Why is it a value class?
 %   [ ] Use catalog?
 %   [ ] Add methods for updating on the fly
+%   [ ] Support for rois from more than one image cannel
 
 
 %   properties
@@ -23,19 +22,24 @@ classdef MultiSessionRoiCollection < handle
         SessionID
         FovImage
         RoIArray
+        ImageChannel = 1 % Which image channel rois belong to
     end
     
 
     methods
         
         % Constructor
-        function obj = MultiSessionRoiCollection(sessionID, fovImage, roiArray)
+        function obj = MultiSessionRoiCollection(sessionID, fovImage, roiArray, imageChannel)
             
             if nargin == 0; return; end
             
             obj = obj.initializeEntry(sessionID, fovImage);
 
             obj.RoIArray = roimanager.utilities.roiarray2struct(roiArray);
+
+            if nargin == 4 && ~isempty(imageChannel)
+                obj.ImageChannel = imageChannel;
+            end
         end
         
         % Add sessionID and FovImage to multi session roi object

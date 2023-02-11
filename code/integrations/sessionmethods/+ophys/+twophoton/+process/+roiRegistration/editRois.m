@@ -64,7 +64,6 @@ function varargout = editRois(sessionObject, varargin)
     roimanagerApp = roimanager.RoimanagerDashboard(sessionObjectStruct(1).ImageStack);
     roimanagerApp.addRois(sessionObjectStruct(1).RoiArray)
 
-
     h = MultiSessionFovSwitcher(sessionObject, sessionObjectStruct, roimanagerApp);
 
     % Load multi session rois and add to fov switcher

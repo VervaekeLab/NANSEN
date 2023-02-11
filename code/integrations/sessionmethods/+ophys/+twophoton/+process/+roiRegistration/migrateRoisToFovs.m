@@ -179,12 +179,17 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
             thisRoiArray = roiArrayMigrated{i-1};
         end
         if isa(thisRoiArray, 'cell')
-            thisRoiArray = thisRoiArray{params.WorkingChannel};
+            iZ = 1;
+            iC = params.WorkingChannel;
+            trackedRoiArray = thisRoiArray{iZ, iC};
+        else
+            trackedRoiArray = thisRoiArray;
         end
         
         % Todo: Save working channel on multisessionrois
 
-        S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{i}, fovImageArray(:,:,i), thisRoiArray);
+        S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{i}, fovImageArray(:,:,i), trackedRoiArray);
+        S.multiSessionRois(i).ImageChannel =  params.WorkingChannel;
         sessionObject(i).saveData('RoiArrayLongitudinal', thisRoiArray, 'Subfolder', 'roi_data')
         sessionObject(i).saveData('MultisessionRoiCrossReference', multiSessionRoiFilepath, 'Subfolder', 'roi_data')
     end

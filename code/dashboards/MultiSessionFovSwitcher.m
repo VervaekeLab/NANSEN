@@ -327,19 +327,30 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
         function onSessionSelected(obj, src, evt, i)
             
-            oldSelection = obj.SelectedSession;
-            newSelection = obj.CurrentTiles(i);
+            oldSelectionIdx = obj.SelectedSession;
+            newSelectionIdx = obj.CurrentTiles(i);
 
-            if ~isequal(newSelection, oldSelection)
-                obj.SelectedSession = newSelection;
+            if ~isequal(newSelectionIdx, oldSelectionIdx)
+                obj.SelectedSession = newSelectionIdx;
                 
-                newSessonId = obj.SessionObjectStruct(newSelection).sessionID;
+                newSessonId = obj.SessionObjectStruct(newSelectionIdx).sessionID;
 
                 % Save roi array (also adds it to multi session roi collection)
-                obj.saveCurrentRoiArray(oldSelection)
+                obj.saveCurrentRoiArray(oldSelectionIdx)
 
-                S = obj.SessionObjectStruct(newSelection);
+                S = obj.SessionObjectStruct(newSelectionIdx);
                 newRoiArray = obj.MultiSessionRoiCollection.getRoiArray(newSessonId);
+                
+                % Update in session object struct
+                oldRoiArray = obj.SessionObjectStruct(newSelectionIdx).RoiArray;
+                if iscell(oldRoiArray) && numel(oldRoiArray) > 1
+                    oldRoiArray = obj.SessionObjectStruct(newSelectionIdx).RoiArray;
+                    channelNumber = obj.MultiSessionRoiCollection(1).ImageChannel;
+                    planeNumber = 1;
+
+                    oldRoiArray{planeNumber, channelNumber} = newRoiArray;
+                    newRoiArray = oldRoiArray;
+                end
 
                 obj.RoimanagerApp.changeSession(S.ImageStack, newRoiArray)
                 
@@ -374,7 +385,20 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             %if ~isvalid(obj.RoimanagerApp); return; end
 
             % Get roi array from roimanager (Todo: Multichannel rois)
-            roiArray = obj.RoimanagerApp.ActiveRoiGroup.roiArray;
+            % roiArray = obj.RoimanagerApp.ActiveRoiGroup.roiArray;
+            
+            % Ad hoc update to allw for working with individual channel of
+            % multichannel roi arrays.
+            channelNumber = obj.MultiSessionRoiCollection(1).ImageChannel;
+            planeNumber = 1;
+
+            roiGroup = obj.RoimanagerApp.RoiGroup(planeNumber, channelNumber);
+            roiArray = roiGroup.roiArray;
+
+            numPlanes = size(roiGroup, 1);
+            if numPlanes > 1
+                error('This method does not support multiplane recordings at the moment.')
+            end
 
             % Add to multi session rois
             pushMode = 'replace';
@@ -387,9 +411,15 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             
             % Get updated rois (if adding the to multisession array modifies them)
             updatedRois = obj.MultiSessionRoiCollection.getRoiArray(sessionID);
-
+            
             % Update in session object struct
-            obj.SessionObjectStruct(sessionIdx).RoiArray = updatedRois; %todo;
+            oldRoiArray = obj.SessionObjectStruct(sessionIdx).RoiArray;
+            if iscell(oldRoiArray) && numel(oldRoiArray) > 1
+                obj.SessionObjectStruct(sessionIdx).RoiArray{planeNumber, channelNumber} = updatedRois;
+            else
+                obj.SessionObjectStruct(sessionIdx).RoiArray = updatedRois; %todo;
+            end
+
             obj.SessionObjects(sessionIdx).saveData('RoiArrayLongitudinal', updatedRois)
             disp('saved rois')
         end
