@@ -137,8 +137,12 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
         end
         
         for jChannel = 1:numChannels
-            hRois{jChannel} = imviewer.plot.plotRoiArray(hAxes, thisRoiArray{jChannel});
-            set(hRois{jChannel}, 'Color', channelColors(jChannel,:))
+            if ~isempty( thisRoiArray{jChannel} )
+                hRois{jChannel} = imviewer.plot.plotRoiArray(hAxes, thisRoiArray{jChannel});
+                set(hRois{jChannel}, 'Color', channelColors(jChannel,:))
+            else
+                hRois{jChannel} = plot(hAxes, nan, nan);
+            end
         end
         
         % Add legend for roi channels
