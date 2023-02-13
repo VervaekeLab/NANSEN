@@ -38,7 +38,7 @@ function varargout = computeClassificationData(sessionObject, varargin)
 
     % % % Todo remove:
     warning('Temp shortcut during dev')
-    roiArray = {RoI.empty, roiArray};
+    %roiArray = {RoI.empty, roiArray};
 
     % - Get imagestack
     imageStack = sessionObject.loadData( params.ImageStackVariableName );

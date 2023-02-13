@@ -145,6 +145,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
                     if i == obj.SelectedSession
                         continue
                     else
+                        obj.updateRoiArrayForSession(i)
                         obj.saveRoiArray(i)
                     end
                 end
@@ -156,6 +157,12 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             end
         end
         
+    end
+    
+    methods 
+        function numSessions = get.NumSessions(obj)
+            numSessions = numel(obj.SessionObjects);
+        end
     end
 
     methods (Access = protected)
@@ -384,6 +391,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         function saveRoiArray(obj, sessionIdx)
             roiArray = obj.SessionObjectStruct(sessionIdx).RoiArray;
             obj.SessionObjects(sessionIdx).saveData('RoiArrayLongitudinal', roiArray)
+            fprintf('Saved rois for session %s\n', obj.SessionObjectStruct(sessionIdx).sessionID)
         end
 
         function loadMultisessionRois(obj)
@@ -442,6 +450,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             oldRoiArray = obj.SessionObjectStruct(sessionIdx).RoiArray;
             if iscell(oldRoiArray) && numel(oldRoiArray) > 1
                 obj.SessionObjectStruct(sessionIdx).RoiArray{planeNumber, channelNumber} = updatedRois;
+                updatedRois = obj.SessionObjectStruct(sessionIdx).RoiArray;
             else
                 obj.SessionObjectStruct(sessionIdx).RoiArray = updatedRois; %todo;
             end
