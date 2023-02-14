@@ -62,6 +62,17 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             
             conversionFcn = obj.getDataConversionFunction(roiFormat);
             
+            % Yet another quick & dirty fix
+            if strcmp(roiFormat, 'Nansen') && isstruct(data) && ...
+                    isfield(data, 'RoiArrayLongitudinal') && iscell(data.RoiArrayLongitudinal)
+                data.roiArray = data.RoiArrayLongitudinal;
+                [zz, cc] = ndgrid(1:size(data.roiArray, 1), 1:size(data.roiArray, 2));
+
+                data.ChannelNumber = num2cell(cc);
+                data.PlaneNumber = num2cell(zz);
+            end
+
+
             % Todo: Account for multipe channels/planes.
             % Temporaray quick fix - Perhaps a permanent solution.
             if strcmp(roiFormat, 'Nansen') && isfield(data, 'roiArray') && iscell(data.roiArray)

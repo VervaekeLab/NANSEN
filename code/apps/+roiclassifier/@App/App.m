@@ -53,10 +53,15 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                       
     
     end
+
+    properties
+        OnExitFcn % Callback function to run when app is closed
+    end
     
     properties (Dependent)
         dataFilePath            % Filepath to load/save data from
     end
+
     properties
         roiFilePath
     end
@@ -790,9 +795,13 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         
 
         function onFigureCloseRequest(obj)
-                        
-            wasAborted = obj.promptSaveRois();
-            if wasAborted; return; end
+            
+            if ~isempty(obj.OnExitFcn)
+                obj.OnExitFcn(obj.RoiGroup)
+            else
+                wasAborted = obj.promptSaveRois();
+                if wasAborted; return; end
+            end
             
             delete(obj)
             
