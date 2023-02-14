@@ -52,6 +52,10 @@ properties
     hMessageBox
 end
 
+properties (Access = protected)
+
+end
+
 % Graphical handles for gui that are private
 properties (Access = private)
     hScrollbarAxes
@@ -1566,7 +1570,13 @@ methods (Access = protected)
             
             case 'GridSize'
                 obj.settings.(name) = val;
-                newGridSize = obj.stringSizeToNumbers(val);
+
+                if strcmp(val, 'Custom')
+                    newGridSize = obj.settings.CustomGridSize;
+                else
+                    newGridSize = obj.stringSizeToNumbers(val);
+                end
+
 
                 % Apply!
                 if ~obj.hMessageBox.isMessageDisplaying()
@@ -1579,6 +1589,20 @@ methods (Access = protected)
                 % Change the value of the popup control.
                 hPopup = findobj(obj.hFigure, 'Tag', 'Set GridSize');
                 hPopup.Value = find(contains(hPopup.String, val));
+
+            case 'CustomGridSize'
+
+                obj.changeGridSize(val)
+
+                % Change the value of the popup control.
+                hPopup = findobj(obj.hFigure, 'Tag', 'Set GridSize');
+                
+                if ~any(strcmp(obj.settings.GridSize_, 'Custom'))
+                    obj.settings_.GridSize_ = [{'Custom'},  obj.settings_.GridSize_];
+                    hPopup.String = cat(1, {'Custom'},  hPopup.String);
+                end
+
+                hPopup.Value = find(contains(hPopup.String, 'Custom'));
 
             case 'ImageSize'
                 obj.settings.(name) = val;

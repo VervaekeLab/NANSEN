@@ -55,7 +55,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
     end
 
     properties
-        OnExitFcn % Callback function to run when app is closed
+        SaveFcn % Custom function for saving rois
     end
     
     properties (Dependent)
@@ -165,7 +165,8 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             
             pointerNames = {'selectObject', 'circleSelect', 'autoDetect'};
             
-            % Specify where pointer tools are defind:
+            % Specify where pointer tools are defined:
+     
             % Todo: Constant property or some roimanager constant class
             pointerRoot = strjoin({'roimanager', 'pointerTool'}, '.');
             
@@ -207,7 +208,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 % %             % Add a final option to show selected rois
 % %             label = sprintf('(%d) Current Frame', numOptions+1);
 % %             hControl.String{end+1} = label;
-            
         end
         
     end
@@ -795,13 +795,9 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         
 
         function onFigureCloseRequest(obj)
-            
-            if ~isempty(obj.OnExitFcn)
-                obj.OnExitFcn(obj.RoiGroup)
-            else
-                wasAborted = obj.promptSaveRois();
-                if wasAborted; return; end
-            end
+
+            wasAborted = obj.promptSaveRois();
+            if wasAborted; return; end
             
             delete(obj)
             
@@ -937,9 +933,29 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
     
     methods (Access = public)
         
+        function addCustomGridSize(obj, customGridSize)
+
+            if isnumeric(customGridSize)
+                assert(numel(customGridSize)==2, 'Grid size must be numerix height x width')
+                customGridSize = sprintf('%dx%d', customGridSize(1), customGridSize(2));
+            end
+
+            obj.settings_.GridSize_{end+1} = customGridSize;
+
+
+            % Add to dropdown control
+            h = findobj(obj.hPanelSettings, 'Tag', 'Set GridSize');
+            h.String{end+1} = customGridSize;
+        end
+
         % Methods for saving results.
         function saveClassification(obj, ~, ~, varargin)
         % saveClassification
+
+            if ~isempty(obj.SaveFcn)
+                obj.SaveFcn(obj.RoiGroup)
+                return
+            end
 
             % Get path for saving data to file.
             if isempty(varargin)
@@ -982,7 +998,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             fprintf('Saved clean classification results to %s\n', savePath)
             
         end
-               
+
     end
     
     methods (Access = public) % Load/save rois
@@ -1014,10 +1030,14 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         function saveRois(obj, initPath)
         %saveRois Save rois with confirmation message in app.    
             if nargin < 2; initPath = ''; end
-            saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
             
-            saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);                        
-            obj.hMessageBox.displayMessage(saveMsg, [], 2)
+            if ~isempty(obj.SaveFcn)
+                obj.SaveFcn(obj.RoiGroup)
+            else
+                saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
+                saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);                        
+                obj.hMessageBox.displayMessage(saveMsg, [], 2)
+            end
         end
         
     end
@@ -1061,7 +1081,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         end
         
     end
-    
     
     methods %Set/get
 
