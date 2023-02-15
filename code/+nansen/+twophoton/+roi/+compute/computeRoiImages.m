@@ -240,16 +240,18 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
                         end
     
                 end
+
+                if opt.AutoAdjust
+                    currentRoiIm = normalizearray(currentRoiIm);
+                    currentRoiIm = uint8(currentRoiIm.*255); % Todo: cast to other types?
+                end
+                
             catch %ME
                 currentRoiIm = zeros(boxSize); % initialize
+                currentRoiIm = currentRoiIm(isValidY, isValidX); % initialize
                 warning("Could not create image for roi %d.\n This might be caused by rois being located on the edge of the fov, but further investigation is needed.", iRoi)
             end
-            
-            if opt.AutoAdjust
-                currentRoiIm = normalizearray(currentRoiIm);
-                currentRoiIm = uint8(currentRoiIm.*255); % Todo: cast to other types?
-            end
-            
+
             % Add image to the stack
             roiImageStack{jImage}(isValidY, isValidX, iRoi) = currentRoiIm;
             
