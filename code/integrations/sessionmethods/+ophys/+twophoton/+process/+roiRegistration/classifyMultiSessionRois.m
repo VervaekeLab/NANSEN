@@ -100,7 +100,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
 
     end
 
-    avgRoiCorrelation = repmat(avgRoiCorrelation, 6, 1);
+    avgRoiCorrelation = repmat(avgRoiCorrelation, numSessions, 1);
     
     % Flatten all
     roiArray = roiArray(:);
@@ -120,13 +120,9 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
 
     % Exchange roi stats, and use some roistats for all identical rois
     hClassifier = roiclassifier.openRoiClassifier(roiGroup);
-    hClassifier.settings.GridSize_{end+1} = '4x6';
 
-    % Todo: Get classifications and save back to roigroups.
-    hClassifier.OnExitFcn = @(rois) saveClassifiedRois(sessionObject, rois);
-
-    %roiGroupClassified = hClassifier.getRoiGroup();
-    
+    % Get classifications and save back to roigroups.
+    hClassifier.SaveFcn = @(rois) saveClassifiedRois(sessionObject, rois);    
 
 
     % Return session object (please do not remove):
