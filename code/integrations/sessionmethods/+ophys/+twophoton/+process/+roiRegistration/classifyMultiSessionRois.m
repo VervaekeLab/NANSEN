@@ -74,9 +74,11 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     [roiArray, roiImages, roiStats, roiClassification] = deal(cell(1, numSessions));
 
     for i = 1:numSessions
+        sessionID = sessionObject(i).sessionID;
         roiArray{i} = forceRow(loadedRoiGroups{i}(channelNumber).roiArray);
         roiImages{i} = forceRow(loadedRoiGroups{i}(channelNumber).roiImages);
         roiClassification{i} = forceRow(loadedRoiGroups{i}(channelNumber).roiClassification);
+        roiLabels{i} = arrayfun(@(j) sprintf('#%d - %s', j, sessionID), 1:numRois(i), 'uni', 0 );
 
         % Ensure rois from all sessions are listed in same order.
         if i == 1
@@ -92,7 +94,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     roiArray = cat(1, roiArray{:});
     roiImages = cat(1, roiImages{:});
     roiClassification = cat(1, roiClassification{:});
-
+    roiLabels = cat(1, roiLabels{:});
     roiStats = struct();
     
     avgRoiCorrelation = zeros(1, numSessions);
@@ -117,6 +119,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     roiImages = roiImages(:);
     roiClassification = roiClassification(:);
     roiStats = struct('MultisessionCorrelation', num2cell(avgRoiCorrelation(:)));
+    roiLabels = roiLabels(:);
 
     roiGroup = struct('roiArray', roiArray, 'roiImages', ...
         roiImages, 'roiStats', roiStats, 'roiClassification', roiClassification);
@@ -129,7 +132,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     
 
     % Exchange roi stats, and use some roistats for all identical rois
-    hClassifier = roiclassifier.openRoiClassifier(roiGroup);
+    hClassifier = roiclassifier.openRoiClassifier(roiGroup, 'ItemNames', roiLabels);
 
     % Get classifications and save back to roigroups.
     hClassifier.SaveFcn = @(rois) saveClassifiedRois(sessionObject, rois);    

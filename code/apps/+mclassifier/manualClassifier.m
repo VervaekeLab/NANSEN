@@ -1,4 +1,4 @@
-classdef manualClassifier < applify.mixin.UserSettings
+classdef manualClassifier < applify.mixin.UserSettings %& uiw.mixin.AssignPVPairs
 %manualClassifier App for manually classifying set of items
 %
 %
@@ -8,6 +8,7 @@ classdef manualClassifier < applify.mixin.UserSettings
 %   Options:
 %       tileUnits : Units for tiles: pixel | scaled
 %       numChan   : Number of channels
+%       ItemNames : Names for each item (Should be a cell array of character vectors or a string array with same size as data items)
 
     
 % ABSTRACT PROPERTIES:
@@ -35,15 +36,18 @@ end
 % Properties holding data
 properties (Abstract)
     dataFilePath            % Filepath to load/save data from
-
     itemSpecs               % Struct array of different specifications per item
     itemImages              % Struct array of different images per item
     itemStats               % Struct array of different stats per item
     itemClassification      % Vector with classification status per item
 end
 
+properties
+    ItemNames (1,:)
+end
+
 % Graphical handles for gui
-properties 
+properties %(Access = protected)
     hFigure
     hPanelSettings
     hPanelImage
@@ -95,9 +99,17 @@ methods
             nvpairs = obj.parseInputs(varargin{:});
         end
         
-        def = struct('numChan', 1, 'tileUnits', 'pixel');
+        def = struct('numChan', 1, 'tileUnits', 'pixel', 'ItemNames', []);
         opt = utility.parsenvpairs(def, [], nvpairs);
-        
+    
+        % Todo: Inherit from uiw.mixin.AssignPVPairs
+        fieldNames = fieldnames(opt);
+        for i = 1:numel(fieldNames)
+            if isprop(obj, fieldNames{i})
+                obj.(fieldNames{i}) = opt.(fieldNames{i});
+            end
+        end
+
         obj.loadSettings()
         obj.createFigure()
         
@@ -1173,8 +1185,13 @@ methods
     function itemText = getItemText(obj, roiInd)
     %getItemText Get text to show in tile for each item.    
         
-        cellOfStr = arrayfun(@(i) sprintf('%d', i), roiInd, 'uni', 0);
-            
+        if ~isempty(obj.ItemNames)
+            cellOfStr = obj.ItemNames(roiInd);
+            if iscolumn(cellOfStr); cellOfStr = cellOfStr'; end
+        else
+            cellOfStr = arrayfun(@(i) sprintf('%d', i), roiInd, 'uni', 0);
+        end
+
         % Find value of variable selector:
         hTmp = findobj(obj.hFigure, 'Tag', 'VariableSelector');
         varName = hTmp.String{hTmp.Value};

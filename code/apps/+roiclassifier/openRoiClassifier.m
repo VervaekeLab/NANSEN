@@ -22,23 +22,26 @@ function hClassifier = openRoiClassifier(varargin)
         if all( ismember({'roiArray', 'roiImages', 'roiStats', 'roiClassification'}, dataFields) )
             roiData = varargin{1};
         end
+        varargin(1) = [];
        
     elseif isa(varargin{1}, 'RoI')
         
         if isa(varargin{2}, 'nansen.stack.ImageStack') 
             roiData = roiclassifier.prepareRoiData(varargin{1:2});
+            varargin(1:2) = [];
         end
         
     elseif isa(varargin{1}, 'roimanager.roiGroup')
         if nargin >= 2 && ~isempty(varargin{2}) && isa(varargin{2}, 'nansen.stack.ImageStack') 
             roiData = roiclassifier.prepareRoiData(varargin{1:2});
-        
+            varargin(1:2) = [];
         else
             roiGroup = varargin{1};
+            varargin(1) = [];
         end
-        
-        
     end
+
+    nvPairs = varargin;
     
     
     if ~isempty(roiData)
@@ -54,7 +57,7 @@ function hClassifier = openRoiClassifier(varargin)
         error('Input is not valid for roi classifier app')
     end
 
-    hClassifier = roiclassifier.App(roiGroup, 'tileUnits', 'scaled');
+    hClassifier = roiclassifier.App(roiGroup, 'tileUnits', 'scaled', nvPairs{:});
 
 
 end
