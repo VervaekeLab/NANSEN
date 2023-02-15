@@ -77,6 +77,16 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
         roiArray{i} = forceRow(loadedRoiGroups{i}(channelNumber).roiArray);
         roiImages{i} = forceRow(loadedRoiGroups{i}(channelNumber).roiImages);
         roiClassification{i} = forceRow(loadedRoiGroups{i}(channelNumber).roiClassification);
+
+        % Ensure rois from all sessions are listed in same order.
+        if i == 1
+            refRoiUuid = {roiArray{i}.uid};
+        else
+            [~, ~, iB] = intersect(refRoiUuid, {roiArray{i}.uid}, 'stable');
+            roiArray{i} = roiArray{i}(iB);
+            roiImages{i} = roiImages{i}(iB);
+            roiClassification{i} = roiClassification{i}(iB);
+        end
     end
 
     roiArray = cat(1, roiArray{:});
