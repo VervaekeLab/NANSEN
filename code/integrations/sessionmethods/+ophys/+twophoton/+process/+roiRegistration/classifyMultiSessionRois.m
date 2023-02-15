@@ -124,7 +124,6 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     % Get classifications and save back to roigroups.
     hClassifier.SaveFcn = @(rois) saveClassifiedRois(sessionObject, rois);    
 
-
     % Return session object (please do not remove):
     % if nargout; varargout = {sessionObject}; end
 end
@@ -155,6 +154,7 @@ function saveClassifiedRois(sessionObjects, classifiedRoiGroup)
         roiGroup(1, channelNumber).roiClassification = roiClassification(i, :)';
 
         sessionObjects(i).saveData('RoiGroupLongitudinal', roiGroup);
+        fprintf('Saved rois for session %s\n', sessionObjects(i).sessionID)
     end
 end
 
