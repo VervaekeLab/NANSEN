@@ -72,6 +72,18 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
         end
     end
 
+    % If FOVS are not the same size, crop them to the minimum size
+    % available
+% % %     fovSize = cellfun(@(im) size(im), fovImages, 'uni', 0);
+% % %     fovSize = min( cat(1, fovSize{:}) );
+% % %     
+% % %     fovImageArray = zeros( [fovSize, numSessions] );
+% % %     for i = 1:numSessions
+% % %         fovImageArray(:, :, i) = stack.reshape.imcropcenter(fovImages{i}, fovSize);
+% % %     end
+
+
+
     % Todo: If Fov is multi-channel, should we require all sessions to have
     % the same channels? Probably yes...
 
@@ -194,7 +206,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
 
         S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{i}, fovImageArray(:,:,i), trackedRoiArray);
         S.multiSessionRois(i).ImageChannel =  params.WorkingChannel;
-        sessionObject(i).saveData('RoiArrayLongitudinal', thisRoiArray, 'Subfolder', 'roi_data')
+        sessionObject(i).saveData('RoiArrayLongitudinal', thisRoiArray, 'Subfolder', 'roi_data')% todo:?, 'FileAdapter', 'RoiArray')
         sessionObject(i).saveData('MultisessionRoiCrossReference', multiSessionRoiFilepath, 'Subfolder', 'roi_data')
     end
 
