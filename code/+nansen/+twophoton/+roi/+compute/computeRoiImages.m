@@ -241,6 +241,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     
                 end
             catch %ME
+                currentRoiIm = zeros(boxSize); % initialize
                 warning("Could not create image for roi %d.\n This might be caused by rois being located on the edge of the fov, but further investigation is needed.", iRoi)
             end
             
