@@ -1,4 +1,4 @@
-function funcHandles = getCustomTableVariableFcn(varNames, projectName)
+function funcHandles = getCustomTableVariableFcn(varNames, projectName, tableType)
 
     %rename: varname2tablevarfunc
 
@@ -6,11 +6,15 @@ function funcHandles = getCustomTableVariableFcn(varNames, projectName)
         varNames = nansen.metadata.utility.getCustomTableVariableNames();
     end
     
-    if nargin < 2
+    if nargin < 2 || isempty(projectName)
         projectName = getpref('Nansen', 'CurrentProject');
     end
+
+    if nargin < 3 || isempty(tableType)
+        tableType = 'session';
+    end
     
-    packageList = {projectName, 'tablevar', 'session'};
+    packageList = {projectName, 'tablevar', tableType};
     
     varname2fcn = @(name) str2func(strjoin([ packageList, name], '.'));
     

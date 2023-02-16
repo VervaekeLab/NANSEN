@@ -47,7 +47,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     properties % Table preferences
         ShowIgnoredEntries = true
         AllowTableEdits = true
-        MetaTableType = 'session'
+        MetaTableType = 'session' %Note: should always be lowercase
     end
     
     properties
@@ -180,6 +180,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
        
+        function set.MetaTableType(obj, newValue)
+            obj.MetaTableType = lower(newValue);
+        end
+
         function set.ColumnSettings(obj, newSettings)
             if isempty(obj.ColumnModel) 
                 obj.ColumnSettings_ = newSettings;
@@ -753,18 +757,19 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             % NOTE: This is temporary. Need to generalize, not make special
             % treatment for session table
-            customVars = nansen.metadata.utility.getCustomTableVariableNames();
+            customVars = nansen.metadata.utility.getCustomTableVariableNames(obj.MetaTableType);
             [customVars, iA] = intersect(variableNames, customVars);
             
             for i = 1:numel(customVars)
                 thisName = customVars{i};
-                varFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
+                varFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName, [], obj.MetaTableType);
                 varDef = varFcn();
                 
                 if isa(varDef, 'nansen.metadata.abstract.TableVariable')
                     if isprop(varDef, 'LIST_ALTERNATIVES')
                         dataTypes(iA(i)) = {'popup'};
                         colFormatData(iA(i)) = {varDef.LIST_ALTERNATIVES};
+                        obj.HTable.ColumnEditable(iA(i))=true;
                     end
                 end
             end

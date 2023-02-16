@@ -29,7 +29,7 @@ properties
     connectedrois = cell(0)     % A list of uid of connected RoIs
     parentroi = cell(0)         % A uid of parent RoIs
     group                       % 
-    celltype                    % Neuron, Astrocyte, other?
+    celltype char               % Neuron, Astrocyte, other?
     structure = 'na'            % Axon, Dendrite, Endfoot, Vein, Artery, Capillary
     xyz                         % X, y and z coordinates relative to a reference point, e.g. bregma
     region = ''                 % Region of the brain where the RoI is drawn 
