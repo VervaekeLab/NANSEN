@@ -1,6 +1,9 @@
 classdef StackCropper < nansen.stack.ImageStackProcessor
 %StackCropper Class for cropping an ImageStack
 
+% Todo
+%   [ ] Select to crop left, right or center along x and y
+%   
     properties
         NewSize (1,2) double
     end

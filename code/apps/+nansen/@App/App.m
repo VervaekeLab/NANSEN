@@ -2443,6 +2443,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 switch answer
                     case 'Yes'
                         metaTable.removeTableVariable(thisName)
+                        metaTable.save()
                     case {'Cancel', 'No', ''}
                         
                         % Todo (Is it necessary): Maybe if the variable is

@@ -121,6 +121,10 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
     end
     
     methods
+
+        function save(obj)
+            writeToFile(obj)
+        end
         
         function updateTimeUnit(obj)
             % Todo: Turn 0.001 second into 1 microsecond etc.
