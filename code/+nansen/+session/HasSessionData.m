@@ -18,7 +18,7 @@ classdef HasSessionData < uim.handle
 %
 %   Conclusion: Would be nice to solve this in a more elegant way...
 
-    properties %(Dependent, Transient)
+    properties (Transient) %(Transient) Todo: Why was this commented out?
         Data nansen.session.SessionData
     end
     

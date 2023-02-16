@@ -45,7 +45,8 @@ methods % Structors
 
         % If both ini- and yaml file exists, delete the ini file.
         iniPath = nansen.stack.virtual.Binary.getIniFilepath(obj.FilePath);
-        if isfile(iniPath); delete(iniPath); end
+        yamlPath = utility.path.changeFilenameExtension(iniPath, 'yaml');
+        if isfile(iniPath) && isfile(yamlPath); delete(iniPath); end
     end
     
 end
