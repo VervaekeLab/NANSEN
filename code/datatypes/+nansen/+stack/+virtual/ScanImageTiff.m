@@ -385,7 +385,11 @@ methods (Access = protected) % Todo: Scan image and subclass
             end
             
         end
-        numFramesPerFile(i) = numFramesPerFile(i) .* sIParams.hChannels.channelSave .* sIParams.hStackManager.actualNumSlices;
+
+        numChannels = numel( sIParams.hChannels.channelSave );
+        numPlanes = sIParams.hStackManager.actualNumSlices;
+
+        numFramesPerFile(i) = numFramesPerFile(i) .* numChannels .* numPlanes;
         obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
         obj.NumTimepoints_ = sum(numFramesPerFile);
         
