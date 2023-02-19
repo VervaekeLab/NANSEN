@@ -640,7 +640,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.IsDirty = true;
 
             % Automatically fill out 2nd datalocation rootdir if it is empty.
-            if rowIdx == 1 && isempty( obj.Data(2).RootPath )
+            if rowIdx == 1 && numel(obj.Data) > 1 && isempty( obj.Data(2).RootPath )
 
                 parentDir = fileparts(newPath);
                 

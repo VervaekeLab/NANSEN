@@ -1316,6 +1316,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.MetaTable = nansen.manage.updateSessionDatalocations(...
                 app.MetaTable, app.DataLocationModel);
+            
             app.saveMetaTable()
             try
              close(d)
@@ -2513,7 +2514,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function metaTable = updateDataLocationFromModel(app, metaTable)
-        %updateDataLocationFromModel Update dataLocations in meta table 
+        %updateDataLocationFromModel Update dataLocations in meta table
+        %
+        % Make sure all data location entries in the metatable matches the
+        % configurations in the data location model.
             if nargin < 2
                 metaTable = app.MetaTable;
             end
