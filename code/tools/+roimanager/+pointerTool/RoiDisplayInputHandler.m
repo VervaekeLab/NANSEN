@@ -44,9 +44,18 @@ classdef RoiDisplayInputHandler < handle
                     
                 case {'backspace', '⌫'}
                     obj.RoiDisplay.removeRois();
-                    
+                                
+                case 'e'
+                    if strcmp(event.Modifier, 'shift')
+                        obj.RoiDisplay.changeCellType('excitatory')    
+                    end
+
                 case 'i'
-                    obj.RoiDisplay.improveRois();
+                    if strcmp(event.Modifier, 'shift')
+                        obj.RoiDisplay.changeCellType('inhibitory')
+                    elseif isempty(event.Modifier)
+                        obj.RoiDisplay.improveRois();
+                    end
                     
                 case 'g'
                     obj.RoiDisplay.growRois();

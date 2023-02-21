@@ -388,6 +388,14 @@ classdef roiMap < roimanager.roiDisplay
 
     methods (Access = private)
         
+        function assertSingleActiveChannel(obj)
+            if numel(obj.ActiveChannel) > 1
+                obj.displayApp.displayMessage('Can not perform this operation on multiple channels. Please set the active channel to an individual channel')
+                error('Can not perform this operation on multiple channels. Please set the active channel to an individual channel')
+                return
+            end
+        end
+
         function removeRoiPlots(obj, roiIndices)
         %removeRoiPlots Remove plotted rois for given roi indices
             
@@ -991,6 +999,18 @@ classdef roiMap < roimanager.roiDisplay
             end
         end
         
+        function changeCellType(obj, newCellType)
+        %changeCellType Change cell type attribute
+            
+            obj.assertSingleActiveChannel()
+
+            modifiedRois = obj.RoiGroup.roiArray(obj.SelectedRois);
+            [modifiedRois(:).celltype] = deal(newCellType);
+
+            obj.RoiGroup.changeRoiProperties(modifiedRois, obj.SelectedRois)
+
+        end
+
         % Todo: move to roi editor
         function createPolygonRoi(obj, x, y, doReplace)
 
@@ -1066,7 +1086,7 @@ classdef roiMap < roimanager.roiDisplay
             
             if numel(obj.ActiveChannel) > 1
                 newRoi = RoI.empty;
-                obj.displayApp.displayMessage('Can not autodetect rois from multiple channels simultaneously. Please set the active channel to an insividual channel')
+                obj.displayApp.displayMessage('Can not autodetect rois from multiple channels simultaneously. Please set the active channel to an individual channel')
                 return
             end
 
