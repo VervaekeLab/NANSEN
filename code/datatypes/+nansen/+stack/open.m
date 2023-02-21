@@ -113,6 +113,9 @@ function virtualData = open(pathStr, varargin)
             
         case {'.avi', '.mov', '.mpg', '.mp4'}
             virtualData = nansen.stack.virtual.Video(pathStr, nvPairs);
+
+        case {'.tsm'}
+            virtualData = nansen.stack.virtual.TSM(pathStr, nvPairs);
             
         otherwise
 
