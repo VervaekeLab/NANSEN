@@ -102,6 +102,7 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
         PreprocessDataOnLoad = false; % Flag for whether to activate image stack data preprocessing...
         PartsToProcess = 'all'      % Parts to processs. Manually assign to process a subset of parts
         RedoProcessedParts = false  % Flag to use if processing should be done again on already processed parts
+        SaveFinalResults = true
     end
 
     properties (Access = public) % Resolve: Should these instead be methods? Should be properties of a generic non-abstract ImageStackProcessor.
@@ -751,7 +752,9 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
                 end
             end
 
-            obj.saveMergedResults()
+            if obj.SaveFinalResults
+                obj.saveMergedResults()
+            end
         end
         
         function onInitialization(~)
