@@ -57,13 +57,14 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.roiTable = roiTable;
             
             nansen.assert('WidgetsToolboxInstalled')
-            obj.UITable = nansen.MetaTableViewer(obj.Panel, roiTable, 'MetaTableType', 'Roi');
+            obj.UITable = nansen.MetaTableViewer(obj.Panel, roiTable, 'MetaTableType', 'roi');
             
             % Set table properties
             obj.UITable.HTable.hideHorizontalScroller()
             %obj.UITable.HTable.hideVerticalScroller()
             obj.UITable.HTable.RowHeight = 18;
             obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;
+            obj.UITable.HTable.CellEditCallback = @obj.onTableCellEdited;
             obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressedInTable;
             
             % Load and set column model settings from preferences.
@@ -233,6 +234,13 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
         end
         
+        function onTableCellEdited(obj, src, evt)
+            %obj.roiTable.Properties.VariableNames( evt.Indices(2) )
+            % Todo: find right column name.
+            % Todo, trigger roi update...
+            %obj.RoiGroup.roiArray(evt.Indices(1)) = evt.NewValue;
+        end
+
         function onTableUpdated(obj, src, evt)
             obj.RoiGroup.changeVisibleRois(evt.RowIndices, evt.Type);
         end

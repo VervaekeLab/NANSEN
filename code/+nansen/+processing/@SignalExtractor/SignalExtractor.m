@@ -89,7 +89,8 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
                 obj.RoiDataArray{iZ, iC} = nansen.processing.roi.prepareRoiMasks( ...
                     iRoiArray, obj.ExtractionParameters{iZ, iC});
                 
-                % Signal extraction function depends on number of rois.
+                % Signal extraction function depends on number of rois and is 
+                % assigned individually per channel and plane.
                 obj.assignSignalExtractionFcn(iZ, iC)
             end
         end

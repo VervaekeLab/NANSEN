@@ -1244,7 +1244,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function numChunks = get.NumChunks(obj)
             % Todo: Depend on chunking dimension..
-            numChunks = ceil( obj.numTimepoints / obj.ChunkLength );
+            numChunks = ceil( obj.NumTimepoints / obj.ChunkLength );
         end
         
         function numFrames = get.NumFrames(obj)

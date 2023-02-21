@@ -26,6 +26,10 @@ function [filePath, filename] = listFiles(filePathCellArray, filetype)
 
     keep = ~ strncmp({L.name}, '.', 1);
     L = L(keep);
+
+    if ~strncmp(filetype, '.', 1)
+        filetype = sprintf('.%s', filetype);
+    end
     
     if ~isempty(filetype) % Filter by filetype...
         [~, ~, ext] = fileparts({L.name});
