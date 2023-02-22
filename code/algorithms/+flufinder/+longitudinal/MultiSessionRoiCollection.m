@@ -159,6 +159,7 @@ classdef MultiSessionRoiCollection < handle
                     newRois = roimanager.utilities.removeOverlappingRois(tmpRois, newRois);
                     
                     % Sort newRois so that imported comes at the end
+                    % Todo: Reconsider sorting
                     imported = [];
                     for x = 1:length(newRois)
                         if contains(cell2str(newRois(x).tags),'imported')
@@ -188,8 +189,14 @@ classdef MultiSessionRoiCollection < handle
         
         function obj = synchEntries(obj, sessionID, synchMode)
         %SYNCHENTRIES Synchronize all RoIs based on a reference session
-                
-        % synchMode: 'mirror', 'add only'
+        %
+        %   obj = synchEntries(obj, sessionID, synchMode) synchronize rois
+        %   from specified session to all other entries in the multisession
+        %   roi collection. synchMode can be 'mirror' or 'add only'.
+        %
+        %   synchMode: 
+        %       'mirror'    :
+        %       'add only'  :
         
             if nargin < 3; synchMode = 'mirror'; end
         
@@ -227,6 +234,10 @@ classdef MultiSessionRoiCollection < handle
                 if strcmpi(synchMode, 'mirror')
                     [~, delInd] = setdiff({tmpRois.uid}, {referenceRois.uid});
                     tmpRois(delInd) = [];
+                    
+                    % Mirror celltype from reference rois
+                    [tmpRois(:).celltype] = referenceRois.celltype;
+                    
                 end
                 
                 % Check if rois are outside of image, and add missing
