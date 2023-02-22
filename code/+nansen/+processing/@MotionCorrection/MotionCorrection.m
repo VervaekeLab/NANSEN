@@ -173,7 +173,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             stackSize = size(obj.SourceStack.Data);
             obj.validateStackSize(stackSize)
 
-            if obj.Options.Preprocessing.NumFlybacklines ~= 0
+            if isfield(obj.Options.Preprocessing, 'NumFlybacklines') && ...
+                    obj.Options.Preprocessing.NumFlybacklines ~= 0
                 stackSize(1) = stackSize(1) - obj.Options.Preprocessing.NumFlybacklines;
             end
 
@@ -324,7 +325,8 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             Y = single(Y); % Cast to single for the alignment
             
-            if obj.Options.Preprocessing.NumFlybackLines ~= 0
+            if isfield(obj.Options.Preprocessing, 'NumFlybacklines') && ...
+                    obj.Options.Preprocessing.NumFlybacklines ~= 0
                 ind = repmat({':'}, 1, ndims(Y));
                 ind{1} = obj.Options.Preprocessing.NumFlybacklines : size(Y, 1);
                 Y = Y(ind{:});
