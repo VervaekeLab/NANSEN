@@ -307,7 +307,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     methods (Access = protected)
         
         function addDataProperty(obj, variableName)
-            pPuplic = obj.addprop(variableName);
+            pPublic = obj.addprop(variableName);
             
             % Add a private property that will hold the actual data.
             privateVariableName = strcat(variableName, '_');
@@ -317,10 +317,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             
             %obj.(privateVariableName) = [];
             
-            pPuplic.GetMethod = @(h, varName) obj.getDataVariable(variableName);
+            pPublic.GetMethod = @(h, varName) obj.getDataVariable(variableName);
             
             %pPuplic.SetMethod = @obj.setDataVariable;
-            pPuplic.SetAccess = 'private'; %todo: Add set functionality
+            pPublic.SetAccess = 'private'; %todo: Add set functionality
 
         end
         

@@ -13,6 +13,9 @@ classdef ImageStack < nansen.dataio.FileAdapter
     % Note 1: Saving data will always overwrite the existing data.
     % Note 2: Saving of data is only supported for tiff files.
 
+    % Todo: Make this more dynamic, i.e list all file adapters and use
+    % fileadapter file types to determine which to use.
+
 
     properties (Constant)
         DataType = 'ImageStack'
@@ -20,7 +23,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
     end
     
     properties (Constant, Hidden, Access = protected)
-        SUPPORTED_FILE_TYPES = {'ini', 'raw', 'tif', 'tiff', 'avi', 'h5'}
+        SUPPORTED_FILE_TYPES = {'ini', 'raw', 'tif', 'tiff', 'avi', 'h5', 'tsm'}
     end
     
     methods (Access = protected)
@@ -107,6 +110,9 @@ classdef ImageStack < nansen.dataio.FileAdapter
 
                 case 'mdf'
                     className = 'nansen.stack.virtual.MDF';
+
+                case 'tsm'
+                    className = 'ophys.macroscope.TSMVoltageSeries';
 
                 otherwise
                     error('Nansen:DataIO:FileTypeNotSupported', ...
