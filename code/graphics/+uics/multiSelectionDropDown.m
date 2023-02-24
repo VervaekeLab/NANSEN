@@ -212,6 +212,9 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
             uicontrol(obj.hUiControl)
         end
 
+        function reset(obj)
+            obj.Value = 1;
+        end
     end
     
     

@@ -388,6 +388,8 @@ classdef MetaTableColumnFilter < handle
                 if ~isempty(obj.hColumnFilterPopups{i})
                     try
                         obj.hColumnFilterPopups{i}.reset()
+                    catch
+                        warning('Could not reset filter properly for column %d', i)
                     end
                 end
             end
