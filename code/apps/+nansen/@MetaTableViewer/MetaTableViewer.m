@@ -26,6 +26,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     %   [x] Revert change from metatable. need to get formatted data from
     %       table!
     %   [ ] Should the filter be a RowModel?
+    %   [ ] Make method for getting colorcoded column names (based on
+    %   column filters, and always run columnNames through this method
+    %   before setting the on the table object
+    %   [ ] Will ColumnFilter.isColumnFilterActive always match the columns
+    %       in the column model? Need to verify
     %   [ ] Straighten out what to do about the MetaTable property.
     %       Problem: if the input metatable was a MetaTable object, it
     %       might contain data which is not renderable in the uitable, i.e
@@ -812,7 +817,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             columnNames = obj.ColumnModel.getColumnNames();
 
             for i = 1:numel(obj.HTable.ColumnName)
-                if filterActive(i)
+                if ~isempty(filterActive) && filterActive(i)
                     columnNames{i} = sprintf('<HTML><FONT color="%s">%s</Font>', onColor, columnNames{i});
                     %columnNames{i} = sprintf('<HTML><FONT
                     %color="%s"><b>%s</Font>', onColor, columnNames{i});
