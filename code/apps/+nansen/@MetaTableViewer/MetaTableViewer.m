@@ -670,7 +670,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Get visible rows based on filter states
             filteredRows = obj.getCurrentRowSelection(); 
             visibleRows = intersect(filteredRows, visibleRows, 'stable');
-            
 
             % Get subset of data from metatable that should be put in the
             % uitable. 
@@ -685,6 +684,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Assign updated table data to the uitable property
             obj.HTable.Data = tableDataView;
             obj.HTable.Visible = 'on';
+
+            obj.updateColumnLabelFilterIndicator()
             
             % Why????
             if requestFocus
@@ -782,6 +783,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % the correct number of columns are shown.
             obj.HTable.ColumnName = columnLabels;
             
+            % Update indicators for table filters because these are reset
+            % when column name is set
+            obj.updateColumnLabelFilterIndicator()
+
             obj.ColumnModel.updateJavaColumnModel()
 
             % Maybe call this separately???
@@ -794,6 +799,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
 
         function updateColumnLabelFilterIndicator(obj, filterActive)
+
+            if nargin < 2
+                filterActive = obj.ColumnFilter.isColumnFilterActive;
+            end
+
             onColor = '#017100';
 
             colIndices = obj.ColumnModel.getColumnIndices();
