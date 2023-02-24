@@ -2231,8 +2231,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                                 isValid = true;
                             end
                         elseif isequal(defaultValue, {'N/A'}) % Character vectors should be in a scalar cell
-                            expectedDataType = 'scalar cell containing a character vector';
+                            expectedDataType = 'character vector or a scalar cell containing a character vector';
                             if iscell(newValue) && numel(newValue)==1 && ischar(newValue{1})
+                                updatedValues{iSession} = newValue{1};
+                                isValid = true;
+                            elseif isa(newValue, 'char')
                                 updatedValues{iSession} = newValue;
                                 isValid = true;
                             end
