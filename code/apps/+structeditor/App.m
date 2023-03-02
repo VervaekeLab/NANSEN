@@ -30,7 +30,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
 
 %   Main things to change:
-%
+%       [ ] 2023-03-02 : Introduced bug, when changing between pages that
+%       should resize. 
 %       [x] Fix Scroller... Does it need its own panel???
 %       [ ] Scrollerposition does not reset to top when changing tabs... 
 %      *[ ] Implement dependable fields...
@@ -173,7 +174,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         sidePanelToggleButton
 
         UIControlSchemer applify.uicontrolSchemer
-        
+        UIControlSchemerHeader applify.uicontrolSchemer
+        UIControlSchemerFooter applify.uicontrolSchemer
+
         % Move to options manager ui class.
         OptionsManagerControls
         OptionsSelectionDropdown
@@ -245,26 +248,25 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 
                 if obj.showFooter
                     h = applify.uicontrolSchemer(obj.OptionsManagerControls);
-                    el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
+                    obj.UIControlSchemerFooter = h;
+                    addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
                     drawnow
                 end
-                
             end
 
             % Find handles of all uicontrols.
-            hUic = findobj(obj.header.hPanel, 'type','uicontrol'); 
+            hUic = findobj(obj.header.hPanel, 'type', 'uicontrol'); 
             
             % Make them look good.
             if ~isempty(hUic)
                 h = applify.uicontrolSchemer(hUic);
+                obj.UIControlSchemerHeader = h;
                 %el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
             end
-            
             
 %             % Center position of figure on screen
 %             screenSize = get(0, 'ScreenSize');
 %             obj.Figure.Position(1:2) = screenSize(3:4)/2 - obj.Figure.Position(3:4)/2;
-            
 
             % Make size fixed, and add close callback
             
@@ -279,7 +281,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             delete(obj.main.tmpPanel)
             obj.main.constructionCurtain.Visible = 'off';
            
-
             obj.isConstructed = true;
             
             % Need to assign windowbuttonmotion function for rangebars to
@@ -291,7 +292,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if ~nargout
                 clear obj
             end
-            
         end
         
         function delete(obj)
@@ -504,7 +504,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if obj.virtualWidth(obj.currentPanel) > obj.visibleWidth
                 w = obj.virtualWidth(obj.currentPanel);
             else
-                w = obj.visibleWidthOrig;
+                if obj.virtualWidth(obj.currentPanel) > obj.visibleWidthOrig
+                    w = obj.virtualWidth(obj.currentPanel);
+                else
+                    w = obj.visibleWidthOrig;
+                end
             end
             
             newFigureWidth = w + sum(obj.Margins([1,3]));
@@ -512,7 +516,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             dx = newFigureWidth - obj.Figure.Position(3);
             obj.Figure.Position(3) = obj.Figure.Position(3) + dx;
             drawnow
-            
         end
         
         function resizePanel(obj, src, evt)
@@ -2828,7 +2831,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.main.hPanel(panelNum).Visible = 'on';
 
             obj.UIControlSchemer(panelNum).stripAllUIControls()
-
+            if obj.showFooter
+                obj.UIControlSchemerFooter.stripAllUIControls()
+            end
 
             % Update scrollbar.
             obj.updateScrollbar(panelNum)
