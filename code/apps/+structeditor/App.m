@@ -2829,6 +2829,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
             
             obj.main.hPanel(panelNum).Visible = 'on';
+            drawnow
 
             obj.UIControlSchemer(panelNum).stripAllUIControls()
             if obj.showFooter
