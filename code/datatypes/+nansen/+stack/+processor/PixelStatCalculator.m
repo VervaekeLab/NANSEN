@@ -111,13 +111,11 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
         end
         
         function saveResults(obj)
-            % Skip for now, in this class results have a special
-            % implementation (see saveShifts on subclasses)
+            % Not implemented, see saveImageStats
         end
 
         function saveMergedResults(obj)
-            % Skip for now, in this class results have a special
-            % implementation (see save shifts)
+            % Not implemented, see saveImageStats
         end
 
     end
@@ -224,6 +222,8 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             obj.ImageStats{i,j}.prctileU1(IND) = prctValues(:, 3);
             obj.ImageStats{i,j}.prctileU2(IND) = prctValues(:, 4);
             
+            % Note: hardcoded downsamplingfactor = 5
+
             nFramesKeep = floor(size(Y, 3)/5)*5;
             YDs = stack.downsample.binprojection(Y(:,:,1:nFramesKeep), 5);
             YDs_ = reshape(YDs, [], size(YDs, 3));
@@ -233,7 +233,7 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             
             prctValuesUs = repmat(prctValuesDs, 1,1,5);
             prctValuesUs = permute(prctValuesUs, [3,1,2]);
-            prctValuesUs = reshape(prctValuesUs, [], 4);
+            prctValuesUs = reshape(prctValuesUs, [], 4); % 4 = number of columns
             
             IND = IND(1:size(prctValuesUs, 1)); %Cut according to length of resampled values
             
