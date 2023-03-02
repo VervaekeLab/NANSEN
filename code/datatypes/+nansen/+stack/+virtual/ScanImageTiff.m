@@ -385,13 +385,15 @@ methods (Access = protected) % Todo: Scan image and subclass
             end
             
         end
+        % Todo: Is this always true?? I.e are there files where numFrames
+        % should be multiplied with number of channels, like multicolor
+        % tiff stacks
+        obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
 
         numChannels = numel( sIParams.hChannels.channelSave );
         numPlanes = sIParams.hStackManager.actualNumSlices;
-
-        numFramesPerFile(i) = numFramesPerFile(i) .* numChannels .* numPlanes;
-        obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
-        obj.NumTimepoints_ = sum(numFramesPerFile);
+        
+        obj.NumTimepoints_ = sum(numFramesPerFile) ./ numChannels ./ numPlanes;
         
     end
     
