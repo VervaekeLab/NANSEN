@@ -82,6 +82,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         MessagePanel % Todo: Use HasDisplay mixin...
         MessageBox
+        StatusText applify.StatusText
     end
     
     properties
@@ -153,6 +154,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
 %             app.initialized = true;
             app.configFigureCallbacks() % Do this last
+
             app.setIdle()
             
             app.initializeTimer()
@@ -893,10 +895,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function createComponents(app)
-                  
-            app.createTabPages()
 
             app.createStatusField()
+                  
+            app.createTabPages()
             
             app.createSidePanelComponents()
         end
@@ -922,10 +924,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.h.StatusField.FontSize = 12;
             app.h.StatusField.FontUnits = 'pixels';
             
-            app.h.StatusField.String = ' Status : Idle';
+            app.h.StatusField.String = '';
             app.h.StatusField.BackgroundColor = ones(1,3).*0.85;
             app.h.StatusField.HorizontalAlignment = 'left';
             app.h.StatusField.Enable = 'inactive';
+
+            app.StatusText = applify.StatusText({'Sessions', 'Status'});
+            app.StatusText.UpdateFcn = @app.updateStatusField;
+            app.StatusText.Status = 'Status : Idle';
+            app.updateSessionCount()
+        end
+
+        function updateStatusField(app, text)
+            app.h.StatusField.String = sprintf(' %s', text);
         end
         
         function createTabPages(app)
@@ -992,6 +1003,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
+            addlistener(h, 'SelectionChanged', @app.onSessionSelectionChanged);
+            addlistener(h, 'TableUpdated', @(s,e)app.updateSessionCount);
 
             app.createSessionTableContextMenu()
         end
@@ -1194,6 +1207,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     methods % Set/get methods
         function set.MetaTable(app, newTable)
             app.MetaTable = newTable;
+            app.updateSessionCount()
             app.onNewMetaTableSet()
         end
     end
@@ -1316,6 +1330,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.MetaTable = nansen.manage.updateSessionDatalocations(...
                 app.MetaTable, app.DataLocationModel);
+            
             app.saveMetaTable()
             try
              close(d)
@@ -1720,8 +1735,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
         function setIdle(app)
             app.IsIdle = true;
-            app.h.StatusField.String = sprintf(' Status: Idle');
-            
+            app.StatusText.Status = sprintf('Status: Idle');
             app.updateFigureTitle()
             
             app.Figure.Pointer = 'arrow';
@@ -1739,15 +1753,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if nargin < 2 || isempty(statusStr)
                 S = dbstack();
                 runningMethod = strrep(S(2).name, 'sessionBrowser.', '');
-                statusStr = sprintf(' Status: Running %s', runningMethod);
+                statusStr = sprintf('Status: Running %s', runningMethod);
             elseif isa(statusStr, 'function_handle')
                 methodName = func2str(statusStr);
                 methodName = utility.string.varname2label(methodName) ;
-                statusStr = sprintf(' Status: Running %s', methodName );
+                statusStr = sprintf('Status: Running %s', methodName );
             else
-                statusStr = sprintf(' Status: %s', statusStr );
+                statusStr = sprintf('Status: %s', statusStr );
             end
-            app.h.StatusField.String = statusStr;
+            app.StatusText.Status = statusStr;
             
             if nargout
                 finishup = onCleanup(@app.setIdle);
@@ -1758,12 +1772,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function updateStatusWhenBusy(app)
 
-            endOfString = app.hStatusField.String(end-3:end);
+            endOfString = app.StatusText.Status(end-3:end);
             
             if contains(endOfString, '...')
-                app.h.StatusField.String = app.hStatusField.String(1:end-3);
+                app.StatusText.Status = app.StatusText.Status(1:end-3);
             else
-                app.h.StatusField.String = strcat(app.hStatusField.String, '.');
+                app.StatusText.Status = strcat(app.StatusText.Status, '.');
             end
   
 %             if contains(endOfString, '...')
@@ -1779,8 +1793,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             drawnow limitrate
         end
         
-        function updateStatusField(app, i, n, methodName)
-            
+        function updateStatusText(app, i, n, methodName)
             
             if isa(methodName, 'function_handle')
                 methodName = func2str(methodName);
@@ -1789,10 +1802,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
             % Update statusfield text showing progress.
             if i == 0
-                app.h.StatusField.String = strrep(app.h.StatusField.String, ...
+                app.StatusText.Status = strrep(app.StatusText.Status, ...
                     methodName, sprintf('%s (%d/%d finished)', methodName, i, n));
             else
-                app.h.StatusField.String = strrep(app.h.StatusField.String, ...
+                app.StatusText.Status = strrep(app.StatusText.Status, ...
                     sprintf('(%d/%d finished)', i-1, n), ...
                     sprintf('(%d/%d finished)', i, n));
             end 
@@ -1800,6 +1813,35 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             drawnow
         end
         
+        function updateSessionCount(app, numSessionsTotal, numSessionsSelected)
+            if ~isempty(app.StatusText)
+                
+                if nargin < 2 || isempty(numSessionsTotal)
+                    if isempty(app.UiMetaTableViewer)
+                        numSessionsTotal = size(app.MetaTable.entries, 1);
+                    else
+                        numSessionsTotal = size(app.UiMetaTableViewer.HTable.Data, 1);
+                    end
+                end
+
+                if nargin < 3 || isempty(numSessionsSelected)
+                    if isempty(app.UiMetaTableViewer)
+                        numSessionsSelected = 0;
+                    else
+                        numSessionsSelected = numel(app.UiMetaTableViewer.HTable.SelectedRows);
+                    end
+                end
+
+                if numSessionsSelected > 0
+                    str = sprintf('Selected %d/%d sessions', numSessionsSelected, numSessionsTotal);
+                else
+                    str = sprintf('%d sessions', numSessionsTotal);
+                end
+
+                app.StatusText.Sessions = str;
+            end
+        end
+
         function clearStatusIn(app, n)
              t = timer('ExecutionMode', 'singleShot', 'StartDelay', n);
              t.TimerFcn = @(myTimerObj, thisEvent) app.clearStatus(t);
@@ -1816,13 +1858,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             delete(t)
             
             if ~isvalid(app); return; end
-            app.h.StatusField.String = 'Status: Idle';
+            app.StatusText.Status = 'Status: Idle';
         end
         
     end
     
     methods (Access = private) % Methods for meta table loading and saving
         
+        function onSessionSelectionChanged(app, src, evt)
+        %onSessionSelectionChanged Callback for session table
+            numSessionsSelected = numel(evt.SelectedRows);
+            numSessionsTotal = size(src.HTable.Data, 1);
+            
+            app.updateSessionCount(numSessionsTotal, numSessionsSelected)
+        end
+
         function onMetaTableDataChanged(app, src, evt)
             
             % Todo: Can this be put somewhere else?? I.e the Date table variable definition...
@@ -2136,16 +2186,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             updateFcnName = S(isMatch).FunctionName;
             
             % Create function call for variable:
-            %updateFcnName = strjoin( {'tablevar', 'session', varName}, '.');
             updateFcn = str2func(updateFcnName);
-            
+            defaultValue = updateFcn();
+            expectedDataType = class(defaultValue);
+
             updatedValues = cell(numSessions, 1);
-            skipRow = [];
+            skippedRowInd = [];
             
             if reset
                 [updatedValues{:}] = deal(updateFcn());
             else
-            
+                
+                wasWarned = false;
+
                 for iSession = 1:numSessions
                     try % Todo: Use error handling here. What if some conditions can not be met...
                         newValue = updateFcn(sessionObj(iSession));
@@ -2161,10 +2214,48 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
                         %if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
 
-                        updatedValues{iSession} = newValue;
+                        % Currently, only three data types are accepted,
+                        % numerics, cell array of character vector and
+                        % logicals
+
+                        isValid = false;
+
+                        if isa(defaultValue, 'double')
+                            if isnumeric(newValue)
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+                        elseif isa(defaultValue, 'logical')
+                            if islogical(newValue)
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+                        elseif isequal(defaultValue, {'N/A'}) % Character vectors should be in a scalar cell
+                            expectedDataType = 'character vector or a scalar cell containing a character vector';
+                            if iscell(newValue) && numel(newValue)==1 && ischar(newValue{1})
+                                updatedValues{iSession} = newValue{1};
+                                isValid = true;
+                            elseif isa(newValue, 'char')
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+                        else
+                            % Invalid;
+                        end
+
+                        if ~isValid
+                            skippedRowInd = [skippedRowInd, iSession]; %#ok<AGROW>
+                            if ~wasWarned
+                                warningMessage = sprintf('The table variable function returned something unexpected.\nPlease make sure that the table variable function for "%s" returns a %s.', varName, expectedDataType);
+                                app.openMessageBox(warningMessage, 'Update failed')
+                                wasWarned = true;
+                                ME = MException('TableVar:WrongType', warningMessage);
+                            end
+                        end
+
 
                     catch ME
-                        skipRow = [skipRow, iSession];
+                        skippedRowInd = [skippedRowInd, iSession]; %#ok<AGROW> 
                     end
 
                     if numSessions > 5
@@ -2173,11 +2264,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
             
-            updatedValues(skipRow) = [];
-            rows(skipRow) = [];
+            updatedValues(skippedRowInd) = [];
+            rows(skippedRowInd) = [];
             
-            if ~isempty(skipRow)
-                sessionIDs = strjoin({sessionObj(skipRow).sessionID}, newline);
+            if ~isempty(skippedRowInd)
+                sessionIDs = strjoin({sessionObj(skippedRowInd).sessionID}, newline);
                 messageStr = sprintf( 'Failed to update %s for the following sessions:\n\n%s\n', varName, sessionIDs);
                 errorMessage = sprintf('\nThe following error message was caught:\n%s', ME.message);
                 app.openMessageBox([messageStr, errorMessage], 'Update failed')
@@ -2443,6 +2534,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 switch answer
                     case 'Yes'
                         metaTable.removeTableVariable(thisName)
+                        metaTable.save()
                     case {'Cancel', 'No', ''}
                         
                         % Todo (Is it necessary): Maybe if the variable is
@@ -2512,7 +2604,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function metaTable = updateDataLocationFromModel(app, metaTable)
-        %updateDataLocationFromModel Update dataLocations in meta table 
+        %updateDataLocationFromModel Update dataLocations in meta table
+        %
+        % Make sure all data location entries in the metatable matches the
+        % configurations in the data location model.
             if nargin < 2
                 metaTable = app.MetaTable;
             end
@@ -2609,7 +2704,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 wasSaved = app.MetaTable.save(forceSave);
                 
                 if wasSaved
-                    app.h.StatusField.String = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
+                    app.StatusText.Status = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
                     app.clearStatusIn(5)
                 end
             else
@@ -2845,7 +2940,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             for i = 1:numTasks
 
                 % Update the status field
-                app.updateStatusField(i-1, numTasks, taskConfiguration.Method)
+                app.updateStatusText(i-1, numTasks, taskConfiguration.Method)
 
                 taskConfiguration.SessionObject = sessionObj{i};
 

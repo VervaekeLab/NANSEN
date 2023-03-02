@@ -15,7 +15,7 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
     [sessionFolders, ~, sessionFoldersUnmatched] = matchSessionFolders(dataLocationModel, sessionFolders);
     
     % Check for unmatched session folders
-    if ~isempty(sessionFoldersUnmatched)
+    if dataLocationModel.NumDataLocations > 1 && ~isempty(sessionFoldersUnmatched)
         [sessionFolders] = nansen.manage.uiresolveUnmatchedSessions(...
             sessionFolders, sessionFoldersUnmatched, hFigure);
     end

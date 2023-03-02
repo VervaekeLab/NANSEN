@@ -496,9 +496,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % Todo: Specify index as well....
             
             S = obj.getMetavariableStruct('Animal ID');
-            if numel(S.SubfolderLevel) > 1
-                S.SubfolderLevel=2;
-            end
             substring = obj.getSubstringFromFolder(pathStr, S);
 
         end
@@ -506,10 +503,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function substring = getSessionID(obj, pathStr)
             
             S = obj.getMetavariableStruct('Session ID');
-            
-            if numel(S.SubfolderLevel) > 1
-                S.SubfolderLevel=2;
-            end
             substring = obj.getSubstringFromFolder(pathStr, S);
             
             % If no substring is retrieved, used the foldername of the last
@@ -521,11 +514,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
         
         function value = getTime(obj, pathStr)
-
+            
             S = obj.getMetavariableStruct('Experiment Time');
-            if numel(S.SubfolderLevel) > 1
-                S.SubfolderLevel=2;
-            end
             substring = obj.getSubstringFromFolder(pathStr, S);
             
             % Convert to datetime type.
@@ -547,9 +537,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function value = getDate(obj, pathStr)
             
             S = obj.getMetavariableStruct('Experiment Date');
-            if numel(S.SubfolderLevel) > 1
-                S.SubfolderLevel=1;
-            end
             substring = obj.getSubstringFromFolder(pathStr, S);
             
             % Convert to datetime type.

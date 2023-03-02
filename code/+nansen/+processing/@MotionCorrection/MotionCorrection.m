@@ -173,6 +173,12 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             stackSize = size(obj.SourceStack.Data);
             obj.validateStackSize(stackSize)
 
+            if isfield(obj.Options.Preprocessing, 'NumFlybacklines') && ...
+                    obj.Options.Preprocessing.NumFlybacklines ~= 0
+                stackSize(1) = stackSize(1) - obj.Options.Preprocessing.NumFlybacklines;
+            end
+
+            
             % Get options (preconfigs) for the normcorre registration
             % Todo: Different toolboxes might require different inputs.
             obj.ToolboxOptions = obj.getToolboxSpecificOptions(stackSize);
@@ -318,6 +324,14 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             Y = obj.subtractPixelBaseline(Y);
             
             Y = single(Y); % Cast to single for the alignment
+            
+            if isfield(obj.Options.Preprocessing, 'NumFlybacklines') && ...
+                    obj.Options.Preprocessing.NumFlybacklines ~= 0
+                ind = repmat({':'}, 1, ndims(Y));
+                ind{1} = obj.Options.Preprocessing.NumFlybacklines : size(Y, 1);
+                Y = Y(ind{:});
+            end
+
 
             % Todo: Should this be here or baked into the
             % getRawStack / getframes method of rawstack?

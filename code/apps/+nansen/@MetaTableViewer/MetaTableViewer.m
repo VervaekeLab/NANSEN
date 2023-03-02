@@ -26,6 +26,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     %   [x] Revert change from metatable. need to get formatted data from
     %       table!
     %   [ ] Should the filter be a RowModel?
+    %   [ ] Make method for getting colorcoded column names (based on
+    %   column filters, and always run columnNames through this method
+    %   before setting the on the table object
+    %   [ ] Will ColumnFilter.isColumnFilterActive always match the columns
+    %       in the column model? Need to verify
     %   [ ] Straighten out what to do about the MetaTable property.
     %       Problem: if the input metatable was a MetaTable object, it
     %       might contain data which is not renderable in the uitable, i.e
@@ -47,7 +52,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     properties % Table preferences
         ShowIgnoredEntries = true
         AllowTableEdits = true
-        MetaTableType = 'session'
+        MetaTableType = 'session' %Note: should always be lowercase
     end
     
     properties
@@ -180,6 +185,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
        
+        function set.MetaTableType(obj, newValue)
+            obj.MetaTableType = lower(newValue);
+        end
+
         function set.ColumnSettings(obj, newSettings)
             if isempty(obj.ColumnModel) 
                 obj.ColumnSettings_ = newSettings;
@@ -666,7 +675,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Get visible rows based on filter states
             filteredRows = obj.getCurrentRowSelection(); 
             visibleRows = intersect(filteredRows, visibleRows, 'stable');
-            
 
             % Get subset of data from metatable that should be put in the
             % uitable. 
@@ -681,6 +689,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Assign updated table data to the uitable property
             obj.HTable.Data = tableDataView;
             obj.HTable.Visible = 'on';
+
+            obj.updateColumnLabelFilterIndicator()
             
             % Why????
             if requestFocus
@@ -753,20 +763,25 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             % NOTE: This is temporary. Need to generalize, not make special
             % treatment for session table
-            customVars = nansen.metadata.utility.getCustomTableVariableNames();
+            customVars = nansen.metadata.utility.getCustomTableVariableNames(obj.MetaTableType);
             [customVars, iA] = intersect(variableNames, customVars);
             
             for i = 1:numel(customVars)
                 thisName = customVars{i};
-                varFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
+                varFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName, [], obj.MetaTableType);
                 varDef = varFcn();
                 
                 if isa(varDef, 'nansen.metadata.abstract.TableVariable')
                     if isprop(varDef, 'LIST_ALTERNATIVES')
                         dataTypes(iA(i)) = {'popup'};
                         colFormatData(iA(i)) = {varDef.LIST_ALTERNATIVES};
+                        obj.HTable.ColumnEditable(iA(i))=true;
                     end
                 end
+            end
+
+            if any(strcmp(dataTypes, 'cell'))
+                error('The table contains values that can not be rendered. Please contact support.')
             end
             
             % Update the column formatting properties
@@ -777,6 +792,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % the correct number of columns are shown.
             obj.HTable.ColumnName = columnLabels;
             
+            % Update indicators for table filters because these are reset
+            % when column name is set
+            obj.updateColumnLabelFilterIndicator()
+
             obj.ColumnModel.updateJavaColumnModel()
 
             % Maybe call this separately???
@@ -789,6 +808,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
 
         function updateColumnLabelFilterIndicator(obj, filterActive)
+
+            if nargin < 2
+                filterActive = obj.ColumnFilter.isColumnFilterActive;
+            end
+
             onColor = '#017100';
 
             colIndices = obj.ColumnModel.getColumnIndices();
@@ -797,7 +821,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             columnNames = obj.ColumnModel.getColumnNames();
 
             for i = 1:numel(obj.HTable.ColumnName)
-                if filterActive(i)
+                if ~isempty(filterActive) && filterActive(i)
                     columnNames{i} = sprintf('<HTML><FONT color="%s">%s</Font>', onColor, columnNames{i});
                     %columnNames{i} = sprintf('<HTML><FONT
                     %color="%s"><b>%s</Font>', onColor, columnNames{i});

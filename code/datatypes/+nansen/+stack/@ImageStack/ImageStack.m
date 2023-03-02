@@ -180,6 +180,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     properties (Access = private)
         CacheChangedListener event.listener
         isDirty struct % Temp flag for whether projection cache was updated... Should be moved to a projection cache class
+        DeleteDataOnDestruction = true;
     end
     
 
@@ -214,6 +215,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % ImageStackData and the returned object is assigned to the
             % Data property. See also onDataSet
             obj.Data = obj.initializeData(datareference, varargin{:});
+            if isequal(obj.Data, datareference); obj.DeleteDataOnDestruction = false; end
             
             obj.parseInputs(varargin{:})
             
@@ -236,12 +238,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 delete(obj.CacheChangedListener)
             end
             
-            % Delete the data property.
-            % Todo: Only delete if data is created internally. 
-            if ~isempty(obj.Data) && isvalid(obj.Data)
-                delete(obj.Data)
+            if obj.DeleteDataOnDestruction
+                if ~isempty(obj.Data) && isvalid(obj.Data)
+                    delete(obj.Data)
+                end
             end
-            
             % fprintf('Deleted ImageStack.\n') % For testing
         end
 
@@ -1244,7 +1245,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function numChunks = get.NumChunks(obj)
             % Todo: Depend on chunking dimension..
-            numChunks = ceil( obj.numTimepoints / obj.ChunkLength );
+            numChunks = ceil( obj.NumTimepoints / obj.ChunkLength );
         end
         
         function numFrames = get.NumFrames(obj)
@@ -1801,7 +1802,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     
     methods (Static) %Methods in separate files
         data = initializeData(datareference, varargin)
-        
     end
     
 end
