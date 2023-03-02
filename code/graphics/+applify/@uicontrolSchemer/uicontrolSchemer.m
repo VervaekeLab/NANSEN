@@ -45,14 +45,13 @@ classdef uicontrolSchemer < handle
         
         cornerRadius = 5
         checkboxSize = [14, 14] % Pixels (14,14)
-
     end
-    
-    
     
     methods
         
         function obj = uicontrolSchemer(hUIControls, hPanel, colorTheme)
+
+            if ~nargin; return; end 
             
             % Get parent of uicontrol
             if nargin < 2 || isempty(hPanel)
@@ -136,19 +135,32 @@ classdef uicontrolSchemer < handle
             delete@handle(obj) % Why does this have to be explicit?
         end
         
-        
+    end
+
+    methods
+
+        function stripAllUIControls(obj)
+            numUIControls = numel(obj.hUicontrol);
+            for i = 1:numUIControls
+                hTmp = obj.hUicontrol(i);
+                jTmp = obj.jhUicontrol{i};                
+                obj.stripUicontrol(hTmp, jTmp);
+            end
+        end
+    end
+       
+    methods (Access = private)
+
         function onPanelSizeChanged(obj, src, evt)    
                         
             numUIControls = numel( obj.hUicontrol );
             for i = 1:numUIControls
-
 
                 hTmp = obj.hUicontrol(i);
                 jTmp = obj.jhUicontrol{i};
             
                 bgColor = hTmp.Parent.BackgroundColor;
 
-                
                 if strcmp( hTmp.Style, 'checkbox')
                     bgColor = hTmp.Parent.BackgroundColor;
 
@@ -830,9 +842,7 @@ classdef uicontrolSchemer < handle
         end
 
     end
-    
-    
-    
+
     methods (Static)
         
         function keepTextWithinBox(hTextbox)

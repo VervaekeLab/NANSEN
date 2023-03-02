@@ -171,6 +171,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         headerSubtitle
         sidePanelToggleButton
+
+        UIControlSchemer applify.uicontrolSchemer
         
         % Move to options manager ui class.
         OptionsManagerControls
@@ -2015,6 +2017,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Make them look good.
             if ~isempty(hUic)
                 h = applify.uicontrolSchemer(hUic);
+                obj.UIControlSchemer(panelNum) = h;
+
                 el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(h));
                 
             end
@@ -2822,6 +2826,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
             
             obj.main.hPanel(panelNum).Visible = 'on';
+
+            obj.UIControlSchemer(panelNum).stripAllUIControls()
 
 
             % Update scrollbar.
