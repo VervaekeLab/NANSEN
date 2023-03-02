@@ -225,6 +225,10 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             obj.ImageStats{i,j}.prctileU2(IND) = prctValues(:, 4);
             
             nFramesKeep = floor(size(Y, 3)/5)*5;
+            if nFramesKeep == 0 %return if number of frames are too low
+                return
+            end
+            
             YDs = stack.downsample.binprojection(Y(:,:,1:nFramesKeep), 5);
             YDs_ = reshape(YDs, [], size(YDs, 3));
             % Collect different stats.
