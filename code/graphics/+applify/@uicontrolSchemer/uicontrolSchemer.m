@@ -398,6 +398,8 @@ classdef uicontrolSchemer < handle
                     jhBtn = findjavacomps(hS.button, hControl.Parent);
                     obj.stripUicontrol(hS.button, jhBtn{1})
 
+                    obj.hUicontrol(end+1) = hS.button;
+                    obj.jhUicontrol(end+1) = jhBtn;
     
                     % Make sure text does not go too far to the right, e.g
                     % outside of the box, or under the popupmenu button
