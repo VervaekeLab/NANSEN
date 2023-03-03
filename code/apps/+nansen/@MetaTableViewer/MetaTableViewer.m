@@ -779,6 +779,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     end
                 end
             end
+
+            if any(strcmp(dataTypes, 'cell'))
+                error('The table contains values that can not be rendered. Please contact support.')
+            end
             
             % Update the column formatting properties
             obj.HTable.ColumnFormat = dataTypes;

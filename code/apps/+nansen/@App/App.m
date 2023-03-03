@@ -2186,16 +2186,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             updateFcnName = S(isMatch).FunctionName;
             
             % Create function call for variable:
-            %updateFcnName = strjoin( {'tablevar', 'session', varName}, '.');
             updateFcn = str2func(updateFcnName);
-            
+            defaultValue = updateFcn();
+            expectedDataType = class(defaultValue);
+
             updatedValues = cell(numSessions, 1);
-            skipRow = [];
+            skippedRowInd = [];
             
             if reset
                 [updatedValues{:}] = deal(updateFcn());
             else
-            
+                
+                wasWarned = false;
+
                 for iSession = 1:numSessions
                     try % Todo: Use error handling here. What if some conditions can not be met...
                         newValue = updateFcn(sessionObj(iSession));
@@ -2211,10 +2214,48 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
                         %if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
 
-                        updatedValues{iSession} = newValue;
+                        % Currently, only three data types are accepted,
+                        % numerics, cell array of character vector and
+                        % logicals
+
+                        isValid = false;
+
+                        if isa(defaultValue, 'double')
+                            if isnumeric(newValue)
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+                        elseif isa(defaultValue, 'logical')
+                            if islogical(newValue)
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+                        elseif isequal(defaultValue, {'N/A'}) % Character vectors should be in a scalar cell
+                            expectedDataType = 'character vector or a scalar cell containing a character vector';
+                            if iscell(newValue) && numel(newValue)==1 && ischar(newValue{1})
+                                updatedValues{iSession} = newValue{1};
+                                isValid = true;
+                            elseif isa(newValue, 'char')
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+                        else
+                            % Invalid;
+                        end
+
+                        if ~isValid
+                            skippedRowInd = [skippedRowInd, iSession]; %#ok<AGROW>
+                            if ~wasWarned
+                                warningMessage = sprintf('The table variable function returned something unexpected.\nPlease make sure that the table variable function for "%s" returns a %s.', varName, expectedDataType);
+                                app.openMessageBox(warningMessage, 'Update failed')
+                                wasWarned = true;
+                                ME = MException('TableVar:WrongType', warningMessage);
+                            end
+                        end
+
 
                     catch ME
-                        skipRow = [skipRow, iSession];
+                        skippedRowInd = [skippedRowInd, iSession]; %#ok<AGROW> 
                     end
 
                     if numSessions > 5
@@ -2223,11 +2264,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
             
-            updatedValues(skipRow) = [];
-            rows(skipRow) = [];
+            updatedValues(skippedRowInd) = [];
+            rows(skippedRowInd) = [];
             
-            if ~isempty(skipRow)
-                sessionIDs = strjoin({sessionObj(skipRow).sessionID}, newline);
+            if ~isempty(skippedRowInd)
+                sessionIDs = strjoin({sessionObj(skippedRowInd).sessionID}, newline);
                 messageStr = sprintf( 'Failed to update %s for the following sessions:\n\n%s\n', varName, sessionIDs);
                 errorMessage = sprintf('\nThe following error message was caught:\n%s', ME.message);
                 app.openMessageBox([messageStr, errorMessage], 'Update failed')

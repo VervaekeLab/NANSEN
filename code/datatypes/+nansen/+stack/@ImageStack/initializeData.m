@@ -28,7 +28,6 @@ function imageStackData = initializeData(dataReference, varargin)
 
     [nvPairs, varargin] = utility.getnvpairs(varargin{:});
     
-
     % CASE 0: dataReference is already ImageStackData
     if isa(dataReference, 'nansen.stack.data.abstract.ImageStackData')
         imageStackData = dataReference;
