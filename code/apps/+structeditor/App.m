@@ -24,16 +24,17 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       Other configurations:
 %           rangeslider
 %           button
-%
-%
-%   PARAMETERS:    
+% 
+%   PARAMETERS: (todo, clean up public properties and add documentation)
+%       Title
+%       Prompt
+%       LabelPosition
+%       TabMode
+%       Callback
 
 
-%   Main things to change:
-%       [ ] 2023-03-02 : Introduced bug, when changing between pages that
-%       should resize. 
-%       [x] Fix Scroller... Does it need its own panel???
-%       [ ] Scrollerposition does not reset to top when changing tabs... 
+%   Todo list:
+%
 %      *[ ] Implement dependable fields...
 %       [ ] Implement validation of inputs. Each field should have a
 %           validation function to thest that the entered value is valid.
@@ -78,7 +79,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     properties (Constant, Hidden = true) % Move to appwindow superclass
         DEFAULT_THEME = nansen.theme.getThemeColors('dark-purple');
         ICONS = uim.style.iconSet(structeditor.App.getIconPath)
-
     end
     
     properties % Configurations of appearance and layout of app
@@ -183,7 +183,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     end 
     
     properties (Access = protected, Dependent, Hidden = true )
-
         showFooter
         showSidePanel
         showSidePanenButton
@@ -1215,14 +1214,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             barColor = min([1,1,1;obj.Theme.FigureBgColor+0.3]);
             
             % Add a homemade scrollbar
-            hScrollerTmp = uim.widget.scrollerBar(obj.sidebar.hPanel, ...
+            obj.hScroller = uim.widget.scrollerBar(obj.sidebar.hPanel, ...
                 'Orientation', 'vertical', ...
                 'Maximum', 1/visibleRatio*100, ...
                 'VisibleAmount', 100, ...
                 'BarColor', barColor);
 
-            hScrollerTmp.Callback = @obj.scrollValueChange;
-            obj.hScroller = hScrollerTmp;
+            obj.hScroller.Callback = @obj.scrollValueChange;
             
             if visibleRatio > 1
                 obj.hScroller.Visible = 'off';
@@ -1249,20 +1247,25 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function updateScrollbar(obj, panelNum)
-            
+        %updateScrollbar Update scrollbar height based on panel height
+        %
+        % Note: This method also resets the scrollar value and moves all
+        % the elements to the top. This should be handled better. Pages
+        % should be reset when they are unselected, and scrollbar could
+        % have a reset method.
+        
             visibleRatio = obj.visibleHeight/obj.virtualHeight(panelNum);
             obj.hScroller.Maximum = 1/visibleRatio*100;
-            
+
+            obj.hScroller.resetValue()
+            obj.moveElementsToTop()
+
             if obj.virtualHeight(panelNum) > obj.visibleHeight
                 obj.hScroller.Visible = 'on';
                 obj.lastScrollValue = 0;
-                obj.moveElementsToTop()
             else
-                obj.moveElementsToTop()
                 obj.hScroller.Visible = 'off';
             end
-            
-            
         end
         
         function parseStruct(obj, S)
@@ -2795,8 +2798,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % %             else
 % %                 obj.main.disablePanel.Visible = 'off';
 % %             end
-                
-
             
             obj.updateHeaderTitle()
             

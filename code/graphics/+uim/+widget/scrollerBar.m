@@ -62,7 +62,8 @@ classdef scrollerBar < uim.handle
         
         isTrackVisible = false;
         ParentSizeChangedListener
-
+        
+        CallbacksEnabled = true
         MouseScrollListener event.listener
         
     end % /properties (private)
@@ -430,6 +431,12 @@ classdef scrollerBar < uim.handle
 
         end % /jumpToNewValue
         
+        function resetValue(obj)
+            obj.CallbacksEnabled = false;
+            obj.Value = 0;
+            obj.CallbacksEnabled = true;
+        end
+
     end % /methods
     
     
@@ -530,7 +537,9 @@ classdef scrollerBar < uim.handle
         function onValueChanged(obj)
         %onValueChanged Execute callback on Value change (bar is moved).
             if ~isempty(obj.Callback)
-                obj.Callback(obj, [])
+                if obj.CallbacksEnabled
+                    obj.Callback(obj, [])
+                end
             end
         end % /onValueChanged
         
