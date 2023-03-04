@@ -1803,7 +1803,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             textbox.VerticalAlignment = 'bottom';
             
             % Compute virtual width.
-            currentWidth = obj.visibleWidth + ( textbox.Extent(3) + 20 - x );
+            currentWidth = obj.visibleWidthOrig + ( textbox.Extent(3) + 20 - x );
+            
             obj.virtualWidth(obj.currentPanel) = ...
                 nanmax( [obj.virtualWidth(obj.currentPanel), currentWidth] );
             
@@ -1812,7 +1813,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if isa(config, 'struct') && any( strcmp(config.type, buttonTypes) )
                 delete(textbox)
             end
-            
             
             
             % Add control to a struct of controls using same fieldnames as
@@ -2120,6 +2120,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             pixelPos(1) = x0 + difference;
             setpixelposition( obj.main.hPanel(i), pixelPos);
             
+            % Adjust position of axes elements (text labels)
             children = obj.main.hAxes(i).Children;
             for j = 1:numel(children)
                 if isprop( children(j), 'Position')
@@ -2129,6 +2130,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
             end
             
+            % Adjust position of panel elements
             children = obj.main.hPanel(i).Children;
             for j = 1:numel(children)
                 if isa(children(j), 'matlab.graphics.axis.Axes'); continue; end
@@ -2143,14 +2145,16 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 error('Please report')
             end
             
+            % Adjust position of custom input widgets, i.e slidebar
             % Todo: Generalize!
             tmpControls = struct2cell(tmpControls);
             for j = 1:numel(tmpControls)
                 if isa(tmpControls{j}, 'uim.widget.slidebar')
-                    tmpControls{j}.Position(1) = tmpControls{j}.Position(1) - difference;
+                    if isequal(tmpControls{j}.Parent, obj.main.hAxes(i))
+                        tmpControls{j}.Position(1) = tmpControls{j}.Position(1) - difference;
+                    end
                 end
             end
-                
         end
         
         function flipUpsideDown(obj, y, panelNum)
