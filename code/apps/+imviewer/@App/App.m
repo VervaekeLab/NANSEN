@@ -1977,13 +1977,24 @@ methods % App update
             
             chNum = obj.ImageStack.CurrentChannel(i);
             color = channelColors{chNum};
+
+            thisChannelImage = single( repmat(image(:, :, i), 1, 1, 3) );
             
-            imageOut = imageOut + single( repmat(image(:, :, i), 1, 1, 3)) .* reshape(color, 1, 1, 3);
+            % Make sure this also works for signed integer types or floating 
+            % types with negative values
+            if any(thisChannelImage(:) < 0)
+                minValue = min(thisChannelImage(:));
+                thisChannelImage = thisChannelImage - minValue;
+                thisChannelImage = thisChannelImage .* reshape(color, 1, 1, 3);
+                thisChannelImage = thisChannelImage + minValue;
+            else
+                thisChannelImage = thisChannelImage .* reshape(color, 1, 1, 3);
+            end
             
+            imageOut = imageOut + thisChannelImage;
         end
         
         imageOut = cast(imageOut, 'like', image);
-
     end
         
     function im = adjustMultichannelImage(obj, im)
