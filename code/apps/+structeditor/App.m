@@ -24,13 +24,17 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       Other configurations:
 %           rangeslider
 %           button
+% 
+%   PARAMETERS: (todo, clean up public properties and add documentation)
+%       Title
+%       Prompt
+%       LabelPosition
+%       TabMode
+%       Callback
+
+
+%   Todo list:
 %
-%
-%   PARAMETERS:    
-
-
-%   Main things to change:
-
 %      *[ ] Implement dependable fields...
 %       [ ] Implement validation of inputs. Each field should have a
 %           validation function to thest that the entered value is valid.
@@ -75,7 +79,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     properties (Constant, Hidden = true) % Move to appwindow superclass
         DEFAULT_THEME = nansen.theme.getThemeColors('dark-purple');
         ICONS = uim.style.iconSet(structeditor.App.getIconPath)
-
     end
     
     properties % Configurations of appearance and layout of app
@@ -180,7 +183,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     end 
     
     properties (Access = protected, Dependent, Hidden = true )
-
         showFooter
         showSidePanel
         showSidePanenButton
