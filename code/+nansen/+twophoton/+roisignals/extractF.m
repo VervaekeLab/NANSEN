@@ -237,7 +237,13 @@ function signalArray = extractFromMultipleChannels(imageStack, roiData, varargin
 
     for i = currentChannels
         imageStack.CurrentChannel = i;
-        iRoiData = roiData(i);
+        if isa(roiData, 'roimanager.roiGroup')
+            iRoiData = roiData(i);
+        elseif isa(roiData, 'RoI')
+            iRoiData = roiData;
+        else
+            error('Unknown roi format for multichannel signal extraction. Please contact support.')
+        end
         signalArray{i} = nansen.twophoton.roisignals.extractF(imageStack, iRoiData, varargin{:});
     end
     %signalArray = cellfun(@(c) reshape(c, [1, size(c)]), signalArray, 'UniformOutput', false);

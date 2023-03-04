@@ -563,15 +563,13 @@ methods % App initialization & creation
     
     
     function postStartup(obj, hTimer)
-        disp('a')
         obj.openThumbnailSelector()
         obj.addTaskbar()
         
         if nargin >=2 && ~isempty(hTimer) && isvalid(hTimer)
             stop(hTimer)
             delete(hTimer)
-        end
-        
+        end        
     end
     
     
