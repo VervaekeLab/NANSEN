@@ -170,9 +170,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         
         %yLimExtreme
         %tLimExtreme
-        
-        
-        
+                
         SynchTimer timer    % Timer for checking framenumber of synched app
     end
     
@@ -408,10 +406,10 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 
         function set.currentFrameNo(obj, newValue)
             
+            newValue = round(newValue);
             incr = newValue - obj.currentFrameNo;
             obj.currentFrameNo = newValue;
             obj.onFrameChanged(incr)
-
         end
         
         function set.YLimExtreme(obj, newValue)
@@ -689,11 +687,14 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if nargin < 2
                 xy = obj.Figure.CurrentPoint;
             end
-            
+
+            if isempty(xy)
+                return
+            end
+
             figPos = getpixelposition(obj.Panel, true);
             axPos = getpixelposition(obj.ax, true);
 
-            
             if ~isempty( obj.hScrollPanelX )
                 scrollPos = getpixelposition(obj.hScrollPanelX, true);
                 if xy(1) > scrollPos(1) && xy(1) < sum(scrollPos([1,3]))
@@ -1429,7 +1430,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             switch action
                 case 'mousescroll'
                     if ~obj.isMouseInApp; return; end
-
                     i = event.VerticalScrollCount .* obj.settings.ScrollFactorPanX;
                     
                 case 'mousepress'
@@ -1437,7 +1437,8 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 % %                         return
 % %                     end
                     
-                    newValue = event.IntersectionPoint(1);                    
+                    newValue = event.IntersectionPoint(1); 
+                    if isnan(newValue); return; end
                     i = round( newValue -  obj.currentFrameNo );
                     
                 case {'slider', 'buttonclick'}
@@ -1464,12 +1465,20 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if ~exist('newValue', 'var')
                 newValue = obj.currentFrameNo + i;
             end
+
+            newValue = round(newValue);
             
-                        
-            if i ~= 0 && newValue >= 1 && newValue <= obj.nSamples
-                obj.changeFrame(obj.currentFrameNo + i, action)
+            if newValue < 1
+                newValue = 1;
+            elseif newValue > obj.nSamples
+                newValue = obj.nSamples;
             end
-            
+
+            if newValue ~= obj.currentFrameNo
+                if newValue >= 1 && newValue <= obj.nSamples
+                    obj.changeFrame(newValue, action)
+                end
+            end
         end
 
         function changeFrame(obj, newFrame, action)
@@ -1485,7 +1494,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     obj.LinkedApps(i).currentFrameNo = obj.currentFrameNo;
                 end
             end
-            
         end
         
         function onFrameChanged(obj, incr)
@@ -1495,12 +1503,17 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             % Pan along axes in signalPlot if zoom is on
             if ~isequal(obj.ax.XLim, [1, obj.nSamples])
                 %if ~contains(action, {'mousepress'})
-                    obj.setXLimitsPan(obj.ax.XLim + incr)
-                %end
+                
+                axesLimitRange = diff(obj.ax.XLim);
+                newXLim = obj.currentFrameNo + [-1,1] * axesLimitRange/2;
+
+                if any( abs(obj.ax.XLim - newXLim) > axesLimitRange * 0.01 )
+                    obj.setXLimitsPan(newXLim)
+                    %obj.setXLimitsPan(obj.ax.XLim + incr)
+                end
             end
             
             %drawnow
-            
         end
         
         function updateFrameMarker(obj, flag)
@@ -1535,12 +1548,10 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 yData = {[0,1], 1, 0};
                 xData = {[frameNo, frameNo], frameNo, frameNo};
                 set(obj.hlineCurrentFrame, {'XData'}, xData', {'YData'}, yData')
-
             end
         end
         
-        
-        
+
 % % % %  Methods for changing x axis limits
 %       Todo: Move to pointermanager.
         
@@ -1555,7 +1566,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             mp_a = get(obj.ax, 'CurrentPoint');
             mp_a = mp_a(1, 1:2);
                         
-            
             % Get limits of selected axis.
             switch axis
                 case 'x'
@@ -1565,8 +1575,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     oldLim = obj.ax.YLim;
                     centerPoint = mp_a(2);
             end
-            
-            
+
             % Determine new limits.
             oldCenter = mean(oldLim);
 
@@ -1587,8 +1596,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 case 'y'
                     newWidth = newRange./2;
             end
-            
-            
+
             newLim = [oldCenter-newWidth, oldCenter+newWidth];
             
             % Calculate shift for good zoom in on current point
@@ -1597,7 +1605,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             correctionShift = newLim(1) - newMin;
             newLim = newLim - correctionShift;
 
-            
             switch axis
                 case 'x' % Zoom in or out on xaxis
 
@@ -1612,9 +1619,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     
                     obj.setYLimitsZoom(newLim)
             end
-
 %             fprintf('xMin: %05d - xMax: %05d\n', round(xLimNew(1)), round(xLimNew(2)))
-
         end
         
         function setYLimitsZoom(obj, newLimits)
@@ -1629,13 +1634,10 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 newLimits(2) = absLimits(2);
             end   
             
-            
             obj.ax.YLim = newLimits;
             %obj.updateFrameMarker('update_y')
             
             % Todo: Update ydata of all patches....
-            
-            
         end
         
         function setXLimitsZoom(obj, newLimits)
@@ -1689,11 +1691,11 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         function setXLimitsScrollbar(obj, src, ~)
             
             newValue = src.Value;
-            
+
             xLimRange = range(obj.ax.XLim);
             xLimExtreme = [1, obj.nSamples];
             
-            newXLimStart = round(xLimExtreme(2)-xLimRange) .* newValue;
+            newXLimStart = diff( xLimExtreme ) .* newValue;
             
             newXLimEnd = newXLimStart + xLimRange;
             
@@ -1702,8 +1704,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 newXLimStart = newXLimEnd-xLimRange;
             end
              
-            obj.setNewXLims([newXLimStart,newXLimEnd])
-                        
+            obj.setNewXLims([newXLimStart, newXLimEnd])
         end
        
         function setYLimitsScrollbar(obj, src, ~)
@@ -1719,21 +1720,18 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     yLimExtreme = obj.YLimExtreme.right;
             end
             
-            newYLimStart = round(yLimExtreme(2)+1-yLimRange) .* newValue;
+            newYLimStart = diff( yLimExtreme ) .* newValue;
             newYLimEnd = newYLimStart + yLimRange;
             
             if newYLimEnd > yLimExtreme(2)
                 newYLimEnd = yLimExtreme(2);
                 newYLimStart = newYLimEnd-yLimRange;
             end
-             
+            
             obj.setNewYLims([newYLimStart, newYLimEnd])
-                        
         end
         
-        
         function onScrollStop(obj, ~, ~)
-            
             newFrameNo = round(mean(obj.ax.XLim));
             obj.changeFrame(newFrameNo, 'mousepress')
         end
@@ -1747,14 +1745,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             direction = sign(newLimits(1)-tmpLimits(1));
             changeLimits = true;
-            
-            % Don't pan if current frame is close to abs limits.
-            if obj.currentFrameNo < absLimits(1) + diff(tmpLimits)/2
-                changeLimits = false;
-            elseif obj.currentFrameNo < absLimits(1) - diff(tmpLimits)/2
-                changeLimits = false;
-            end
-            
+
             % Don't pan if current frame passed midway of current limits.
             if direction == 1 
                 if obj.currentFrameNo < round(diff(tmpLimits)/2 + tmpLimits(1))
@@ -1768,9 +1759,11 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                return 
             end
             
-            % Not necessary in this context, but just for the sake of it.
-            if newLimits(1) < absLimits(1) || newLimits(2) > absLimits(2)
-                changeLimits = false;
+            % Adjust limits if they will exceed range
+            if newLimits(1) < absLimits(1)
+                newLimits = newLimits + (newLimits(1) - absLimits(1));
+            elseif newLimits(2) > absLimits(2)
+                newLimits = newLimits - (newLimits(2) - absLimits(2));
             end
             
             % Change limits.
@@ -1785,7 +1778,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             else
                 return
             end
-            
         end
         
         function setNewXLims(obj, newLimits)
@@ -1799,7 +1791,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             extremeLimits = [1, obj.nSamples];
 
-            
             if nargin == 1 || isempty(newLimits)
                 if isa(obj.tsArray, 'timetable')
                     newLimits = extremeLimits;
@@ -1819,38 +1810,31 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if diff(newLimits) < 100; return; end
             
             if obj.nSamples == 1 % Special case (i.e no data is loaded)
-                newLimits = [0,1]; 
+                newLimits = [0, 1]; 
             end
             
             % Set new limits
             set(obj.ax, 'XLim', newLimits);
-            
-            
+
             if ~isempty(obj.hScrollbarX) && obj.nSamples ~= 1
-                obj.hScrollbarX.VisibleAmount = range(obj.ax.XLim) / (obj.nSamples-1);
-                %obj.hScrollbarX.VisibleAmount = range(obj.ax.XLim) / range(extremeLimits);
+
+                obj.hScrollbarX.VisibleAmount = diff(obj.ax.XLim) / diff(extremeLimits);
 
                 % Calculate Value in same way as in the setXLimitsScrollbar
-                % function. Nb: Important to prevent recursive calls.
-                %
-                %   THIS SHIT NEED TO CHANGE!!!
-                obj.hScrollbarX.Value = obj.ax.XLim(1) / (round(obj.nSamples-range(obj.ax.XLim)));
-                %obj.hScrollbarX.Value = obj.ax.XLim(1) / ( (round(extremeLimits(2)+1-range(obj.ax.XLim)))  );
+                % function. Nb: This is important to prevent recursive calls.
+                obj.hScrollbarX.Value = obj.ax.XLim(1) / diff(extremeLimits);
                 
                 if abs(obj.hScrollbarX.VisibleAmount - 1) < 0.001
-                    obj.hScrollbarX.hide()
+                    obj.hScrollbarX.Visible = 'off';
                 else
-                    obj.hScrollbarX.show()
+                    obj.hScrollbarX.Visible = 'on';
                 end
             end
             
-            
             drawnow limitrate
-            
         end
         
         function setNewYLims(obj, newLimits)
-            
             
             yLimExtreme = obj.YLimExtreme.(obj.ActiveYAxis);
             
@@ -1882,23 +1866,18 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                         yLimExtreme = obj.YLimExtreme.right;
                 end
                 
-                %obj.hScrollbarY.VisibleAmount = range(obj.ax.YLim) / (obj.nSamples-1);
-                obj.hScrollbarY.VisibleAmount = range(obj.ax.YLim) / (range(yLimExtreme)-1);
+                obj.hScrollbarY.VisibleAmount = diff(obj.ax.YLim) / diff(yLimExtreme);
 
                 % Calculate Value in same way as in the setYLimitsScrollbar
-                % function. Nb: Important to prevent recursive calls.
-                %
-                %   THIS SHIT NEED TO CHANGE!!!
-                obj.hScrollbarY.Value = obj.ax.YLim(1) / (round(yLimExtreme(2)+1 - range(obj.ax.YLim)));
-                %obj.hScrollbarX.Value = obj.ax.XLim(1) / ( (round(extremeLimits(2)+1-range(obj.ax.XLim)))  );
+                % function. Nb: This is important to prevent recursive calls.
+                obj.hScrollbarY.Value = obj.ax.YLim(1) / diff(yLimExtreme);
                 
                 if abs(obj.hScrollbarY.VisibleAmount - 1) < 0.001
-                    obj.hScrollbarY.hide()
+                    obj.hScrollbarY.Visible = 'off';
                 else
-                    obj.hScrollbarY.show()
+                    obj.hScrollbarY.Visible = 'on';
                 end
             end
-            
         end
         
         function dragYLimits(obj, location)

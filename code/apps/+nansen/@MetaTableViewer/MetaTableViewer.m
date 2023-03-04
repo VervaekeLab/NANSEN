@@ -828,7 +828,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     %makes very bold
                 end
             end
-            obj.changeColumnNames(columnNames)
+            if ~isempty(columnNames)
+                obj.changeColumnNames(columnNames)
+            end
         end
         
         function updateColumnEditable(obj)
