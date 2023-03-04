@@ -44,6 +44,9 @@ classdef uicontrolSchemer < handle
 % a panel is made visible (for example)
 % Question: Necessary for all, or only buttons?
 % 
+% #aa It appears that if the BackgroundColor of an uicontrol is explicitly set,
+% the removeJButtonStyle does not work. Todo: test if it works to change
+% any hcontrol property, then drawnow, then removeJButtonStyle
 
     properties(Access = private)
         hPanel          % Panel which uicontrols are parented to.
@@ -455,7 +458,7 @@ classdef uicontrolSchemer < handle
             end
         end
         
-        function hS = createBorder(obj, hControl, ~, hS, force)
+        function hS = createBorder(obj, hControl, jHandle, hS, force)
             
         %    hS is a struct containing handles to graphical objects that
         %    are plotted for the control
@@ -540,21 +543,27 @@ classdef uicontrolSchemer < handle
             hS.hAmbience.PickableParts = 'none';
             
             % Plot the tick mark in the checkbox.
-            if contains(hControl.Style, 'checkbox')
+            switch hControl.Style
+                case 'checkbox'
                 
-                centerPos = boxSize/2 + [xLoc, yLoc] - [1.1, 1.1];
-                hS.checkboxTick = plot(obj.hAxes, centerPos(1), centerPos(2), 'xr');
-                hS.checkboxTick.LineWidth = 1.5;
-                hS.checkboxTick.Color = obj.borderColor;
-                hS.checkboxTick.MarkerSize = 9;
-                hS.checkboxTick.HitTest = 'off';
-                hS.checkboxTick.PickableParts = 'none';
-                
-                if hControl.Value
-                    hS.checkboxTick.Visible = 'on';
-                else
-                    hS.checkboxTick.Visible = 'off';
-                end
+                    centerPos = boxSize/2 + [xLoc, yLoc] - [1.1, 1.1];
+                    hS.checkboxTick = plot(obj.hAxes, centerPos(1), centerPos(2), 'xr');
+                    hS.checkboxTick.LineWidth = 1.5;
+                    hS.checkboxTick.Color = obj.borderColor;
+                    hS.checkboxTick.MarkerSize = 9;
+                    hS.checkboxTick.HitTest = 'off';
+                    hS.checkboxTick.PickableParts = 'none';
+
+                    if hControl.Value
+                        hS.checkboxTick.Visible = 'on';
+                    else
+                        hS.checkboxTick.Visible = 'off';
+                    end
+                case {'pushbutton', 'togglebutton'}
+                    % Make sure it blends with bg on flickering 
+                    % (This does not work, see #aa)
+                    % hControl.BackgroundColor = 'r'; %obj.PanelColor;
+                    obj.removeJButtonStyle(jHandle)
             end
         end
         
