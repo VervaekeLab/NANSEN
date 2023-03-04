@@ -23,7 +23,9 @@ function [jFrame, jLabel, C] = showSplashScreen(imFilePath, titleStr, subTitleSt
     
     im = imread(imFilePath);
     
+    warning('off', 'MATLAB:im2java:functionToBeRemoved')
     jImage = im2java(im);
+    warning('on', 'MATLAB:im2java:functionToBeRemoved')
     jFrame = javax.swing.JFrame;
     jFrame.setUndecorated(true);
     
