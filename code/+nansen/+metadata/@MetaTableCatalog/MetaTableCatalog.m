@@ -193,10 +193,12 @@ classdef MetaTableCatalog < uim.handle
         function updatePath(obj, newFilepath)
         %updatePath Update path for all entries in the catalog.
         
+            [~, oldFilename, extension] = fileparts(obj.FilePath);
+            obj.FilePath = fullfile(newFilepath, [oldFilename, extension]);
+            
             for i = 1:size(obj.Table, 1)
                 obj.Table{i, 'SavePath'} = {newFilepath};
             end
-            
         end
         
         function metaTable = getMasterTable(obj, metaTableType)
@@ -259,25 +261,29 @@ classdef MetaTableCatalog < uim.handle
             
         end
         
-        function MT = quickload()
+        function MT = quickload(filePath)
         %QUICKLOAD Static method for loading catalog without constructing class    
             
-            filePath = nansen.metadata.MetaTableCatalog.getFilePath();
-            
+            if ~nargin || isempty(filePath)
+                filePath = nansen.metadata.MetaTableCatalog.getFilePath();
+            end
+
             if exist(filePath, 'file')
                 S = load(filePath);
                 MT = S.metaTableCatalog;
             else
                 MT = [];
             end
-
         end
         
-        function quicksave(MT)
+        function quicksave(MT, filePath)
         %QUICKSAVE Static method for saving catalog without constructing class
         
+            if ~nargin || isempty(filePath)
+                filePath = nansen.metadata.MetaTableCatalog.getFilePath();
+            end
+
             %Save master table to file
-            filePath = nansen.metadata.MetaTableCatalog.getFilePath();
             metaTableCatalog = MT; %#ok<NASGU>
             save(filePath, 'metaTableCatalog');
         end
