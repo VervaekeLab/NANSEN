@@ -115,7 +115,6 @@ classdef ProjectManager < handle
             pStruct(1).Name = name;
             pStruct(1).Description = description;
             pStruct(1).Path = pathStr;
-            
         end
         
         function createProject(obj, name, description, projectRootDir)
@@ -148,10 +147,10 @@ classdef ProjectManager < handle
             obj.changeProject(name)
         end
         
-        function projectName = addExistingProject(obj, filePath)
-        %addExistingProject Add an existing project to the PM catalog.
+        function projectName = importProject(obj, filePath)
+        %importProject Add an existing project to the PM catalog.
         %
-        %   addExistingProject(obj, filePath) add an existing project. The
+        %   importProject(obj, filePath) import an existing project. The
         %   filePath should point to the project_configuration file located
         %   in the existing project folder.
 
@@ -369,6 +368,9 @@ classdef ProjectManager < handle
        
         function s = getProject(obj, name)
         %getProject Get project entry as struct given its name 
+
+        % Todo: rename getProjectStruct or just remove and always return
+        % object?
             IND = obj.getProjectIndex(name);
             
             if any(IND)

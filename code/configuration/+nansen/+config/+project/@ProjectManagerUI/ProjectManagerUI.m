@@ -78,7 +78,7 @@ classdef ProjectManagerUI < handle
             
             try
                 filePath = fullfile(folder, fileName);
-                projectName = obj.ProjectManager.addExistingProject(filePath);
+                projectName = obj.ProjectManager.importProject(filePath);
                 success = ~isempty( projectName );
             catch ME
                 throw(ME)
