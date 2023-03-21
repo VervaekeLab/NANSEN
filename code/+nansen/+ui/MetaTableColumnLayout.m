@@ -305,6 +305,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         
         function [colNames, varNames] = getColumnNames(obj)
             IND = obj.getIndicesToShowInMetaTable();
+            if isempty(obj.settings); colNames = {}; return; end
             colNames = {obj.settings(IND).ColumnLabel};            
             
             % Why this? 
