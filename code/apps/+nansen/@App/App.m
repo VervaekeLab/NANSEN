@@ -1207,8 +1207,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     methods % Set/get methods
         function set.MetaTable(app, newTable)
             app.MetaTable = newTable;
-            app.updateSessionCount()
             app.onNewMetaTableSet()
+            app.updateSessionCount()
         end
     end
     
@@ -2475,6 +2475,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if nargin < 2
                 metaTable = app.MetaTable;
             end
+
+            if isempty(metaTable.entries); return; end
         
             tableVarNames = metaTable.entries.Properties.VariableNames;
             
@@ -2657,7 +2659,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 else % Todo: do i need this...?
                     metaTable = nansen.metadata.MetaTable;
                 end
-            
+                
                 % Checks if metatable matches with custom table variables
                 metaTable = app.checkIfMetaTableComplete(metaTable);
                 
@@ -3462,8 +3464,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if S.AddSelectedSessions
                 sessionEntries = app.getSelectedMetaObjects;
-                metatable.addEntries(sessionEntries)
-                metatable.save()
+                if ~isempty(sessionEntries)
+                    metatable.addEntries(sessionEntries)
+                    metatable.save()
+                end
             end
             
             if S.OpenMetaTable

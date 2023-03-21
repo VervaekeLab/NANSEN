@@ -138,7 +138,7 @@ classdef MetaTableCatalog < uim.handle
             metaTableNames = obj.Table.MetaTableName;
             
             if nargin == 2 && ~isempty(entryName)
-                ind = find( contains(metaTableNames, entryName) );
+                ind = find( strcmp(metaTableNames, entryName) );
             else
             
                 [ind, tf] = listdlg(...
@@ -148,8 +148,14 @@ classdef MetaTableCatalog < uim.handle
                 if ~tf; return; end
             end
             
-            obj.Table(ind, :) = [];
-            
+            if ~isempty(ind)
+                obj.Table(ind, :) = [];
+                fprintf('Removed %s from the metatable catalog\n', entryName)
+            else
+                fprintf('Entry with name %s does not exist in the metatable catalog\n', entryName)
+            end
+
+
             obj.save()
             
         end
