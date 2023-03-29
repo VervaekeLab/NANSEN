@@ -45,7 +45,7 @@ navigating to MATLAB's Home tab and then selecting Add-Ons > Get Add-Ons
 
 ** The Widgets Toolbox can also be installed using MATLAB's addon manager, 
 but it is important to install a compatibility version (v1.3.330) of the 
-toolbox, so please use the download link above or install using nansen.setup´.
+toolbox, so please use the download link above or install using `nansen.setup`.
 
 ## Apps
 
