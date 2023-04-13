@@ -34,9 +34,8 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
     %     logging?
     %
     % [ ] Remove the Parameters property?
-    %
-    %   Add internal list for steps if methods has multiple steps...
-    
+    %    
+    % [ ] Should initialize an appropriate DataSet if a filepath is given.  
    
     properties (Constant, Abstract)
         MethodName      % Name of method

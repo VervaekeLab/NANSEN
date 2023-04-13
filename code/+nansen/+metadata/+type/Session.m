@@ -612,7 +612,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
     methods % Load data variables
         
         function fileAdapter = getFileAdapter(obj, variableName)
-                    
+            
+            % Move to variable model
             [filePath, variableInfo] = obj.getDataFilePath(variableName);
             fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
             fileAdapter = fileAdapterFcn(filePath);
@@ -848,7 +849,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         end
 
         function createVariable(obj, varName, varargin)
-        %createVariable Create a variable and insert in the variable model            
+        %createVariable Create a variable and insert in the variable model 
             %variableModel = nansen.config.varmodel.VariableModel;
             variableModel = obj.VariableModel;
 

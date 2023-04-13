@@ -1,12 +1,12 @@
 classdef DataIoModel < handle
-%nansen.dataio.DataIoModel Map a variable to a file on disk.
+%nansen.dataio.DataIoModel Map a dataset to file(s) on disk.
 %
 %   Superclass for classes that provide save/load functionality.
 %
-%   Methods: loadData, saveData, getFilePath
+%   Methods: loadData, saveData, getDataFilePath
 %
 %   File specifications are editable, but have default values.
-%
+
 
 %   Create a DataIoModel with a "in place" folder datalocation model
 %     nansen.dataio.DataIoModel(folderPath);
