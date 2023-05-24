@@ -378,7 +378,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 catch ME
                     % Back up file
                     dateStr = datestr(now, 'yyyymmdd_HH_MM_SS');
-                    filePathBackup = strrep(filePath, '.mat', 'corrupted_%s.mat', dateStr);
+                    filePathBackup = strrep(filePath, '.mat', sprintf('corrupted_%s.mat', dateStr));
                     movefile(filePath, filePathBackup);
                     
                     warning('Could not load the task list. This might be due to the file being corrupt. The file is backed up, and the task list is reset. If you see this warning several times, please report!')
