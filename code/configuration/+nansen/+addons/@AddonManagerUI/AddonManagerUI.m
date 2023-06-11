@@ -4,26 +4,31 @@ classdef AddonManagerUI < applify.apptable
         AddonManager  % Instance of AddonManager class
     end
     
-    properties (Access = private, Hidden) % Component appeareance
+    properties (Access = private) % Component appeareance
         ToolbarButtons matlab.ui.control.Button
-        
+    end
+
+    properties (Hidden)
         % Install button
         InstallButtonFontColor = [0.8784 0.8784 0.7059];                    % Todo: get from main gui (setup app)
         InstallButtonBackgroundColor = [0 0.6 0];                           % Todo: get from main gui (setup app)
+        
+        ToolbarButtonFontColor = [0.15,0.15,0.15]
+        ToolbarButtonBackgroundColor = [0.94,0.94,0.94]
     end
-    
-    methods
+
+    methods % Constructor
         
         function obj = AddonManagerUI(hParent, hAddonManager, varargin)
             
             % Todo: parent might not be given as first input, it might be
             % in the list of name value pairs...
             if nargin < 2
-                hAddonManager = nansen.setup.model.Addons();
+                hAddonManager = nansen.addons.AddonManager();
             end
             
             % Get data from the addonmanager handle.
-            assert(isa(hAddonManager, 'nansen.setup.model.Addons'))
+            assert(isa(hAddonManager, 'nansen.addons.AddonManager'))
             data = hAddonManager.AddonList;
             
             obj@applify.apptable(hParent, 'Data', data, varargin{:})
@@ -34,7 +39,35 @@ classdef AddonManagerUI < applify.apptable
         
     end
     
-    methods (Access = protected)
+    methods % Set/get
+        
+        function set.ToolbarButtonFontColor(obj, newValue)
+            try
+                obj.onToolbarButtonFontColorSet(newValue)
+                obj.ToolbarButtonFontColor = newValue;
+            catch ME
+                throw(ME)
+            end
+        end
+
+        function set.ToolbarButtonBackgroundColor(obj, newValue)
+            try
+                obj.onToolbarButtonBackgroundColorSet(newValue)
+                obj.ToolbarButtonBackgroundColor = newValue;
+            catch ME
+                throw(ME)
+            end
+        end
+    end
+
+    methods % Public methods
+        function downloadAllAddons(obj)
+            addonIndices = 1:numel(obj.AddonManager.AddonList);
+            obj.downloadAddons(addonIndices)
+        end
+    end
+
+    methods (Access = protected) % Implement superclass options
         
         function assignDefaultTablePropertyValues(obj)
             obj.ShowColumnHeader = false;
@@ -197,15 +230,16 @@ classdef AddonManagerUI < applify.apptable
             
             toolbarPosition = obj.getToolbarPosition();
             
-            buttonNames = {'Download All', 'Download Selected'};
+            buttonNames = {'Download All', 'Download Selected', 'Save MATLAB Path'};
+            buttonWidths = [120, 140, 140];
             numButtons = numel(buttonNames);
             
-            buttonSize = [130, 20];
-            wInit = repmat(buttonSize(1), 1, numButtons);
+            buttonSize = [140, 20];
+            %wInit = repmat(buttonSize(1), 1, numButtons);
             
             % Get component positions for the components on the left
             [Xl, Wl] = subdividePosition(toolbarPosition(1), ...
-                toolbarPosition(3), wInit, 10);
+                toolbarPosition(3), buttonWidths, 10);
             Y = toolbarPosition(2);
 
             % Create buttons
@@ -216,6 +250,13 @@ classdef AddonManagerUI < applify.apptable
                 obj.ToolbarButtons(i).Text = buttonNames{i};
             end
 
+            iconPath = fullfile(matlabroot, 'toolbox', 'shared', 'controllib', 'general', 'resources', 'toolstrip_icons', 'Import_24.png');
+            [obj.ToolbarButtons(1:2).Icon] = deal(iconPath);
+            %app.DownloadAllButton.Icon = iconPath;
+
+            iconPath = fullfile(matlabroot, 'toolbox', 'shared', 'controllib', 'general', 'resources', 'toolstrip_icons', 'Set_Path_24.png');
+            obj.ToolbarButtons(3).Icon = iconPath;
+
         end
         
         function toolbarComponents = getToolbarComponents(obj)
@@ -224,8 +265,7 @@ classdef AddonManagerUI < applify.apptable
         
     end
     
-    
-    methods % Subclass specific callbacks
+    methods (Access = private) % Button callbacks
               
         function onInstallAddonPushed(obj, addonName, iRow)
         %onInstallAddonPushed Callback for button press on download button    
@@ -328,6 +368,9 @@ classdef AddonManagerUI < applify.apptable
                 case 'Download Selected'
                     addonIndices = obj.SelectedRows;
                     obj.downloadAddons(addonIndices)
+
+                case 'Save MATLAB Path'
+                    obj.saveMatlabPath()
                     
                 case 'Open Addon Website'
                     addonIndices = obj.SelectedRows;
@@ -341,7 +384,7 @@ classdef AddonManagerUI < applify.apptable
 
     end
     
-    methods (Access = private)
+    methods (Access = private) % Actions
         
         function downloadAddons(obj, addonIndices)
                     
@@ -355,6 +398,35 @@ classdef AddonManagerUI < applify.apptable
             
         end
         
+        function saveMatlabPath(obj)
+        %saveMatlabPath Save matlab path (presumaby after installing addons) 
+            message = 'This will permanently add the downloaded addons to the MATLAB search path.';
+            title = 'Confirm Save';
+            
+            hFig = ancestor(obj.Parent, 'figure');
+
+            selection = uiconfirm(hFig, message, ...
+                title, 'Options', {'Save Path', 'Cancel'},...
+                'DefaultOption', 1, 'CancelOption', 2);
+            
+            if strcmp(selection, 'Cancel'); return; end
+            
+            savepath()
+            
+            obj.AddonManager.markClean()
+            obj.AddonManager.restoreAddToPathOnInitFlags()
+        end
+
     end
 
+    methods (Access = private) % Style components (Todo, move to superclass)
+        
+        function onToolbarButtonBackgroundColorSet(obj, newValue)
+            set(obj.ToolbarButtons, 'BackgroundColor', newValue)
+        end
+
+        function onToolbarButtonFontColorSet(obj, newValue)
+            set(obj.ToolbarButtons, 'FontColor', newValue)
+        end
+    end
 end

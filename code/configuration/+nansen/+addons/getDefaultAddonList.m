@@ -1,4 +1,4 @@
-function S = getAddonList()
+function S = getDefaultAddonList()
 %getAddonList Return a list of addons that are needed
 
 % Name          : Name of addon toolbox

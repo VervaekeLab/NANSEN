@@ -1,6 +1,6 @@
 %%  Install addons
 
-addonManager = nansen.setup.model.Addons;
+addonManager = nansen.addons.AddonManager;
 
 for i = 1:numel(addonManager.AddonList)
     S = addonManager.AddonList(i);

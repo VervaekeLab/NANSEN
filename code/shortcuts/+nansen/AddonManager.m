@@ -3,11 +3,11 @@ function addonManager = AddonManager(varargin)
 %
 %   % This function is a "shortcut"
 %
-%   See also nansen.setup.model.Addons
+%   See also nansen.addons.AddonManager
 
     if ~nargout
         nansen.addons.AddonManagerApp()
     else
-        addonManager = nansen.setup.model.Addons();
+        addonManager = nansen.addons.AddonManager();
     end
 end
