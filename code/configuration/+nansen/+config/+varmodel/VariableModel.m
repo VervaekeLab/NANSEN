@@ -293,7 +293,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
     end
     
-    methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?NansenSetupApp2})
+    methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?nansen.setup.SetupWizardApp})
         function setVariableList(obj, S)
             obj.Data = S;
         end
