@@ -24,11 +24,11 @@ classdef AddonManagerUI < applify.apptable
             % Todo: parent might not be given as first input, it might be
             % in the list of name value pairs...
             if nargin < 2
-                hAddonManager = nansen.addons.AddonManager();
+                hAddonManager = nansen.config.addons.AddonManager();
             end
             
             % Get data from the addonmanager handle.
-            assert(isa(hAddonManager, 'nansen.addons.AddonManager'))
+            assert(isa(hAddonManager, 'nansen.config.addons.AddonManager'))
             data = hAddonManager.AddonList;
             
             obj@applify.apptable(hParent, 'Data', data, varargin{:})
