@@ -1008,6 +1008,21 @@ methods
                 data{i} = obj(i).ApplicationData.(name);
             end
         end
+
+        % Find data type based on non-empty cells
+        isEmpty = cellfun('isempty', data);
+        dataType = cellfun(@class, data(~isEmpty), 'uni', 0);
+        uniqueDataType = unique(dataType);
+
+        % Todo: error handling.
+        if numel(uniqueDataType) > 1
+            %error('Nansen:Roi:ConcatenationError', 'Can not concatenate roi appdata because multiple data types are present')
+        end
+
+        % Concatenate data for rois into vector/qarray     
+        if iscell(data) && strcmp(uniqueDataType, 'struct')
+            data(isEmpty) = {struct};
+        end
         
         % concatenate data for rois into vector/qarray     
         if iscell(data) && isstruct(data{1})

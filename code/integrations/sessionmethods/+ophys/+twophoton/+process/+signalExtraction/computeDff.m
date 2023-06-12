@@ -97,6 +97,11 @@ function hDffPlugin = openDffExplorer(sessionObj)
     else
         roiGroup = roimanager.roiGroup(roiArray);
     end
+
+    % Create composite roigroup for multichannel/multiplane rois
+    if numel(roiGroup) > 1
+        roiGroup = roimanager.CompositeRoiGroup(roiGroup);
+    end
     
     % Open roitable app
     hTableViewer = roimanager.RoiTable(roiGroup);
