@@ -569,6 +569,12 @@ classdef MetaTable < handle
             % Create a cell array to hold formatting functions for each column
             formattingFcn = cell(size(firstRowData));
             
+            % Step 0: (Do this first) 
+            % Note, this is done before checking for enum on purpose (Todo: Adapt special enum classes to also use the CompactDisplayProvider...)
+            isCustomDisplay = @(x) isa(x, 'matlab.mixin.CustomCompactDisplayProvider');
+            isCustomDisplayObj = cellfun(@(cell) isCustomDisplay(cell), firstRowData, 'uni', 1);
+            formattingFcn(isCustomDisplayObj) = {@(o) obj.getCustomDisplayString(o)};
+
             % Step 1: Specify formatting based on special data types.
             isCategorical = cellfun(@iscategorical, firstRowData);
             formattingFcn(isCategorical) = {'char'};

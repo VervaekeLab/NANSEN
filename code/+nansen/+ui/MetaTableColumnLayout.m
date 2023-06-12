@@ -260,6 +260,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             colIndices = [];
             if isempty(obj.MetaTable); return; end
+            if isempty(obj.settings); return; end
 
             indAll = obj.MetaTableIndicesAll;            
             
@@ -304,7 +305,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
       % % Methods for getting varibles from settings:
         
         function [colNames, varNames] = getColumnNames(obj)
+
+            [colNames, varNames] = deal( cell(0,1) );
+
             IND = obj.getIndicesToShowInMetaTable();
+            if isempty(obj.settings); return; end
             colNames = {obj.settings(IND).ColumnLabel};            
             
             % Why this? 
