@@ -125,27 +125,19 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
             obj.saveData('RoiSignals_NeuropilF', squeeze(signalArray(:, 2:end, :)) )
 
             % Determine channel indices and plane indices for each roi:
-            numRois = size(signalArray, 3);
-            [PlaneIndices, ChannelIndices] = deal(zeros(1, numRois));
-            PlaneIndices(1) = 1; ChannelIndices(1) = 1;
+            roiCount = arrayfun(@(c) c.roiCount, obj.RoiGroupArray);
+            [numPlanes, numChannels] = size(roiCount);
 
-            idxTransition = arrayfun(@(c) c.roiCount, obj.RoiGroupArray);
-            
-            planeTransitions = sum(idxTransition, 2);
-            channelTranisitions = sum(idxTransition, 1);
-
-            for i = 1:size(idxTransition, 1) - 1
-                thisIdx = planeTransitions(i) + 1;
-                PlaneIndices(thisIdx) = PlaneIndices(thisIdx) + 1;
+            [channelInd, planeInd] = deal(arrayfun(@(i) ones(1,i), roiCount, 'UniformOutput',0));
+            for iPlane = 1:numPlanes
+                for jChannel = 1:numChannels
+                    planeInd{iPlane,jChannel} = planeInd{iPlane,jChannel} * iPlane;
+                    channelInd{iPlane,jChannel} = channelInd{iPlane,jChannel} * jChannel;
+                end
             end
             
-            for i = 1:size(idxTransition, 2) - 1
-                thisIdx = channelTranisitions(i) + 1;
-                ChannelIndices(thisIdx) = ChannelIndices(thisIdx) + 1;
-            end
-
-            PlaneIndices = cumsum(PlaneIndices);
-            ChannelIndices = cumsum(ChannelIndices);
+            PlaneIndices = [planeInd{:}];
+            ChannelIndices = [channelInd{:}];
 
             % Save vectors with channel & plane indices to the signal file
             filePath = obj.getDataFilePath('RoiSignals_MeanF');
