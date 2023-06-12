@@ -1019,9 +1019,11 @@ methods
             %error('Nansen:Roi:ConcatenationError', 'Can not concatenate roi appdata because multiple data types are present')
         end
 
-        % Concatenate data for rois into vector/qarray     
-        if iscell(data) && strcmp(uniqueDataType, 'struct')
-            data(isEmpty) = {struct};
+        % If data are struct, make sure empty cells are filled with structs
+        if numel(uniqueDataType) == 1
+            if iscell(data) && strcmp(uniqueDataType, 'struct')
+                data(isEmpty) = {struct};
+            end
         end
         
         % concatenate data for rois into vector/qarray     
