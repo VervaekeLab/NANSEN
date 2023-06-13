@@ -677,6 +677,12 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % TODO:
             %   [v] Implement file adapters.
             
+            % Todo: Allow multiple variable names
+%             if ~iscell(varName)
+%                 varName = {varName};
+%             end
+            
+            % Note: Assume all the provided variables come from the same file
             [filePath, variableInfo] = obj.getDataFilePath(varName, '-r', varargin{:});
             
             if ~isempty( utility.getnvparametervalue(varargin, 'FileAdapter') )
@@ -692,7 +698,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     
                     case 'N/A'
                         error('Nansen:Session:LoadData', ...
-                            'No file adapter is available for variable "%s"', varName)
+                            'No file adapter is available for variable "%s"', varName) %strjoin(varName, ', ')
                     
                     case 'Default'
                         
@@ -700,6 +706,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                         % files etc.
                         
                         S = load(filePath, varName);
+                        
                         if isfield(S, varName)
                             data = S.(varName);
                         else
@@ -801,7 +808,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         function validateVariable(obj, variableName)
         %validateData Does data variable exists?
             
-            
+            % Todo: Rename to assertVariableAvailable?
+
             %variableModel = nansen.config.varmodel.VariableModel;
             variableModel = obj.VariableModel;
 
