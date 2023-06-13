@@ -391,8 +391,8 @@ classdef AddonManagerUI < applify.apptable
             for i = addonIndices
                 S = obj.AddonManager.AddonList(i);
                 if ~S.IsInstalled
-                    % Call the Addon's Uitable install button callback
-                    obj.AddonUiTable.onInstallAddonPushed(S.Name, i)
+                    % Call the install button callback
+                    obj.onInstallAddonPushed(S.Name, i)
                 end
             end
             
