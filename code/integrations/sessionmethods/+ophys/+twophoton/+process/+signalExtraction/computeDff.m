@@ -46,14 +46,18 @@ classdef computeDff < nansen.session.SessionMethod
             signalArray = obj.loadData('RoiSignals_MeanF');
 
             if ~strcmp(obj.Options.dffFcn, 'dffClassic')
-                obj.SessionObjects.validateVariable('RoiSignals_NeuropilF')
-                signalArray = cat(2, signalArray, obj.loadData('RoiSignals_NeuropilF'));
+                try
+                    obj.SessionObjects.validateVariable('RoiSignals_NeuropilF')
+                    signalArray = cat(2, signalArray, obj.loadData('RoiSignals_NeuropilF'));
+                catch ME
+                    warning(ME.message)
+                end
             end
             
             % Reshape signals to have correct dimensions and sizes for the
             % dff functions. (numsamples x numsubregions x numrois)
-            if contains(signalArray.Properties.VariableNames, ...
-                    'RoiSignals_NeuropilF')
+            if any(strcmp(signalArray.Properties.VariableNames, ...
+                    'RoiSignals_NeuropilF'))
                 signalArray = cat(3, signalArray.RoiSignals_MeanF, ...
                     signalArray.RoiSignals_NeuropilF );
                 signalArray = permute( signalArray, [1,3,2] );
