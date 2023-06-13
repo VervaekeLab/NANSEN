@@ -43,8 +43,12 @@ classdef computeDff < nansen.session.SessionMethod
             import nansen.twophoton.roisignals.computeDff
             
             obj.SessionObjects.validateVariable('RoiSignals_MeanF')
-            
             signalArray = obj.loadData('RoiSignals_MeanF');
+
+            if ~strcmp(obj.Options.dffFcn, 'dffClassic')
+                obj.SessionObjects.validateVariable('RoiSignals_NeuropilF')
+                signalArray = cat(2, signalArray, obj.loadData('RoiSignals_NeuropilF'));
+            end
             
             % Reshape signals to have correct dimensions and sizes for the
             % dff functions. (numsamples x numsubregions x numrois)
@@ -87,9 +91,10 @@ function hDffPlugin = openDffExplorer(sessionObj)
     % Load rois
     roiArray = sessionObj.loadData('RoiArray');
     
-    % Load signals
-    roiSignalTable = sessionObj.loadData('RoiSignals_MeanF');
-    
+    % Load signals (Todo: Should be able to do this in one line
+    roiSignalTableMeanF = sessionObj.loadData('RoiSignals_MeanF');
+    roiSignalTableNPilF = sessionObj.loadData('RoiSignals_NeuropilF');
+    roiSignalTable = cat(2, roiSignalTableMeanF, roiSignalTableNPilF);
     
     % Create roi group
     if isa(roiArray, 'roimanager.roiGroup')
