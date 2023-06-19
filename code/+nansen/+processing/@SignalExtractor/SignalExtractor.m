@@ -79,19 +79,21 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
                 iZ = obj.StackIterator.CurrentPlane;
 
                 iRoiArray = obj.RoiGroupArray(iZ, iC).roiArray;
-                if isempty(iRoiArray); continue; end
-
-                % Prepare extraction parameters for each channel and plane
-                obj.ExtractionParameters{iZ, iC} = obj.updateParameters(....
-                    obj.Options.Extraction, obj.SourceStack, iRoiArray);
-                
-                % Prepare array of RoIs for efficient signal extraction:
-                obj.RoiDataArray{iZ, iC} = nansen.processing.roi.prepareRoiMasks( ...
-                    iRoiArray, obj.ExtractionParameters{iZ, iC});
-                
-                % Signal extraction function depends on number of rois and is 
-                % assigned individually per channel and plane.
-                obj.assignSignalExtractionFcn(iZ, iC)
+                if ~isempty(iRoiArray)
+                    % Prepare extraction parameters for each channel and plane
+                    obj.ExtractionParameters{iZ, iC} = obj.updateParameters(....
+                        obj.Options.Extraction, obj.SourceStack, iRoiArray);
+                    
+                    % Prepare array of RoIs for efficient signal extraction:
+                    obj.RoiDataArray{iZ, iC} = nansen.processing.roi.prepareRoiMasks( ...
+                        iRoiArray, obj.ExtractionParameters{iZ, iC});
+                    
+                    % Signal extraction function depends on number of rois and is 
+                    % assigned individually per channel and plane.
+                    obj.assignSignalExtractionFcn(iZ, iC)
+                else
+                    obj.SignalExtractionFcn{iZ, iC} = {};
+                end
             end
         end
 
