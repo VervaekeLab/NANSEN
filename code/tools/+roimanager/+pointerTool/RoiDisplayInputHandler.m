@@ -56,7 +56,10 @@ classdef RoiDisplayInputHandler < handle
                     elseif isempty(event.Modifier)
                         obj.RoiDisplay.improveRois();
                     end
-                    
+                case 'a'
+                    if strcmp(event.Modifier, 'shift')
+                        obj.RoiDisplay.changeCellType('axon')
+                    end
                 case 'g'
                     obj.RoiDisplay.growRois();
                     
