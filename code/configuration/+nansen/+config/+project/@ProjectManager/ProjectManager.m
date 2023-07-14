@@ -90,7 +90,7 @@ classdef ProjectManager < handle
         
         function setProject(obj)
             
-            currentProject = obj.CurrentProject();
+            currentProject = obj.CurrentProject;
             
             projectNames = {obj.Catalog.Name};
             if ~any(strcmp(currentProject, projectNames))
