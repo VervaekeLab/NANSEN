@@ -16,7 +16,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
 
 %   TODO:
 %       [v] Subclass from imviewer plugin class.
-%       [ ]  migrate plugin to new instance if results open in new window
+%       [ ] migrate plugin to new instance if results open in new window
 %       [v] Implement options based on OptionsManager & normcorre options.
 %       [ ] Should it have a DataIoModel property? Then its easy to plug in
 %           whatever model (i.e) a session model and save data consistently.
@@ -31,6 +31,10 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         Name = 'NoRMCorre'
     end
     
+    properties (Hidden)
+        TargetFolderName = 'motion_correction_normcorre';
+    end
+
     properties
         TestResults struct = struct     % Store results from a pretest correction
     end
@@ -107,6 +111,30 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
     
     methods % Methods for running normcorre motion correction
         
+        function sEditor = openSettingsEditor(obj)
+        %openSettingsEditor Open editor for method options.    
+                        
+            % Update folder- and filename in settings.
+            [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            folderPath = fullfile(folderPath, obj.TargetFolderName);
+            
+            % Prepare default filename
+            fileName = obj.buildFilenameWithExtension(fileName);
+
+            obj.settings_.Export.SaveDirectory = folderPath;
+            obj.settings_.Export.FileName = fileName;
+
+            sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
+            
+            % Need a better solution for this:
+            idx = strcmp(sEditor.Name, 'Export');
+            sEditor.dataOrig{idx}.SaveDirectory = folderPath;
+            sEditor.dataEdit{idx}.SaveDirectory = folderPath;
+
+            sEditor.dataOrig{idx}.FileName = fileName;
+            sEditor.dataEdit{idx}.FileName = fileName;
+        end
+
         function openControlPanel(obj)
             obj.plotGrid()
             obj.editSettings()
@@ -181,44 +209,13 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         end
         
         function runAlign(obj)
-         %runAlign Run correction on full image stack using a dummy session
+         %runAlign Run correction on full image stack using a "single folder
+         %dataset"
          
-   
-            folderPath = obj.settings.Export.SaveDirectory;
-            if ~isfolder(folderPath); mkdir(folderPath); end
+            dataSet = obj.prepareTargetDataset();
 
-            dataSet = nansen.dataio.dataset.SingleFolderDataSet(folderPath, ...
-                'DataSetID', obj.settings.Export.FileName );
-            
-            dataSet.addVariable('TwoPhotonSeries_Original', ...
-                'Data', obj.ImviewerObj.ImageStack)
-            
             nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack,...
                 obj.settings, 'DataIoModel', dataSet)
-        end
-
-        function sEditor = openSettingsEditor(obj)
-        %openSettingsEditor Open editor for method options.    
-        
-        % Note: Override superclass method in order to set an extra
-        % callback function (ValueChangedFcn) on the sEditor object
-        
-            sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
-            %sEditor.ValueChangedFcn = @obj.onValueChanged;
-            
-            % Create default folderpath for saving results
-            [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
-            folderPath = fullfile(folderPath, 'motion_correction_normcorre');
-            
-            % Need a better solution for this!
-            idx = strcmp(sEditor.Name, 'Export');
-            sEditor.dataOrig{idx}.SaveDirectory = folderPath;
-            sEditor.dataEdit{idx}.SaveDirectory = folderPath;
-            obj.settings_.Export.SaveDirectory = folderPath;
-            
-            sEditor.dataOrig{idx}.FileName = fileName;
-            sEditor.dataEdit{idx}.FileName = fileName;
-            obj.settings_.Export.FileName = fileName;
         end
 
     end

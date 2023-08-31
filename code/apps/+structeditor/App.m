@@ -3,7 +3,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %
 %   This class provides properties and methods for creating a viewer for
 %   editing the values of fields in a struct. It can also have a callback
-%   assigned, which will be invoked whenever a values is changed
+%   assigned, which will be invoked whenever a value is changed
 %
 %       h = structeditor(S) creates an app for editing struct S and assigns
 %       the app object to h.
@@ -37,7 +37,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %
 %      *[ ] Implement dependable fields...
 %       [ ] Implement validation of inputs. Each field should have a
-%           validation function to thest that the entered value is valid.
+%           validation function to test that the entered value is valid.
 %       [ ] Implement transient fields
 %           Q: 1) How are these updated? Is there any way of making that
 %           simple, or not? True/false, enable/diable... 
@@ -1919,7 +1919,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function setControlValue(obj, hControl, value)
             
-            
             % Special case: (Some controls are split into many controls)
             if isprop(hControl, 'UserData')
                 if numel(hControl) ~= numel(value)
@@ -2182,7 +2181,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         
             name = src(1).Tag;
-
+            
+            
             switch src(1).Style
                 case 'edit'
                     val = src.String;
@@ -2735,17 +2735,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             obj.editCallback_propertyValueChange(hControl(k), [], true)
                         end
                     end
-                        
-                
                 end
-                
             end
             
             % Reset current panel prop
             obj.currentPanel = currentPanelOrig;
-            
         end
-        
         
 % % % % User interaction callbacks
 
