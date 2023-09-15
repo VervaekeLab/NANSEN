@@ -29,6 +29,10 @@ classdef HasSessionData < uim.handle
                 obj(i).Data = nansen.session.SessionData(obj(i)); %#ok<AGROW>
             end
         end
+
+        function delete(obj)
+            delete(obj.Data)
+        end
     end
     
 % %         Todo: Is this even possible without breaking my head. How to
