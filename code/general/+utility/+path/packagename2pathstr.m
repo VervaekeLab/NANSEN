@@ -16,9 +16,8 @@ function pathStr = packagename2pathstr(packageName)
     
     numPackages = numel(packageName);
     
-    pathStr = cell(numPackages, 1);
+    pathStr = cell(size(packageName));
     for i = 1:numPackages
-    
         folderNames = strcat('+', strsplit(packageName{i}, '.'));
         pathStr{i} = fullfile(folderNames{:});
     end

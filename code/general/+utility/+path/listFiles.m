@@ -5,6 +5,11 @@ function [filePath, filename] = listFiles(filePathCellArray, filetype)
     if nargin < 2
         filetype = '';
     end
+
+    if isempty(filePathCellArray)
+        [filePath, filename] = deal({});
+        return
+    end
     
     if ~isa(filePathCellArray, 'cell')
         filePathCellArray = {filePathCellArray};
@@ -27,7 +32,7 @@ function [filePath, filename] = listFiles(filePathCellArray, filetype)
     keep = ~ strncmp({L.name}, '.', 1);
     L = L(keep);
 
-    if ~strncmp(filetype, '.', 1)
+    if ~isempty(filetype) && ~strncmp(filetype, '.', 1)
         filetype = sprintf('.%s', filetype);
     end
     

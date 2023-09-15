@@ -1,4 +1,4 @@
-function [absPath, dirName] = listSubDir(rootPath, expression, ignoreList, nRecurse)
+function [absPath, dirName] = listSubDir(rootPath, expression, ignoreList, nRecurse, depth)
 %listSubDir List sub directories based on different rules
 %
 %   [absPath, dirName] = listSubDir(rootPath)
@@ -14,13 +14,15 @@ function [absPath, dirName] = listSubDir(rootPath, expression, ignoreList, nRecu
     if nargin < 2; expression = ''; end
     if nargin < 3; ignoreList = {}; end
     if nargin < 4; nRecurse = 0; end
+    if nargin < 5; depth = 0; end
+
     %if nRecurse ~= 0; error('Not implemented yet'); end
 
     [absPath, dirName] = deal(cell(1, 0));
 
     if isa(rootPath, 'cell')
         for i = 1:numel(rootPath)
-            [absPathIter, dirNameIter] = utility.path.listSubDir(rootPath{i}, expression, ignoreList, nRecurse);
+            [absPathIter, dirNameIter] = utility.path.listSubDir(rootPath{i}, expression, ignoreList, nRecurse, depth);
             absPath = cat(2, absPath, absPathIter);
             dirName = cat(2, dirName, dirNameIter);
         end
@@ -51,14 +53,20 @@ function [absPath, dirName] = listSubDir(rootPath, expression, ignoreList, nRecu
         absPath = fullfile(rootPath, dirName);
         
         if nRecurse > 0 && sum(keep) > 0 % Todo:
-            [absPathRec, dirNameRec] = utility.path.listSubDir(absPath, expression, ignoreList, nRecurse-1);
+            [absPathRec, dirNameRec] = utility.path.listSubDir(absPath, expression, ignoreList, nRecurse-1, depth+1);
             if ~isempty(absPathRec)
                 absPath = cat(2, absPath, absPathRec);
                 dirName = cat(2, dirName, dirNameRec);
             end
-
         end
 
+        if depth == 0 % Add top level directory if it is not part of list.
+            if ~any(contains(absPath, rootPath))
+                absPath = cat(2, absPath, rootPath);
+                [~, thisDirName] = fileparts(absPath);
+                dirName = cat(2, dirName, thisDirName);
+            end
+        end
     end
 
 end
