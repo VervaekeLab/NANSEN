@@ -407,7 +407,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             mitem = uimenu(m, 'Text','Refresh Data Locations');
             mitem.MenuSelectedFcn = @app.onDataLocationModelChanged;
-            
+
+            mitem = uimenu(m, 'Text','Clear Memory');
+            mitem.MenuSelectedFcn = @app.onClearMemoryMenuClicked;
 
             % % % % % % Create EXIT menu items % % % % % % 
 
@@ -518,16 +520,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             m = uimenu(app.Figure, 'Text', 'Session');
             app.createSessionMenu(m)
 
+            %m = uimenu(app.Figure, 'Text', 'Apps');
 
-            menuRootPath = fullfile(nansen.rootpath, '+session', '+methods');
-            
+            % Create a separator
+            %m = uimenu(app.Figure, 'Text', '| Session Methods ->', 'Enable', 'off');
+            m = uimenu(app.Figure, 'Text', '|', 'Enable', 'off');
+
             app.SessionTaskMenu = nansen.SessionTaskMenu(app);
             
             l = listener(app.SessionTaskMenu, 'MethodSelected', ...
                 @app.onSessionTaskSelected);
             app.TaskInitializationListener = l;
-            
-            
+
             % app.createMenuFromDir(app.Figure, menuRootPath)
             
             
@@ -1333,7 +1337,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.saveMetaTable()
             try
-             close(d)
+                close(d)
             end
         end
 
@@ -1359,11 +1363,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         % % Todo: The following methods could become its own class 
         % MetaObjectCache
-        function metaObjects = getSelectedMetaObjects(app)
-        %getSelectedMetaObjects Get session objects for the selected table rows     
-            returnToIdle = app.setBusy('Creating session objects...'); %#ok<NASGU> 
+        function metaObjects = getSelectedMetaObjects(app, useCache)
+        %getSelectedMetaObjects Get session objects for the selected table rows
+            if nargin < 2; useCache = true; end
+            returnToIdle = app.setBusy('Creating session objects...'); %#ok<NASGU>
             entries = app.getSelectedMetaTableEntries();
-            metaObjects = app.tableEntriesToMetaObjects(entries);
+            if useCache
+                metaObjects = app.tableEntriesToMetaObjects(entries);
+            else
+                metaObjects = app.createMetaObjects(entries, useCache);
+            end
         end
         
         function metaObjects = tableEntriesToMetaObjects(app, entries)
@@ -1411,9 +1420,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
-        function metaObjects = createMetaObjects(app, tableEntries)
+        function metaObjects = createMetaObjects(app, tableEntries, useCache)
         %createMetaObjects Create new meta objects from table entries
             
+            if nargin < 3 || isempty(useCache); useCache = true; end
+
             schema = str2func(class(app.MetaTable));
 
             if isempty(tableEntries)
@@ -1436,6 +1447,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             metaObjects = schema(tableEntries, nvPairs{:});
+
             try
                 addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
                 addlistener(metaObjects, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
@@ -1445,13 +1457,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % class..
             end
 
-            % Add newly created metaobjects to the list
-            if isempty(app.MetaObjectList)
-                app.MetaObjectList = metaObjects;
-            else
-                app.MetaObjectList = [app.MetaObjectList, metaObjects];
+            if useCache
+                % Add newly created metaobjects to the list
+                if isempty(app.MetaObjectList)
+                    app.MetaObjectList = metaObjects;
+                else
+                    app.MetaObjectList = [app.MetaObjectList, metaObjects];
+                end
+                app.updateMetaObjectMembers()
             end
-            app.updateMetaObjectMembers()
         end
 
         function updateMetaObjectMembers(app)
@@ -1603,10 +1617,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                                         
                     entries = getSelectedMetaTableEntries(app);
                     if isempty(entries); return; end
-
+                    
                     metaObj = app.tableEntriesToMetaObjects(entries(1,:));
-                                    
-                    currentSessionID = app.UiFileViewer.getCurrentObjectId();
+                    
+                    try
+                        currentSessionID = app.UiFileViewer.getCurrentObjectId();
+                    catch ME
+                        switch ME.identifier
+                            % This is necessary in case the session object
+                            % cache was cleared.
+                            case 'MATLAB:class:InvalidHandle'
+                                currentSessionID = '';
+                        end
+                    end
 
                     if strcmp(metaObj.sessionID, currentSessionID)
                         return
@@ -2880,9 +2903,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Throw error if no sessions are selected.
             app.assertSessionSelected()
             
-            % Get the session objects that are selected in the metatable
-            sessionObj = app.getSelectedMetaObjects();
+            % Note: If the task(s) should be added to the queue, the
+            % session objects need to be uncached. This is because the
+            % cache can be cleared, and when the cache is cleared the
+            % session objects will become invalid. Thus the tasks in the
+            % task list would also be corrupt/unrunnable.
+            if strcmp(evt.Mode, 'TaskQueue')
+                useSessionObjectCache = false;
+            else
+                useSessionObjectCache = true;
+            end
             
+            % Get the session objects that are selected in the metatable
+            sessionObj = app.getSelectedMetaObjects(useSessionObjectCache);
+
             % Get the function name 
             functionName = evt.TaskAttributes.FunctionName;
             returnToIdle = app.setBusy(functionName); %#ok<NASGU>
@@ -3597,6 +3631,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             resetView = false;
             app.UiMetaTableViewer.resetTable(resetView)
             onNewMetaTableSet(app)
+        end
+
+        function onClearMemoryMenuClicked(app, ~, ~)
+            app.resetMetaObjectList()
         end
         
         function onOpenFigureMenuClicked(app, packageName, figureName)
