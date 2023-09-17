@@ -47,6 +47,10 @@ classdef ProjectManager < handle
         CurrentProject
         CurrentProjectPath
     end
+
+    properties (Access = private)
+        ProjectCache
+    end
     
     methods (Static, Hidden)
 
@@ -69,6 +73,8 @@ classdef ProjectManager < handle
             % Create instance of the project manager class
             obj.CatalogPath = obj.getCatalogPath();
             obj.loadCatalog()
+
+            obj.ProjectCache = containers.Map();
         end
         
     end
@@ -382,14 +388,18 @@ classdef ProjectManager < handle
         
         function projectObj = getProjectObject(obj, name)
         %getProjectObject Get project entry as object given its name
-            s = obj.getProject(name);
-            projectObj = nansen.config.project.Project(s.Name, s.Path);
+            
+            if isKey(obj.ProjectCache, name)
+                projectObj = obj.ProjectCache(name);
+            else
+                s = obj.getProject(name);
+                projectObj = nansen.config.project.Project(s.Name, s.Path);
+                obj.ProjectCache(name) = projectObj;
+            end
         end
 
         function projectObj = getCurrentProject(obj)
-            currentProjectName = obj.CurrentProject;
-            s = obj.getProject(currentProjectName);
-            projectObj = nansen.config.project.Project(s.Name, s.Path);
+            projectObj = obj.getProjectObject(obj.CurrentProject);
         end
         
         function msg = changeProject(obj, name)
