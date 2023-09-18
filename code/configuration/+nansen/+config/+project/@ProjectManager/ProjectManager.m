@@ -23,6 +23,7 @@ classdef ProjectManager < handle
 %   [ ] Add standard preferences
 %   [x] Add option for saving as json
 %   [ ] Add option for loading from json
+%   [ ] Remove the Preferences field from ProjectCatalog
 
     properties (Hidden) % Todo: Add to preferences.
         CatalogSaveFormat string {mustBeMember(CatalogSaveFormat, ["mat", "json"])} = "mat" % not implemented yet
