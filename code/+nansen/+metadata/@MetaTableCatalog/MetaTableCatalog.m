@@ -285,7 +285,7 @@ classdef MetaTableCatalog < uim.handle
         function quicksave(MT, filePath)
         %QUICKSAVE Static method for saving catalog without constructing class
         
-            if ~nargin || isempty(filePath)
+            if nargin < 2 || isempty(filePath)
                 filePath = nansen.metadata.MetaTableCatalog.getFilePath();
             end
 
