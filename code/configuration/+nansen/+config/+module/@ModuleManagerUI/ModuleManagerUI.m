@@ -1,7 +1,11 @@
 classdef ModuleManagerUI < handle
-    
+%ModuleManagerUI Provides UI functionality for the ModuleManager class
+
+    % Todo: 
+    %  [ ] Create a class wrapping around a table for selecting rows.
+
     properties 
-        ModuleManager  % Instance of AddonManager class
+        ModuleManager  % Instance of ModuleManager class
     end
 
     properties (Access = protected) % UI Components
@@ -31,7 +35,6 @@ classdef ModuleManagerUI < handle
         ModuleAdded
     end
 
-
     methods % Constructor
         
         function obj = ModuleManagerUI(hParent, hModuleManager, varargin)
@@ -53,14 +56,32 @@ classdef ModuleManagerUI < handle
             obj.ModuleManager = hModuleManager;
 
             obj.createUiControls()
-            obj.createProjectTable()
+            obj.createUiTable()
         end
         
     end
 
     methods 
         function selectedModules = getSelectedModules(obj)
+        %getSelectedModules Return a list (struct array) of selected modules
+        %
+        %   selectedModules = getSelectedModules(obj)
             selectedModules = obj.ModuleManager.ModuleList(obj.SelectedRows);
+        end
+
+        function setSelectedModules(obj, selectedModules)
+        %getSelectedModules Set selectedModules
+        %
+        %   setSelectedModules(obj, selectedModules) sets the given modules
+        %   as the current selection in the ui. selectedModules should be a cell
+        %   array of module package names
+
+            modulePackages = {obj.ModuleManager.ModuleList.modulePackage};
+            indices = find( ismember(modulePackages, selectedModules) );
+            obj.UIControls.ModuleTable.Data{indices, 1} = true;
+
+            obj.onRowSelected(indices)
+            obj.setRowStyle('Selected Row', indices)
         end
     end
 
@@ -71,7 +92,7 @@ classdef ModuleManagerUI < handle
             %obj.UIControls.ModuleTable.Position = [10,10,530,200];
         end
         
-        function createProjectTable(obj)
+        function createUiTable(obj)
             
             obj.updateTableData()
             
@@ -84,7 +105,7 @@ classdef ModuleManagerUI < handle
         end
         
         function updateTableData(obj)
-        %updateProjectTableData Update data in the uitable
+        %updateTableData Update data in the uitable
         
             if isempty(obj.ModuleManager); return; end
             if ~isfield(obj.UIControls, 'ModuleTable'); return; end
@@ -95,10 +116,7 @@ classdef ModuleManagerUI < handle
             T.Properties.VariableNames{1} = 'Module Name';
             T.Properties.VariableNames{2} = 'Description';
 
-
             isSelected = false(size(T, 1), 1);
-
-            %isCurrent = strcmp(T.Name, currentProjectName);
             tableColumn = table(isSelected, 'VariableNames', {'Selection'});
             
             T = [tableColumn, T];
@@ -113,10 +131,10 @@ classdef ModuleManagerUI < handle
             
             try % Only available in newer matlab versions...
 %                 if any(isCurrent)
-%                     obj.setRowStyle('Current Project', find(isCurrent))
+%                     obj.setRowStyle('Selection', find(isCurrent))
 % 
 %                     s = uistyle('FontWeight', 'bold');
-%                     addStyle(obj.UIControls.ProjectTable, s, 'row', find(isCurrent));
+%                     addStyle(obj.UIControls.ModuleTable, s, 'row', find(isCurrent));
 %                 end
                 if isempty(obj.UIControls.ModuleTable.UIContextMenu)
                     %obj.createTableContextMenu()
@@ -131,7 +149,7 @@ classdef ModuleManagerUI < handle
         end
         
         function setTablePosition(obj)
-        %setProjectTablePosition Position the table within the UI
+        %setTablePosition Position the table within the UI
         
             margin = 10;
             drawnow
@@ -144,15 +162,11 @@ classdef ModuleManagerUI < handle
         end
         
         function createTableContextMenu(obj)
-            
+            % Not implemented
             cMenu = uicontextmenu(ancestor(obj.hParent, 'figure'));
             
             contextMenuItemNames = {...
-                'Set current project', ...
-                'Remove project', ...
-                'Delete project', ...
-                'Update project folder location', ...
-                'Open project folder' };
+                'N/A' };
             
             hMenuItem = gobjects(numel(contextMenuItemNames), 1);
             for i = 1:numel(contextMenuItemNames)
@@ -160,7 +174,7 @@ classdef ModuleManagerUI < handle
                 hMenuItem(i).Callback = @obj.onContextMenuItemClicked;
             end
             
-            obj.UIControls.ProjectTable.UIContextMenu = cMenu;
+            obj.UIControls.ModuleTable.UIContextMenu = cMenu;
         end
 
     end
@@ -216,10 +230,18 @@ classdef ModuleManagerUI < handle
     methods (Access = private) % Actions
         function onRowSelected(obj, rowNumber)
             obj.SelectedRows = unique([obj.SelectedRows, rowNumber]);
+            obj.triggerModuleSelectionChangedEvent()
         end
 
         function onRowUnselected(obj, rowNumber)
             obj.SelectedRows = setdiff(obj.SelectedRows, rowNumber);
+            obj.triggerModuleSelectionChangedEvent()
+        end
+
+        function triggerModuleSelectionChangedEvent(obj)
+            selectedData = obj.ModuleManager.ModuleList(obj.SelectedRows);
+            evtData = nansen.config.module.SelectionChangedEventData(selectedData);
+            obj.notify('ModuleSelectionChanged', evtData)
         end
     end
 

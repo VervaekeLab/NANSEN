@@ -1,12 +1,11 @@
 classdef ModuleManager < handle
 %ModuleManager A manager for managing a modules to include in a project
+%
+%   A simple class for listing available modules in nansen. More functionality 
+%   might be needed later.
 
     properties (SetAccess = protected)
         ModuleList struct = struct() % List of modules (table or struct array)
-    end
-
-    properties
-        SelectedModules
     end
 
     properties (Hidden)
@@ -14,15 +13,13 @@ classdef ModuleManager < handle
     end
     
     properties (Constant, Access = private)
-        ModuleRootPath = fullfile(nansen.rootpath, 'modules')
+        ModuleRootPath = fullfile(nansen.rootpath, 'modules', '+nansen')
     end
     
     methods
         
         function obj = ModuleManager()
         %ModuleManager Construct an instance of this class
-
-            % Assign the path to the directory where addons are saved
             obj.getModuleList()
         end
         
@@ -33,6 +30,11 @@ classdef ModuleManager < handle
         function moduleTable = listModules(obj)
         %listModules Display a table of modules
             moduleTable = struct2table(obj.ModuleList);
+            
+            for iVar = 1:size(moduleTable, 2)
+                thisVarName = moduleTable.Properties.VariableNames{iVar};
+                moduleTable.(thisVarName) = string(moduleTable.(thisVarName));
+            end
         end
         
     end
@@ -40,7 +42,7 @@ classdef ModuleManager < handle
     methods (Access = protected)
         
         function getModuleList(obj)
-        % getModuleList
+        % getModuleList List available modules
             moduleDirectories = utility.path.listSubDir(obj.ModuleRootPath, '', {}, 3);
             moduleSpecFiles = utility.path.listFiles(moduleDirectories, 'json');
 
@@ -70,38 +72,5 @@ classdef ModuleManager < handle
             obj.IsDirty = false;
         end
     end
-    
-    methods (Access = protected)
-        
-        function addonIdx = getAddonIndex(obj, addonIdx)
-        %getAddonIndex Get index (number) of addon in list given addon name  
-            
-            if isa(addonIdx, 'char')
-                addonIdx = strcmpi({obj.AddonList.Name}, addonIdx);
-            end
-            
-            if isempty(addonIdx)
-                error('Something went wrong, addon was not found in list.')
-            end
-            
-        end
-    
-    end
-    
-    methods (Hidden, Access = protected) 
-               
-        function pathStr = getPathForAddonList(obj)
-        %getPathForAddonList Get path where local addon list is saved.
-        
-            rootDir = nansen.rootpath();
-            pathStr = fullfile(rootDir, '_userdata', 'settings');
-            
-            if ~exist(pathStr, 'dir'); mkdir(pathStr); end
-            
-            pathStr = fullfile(pathStr, 'installed_addons.mat');
-        end
-        
-    end
 
 end
-
