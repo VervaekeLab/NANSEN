@@ -235,6 +235,14 @@ classdef Project < nansen.module.Module
             filePathStr = fullfile(folderPathStr, filename);
         end
         
+        function folderPath = getLocalProjectFolderPath(obj)
+
+            localProjectPath = fullfile(nansen.rootpath, '_userdata', 'projects');
+            
+            folderPath = fullfile(localProjectPath, obj.Name);
+            if ~exist(folderPath, 'dir'); mkdir(folderPath); end
+        end
+        
     end
 
     methods (Static)
