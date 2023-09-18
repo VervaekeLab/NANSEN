@@ -387,6 +387,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uimenu( mitem, 'Text', 'Variables...', ...
                 'MenuSelectedFcn', @(s,e) app.openVariableModelEditor );
             
+            uimenu( mitem, 'Text', 'Modules...', ...
+                'MenuSelectedFcn', @(s,e) app.openModuleManager );
+        
+            uimenu( mitem, 'Text', 'Create File Adapter...', ...
+                'MenuSelectedFcn', @(s,e) app.onCreateFileAdapterMenuClicked );
+
             uimenu( mitem, 'Text', 'Watch Folders...', 'MenuSelectedFcn', ...
                 @(s,e)nansen.config.watchfolder.WatchFolderManagerApp, ...
                 'Enable', 'off');
@@ -630,8 +636,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function createSessionMenu(app, hMenu, updateFlag)
             
-            import nansen.metadata.utility.getPublicSessionInfoVariables
-
             if nargin < 3
                 updateFlag = false;
             end
@@ -1341,6 +1345,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Reload model.
             app.VariableModel.load();
         end
+
+        function onModuleSelectionChanged(app, src, evtData)
+            % Get current project
+            p = app.ProjectManager.getCurrentProject();
+
+            % Update preferences
+            p.Preferences.DataModule = {evtData.SelectedData.modulePackage};
+        end
         
     % % Get meta objects from table selections
         
@@ -1911,7 +1923,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %addTableVariable Opens a dialog where user can add table variable
         %
         %   User gets the choice to create a variable that can be edited
-        %   from the table or which is retrieved from a fucntion.
+        %   from the table or which is retrieved from a function.
         
         %  Q: This belongs to MetaTableViewer, but was more convenient to
         %  add it here for now. 
@@ -2400,7 +2412,26 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     @app.onVariableModelChanged);
                 
             else
+                %app.VariableModel.load()
                 app.VariableModelApp.Visible = 'on';
+            end
+        end
+
+        function openModuleManager(app)
+
+            % Get current project
+            p = app.ProjectManager.getCurrentProject();
+            dataModules = p.Preferences.DataModule;
+
+            persistent hApp
+            if isempty(hApp) || ~isvalid(hApp) || ~hApp.Valid
+                hApp = nansen.config.module.ModuleManagerApp(dataModules);
+                hApp.transferOwnership(app)
+                hApp.changeWindowStyle('modal')
+                addlistener(hApp, 'ModuleSelectionChanged', @app.onModuleSelectionChanged);
+            else
+                hApp.setSelectedModules(dataModules)
+                hApp.Visible = 'on';
             end
         end
 
@@ -3584,6 +3615,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if wasSuccess
                 app.SessionTaskMenu.refresh()
             end
+        end
+
+        function onCreateFileAdapterMenuClicked(app)
+        %onCreateFileAdapterMenuClicked Menu callback
+
+            currentProject = app.ProjectManager.getCurrentProject();
+            targetPath = currentProject.getFileAdapterFolder();
+            
+            [S, wasAborted] = nansen.module.uigetFileAdapterAttributes();
+            if wasAborted
+                return
+            else
+                nansen.module.createFileAdapter(targetPath, S)
+            end
+            % Todo: Trigger update?
         end
         
         function onRefreshSessionMethodMenuClicked(app, src, evt)
