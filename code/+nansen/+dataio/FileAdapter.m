@@ -581,4 +581,65 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         
     end
 
+    methods (Static)
+
+        function fileAdapterTable = buildFileAdapterTable(fileList)
+        %buildFileAdapterTable Build fileadapter info table from list of files.
+        %
+        %   fileAdapterTable = buildFileAdapterTable(fileList) returns a
+        %   table where each row represents information for a file adapter.
+        %   fileList is a list (struct array) of file attributes as
+        %   returned by the dir function. If elements in the list does not
+        %   represent a file adapter, they are ignored.
+        %
+        %   The fileAdapterTable contains the following variables:
+        %       - FileAdapterName : Name of the file adapter (class name)
+        %       - FunctionName : Full name, including package prefix
+        %       - SupportedFileTypes: Cell array of supported file types (file extensions)
+        %       - DataType: Data type returned when loading data using the file adapter
+
+            fileAdapterList = struct(...
+                'FileAdapterName', {},...
+                'FunctionName', {}, ...
+                'SupportedFileTypes', {}, ...
+                'DataType', {});
+
+            count = 1;
+                        
+            % Loop through m-files and add to file adapter list if this 
+            for i = 1:numel(fileList)
+
+                thisFilePath = utility.dir.abspath(fileList(i));
+                thisFcnName = utility.path.abspath2funcname(thisFilePath);
+                try
+                    mc = meta.class.fromName(thisFcnName);
+                
+                    if ~isempty(mc) && isa(mc, 'meta.class') && isFileAdapterClass(mc)
+                    
+                        [~, fileName] = fileparts(thisFilePath);
+                    
+                        fileAdapterList(count).FileAdapterName = fileName;
+                        fileAdapterList(count).FunctionName = thisFcnName;
+                        isProp = strcmp({mc.PropertyList.Name}, 'SUPPORTED_FILE_TYPES');
+                        fileAdapterList(count).SupportedFileTypes = mc.PropertyList(isProp).DefaultValue;
+                        isProp = strcmp({mc.PropertyList.Name}, 'DataType');
+                        fileAdapterList(count).DataType = mc.PropertyList(isProp).DefaultValue;
+                        count = count + 1;
+                    end
+                catch ME
+                    warning(ME.message)
+                end
+            end
+
+            fileAdapterTable = struct2table(fileAdapterList);
+
+            function tf = isFileAdapterClass(mc)
+                % Todo: Does this work for subclasses of subclasses?
+                %tf = contains(mfilename('class'), {mc.SuperclassList.Name});
+                tf = contains('nansen.dataio.FileAdapter', {mc.SuperclassList.Name});
+            end
+        end
+
+    end
+
 end

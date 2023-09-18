@@ -11,10 +11,14 @@ classdef Module < handle
 %         - Data variable definitions
 %         - Option sets and customizable options.
 %         - Pipelines
-
+%
 %   This class is used for accessing and managing the relevant files for a 
 %   module. There are methods for listing all items of a specific type, and
 %   methods for initializing new items from templates.
+%
+%   See also: nansen.dataio.FileAdapter
+%             nansen.session.SessionMethod
+%             nansen.metadata.abstract.TableVariable
 
     properties (Constant, Hidden) % Todo: Include or not?
         DEFAULT_SESSION_METHOD_CATEGORIES = {'data', 'processing', 'analysis', 'plot'};
@@ -44,10 +48,10 @@ classdef Module < handle
     end
 
     events
-        ModuleUpdated
+        ModuleUpdated % Todo
     end
 
-    methods
+    methods % Constructor
         function obj = Module(configFilePath, options)
 
 % %             arguments
@@ -61,12 +65,30 @@ classdef Module < handle
             moduleSpecification = jsondecode(fileStr);
 
             obj.Name = moduleSpecification.attributes.moduleLabel;
+            obj.Description = moduleSpecification.attributes.moduleDescription;
             obj.FolderPath = fileparts(configFilePath);
             obj.PackageName = utility.path.pathstr2packagename(obj.FolderPath);
 
             obj.CachedFilePaths = containers.Map();
             obj.ItemTables = containers.Map();
         end
+    end
+
+    methods (Access = public)
+
+        function fileAdapterFolder = getFileAdapterFolder(obj)
+            fileAdapterFolder = fullfile(obj.FolderPath, '+fileadapter');
+        end
+
+        function sessionMethodFolder = getSessionMethodFolder(obj)
+            sessionMethodFolder = fullfile(obj.FolderPath, '+sessionmethod');
+        end
+
+        function itemTable = getTable(obj, itemType)
+            itemType = validatestring(itemType, {'SessionMethod', 'TableVariable', 'FileAdapter'}, 1);
+            itemTable = obj.rehash(itemType);
+        end
+
     end
 
     methods % Get dependent properties
@@ -87,8 +109,10 @@ classdef Module < handle
             sessionMethodList = string(sessionMethodList)';
         end
 
-        function tableVariables = get.TableVariables(obj)
-            tableVariables = "N/A";
+        function tableVariableList = get.TableVariables(obj)
+            itemTable = obj.rehash('TableVariable');
+            tableVariableList = itemTable.Name;
+            tableVariableList = string(tableVariableList)';
         end
 
         function dataVariables = get.DataVariables(obj)
@@ -101,33 +125,8 @@ classdef Module < handle
 
     end
 
-    methods (Access = private)
+    methods (Access = protected)
         
-        
-    end
-    
-    methods % Methods for listing items.
-
-        function fileAdapterList = listFileAdapters(obj)
-        %listFileAdapters List all file adapters associated with this project
-
-            fileAdapterRootPath = obj.getFileAdapterFolder();
-            fileAdapterList = nansen.dataio.listFileAdapters({fileAdapterRootPath});
-            fileAdapterList = struct2table(fileAdapterList);
-        end
-
-    end
-
-    methods (Access = public)
-
-        function fileAdapterFolder = getFileAdapterFolder(obj)
-            fileAdapterFolder = fullfile(obj.FolderPath, '+fileadapter');
-        end
-
-        function sessionMethodFolder = getSessionMethodFolder(obj)
-            sessionMethodFolder = fullfile(obj.FolderPath, '+sessionmethod');
-        end
-
         function rootPath = getItemRootFolder(obj, itemType)
         %getItemRootFolder Get root folder for files of specified item
 
@@ -152,7 +151,11 @@ classdef Module < handle
                     fileList = obj.listJsonFiles(rootFolder);
             end
         end
+        
+    end
 
+    methods (Access = private)
+        
         function itemTable = rehash(obj, itemType)
         %rehash Check for changes to modulefiles and perform update if necessary    
             fileList = obj.listFiles(itemType);
@@ -171,13 +174,18 @@ classdef Module < handle
         end
 
         function itemTable = updateItemList(obj, itemType, fileList)
+
+            import nansen.dataio.FileAdapter.buildFileAdapterTable
+            import nansen.session.SessionMethod.buildSessionMethodTable
+            import nansen.metadata.abstract.TableVariable.buildTableVariableTable
+
             switch itemType
                 case 'FileAdapter'
-                    itemTable = buildFileAdapterTable(obj, fileList);
+                    itemTable = buildFileAdapterTable(fileList);
                 case 'SessionMethod'
-                    itemTable = buildSessionMethodTable(obj, fileList);
+                    itemTable = buildSessionMethodTable(fileList);
                 case 'TableVariable'
-                    itemTable = [];
+                    itemTable = buildTableVariableTable(fileList);
                 case 'DataVariable'
                     itemTable = [];
                 case 'Pipeline'
@@ -185,80 +193,7 @@ classdef Module < handle
             end
             obj.ItemTables(itemType) = itemTable;
         end
-    end
-
-    methods (Access = private)
         
-        function fileAdapterTable = buildFileAdapterTable(obj, fileList)
-            
-            fileAdapterList = struct(...
-                'FileAdapterName', {},...
-                'FunctionName', {}, ...
-                'SupportedFileTypes', {}, ...
-                'DataType', {});
-
-            count = 1;
-                        
-            % Loop through m-files and add to file adapter list if this 
-            for i = 1:numel(fileList)
-
-                thisFilePath = utility.dir.abspath(fileList(i));
-                thisFcnName = utility.path.abspath2funcname(thisFilePath);
-                try
-                    mc = meta.class.fromName(thisFcnName);
-                
-                    if ~isempty(mc) && isa(mc, 'meta.class') && isFileAdapterClass(mc)
-                    
-                        [~, fileName] = fileparts(thisFilePath);
-                    
-                        fileAdapterList(count).FileAdapterName = fileName;
-                        fileAdapterList(count).FunctionName = thisFcnName;
-                        isProp = strcmp({mc.PropertyList.Name}, 'SUPPORTED_FILE_TYPES');
-                        fileAdapterList(count).SupportedFileTypes = mc.PropertyList(isProp).DefaultValue;
-                        isProp = strcmp({mc.PropertyList.Name}, 'DataType');
-                        fileAdapterList(count).DataType = mc.PropertyList(isProp).DefaultValue;
-                        count = count + 1;
-                    end
-                catch ME
-                    warning(ME.message)
-                end
-            end
-
-            fileAdapterTable = struct2table(fileAdapterList);
-
-            function tf = isFileAdapterClass(mc)
-                tf = contains('nansen.dataio.FileAdapter', {mc.SuperclassList.Name});
-            end
-        end
-        
-        function sessionMethodTable = buildSessionMethodTable(obj, fileList)
-            % Todo: Also find functions...
-            sessionMethodList = struct(...
-                'Name', {},...
-                'FunctionName', {});
-
-            count = 1;
-                        
-            % Loop through m-files and add to file adapter list if this 
-            for i = 1:numel(fileList)
-                mFilePath = utility.dir.abspath(fileList(i));
-                thisFcnName = utility.path.abspath2funcname(mFilePath);                
-                
-                [~, fileName] = fileparts(mFilePath);
-                
-                sessionMethodList(count).Name = fileName;
-                sessionMethodList(count).FunctionName = thisFcnName;
-                count = count + 1;
-            end
-
-            sessionMethodTable = struct2table(sessionMethodList);
-
-            function tf = isSessionMethodClass(mc)
-                tf = contains('nansen.dataio.FileAdapter', {mc.SuperclassList.Name});
-            end
-        end
-
-
     end
 
     methods (Static)
@@ -307,6 +242,7 @@ classdef Module < handle
             % If we got here, the file lists are identical
             tf = false;
         end
+    
     end
 
 end

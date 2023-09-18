@@ -341,7 +341,39 @@ classdef SessionMethod < nansen.DataMethod
         end
         
     end
-        
 
+    methods (Static)
+
+        function sessionMethodTable = buildSessionMethodTable(fileList)
+            
+            % Todo: Also find functions...
+            % Todo: What is necessary to list here...?
+            
+            sessionMethodList = struct(...
+                'Name', {},...
+                'FunctionName', {});
+
+            count = 1;
+                        
+            % Loop through m-files and add to file adapter list if this 
+            for i = 1:numel(fileList)
+                mFilePath = utility.dir.abspath(fileList(i));
+                thisFcnName = utility.path.abspath2funcname(mFilePath);                
+                
+                [~, fileName] = fileparts(mFilePath);
+                
+                sessionMethodList(count).Name = fileName;
+                sessionMethodList(count).FunctionName = thisFcnName;
+                count = count + 1;
+            end
+
+            sessionMethodTable = struct2table(sessionMethodList);
+
+            function tf = isSessionMethodClass(mc)
+                tf = contains(mfilename('class'), {mc.SuperclassList.Name});
+            end
+        end
+
+    end
         
 end

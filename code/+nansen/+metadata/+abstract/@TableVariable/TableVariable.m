@@ -105,4 +105,10 @@ classdef TableVariable
         % Subclasses should be allowed not to have the update method...
     end
     
+    methods (Static)
+        % Function in separate file
+        attributeTable = buildTableVariableTable(fileList)
+
+        defaultSessionTableVariableList = getDefaultSessionVariables()
+    end
 end
