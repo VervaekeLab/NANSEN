@@ -8,8 +8,7 @@ function projectManager = ProjectManager()
 %       nansen.ProjectManager() will open an app for managing projects
 %
 %       PM = nansen.ProjectManager() will return an instance (singleton) of
-%       the projectmanager for working with on the commandline or in
-%       scripts
+%       the projectmanager for use on the commandline or in scripts.
 %
 %   See also nansen.config.project.ProjectManager
 

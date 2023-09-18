@@ -419,7 +419,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             if nargin < 1; fileType = ''; end
             if ~isempty(fileType); fileType = strrep(fileType, '.', ''); end
             
-            fileAdapterList = nansen.dataio.listFileAdapters;
+            fileAdapterList = nansen.dataio.listFileAdapters();
             
             if ~isempty(fileType)
                 validationFcn = @(extList) contains(fileType, extList);

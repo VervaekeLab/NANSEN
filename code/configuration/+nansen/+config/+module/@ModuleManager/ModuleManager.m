@@ -24,7 +24,6 @@ classdef ModuleManager < handle
 
             % Assign the path to the directory where addons are saved
             obj.getModuleList()
-            
         end
         
     end

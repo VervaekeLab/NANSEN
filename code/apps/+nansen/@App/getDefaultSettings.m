@@ -3,6 +3,7 @@ function S = getDefaultSettings()
 % NB: This will not be updated in a class until matlab is restarted or the
 % class is cleared and reinitialized.
 
+% Todo: Make these user and/or project specific
 
 S = struct();
 S.MetadataTable.ShowIgnoredEntries = true;
