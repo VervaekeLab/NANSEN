@@ -1,7 +1,6 @@
 function createSessionTableContextMenu(app)
 %createSessionTableContextMenu Create a context menu for sessions in table
 
-    import nansen.metadata.utility.getPublicSessionInfoVariables
     import nansen.metadata.utility.getMetaTableVariableAttributes
     
     hContextMenu = uicontextmenu(app.Figure);
@@ -67,7 +66,6 @@ function createSessionTableContextMenu(app)
     
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Update Column Variable');
-    %columnVariables = getPublicSessionInfoVariables(app.MetaTable);
     
     S = getMetaTableVariableAttributes('session');
     columnVariables = {S([S.HasFunction]).Name};

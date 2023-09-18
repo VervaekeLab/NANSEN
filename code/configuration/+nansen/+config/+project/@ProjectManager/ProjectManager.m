@@ -18,13 +18,11 @@ classdef ProjectManager < handle
 %       and only call the fprintf on those messages whenever those methods
 %       are called without outputs. something like (status, tf] = method()
 %       This way the UI can catch info, warning, errors.
-%   [x] Make a Project class.
 %   [ ] Move methods from projectmanager to project 
 %   [ ] Add method for renaming project.
 %   [ ] Add standard preferences
 %   [x] Add option for saving as json
 %   [ ] Add option for loading from json
-%   [ ] Create a project object cache in order to have singleton-like projects?
 
     properties (Hidden) % Todo: Add to preferences.
         CatalogSaveFormat string {mustBeMember(CatalogSaveFormat, ["mat", "json"])} = "mat" % not implemented yet
@@ -835,3 +833,5 @@ end
 %   [x] Rename internal paths if an already existing project is added. 
 %       Need to rename metatable etc...? Tested this. Was partly implemented 
 %       from before. 
+% 2023-09-18
+%   [x] Create a project object cache in order to have singleton-like projects?
