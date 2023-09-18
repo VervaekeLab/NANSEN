@@ -1,4 +1,4 @@
-function reorganizeProjectFolder(projectFolderPath, targetFolderPath)
+function reorganizeProjectFolder(projectFolderPath)
     
     % Make backup:
     try 
@@ -66,7 +66,7 @@ function reorganizeProjectFolder(projectFolderPath, targetFolderPath)
     projectName = S.ProjectConfiguration.Name;
     for i = 1:numel(filePaths)
         thisFilePath = filePaths{i};
-        newFilePath = strrep(thisFilePath, [projectName, '.'], sprintf('%s.module.sessionmethod.', projectName));
+        newFilePath = strrep(thisFilePath, [projectName, '.'], sprintf('%s.internal.sessionmethod.', projectName));
         if ~strcmp(thisFilePath, newFilePath)
             movefile(thisFilePath, newFilePath)
         end
