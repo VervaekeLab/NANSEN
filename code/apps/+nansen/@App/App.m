@@ -2885,6 +2885,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return
             elseif strcmp(evt.Mode, 'Help')
                 help(evt.TaskAttributes.FunctionName)
+                applify.helpDialog(evt.TaskAttributes.FunctionName)
                 return
             end
 
