@@ -838,7 +838,11 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 elseif strcmp(imageSelection, 'Current Frame')
                     roiImage = cat(3, obj.itemSpecs(roiInd).enhancedImage);
                 else
-                    roiImage = cat(3, obj.itemImages(roiInd).(imageSelection));
+                    roiImages = {obj.itemImages(roiInd).(imageSelection)};
+                    isEmpty = cellfun(@(c) isempty(c), roiImages);
+                    ind = find(~isEmpty, 1, 'first');
+                    [roiImages{isEmpty}] = deal(zeros(size(roiImages{ind}, [1,2]), 'like', roiImages{ind}));
+                    roiImage = cat(3, roiImages{:});
                 end
             catch
                 error('Not implemented for images of different size')

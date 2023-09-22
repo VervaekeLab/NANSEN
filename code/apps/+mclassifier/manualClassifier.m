@@ -1024,9 +1024,7 @@ methods
         
         imageSelection = getCurrentImageSelection(obj);
         
-        
         obj.hTiledImageAxes.resetAxes()
-        
         
         numTilesToUpdate = numel(obj.displayedItems);
         obj.updateTile(obj.displayedItems, 1:numTilesToUpdate)
@@ -1042,8 +1040,6 @@ methods
         if isa(src, 'matlab.ui.control.UIControl')
             obj.removeFocusFromControl(src)
         end
-        
-
     end
     
     

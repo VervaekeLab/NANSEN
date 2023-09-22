@@ -25,7 +25,7 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
     
     methods (Static)
         function S = getDefaultOptions()
-            %S = nansen.twophoton.roisignals.extract.getDefaultParameters();
+            S = nansen.twophoton.roisignals.extract.getDefaultParameters();
         end
     end
     

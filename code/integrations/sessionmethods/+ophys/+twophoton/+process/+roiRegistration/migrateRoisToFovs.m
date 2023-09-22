@@ -1,6 +1,25 @@
 function varargout = migrateRoisToFovs(sessionObject, varargin)
-%MIGRATEROISTOFOV Summary of this function goes here
-%   Detailed explanation goes here
+%migrateRoisToFovs Summary of this function goes here
+%   
+%   This is a multisession method to use for migrating a roi array from one
+%   FoV to other matching FOVs. 
+%
+%   Requirements:
+%   - - - - - - - 
+%   The method requires a FOV image ("FovAverageProjection") to be present
+%   for all sessions and a roi array to be present for the reference session.
+%
+%   What will happen?
+%   - - - - - - - - - 
+%   1) An average FOV image is loaded for each session and aligned
+%      using an image registration method (flowreg or normcorre).
+%   2) The roi array from the reference session will be copied to all other
+%      sessions and the roi positions will be adjusted based on the pixel
+%      shifts from the image registration step.
+%   3) Rois are added and saved to a MultiSessionRoiCollection. This can
+%      later be used to manually edit rois for individual sessions and
+%      synchronize those changes across all sessions. See
+%      Roi Registration -> Edit Rois
 
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
@@ -47,6 +66,9 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     sessionObject = sessionObject(newOrder); 
     sessionIDs = sessionIDs(newOrder);
 
+    % Check channels and planes. Throw error for multiplane recordings.
+    [numChannels, numPlanes] = deal(zeros(1, numSessions));
+
     % Initialize a struct array
 
     % Load all fov images
@@ -70,10 +92,21 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
         else
             fovImages{i} = thisFovImage.getFrameSet(1);
         end
+
+        numChannels(i) = thisFovImage.NumChannels;
+        numPlanes(i) = thisFovImage.NumPlanes;
     end
 
-    % If FOVS are not the same size, crop them to the minimum size
-    % available
+    assert( numel(unique(numChannels))==1, ...
+        'All sessions must have the same number of channels')
+    
+    assert( numel(unique(numPlanes))==1 && unique(numPlanes)==1, ...
+        'This method is not implemented for multiplane recordings yet')
+
+    % Todo: Add method for concatenation if images are not the same size.
+
+% % %     % If FOVS are not the same size, crop them to the minimum size
+% % %     % available
 % % %     fovSize = cellfun(@(im) size(im), fovImages, 'uni', 0);
 % % %     fovSize = min( cat(1, fovSize{:}) );
 % % %     
@@ -82,8 +115,6 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
 % % %         fovImageArray(:, :, i) = stack.reshape.imcropcenter(fovImages{i}, fovSize);
 % % %     end
 
-
-
     % Todo: If Fov is multi-channel, should we require all sessions to have
     % the same channels? Probably yes...
 
@@ -91,7 +122,6 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     
     % Concatenate the fov images into an array
     fovImageArray = cat(3, fovImages{:});
-    % Todo: Add method for concatenation if images are not the same size.
 
     % Register images for each fov/session to reference fov/session
     [fovShifts, imArrayNR] = flufinder.longitudinal.alignFovs(fovImageArray);
@@ -181,6 +211,9 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     multiSessionRoiFilepath = fullfile(saveFolder, multiSessionRoiFilename);
     
     % todo: rois is a vector/matrix (i.e multichannel/plane)
+    
+    numChannels = unique(numChannels);
+    
     S = struct;
     S.multiSessionRois = flufinder.longitudinal.MultiSessionRoiCollection.empty;
     %S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{1}, fovImageArray(:,:,1), roiArray);
@@ -190,23 +223,18 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     for i = 1:numSessions
         if i == 1
             thisRoiArray = roiArray;
+            %isReference = true;
         else
             % Todo: Ensure we are not overwriting data
             thisRoiArray = roiArrayMigrated{i-1};
+            %isReference = false;
         end
-        if isa(thisRoiArray, 'cell')
-            iZ = 1;
-            iC = params.WorkingChannel;
-            trackedRoiArray = thisRoiArray{iZ, iC};
-        else
-            trackedRoiArray = thisRoiArray;
-        end
-        
-        % Todo: Save working channel on multisessionrois
-
-        S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{i}, fovImageArray(:,:,i), trackedRoiArray);
-        S.multiSessionRois(i).ImageChannel =  params.WorkingChannel;
+    
+        skipUpdate = true; % This update was essentially done during the "migration" step above
+        S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{i}, fovImageArray(:,:,i), thisRoiArray, skipUpdate);
+        %S.multiSessionRois(i).ImageChannel = %params.WorkingChannel;
         sessionObject(i).saveData('RoiArrayLongitudinal', thisRoiArray, 'Subfolder', 'roi_data')% todo:?, 'FileAdapter', 'RoiArray')
+        
         sessionObject(i).saveData('MultisessionRoiCrossReference', multiSessionRoiFilepath, 'Subfolder', 'roi_data')
     end
 

@@ -36,10 +36,6 @@ function varargout = computeClassificationData(sessionObject, varargin)
     % - Load roi array
     roiArray = sessionObject.loadData('RoiArrayLongitudinal');
 
-    % % % Todo remove:
-    warning('Temp shortcut during dev')
-    %roiArray = {RoI.empty, roiArray};
-
     % - Get imagestack
     imageStack = sessionObject.loadData( params.ImageStackVariableName );
 
@@ -76,6 +72,7 @@ function varargout = computeClassificationData(sessionObject, varargin)
             imageStack.CurrentChannel = stackIterator.CurrentChannel;
             imageStack.CurrentPlane = stackIterator.CurrentPlane;
             
+            % Load images:
             imArray = imageStack.getFrameSet(1:N);
             
             % Todo: Include this but fix caching for multichannel data...
@@ -88,9 +85,7 @@ function varargout = computeClassificationData(sessionObject, varargin)
             [roiImages, roiStats] = deal(struct.empty);
         end
         
-        % Load images:
-
-
+        % Add all classification data the output struct
         thisRoiGroupStruct = struct();
         thisRoiGroupStruct.ChannelNumber = stackIterator.CurrentChannel;
         thisRoiGroupStruct.PlaneNumber = stackIterator.CurrentPlane;

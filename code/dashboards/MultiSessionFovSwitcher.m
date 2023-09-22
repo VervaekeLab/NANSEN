@@ -1,19 +1,23 @@
 classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettings
+%Application to switch between FoVs and manage multisession rois.
+%
+%   This application opens a thumbnail viewer displaying the FOV for each
+%   session of a multisession set. When the user clicks a thumbnail, the
+%   selected session should be loaded in roimanager, and if changes were
+%   made to the current session, these should be synched across all open
+%   sessions.
 
-    
+%   Wanted features:
+%       Update thumbnail with correct imaging channel for FOV if the
+%       visible channel is changed in roimanager
+%       Plot rois as dots in the FoVs and show updates across all session
+%       thumbnails.
+%   
+
     % Todo: 
-    % [x] Horizontal scrollbar
-    % [x] Mouse scroll callback for horizontal scroller...
-    % [x] Selected tile should move when scroller moves...
-    % [x] Initialize or load a multisession roi array
-    % [x] Add tile selection callback for opening selected session in
-    %     roimanager.
-    % [ ] Add support for multichannel rois
-    % [ ] Dock i roimanager
-
-    % [x] save rois an multi rois when changing sessions
+    % [ ] Dock in roimanager
     % [ ] migrate rois to all sessions when closing
-    
+    % [ ] Consistent naming, i.e multisession or longitudinal?
 
     properties (Constant)
         AppName = 'Multisession Fov Selector'
@@ -26,7 +30,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
     properties
         NumVisibleImages = 4        % Number of session fovs to display
     end
-    
+
     properties (Dependent)
         NumSessions                 % Number of sessions in total
     end
@@ -37,7 +41,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         MultiSessionRoiCollection   % Instance of a MultiSessionRoiCollection
         ThumbnailImageArray         % Fov images in a numerical array (for easy indexing when updating view)
         ThumbnailLabels             % Cell array of session ids
-        NumImageChannels
+        NumImageChannels            % Number of channels in image data
     end
 
     properties (Access = private) % UI properties
@@ -58,8 +62,8 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
     end
 
 
-    methods 
-        
+    methods
+
         function obj = MultiSessionFovSwitcher(sessionObjects, sessionObjectStruct, roimanagerApp)
         %MultiSessionFovSwitcher Class constructor
 
@@ -76,38 +80,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
             obj.assignThumbnailData()
 
-            obj.createFovSelectorWidget()
-            obj.updateVisibleTiles()
-
-            obj.isConstructed = true; %obj.onThemeChanged()
-
-            obj.TiledImageAxes.highlightTileOnMouseOver = true;
-
-
-            obj.Axes = obj.TiledImageAxes.Axes;
-            obj.Axes.Units = 'pixel';
-            obj.TiledImageAxes.fitAxes;
-
-            % Set this property so that text outside the axes is clipped.
-            obj.Axes.ClippingStyle = 'rectangle';
-            
-            pixelPosition = getpixelposition( obj.TiledImageAxes );
-            obj.TiledImageAxes.Position(2) = obj.TiledImageAxes.Position(2)+20;
-            obj.Panel.Position(3:4) = pixelPosition(3:4)+[20, 40];
-            
-            if strcmp( obj.mode, 'standalone' )          
-                obj.Figure.Position([3,4]) = pixelPosition(3:4)+[20, 40];
-                obj.Figure.Resize = 'off';
-            end
-
-            if numel(sessionObjects) > obj.NumVisibleImages
-                obj.createScrollBar()
-            end
-
-            obj.TiledImageAxes.TileCallbackFcn = @obj.onSessionSelected;
-
-            obj.onVisibleChanged() % Make sure everything is visible
-
+            obj.createApplication()
 
             %S = obj.SessionObjectStruct(1);
             %obj.RoimanagerApp = roimanager.RoimanagerDashboard(S.ImageStack);
@@ -124,8 +97,18 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             
             obj.Figure.CloseRequestFcn = @obj.onQuit;
             addlistener(obj.RoimanagerApp, 'ObjectBeingDestroyed', @obj.onQuit);
+
+% %             % Something like this is necessary if implementing live
+% %             % update of rois / image channel in this gui. 
+% %             % Add listener for when image channel.
+% %             addlistener(obj.RoimanagerApp.ImviewerObj, 'currentChannel', ...
+% %                 'PostSet', @(s, e) obj.onImageChannelChanged);
+% % 
+% %             % Add listener for when active (roi) channel changes.
+% %             addlistener(obj.RoimanagerApp, 'ActiveChannelChanged', ...
+% %                  @(s, e) obj.onImageChannelChanged);
         end
-        
+
         function onVisibleChanged(obj)
             if obj.isConstructed
                 set(obj.Axes.Children, 'Visible', true)
@@ -156,16 +139,19 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
                 close(obj.Figure)
             end
         end
-        
+
     end
-    
-    methods 
+
+    methods
+
         function numSessions = get.NumSessions(obj)
             numSessions = numel(obj.SessionObjects);
         end
+
     end
 
     methods (Access = protected)
+
         function onSettingsChanged(obj)
 
         end
@@ -176,10 +162,45 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             onSizeChanged@applify.ModularApp(obj)
             %obj.Panel.Position = [0,0,1,1];
         end
+
     end
 
     methods (Access = private)
-              
+
+        function createApplication(obj)
+            
+            obj.createFovSelectorWidget()
+            obj.updateVisibleTiles()
+
+            obj.isConstructed = true; %obj.onThemeChanged()
+
+            obj.TiledImageAxes.highlightTileOnMouseOver = true;
+
+            obj.Axes = obj.TiledImageAxes.Axes;
+            obj.Axes.Units = 'pixel';
+            obj.TiledImageAxes.fitAxes();
+
+            % Set this property so that text outside the axes is clipped.
+            obj.Axes.ClippingStyle = 'rectangle';
+            
+            pixelPosition = getpixelposition( obj.TiledImageAxes );
+            obj.TiledImageAxes.Position(2) = obj.TiledImageAxes.Position(2)+20;
+            obj.Panel.Position(3:4) = pixelPosition(3:4)+[20, 40];
+            
+            if strcmp( obj.mode, 'standalone' )          
+                obj.Figure.Position([3,4]) = pixelPosition(3:4)+[20, 40];
+                obj.Figure.Resize = 'off';
+            end
+
+            if numel(obj.SessionObjects) > obj.NumVisibleImages
+                obj.createScrollBar()
+            end
+
+            obj.TiledImageAxes.TileCallbackFcn = @obj.onSessionSelected;
+
+            obj.onVisibleChanged() % Make sure everything is visible
+        end
+
         function assignThumbnailData(obj)
 
             dim = ndims(obj.SessionObjectStruct(1).FovImage) + 1;
@@ -194,7 +215,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             elseif dim == 4
                 obj.NumImageChannels = size(fovImageArray, 3);
             end
-
         end
 
         function createFovSelectorWidget(obj)
@@ -245,7 +265,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         function scroll(obj, src, event)
             obj.UIScrollbar.moveScrollbar(src, event)
         end
-        
+
         function scrollValueChange(obj, scroller, ~)
             
             numImages = numel(obj.SessionObjects);
@@ -256,11 +276,11 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
                 obj.updateView([], event, 'incr')
             end
         end
-        
+
         function stopScrollbarMove(obj, ~, deltaY)
             obj.updateView(struct('deltaY', deltaY), [], 'scrollbar');
         end
-        
+
         function updateVisibleTiles(obj)
             
             % Todo: Combine with update view??
@@ -281,7 +301,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
         function updateView(obj, src, event, mode)
                         
-            % Todo
             numImages = numel(obj.SessionObjects);
             
             switch lower(mode)
@@ -308,7 +327,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
                     
                 case 'incr'
                     n = event.incr;
-
             end
             
             % Make sure to not exceed limits
@@ -316,7 +334,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             n = min( numImages-obj.CurrentTiles(end), n );
 
             obj.CurrentTiles = obj.CurrentTiles + n;
-
 
             % combine with updateVisibleTiles
             IND = obj.CurrentTiles;
@@ -339,7 +356,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             else
                 obj.TiledImageAxes.selectTile([], [], []);
             end
-            
         end
 
         function onSessionSelected(obj, src, evt, i)
@@ -360,8 +376,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
                 
                 obj.saveMultiSessionRois()
             end
-
-            %disp(obj.SelectedSession)
         end
 
         function newRoiArray = updateRoiArrayForSession(obj, sessionIdx)
@@ -370,17 +384,18 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
             newRoiArray = obj.MultiSessionRoiCollection.getRoiArray(sessonId);
             
-            % Update in session object struct
-            oldRoiArray = obj.SessionObjectStruct(sessionIdx).RoiArray;
-            if iscell(oldRoiArray) && numel(oldRoiArray) > 1
+            channelNumber = obj.MultiSessionRoiCollection(1).ImageChannel;
+            if ~isempty(channelNumber)
                 oldRoiArray = obj.SessionObjectStruct(sessionIdx).RoiArray;
-                channelNumber = obj.MultiSessionRoiCollection(1).ImageChannel;
-                planeNumber = 1;
-
-                oldRoiArray{planeNumber, channelNumber} = newRoiArray;
-                newRoiArray = oldRoiArray;
+                if iscell(oldRoiArray) && numel(oldRoiArray) > 1
+                    planeNumber = 1;
+                    oldRoiArray = obj.SessionObjectStruct(sessionIdx).RoiArray;
+                    oldRoiArray{planeNumber, channelNumber} = newRoiArray;
+                    newRoiArray = oldRoiArray;
+                end
             end
 
+            % Update rois in session object struct
             obj.SessionObjectStruct(sessionIdx).RoiArray = newRoiArray;
 
             if ~nargout
@@ -413,21 +428,25 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         end
 
         function saveCurrentRoiArray(obj, sessionIdx)
+            
             sessionID = obj.SessionObjects(sessionIdx).sessionID;
             fprintf('Saving rois for session %s\n', sessionID)
 
             %if ~isvalid(obj.RoimanagerApp); return; end
 
-            % Get roi array from roimanager (Todo: Multichannel rois)
-            % roiArray = obj.RoimanagerApp.ActiveRoiGroup.roiArray;
-            
-            % Ad hoc update to allow for working with individual channel of
-            % multichannel roi arrays.
-            channelNumber = obj.MultiSessionRoiCollection(1).ImageChannel;
-            planeNumber = 1;
+            % Get roi array from roimanager:            
+            roiGroup = obj.RoimanagerApp.RoiGroup;
 
-            roiGroup = obj.RoimanagerApp.RoiGroup(planeNumber, channelNumber);
-            roiArray = roiGroup.roiArray;
+            % Ad hoc case to allow for working with individual channel of
+            % multichannel roi arrays:
+            channelNumber = obj.MultiSessionRoiCollection(1).ImageChannel;
+            if ~isempty(channelNumber)
+                planeNumber = 1;
+                roiGroup = roiGroup(planeNumber, channelNumber);
+                roiArray = roiGroup.roiArray;
+            else
+                roiArray = arrayfun(@(A) A.roiArray, roiGroup, 'UniformOutput', false);
+            end
 
             numPlanes = size(roiGroup, 1);
             if numPlanes > 1
@@ -448,7 +467,8 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             
             % Update in session object struct
             oldRoiArray = obj.SessionObjectStruct(sessionIdx).RoiArray;
-            if iscell(oldRoiArray) && numel(oldRoiArray) > 1
+            if iscell(oldRoiArray) && numel(oldRoiArray) > 1 && ~isempty(channelNumber)
+                planeNumber = 1;
                 obj.SessionObjectStruct(sessionIdx).RoiArray{planeNumber, channelNumber} = updatedRois;
                 updatedRois = obj.SessionObjectStruct(sessionIdx).RoiArray;
             else

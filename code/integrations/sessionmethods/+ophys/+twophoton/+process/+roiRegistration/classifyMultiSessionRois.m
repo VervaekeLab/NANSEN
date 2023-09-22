@@ -55,29 +55,35 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     S = load(filePath);
     multiSessionRoiCollection = S.multiSessionRois;
     channelNumber = multiSessionRoiCollection(1).ImageChannel;
-
+    if isempty(channelNumber)
+        channelNumbers = arrayfun(@(o) size(o.RoIArray, 2), multiSessionRoiCollection);
+        numChannels = unique(channelNumbers);
+        channelNumber = 1:numChannels;
+    end
+    
     % Load all multi session roi groups and concatenate by nRois x nSessions
-    % todo
     numSessions = numel(sessionObject);
 
     numRois = zeros(1, numSessions);
     loadedRoiGroups = cell(1, numSessions);
+
     for i = 1:numSessions
         loadedRoiGroups{i} = sessionObject(i).loadData('RoiGroupLongitudinal');
+        % Todo:
         %loadedRoiGroups{i} = utility.cell.flatten(loadedRoiGroups{i});
-        numRois(i) = numel(loadedRoiGroups{i}(channelNumber).roiArray);
+        numRois(i) = numel([loadedRoiGroups{i}(:, channelNumber).roiArray]);
     end
 
     % Concatenate roi from different channels and planes
     % longterm todo
     
-    [roiArray, roiImages, roiStats, roiClassification] = deal(cell(1, numSessions));
+    [roiArray, roiImages, roiStats, roiClassification, roiLabels] = deal(cell(1, numSessions));
 
     for i = 1:numSessions
         sessionID = sessionObject(i).sessionID;
-        roiArray{i} = forceRow(loadedRoiGroups{i}(channelNumber).roiArray);
-        roiImages{i} = forceRow(loadedRoiGroups{i}(channelNumber).roiImages);
-        roiClassification{i} = forceRow(loadedRoiGroups{i}(channelNumber).roiClassification);
+        roiArray{i} = ensureRow([loadedRoiGroups{i}(:, channelNumber).roiArray]);
+        roiImages{i} = ensureRow([loadedRoiGroups{i}(:, channelNumber).roiImages]);
+        roiClassification{i} = ensureRow(cat(1, loadedRoiGroups{i}(:, channelNumber).roiClassification));
         roiLabels{i} = arrayfun(@(j) sprintf('#%d - %s', j, sessionID), 1:numRois(i), 'uni', 0 );
 
         % Ensure rois from all sessions are listed in same order.
@@ -91,14 +97,17 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
         end
     end
 
+    % Concatenate all cell array from each session to create a nSession x
+    % nRoi matrix
     roiArray = cat(1, roiArray{:});
     roiImages = cat(1, roiImages{:});
     roiClassification = cat(1, roiClassification{:});
     roiLabels = cat(1, roiLabels{:});
     roiStats = struct();
     
+    % Compute image correlation for each roi across sessions
     avgRoiCorrelation = zeros(1, numSessions);
-
+    
     for i = 1:numRois
         thisImage = cat(3, roiImages(:,i).ActivityWeightedMean);
         
@@ -109,12 +118,11 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
             end
         end
         avgRoiCorrelation(i) = mean(RHO(:));
-
     end
 
     avgRoiCorrelation = repmat(avgRoiCorrelation, numSessions, 1);
     
-    % Flatten all
+    % Flatten all to make a 1d vector
     roiArray = roiArray(:);
     roiImages = roiImages(:);
     roiClassification = roiClassification(:);
@@ -149,7 +157,11 @@ function saveClassifiedRois(sessionObjects, classifiedRoiGroup)
     S = load(filePath);
     multiSessionRoiCollection = S.multiSessionRois;
     channelNumber = multiSessionRoiCollection(1).ImageChannel;
-
+    if isempty(channelNumber)
+        channelNumbers = arrayfun(@(o) size(o.RoIArray, 2), multiSessionRoiCollection);
+        numChannels = unique(channelNumbers);
+        channelNumber = 1:numChannels;
+    end
 
     numSessions = numel(sessionObjects);
 
@@ -157,21 +169,32 @@ function saveClassifiedRois(sessionObjects, classifiedRoiGroup)
     roiImages = reshape(classifiedRoiGroup.roiImages, numSessions, []);
     roiClassification = reshape(classifiedRoiGroup.roiClassification, numSessions, []);
 
+    % Todo: unflatten roiArray, roiImages, roiClassification...
 
     for i = 1:numSessions
         roiGroup = sessionObjects(i).loadData('RoiGroupLongitudinal', ...
             'FileAdapter', 'nansen.dataio.fileadapter.internal.RoiGroupStruct');
         
-        roiGroup(1, channelNumber).roiArray = roiArray(i, :);
-        roiGroup(1, channelNumber).roiImages = roiImages(i, :);
-        roiGroup(1, channelNumber).roiClassification = roiClassification(i, :)';
+        numRoisPerCell = cellfun(@numel, {roiGroup.roiArray} );
+
+        roiArrayUnflattened = utility.cell.unflatten(roiArray(i, :), numRoisPerCell);
+        roiImagesUnflattened = utility.cell.unflatten(roiImages(i, :), numRoisPerCell);
+        roiClassificationUnflattened = utility.cell.unflatten(roiClassification(i, :), numRoisPerCell);
+
+        for iPlane = 1:size(roiGroup, 1)
+            for iChannel = 1:numel(channelNumber)
+                roiGroup(iPlane, channelNumber(iChannel)).roiArray = roiArrayUnflattened{iPlane, iChannel};
+                roiGroup(iPlane, channelNumber(iChannel)).roiImages = roiImagesUnflattened{iPlane, iChannel};
+                roiGroup(iPlane, channelNumber(iChannel)).roiClassification = roiClassificationUnflattened{iPlane, iChannel}';
+            end
+        end
 
         sessionObjects(i).saveData('RoiGroupLongitudinal', roiGroup);
         fprintf('Saved rois for session %s\n', sessionObjects(i).sessionID)
     end
 end
 
-function X = forceRow(X)
+function X = ensureRow(X)
     if iscolumn(X)
         X = X';
     end
