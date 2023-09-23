@@ -15,7 +15,7 @@ function parameterStruct = getScanParameters(dataFolderPath, parameterList)
 %       2) All letters are lower case
 
 
-import ophys.twophoton.sciscan.util.*
+import nansen.module.ophys.twophoton.utility.sciscan.readinivar
 
 ini_file = dir(fullfile(dataFolderPath, '20*.ini'));
 inifilepath = fullfile(dataFolderPath, ini_file(1).name);

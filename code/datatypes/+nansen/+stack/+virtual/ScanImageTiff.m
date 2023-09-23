@@ -345,6 +345,8 @@ methods (Access = protected) % Todo: Scan image and subclass
     
     function sIParams = getScanParameters(obj)
         
+        import nansen.module.ophys.twophoton.utility.scanimage.getScanParameters
+
         % Todo: 
         %       Read info about channel colors...
         %import nansen.stack.utility.findNumTiffDirectories
@@ -371,8 +373,7 @@ methods (Access = protected) % Todo: Scan image and subclass
         for i = 1:numel(obj.tiffInfo)
             scanImageTag = obj.tiffInfo(i).getTag('Software');
 
-            sIParams = ophys.twophoton.scanimage.getScanParameters(...
-                scanImageTag, paramNames);
+            sIParams = getScanParameters(scanImageTag, paramNames);
             
             if sIParams.hStackManager.framesPerSlice == 1
                 numFramesPerFile(i) = sIParams.hStackManager.actualNumVolumes;
@@ -540,6 +541,8 @@ methods (Static)
     %   The input, tiffRef can be the absolute file path to a tiff file or
     %   a Tiff object.
 
+        import nansen.module.ophys.twophoton.utility.scanimage.getScanParameters
+
         tiffObject = nansen.stack.utility.getTiffObject(tiffRef);
         
         if numel(tiffObject) > 1
@@ -547,8 +550,7 @@ methods (Static)
                 tiffObject, 'UniformOutput', false);
 
             %   - Check light paths
-            info = cellfun( @(str) ...
-                ophys.twophoton.scanimage.getScanParameters(str, 'imagingSystem'), ...
+            info = cellfun( @(str) getScanParameters(str, 'imagingSystem'), ...
                 scanImageTag, 'UniformOutput', true);
             
             imagingSystem = {info.imagingSystem};

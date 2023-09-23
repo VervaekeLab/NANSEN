@@ -371,8 +371,9 @@ methods (Access = protected)
     
     function metadata = getPrairieViewRecordingInfo(obj)
     %getPrairieViewRecordingInfo Get recording info from prairieview xml file
+        import nansen.module.ophys.twophoton.utility.prairieview.getPrairieMetaData
         tSeriesPath = fileparts(obj.FilePath);
-        metadata = ophys.twophoton.prairieview.getPrairieMetaData( tSeriesPath );
+        metadata = getPrairieMetaData( tSeriesPath );
     end
     
     function numChannels = detectNumberOfChannels(obj)

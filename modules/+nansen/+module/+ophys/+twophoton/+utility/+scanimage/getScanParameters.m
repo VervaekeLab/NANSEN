@@ -4,8 +4,7 @@ function parameterStruct = getScanParameters(fileRef, parameterList)
 %GETSCANPARAMETERS Summary of this function goes here
 %   Detailed explanation goes here
     
-    
-    import ophys.twophoton.scanimage.util.*
+    import nansen.module.ophys.twophoton.utility.scanimage.getParameterValueFromString
     
     if isa(fileRef, 'char') && isfile(fileRef)
         [~, ~, ext] = fileparts(fileRef);

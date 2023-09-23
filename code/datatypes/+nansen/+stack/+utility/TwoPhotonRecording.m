@@ -163,7 +163,9 @@ classdef TwoPhotonRecording < handle
         end
         
         function data = correctResonanceStretch(obj, data)
-                        
+            
+            import nansen.module.ophys.twophoton.utility.sciscan.correctResonanceStretch
+
             % Correct stretching of images due to the sinusoidal movement profile 
             % of the resonance mirror
             switch obj.StretchCorrectionMethod
@@ -182,8 +184,7 @@ classdef TwoPhotonRecording < handle
                     end
                         
                     % Todo: Add this method...
-                    data = ophys.twophoton.sciscan.correctResonanceStretch(data, scanParam, ...
-                        obj.StretchCorrectionMethod);
+                    data = correctResonanceStretch(data, scanParam, obj.StretchCorrectionMethod);
                     
                     if isTransposed
                         data = ipermute(data, dimOrder);
