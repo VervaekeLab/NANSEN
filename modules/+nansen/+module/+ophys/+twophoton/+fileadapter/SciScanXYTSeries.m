@@ -1,4 +1,4 @@
-classdef SciScan2PSeries < nansen.dataio.FileAdapter
+classdef SciScanXYTSeries < nansen.dataio.FileAdapter
 %SciScanRawFile File adapter for a raw sciscan two-photon series file
 %
 %   This file adapter provides methods to load the data from a sciscan raw
