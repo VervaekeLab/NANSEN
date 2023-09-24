@@ -84,6 +84,11 @@ classdef Module < handle
             sessionMethodFolder = fullfile(obj.FolderPath, '+sessionmethod');
         end
 
+        function tableVariableFolder = getTableVariableFolder(obj)
+            %tableVariableFolder = fullfile(obj.FolderPath, '+tablevariable');
+            tableVariableFolder = obj.getItemRootFolder('TableVariable');
+        end
+
         function itemTable = getTable(obj, itemType)
             itemType = validatestring(itemType, {'SessionMethod', 'TableVariable', 'FileAdapter'}, 1);
             itemTable = obj.rehash(itemType);

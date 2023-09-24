@@ -1,7 +1,8 @@
 function defaultSessionTableVariableList = getDefaultSessionVariables()
 %getDefaultSessionVariables Get variables from session class
 
-    % Todo: Deprecate the need for this.
+    % Todo: Deprecate the need for this. Code should be adapted to work for
+    % any metadata type...
     
     className = 'nansen.metadata.type.Session';
     mc = meta.class.fromName(className);

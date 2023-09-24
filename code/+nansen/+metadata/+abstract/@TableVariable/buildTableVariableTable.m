@@ -8,11 +8,18 @@ function attributeTable = buildTableVariableTable(fileList)
 %   represent a table variable, they are ignored.
 %
 %   The attributeTable contains the following variables:
-%       - Name : Name of the table variable 
+%       - Name : Name of the table variable. (Todo: Should this be of the form TableType.Name, see next line). 
+%       - TableType : Name of table type this variable is defined for (Todo: Is this needed?) I.e do we ever want the same name for variables from different tables? 
 %       - IsCustom : Whether table variable is custom. Consider removing
 %       - IsEditable: Whether table variable is editable
-%       - HasFunction: Whether table variable has function. Consider making this always true
-%       - FunctionName: Full name, including package prefix
+%       - HasUpdateFunction: Whether table variable has update function.
+%       - UpdateFunctionName: Full name, including package prefix
+%       - HasRendererFunction: Whether table variable has renderer function.
+%       - RendererFunctionName: Full name, including package prefix
+
+    
+    % Todo:
+    %   [ ] Generalize so this is not session only.
 
     % Table variables as they are implemented now:
     %
@@ -23,33 +30,31 @@ function attributeTable = buildTableVariableTable(fileList)
     % A table variable becomes editable if the class definition has a
     % constant IsEditable=true property.
     
-    % Todo:
-    % Generalize so this is not session only.
+
     
     import nansen.metadata.abstract.TableVariable.getDefaultSessionVariables
+    import nansen.metadata.abstract.TableVariable.getDefaultTableVariableAttribute;
 
-    S = struct(...
-        'Name', {},...
-        'IsCustom', {}, ...
-        'IsEditable', {}, ...
-        'HasFunction', {}, ...
-        'FunctionName', {});
-
+    defaultAttributes = getDefaultTableVariableAttribute();
+    
+    numFiles = numel(fileList);
+    S = repmat(defaultAttributes, 1, numFiles);
+    
     count = 1;
 
     defaultVariables = getDefaultSessionVariables();
 
     % Loop through pre-defined variables for table class
-    for iFile = 1:numel(fileList)
+    for iFile = 1:numFiles
 
         thisFilePath = utility.dir.abspath(fileList(iFile));
+        thisFilePath = thisFilePath{1};
         thisFcnName = utility.path.abspath2funcname(thisFilePath);
-        [~, thisName] = fileparts(fileList(iFile).name);
-
-        S(count).Name = thisName;
-        S(count).IsCustom = ~any(strcmp(defaultVariables, thisName));
-        S(count).IsEditable = false; % Default assumption
-        S(count).HasFunction = false; % Default assumption
+        fcnNameSplit = strsplit(thisFcnName, '.');
+        
+        S(count).Name = fcnNameSplit{end};
+        S(count).TableType = fcnNameSplit{end-1};
+        S(count).IsCustom = ~any(strcmp(defaultVariables, fcnNameSplit{end}));
 
         try
             fcnResult = feval(thisFcnName);
@@ -63,30 +68,42 @@ function attributeTable = buildTableVariableTable(fileList)
             if fcnResult.IS_EDITABLE
                 S(count).IsEditable = true;
             end
-% % %             if isprop(fcnResult, 'LIST_ALTERNATIVES')
-% % %                 S(iVar).List = {fcnResult.LIST_ALTERNATIVES};
-% % %             end
-            
-            if ismethod(fcnResult, 'update')
-            	S(count).HasFunction = true;
-                S(count).FunctionName = func2str(varFunction);
+
+            if isprop(fcnResult, 'LIST_ALTERNATIVES')
+                S(count).HasOptions = true;
+                S(count).OptionsList = {fcnResult.LIST_ALTERNATIVES};
             end
             
+            if ismethod(fcnResult, 'update')
+            	S(count).HasUpdateFunction = true;
+                S(count).UpdateFunctionName = func2str(varFunction);
+            end
         else
-            S(count).HasFunction = true;
-            S(count).FunctionName = thisFcnName;
+            S(count).HasUpdateFunction = true;
+            S(count).UpdateFunctionName = thisFcnName;
+        end
+
+        if isa(fcnResult, 'nansen.metadata.abstract.TableColumnFormatter')
+            S(count).HasRendererFunction = true;
+            S(count).RendererFunctionName = thisFcnName;
         end
 
         count = count+1;
     end
 
+    % Trim in case not all files yielded valid table variables
+    S = S(1:count-1);
+
     % Add all default variables that are not part of the table.
     remainingDefaultVariables = setdiff(defaultVariables, {S.Name});
+    
+    % Expand S.
+    S = [S, repmat(defaultAttributes, 1, numel(remainingDefaultVariables))];
+    
     for i = 1:numel(remainingDefaultVariables)
         S(count).Name = remainingDefaultVariables{i};
+        S(count).TableType = 'session';
         S(count).IsCustom = false;
-        S(count).IsEditable = false; % Default assumption
-        S(count).HasFunction = false; % Default assumption
         count = count + 1;
     end
     
@@ -97,4 +114,5 @@ function attributeTable = buildTableVariableTable(fileList)
     S = S(fieldOrderInd);
     
     attributeTable = struct2table(S);
+    attributeTable.TableType = string(attributeTable.TableType);
 end

@@ -92,6 +92,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         RegularTimer    % Timer that regularly looks for updates
         DiskConnectionMonitor (1,1) nansen.internal.system.DiskConnectionMonitor
     end
+
+    properties (Dependent)
+        CurrentProject
+    end
     
     properties (Access = private)
         ApplicationState = 'Uninitialized';
@@ -691,8 +695,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function updateTableVariableMenuItems(app, hMenu)
             
-            import nansen.metadata.utility.getPublicSessionInfoVariables
-
             if nargin < 2
                 hMenu = findobj(app.Figure, 'Text', 'Edit Table Variable Definition');
                 if ~isempty(hMenu.Children)
@@ -700,8 +702,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
 
-            columnVariables = getPublicSessionInfoVariables(app.MetaTable);
-
+            tableVariableAttributes = app.CurrentProject.getTable('TableVariable');
+            
+            % Get names of variables that have update functions.
+            getRowsToKeep = @(T) T.HasUpdateFunction & ~T.IsEditable;
+            rowsToKeep = getRowsToKeep(tableVariableAttributes);
+            columnVariables = tableVariableAttributes{rowsToKeep, 'Name'};
+            
             % Create a menu list with items for each variable
             mItem = uics.MenuList(hMenu, columnVariables, '', 'SelectionMode', 'none');
             mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
@@ -1005,6 +1012,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             h.DeleteColumnFcn = @app.removeTableVariable;
             h.EditColumnFcn = @app.editTableVariableFunction;
 
+            h.GetTableVariableAttributesFcn = @app.getTableVariableAttributes;
+
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
             addlistener(h, 'SelectionChanged', @app.onSessionSelectionChanged);
@@ -1124,9 +1133,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if isequal(prevRow, thisRow) && isequal(prevCol, thisCol)
                 return
-                % Skip tooltip update if mouse pointer is on same cell as
-                % previous
-
+                % Skip tooltip update if mouse pointer is still on previous cell
             else
                 prevRow = thisRow;
                 prevCol = thisCol;
@@ -1136,38 +1143,30 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             thisColumnName = colNames{thisCol};
             tableRow = app.UiMetaTableViewer.getMetaTableRows(thisRow);
 
-            % Todo: This SHOULD NOT be hardcoded like this...
-            if contains(thisColumnName, {'Notebook', 'Progress', 'DataLocation'})
-                
-                dispFcn = str2func(strjoin({'nansen.metadata.tablevar', thisColumnName}, '.') );
-                
-                if strcmp(thisColumnName, 'DataLocation')
-                    
-                    % 10x slower when getting the session object.
-                    %metaEntry = app.MetaTable.entries(tableRow, :);
-                    %metaObject = app.tableEntriesToMetaObjects(metaEntry);
-                    %tableValue = metaObject.DataLocation;
-
-                    % Alternative: Old version when datalocation was
-                    % hardcoded in the table row
-                    tableValue = app.MetaTable.entries{tableRow, thisColumnName};
-                else
-                    tableValue = app.MetaTable.entries{tableRow, thisColumnName};
-                end
-                
-                tmpObj = dispFcn(tableValue);
-                str = tmpObj.getCellTooltipString();
-            else
-                formatterFcnHandle = getColumnFormatter(thisColumnName, 'session');
-                
-                if ~isempty(formatterFcnHandle)
-                    tableValue = app.MetaTable.entries{tableRow, thisColumnName};
-                    tmpObj = formatterFcnHandle{1}(tableValue);
-                    str = tmpObj.getCellTooltipString();
-                else
-                    str = '';
+            % Check if a table variable definition exists in the default module...
+            coreModuleName = 'nansen.module.general.core.tablevariable.session';
+            fcnName = strjoin({coreModuleName, thisColumnName}, '.');
+            if exist(fcnName, 'class') == 8
+                mc = meta.class.fromName(fcnName);
+                if any(strcmp({mc.SuperclassList.Name}, 'nansen.metadata.abstract.TableColumnFormatter'))
+                    formatterFcnHandle = str2func(fcnName);
                 end
             end
+            if ~exist('formatterFcnHandle', 'var')
+                formatterFcnHandle = getColumnFormatter(thisColumnName, 'session');
+                if ~isempty(formatterFcnHandle)
+                    formatterFcnHandle = formatterFcnHandle{1};
+                end
+            end
+
+            if ~isempty(formatterFcnHandle)
+                tableValue = app.MetaTable.entries{tableRow, thisColumnName};
+                tmpObj = formatterFcnHandle(tableValue);
+                str = tmpObj.getCellTooltipString();
+            else
+                str = '';
+            end
+
             set(app.UiMetaTableViewer.HTable.JTable, 'ToolTipText', str)
         end
     
@@ -1213,6 +1212,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.MetaTable = newTable;
             app.onNewMetaTableSet()
             app.updateSessionCount()
+        end
+    
+        function currentProject = get.CurrentProject(obj)
+            currentProject = obj.ProjectManager.getCurrentProject();
         end
     end
     
@@ -2078,9 +2081,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function editTableVariableDefinition(app, src, evt)
-            
-            import nansen.metadata.utility.getTableVariableUserFunctionPath
-            
+                        
             varName = src.Text;
             
             % Todo: Conditional, other variables does not have a function
@@ -2142,6 +2143,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.SchemaViewerApp.Schema = s;
         end
 
+        function S = getTableVariableAttributes(app, src, evt)
+            
+            % Todo: get specific table type...
+            currentProject = app.ProjectManager.getCurrentProject();
+            T = currentProject.getTable('TableVariable');
+            S = table2struct(T);
+        end
+
         function resetTableVariable(app, src, evt)
             app.updateTableVariable(src, evt, true)
         end
@@ -2192,10 +2201,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Todo: This should be a property and it should be updated when
             % tablevariables are created or modified...
-            S = nansen.metadata.utility.getMetaTableVariableAttributes('session');
+
+            T = app.CurrentProject.getTable('TableVariable');
+            T = T(T.TableType=='session', :);
+            S = table2struct(T);
             
             isMatch = strcmp({S.Name}, varName);
-            updateFcnName = S(isMatch).FunctionName;
+            updateFcnName = S(isMatch).UpdateFunctionName;
             
             % Create function call for variable:
             updateFcn = str2func(updateFcnName);
@@ -2508,45 +2520,91 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             if isempty(metaTable.entries); return; end
+
+            metaTable = app.addMissingVarsToMetaTable(metaTable, 'session');
         
+            metaTable = app.removeMissingVarsFromMetaTable(metaTable, 'session');
+
+            if nargin < 2; app.MetaTable = metaTable; end
+            if ~nargout; clear metaTable; end
+        end
+        
+        function metaTable = addMissingVarsToMetaTable(app, metaTable, metaTableType)
+        %addMissingVarsToMetaTable Add variable to table if it is missing.
+        %
+        %   If a table is present in the table variable definitions, but
+        %   missing from the table, this functions adds a new variable to
+        %   the table and initializes with the default value based on the
+        %   table variable definition.
+        
+            % Question: Should this be a metatable method.
+            
+            if nargin < 3
+                metaTableType = 'session';
+            end
+            
             tableVarNames = metaTable.entries.Properties.VariableNames;
             
-            variableAttributes = nansen.metadata.utility.getMetaTableVariableAttributes('session');
-            referenceVarNames = {variableAttributes.Name};
-            customVarNames = referenceVarNames([variableAttributes.IsCustom]);
-        
-            metaTable = addMissingVarsToMetaTable(app, metaTable, 'session');
-        
+            refVariableAttributes = app.CurrentProject.getTable('TableVariable');
+            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
 
+            isCustom = refVariableAttributes.IsCustom;
+            customVariableNames = refVariableAttributes{isCustom, 'Name'};
+            
+            % Check if any variable is present in the table variable list, but
+            % the corresponding variable is missing from the table.
+            missingVarNames = setdiff(customVariableNames, tableVarNames);
+            
+            getRowIndex = @(T, varName) find( strcmp(T.Name, varName) );
 
-% % %             % Check if any functions are present the tablevar folder, but
-% % %             % the corresponding variable is missing from the table.
-% % %             missingVarNames = setdiff(customVarNames, tableVarNames);
-% % %             
-% % %             for iVarName = 1:numel(missingVarNames)
-% % %                 thisName = missingVarNames{iVarName};
-% % %                 varFunction = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
-% % %                 fcnResult = varFunction();
-% % %                 if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
-% % %                     defaultValue = fcnResult.DEFAULT_VALUE;
-% % %                 else
-% % %                     defaultValue = fcnResult;
-% % %                 end
-% % %                 app.MetaTable.addTableVariable(thisName, defaultValue)
-% % %             end
+            for iVarName = 1:numel(missingVarNames)
+                thisName = missingVarNames{iVarName};
+                thisRowIndex = getRowIndex(refVariableAttributes, thisName);
+
+                if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
+                    fcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
+                    fcnResult = feval(fcnName);
+                    if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
+                        defaultValue = fcnResult.DEFAULT_VALUE;
+                    else
+                        defaultValue = fcnResult;
+                    end
+                    metaTable.addTableVariable(thisName, defaultValue)
+                end
+            end
+        end 
+        
+        function metaTable = removeMissingVarsFromMetaTable(app, metaTable, metaTableType)
+        %removeMissingVarsFromMetaTable Remove variable from table if it is missing.
+        %
+        %   If a table is missing from the table variable definitions, but
+        %   is present in the table, this functions asks the user if the variable
+        %   should be removed from the table.
+        %   
+        %   If the user selects "Yes" the variable is deleted from the
+        %   table. If the user selects no, the a non-editable dummy
+        %   variable is placed in the table variable folder for the current
+        %   project.
+
+            import nansen.metadata.utility.createClassForCustomTableVar
             
-            % Also, check if any functions were removed from the tablevar
-            % folder while the corresponding variable is still present in
-            % the table.
+            tableVarNames = metaTable.entries.Properties.VariableNames;
             
-            % Get list of default table variables. 
-            schemaVarNames = referenceVarNames(~[variableAttributes.IsCustom]);
+            variableAttributes = app.CurrentProject.getTable('TableVariable');
+            variableAttributes(variableAttributes.TableType ~= metaTableType, :) = [];
             
-            % Get those variables in the table that are not default
-            tableCustomVarNames = setdiff(tableVarNames, schemaVarNames);
+            % Get custom (user-defined) and default table variables
+            isCustom = variableAttributes.IsCustom;
+            customVariableNames = variableAttributes{isCustom, 'Name'};
+            defaultVariableNames = variableAttributes{~isCustom, 'Name'};
             
-            % Find the difference between those and the userVarNames
-            missingVarNames = setdiff(tableCustomVarNames, customVarNames);
+            % Get those variables present in the table that are not default
+            customVariablesInTable = setdiff(tableVarNames, defaultVariableNames);
+            
+            % Find the difference between those and the user-defined
+            % variables, i.e if the user-defined variables were removed
+            % from the table variable folders.
+            missingVarNames = setdiff(customVariablesInTable, customVariableNames);
             
             
             % Display a prompt to the user if any table variables have been
@@ -2588,43 +2646,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
                         S.InputMode = '';
                         
-                        nansen.metadata.utility.createClassForCustomTableVar(S)
+                        targetFolderPath = app.CurrentProject.getTableVariableFolder();
+                        createClassForCustomTableVar(S, targetFolderPath)
                 end
-            end
-
-            if nargin < 2; app.MetaTable = metaTable; end
-            if ~nargout; clear metaTable; end
-        end
-        
-        function metaTable = addMissingVarsToMetaTable(app, metaTable, metaTableType)
-        %addMissingVarsToMetaTable    
-        
-            % Todo: Lag metatable metode.
-            
-            if nargin < 3
-                metaTableType = 'session';
-            end
-            
-            tableVarNames = metaTable.entries.Properties.VariableNames;
-            
-            variableAttributes = nansen.metadata.utility.getMetaTableVariableAttributes( metaTableType );
-            referenceVarNames = {variableAttributes.Name};
-            customVarNames = referenceVarNames([variableAttributes.IsCustom]);
-            
-            % Check if any functions are present the tablevar folder, but
-            % the corresponding variable is missing from the table.
-            missingVarNames = setdiff(customVarNames, tableVarNames);
-            
-            for iVarName = 1:numel(missingVarNames)
-                thisName = missingVarNames{iVarName};
-                varFunction = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
-                fcnResult = varFunction();
-                if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
-                    defaultValue = fcnResult.DEFAULT_VALUE;
-                else
-                    defaultValue = fcnResult;
-                end
-                metaTable.addTableVariable(thisName, defaultValue)
             end
         end
 

@@ -1,9 +1,13 @@
-function createClassForCustomTableVar(S)
+function createClassForCustomTableVar(S, targetFolderPath)
 %createClassForCustomTableVar Create class template for custom var
     
-    % Todo: second input that signals if the template file should be opened
+    % Todo: third input that signals if the template file should be opened
     % in the editor.
     
+    if nargin < 2 || isempty(targetFolderPath)
+        targetFolderPath = nansen.localpath('Custom Metatable Variable', 'current');
+    end
+
     variableName = S.VariableName;
     tableClass = S.MetadataClass;
     dataType = S.DataType;
@@ -54,8 +58,7 @@ function createClassForCustomTableVar(S)
     
     % Create a target path for the function. Place it in the current
     % project folder.
-    rootPathTarget = nansen.localpath('Custom Metatable Variable', 'current');
-    fcnTargetPath = fullfile(rootPathTarget, ['+', lower(tableClass)] );
+    fcnTargetPath = fullfile(targetFolderPath, ['+', lower(tableClass)] );
     fcnFilename = [variableName, '.m'];
     
     if ~exist(fcnTargetPath, 'dir'); mkdir(fcnTargetPath); end
@@ -67,13 +70,9 @@ function createClassForCustomTableVar(S)
     
     % Finally, open the function in the matlab editor.
     % edit(fullfile(fcnTargetPath, fcnFilename))
-    
 end
 
-
 function charVector = cellarray2char(cellArray)
-    
     cellArray = cellfun(@(c) sprintf('''%s''', c), cellArray, 'uni', 0); 
     charVector = sprintf('{%s}', strjoin(cellArray, ','));
-    
 end

@@ -14,7 +14,7 @@ function funcHandles = getCustomTableVariableFcn(varNames, projectName, tableTyp
         tableType = 'session';
     end
     
-    packageList = {projectName, 'tablevar', tableType};
+    packageList = {projectName, 'tablevariable', tableType};
     
     varname2fcn = @(name) str2func(strjoin([ packageList, name], '.'));
     

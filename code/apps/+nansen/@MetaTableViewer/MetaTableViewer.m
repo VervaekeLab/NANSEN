@@ -66,6 +66,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         UpdateColumnFcn = []    % This should be internalized, but for now it is assigned from session browser/nansen
         ResetColumnFcn = []     % This should be internalized, but for now it is assigned from session browser/nansen
         EditColumnFcn = []      % This should be internalized, but for now it is assigned from session browser/nansen
+    
+        % Does this make sense? Thinking that this should be taken care of
+        % at another level, as the Metatable viewer is not nansen specific...
+        GetTableVariableAttributesFcn = [] % Function handle for retrieving table variable attributes.
     end
     
     properties (SetAccess = private, SetObservable = true)
@@ -110,7 +114,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     properties (Access = private)
         ColumnSettings_
         lastMousePressTic
-        isConstructed = false;
+        IsConstructed = false;
     end
     
     events
@@ -142,6 +146,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             obj.ColumnFilter = nansen.ui.MetaTableColumnFilter(obj, obj.AppRef);
             
+            obj.IsConstructed = true;
+
             if ~isempty(obj.MetaTableCell)
                 obj.refreshTable()
                 obj.HTable.Visible = 'on'; % Make table visible
@@ -232,6 +238,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
         function set.KeyPressCallback(obj, newValue)
             
+        end
+
+        function set.GetTableVariableAttributesFcn(obj, newValue)
+            obj.GetTableVariableAttributesFcn = newValue;
+            obj.onTableVariableAttributesFcnSet()
         end
     end
         
@@ -790,24 +801,24 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Todo: get from nansen preferences...      
             colFormatData(isDatetime) = {'MMM-dd-yyyy    '};      
 
-
             % NOTE: This is temporary. Need to generalize, not make special
             % treatment for session table
-            customVars = nansen.metadata.utility.getCustomTableVariableNames(obj.MetaTableType);
-            [customVars, iA] = intersect(variableNames, customVars);
+
+            isVarWithOptions = [obj.MetaTableVariableAttributes.HasOptions];
+            isValidType = strcmp([obj.MetaTableVariableAttributes.TableType], obj.MetaTableType);
+
+            customVarNames = {obj.MetaTableVariableAttributes(isVarWithOptions & isValidType).Name};
+            [customVarNames, iA] = intersect(variableNames, customVarNames);
             
-            for i = 1:numel(customVars)
-                thisName = customVars{i};
-                varFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName, [], obj.MetaTableType);
-                varDef = varFcn();
+            for i = 1:numel(customVarNames)
+                thisName = customVarNames{i};
+                tableVarIndex = strcmp({obj.MetaTableVariableAttributes.Name}, thisName);
                 
-                if isa(varDef, 'nansen.metadata.abstract.TableVariable')
-                    if isprop(varDef, 'LIST_ALTERNATIVES')
-                        dataTypes(iA(i)) = {'popup'};
-                        colFormatData(iA(i)) = {varDef.LIST_ALTERNATIVES};
-                        obj.HTable.ColumnEditable(iA(i))=true;
-                    end
-                end
+                popupOptions = obj.MetaTableVariableAttributes(tableVarIndex).OptionsList;
+
+                dataTypes(iA(i)) = {'popup'};
+                colFormatData(iA(i)) = popupOptions;
+                obj.HTable.ColumnEditable(iA(i)) = true;
             end
 
             if any(strcmp(dataTypes, 'cell'))
@@ -834,7 +845,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Need to update theme...? I should really comment nonsensical
             % stuff better.
             obj.HTable.Theme = obj.HTable.Theme;
-
         end
 
         function updateColumnLabelFilterIndicator(obj, filterActive)
@@ -921,9 +931,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         % Need to store the metatable as a cell array for presenting it in
         % the UI table. (Relevant mostly for MetaTable objects because they
         % might contain column data that needs to be formatted.
-        
-            import nansen.metadata.utility.getMetaTableVariableAttributes
-        
+                
             if isa(newTable, 'nansen.metadata.MetaTable')
                 T = newTable.getFormattedTableData();
                 obj.MetaTableCell = table2cell(T);
@@ -931,17 +939,19 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.MetaTableCell = table2cell(newTable);
             end
             
-            % Get metatable variable attributes based on table type.
-            try
-                S = getMetaTableVariableAttributes(obj.MetaTableType);
-            catch
-                S = obj.getDefaultMetaTableVariableAttributes();
-            end
-            
+            % Update metatable variable attributes.
+            S = obj.getMetaTableVariableAttributes();
             obj.MetaTableVariableAttributes = S;
-                        
         end
         
+        function onTableVariableAttributesFcnSet(obj)
+            S = obj.getMetaTableVariableAttributes();
+            obj.MetaTableVariableAttributes = S;
+            if obj.IsConstructed
+                obj.updateColumnLayout()
+            end
+        end
+
         function onColumnFilterSet(obj)
         %onColumnFilterSet Callback for property value set.    
             if ~isempty(obj.FilterChangedListener)
@@ -1009,17 +1019,29 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             colInd = obj.ColumnModel.getColumnIndices();
         end
+
+        function S = getMetaTableVariableAttributes(obj)
+        % Get metatable variable attributes based on table type.
+
+            if ~isempty(obj.GetTableVariableAttributesFcn)
+                S = obj.GetTableVariableAttributesFcn(obj.MetaTableType);
+            else
+                S = obj.getDefaultMetaTableVariableAttributes();
+            end
+        end
         
         function S = getDefaultMetaTableVariableAttributes(obj)
-                    
+        %Get default table variable attributes from TableVariable class.
+            import nansen.metadata.abstract.TableVariable;
+            
             varNames = obj.MetaTable.Properties.VariableNames;
             numVars = numel(varNames);
+            S = TableVariable.getDefaultTableVariableAttribute();
+            S = repmat(S, 1, numVars);
             
-            S = struct('Name', varNames);
-            [S(1:numVars).IsCustom] = deal(false);
-            [S(1:numVars).IsEditable] = deal(false);
-            [S(1:numVars).HasFunction] = deal(false);
-
+            % Fill out names and table type
+            [S(1:numVars).Name] = varNames{:};
+            [S(1:numVars).TableType] = deal(obj.MetaTableType);
         end
     end
  
@@ -1404,7 +1426,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         hTmp.Callback = @(s,e,iCol) obj.hideColumn(colNumber);
                         
                     case 'Update Column'
-                        if varAttr.HasFunction % (Does it have to be custom?)% varAttr.IsCustom && varAttr.HasFunction
+                        if varAttr.HasUpdateFunction % (Does it have to be custom?)% varAttr.IsCustom && varAttr.HasUpdateFunction
                             hTmp.Enable = 'on';
                             if ~isempty(obj.UpdateColumnFcn) 
                                 % Children are reversed from creation

@@ -109,6 +109,8 @@ classdef TableVariable
         % Function in separate file
         attributeTable = buildTableVariableTable(fileList)
 
+        S = getDefaultTableVariableAttribute()
+
         defaultSessionTableVariableList = getDefaultSessionVariables()
     end
 end

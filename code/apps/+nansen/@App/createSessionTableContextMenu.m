@@ -1,7 +1,5 @@
 function createSessionTableContextMenu(app)
 %createSessionTableContextMenu Create a context menu for sessions in table
-
-    import nansen.metadata.utility.getMetaTableVariableAttributes
     
     hContextMenu = uicontextmenu(app.Figure);
     %hContextMenu.ContextMenuOpeningFcn = @(s,e,m) disp('test');%onContextMenuOpening;
@@ -67,11 +65,13 @@ function createSessionTableContextMenu(app)
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Update Column Variable');
     
-    S = getMetaTableVariableAttributes('session');
-    columnVariables = {S([S.HasFunction]).Name};
+    % Get names of table variables with an update function.
+    T = app.CurrentProject.getTable('TableVariable');
+    T = T(T.TableType == 'session', :);
+    columnVariableNames = T{T.HasUpdateFunction, 'Name'};
     
-    for iVar = 1:numel(columnVariables)
-        hSubmenuItem = uimenu(hMenuItem(c), 'Text', columnVariables{iVar});
+    for iVar = 1:numel(columnVariableNames)
+        hSubmenuItem = uimenu(hMenuItem(c), 'Text', columnVariableNames{iVar});
         hSubmenuItem.Callback = @app.updateTableVariable;
     end
 
@@ -80,7 +80,6 @@ function createSessionTableContextMenu(app)
 % % %     c = c + 1;
 % % %     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'View Schema Info');
 % % %     hMenuItem(c).Callback = @(s, e) app.viewSchemaInfo();
-
 
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy SessionID(s)', 'Separator', 'on');

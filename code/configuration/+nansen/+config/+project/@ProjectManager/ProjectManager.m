@@ -401,13 +401,13 @@ classdef ProjectManager < handle
             projectObj = obj.getProjectObject(obj.CurrentProject);
         end
         
-        function msg = changeProject(obj, name)
+        function msg = changeProject(obj, nameOrIndex)
         %changeProject Change the current project
         %
         %   changeProject(obj, name) changes the current project to project
         %   with given name
-
-            projectEntry = obj.getProject(name);
+                        
+            projectEntry = obj.getProject(nameOrIndex);
             
             if isempty(projectEntry)
                 errMsg = sprintf('Project with name "%s" does not exist', name);
@@ -422,6 +422,7 @@ classdef ProjectManager < handle
                 addpath(genpath(projectEntry.Path))
             end
             
+            name = projectEntry.Name;
             msg = sprintf('Current NANSEN project was changed to "%s"\n', name);
             if ~nargout
                 fprintf(msg); clear msg
