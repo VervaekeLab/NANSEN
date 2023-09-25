@@ -13,6 +13,7 @@ classdef Project < nansen.module.Module
     %       is changed from project manager, instances need to be updated.
     %   [ ] Should there be a project preference whether to save task lists
     %       for a project?
+    %   [ ] implement onPreferencesChanged callback function...
     
     properties % Inherited from module
         %Name                        % Name of the project
@@ -61,18 +62,25 @@ classdef Project < nansen.module.Module
             
             obj.FolderPath = projectFolder;
             
-            obj.initalizeModules()
+            obj.assignModules()
         end
     end
     
     methods
 
-        function initalizeModules(obj)
+        function assignModules(obj)
+        %assignModules Assign modules based on preferences
+        %
+        % Note: The base module should always be added last in this list.
+        % When finding unique files, the prioritized order for selecting
+        % files project, optional modules, base module.
             
+            obj.IncludedModules = nansen.module.Module.empty;
+
             % Todo: Get from preferences!
             baseModule = 'nansen.module.general.core';
 
-            moduleNames = [baseModule, obj.Preferences.DataModule];
+            moduleNames = [obj.Preferences.DataModule, baseModule];
             moduleNames = unique(moduleNames, 'stable'); % Just in case...
 
             for i = 1:numel(moduleNames)
@@ -81,10 +89,10 @@ classdef Project < nansen.module.Module
                 moduleFolder = fullfile(moduleFolder, utility.path.packagename2pathstr(moduleName));
                 moduleConfigFile = fullfile(moduleFolder, 'module.json');
                 module = nansen.module.Module(moduleConfigFile);
-                obj.IncludedModules(end+1) = module;
+                obj.IncludedModules(i) = module;
             end
         end
-
+        
         function initializeProjectFolder(obj)
             % Todo: Create all folders that belong to a project
             if ~isfolder(obj.FolderPath); mkdir(obj.FolderPath); end
@@ -100,7 +108,16 @@ classdef Project < nansen.module.Module
 
             mkdir(fullfile(obj.FolderPath, 'Session Methods', obj.PackageName))
         end
+        
+        function folderPaths = getSessionMethodFolder(obj)
+            
+            folderPaths = cell(1, numel(obj.IncludedModules));
 
+            folderPaths{1} = getSessionMethodFolder@nansen.module.Module(obj);
+            for i = 1:numel(obj.IncludedModules)
+                folderPaths{i+1} = obj.IncludedModules(i).getSessionMethodFolder();
+            end
+        end
     end
 
     methods (Access = protected) % Override module methods
@@ -108,15 +125,19 @@ classdef Project < nansen.module.Module
         function fileList = listFiles(obj, itemType)
         %listFiles List files in a folder hierarchy for given item type
 
-            fileList = listFiles@nansen.module.Module(obj, itemType);
-
+            [fileList, relFilePath] = listFiles@nansen.module.Module(obj, itemType);
+            
             for i = 1:numel(obj.IncludedModules)
-                fileList_ = obj.IncludedModules(i).listFiles(itemType);
-                fileList = cat(1, fileList_, fileList);
+                [fileList_, relFilePath_] = obj.IncludedModules(i).listFiles(itemType);
+                fileList = cat(1, fileList, fileList_);
+                relFilePath = cat(1, relFilePath, relFilePath_);
             end
 
-            % Todo: ignore files if they are present in multiple modules.
-            % Compare filename?
+            % Only keep unique files based on relative paths. Occurence is
+            % set to 'first', so that project files have highest priority,
+            % then optional modules and lastlt base modules.
+            [~, IND] = unique(relFilePath, 'first');
+            fileList = fileList(IND); % utility.dir.abspath(fileList);
         end
     
     end

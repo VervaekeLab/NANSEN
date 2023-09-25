@@ -94,6 +94,11 @@ classdef Module < handle
             itemTable = obj.rehash(itemType);
         end
 
+        function filePaths = getFilePaths(obj, itemType)
+            fileList = obj.listFiles(itemType);
+            filePaths = utility.dir.abspath(fileList);
+        end
+
     end
 
     methods % Get dependent properties
@@ -146,7 +151,7 @@ classdef Module < handle
             end
         end
 
-        function fileList = listFiles(obj, itemType)
+        function [fileList, relativePaths] = listFiles(obj, itemType)
         %listFiles List files in a folder hierarchy for given item type
             rootFolder = obj.getItemRootFolder(itemType);
             switch itemType
@@ -154,6 +159,10 @@ classdef Module < handle
                     fileList = obj.listMFiles(rootFolder);
                 case {'DataVariable', 'Pipeline'}
                     fileList = obj.listJsonFiles(rootFolder);
+            end
+            if nargout > 1
+                filePaths = utility.dir.abspath(fileList);
+                relativePaths = strrep(filePaths, [rootFolder, filesep], '');
             end
         end
         
