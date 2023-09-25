@@ -72,14 +72,15 @@ classdef SessionTaskMenu < handle
         hMenuDirs matlab.ui.container.Menu
         hMenuItems matlab.ui.container.Menu
     end
-    
+
     properties (Access = private)
-        DefaultMethodsPath char % Pathstr for a package folder containing session tasks
-        ProjectMethodsPath char % Pathstr for a project folder containing session tasks
-        
-        ProjectChangedListener event.listener % Not implemented yet
+        MethodsRootPath cell % List of folder paths for package(s) containing session tasks
     end
     
+    properties (Access = private)
+        IsConstructed = false;
+        ProjectChangedListener event.listener % Not implemented yet
+    end
     
     events
         MethodSelected
@@ -88,7 +89,7 @@ classdef SessionTaskMenu < handle
 
     methods
         
-        function obj = SessionTaskMenu(appHandle, modules)
+        function obj = SessionTaskMenu(appHandle, currentProject)
         %SessionTaskMenu Create a SessionTaskMenu object 
         %
         %   obj = SessionTaskMenu(appHandle, modules) creates a
@@ -102,7 +103,7 @@ classdef SessionTaskMenu < handle
             obj.ParentApp = appHandle;
             
             if nargin < 2
-                modules = {'ophys.twophoton'};
+                currentProject = nansen.ProjectManager().getCurrentProject();
             end
             
             % NB: This assumes that the ParentApp has a Figure property
@@ -110,17 +111,15 @@ classdef SessionTaskMenu < handle
             assert(~isempty(hFig) && isvalid(hFig), ...
                 'App does not have a valid figure')
             
-
-            pm = nansen.ProjectManager();
-            currentProject = pm.getProjectObject( pm.CurrentProject );
             obj.CurrentProject = currentProject;
-
-            % Todo: These should be set when current project is set...
-            obj.assignDefaultMethodsPath(modules)
-            obj.assignProjectMethodsPath()
+            assert(~isempty(obj.MethodsRootPath), ...
+                ['No root directories for session methods have been assigned. ', ...
+                'Please report if you see this.'])
             
             % Todo: Improve performance!
             obj.buildMenuFromDirectory(hFig);
+
+            obj.IsConstructed = true;
         end
         
         function delete(obj)
@@ -154,8 +153,16 @@ classdef SessionTaskMenu < handle
                
         function set.CurrentProject(obj, project)
             obj.CurrentProject = project;
+            obj.onCurrentProjectSet()
         end
 
+        function set.MethodsRootPath(obj, folderPath)
+            if ~isequal(sort(obj.MethodsRootPath), sort(folderPath))
+                obj.MethodsRootPath = folderPath;
+                obj.onMethodsRootPathSet()
+            end
+        end
+        
     end
     
     methods
@@ -170,23 +177,17 @@ classdef SessionTaskMenu < handle
             obj.hMenuItems = matlab.ui.container.Menu.empty;
             
             obj.SessionTasks = struct('Name', {}, 'Attributes', {});
-
-            modules = {'ophys.twophoton'}; % Default for now
-            obj.assignDefaultMethodsPath(modules)
-            obj.assignProjectMethodsPath() % Should make this happen only if project is changed... Not urgent
             obj.buildMenuFromDirectory(obj.ParentApp.Figure);
         end
 
         function refreshMenuItem(obj, taskName)
-
-
 
         end
         
         function menuNames = getRootLevelMenuNames(obj)
         %getRootLevelMenuNames Get names of the root menu folders.
 
-            dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
+            dirPath = obj.MethodsRootPath;
             ignoreList = {'+abstract', '+template'};
             
            	[~, menuNames] = utility.path.listSubDir(dirPath, '', ignoreList);
@@ -196,47 +197,10 @@ classdef SessionTaskMenu < handle
     
     end
     
-    
     methods (Access = private) % Methods for configuring menu
         
         function tf = isModeLocked(obj)
             tf = obj.IsModeLocked;
-        end
-
-        function assignDefaultMethodsPath(obj, modules)
-        %assignDefaultMethodsPath Assign the default path(s) for tasks
-        %
-        %   Get the absolute path of each module containing tasks and 
-        %   assign it to the property DefaultMethodsPath.
-        %
-        %   A module is the name of a package category of session methods,
-        %   for example: 'ophys.twophoton'
-
-            projectPref = obj.CurrentProject.Preferences;
-            if isfield(projectPref, 'DataModule')
-                modules = projectPref.DataModule;
-            end
-            
-            if isempty(modules)
-                obj.DefaultMethodsPath = '';
-                return
-            end
-            
-            sesMethodRootFolder = nansen.localpath('sessionmethods');
-            
-            integrationDirs = utility.path.packagename2pathstr(modules);
-            obj.DefaultMethodsPath = fullfile(sesMethodRootFolder, integrationDirs);
-        end
-        
-        function assignProjectMethodsPath(obj)
-        %assignProjectMethodsPath Assign the path for project-specific tasks
-
-            projectRootPath = nansen.localpath('project');
-            [~, projectName] = fileparts(projectRootPath);
-            obj.ProjectMethodsPath = fullfile(projectRootPath, ...
-                'Session Methods', ['+', projectName] );
-            
-            if ~isfolder(obj.ProjectMethodsPath); mkdir(obj.ProjectMethodsPath); end
         end
 
         function buildMenuFromDirectory(obj, hParent, dirPath)
@@ -252,7 +216,7 @@ classdef SessionTaskMenu < handle
         % Requires: utility.string.varname2label
         
             if nargin < 3
-                dirPath = [obj.DefaultMethodsPath, {obj.ProjectMethodsPath}];
+                dirPath = [obj.MethodsRootPath];
                 isRootDirectory = true;
             else
                 isRootDirectory = false;
@@ -519,6 +483,18 @@ classdef SessionTaskMenu < handle
 
     methods (Access = private) % Utility methods
         
+        function onCurrentProjectSet(obj)
+
+            rootDirectories = obj.CurrentProject.getSessionMethodFolder();
+            obj.MethodsRootPath = rootDirectories;
+        end
+
+        function onMethodsRootPathSet(obj)
+            if obj.IsConstructed
+                obj.refresh()
+            end
+        end
+
         function packagePathList = listPackageHierarchy(obj)
         %listPackageHierarchy Get all package folders containing session methods   
         %
@@ -529,7 +505,7 @@ classdef SessionTaskMenu < handle
         %   Not implemented yet. The idea was to list all packages first,
         %   then build menus. Now that happens interchangeably.
         
-            dirPath = {obj.DefaultMethodsPath, obj.ProjectMethodsPath};
+            dirPath = obj.MethodsRootPath;
             ignoreList = {'+abstract', '+template'};
             
             finished = false;
@@ -555,9 +531,10 @@ classdef SessionTaskMenu < handle
         %different root directories are put in successive order.
         
             packageListLocal = packagePathList;
-            packageListLocal = strrep(packageListLocal, obj.DefaultMethodsPath, '');
-            packageListLocal = strrep(packageListLocal, obj.ProjectMethodsPath, '');
-            
+            for i = 1:numel(obj.MethodsRootPath)
+                packageListLocal = strrep(packageListLocal, obj.MethodsRootPath{i}, '');
+            end
+
             [~, sortInd] = sort(packageListLocal);
             packagePathList = packagePathList(sortInd);
         end

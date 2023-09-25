@@ -1355,6 +1355,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Update preferences
             p.Preferences.DataModule = {evtData.SelectedData.modulePackage};
+            p.assignModules()
+            app.SessionTaskMenu.CurrentProject = p;
         end
         
     % % Get meta objects from table selections
@@ -2439,7 +2441,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isempty(hApp) || ~isvalid(hApp) || ~hApp.Valid
                 hApp = nansen.config.module.ModuleManagerApp(dataModules);
                 hApp.transferOwnership(app)
-                hApp.changeWindowStyle('modal')
+                %hApp.changeWindowStyle('modal')
                 addlistener(hApp, 'ModuleSelectionChanged', @app.onModuleSelectionChanged);
             else
                 hApp.setSelectedModules(dataModules)
