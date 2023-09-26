@@ -31,9 +31,10 @@ classdef ModuleManager < handle
         %listModules Display a table of modules
             moduleTable = struct2table(obj.ModuleList);
             
-            for iVar = 1:size(moduleTable, 2)
-                thisVarName = moduleTable.Properties.VariableNames{iVar};
-                moduleTable.(thisVarName) = string(moduleTable.(thisVarName));
+            stringVars = ["moduleLabel", "moduleDescription", ...
+                "moduleCategory", "moduleName", "modulePackage"];
+            for iVarName = stringVars
+                moduleTable.(iVarName) = string(moduleTable.(iVarName));
             end
         end
         
@@ -44,7 +45,7 @@ classdef ModuleManager < handle
         function getModuleList(obj)
         % getModuleList List available modules
             moduleDirectories = utility.path.listSubDir(obj.ModuleRootPath, '', {}, 3);
-            moduleSpecFiles = utility.path.listFiles(moduleDirectories, 'json');
+            moduleSpecFiles = utility.path.listFiles(moduleDirectories, '.json');
 
             numModules = numel(moduleSpecFiles);
             modules = cell(1, numModules);
@@ -59,6 +60,7 @@ classdef ModuleManager < handle
                 modules{i}.moduleCategory = splitPackage{3};
                 modules{i}.moduleName = splitPackage{4};
                 modules{i}.modulePackage = modulePackage;
+                modules{i}.isCoreModule = strcmp(splitPackage{3}, 'general');
             end
 
             obj.ModuleList = cat(1, modules{:});
