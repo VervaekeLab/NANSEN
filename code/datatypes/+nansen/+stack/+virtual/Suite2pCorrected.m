@@ -83,7 +83,7 @@ classdef Suite2pCorrected < nansen.stack.virtual.TiffMultiPart
                 
                 rootDir = utility.path.getAncestorDir(folder, 2);
                 
-                allFolders = utility.path.listSubDir(rootDir, '', {}, 1);
+                allFolders = utility.path.listSubDir(rootDir, '', {}, 2);
                 keep = contains(allFolders, 'reg_tif');
                 allFolders = allFolders(keep);
                 
