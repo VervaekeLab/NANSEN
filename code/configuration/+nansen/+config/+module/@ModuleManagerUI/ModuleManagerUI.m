@@ -10,7 +10,7 @@ classdef ModuleManagerUI < handle
 
     properties (Access = protected) % UI Components
         hParent
-        
+        UIPanels struct = struct
         UIControls struct = struct
         UILabels struct = struct
     end
@@ -28,6 +28,8 @@ classdef ModuleManagerUI < handle
     
     properties (Access = private) % Component appeareance
         ToolbarButtons matlab.ui.control.Button
+        GridLayout matlab.ui.container.GridLayout
+        HeaderGridLayout matlab.ui.container.GridLayout
     end
 
     events
@@ -46,7 +48,7 @@ classdef ModuleManagerUI < handle
             else
                 obj.hParent = hParent;
             end
-            
+
             if nargin < 2
                 hModuleManager = nansen.config.module.ModuleManager();
             end
@@ -55,8 +57,10 @@ classdef ModuleManagerUI < handle
             assert(isa(hModuleManager, 'nansen.config.module.ModuleManager'))
             obj.ModuleManager = hModuleManager;
 
+            obj.createLayout()
             obj.createUiControls()
-            obj.createUiTable()
+            obj.configureUiTable()
+            obj.configureUiDropdown()
         end
         
     end
@@ -87,12 +91,49 @@ classdef ModuleManagerUI < handle
 
     methods (Access = protected) % Component creation
         
+        function createLayout(obj)
+
+            % Create GridLayout
+            obj.GridLayout = uigridlayout(obj.hParent);
+            obj.GridLayout.ColumnWidth = {'1x'};
+            obj.GridLayout.RowHeight = {70, '1x'};
+            obj.GridLayout.RowSpacing = 20;
+            obj.GridLayout.Padding = [20, 20, 20, 20];
+
+            % Create panels
+            obj.UIPanels.Header = uipanel(obj.GridLayout);
+            obj.UIPanels.Header.Layout.Row = 1;
+            obj.UIPanels.Header.Layout.Column = 1;
+
+            obj.UIPanels.Main = uipanel(obj.GridLayout);
+            obj.UIPanels.Main.Layout.Row = 2;
+            obj.UIPanels.Main.Layout.Column = 1;
+
+            obj.UIPanels.Header.Title = "Select core module";
+            obj.UIPanels.Main.Title = "Select optional modules"; 
+
+            % Create header layout
+            obj.HeaderGridLayout = uigridlayout(obj.UIPanels.Header);
+            obj.HeaderGridLayout.ColumnWidth = {'1x'};
+            obj.HeaderGridLayout.RowHeight = {'1x'};
+            obj.HeaderGridLayout.Padding = [10,10,10,10];
+
+            %obj.UIPanels.Header.BorderType = "None";
+            %obj.UIPanels.Main.BorderType = "None";
+        end
+
         function createUiControls(obj)
-            obj.UIControls.ModuleTable = uitable(obj.hParent);
-            %obj.UIControls.ModuleTable.Position = [10,10,530,200];
+            %obj.UIControls.ModuleTable = uitable(obj.hParent);
+            obj.UIControls.ModuleTable = uitable(obj.UIPanels.Main);    
+            obj.UIControls.ModuleTable.Position = [0,0,obj.UIPanels.Main.Position(3:4)];    
+
+            obj.UIControls.CoreModuleDropdown = uidropdown(obj.HeaderGridLayout);
+            obj.UIControls.CoreModuleDropdown.Position = [10, 10, 100, 22];
+            obj.UIControls.CoreModuleDropdown.Layout.Row = 1;
+            obj.UIControls.CoreModuleDropdown.Layout.Column = 1;
         end
         
-        function createUiTable(obj)
+        function configureUiTable(obj)
             
             obj.updateTableData()
             
@@ -103,6 +144,10 @@ classdef ModuleManagerUI < handle
 
             obj.setTablePosition()
         end
+
+        function configureUiDropdown(obj)
+            obj.updateDropdown()
+        end
         
         function updateTableData(obj)
         %updateTableData Update data in the uitable
@@ -112,6 +157,8 @@ classdef ModuleManagerUI < handle
             
             %T = struct2table(obj.ModuleManager.Catalog, 'AsArray', true);
             T = obj.ModuleManager.listModules();
+            T = T(~T.isCoreModule, :);
+            
             T = T(:, 1:2);
             T.Properties.VariableNames{1} = 'Module Name';
             T.Properties.VariableNames{2} = 'Description';
@@ -148,6 +195,18 @@ classdef ModuleManagerUI < handle
             end
         end
         
+        function updateDropdown(obj)
+            
+            T = obj.ModuleManager.listModules();
+            T = T(T.isCoreModule, :);
+            
+            numRows = size(T, 1);
+            options = arrayfun( @(row) sprintf('%s (%s)', T{row, 'moduleLabel'}, T{row, 'moduleDescription'}), 1:numRows, 'uni', 0); 
+            
+            obj.UIControls.CoreModuleDropdown.Items = options;
+            obj.UIControls.CoreModuleDropdown.Value = options{1};
+        end
+
         function setTablePosition(obj)
         %setTablePosition Position the table within the UI
         
@@ -155,7 +214,8 @@ classdef ModuleManagerUI < handle
             drawnow
             pause(0.05)
 
-            parentPosition = obj.hParent.InnerPosition;
+            %parentPosition = obj.hParent.InnerPosition;
+            parentPosition = obj.UIPanels.Main.InnerPosition;
             %tablePosition = [0,0,parentPosition(3:4)] + [1, 1, -2, -2] * margin;
             tablePosition = [0,0,parentPosition(3:4)+[2,2]];
             obj.UIControls.ModuleTable.Position = tablePosition;

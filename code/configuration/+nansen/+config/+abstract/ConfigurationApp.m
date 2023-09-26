@@ -14,11 +14,12 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
     
     properties
         UIModule cell
-        ControllerApp
+        ControllerApp % Another app that can control whether this app is visible or not.
     end
     
     properties (Dependent)
         Visible matlab.lang.OnOffSwitchState
+        AllowResize matlab.lang.OnOffSwitchState
     end
     
     properties (Dependent, SetAccess = private)
@@ -96,6 +97,24 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
         function visibleState = get.Visible(app)
             visibleState = app.Figure.Visible;
         end
+
+        function set.AllowResize(obj, resizeState)
+            if resizeState ~= obj.AllowResize
+                if resizeState
+                    obj.Figure.Resize = 'on';
+                    obj.Figure.AutoResizeChildren = 'off';
+                    obj.Figure.SizeChangedFcn = @obj.onFigureSizeChanged;
+                else
+                    obj.Figure.Resize = 'off';
+                    obj.Figure.AutoResizeChildren = 'on';
+                    obj.Figure.SizeChangedFcn = [];
+                end
+            end
+        end
+
+        function resizeState = get.AllowResize(obj)
+            resizeState = obj.Figure.Resize;
+        end
         
         function isValid = get.Valid(app)
             isValid = isvalid(app) && isvalid(app.Figure);
@@ -116,7 +135,7 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
         function onFigureClosed(obj, src, evt)
             delete(obj.Figure)
         end
-        
+
         function createFigure(obj)
             
             obj.Figure = uifigure('Visible', 'off');
@@ -155,7 +174,6 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
             
             % Use callback to make sure components are positioned correctly in panel:
             obj.onLoadingPanelPositionChanged()
-            
         end
         
         function onLoadingPanelPositionChanged(obj)
@@ -187,9 +205,18 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
             %set(hTabs, 'BackgroundColor', S.FigureBgColor)
             
             set(obj.ControlPanels, 'BackgroundColor', S.ControlPanelsBgColor)
-        
         end
-       
+        
+        function resizeChildren(obj)
+            obj.resizeControlPanel()
+        end
+
+    end
+    
+    methods (Access = private)
+        function onFigureSizeChanged(obj, src, evt)
+            obj.resizeChildren()
+        end
     end
 
     methods (Static)
@@ -203,10 +230,8 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
             
             hPanel = uipanel(hParent);
             hPanel.Position = panelPosition;
-            
         end 
         
     end
-    
     
 end
