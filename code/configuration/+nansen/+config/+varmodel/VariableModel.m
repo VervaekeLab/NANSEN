@@ -290,7 +290,29 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             
             fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
         end
-
+    
+        function varNames = getVariableNamesOfType(obj, typeName)
+        %getVariableNamesOfType Get name of variables of specified datatype
+        %
+        %   Syntax:
+        %       varNames = obj.getVariableNamesOfType(typeName) returns a
+        %       cell array of variable names. The variable names represent
+        %       all the variables in the model of the specified datatype
+        %       iven by typeName
+        %
+        %   Input arguments:
+        %       typeName - A character vector or a string of a data type.
+        %           Note: This is case sensitive. Todo: Should it be?
+        %
+        %   Output arguments:
+        %       varNames - A cell array of character vectors. If no
+        %       variables were found for the given type, the cell array
+        %       contains one element, 'N/A'. Todo: Return empty cell array?
+    
+            allDataTypes = {obj.Data.DataType};
+            isOfGivenType = strcmp(allDataTypes, typeName);
+            varNames = {obj.Data(isOfGivenType).VariableName};
+        end
     end
     
     methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?nansen.setup.SetupWizardApp})

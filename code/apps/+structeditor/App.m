@@ -2025,7 +2025,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.UIControlSchemer(panelNum) = h;
 
                 el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(h));
-                
+            else
+                h = applify.uicontrolSchemer();
+                obj.UIControlSchemer(panelNum) = h;
             end
             %drawnow
             
