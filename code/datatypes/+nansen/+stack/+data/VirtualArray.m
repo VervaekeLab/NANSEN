@@ -614,7 +614,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     methods (Sealed)
 
         function numBytes = getCacheByteSize(obj)
-            arraySize = obj.DynamicFrameCache.DataSize;
+            arraySize = obj.DynamicFrameCache.CacheSize;
             arrayClass = obj.DynamicFrameCache.DataType;
             numBytes = nansen.stack.ImageStack.getImageDataByteSize(...
                 arraySize, arrayClass);

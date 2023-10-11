@@ -131,7 +131,10 @@ classdef uicontrolSchemer < handle
         end
 
         function restyleControls(obj)
-
+            
+            S = warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved');
+            C = onCleanup(@() warning(S));
+            
             numUIControls = numel(obj.hUicontrol);
             for i = 1:numUIControls
                 hTmp = obj.hUicontrol(i);

@@ -49,7 +49,7 @@ classdef FrameCache < handle %< utility.class.StructAdapter
     properties (Dependent)
         NumFrames               % Number of image frames to cache (along last dimension)
         CacheSize               % Size of data in cache
-        CacheRange
+        CacheRange              % First and last frame index in the cache
     end
     
     properties (SetAccess = private)
@@ -116,6 +116,7 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         
         function cacheSize = get.CacheSize(obj)
             cacheSize = obj.CacheSize_;
+            cacheSize = [obj.DataSize(1:2), cacheSize];
         end
 
         function cacheRange = get.CacheRange(obj)
@@ -202,9 +203,12 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             if isempty(cacheSize); cacheSize = 1; end
 
 
-%             if isscalar(cacheLength)
-%                 cacheSize(end) = cacheLength ./ prod(cacheSize(1:end-1));       
-%             end
+            if isscalar(cacheLength) % && ~isscalar(cacheSize)
+                cacheSize(end) = cacheLength ./ prod(cacheSize(1:end-1));
+            else
+                assert(ndims(cacheLength)==ndims(cacheSize), 'Cache length must be of size n-2 where n is the number of dimensions in the data')
+                cacheSize = cacheLength;
+            end
             
             % If this assertion fails, either the cache length has been set
             % to a number that does not match the data size (which should
@@ -275,7 +279,6 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             
             obj.Data = zeros(cacheSize, obj.DataType);
             obj.CachedFrameIndices = zeros(1, obj.CacheLength);
-            
         end
         
         function onCacheLengthChanged(obj)
@@ -299,13 +302,34 @@ classdef FrameCache < handle %< utility.class.StructAdapter
                 % Insert new frames at the current cache indices
                 obj.CachedFrameIndices = utility.insertIntoArray(obj.CachedFrameIndices, ...
                     zeros(1, cacheLengthDiff), tmpInd, 2 );
-
-                newData = zeros([obj.DataSize(1:end-1), cacheLengthDiff]);
-
-                % Insert data along the last dimension of data (should be 3rd...)
-                obj.Data = utility.insertIntoArray(obj.Data, ...
-                    newData, tmpInd, ndims(obj.Data) );
-
+                
+                try
+                    newData = zeros([obj.DataSize(1:end-1), cacheLengthDiff], obj.DataType);
+    
+                    % Insert data along the last dimension of data (should be 3rd...)
+                    obj.Data = utility.insertIntoArray(obj.Data, ...
+                        newData, tmpInd, ndims(obj.Data) );
+                catch ME
+                    try %#ok<TRYNC>
+                        % This try block is a quickfix for the case when
+                        % the cache size is set to a number which produce a
+                        % an array with a datasize which exceeds the
+                        % maximum allowed data size (memory) for a matlab
+                        % array. The cache length is reset to the old
+                        % length, but this means it tries to delete frames
+                        % from the data cache. However, since the expansion
+                        % of the data cache failed, reducing it will also
+                        % fail (the following line below:
+                        %   obj.Data(subs{:}) = [];
+                        % 
+                        % A proposed fix is to be able to set the
+                        % cache length without automatically trying to
+                        % adjust the size of tha data cache.
+                        % Todo: Set cachelength without adjusting data..
+                        obj.CacheLength = cacheLengthOld;
+                    end
+                    rethrow(ME)
+                end
 
             elseif obj.CacheLength < cacheLengthOld % Remove data
 

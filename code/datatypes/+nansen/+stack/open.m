@@ -25,7 +25,7 @@ function virtualData = open(pathStr, varargin)
 
     % Todo: Add a call to a function that checks whether data should be
     % loaded using a custom FileAdapter class.
-    virtualData = openUsingCustomFileAdapter(pathStr);
+    virtualData = openUsingCustomFileAdapter(pathStr, nvPairs{:});
     if ~isempty(virtualData)
         return
     end
@@ -131,7 +131,7 @@ function virtualData = open(pathStr, varargin)
 end
 
 
-function virtualData = openUsingCustomFileAdapter(filePath)
+function virtualData = openUsingCustomFileAdapter(filePath, varargin)
 %openUsingCustomFileAdapter Get virtual data using file adapter based on name    
     import nansen.dataio.fileadapter.imagestack.ImageStack
     
@@ -141,7 +141,7 @@ function virtualData = openUsingCustomFileAdapter(filePath)
     
     if ~isempty(virtualDataClass)
         virtualDataClassFcn = str2func(virtualDataClass);
-        virtualData = virtualDataClassFcn(filePath);
+        virtualData = virtualDataClassFcn(filePath, varargin{:});
     else
         virtualData = [];
     end
