@@ -4805,18 +4805,29 @@ methods (Access = protected) % Event callbacks
                 if obj.ImageStack.IsVirtual  %Update cache size of virtual stack.
                     if isempty(value); value = 0; end
                     
-                    obj.displayMessage('Updating cache size...')
-                    obj.ImageStack.Data.DynamicCacheSize = value; % Todo: test
-                    bytes = obj.ImageStack.Data.getCacheByteSize(); % Todo
-                    
-                    if bytes > 1e9
-                        msg = sprintf('Cache uses ~%.1f GB of memory', round(bytes/1e9, 1));
-                    elseif bytes > 1e6
-                        msg = sprintf('Cache uses ~%d MB of memory', round(bytes/1e6));
+                    if obj.ImageStack.Data.UseDynamicCache
+                        obj.displayMessage('Updating cache size...')
+                        try
+                            oldSize = obj.ImageStack.Data.DynamicCacheSize;
+                            obj.ImageStack.Data.DynamicCacheSize = value; % Todo: test
+                            bytes = obj.ImageStack.Data.getCacheByteSize(); % Todo
+                            
+                            if bytes > 1e9
+                                msg = sprintf('Cache uses ~%.1f GB of memory', round(bytes/1e9, 1));
+                            elseif bytes > 1e6
+                                msg = sprintf('Cache uses ~%d MB of memory', round(bytes/1e6));
+                            else
+                                msg = sprintf('Cache uses ~%d kB of memory', round(bytes/1e3));
+                            end
+                        catch ME
+                            msg = sprintf(ME.message);
+                            obj.ImageStack.Data.DynamicCacheSize = oldSize;
+                            obj.settings.(thisField).(name) = oldSize;
+                        end
                     else
-                        msg = sprintf('Cache uses ~%d kB of memory', round(bytes/1e3));
+                        msg = 'The dynamic cache for this image stack is disabled';
                     end
-                    
+
                     obj.displayMessage(msg, [], 2)
                     
                 end

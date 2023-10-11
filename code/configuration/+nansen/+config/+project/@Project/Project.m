@@ -192,5 +192,11 @@ classdef Project < handle
         end
 
     end
+
+    methods (Static)
+        function project = fromStruct(S)
+            project = nansen.config.project.Project(S.Name, S.Path);
+        end
+    end
    
 end

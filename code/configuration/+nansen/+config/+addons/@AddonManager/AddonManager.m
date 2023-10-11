@@ -1,5 +1,5 @@
-classdef Addons < handle
-%ADDONS A simple addon manager for managing a custom list of addons
+classdef AddonManager < handle
+%AddonManager A simple addon manager for managing a custom list of addons
     %   Provides an interface for downloading and adding addons/toolboxes
     %   to the matlab path. Addons are specified in a separate function
     %   and this class provides several methods for managing these addons.
@@ -24,7 +24,23 @@ classdef Addons < handle
     %   - Use gitmodules??
     %   - Implement better git functionality, i.e version tracking
     
-    
+        
+    properties % Preferences
+        InstallationDir char = ''   % Path where addons should be installed
+        UseGit logical = false      % Whether to use git for downloads and updates
+    end
+
+    properties 
+        AddonList struct = struct() % List of addons (table or struct array)
+    end
+
+    properties (SetAccess = private)
+        AddonDefinitionsPath
+    end
+
+    properties (Hidden)
+        IsDirty = false
+    end
     
     properties (Constant, Hidden)
         
@@ -44,26 +60,13 @@ classdef Addons < handle
             'FunctionName', ...
             'AddToPathOnInit', ...
             'IsDoubleInstalled'}
-    
-    end
-    
-    properties
-        InstallationDir char = ''   % Path where addons should be installed
-        UseGit logical = false      % Whether to use git for downloads and updates
-        AddonList struct = struct() % List of addons (table or struct array)
-    
-        IsDirty
-    end
-    
-    properties (SetAccess = private)
-        AddonDefinitionsPath
     end
     
     
     methods
         
-        function obj = Addons()
-        %ADDONS Construct an instance of this class
+        function obj = AddonManager()
+        %AddonManager Construct an instance of this class
         
             % Create a addon manager instance. Provide methods for
             % installing addons
@@ -136,7 +139,7 @@ classdef Addons < handle
         %   %todo: rename
         
             % Get package list
-            defaultAddonList = nansen.setup.defaults.getAddonList();
+            defaultAddonList = nansen.config.addons.getDefaultAddonList();
             
             %numAddons = numel(defaultAddonList);
             
@@ -495,7 +498,7 @@ classdef Addons < handle
         
         function installMatlabToolbox(obj, fileName)
             
-            % Will install to the default matlab toolbox/adodn directory.
+            % Will install to the default matlab toolbox/addon directory.
             newAddon = matlab.addons.install(fileName);
             
             
@@ -532,7 +535,7 @@ classdef Addons < handle
         function S = initializeAddonList()
         %initializeAddonList Create an empty struct with addon fields.
         
-            names = nansen.setup.model.Addons.addonFields;
+            names = nansen.config.addons.AddonManager.addonFields;
             values = repmat({{}}, size(names));
             
             structInit = [names; values];

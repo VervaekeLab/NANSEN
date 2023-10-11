@@ -236,7 +236,9 @@ methods (Access = protected)
         fullImageLength = obj.tiffInfo.getTag('ImageLength');
         numFlybackLines = fullImageLength - imageLengthWoFlybackLines;
         numFlybackLinesPerFov = numFlybackLines / numRois;
-
+        
+        numFlybackLinesPerFov = floor(numFlybackLinesPerFov);
+        
         % Calculate x and y- index limits for fov.
         sIFovParams.fovLimX = [1, sIFovParams.pixelResolutionXY(1)];
         y1 = sum(heightPerFov(1:obj.FovId-1)) + numFlybackLinesPerFov * obj.FovId + 1;

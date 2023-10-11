@@ -57,25 +57,17 @@ function helpDialog(functionName)
 
     for i = numel(messages):-1:1
         nLines = numel(strfind(messages{i}, '\n'));
-        y = y + nLines*0.03;
+        %y = y + nLines*0.03;
 
         makeBold = contains(messages{i}, '\b');
         messages{i} = strrep(messages{i}, '\b', ''); 
 
-        if contains(messages{i}, ':')
-            msgSplit = strsplit(messages{i}, ':');
-            count = count + 1;
-            hTxt(count) = text(x1, y, sprintf(msgSplit{1}));
-            count = count + 1;
-            hTxt(count) = text(x2, y, sprintf([': ', msgSplit{2}]));
-        else
-            count = count + 1;
-            hTxt(count) = text(0.05, y, sprintf(messages{i}));
-        end
+        count = count + 1;
+        hTxt(count) = text(0.05, y, sprintf(messages{i}));
 
         if makeBold; hTxt(count).FontWeight = 'bold'; end
 
-        y = y + 0.05;
+        y = y + 0.04;
     end
     
     hTxt = hTxt(1:count);
@@ -90,7 +82,7 @@ function helpDialog(functionName)
     % set(hTxt, 'Units', txtUnits)
 
     maxWidth = max(sum(extent(:, [1,3]),2));
-    helpfig.Position(3) = max([600, maxWidth./0.9]); %helpfig.Position(3)*0.1 + maxWidth;
+    helpfig.Position(3) = max([550, maxWidth./0.9]); %helpfig.Position(3)*0.1 + maxWidth;
     helpfig.Position(4) = helpfig.Position(4) - (1-y)*helpfig.Position(4);
     uim.utility.centerFigureOnScreen(helpfig)
     helpfig.Visible = 'on';

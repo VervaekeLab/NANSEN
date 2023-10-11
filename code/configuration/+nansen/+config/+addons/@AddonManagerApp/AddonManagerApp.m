@@ -28,7 +28,7 @@ classdef AddonManagerApp < nansen.config.abstract.ConfigurationApp
             
             obj.applyTheme()
 
-            obj.UIModule{1} = nansen.addons.AddonManagerUI(cPanel); 
+            obj.UIModule{1} = nansen.config.addons.AddonManagerUI(cPanel); 
 
 
             if ~nargout; clear obj; end

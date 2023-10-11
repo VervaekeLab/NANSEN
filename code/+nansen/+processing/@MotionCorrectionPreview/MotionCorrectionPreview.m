@@ -2,9 +2,17 @@ classdef MotionCorrectionPreview < handle
 %MotionCorrectionPreview Contains methods that are common for motion 
 % correction imviewer plugins
 
+% Todo: Should this inherit from imviewer.ImviewerPlugin and have
+% nansen.plugin.imviewer.FlowRegistration and 
+% nansen.plugin.imviewer.NoRMCorre as subclasses?
+
     properties (Abstract) 
         settings
         ImviewerObj
+    end
+    
+    properties (Abstract, Hidden)
+        TargetFolderName
     end
 
     properties (Access = private)
@@ -24,6 +32,10 @@ classdef MotionCorrectionPreview < handle
                     if strcmp(value, 'Time Dependent') || strcmp(value, 'Continuous')
                         msgbox('This is not implemented yet, constant bidirectional correction will be used')
                     end
+                case 'OutputFormat'
+                    oldFilename = obj.settings.Export.FileName;
+                    newFilename = obj.buildFilenameWithExtension(oldFilename);
+                    obj.settings.Export.FileName = newFilename; 
             end
 
             defaultFields = fieldnames(obj.DefaultOptions);
@@ -34,7 +46,6 @@ classdef MotionCorrectionPreview < handle
                     obj.settings.(defaultFields{i}).(name) = value;
                 end
             end
-
         end
 
         function assertPreviewSettingsValid(obj)
@@ -47,21 +58,36 @@ classdef MotionCorrectionPreview < handle
             end
         end
         
-        function updateExportPaths(obj, sEditor, methodName)
+        function fileName = buildFilenameWithExtension(obj, fileName)
+
+            % Strip current filename of all extensions.
+            fileName = strsplit(fileName, '.'); % For file with multiple extentsions, i.e .ome.tif
             
-            % Create default folderpath for saving results
-            [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
-            folderPath = fullfile(folderPath, sprintf('motion_correction_%s', methodName) );
+            switch obj.settings.Export.OutputFormat
+                case 'Binary'
+                    fileName = sprintf('%s.raw', fileName{1});
+                case 'Tiff'
+                    fileName = sprintf('%s.tif', fileName{1});
+                otherwise
+                    error('Unknown output format')
+            end
+        end
+
+        function dataSet = prepareTargetDataset(obj)
             
-            % Need a better solution for this!
-            idx = strcmp(sEditor.Name, 'Export');
-            sEditor.dataOrig{idx}.SaveDirectory = folderPath;
-            sEditor.dataEdit{idx}.SaveDirectory = folderPath;
-            obj.settings_.Export.SaveDirectory = folderPath;
+            folderPath = obj.settings.Export.SaveDirectory;
+            %folderPath = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            %folderPath = fullfile(folderPath, 'motion_correction_flowreg');
+            if ~isfolder(folderPath); mkdir(folderPath); end
+
+            dataSet = nansen.dataio.dataset.SingleFolderDataSet(folderPath, ...
+                'DataSetID', obj.settings.Export.FileName );
             
-            sEditor.dataOrig{idx}.FileName = fileName;
-            sEditor.dataEdit{idx}.FileName = fileName;
-            obj.settings_.Export.FileName = fileName;
+            dataSet.addVariable('TwoPhotonSeries_Original', ...
+                'Data', obj.ImviewerObj.ImageStack)
+
+            dataSet.addVariable('TwoPhotonSeries_Corrected', ...
+                'FilePath', obj.settings.Export.FileName );
         end
 
         function folderPath = getExportDirectory(obj)
@@ -151,7 +177,6 @@ classdef MotionCorrectionPreview < handle
                     [~, imArray] = correct_bidirectional_offset(imArray, size(imArray,3), 10);
                 end
             end
-            
         end
 
     end

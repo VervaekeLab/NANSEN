@@ -1,26 +1,34 @@
-classdef AddonTable < applify.apptable
+classdef AddonManagerUI < applify.apptable
     
     properties 
         AddonManager  % Instance of AddonManager class
     end
     
-    properties (Access = private, Hidden) % Component appeareance
-        
+    properties (Access = private) % Component appeareance
+        ToolbarButtons matlab.ui.control.Button
+    end
+
+    properties (Hidden)
         % Install button
         InstallButtonFontColor = [0.8784 0.8784 0.7059];                    % Todo: get from main gui (setup app)
         InstallButtonBackgroundColor = [0 0.6 0];                           % Todo: get from main gui (setup app)
         
+        ToolbarButtonFontColor = [0.15,0.15,0.15]
+        ToolbarButtonBackgroundColor = [0.94,0.94,0.94]
     end
-    
-    methods
+
+    methods % Constructor
         
-        function obj = AddonTable(hParent, hAddonManager, varargin)
+        function obj = AddonManagerUI(hParent, hAddonManager, varargin)
             
             % Todo: parent might not be given as first input, it might be
             % in the list of name value pairs...
+            if nargin < 2
+                hAddonManager = nansen.config.addons.AddonManager();
+            end
             
             % Get data from the addonmanager handle.
-            assert(isa(hAddonManager, 'nansen.setup.model.Addons'))
+            assert(isa(hAddonManager, 'nansen.config.addons.AddonManager'))
             data = hAddonManager.AddonList;
             
             obj@applify.apptable(hParent, 'Data', data, varargin{:})
@@ -31,13 +39,42 @@ classdef AddonTable < applify.apptable
         
     end
     
-    methods (Access = protected)
+    methods % Set/get
+        
+        function set.ToolbarButtonFontColor(obj, newValue)
+            try
+                obj.onToolbarButtonFontColorSet(newValue)
+                obj.ToolbarButtonFontColor = newValue;
+            catch ME
+                throw(ME)
+            end
+        end
+
+        function set.ToolbarButtonBackgroundColor(obj, newValue)
+            try
+                obj.onToolbarButtonBackgroundColorSet(newValue)
+                obj.ToolbarButtonBackgroundColor = newValue;
+            catch ME
+                throw(ME)
+            end
+        end
+    end
+
+    methods % Public methods
+        function downloadAllAddons(obj)
+            addonIndices = 1:numel(obj.AddonManager.AddonList);
+            obj.downloadAddons(addonIndices)
+        end
+    end
+
+    methods (Access = protected) % Implement superclass options
+        
         function assignDefaultTablePropertyValues(obj)
             obj.ShowColumnHeader = false;
             obj.ColumnNames = {'Toolbox Name', 'Optionality', ...
                 'Is Installed', '', '', ''};
             
-            obj.ColumnWidths = [22, 150, 80, 20, 80, 80, 70];
+            obj.ColumnWidths = [22, 140, 70, 20, 70, 75, 70, 90];
             obj.RowSpacing = 15;
             obj.TableMargin = 5;   % Space in pixels around the table within the parent container.
 
@@ -82,6 +119,7 @@ classdef AddonTable < applify.apptable
             hS.NameLabel.FontName = 'Segoe UI';
             hS.NameLabel.Position = [X(i) y W(i) h];
             hS.NameLabel.Text = rowData.Name;
+            hS.NameLabel.Tooltip = rowData.Description;
             obj.centerComponent(hS.NameLabel, y)
             %hNext.NameLabel.BackgroundColor = [0.8,0.8,0.8];
             
@@ -144,23 +182,12 @@ classdef AddonTable < applify.apptable
                 hS.InstallButton.Enable = 'off';
             end
             
-            
-        % % Create button for browsing to locate toolbox 
-            i = 6;
-            hS.BrowseButton = uibutton(obj.TablePanel, 'push');
-            hS.BrowseButton.FontName = 'Segoe UI';
-            hS.BrowseButton.Position = [X(i) y W(i) 22];
-            hS.BrowseButton.Text = 'Locate';
-            hS.BrowseButton.ButtonPushedFcn = @(s,e,name,num) obj.onBrowseAddonPushed(rowData.Name, rowNum);
-            obj.centerComponent(hS.BrowseButton, y)
-
             if ~isempty(rowData.FilePath)
-                hS.BrowseButton.Tooltip = rowData.FilePath;
+                hS.InstallButton.Tooltip = rowData.FilePath;
             end
             
-            
         % % Create button for updating toolbox 
-            i = 7;
+            i = 6;
             hS.UpdateButton = uibutton(obj.TablePanel, 'push');
             hS.UpdateButton.FontName = 'Segoe UI';
             hS.UpdateButton.Position = [X(i) y W(i) 22];
@@ -172,11 +199,73 @@ classdef AddonTable < applify.apptable
                 hS.UpdateButton.Enable = 'off';
             end
 
+        % % Create button for browsing to locate toolbox 
+            i = 7;
+            hS.BrowseButton = uibutton(obj.TablePanel, 'push');
+            hS.BrowseButton.FontName = 'Segoe UI';
+            hS.BrowseButton.Position = [X(i) y W(i) 22];
+            hS.BrowseButton.Text = 'Locate...';
+            hS.BrowseButton.ButtonPushedFcn = @(s,e,name,num) obj.onBrowseAddonPushed(rowData.Name, rowNum);
+            obj.centerComponent(hS.BrowseButton, y)
+            hS.BrowseButton.Tooltip = 'Find local addon folder on harddrive...';
+          
+        % % Create button for opening website
+            i = 8;
+            hS.WebButton = uibutton(obj.TablePanel, 'push');
+            hS.WebButton.FontName = 'Segoe UI';
+            hS.WebButton.Position = [X(i) y W(i) 22];
+            hS.WebButton.Text = 'Open Website';
+            hS.WebButton.ButtonPushedFcn = @(s,e,name,num) obj.onOpenWebsiteButtonPushed(rowData.Name, rowNum);
+            obj.centerComponent(hS.WebButton, y)
+            hS.WebButton.Tooltip = 'Open addon website';  
+            
         end
+        
+        function createToolbarComponents(obj, hPanel)
+        %createToolbarComponents Create "toolbar" components above table.    
+            if nargin < 2; hPanel = obj.Parent.Parent; end
+
+            import uim.utility.layout.subdividePosition
+            hPanel = obj.Parent.Parent;
+            
+            toolbarPosition = obj.getToolbarPosition();
+            
+            buttonNames = {'Download All', 'Download Selected', 'Save MATLAB Path'};
+            buttonWidths = [120, 140, 140];
+            numButtons = numel(buttonNames);
+            
+            buttonSize = [140, 20];
+            %wInit = repmat(buttonSize(1), 1, numButtons);
+            
+            % Get component positions for the components on the left
+            [Xl, Wl] = subdividePosition(toolbarPosition(1), ...
+                toolbarPosition(3), buttonWidths, 10);
+            Y = toolbarPosition(2);
+
+            % Create buttons
+            for i = 1:numButtons
+                obj.ToolbarButtons(i) = uibutton(hPanel, 'push');
+                obj.ToolbarButtons(i).ButtonPushedFcn = @obj.onToolbarButtonPushed;
+                obj.ToolbarButtons(i).Position = [Xl(i) Y Wl(i) 22];
+                obj.ToolbarButtons(i).Text = buttonNames{i};
+            end
+
+            iconPath = fullfile(matlabroot, 'toolbox', 'shared', 'controllib', 'general', 'resources', 'toolstrip_icons', 'Import_24.png');
+            [obj.ToolbarButtons(1:2).Icon] = deal(iconPath);
+            %app.DownloadAllButton.Icon = iconPath;
+
+            iconPath = fullfile(matlabroot, 'toolbox', 'shared', 'controllib', 'general', 'resources', 'toolstrip_icons', 'Set_Path_24.png');
+            obj.ToolbarButtons(3).Icon = iconPath;
+
+        end
+        
+        function toolbarComponents = getToolbarComponents(obj)
+            toolbarComponents = obj.ToolbarButtons;
+        end
+        
     end
     
-    
-    methods % Subclass specific callbacks
+    methods (Access = private) % Button callbacks
               
         function onInstallAddonPushed(obj, addonName, iRow)
         %onInstallAddonPushed Callback for button press on download button    
@@ -263,6 +352,81 @@ classdef AddonTable < applify.apptable
             
         end
         
+        function onOpenWebsiteButtonPushed(obj, addonName, iRow)
+            S = obj.AddonManager.AddonList(iRow);
+            web(S.WebUrl, '-browser')
+        end
+        
+        function onToolbarButtonPushed(obj, src, evt)
+            
+            switch src.Text
+                
+                case 'Download All'
+                    addonIndices = 1:numel(obj.AddonManager.AddonList);
+                    obj.downloadAddons(addonIndices)
+                    
+                case 'Download Selected'
+                    addonIndices = obj.SelectedRows;
+                    obj.downloadAddons(addonIndices)
+
+                case 'Save MATLAB Path'
+                    obj.saveMatlabPath()
+                    
+                case 'Open Addon Website'
+                    addonIndices = obj.SelectedRows;
+                    S = obj.AddonManager.AddonList(addonIndices(1));
+                    web(S.WebUrl, '-browser')
+                    return
+            end
+            
+
+        end
+
+    end
+    
+    methods (Access = private) % Actions
+        
+        function downloadAddons(obj, addonIndices)
+                    
+            for i = addonIndices
+                S = obj.AddonManager.AddonList(i);
+                if ~S.IsInstalled
+                    % Call the install button callback
+                    obj.onInstallAddonPushed(S.Name, i)
+                end
+            end
+            
+        end
+        
+        function saveMatlabPath(obj)
+        %saveMatlabPath Save matlab path (presumaby after installing addons) 
+            message = 'This will permanently add the downloaded addons to the MATLAB search path.';
+            title = 'Confirm Save';
+            
+            hFig = ancestor(obj.Parent, 'figure');
+
+            selection = uiconfirm(hFig, message, ...
+                title, 'Options', {'Save Path', 'Cancel'},...
+                'DefaultOption', 1, 'CancelOption', 2);
+            
+            if strcmp(selection, 'Cancel'); return; end
+            
+            savepath()
+            
+            obj.AddonManager.markClean()
+            obj.AddonManager.restoreAddToPathOnInitFlags()
+        end
+
     end
 
+    methods (Access = private) % Style components (Todo, move to superclass)
+        
+        function onToolbarButtonBackgroundColorSet(obj, newValue)
+            set(obj.ToolbarButtons, 'BackgroundColor', newValue)
+        end
+
+        function onToolbarButtonFontColorSet(obj, newValue)
+            set(obj.ToolbarButtons, 'FontColor', newValue)
+        end
+    end
 end

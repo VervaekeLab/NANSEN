@@ -40,7 +40,7 @@ classdef ProjectManagerUI < handle
         function obj = ProjectManagerUI(hParent)
             
             obj.assignInitialProjectRootFolderPath()
-            obj.ProjectManager = nansen.config.project.ProjectManager();
+            obj.ProjectManager = nansen.config.project.ProjectManager.instance();
             % If no parent is added, return before creating components
             if nargin < 1 || isempty(hParent)
                 return
@@ -78,7 +78,7 @@ classdef ProjectManagerUI < handle
             
             try
                 filePath = fullfile(folder, fileName);
-                projectName = obj.ProjectManager.addExistingProject(filePath);
+                projectName = obj.ProjectManager.importProject(filePath);
                 success = ~isempty( projectName );
             catch ME
                 throw(ME)
@@ -301,7 +301,7 @@ classdef ProjectManagerUI < handle
                 'Set current project', ...
                 'Remove project', ...
                 'Delete project', ...
-                'Change project folder location', ...
+                'Update project folder location', ...
                 'Open project folder' };
             
             hMenuItem = gobjects(numel(contextMenuItemNames), 1);
@@ -330,6 +330,7 @@ classdef ProjectManagerUI < handle
     end
     
     methods (Access = protected)
+    % Project context menu action handlers
         
         function changeProject(obj, rowIdx)
             
@@ -352,11 +353,11 @@ classdef ProjectManagerUI < handle
             obj.notify('ProjectChanged', event.EventData)
         end
         
-        function changeProjectFolder(obj, rowIdx, projectFolderPath)
+        function updateProjectDirectory(obj, rowIdx, newProjectDirectory)
             projectName = obj.getNameFromRowIndex(rowIdx);
             if ~isequal(projectName, 0)
-                obj.ProjectManager.changeProjectFolder(projectName, projectFolderPath)
-                obj.UIControls.ProjectTable.Data(rowIdx, 'Path') = {projectFolderPath};
+                obj.ProjectManager.updateProjectDirectory(projectName, newProjectDirectory)
+                obj.UIControls.ProjectTable.Data(rowIdx, 'Path') = {newProjectDirectory};
             end
         end
         
@@ -401,6 +402,18 @@ classdef ProjectManagerUI < handle
             end
         end
         
+        function openProjectFolder(obj, rowIdx)
+            folderPath = obj.UIControls.ProjectTable.Data{rowIdx, 4};
+            utility.system.openFolder(folderPath{1})
+        end
+
+        function uiLocateProjectFolder(obj, rowIdx)
+            folderPath = uigetdir();
+            if ~isequal(folderPath, 0)
+                obj.updateProjectDirectory(rowIdx, folderPath)
+            end
+        end
+
         function setRowStyle(obj, styleType, rowIdx)
         %setRowStyle Set style on row according to type
         %
@@ -660,14 +673,10 @@ classdef ProjectManagerUI < handle
                     obj.deleteProject(obj.SelectedRow)
                     
                 case 'Open project folder'
-                    folderPath = obj.UIControls.ProjectTable.Data{obj.SelectedRow, 4};
-                    utility.system.openFolder(folderPath{1})
+                    obj.openProjectFolder(obj.SelectedRow)
                     
-                case 'Change project folder location'
-                    folderPath = uigetdir();
-                    if ~isequal(folderPath, 0)
-                        obj.changeProjectFolder(obj.SelectedRow, folderPath)
-                    end
+                case 'Update project folder location'
+                    obj.uiLocateProjectFolder(obj.SelectedRow)
             end
         end
        

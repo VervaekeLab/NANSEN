@@ -616,6 +616,10 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             else
                 varNamesA = {obj.settings.VariableName}; 
             end
+
+            if isempty(obj.MetaTable)
+                return
+            end
             
             % Variable names that are in the current metatable.
             varNamesB = obj.MetaTable.Properties.VariableNames;
@@ -810,6 +814,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % structs. Numeric or logical arrays are not valid.
         %
         %   Todo: include date (and time)
+
+        % Todo: Integrate this better across MetaTableViewer and MetaTable
         
             if isa(value, 'numeric') && numel(value) <= 1
                 tf = true;
@@ -821,10 +827,12 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 tf = true;
             elseif isa(value, 'datetime') % TODO.
                 tf = true;
-            elseif isa(value, 'categorical') % TODO.
+            elseif isa(value, 'categorical') || isenum(value)% TODO.
                 tf = true;
             elseif isa(value, 'nansen.metadata.abstract.TableVariable')
                 tf = true;
+            elseif isa(value, 'matlab.mixin.CustomCompactDisplayProvider')
+                tf = true;   
             else
                 tf = false;
             end

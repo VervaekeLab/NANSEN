@@ -38,9 +38,8 @@ function S = getDefaultOptions()
     S.Export.IntensityAdjustmentPercentile_ = {0.05, 0.005, 0};
     S.Export.IntensityAdjustmentMode = 'mean for all frames';
     S.Export.IntensityAdjustmentMode_ = {'mean for all frames', 'brightest/darkest frame'};
-    S.Export.OutputFormat = 'Binary';
-    S.Export.OutputFormat_ = {'Binary'};
-    %S.Export.OutputFormat_ = {'Binary', 'Tiff'}; % todo...
+    S.Export.OutputFormat = 'Tiff';
+    S.Export.OutputFormat_ = {'Binary', 'Tiff'};
     S.Export.saveAverageProjection = true;
     S.Export.saveMaximumProjection = true;
     

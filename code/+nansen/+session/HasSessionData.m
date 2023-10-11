@@ -18,21 +18,44 @@ classdef HasSessionData < uim.handle
 %
 %   Conclusion: Would be nice to solve this in a more elegant way...
 
-    properties (Transient) %(Transient) Todo: Why was this commented out?
+%   Note: The "Data" property is transient because it might potentially
+%   contain alot of in-memory cached data which should not be saved. As the
+%   transient properties do not follow an object if it is sent to a
+%   separate worker, the Data property is dependent and there is a private
+%   property containing the SessionData object. If the Data object is empty
+%   or invalid a new Data object is created.
+
+    properties (Dependent, Transient)
         Data nansen.session.SessionData
     end
-    
+
+    properties (Transient, Access = private)
+        Data_ nansen.session.SessionData
+    end
+
     methods
         function obj = HasSessionData()
             % Assign data for each obj individually
-            for i = 1:numel(obj)
-                obj(i).Data = nansen.session.SessionData(obj(i)); %#ok<AGROW>
-            end
+            obj.assignSessionData()
         end
 
         function delete(obj)
-            delete(obj.Data)
+            delete(obj.Data_)
         end
+    end
+
+    methods % Set/get
+
+        function data = get.Data(obj)
+            % Reinitialize data if it is empty
+            for i = 1:numel(obj)
+                if isempty(obj(i).Data_)
+                    obj(i).Data_ = nansen.session.SessionData(obj(i));
+                end
+            end
+            data = obj.Data_;
+        end
+
     end
     
 % %         Todo: Is this even possible without breaking my head. How to
@@ -110,7 +133,16 @@ classdef HasSessionData < uim.handle
     end
     
     methods (Access = private)
-          
+        
+        function assignSessionData(obj)
+            % Assign data for each obj individually
+            for i = 1:numel(obj)
+                if isempty(obj(i).Data_) || ~isvalid(obj(i).Data_)
+                    obj(i).Data_ = nansen.session.SessionData(obj(i));
+                end
+            end
+        end
+
         function [tf, idx] = isDataSubsrefed(obj, s)
             
             if strcmp(s(1).type, '.') && strcmp(s(1).subs, 'Data')

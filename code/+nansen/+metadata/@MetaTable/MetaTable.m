@@ -62,7 +62,7 @@ classdef MetaTable < handle
 
         filepath = ''       % Filepath where metatable is saved locally
         members             % IDs for MetaTable entries 
-        entries             % MetaTable entries
+        entries table       % MetaTable entries
 
     end
 
@@ -301,11 +301,13 @@ classdef MetaTable < handle
             
             % Check that members and entries are corresponding... Only
             % relevant for master inventories (Todo: make conditional?).
-            if ~isequal(obj.members, obj.entries.(obj.SchemaIdName))
-                warning(['MetaTable is corrupted. Fixed during ', ...
-                    'loading, but you should investigate.'])
-                
-                obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            if ~isempty(obj.members)
+                if ~isequal(obj.members, obj.entries.(obj.SchemaIdName))
+                    warning(['MetaTable is corrupted. Fixed during ', ...
+                        'loading, but you should investigate.'])
+                    
+                    obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+                end
             end
             
             % Assign flag stating that entries are not modified.
@@ -450,7 +452,8 @@ classdef MetaTable < handle
                 obj.setDefault()
             end
             
-            obj.save()
+            forceSave = true; % Need to make sure it is saved.
+            obj.save(forceSave)
         end
         
         function S = toStruct(obj, source)
@@ -579,6 +582,9 @@ classdef MetaTable < handle
             isCategorical = cellfun(@iscategorical, firstRowData);
             formattingFcn(isCategorical) = {'char'};
 
+            isEnum = cellfun(@isenum, firstRowData);
+            formattingFcn(isEnum) = {'char'};
+            
             isString = cellfun(@isstring, firstRowData);
             formattingFcn(isString) = {'char'}; % uiw.widget.Table does is not compatible with strings.
 
@@ -627,7 +633,11 @@ classdef MetaTable < handle
                 elseif isa( thisFormatter, 'function_handle')
                     try
                         tmpObj = thisFormatter( jColumnValues );
-                        formattedValue = tmpObj.getCellDisplayString();
+                        if isa(tmpObj, 'cell')
+                            formattedValue = tmpObj;
+                        else
+                            formattedValue = tmpObj.getCellDisplayString();
+                        end
                     catch ME
                         if contains(ME.message, 'rgb2hsv')
                             warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
@@ -646,6 +656,15 @@ classdef MetaTable < handle
             
             % Convert back to table.
             T = struct2table(tempStruct, 'AsArray', true); 
+        end
+
+        function strVector = getCustomDisplayString(~, dataObj)
+            strVector = cell(numel(dataObj), 1);
+
+            for i = 1:numel(dataObj)
+                rep = dataObj{i}.compactRepresentationForColumn();
+                strVector{i} = rep.Representation; 
+            end
         end
         
 % % % % Methods for modifying entries

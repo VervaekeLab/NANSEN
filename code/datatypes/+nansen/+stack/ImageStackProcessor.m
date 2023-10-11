@@ -43,6 +43,10 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
 % - - - - - - - - - - TODO - - - - - - - - - - - - - - - - - - -
 %     [v] Make separate StackIterator class   
 %
+%     [ ] Abstract constant property HasOutputStack. Boolean flag
+%     indicating if the method produces an output stack. Use this to add an
+%     options group with options for the output stack...
+%   
 %     [ ] Check which parts are finished across channels and planes.
 %
 %     [ ] ProcessPart should be public. How to tell which part to process
