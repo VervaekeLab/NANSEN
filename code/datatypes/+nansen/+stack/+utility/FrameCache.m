@@ -203,8 +203,9 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             if isempty(cacheSize); cacheSize = 1; end
 
 
-            if isscalar(cacheLength) % && ~isscalar(cacheSize)
+            if isscalar(cacheLength) && ~isscalar(cacheSize)
                 cacheSize(end) = cacheLength ./ prod(cacheSize(1:end-1));
+                cacheSize = round(cacheSize);
             else
                 assert(ndims(cacheLength)==ndims(cacheSize), 'Cache length must be of size n-2 where n is the number of dimensions in the data')
                 cacheSize = cacheLength;
@@ -215,7 +216,8 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             % not happend), or this function is called before a valid cache
             % length has been set, which should also not happen. So in
             % other words, if this fails, I have made a mistake somewhere..
-            assert(mod(cacheSize(end), 1) == 0, 'Cache length does not match length of data dimensions')
+            assert(mod(cacheSize(end), 1) == 0, ...
+                'Cache length does not match length of data dimensions')
             
             obj.CacheSize_ = cacheSize;
             
