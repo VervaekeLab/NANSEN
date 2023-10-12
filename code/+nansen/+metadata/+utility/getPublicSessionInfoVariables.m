@@ -37,5 +37,4 @@ function varNames = getPublicSessionInfoVariables(metaTable)
     
     varNames = setdiff(columnVariables, columnVariableIgnore, 'stable');
 
-
 end

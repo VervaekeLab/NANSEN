@@ -18,11 +18,17 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
     
     params = utility.parsenvpairs(params, [], varargin);
     
+    if isa(hAxes, 'imviewer.App'); hAxes = hAxes.Axes; end
+
     if isa(spatialWeights, 'struct')
         if isfield(dataStruct, 'spatial_weights') % extract format...
             roiImageArray = dataStruct.spatial_weights;
             % Todo: What if sparse...
         end
+    elseif isnumeric(spatialWeights) && ndims(spatialWeights) == 3
+        roiImageArray = spatialWeights;
+    elseif islogical(spatialWeights) && ndims(spatialWeights) == 3
+        roiImageArray = spatialWeights;
     end
     
     if ~exist('roiImageArray', 'var')

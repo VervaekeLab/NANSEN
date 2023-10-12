@@ -2,6 +2,7 @@ classdef SciScanRaw < nansen.stack.data.VirtualArray & nansen.stack.utility.TwoP
 %SciScanRaw Virtual data adapter for a sciscan raw file
 
 properties (Constant, Hidden)
+    FilenameExpression = '\d{8}_\d{2}_\d{2}_\d{2}'
     FILE_PERMISSION = 'read' % SciScan files should only be read from
 end
 
@@ -236,9 +237,7 @@ methods % Subclass specific methods
         inistring = fileread(inifilepath);
 
         metadata = struct();
-       
-        metadata.experimentType = obj.readinivar(inistring, 'experiment.type');
-        
+
         % Resolve data type
         fileformat = obj.readinivar(inistring,'file.format');
         switch fileformat
@@ -268,15 +267,13 @@ methods % Subclass specific methods
             metadata.nFrames = obj.getFrameCount(metadata);
         end
         
-        % Get volume scan information
+        % Get info about whether recording is a volume (piezo, multi-plane) 
+        % scan or a zstack
+        metadata.experimentType = obj.readinivar(inistring, 'experiment.type');
         metadata.isPiezoActive = obj.readinivar(inistring, 'piezo.active');
-        if metadata.isPiezoActive
-            metadata.nPlanes =  obj.readinivar(inistring, 'frames.per.z.cycle');
-        else
-            metadata.nPlanes = 1;
-        end
         
-        % Read number of planes is this is a ZStack recording
+        % Read number of planes if this is a ZStack recording or get volume
+        % scan information if recording is a multiplane (piezo) scan
         if strcmp(metadata.experimentType, 'XYTZ')
             metadata.zSpacing = obj.readinivar(inistring, 'z.spacing');
             metadata.numFramesPerPlane = obj.readinivar(inistring, 'frames.per.plane');

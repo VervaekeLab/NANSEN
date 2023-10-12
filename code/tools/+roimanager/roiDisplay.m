@@ -33,16 +33,11 @@ classdef roiDisplay < uim.handle
 %
 %       onRoiGroupSet              : handle changes on the roi display
 %                                    when a RoiGroup is set.
-%                                   
-
 
 %   TODO: 
 %       [ ] selectRois should be a method of the roidisplay
 %       [ ] hittest (or similar name) should be a method of the roi display
 %       [ ] Should have a onRoisSelected method 
-
-
-
 
 % Work in progress.
     
@@ -53,7 +48,8 @@ classdef roiDisplay < uim.handle
         classificationColors = { [0.174, 0.697, 0.492], ...
                                  [0.920, 0.339, 0.378], ...
                                  [0.176, 0.374, 0.908] }
-
+        % Todo:
+        % classificationState = enumeration('roimanager.enum.ManualClassification');
     end
     
     properties % Options
@@ -62,7 +58,8 @@ classdef roiDisplay < uim.handle
     end
     
     properties
-        RoiGroup            % The handle of a roigroup object
+        % The handle of a roigroup object
+        RoiGroup %roimanager.roiGroup % Todo: Add property validation, but see comment in roimanager.RoiGroupFileIoAppMixin      
     end
     
     properties (SetAccess = protected)
@@ -70,7 +67,7 @@ classdef roiDisplay < uim.handle
         VisibleRois         % Vector with indices of visible rois
     end
     
-    properties (Access = protected) % RoiGroup event listeners
+    properties (Access = private) % RoiGroup event listeners % Todo: Is it ok that these are private?
         RoisChangedListener event.listener
         RoiSelectionChangedListener event.listener
         RoiClassificationChangedListener event.listener
@@ -97,10 +94,11 @@ classdef roiDisplay < uim.handle
         function onVisibleRoisChanged(obj, evtData)
             % Subclasses may override
         end
+
     end
     
-    
     methods % Todo: Should these be public?
+
         function addRois(obj)
             % Subclass should implement if subclass can add more rois to a
             % RoiGroup.
@@ -132,7 +130,6 @@ classdef roiDisplay < uim.handle
             if ~nargin; return; end
         
             obj.RoiGroup = roiGroup;
-
         end
         
         function delete(obj)
@@ -149,12 +146,17 @@ classdef roiDisplay < uim.handle
             assert( isa(newValue, 'roimanager.roiGroup'), ...
                 'RoiDisplay:InvalidPropertyValue', msg )
             
+            isInitialization = isa(obj.RoiGroup, 'double') && isempty(obj.RoiGroup);
+
             obj.resetListeners()
             obj.RoiGroup = newValue;
             obj.createListeners()
             
-            obj.onRoiGroupSet()
-            
+            if ~isInitialization && ~isempty(obj.RoiGroup)
+                obj.onRoiGroupSet()
+            elseif ~isInitialization && isempty(obj.RoiGroup)
+                obj.resetRoiDisplay()
+            end
         end
         
         function set.SelectedRois(obj, newValue)
@@ -166,7 +168,6 @@ classdef roiDisplay < uim.handle
             
             newValue = unique(newValue, 'stable');
             obj.SelectedRois = newValue;
-            
         end
         
         function set.VisibleRois(obj, newValue)
@@ -187,6 +188,11 @@ classdef roiDisplay < uim.handle
         function onRoiGroupSet(obj)
             % Subclasses may implement
         end
+
+        function resetRoiDisplay(obj)
+            % Subclasses may implement
+            % Todo: Make abstract?
+        end
         
         function updateVisibleRois(obj, roiInd, eventType)
                                 
@@ -204,18 +210,15 @@ classdef roiDisplay < uim.handle
                     visibleRois = [visibleRois, roiInd];
 
                 case 'remove'
-                    
                     for i = sort(roiInd, 'descend')
                         if ismember(i, visibleRois)
                             visibleRois(visibleRois==i)=[];
                         end
                         visibleRois(visibleRois>i) = visibleRois(visibleRois>i)-1;
                     end
-
             end
             
             obj.VisibleRois = visibleRois;
-
         end
         
     end
@@ -244,7 +247,7 @@ classdef roiDisplay < uim.handle
         end
         
         function resetListeners(obj)
-            
+        %resetListeners Reset the RoiGroup event listeners    
             if ~obj.hasListeners; return; end
             
             delete( obj.RoisChangedListener )
@@ -256,7 +259,6 @@ classdef roiDisplay < uim.handle
             obj.RoiSelectionChangedListener = event.listener.empty;
             obj.RoiClassificationChangedListener = event.listener.empty;
             obj.VisibleRoisChangedListener = event.listener.empty;
-            
         end
         
     end

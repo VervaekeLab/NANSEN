@@ -29,7 +29,8 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
 %   'MATLAB:imagesci:Tiff:unableToChangeDir' error ID, current directory is
 %   set to the last directory in the file. In this case, recursive search
 %   is not necessary.
-
+    
+    import nansen.stack.utility.findNumTiffDirectories
     
     if ischar(tiffRef) && isfile(tiffRef)
         [~, ~, ext] = fileparts(tiffRef);

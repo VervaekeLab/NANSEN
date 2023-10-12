@@ -66,7 +66,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     
     
     
-    properties(Constant, Hidden = true)
+    properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false
         DEFAULT_SETTINGS = nansen.ui.MetaTableColumnLayout.getDefaultSettings()
         DEFAULT_COLUMN_WIDTH = 100
@@ -113,17 +113,29 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     
     methods
         
-        function obj = MetaTableColumnLayout(hViewer)
+        function obj = MetaTableColumnLayout(hViewer, varargin)
             
             %obj@applify.mixin.UserSettings;
             %obj.loadSettings()
+
+            % Todo: This should be better integrated...
+            [nvPairs, varargin] = utility.getnvpairs(varargin{:});
+            params = utility.nvpairs2struct(nvPairs);
+            if isfield(params, 'ColumnSettings')
+                obj.settings_ = params.ColumnSettings;
+            end
+          
+            if isfield(params, 'ColumnSettings')
+                obj.settings_ = params.ColumnSettings;
+            end
 
             obj.addColumnOrderToSettings() % temporary
             
             % The editable property depends on the metatable and the
             % associated project-dependent variables and should be updated
             % on each instance creation.
-            obj.updateColumnEditableState()
+            % Todo: This is not good solution. 
+            %obj.updateColumnEditableState();
 
             obj.MetaTableUi = hViewer;
             
@@ -246,6 +258,10 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % dont remember what the difference is between 
         % obj.MetaTableIndicesAll & obj.SettingsIndices
             
+            colIndices = [];
+            if isempty(obj.MetaTable); return; end
+            if isempty(obj.settings); return; end
+
             indAll = obj.MetaTableIndicesAll;            
             
             indSkip = [obj.settings(indAll).SkipColumn];
@@ -289,7 +305,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
       % % Methods for getting varibles from settings:
         
         function [colNames, varNames] = getColumnNames(obj)
+
+            [colNames, varNames] = deal( cell(0,1) );
+
             IND = obj.getIndicesToShowInMetaTable();
+            if isempty(obj.settings); return; end
             colNames = {obj.settings(IND).ColumnLabel};            
             
             % Why this? 
@@ -303,7 +323,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             [~, indSort] = sort(colOrder);
             colNames = colNames(indSort);
             varNames = varNames(indSort);
-
             
             if nargout == 1
                 clear varNames
@@ -348,7 +367,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         
         function setColumnWidths(obj, columnWidths)
         %setColumnWidths Set column width of current metatable columns.
-        
+            
+            if isempty(obj.settings); return; end
+            
             % Todo: Maybe IND should be given in input...
             IND = obj.getIndicesToShowInMetaTable();
             
@@ -504,6 +525,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         function IND = getIndicesToShowInLayoutEditor(obj)
         %getIndicesToShowInLayoutEditor For indexing the settings struct 
         
+            if isempty(obj.settings); IND = []; return; end
+
             % Indices of those variables in settings that are present in
             % current metatable.
             indA = obj.MetaTableIndicesAll;
@@ -582,7 +605,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     end
     
     methods (Access = protected)
-                
+
         function checkAndUpdateColumnEntries(obj)
         %checkAndUpdateColumnEntries Check if new variables are present in
         % the metatable that are missing from the settings.
@@ -592,6 +615,10 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 varNamesA = '';
             else
                 varNamesA = {obj.settings.VariableName}; 
+            end
+
+            if isempty(obj.MetaTable)
+                return
             end
             
             % Variable names that are in the current metatable.
@@ -619,7 +646,16 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 % Get data type of this variable and check if it is valid
                 dataValue = tableRow.(iVarName);          % Todo: Check if this works if dataValue is cell array....
                 isValidDatatype = obj.checkIfColumnDataIsValid(dataValue);
-                isEditable = obj.checkIfColumnIsEditable(iVarName);
+
+                if isa(dataValue, 'nansen.metadata.abstract.TableVariable') %|| isa(dataValue, 'nansen.metadata.tablevar.mixin.HasTableColumnFormatter')
+                    if isempty(dataValue)
+                        isEditable = eval(sprintf('%s.IS_EDITABLE', class(dataValue)));
+                    else
+                        isEditable = dataValue.IS_EDITABLE;
+                    end
+                else
+                    isEditable = obj.checkIfColumnIsEditable(iVarName);
+                end
                 
                 iColumn = numOldEntries + i;
                 obj.settings_(iColumn).VariableName = iVarName;
@@ -642,7 +678,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % this subclass does not have to invoke the onSettingsChanged when
         % settings are set...
             obj.settings_ = newSettings;
-            
+            obj.updateSettingsIndices
         end
         
         function onSettingsChanged(obj, src, event)
@@ -695,10 +731,16 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             obj.MetaTable = obj.MetaTableUi.MetaTable; %Todo: Change to TableVariables 
 
             obj.checkAndUpdateColumnEntries()
-            
+            obj.updateSettingsIndices()
+
+        end
+
+        function updateSettingsIndices(obj)
             % Todo: Update Indices based on what variables are present in
             % the metatable.
             
+            if isempty(obj.MetaTable); return; end
+
             varNamesSettings = {obj.settings.VariableName}; % VarNames already in settings.
             varNamesTable = obj.MetaTable.Properties.VariableNames;
             
@@ -725,6 +767,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         function IND = getIndicesToShowInMetaTable(obj)
         %getIndicesToShowInMetaTable For indexing the settings struct
         
+            if isempty(obj.settings); IND = []; return; end
+
             % Indices of those variables in settings that should be 
             % displayed from the current metatable.
             indA = obj.getIndicesToShowInLayoutEditor();
@@ -770,17 +814,25 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         % structs. Numeric or logical arrays are not valid.
         %
         %   Todo: include date (and time)
+
+        % Todo: Integrate this better across MetaTableViewer and MetaTable
         
             if isa(value, 'numeric') && numel(value) <= 1
                 tf = true;
             elseif isa(value, 'logical') && numel(value) <= 1
                 tf = true;
-            elseif isa(value, 'char')
+            elseif isa(value, 'char') || isa(value, 'string')
                 tf = true;
             elseif isa(value, 'struct') % TODO.
                 tf = true;
             elseif isa(value, 'datetime') % TODO.
                 tf = true;
+            elseif isa(value, 'categorical') || isenum(value)% TODO.
+                tf = true;
+            elseif isa(value, 'nansen.metadata.abstract.TableVariable')
+                tf = true;
+            elseif isa(value, 'matlab.mixin.CustomCompactDisplayProvider')
+                tf = true;   
             else
                 tf = false;
             end
@@ -810,6 +862,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             end
             
         end
+        
     end
-    
 end

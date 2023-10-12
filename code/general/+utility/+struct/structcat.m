@@ -6,6 +6,11 @@ function structArray = structcat(dim, varargin)
 %   same fields, fields are added as needed and initialized with an empty
 %   array.
 
+    % Todo: 
+    %   [ ] get data type from existing fields and initialize values with
+    %       same type
+    %   [ ] order fields before returning?
+
     isStruct = cellfun(@(c) isstruct(c), varargin);
     structCellArray = varargin(isStruct);
     
@@ -18,14 +23,14 @@ function structArray = structcat(dim, varargin)
     end
     
     uniqueFields = unique(cat(1, fieldNames{:}));
-
+        
     % Add missing fields for structs with missing fields
     for i = 1:numStructs
         hasFields = isfield(structCellArray{i}, uniqueFields);
         if any(~hasFields)
             missingFields = uniqueFields(~hasFields);
             for j = 1:numel(missingFields)
-                structCellArray{i}.(missingFields{j}) = [];
+                [structCellArray{i}(:).(missingFields{j})] = deal([]);
             end
         end
     end

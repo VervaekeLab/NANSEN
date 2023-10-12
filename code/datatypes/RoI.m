@@ -29,7 +29,7 @@ properties
     connectedrois = cell(0)     % A list of uid of connected RoIs
     parentroi = cell(0)         % A uid of parent RoIs
     group                       % 
-    celltype                    % Neuron, Astrocyte, other?
+    celltype char               % Neuron, Astrocyte, other?
     structure = 'na'            % Axon, Dendrite, Endfoot, Vein, Artery, Capillary
     xyz                         % X, y and z coordinates relative to a reference point, e.g. bregma
     region = ''                 % Region of the brain where the RoI is drawn 
@@ -999,6 +999,8 @@ methods
         
         data = cell(numel(obj), 1);
         
+        if numel(obj)==0; return; end
+
         for i = 1:numel(obj)
             if ~isfield(obj(i).ApplicationData, name)
                 data{i} = [];
@@ -1042,9 +1044,10 @@ methods
                 pixelIdxList = sub2ind(imsize, round(obj.coordinates(:,2)), round(obj.coordinates(:,1)));
             case 'Polygon'
                 pixelIdxList = find(obj.mask);
-                
-                
         end
+
+        isValid = pixelIdxList>=1 & pixelIdxList<=prod(imsize);
+        pixelIdxList(~isValid) = [];
     end
     
     function [localMask, globalSubs] = getLocalMask(obj)

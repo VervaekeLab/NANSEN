@@ -584,7 +584,7 @@ classdef App < handle & applify.mixin.UserSettings
         %plotMap Plot map from region definitions saved in file
         
             %rootDir = fileparts(mfilename('fullpath'));
-            %rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 1);
+            %rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 2);
             rootDir = fovmanager.localpath('brain_atlas');
             
             loadDir = fullfile(rootDir, 'paxinos');
@@ -2740,7 +2740,7 @@ classdef App < handle & applify.mixin.UserSettings
         
         function pathStr = getIconPath()
             % Set system dependent absolute path for icons.
-%             rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 1);
+%             rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 2);
 %             pathStr = fullfile(rootDir, 'resources', 'icons');
             
             pathStr = fovmanager.localpath('toolbar_icons');

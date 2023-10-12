@@ -13,6 +13,9 @@ classdef ImageStack < nansen.dataio.FileAdapter
     % Note 1: Saving data will always overwrite the existing data.
     % Note 2: Saving of data is only supported for tiff files.
 
+    % Todo: Make this more dynamic, i.e list all file adapters and use
+    % fileadapter file types to determine which to use.
+
 
     properties (Constant)
         DataType = 'ImageStack'
@@ -20,7 +23,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
     end
     
     properties (Constant, Hidden, Access = protected)
-        SUPPORTED_FILE_TYPES = {'ini', 'raw', 'tif', 'tiff', 'avi', 'h5'}
+        SUPPORTED_FILE_TYPES = {'ini', 'raw', 'tif', 'tiff', 'avi', 'h5', 'tsm'}
     end
     
     methods (Access = protected)
@@ -103,9 +106,13 @@ classdef ImageStack < nansen.dataio.FileAdapter
                     className = 'nansen.stack.virtual.Binary';
                     
                 case {'tif', 'tiff'}
-                    %NB!! Add funcion here that checks tiff header.
-                    className = 'nansen.stack.virtual.ScanImageTiff';
-                    %className = 'nansen.stack.virtual.TiffMultiPart';
+                    className = 'nansen.stack.virtual.TiffMultiPart';
+
+                case 'mdf'
+                    className = 'nansen.stack.virtual.MDF';
+
+                case 'tsm'
+                    className = 'ophys.macroscope.TSMVoltageSeries';
 
                 otherwise
                     error('Nansen:DataIO:FileTypeNotSupported', ...
@@ -123,6 +130,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
             
             % Todo: Make function for getting list of virtual data classes
             
+            % List of classes where its enough to check filename
             virtualDataClasses = { ...
                 'nansen.stack.virtual.PrairieViewTiffs', ...
                 'nansen.stack.virtual.TiffMultiPartMultiChannel', ...
@@ -130,14 +138,29 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 };
             
             for i = 1:numel(virtualDataClasses)
-                
                 thisClassName = virtualDataClasses{i};
                 fileNameExpression = eval([thisClassName, '.FilenameExpression']);
                 
                 if ~isempty( regexp(filename, fileNameExpression, 'once') )
                     className = thisClassName;
+                    return
                 end
+            end
+
+            % List of classes where its needed to check metadata
+            virtualDataClasses = { ...
+                'nansen.stack.virtual.SciScanRaw', ...
+                'nansen.stack.virtual.ScanImageTiff' ...
+                };
             
+            for i = 1:numel(virtualDataClasses)
+                thisClassName = virtualDataClasses{i};
+                tf = feval( strcat(thisClassName, '.fileCheck'), filename);
+
+                if tf
+                    className = thisClassName;
+                    return
+                end
             end
         end
         

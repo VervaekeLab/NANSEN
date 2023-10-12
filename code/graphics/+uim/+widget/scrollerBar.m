@@ -39,6 +39,7 @@ classdef scrollerBar < uim.handle
         BarColor = ones(1,3)*0.65;  % Color of the bar
         TrackColor = ones(1,3)*0.4; % Color of the track which the bar slides on
         
+        EnableMouseScroll = 'off'
         Callback = []               % Callback function for when bar is moving.
         StopMoveCallback = []       % Callback function for when bar stops moving.
         Visible = 'on'
@@ -62,6 +63,9 @@ classdef scrollerBar < uim.handle
         isTrackVisible = false;
         ParentSizeChangedListener
         
+        CallbacksEnabled = true
+        MouseScrollListener event.listener
+        
     end % /properties (private)
 
     
@@ -78,7 +82,6 @@ classdef scrollerBar < uim.handle
             % make assertions, e.g. check that its a valid figure/panel.
             obj.hParent = parentContainer;
             
-            
             % Assign name value pairs to object.
             for i = 1:2:numel(varargin)
                 obj.(varargin{i}) = varargin{i+1};
@@ -92,7 +95,6 @@ classdef scrollerBar < uim.handle
             
             obj.isInitialized = true;
             obj.redraw()
-
             
             % Unwrap varargin
             
@@ -101,7 +103,6 @@ classdef scrollerBar < uim.handle
             % slider
             % track
             % chamfer...
-            
 
         end % /scrollerBar
         
@@ -159,7 +160,6 @@ classdef scrollerBar < uim.handle
             
             obj.Visible = newValue;
             obj.onVisibleChanged()
-
         end
         
         function set.Position(obj, newValue)
@@ -167,6 +167,12 @@ classdef scrollerBar < uim.handle
             obj.onPositionChanged()
         end
         
+        function set.EnableMouseScroll(obj, newValue)
+            newValue = validatestring(newValue, {'on', 'off'});
+            obj.EnableMouseScroll = newValue;
+            obj.onEnableMouseScrollValueChanged()
+        end
+
         function showTrack(obj)
         %showTrack Show the track which the scrollbar slides on top.
             obj.hScrollbar(1).Visible = 'on';
@@ -197,7 +203,6 @@ classdef scrollerBar < uim.handle
                 obj.hScrollbar(1).Visible = 'off';
             end
             obj.hScrollbar(2).Visible = 'off';
-            
         end
         
         function setPointerBehavior(obj)
@@ -209,7 +214,6 @@ classdef scrollerBar < uim.handle
             
             iptSetPointerBehavior(obj.hScrollbar(2), pointerBehavior);
             iptPointerManager(ancestor(obj.hScrollbar(2), 'figure'));
-
         end
       
         function highlightBar(obj)
@@ -261,8 +265,6 @@ classdef scrollerBar < uim.handle
                     end
                 end
             end
-
-            
         end % /hittest
         
         function change = checkMoveLimits(obj, change, currentPosition)
@@ -275,7 +277,6 @@ classdef scrollerBar < uim.handle
             else
                 % All is good
             end
-            
         end
         
         function startScrollbarMove(obj, src, ~)
@@ -303,14 +304,12 @@ classdef scrollerBar < uim.handle
             
             hFig.WindowButtonMotionFcn = @obj.moveScrollbar;
             hFig.WindowButtonUpFcn = @obj.stopScrollbarMove;
-            
         end % /startScrollbarMove
         
         function moveScrollbar(obj, ~, event)
         %moveScrollbar Callback to handle interactive movement of bar.
         
             % Todo: Make this more intuitive....
-
             
             if isa(event, 'matlab.ui.eventdata.WindowMouseData')
                 
@@ -325,8 +324,6 @@ classdef scrollerBar < uim.handle
                 
                 change = newPosition - obj.moveStartPosition;
                 barInitialPosition = min(obj.barInitialCoords);
-
-                
                 
             elseif isa(event, 'matlab.ui.eventdata.ScrollWheelData')
                 
@@ -351,7 +348,6 @@ classdef scrollerBar < uim.handle
                 else
                     return;
                 end
-                
             end
             
             change = obj.checkMoveLimits(change, barInitialPosition);
@@ -362,7 +358,6 @@ classdef scrollerBar < uim.handle
             if newValue ~= obj.Value
                 obj.Value = newValue;
             end
-            
 
         end % /moveScrollbar
         
@@ -436,6 +431,12 @@ classdef scrollerBar < uim.handle
 
         end % /jumpToNewValue
         
+        function resetValue(obj)
+            obj.CallbacksEnabled = false;
+            obj.Value = 0;
+            obj.CallbacksEnabled = true;
+        end
+
     end % /methods
     
     
@@ -455,13 +456,11 @@ classdef scrollerBar < uim.handle
             end
 
             position = min(scrollerData);
-
         end
         
     end
     
     methods (Access = private)
-        
         
         function createScrollbar(obj)
         %createScrollbar Initialize the scrollbar graphical objects.
@@ -531,14 +530,18 @@ classdef scrollerBar < uim.handle
             
         end % /createScrollbar
         
+        function onMouseScrolled(obj, src, evt)
+            obj.moveScrollbar(src, evt)
+        end
         
         function onValueChanged(obj)
         %onValueChanged Execute callback on Value change (bar is moved).
             if ~isempty(obj.Callback)
-                obj.Callback(obj, [])
+                if obj.CallbacksEnabled
+                    obj.Callback(obj, [])
+                end
             end
         end % /onValueChanged
-        
         
         function onPositionChanged(obj)
             if obj.isInitialized
@@ -548,7 +551,6 @@ classdef scrollerBar < uim.handle
                 obj.hScrollbarAxes.Position = obj.Position;
             end
         end
-        
         
         function onVisibleChanged(obj)
             
@@ -560,16 +562,27 @@ classdef scrollerBar < uim.handle
                         obj.hide()
                 end
             end
-            
         end
-        
         
         function onStyleChanged(obj)
             obj.hScrollbar(1).FaceColor = obj.TrackColor;
             obj.hScrollbar(2).FaceColor = obj.BarColor;
         end
         
-        
+        function onEnableMouseScrollValueChanged(obj)
+            
+            if obj.EnableMouseScroll
+                hFigure = ancestor(obj.hParent, 'figure');
+                obj.MouseScrollListener = listener(hFigure, ...
+                    'WindowScrollWheel', @obj.onMouseScrolled);
+            else
+                if ~isempty(obj.MouseScrollListener)
+                    delete(obj.MouseScrollListener)
+                    obj.MouseScrollListener = event.listener.empty;
+                end
+            end
+        end
+
         function updateBarLength(obj)
         %updateBarLength Update scrollerbar height.
         
@@ -655,7 +668,6 @@ classdef scrollerBar < uim.handle
                     case 'vertical'
                         obj.hScrollbar(2).YData =  scrollerData + change;
                 end
-                
             end
             
         end % /updateBarPosition
@@ -663,7 +675,6 @@ classdef scrollerBar < uim.handle
 
         function updateTrackLimits(obj)
 
-            
             switch lower(obj.Orientation)
                 case 'horizontal'
                     xDataTrack = obj.hScrollbarAxes.XLim([1,2,2,1]);
@@ -673,11 +684,9 @@ classdef scrollerBar < uim.handle
                     yDataTrack = obj.hScrollbarAxes.YLim([2,1,1,2]);
                     obj.hScrollbar(1).YData = yDataTrack;
             end
-            
         end
 
         
     end % /methods (private)
-    
     
 end % /classdef

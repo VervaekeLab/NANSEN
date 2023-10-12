@@ -39,7 +39,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             
             varargin = [varargin, {'Data', dataLocationModel.Data}];
             obj@applify.apptable(varargin{:})
-            
         end
         
         function delete(obj)
@@ -604,8 +603,10 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                     % edited.
                     if isempty(rootPathIdx)
                         rootPathIdx = find(strcmp(src.Items, evt.PreviousValue));
+                    elseif numel(rootPathIdx) > 1
+                        warning('Multiple paths matched the new value, selected first one')
+                        rootPathIdx = rootPathIdx(1);
                     end
-                    
                     
                     if isempty(src.UserData.Keys) % Need to initialize a key
                         thisKey = nansen.util.getuuid();
@@ -627,6 +628,10 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             modifiedRootPath(rootPathIdx).Key = thisKey;
             modifiedRootPath(rootPathIdx).Value = newPath;
 
+            % Add name of disk to the rootpath struct.
+            diskName = obj.DataLocationModel.resolveDiskName(newPath);
+            modifiedRootPath(rootPathIdx).DiskName = diskName;
+
             % Update the data location model.
             dataLocationItem = obj.DataLocationModel.getItem(rowIdx);
             obj.DataLocationModel.modifyDataLocation(dataLocationItem.Name, ...
@@ -635,7 +640,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.IsDirty = true;
 
             % Automatically fill out 2nd datalocation rootdir if it is empty.
-            if rowIdx == 1 && isempty( obj.Data(2).RootPath )
+            if rowIdx == 1 && numel(obj.Data) > 1 && isempty( obj.Data(2).RootPath )
 
                 parentDir = fileparts(newPath);
                 
@@ -644,9 +649,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
 
                 obj.DataLocationModel.modifyDataLocation(obj.Data(2).Name, ...
                     'RootPath', rootPath)
-                
             end
-            
         end
         
         function onBrowseRootDirButtonPushed(obj, src, ~)
@@ -725,7 +728,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                         
             % This is only a ui change, so this should not be updated in
             % the model. 
-            
         end
         
         function onRemoveRootDirButtonPushed(obj, src, ~)

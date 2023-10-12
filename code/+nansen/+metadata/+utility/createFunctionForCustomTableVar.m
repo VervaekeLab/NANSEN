@@ -10,8 +10,8 @@ function createFunctionForCustomTableVar(initializationStruct)
     assert(isvarname(variableName), '%s is not a valid variable name', variableName)
     
     % Get the path for the template function
-    rootPathSource = nansen.rootpath;
-    fcnSourcePath = fullfile(rootPathSource, '+metadata', '+tablevar', 'TemplateFunction.m');
+    rootPathSource = nansen.localpath('table_variable_templates');
+    fcnSourcePath = fullfile(rootPathSource, 'TemplateFunction.m');
     
     % Modify the template function by adding the variable name
     fcnContentStr = fileread(fcnSourcePath);

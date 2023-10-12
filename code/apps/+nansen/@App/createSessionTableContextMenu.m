@@ -77,15 +77,23 @@ function createSessionTableContextMenu(app)
         hSubmenuItem.Callback = @app.updateTableVariable;
     end
 
+% % %     % Todo: This should be conditional, and depend on whether a metadata
+% % %     % model is present as extension and if any schemas are selected
+% % %     c = c + 1;
+% % %     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'View Schema Info');
+% % %     hMenuItem(c).Callback = @(s, e) app.viewSchemaInfo();
+
+
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy SessionID(s)', 'Separator', 'on');
     hMenuItem(c).Callback = @(s, e) app.copySessionIdToClipboard;
 
-    
+    c = c + 1;
+    hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Remove Session', 'Separator', 'on');
+    hMenuItem(c).Callback = @(s, e) app.onRemoveSessionMenuClicked;
+
+
     %m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
-    %m4 = uimenu(hContextMenu, 'Text', 'Edit Session Notes', 'Callback', @app.editSessionNotes, 'Enable', 'on');
     %m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');
-    
-    %app.UiMetaTableViewer.TableContextMenu = 
-    
+        
 end

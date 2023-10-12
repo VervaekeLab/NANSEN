@@ -50,9 +50,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         Protocol char       % What is the name of the protocol
         Description char    % A description of the session
 
-        DataLocation struct % Where is session data stored
+        DataLocation struct % Where is session data stored % todo: setaccess should be private
         Progress struct     % Whats the pipeline status / progress
-        
     end
     
     properties (Constant, Hidden)
@@ -68,7 +67,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         % assignPVPairs, the property is not set in  the constructor:/ Need
         % to adapt constructor, to retrieve datalocationmodel from pvpairs
         % and assign in constructor
-        
     end
 
     methods % Constructor
@@ -88,13 +86,11 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
             
             if ~all([obj.IsConstructed])
-                
                 if isa(varargin{1}, 'struct')
                     obj.constructFromDataLocationStruct(varargin{1})
                 elseif isa(varargin{1}, 'char')
                     obj.contructFromFolderPath(varargin{1})
                 end
-                
             end
             
             % Need to update data locations based on data location model
@@ -107,7 +103,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % as input???
             
             % Todo: update datalocation struct from data location model
-            
         end
         
     end
@@ -121,8 +116,14 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % Todo: Should I accept old and new dataLocation structure? NO
             
             obj.DataLocation = dataLocationStruct;
-            obj.autoAssignPropertiesOnConstruction()
-
+            try
+                obj.autoAssignPropertiesOnConstruction()
+            catch ME
+                dlName = fieldnames(dataLocationStruct);
+                msg = sprintf('Something went wrong when setting session information for session detected at \n%s\n', ...
+                    dataLocationStruct.(dlName{1}));
+                warning([msg, newline, ME.message])
+            end
         end
         
         function contructFromFolderPath(obj, folderPath)
@@ -201,6 +202,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
 
         end
         
+        % Pipeline/progress
+
         function assignPipeline(obj, pipelineName)
         %assignPipeline Assign pipeline to session object   
             % Todo: Add call to user defined function.
@@ -293,80 +296,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
         end
         
-        function refreshDataLocations(obj)
-            
-            obj.fixDataLocations()
-            
-            %tic
-            for iObj = 1:numel(obj)
-                
-                for jDl = 1:numel(obj(iObj).DataLocation)
-                    
-                    dlUuid = obj(iObj).DataLocation(jDl).Uuid;
-                    
-                    [S(jDl)] = obj(iObj).DataLocationModel.getItem(dlUuid);
-                    
-                    fields = {'Name', 'Type'};
-                    for k = 1:numel(fields)
-                        obj(iObj).DataLocation(jDl).(fields{k}) = S(jDl).(fields{k});
-                    end
-                    
-                    rootUid = obj(iObj).DataLocation(jDl).RootUid;
-                    rootIdx = find( strcmp( {S(jDl).RootPath.Key}, rootUid ) );
-                    
-                    if ~isempty(rootIdx)
-                        obj(iObj).DataLocation(jDl).RootPath = S(jDl).RootPath(rootIdx).Value;
-                    end
-                end
-                
-            end
-            
-            %toc
-            
-        end
-        
-        function fixDataLocations(obj)
-        
-            if isfield(obj(1).DataLocation, 'Uuid'); return; end
-            
-            for j = 1:numel(obj)
-                
-                % Initialize a datalocation struct for session object
-                S = struct('Uuid', {}, 'RootUid', {}, 'Subfolders', {});
-                
-                % Loop through datalocations of the DataLocationModel
-                for i = 1:obj(j).DataLocationModel.NumDataLocations
-                    dataLocation = obj(j).DataLocationModel.getItem(i);
-                
-                    % Check if there is a root folder in the
-                    % DataLocationModel matching the rootfolder for the
-                    % current datalocation of the session object
-                    name = dataLocation.Name;
-                    rootPaths = {dataLocation.RootPath.Value};
-                    
-                    for k = 1:numel(rootPaths)
-                        isMatched = contains( obj(j).DataLocation.(name), rootPaths{k} );
-                        if isMatched
-                            root = rootPaths{k};
-                            rootIdx = k;
-                            break
-                        end
-                    end
-                    
-                    % Add root uid and subfolders if a rootfolder was
-                    % matched from the DataLocationModel
-                    S(i).Uuid = dataLocation.Uuid;
-                    if ~isempty(rootPaths) && isMatched
-                        S(i).RootUid = dataLocation.RootPath(rootIdx).Key;
-                        S(i).Subfolders = strrep(obj(j).DataLocation.(name), root, '');
-                    end
-                end 
-                
-                obj(j).DataLocation = S;
-            end
-            
-        end
-        
+
     end
    
     methods % Set methods
@@ -407,7 +337,137 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
     end
     
     methods % Data location
+          
+        function refreshDataLocations(obj)
+            
+            obj.fixDataLocations()
+            
+            for iObj = 1:numel(obj)
+                
+                for jDl = 1:numel(obj(iObj).DataLocation)
+                    
+                    dlUuid = obj(iObj).DataLocation(jDl).Uuid;
+                    
+                    [S(jDl)] = obj(iObj).DataLocationModel.getItem(dlUuid);
+                    
+                    fields = {'Name', 'Type'};
+                    for k = 1:numel(fields)
+                        obj(iObj).DataLocation(jDl).(fields{k}) = S(jDl).(fields{k});
+                    end
+                    
+                    rootUid = obj(iObj).DataLocation(jDl).RootUid;
+                    rootIdx = find( strcmp( {S(jDl).RootPath.Key}, rootUid ) );
+                    
+                    if ~isempty(rootIdx)
+                        obj(iObj).DataLocation(jDl).RootPath = S(jDl).RootPath(rootIdx).Value;
+                        obj(iObj).DataLocation(jDl).RootIdx = rootIdx;
+                        obj(iObj).DataLocation(jDl).Diskname = S(jDl).RootPath(rootIdx).DiskName;
+                    end
+                end
+            end
+        end
         
+        function fixDataLocations(obj)
+        
+        %   % Todo: Consolidate with DataLocationModel/validateDataLocationPaths
+
+
+            if isfield(obj(1).DataLocation, 'Uuid'); return; end
+            
+            for j = 1:numel(obj)
+                
+                % Initialize a datalocation struct for session object
+                S = struct('Uuid', {}, 'RootUid', {}, 'Subfolders', {}, 'RootIdx', {}, 'Diskname', {});
+                
+                % Loop through datalocations of the DataLocationModel
+                for i = 1:obj(j).DataLocationModel.NumDataLocations
+                    dataLocation = obj(j).DataLocationModel.getItem(i);
+                
+                    % Check if there is a root folder in the
+                    % DataLocationModel matching the rootfolder for the
+                    % current datalocation of the session object
+                    name = dataLocation.Name;
+                    rootPaths = {dataLocation.RootPath.Value};
+                    
+                    for k = 1:numel(rootPaths)
+                        isMatched = contains( obj(j).DataLocation.(name), rootPaths{k} );
+                        if isMatched
+                            root = rootPaths{k};
+                            rootIdx = k;
+                            break
+                        end
+                    end
+
+                    % Add root uid and subfolders if a rootfolder was
+                    % matched from the DataLocationModel
+                    S(i).Uuid = dataLocation.Uuid;
+                    if ~isempty(rootPaths) && isMatched
+                        S(i).RootUid = dataLocation.RootPath(rootIdx).Key;
+                        S(i).Subfolders = strrep(obj(j).DataLocation.(name), root, '');
+                        S(i).RootIdx = rootIdx;
+                        S(i).Diskname = dataLocation.RootPath(rootIdx).DiskName;
+                    else
+                        S(i).RootIdx = nan;
+                        S(i).Diskname = 'N/A';
+                    end
+                end 
+                
+                obj(j).DataLocation = S;
+            end
+        end
+
+        function S = getDataLocation(obj, dataLocationName)
+        %getDataLocation Get datalocation item for given datalocation name 
+        %
+        %   Note: DataLocation should be a private property. Then this
+        %   method might be useful
+            
+            if nargin < 2
+                dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+            end
+            
+            if isempty(dataLocationName)
+                error('Data location name is required')
+            end
+        
+            % Get index for datalocation which is provided...
+            if ~isempty(obj.DataLocationModel)
+                [~, idx] = obj.DataLocationModel.getItem(dataLocationName);
+            else
+                idx = find(strcmp({obj.DataLocation.Name}, dataLocationName));
+            end
+                
+            if isempty(idx)
+                error(['Data location type ("%s") is not valid. Please use one of the following:\n', ...
+                           '%s'], dataLocationName, strjoin(obj.DataLocationModel.DataLocationNames, ', ') )
+            end
+            
+            S = obj.DataLocation(idx);
+        end
+                
+        function folderPath = getDataLocationRootDir(obj, dataLocationName)
+        %getDataLocationRoot Get root directory for given datalocation name    
+            if nargin < 2
+                dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+            end
+            
+            S = obj.getDataLocation(dataLocationName);
+            
+            folderPath = S.RootPath;
+        end
+        
+        function replaceDataLocation(obj, dataLocationStruct)
+        %replaceDataLocation Brute force replace the data location struct.
+        %
+        %   This should be a private method.
+
+            obj.DataLocation = dataLocationStruct;
+
+            eventData = uiw.event.EventData('Property', 'DataLocation', ...
+                'NewValue', dataLocationStruct);
+            obj.notify('PropertyChanged', eventData)
+        end
+
         function updateDataLocations(obj)
             
             error('This method is down for maintenance')
@@ -459,6 +519,94 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
             
         end
+    
+        function updateRootDirPath(obj, dataLocationName, newRootPath)
+        %updateRootDirPath Update root directory path for a data location
+        
+            i = strcmp({obj.DataLocation.Name}, dataLocationName);
+            dlItem = obj.DataLocationModel.getItem(dataLocationName);
+            
+            oldRootPath = obj.DataLocation(i).RootPath;
+
+            if ~strcmp(oldRootPath, newRootPath)
+                
+                % Find the uid of the new root directory
+                isMatch = strcmp({dlItem.RootPath.Value}, newRootPath);
+                if ~any(isMatch)
+                    error('The specified rootpath does not match any rootpaths in the data location model')
+                end
+                obj.DataLocation(i).RootUid = dlItem.RootPath(isMatch).Key;
+                obj.DataLocation(i).RootPath = newRootPath;
+                obj.DataLocation(i).RootIdx = find(isMatch);
+                obj.DataLocation(i).Diskname = dlItem.RootPath(isMatch).DiskName;
+                  
+                eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', obj.DataLocation);
+                obj.notify('PropertyChanged', eventData)
+            end
+        end
+        
+        function updateRootDir(obj, rootdirStruct)
+        %updateRootDir Updates the root directories based on input struct
+        %
+        %   sessionObj.updateRootDir(rootdirStruct) updates the
+        %   rootdirectories of the session's data location based on
+        %   information in rootdirStruct. rootDir struct is a structure
+        %   where each fieldname is the name of a datalocation and each
+        %   value is the corresponding new root directory for that data
+        %   location.
+        
+            wasModified = false;
+        
+            for i = 1:numel(obj.DataLocation)
+                try
+                    thisDataLocName = obj.DataLocation(i).Name;
+                    
+                    oldRootDir = obj.DataLocation(i).RootPath;
+                    newRootDir = rootdirStruct.(thisDataLocName).RootPath;
+                    if ~strcmp( oldRootDir, newRootDir )
+                        thisModel = obj.DataLocationModel.getItem(i);
+                        
+                        % Find the uid of the new root directory
+                        rootIdx = strcmp({thisModel.RootPath.Value}, newRootDir);
+                        obj.DataLocation(i).RootUid = thisModel.RootPath(rootIdx).Key;
+                        obj.DataLocation(i).RootPath = newRootDir;
+                        obj.DataLocation(i).RootIdx = rootIdx;
+                        obj.DataLocation(i).Diskname = thisModel.RootPath(rootIdx).DiskName;
+                        
+                        wasModified = true;
+                    end
+                    
+                    oldSubfolder = obj.DataLocation(i).Subfolders;
+                    newSubfolder = rootdirStruct.(thisDataLocName).Subfolder;
+                    if ~strcmp( oldSubfolder, newSubfolder )
+                        obj.DataLocation(i).Subfolders = newSubfolder;
+                        wasModified = true;
+                    end
+                catch
+                    %fprintf('Failed to set data location root for %s\n', thisDataLocName)
+                end
+            end
+            
+            if wasModified
+                % Notify with the "reduced" data location struct (Not
+                % anymore!)
+                %T = struct2table(obj.DataLocation, 'AsArray', true);
+                %S = transpose( table2struct(T(:, {'Uuid', 'RootUid', 'Subfolders'})) );
+                %eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', S);
+                eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', obj.DataLocation);
+                obj.notify('PropertyChanged', eventData)
+            end
+            
+        end
+        
+        function updateSessionFolder(obj, dataLocationName, folderPath)
+
+            % Update root path
+
+            % Update subfolders
+
+
+        end
     end
     
     methods % Load data variables
@@ -471,6 +619,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
 
         end
         
+        % Todo: Move to variable model
         function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
         %getFileAdapterFcn Get function handle for creating file adapter                
             
@@ -528,10 +677,20 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % TODO:
             %   [v] Implement file adapters.
             
+            % Todo: Allow multiple variable names
+%             if ~iscell(varName)
+%                 varName = {varName};
+%             end
+            
+            % Note: Assume all the provided variables come from the same file
             [filePath, variableInfo] = obj.getDataFilePath(varName, '-r', varargin{:});
             
-            obj.assertValidFileAdapter(variableInfo, 'load')
-            fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
+            if ~isempty( utility.getnvparametervalue(varargin, 'FileAdapter') )
+                fileAdapterFcn = str2func( utility.getnvparametervalue(varargin, 'FileAdapter') );
+            else
+                obj.assertValidFileAdapter(variableInfo, 'load')
+                fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
+            end
             
             if isfile(filePath)
                 
@@ -539,7 +698,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     
                     case 'N/A'
                         error('Nansen:Session:LoadData', ...
-                            'No file adapter is available for variable "%s"', varName)
+                            'No file adapter is available for variable "%s"', varName) %strjoin(varName, ', ')
                     
                     case 'Default'
                         
@@ -547,6 +706,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                         % files etc.
                         
                         S = load(filePath, varName);
+                        
                         if isfield(S, varName)
                             data = S.(varName);
                         else
@@ -637,18 +797,19 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     else
                         save(filePath, '-struct', 'S')
                     end
+                    
                 otherwise
                     fileAdapterFcn(filePath, '-w').save(data, varName);
                     % data = fileAdapterFcn(filePath).load(varName); %Todo
-
             end
-            
+            obj.Data.resetCache(varName)
         end
         
         function validateVariable(obj, variableName)
         %validateData Does data variable exists?
             
-            
+            % Todo: Rename to assertVariableAvailable?
+
             %variableModel = nansen.config.varmodel.VariableModel;
             variableModel = obj.VariableModel;
 
@@ -684,24 +845,12 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
         end
         
-        function tf = existSessionFolder(obj, dataLocationName)
-        %existSessionFolder Check is folder for data location exists.
-            
-            try
-                obj.getSessionFolder( dataLocationName );
-                tf = true;
-            catch ME
-                if strcmp(ME.identifier, 'NANSEN:Session:FolderNotFound')
-                    tf = false;
-                else
-                    rethrow(ME)
-                end
-            end
-            
-        end
-        
         function tf = existVariable(obj, varName)
-            %variableModel = nansen.config.varmodel.VariableModel;
+            filePath = obj.getDataFilePath(varName);
+            tf = isfile(filePath);
+        end
+
+        function tf = existVariableInModel(obj, varName)
             variableModel = obj.VariableModel;
             [~, tf] = variableModel.getVariableStructure(varName);
         end
@@ -766,6 +915,16 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             %       if files are separate by imaging channel, imaging plane,
             %       trials or are just split into multiple parts...
             
+
+            % If input is a cell array of variable names, call this method
+            % for each variable.
+            if isa(varName, 'cell')
+                if nargout == 1
+                    error('Please provide a variable name as a character vector.')
+                else
+                    error('Session:NotImplementedYet', 'Can not retrieve variable info for multiple variables.')
+                end
+            end
             
             % Get the model for data file paths.
             
@@ -782,7 +941,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         
             if ~isExistingEntry % Create variableItem using input options.
                 parameters = struct(varargin{:});
-                S = utility.parsenvpairs(S, [], parameters);
+                S = utility.parsenvpairs(S, 1, parameters);
                 if isempty(S.DataLocation)
                     dlItem = obj.DataLocationModel.getDefaultDataLocation;
                     S.DataLocation = dlItem.Name;
@@ -835,7 +994,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             if nargout == 2
                 variableInfo = S;
             end
-            
         end
         
         function [mode, varargin] = checkDataFilePathMode(~, varargin)
@@ -930,65 +1088,24 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
         end
         
-        function folderPath = getDataLocationRootDir(obj, dataLocationName)
-        %getDataLocationRoot Get root directory for given datalocation name    
-            if nargin < 2
-                dataLocationName = obj.DataLocationModel.DefaultDataLocation;
-            end
+        % Session folder
+
+        function tf = existSessionFolder(obj, dataLocationName)
+        %existSessionFolder Check is folder for data location exists.
             
-            S = obj.getDataLocation(dataLocationName);
-            
-            folderPath = S.RootPath;
-        end
-        
-        function updateRootDir(obj, rootdirStruct)
-        %updateRootDir Updates the root directories based on input struct
-        %
-        %   sessionObj.updateRootDir(rootdirStruct) updates the
-        %   rootdirectories of the session's data location based on
-        %   information in rootdirStruct. rootDir struct is a structure
-        %   where each fieldname is the name of a datalocation and each
-        %   value is the corresponding new root directory for that data
-        %   location.
-        
-            wasModified = false;
-        
-            for i = 1:numel(obj.DataLocation)
-                thisDataLocName = obj.DataLocation(i).Name;
-                
-                oldRootDir = obj.DataLocation(i).RootPath;
-                newRootDir = rootdirStruct.(thisDataLocName).RootPath;
-                if ~strcmp( oldRootDir, newRootDir )
-                    thisModel = obj.DataLocationModel.getItem(i);
-                    
-                    % Find the uid of the new root directory
-                    rootIdx = strcmp({thisModel.RootPath.Value}, newRootDir);
-                    obj.DataLocation(i).RootUid = thisModel.RootPath(rootIdx).Key;
-                    obj.DataLocation(i).RootPath = newRootDir;
-                    
-                    wasModified = true;
-                end
-                
-                oldSubfolder = obj.DataLocation(i).Subfolders;
-                newSubfolder = rootdirStruct.(thisDataLocName).Subfolder;
-                if ~strcmp( oldSubfolder, newSubfolder )
-                    obj.DataLocation(i).Subfolders = newSubfolder;
-                    wasModified = true;
+            try
+                obj.getSessionFolder( dataLocationName );
+                tf = true;
+            catch ME
+                if strcmp(ME.identifier, 'NANSEN:Session:FolderNotFound')
+                    tf = false;
+                else
+                    rethrow(ME)
                 end
             end
             
-            if wasModified
-                % Notify with the "reduced" data location struct (Not
-                % anymore!)
-                %T = struct2table(obj.DataLocation, 'AsArray', true);
-                %S = transpose( table2struct(T(:, {'Uuid', 'RootUid', 'Subfolders'})) );
-                %eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', S);
-                eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', obj.DataLocation);
-                obj.notify('PropertyChanged', eventData)
-            end
-            
         end
-        
+
         function folderPath = getSessionFolder(obj, dataLocationName)
         %getSessionFolder Get session folder for a given dataLocationName
         %
@@ -1022,6 +1139,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         function folderPath = createSessionFolder(obj, dataLocationName)
         %createSessionFolder Create a session folder if it does not exist
         
+            if nargin < 2
+                dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+            end
+        
             [~, dlIdx] = obj.DataLocationModel.containsItem(dataLocationName);
             
             % Get the datalocation for this session object for the rootpath
@@ -1032,7 +1153,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     'any data location of type "%s" is read-only.'], dataLocationName, dlSession.Type);
                 error('Nansen:Session:CreateSessionFolderDenied', errMsg)
             end
-            
             
             rootPath = dlSession.RootPath;
             
@@ -1064,17 +1184,14 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             newValue = obj.DataLocation;
             %newValue = obj.DataLocationModel.reduceDataLocationInfo( obj.DataLocation );
             
-            
             eventData = uiw.event.EventData('Property', 'DataLocation', ...
                 'NewValue', newValue);%obj.DataLocation);
             %eventData = obj.getPropertyChangedEventData('DataLocation');
             obj.notify('PropertyChanged', eventData)
             
-            
             if ~nargout
                 clear folderPath
             end
-
         end
         
         function folderName = generateFolderName(obj, subfolderStruct)
@@ -1128,33 +1245,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
         end
         
-        function S = getDataLocation(obj, dataLocationName)
-        %getDataLocation Get datalocation item for given datalocation name                
-            
-            if nargin < 2
-                dataLocationName = obj.DataLocationModel.DefaultDataLocation;
-            end
-            
-            if isempty(dataLocationName)
-                error('Data location name is required')
-            end
-        
-            % Get index for datalocation which is provided...
-            if ~isempty(obj.DataLocationModel)
-                [~, idx] = obj.DataLocationModel.getItem(dataLocationName);
-            else
-                idx = find(strcmp({obj.DataLocation.Name}, dataLocationName));
-            end
-                
-            if isempty(idx)
-                error(['Data location type ("%s") is not valid. Please use one of the following:\n', ...
-                           '%s'], dataLocationName, strjoin(obj.DataLocationModel.DataLocationNames, ', ') )
-            end
-            
-            S = obj.DataLocation(idx);
-            
-        end
-        
+    end
+
+    methods (Access = private)
+
         function errorMsg = getErrorMessage(obj, errorId, varargin)
             % Todo?
         end

@@ -108,7 +108,7 @@ function [f, results] = visualizeDrift(data)
     %axis(ax(4), 'image')
     %set([ax(4).XAxis], 'Visible', 'off')
     %set([ax(4).YAxis], 'Visible', 'off')
-
+    set(ax, 'Units', 'normalized')
 
     if nargout < 1; clear f;       end
     if nargout < 2; clear results; end

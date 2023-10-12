@@ -42,7 +42,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     properties (Access = private)
         SessionObject
         DataLocationModel
-        DataFilePathModel
+        DataVariableModel
     end
     
     properties (Access = private)
@@ -102,9 +102,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             
             for i = 1:numel(varNames)
                 varName_ = strcat( varNames{i}, '_' );
-                obj.(varName_) = [];
+                if isprop(obj, varName_)
+                    obj.(varName_) = [];
+                end
             end
-            
         end
         
     end
@@ -175,8 +176,8 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 return
             end
             
-            obj.DataFilePathModel = nansen.setup.model.FilePathSettingsEditor();
-            varNames = {obj.DataFilePathModel.VariableList.VariableName};
+            obj.DataVariableModel = nansen.config.varmodel.VariableModel();
+            varNames = {obj.DataVariableModel.Data.VariableName};
             
             for i = 1:numel(varNames)
                 try
@@ -185,7 +186,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                     if isfile(filePath)
                         if ~isprop(obj, varNames{i})
                             obj.addDataProperty(varNames{i})
-                            obj.appendToVariableList(obj.DataFilePathModel.VariableList(i))
+                            obj.appendToVariableList(obj.DataVariableModel.Data(i))
                         end
                     end
                 catch
@@ -198,28 +199,34 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             
         end
 
-        function varNames = getDataType(obj, typeName)
+        function varNames = getDataType(obj, typeName, mustExist)
+        %getDataType Get variable names for specified data type
             
-            % Todo: get from session object.
-            dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
-            
-            fileAdapters = {dataFilePathModel.VariableList.FileAdapter};
-            
+            if nargin < 3; mustExist = true; end
+
+            % Todo: get from session object:
+            dataVariableModel = nansen.config.varmodel.VariableModel();
+            fileAdapters = {dataVariableModel.Data.FileAdapter};
+
             switch typeName
                 case {'RoiGroup', 'RoiArray', 'roiArray'}
                     tf = strcmp(fileAdapters, 'RoiGroup');
-                    varNames = {dataFilePathModel.VariableList(tf).VariableName};
+                    varNames = {dataVariableModel.Data(tf).VariableName};
                     
                 otherwise
                     tf = strcmp(fileAdapters, typeName);
-                    varNames = {dataFilePathModel.VariableList(tf).VariableName};
+                    varNames = {dataVariableModel.Data(tf).VariableName};
             end
             
-            tf = false(1, numel(varNames));
-            for i = 1:numel(varNames)
-                tf(i) = isprop(obj, varNames{i} );
+            if mustExist
+                tf = false(1, numel(varNames));
+                for i = 1:numel(varNames)
+                    tf(i) = isprop(obj, varNames{i} );
+                end
+            else
+                tf = true(1, numel(varNames));
             end
-            
+                
             varNames = varNames(tf);
         end
         
@@ -268,15 +275,39 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             else
                 varNames = {};
             end
-            
         end
         
+        function variableName = uiSetVariableName(obj, dataType)
+            
+            if nargin < 2
+                varNames = obj.VariableNames;
+            else
+                varNames = obj.getDataType(dataType, false);
+            end
+
+            nameLabel = 'data variable name';
+
+            variableName = uics.inputOrSelect(varNames, 'Title', ...
+                'Set Variablename', 'ItemName', nameLabel);
+        end
+           
+        function saveType(obj, typeName, data, varargin)
+            
+            variableName = obj.uiSetVariableName(typeName);
+            
+            if isempty(variableName); return; end
+
+            obj.getDataFilePath(variableName, '-w', varargin{:});
+            obj.saveData(variableName, data)
+            obj.updateDataVariables();
+        end
+    
     end
     
     methods (Access = protected)
         
         function addDataProperty(obj, variableName)
-            pPuplic = obj.addprop(variableName);
+            pPublic = obj.addprop(variableName);
             
             % Add a private property that will hold the actual data.
             privateVariableName = strcat(variableName, '_');
@@ -286,10 +317,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             
             %obj.(privateVariableName) = [];
             
-            pPuplic.GetMethod = @(h, varName) obj.getDataVariable(variableName);
+            pPublic.GetMethod = @(h, varName) obj.getDataVariable(variableName);
             
             %pPuplic.SetMethod = @obj.setDataVariable;
-            pPuplic.SetAccess = 'private'; %todo: Add set functionality
+            pPublic.SetAccess = 'private'; %todo: Add set functionality
 
         end
         
@@ -522,7 +553,8 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         
             
             % Todo: 
-            %   [ ] (Why) do I need mode here?
+            %   [v] (Why) do I need mode here? If -w, variable is added to
+            %       model
             %   [ ] Implement load/save differences, and default datapath
             %       for variable names that are not defined.
             %   [ ] Implement ways to grab data spread over multiple files, i.e

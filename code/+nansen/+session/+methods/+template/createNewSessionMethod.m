@@ -14,7 +14,7 @@ function wasSuccess = createNewSessionMethod(app)
     S.Type = 'Function'; % (Template type, i.e use function template or sessionmethod template)
     S.Type_ = {'Function', 'SessionMethod Class'};
     
-    menuNames = app.SessionTaskMenu.getTopMenuNames();
+    menuNames = app.SessionTaskMenu.getRootLevelMenuNames();
     S.MenuLocation = menuNames{1};
     S.MenuLocation_ = menuNames;
     
@@ -37,10 +37,7 @@ function wasSuccess = createNewSessionMethod(app)
             mFilename = 'sessionMethodClassTemplate';
     end
     
-    templateFolderDir = fullfile(nansen.rootpath, '+session', '+methods', ...
-        '+template');
-    
-
+    templateFolderDir = nansen.localpath('session_method_templates');
     fcnSourcePath = fullfile(templateFolderDir, [mFilename, '.m']);
     
     

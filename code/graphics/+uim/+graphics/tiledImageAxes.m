@@ -1,5 +1,5 @@
 classdef tiledImageAxes < uim.handle
-%clib.tiledImageAxes
+%tiledImageAxes Class for creating image tiles in an axes
 %
 %   Create an axes with a grid of tiles, where each tile can hold an image,
 %   a line/patch and a text object. Additionally tiles can be selected
@@ -20,8 +20,14 @@ classdef tiledImageAxes < uim.handle
 %
 %
 %   Examples:
-%       See clib.manualClassifier &
+%       See mclassifier.manualClassifier &
 %       imviewer.widgets.ThumbnailSelector for practical examples.
+
+
+% Todo:
+%   [ ] Make TileCallbackFcn a property and invoke it internally whenever a
+%       tile is selected. Define eventdata that has the tile number as a
+%       property.
 
 
 % "Persistent settings" Consider if it should be configurable for objects.
@@ -33,7 +39,7 @@ end
 properties % Properties to configure axes layout (Default values are preset)
     gridSize = [3, 5]           % [nRows, nCols]
     imageSize = [128, 128]      % [imHeight, imWidth] Size (Reso) in px per tile
-    padding = 10                % Number of pixels between each tile. Todo: Rename to spacing
+    padding = 10                % Number of pixels between each tile. Todo: Rename to spacing. Note: not in use
     numChan = 1;                % Number of color channels. 
 
     normalizedPadding = 0.012;  % Padding between tiles in normalized units.
@@ -47,9 +53,11 @@ properties % Properties for configuration of appearance
     tileConfiguration = struct('DefaultTileColor', ones(1,3)*0.7, ...
                                'SelectedTileColor', ones(1,3)*0.5, ...
                                'DefaultColorMap', 'viridis', ...
-                               'TextColor', ones(1,3)*0.8 )
+                               'TextColor', ones(1,3)*0.8, ...
+                               'SelectedTileAlpha', 0.4)
+
     highlightTileOnMouseOver = false
-        
+    TileCallbackFcn
 end
 
 properties (SetAccess = protected) % Properties for public access
@@ -63,6 +71,7 @@ properties (Dependent = true) % General info about class objects
     nTiles
     nRows
     nCols
+    Position
 end
 
 % Properties that are used internally
@@ -623,6 +632,14 @@ methods
     end
 
 % % Methods to get dependent properties
+
+    function position = get.Position(obj)
+        position = obj.hAxes.Position;
+    end
+    function set.Position(obj, newPosition)
+        obj.hAxes.Position = newPosition;
+    end
+
     function nRows = get.nRows(obj)
         nRows = obj.gridSize(1);
     end
@@ -685,6 +702,9 @@ methods
         
     end
     
+    function pixelpos = getpixelposition(obj)
+        pixelpos = getpixelposition(obj.Axes);
+    end
 
     function pos = getTileCenter(obj, tileNum)
         
@@ -776,6 +796,11 @@ methods
         obj.configurePointerBehavior()
         
     end
+
+% % %     function set.tileConfiguration(obj, newConfig)
+% % %         
+% % %     end
+
 
     function fitAxes(obj)
     %fitAxes Todo: Rename, and make sure it does not exceed screen size...
@@ -1005,13 +1030,19 @@ methods
         end
         
         obj.selectedTiles = tileNum;
+        if isempty(obj.selectedTiles); return; end
+        
         setTileOutlineColor(obj, obj.selectedTiles, color)
 
+        if ~isempty(obj.TileCallbackFcn)
+            obj.TileCallbackFcn([], [], tileNum)
+        end
     end
 
     function setTileOutlineColor(obj, tileNum, color)
     %setTileOutlineColor Set color of tile outline
-   
+
+
     % NB: Only works for one tile at a time.
     % Todo: Adapt to work for more than one tile.
         tmpH = obj.hTileOutline(tileNum);
@@ -1026,7 +1057,7 @@ methods
         % Custom color, tile is also colored.
         else
             tmpH.EdgeColor = color;
-            tmpH.FaceAlpha = 0.4;
+            tmpH.FaceAlpha = max([0.01, obj.tileConfiguration.SelectedTileAlpha]); % Avoid setting to 0
             tmpH.FaceColor = color;
             setappdata(tmpH, 'OrigColor', color);
         end

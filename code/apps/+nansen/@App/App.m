@@ -11,11 +11,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     %   [x] Remove vars from table on load if vars are not represented in
     %       tablevar folder.
     
-    %   [ ] Important: Load task list and start running it if preferences
+    %   [v] Important: Load task list and start running it if preferences
     %       are set for that, even if gui is not initialized...
-    %
-    %   [ ] Figure out what to do vis a vis multisession methods and pipelines. 
-    
+    %   [v] Keep track of session objects.
+    %   [ ] Delete session objects from list and reset list when changing
+    %       project.
+    %   [ ] Send session object to task manager as a struct.
+    %   [ ] Create a new session object in task manager when a task is
+    %       started
 
     properties (Constant, Access=protected) % Inherited from uiw.abstract.AppWindow
         AppName char = 'Nansen'
@@ -39,6 +42,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         NotesViewer % Auxiliary app, that we need to keep track of.
         DLModelApp % Auxiliary app, that we need to keep track of.
         VariableModelApp % Auxiliary app, that we need to keep track of.
+
+        SchemaViewerApp
     end
     
     properties (Constant, Hidden = true) % Inherited from UserSettings
@@ -51,6 +56,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         IsIdle % todo: make dependent on app.ApplicationState 
         TableIsUpdating = false
         TaskInitializationListener
+    end
+
+    properties (Access = private)
+        MetaObjectMembers = {}
+        MetaObjectList
     end
 
     properties
@@ -72,12 +82,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         MessagePanel % Todo: Use HasDisplay mixin...
         MessageBox
+        StatusText applify.StatusText
     end
     
     properties
         CurrentSelection     % Current selection of data objects.
         WindowKeyPressedListener
         Timer
+        RegularTimer    % Timer that regularly looks for updates
+        DiskConnectionMonitor (1,1) nansen.internal.system.DiskConnectionMonitor
     end
     
     properties (Access = private)
@@ -86,6 +99,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     
     methods % Structors
+
         function app = App()
             
             nansen.addpath()
@@ -140,14 +154,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
 %             app.initialized = true;
             app.configFigureCallbacks() % Do this last
+
             app.setIdle()
             
+            app.initializeTimer()
             app.ApplicationState = 'idle';
+
+            app.initDiskConnectionMonitor()
             
             if nargout == 0
                 clear app
             end
-            
         end
         
         function delete(app)
@@ -158,6 +175,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             if ~isempty(PipelineViewer)
                 delete(PipelineViewer); PipelineViewer = [];
+            end
+
+            if ~isempty(app.SchemaViewerApp)
+                delete( app.SchemaViewerApp );
+            end
+
+            if ~isempty(app.RegularTimer)
+                stop(app.RegularTimer)
+                delete(app.RegularTimer)
+            end
+
+            if ~isempty(app.DiskConnectionMonitor)
+                delete(app.DiskConnectionMonitor)
             end
             
             app.settings.Session.SessionTaskDebug = false; % Reset debugging on quit
@@ -188,7 +218,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.saveFigurePreferences()
                 %delete(app.Figure) % This will trigger onExit again...
             end
-
         end
         
         function onExit(app, h)
@@ -205,10 +234,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Todo: Whis is called twice, because of some weird reason
             % in (uiw.abstract.BaseFigure?)
-            
-            % Todo: Save settings and inventories...
-            % app.saveMetaTable()
-            
+
             app.onExit@uiw.abstract.AppWindow(h);
             %delete(app) % Not necessary, happens in superclass' onExit method
         end
@@ -290,7 +316,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %             set(jframe, 'WindowDeactivatedCallback', @(s, e) app.onWindowDeactivated())
 % %             set(jframe, 'WindowLostFocusCallback', @(s, e) app.onWindowDeactivated())
 % %             set(jframe, 'MouseExitedCallback', @(s, e) app.onWindowDeactivated())
-        
         end
         
         function configureWindow(app)
@@ -300,7 +325,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             MP = get(0, 'MonitorPosition');
             nMonitors = size(MP, 1);
             
-            if nMonitors >= 1
+            if nMonitors > 1
                 screenNumber = app.getPreference('PreferredScreen', 1);
                 
                 prefScreenPos = app.getPreference('PreferredScreenPosition', [1, 1, 1180, 700]);
@@ -312,7 +337,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             minWidth = app.MinimumFigureSize(1);
             minHeight = app.MinimumFigureSize(2);
             LimitFigSize(app.Figure, 'min', [minWidth, minHeight]) % FEX
-
         end
         
         function configFigureCallbacks(app)
@@ -325,14 +349,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             [~, hJ] = evalc('findjobj(app.Figure)');
             hJ(2).KeyPressedCallback = @app.onKeyPressed;
             hJ(2).KeyReleasedCallback = @app.onKeyReleased;
-            
         end
         
         function createMenu(app)
         %createMenu Create menu components for the main gui.
-    
-        import nansen.metadata.utility.getPublicSessionInfoVariables
-
+   
         % % % % Create a nansen main menu
             m = uimenu(app.Figure, 'Text', 'Nansen');
             
@@ -359,6 +380,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uimenu( mitem, 'Text', 'Datalocations...', ...
                 'MenuSelectedFcn', @(s,e) app.openDataLocationEditor )
             
+            % Todo: Update this on project change
+            uiSubMenu = uimenu( mitem, 'Text', 'Data Location Roots' );
+            app.updateDatalocationRootConfigurationSubMenu(uiSubMenu)
+
             uimenu( mitem, 'Text', 'Variables...', ...
                 'MenuSelectedFcn', @(s,e) app.openVariableModelEditor );
             
@@ -366,9 +391,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 @(s,e)nansen.config.watchfolder.WatchFolderManagerApp, ...
                 'Enable', 'off');
 
-            
             mitem = uimenu(m, 'Text','Preferences...');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;
+
+            if exist('bot.Preferences', 'class')
+                mitem = uimenu(m, 'Text','BOT Preferences...');
+                mitem.MenuSelectedFcn = @(s,e) bot.Preferences.edit;
+            end
             
             mitem = uimenu(m, 'Text', 'Refresh Menu', 'Separator', 'on');
             mitem.MenuSelectedFcn = @app.onRefreshSessionMethodMenuClicked;
@@ -376,6 +405,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Refresh Table');
             mitem.MenuSelectedFcn = @(s,e) app.onRefreshTableMenuItemClicked;
             
+            mitem = uimenu(m, 'Text','Refresh Data Locations');
+            mitem.MenuSelectedFcn = @app.onDataLocationModelChanged;
+
+            mitem = uimenu(m, 'Text','Clear Memory');
+            mitem.MenuSelectedFcn = @app.onClearMemoryMenuClicked;
+
             % % % % % % Create EXIT menu items % % % % % % 
 
             mitem = uimenu(m, 'Text','Close All Figures', 'Separator', 'on');
@@ -402,7 +437,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Reload Metatable');
             mitem.MenuSelectedFcn = @(src, event) app.reloadMetaTable;
             mitem = uimenu(m, 'Text','Save Metatable', 'Enable', 'on');
-            mitem.MenuSelectedFcn = @app.saveMetaTable;
+            mitem.MenuSelectedFcn = @(src, event, forceSave) app.saveMetaTable(src, event, true);
 
             
             mitem = uimenu(m, 'Text','Manage Metatables...', 'Enable', 'off');
@@ -422,23 +457,45 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
             % % Section with menu items for creating table variables
 
-            mitem = uimenu(m, 'Text','New Table Variable...', 'Separator', 'on');
-            mitem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
+            mitem = uimenu(m, 'Text','New Table Variable', 'Separator', 'on');
+            uimenu( mitem, 'Text', 'Create...', 'MenuSelectedFcn', @(s,e, cls) app.addTableVariable('session'));
+            uimenu( mitem, 'Text', 'Import...', 'MenuSelectedFcn', @(s,e, cls) app.importTableVariable('session'));
             
             % Menu with submenus for editing table variable definition:
-            mitem = uimenu(m, 'Text','Edit Table Variable Definition');         
-            columnVariables = getPublicSessionInfoVariables(app.MetaTable);
+            mitem = uimenu(m, 'Text','Edit Table Variable Definition');
+            app.updateTableVariableMenuItems(mitem)
+
+            % TODO: Include table variables from a metadata model.
+            % TODO: Turn this section for creating a submenu into a function.
+
+            % Get metadata models to include from project preferences
+            % metadataModelList = app.CurrentProject.getMetadataModelList(); % This is not implemented yet!
+            % metadataModelList = {nanomi.openMINDS}; % Concrete implementation for testing... NOTE: External package. 
             
-            % Create a menu list with items for each variable
-            mItem = uics.MenuList(mitem, columnVariables, '', 'SelectionMode', 'none');
-            mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
+            metadataModelList = {};
+            % Get terms to include from metadata model
+            for i = 1:numel(metadataModelList)
+                % Get name of metadata model
+                iMetadataModel = metadataModelList{i};
+                mitem = uimenu(m, 'Text', sprintf('Add %s Schema', iMetadataModel.Name));
+
+                % Get list of terms/schemas. QUESTION: Should these names
+                % be dependent on the current metatable type? Ideally - yes.
+                schemaNames = iMetadataModel.listSchemaNames();
+
+                mItem = uics.MenuList(mitem, schemaNames, '', 'SelectionMode', 'none');
+                mItem.MenuSelectedFcn = @(s,e) app.addMetadataSchema(s, iMetadataModel);
+
+            end
+
+            % mItem.MenuSelectedFcn = @app.addOpenMindsSchema;
 
 
-% %             for iVar = 1:numel(columnVariables)
-% %                 hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
-% %                 hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
-% %             end
-            
+% % %             for iVar = 1:numel(columnVariables)
+% % %                 hSubmenuItem = uimenu(mitem, 'Text', columnVariables{iVar});
+% % %                 hSubmenuItem.MenuSelectedFcn = @app.editTableVariableDefinition;
+% % %             end
+% % %             
 
 
 % %             menuAlternatives = {'Enter values manually...', 'Get values from function...', 'Get values from dropdown...'};
@@ -450,35 +507,31 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Manage Variables...', 'Enable', 'off');
             mitem.MenuSelectedFcn = [];
             
-            
-
 
 % %             mitem = uimenu(m, 'Text','Import from Excel', 'Separator', 'on', 'Enable', 'on');
 % %             mitem.MenuSelectedFcn = @app.menuCallback_ImportTable;
 % %             mitem = uimenu(m, 'Text','Export to Excel');
 % %             mitem.MenuSelectedFcn = @app.menuCallback_ExportToTable;
-            
-            
 
             % Todo: get modules from different packages and assemble in a 
             % struct before creating the menus..
-            
-            
-        
+                    
             % Create a "Session" menu
             m = uimenu(app.Figure, 'Text', 'Session');
             app.createSessionMenu(m)
 
+            %m = uimenu(app.Figure, 'Text', 'Apps');
 
-            menuRootPath = fullfile(nansen.rootpath, '+session', '+methods');
-            
+            % Create a separator
+            %m = uimenu(app.Figure, 'Text', '| Session Methods ->', 'Enable', 'off');
+            m = uimenu(app.Figure, 'Text', '|', 'Enable', 'off');
+
             app.SessionTaskMenu = nansen.SessionTaskMenu(app);
             
             l = listener(app.SessionTaskMenu, 'MethodSelected', ...
                 @app.onSessionTaskSelected);
             app.TaskInitializationListener = l;
-            
-            
+
             % app.createMenuFromDir(app.Figure, menuRootPath)
             
             
@@ -512,7 +565,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem.MenuSelectedFcn = @app.menuCallback_EditSettings;
             mitem = uimenu(m, 'Text','Edit Search/Filter History');
             mitem.MenuSelectedFcn = @app.menuCallback_EditSettings;
-            
         end
         
         function updateProjectList(app, hParent)
@@ -531,20 +583,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 hMenuList.MenuSelectedFcn = @app.onChangeProjectMenuClicked;
                 app.Menu.ProjectList = hMenuList;
             end
-
-
-% %             if ~isempty(mItem.Children)
-% %                 delete(mItem.Children)
-% %             end
-% % 
-% %             for i = 1:numel(names)
-% %                 msubitem = uimenu(mItem, 'Text', names{i});
-% %                 msubitem.MenuSelectedFcn = @app.onChangeProjectMenuClicked;
-% %                 if strcmp(names{i}, getpref('Nansen', 'CurrentProject'))
-% %                     msubitem.Checked = 'on';
-% %                 end
-% %             end
-
         end
         
         function updateMetaTableMenu(app, mItem)
@@ -592,7 +630,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     msubitem.Checked = 'on';
                 end
             end
-
         end
 
         function createSessionMenu(app, hMenu, updateFlag)
@@ -639,9 +676,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(hMenu, 'Text','Detect New Sessions', 'Separator', 'on');
             mitem.Callback = @(src, event) app.menuCallback_DetectSessions;
             
-            
 
-% %             
 % %             mitem = uimenu(hMenu, 'Text','Remove Table Variable...');
 % %             
 % %             varNames = nansen.metadata.utility.getCustomTableVariableNames();
@@ -652,7 +687,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %                 hSubmenuItem = uimenu(mitem, 'Text', varNames{iVar});
 % %                 hSubmenuItem.MenuSelectedFcn = @app.removeTableVariable;
 % %             end
+        end
+
+        function updateTableVariableMenuItems(app, hMenu)
             
+            import nansen.metadata.utility.getPublicSessionInfoVariables
+
+            if nargin < 2
+                hMenu = findobj(app.Figure, 'Text', 'Edit Table Variable Definition');
+                if ~isempty(hMenu.Children)
+                    delete(hMenu.Children)
+                end
+            end
+
+            columnVariables = getPublicSessionInfoVariables(app.MetaTable);
+
+            % Create a menu list with items for each variable
+            mItem = uics.MenuList(hMenu, columnVariables, '', 'SelectionMode', 'none');
+            mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
         end
         
         function updatePipelineItemsInMenu(app, hMenu)
@@ -700,7 +752,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 else
                     hMenu(i).Enable = 'on';
                 end
-                
             end
             
             % Update enable state of a related menu item (Should not be 
@@ -713,9 +764,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     hMenuTmp.Enable = 'on';
                 end
             end
-            
         end
         
+        function updateDatalocationRootConfigurationSubMenu(app, hMenu)
+            
+            if nargin < 2
+                hMenu = findobj(app.Figure, 'Text', 'Data Location Roots');
+                if ~isempty(hMenu.Children)
+                    delete(hMenu.Children)
+                end
+            end
+
+            itemNames = app.DataLocationModel.DataLocationNames;
+            mItem = uics.MenuList(hMenu, itemNames, '', 'SelectionMode', 'none');
+            mItem.MenuSelectedFcn = @(s, e) app.onConfigureDatalocationRootMenuClicked(s, e);
+        end
+
         function createMenuFromDir(app, hParent, dirPath)
         %createMenuFromDir Create menu components from a folder/folder tree
         %
@@ -741,8 +805,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     if strcmp(menuName, 'Abstract')
                         continue
                     end
-                    
-                    
+
                     iMenu = uimenu(hParent, 'Text', menuName);
                     app.createMenuFromDir(iMenu, fullfile(L(i).folder, L(i).name))
 
@@ -755,7 +818,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
                     name = varname2label(fileName);
                                         
-                    
                     % Create a function handle from the package hierarchy.
                     splitFolders = strsplit(L(i).folder, filesep);
                     isPackage = strncmp(splitFolders, '+', 1);
@@ -763,7 +825,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     packageName = strrep(packageName, '+', '');
                     
                     functionName = strjoin({packageName, fileName}, '.');
-                    
                     
                     % Following is too slow: % But the idea was to bundle
                     % functions as static methods in a class instead of
@@ -780,7 +841,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             iMitem = uimenu(iSubMenu, 'Text', name);
                             hfun = str2func(functionName);
                             iMitem.MenuSelectedFcn = @(s, e, h, kwd) app.menuCallback_SessionMethod(hfun, methods{j});
-                        
                         end
 
                     else
@@ -788,15 +848,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
                         iMitem = uimenu(hParent, 'Text', name);
                         iMitem.MenuSelectedFcn = @(s, e, h) app.menuCallback_SessionMethod(hfun);
-                        
                     end
                     
                     app.SessionTasks(end+1) = iMitem;
-                    
                 end
-                
             end
-            
         end
         
         function refreshMenuLabels(app, modifier)
@@ -813,7 +869,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                          app.SessionTasks(i).Text = [app.SessionTasks(i).Text, ' (q)'];
                  end
              end
-            
         end
         
         function updateSessionInfoDependentMenus(app)
@@ -841,17 +896,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.hLayout.TabGroup = uitabgroup(app.hLayout.MainPanel);
             app.hLayout.TabGroup.Units = 'pixel';
             app.updateLayoutPositions()
-            
         end
         
         function createComponents(app)
-                  
-            app.createTabPages()
 
             app.createStatusField()
+                  
+            app.createTabPages()
             
             app.createSidePanelComponents()
-            
         end
         
         function createMessagePanel(app)
@@ -863,9 +916,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %             referencePosition =  [1,1,app.Figure.Position(3:4)];
 % %             uim.utility.layout.centerObjectInRectangle(app.MessagePanel, referencePosition)
 % %             app.MessageBox = uim.widget.messageBox(app.MessagePanel);
-            
         end
-        
         
         function createStatusField(app)
             
@@ -877,11 +928,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.h.StatusField.FontSize = 12;
             app.h.StatusField.FontUnits = 'pixels';
             
-            app.h.StatusField.String = ' Status : Idle';
+            app.h.StatusField.String = '';
             app.h.StatusField.BackgroundColor = ones(1,3).*0.85;
             app.h.StatusField.HorizontalAlignment = 'left';
             app.h.StatusField.Enable = 'inactive';
-                        
+
+            app.StatusText = applify.StatusText({'Sessions', 'Status'});
+            app.StatusText.UpdateFcn = @app.updateStatusField;
+            app.StatusText.Status = 'Status : Idle';
+            app.updateSessionCount()
+        end
+
+        function updateStatusField(app, text)
+            app.h.StatusField.String = sprintf(' %s', text);
         end
         
         function createTabPages(app)
@@ -900,6 +959,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     case 'File Viewer'
                         h = nansen.FileViewer(hTab);
                         app.UiFileViewer = h;
+                       
+                        % Add listener for when the variable model is changed.
+                        addlistener(app.UiFileViewer, 'VariableModelChanged', ...
+                            @app.onVariableModelChanged);
                         
                     case 'Task Processor'
 
@@ -908,16 +971,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Add a callback function for when tab selection is changed
             app.hLayout.TabGroup.SelectionChangedFcn = @app.onTabChanged;
-
         end
         
         function createMetaTableViewer(app, hTab)
             
             % Prepare inputs
             S = app.settings.MetadataTable;
+            S = rmfield(S, 'AutosaveMetaTable'); % Used elsewhere 
             nvPairs = utility.struct2nvpairs(S);
             nvPairs = [{'AppRef', app}, nvPairs];
-           
+                       
+            try %#ok<TRYNC> 
+                columnSettings = app.loadMetatableColumnSettingsFromProject();
+                %app.UiMetaTableViewer.ColumnSettings = columnSettings;
+            catch 
+                columnSettings = struct.empty;
+            end
+            nvPairs = [{'ColumnSettings', columnSettings}, nvPairs];
+
             % Create table + assign to property + set callback
             h = nansen.MetaTableViewer(hTab, app.MetaTable, nvPairs{:});
             app.UiMetaTableViewer = h;
@@ -928,7 +999,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %h.HTable.MouseMotionFcn = @(s,e) onMouseMotionInTable(h, s, e);
             
             addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
-            addlistener(h, 'SelectionChanged', @app.onSessionSelectionChanged);
             
             h.UpdateColumnFcn = @app.updateTableVariable;
             h.ResetColumnFcn = @app.resetTableVariable;
@@ -937,13 +1007,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
-            try %#ok<TRYNC> 
-                columnSettings = app.loadMetatableColumnSettingsFromProject();
-                app.UiMetaTableViewer.ColumnSettings = columnSettings;
-            end
+            addlistener(h, 'SelectionChanged', @app.onSessionSelectionChanged);
+            addlistener(h, 'TableUpdated', @(s,e)app.updateSessionCount);
 
             app.createSessionTableContextMenu()
-            
         end
         
         function initializeBatchProcessor(app)
@@ -953,12 +1020,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             propertyValues = struct2cell(app.settings.TaskProcessor);
             pvPairs = [propertyNames'; propertyValues'];
             
-            app.BatchProcessor = nansen.TaskProcessor(pvPairs{:});
+            currentProject = app.ProjectManager.getCurrentProject();
+            taskListFilepath = currentProject.getDataFilePath('TaskList');
+
+            app.BatchProcessor = nansen.TaskProcessor(taskListFilepath, pvPairs{:});
             addlistener(app.BatchProcessor, 'TaskAdded', @app.onTaskAddedEventTriggered);
             addlistener(app.BatchProcessor, 'Status', 'PostSet', @app.onTaskProcessorStatusChanged);
             
             app.BatchProcessor.updateSessionObjectListeners(app)
-
         end
         
         function initializeBatchProcessorUI(app, hContainer)
@@ -971,9 +1040,45 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             h = nansen.BatchProcessorUI(app.BatchProcessor, hContainer);
             app.BatchProcessorUI = h;
-            
         end
         
+        function createSidePanelComponents(app)
+            % Not implemented
+            uicc = uim.UIComponentCanvas(app.hLayout.SidePanel);
+
+            buttonSize = [21, 51];
+            options = {'PositionMode', 'auto', 'SizeMode', 'manual', 'Size', buttonSize, ...
+                'HorizontalTextAlignment', 'center', 'Icon', '>', ...
+                'Location', 'west', 'Margin', [0, 15, 0, 0], ...
+                'Callback', @(s,e) app.hideSidePanel() };
+            
+            closeButton = uim.control.Button_(app.hLayout.SidePanel, options{:} );
+        end
+    
+        function initializeTimer(app)
+            app.RegularTimer = timer('Name', 'Nansen App Timer');
+            app.RegularTimer.ExecutionMode = 'fixedRate';
+            app.RegularTimer.Period = 30; % Consider setting from preference
+            app.RegularTimer.TimerFcn = @(timer, event) app.regularCheckup();
+            start(app.RegularTimer)
+        end
+    
+        function initDiskConnectionMonitor(app)
+        
+            app.DiskConnectionMonitor = nansen.internal.system.DiskConnectionMonitor();
+            
+            addlistener(app.DiskConnectionMonitor, 'DiskAdded', ...
+                @app.onAvailableDisksChanged);
+
+            addlistener(app.DiskConnectionMonitor, 'DiskRemoved', ...
+                @app.onAvailableDisksChanged);
+
+        end
+            
+    end
+
+    methods (Access = private) % Internal callbacks
+            
         function onMouseDoubleClickedInTable(app, src, evt)
             
             thisRow = evt.Cell(1);
@@ -999,13 +1104,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 metaObj = app.tableEntriesToMetaObjects( app.MetaTable.entries(tableRow,:));
                 
                 tmpObj.onCellDoubleClick( metaObj );
-               
             end
-
         end
         
         function onMouseMoveInTable(app, src, evt)
             
+            import nansen.metadata.utility.getColumnFormatter
+
             if app.TableIsUpdating; return; end
             
             persistent prevRow prevCol
@@ -1029,27 +1134,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             colNames = app.UiMetaTableViewer.ColumnModel.getColumnNames;
             thisColumnName = colNames{thisCol};
-            
-            
+            tableRow = app.UiMetaTableViewer.getMetaTableRows(thisRow);
+
             % Todo: This SHOULD NOT be hardcoded like this...
             if contains(thisColumnName, {'Notebook', 'Progress', 'DataLocation'})
                 
                 dispFcn = str2func(strjoin({'nansen.metadata.tablevar', thisColumnName}, '.') );
-                tableRow = app.UiMetaTableViewer.getMetaTableRows(thisRow);
                 
                 if strcmp(thisColumnName, 'DataLocation')
                     
                     % 10x slower when getting the session object.
-                    metaEntry = app.MetaTable.entries(tableRow, :);
-                    metaObject = app.tableEntriesToMetaObjects(metaEntry);
-                    tableValue = metaObject.DataLocation;
+                    %metaEntry = app.MetaTable.entries(tableRow, :);
+                    %metaObject = app.tableEntriesToMetaObjects(metaEntry);
+                    %tableValue = metaObject.DataLocation;
 
-% %                     % Alternative: Old version when datalocation was
-% %                     % hardcoded in the table row
-% %                     tableValue = app.MetaTable.entries{tableRow, thisColumnName};
-% %                     tmpObj = dispFcn(tableValue);
-% %                     str = tmpObj.getCellTooltipStringOld();
-                
+                    % Alternative: Old version when datalocation was
+                    % hardcoded in the table row
+                    tableValue = app.MetaTable.entries{tableRow, thisColumnName};
                 else
                     tableValue = app.MetaTable.entries{tableRow, thisColumnName};
                 end
@@ -1057,35 +1158,61 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 tmpObj = dispFcn(tableValue);
                 str = tmpObj.getCellTooltipString();
             else
-                str = '';
+                formatterFcnHandle = getColumnFormatter(thisColumnName, 'session');
+                
+                if ~isempty(formatterFcnHandle)
+                    tableValue = app.MetaTable.entries{tableRow, thisColumnName};
+                    tmpObj = formatterFcnHandle{1}(tableValue);
+                    str = tmpObj.getCellTooltipString();
+                else
+                    str = '';
+                end
             end
-
             set(app.UiMetaTableViewer.HTable.JTable, 'ToolTipText', str)
-            %disp('a')
-
-
-            
         end
-        
-        function createSidePanelComponents(app)
+    
+        function onAvailableDisksChanged(app, src, evt)
             
-            uicc = uim.UIComponentCanvas(app.hLayout.SidePanel);
+            returnToIdle = app.setBusy('Disk added, updating data locations'); %#ok<NASGU> 
+            
+            % - [ ] Update volume info in the DataLocationModel
+            % volumeInfo = evt.VolumeInfo;
 
-            buttonSize = [21, 51];
-            options = {'PositionMode', 'auto', 'SizeMode', 'manual', 'Size', buttonSize, ...
-                'HorizontalTextAlignment', 'center', 'Icon', '>', ...
-                'Location', 'west', 'Margin', [0, 15, 0, 0], ...
-                'Callback', @(s,e) app.hideSidePanel() };
+            returnToIdle = app.setBusy('Updating table'); %#ok<NASGU> 
             
-            closeButton = uim.control.Button_(app.hLayout.SidePanel, options{:} );
+            app.DataLocationModel.updateVolumeInfo() % volumeInfo;
+
+            % - [ ] Update data location structs
+            app.updateDataLocationFromModel()
+
+            % - [ ] Refresh table on these events
+            app.onRefreshTableMenuItemClicked()
+        end
+
+        function regularCheckup(app)
+        %regularCheckup Timer callback
             
+            % Check that we have the newest version of the metatable 
+            if ~isempty(app.MetaTable) && ~app.TableIsUpdating
+                if ~app.MetaTable.isLatestVersion()
+                    stop(app.RegularTimer) % Stop timer while waiting for user's response
+                    discardNewest = app.MetaTable.resolveCurrentVersion();
+                    if discardNewest 
+                        app.reloadMetaTable()
+                    else
+                        app.saveMetaTable([], [], true) % tru = force save current version
+                    end
+                    start(app.RegularTimer)
+                end
+            end
         end
     end
-    
+
     methods % Set/get methods
         function set.MetaTable(app, newTable)
             app.MetaTable = newTable;
             app.onNewMetaTableSet()
+            app.updateSessionCount()
         end
     end
     
@@ -1109,13 +1236,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function changeProject(app, newProjectName)
         %changeProject Change project to specified project
-        
+            
+            % Ask to save metatable if it has unsaved changes
             if ~app.MetaTable.isClean()
                 wasCanceled = app.promptToSaveCurrentMetaTable();
                 if wasCanceled; return; end
             end
-            
-            % pre project change
+
+            % Ask to stop tasks in taskprocessor if tasks are running
+            % Todo: Use custom prompt message
+            if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                doExit = app.BatchProcessor.promptQuit('Abort tasks?', 'Task processor is running. Are you sure you want to change project?');
+                if ~doExit; return; end
+            end
+
+            % Pre project change
             app.saveMetatableColumnSettingsToProject()
 
             projectManager = nansen.ProjectManager;
@@ -1128,6 +1263,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onProjectChanged(app, varargin)
             app.TableIsUpdating = true;
             
+            app.BatchProcessor.closeTaskList()
+
+            % Todo: Make method:
             app.UiMetaTableViewer.resetTable()
             app.UiMetaTableViewer.refreshTable(table.empty, true)
             try
@@ -1135,6 +1273,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.UiMetaTableViewer.ColumnSettings = columnSettings;
             end
 
+            % Todo: Need system on task processor to create session
+            % objects..
+            app.resetMetaObjectList()
+            
             % Need to reassign data location model before loading metatable
             % Todo: Explicitly get models for this project.
             app.DataLocationModel = nansen.DataLocationModel();
@@ -1144,10 +1286,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.loadMetaTable()
 
             drawnow
-                        
+            currentProjectName = app.ProjectManager.CurrentProject;
+            currentProject = app.ProjectManager.getProjectObject(currentProjectName);
+            app.SessionTaskMenu.CurrentProject = currentProject;
+
+            % Load new project's task list
+            taskListFilepath = currentProject.getDataFilePath('TaskList');
+            app.BatchProcessor.openTaskList(taskListFilepath)
+
+            % Update menus
             app.SessionTaskMenu.refresh()
             app.createSessionTableContextMenu()
             app.updatePipelineItemsInMenu()
+            app.updateTableVariableMenuItems()
+            app.updateDatalocationRootConfigurationSubMenu()
             
             % Make sure project list is displayed correctly
             % Indicating current project
@@ -1175,13 +1327,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onDataLocationModelChanged(app, src, evt)
         %onDataLocationModelChanged Event callback for datalocation model
-        
-            d = src.openProgressDialog('Update Model');
-        
+            
+            try
+                d = src.openProgressDialog('Update Model');
+            end
+
             app.MetaTable = nansen.manage.updateSessionDatalocations(...
                 app.MetaTable, app.DataLocationModel);
             
-            close(d)
+            app.saveMetaTable()
+            try
+                close(d)
+            end
+        end
+
+        function onVariableModelChanged(app, src, evt)
+            % Reload model.
+            app.VariableModel.load();
         end
         
     % % Get meta objects from table selections
@@ -1197,43 +1359,137 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Get selected entries from the metatable.
             entries = app.MetaTable.entries(entryIdx, :);
-                    
         end
         
-        function metaObjects = getSelectedMetaObjects(app)
-                        
+        % % Todo: The following methods could become its own class 
+        % MetaObjectCache
+        function metaObjects = getSelectedMetaObjects(app, useCache)
+        %getSelectedMetaObjects Get session objects for the selected table rows
+            if nargin < 2; useCache = true; end
+            returnToIdle = app.setBusy('Creating session objects...'); %#ok<NASGU>
             entries = app.getSelectedMetaTableEntries();
-            metaObjects = app.tableEntriesToMetaObjects(entries);
-            
+            if useCache
+                metaObjects = app.tableEntriesToMetaObjects(entries);
+            else
+                metaObjects = app.createMetaObjects(entries, useCache);
+            end
         end
         
         function metaObjects = tableEntriesToMetaObjects(app, entries)
         %tableEntriesToMetaObjects Create meta objects from table rows
         
-            schema = str2func(class(app.MetaTable));
-            
-            schema = @nansen.metadata.type.Session;
+            %schema = str2func(class(app.MetaTable));
+            %schema = @nansen.metadata.type.Session;
             
             if isempty(entries)
                 expression = strjoin({class(app.MetaTable), 'empty'}, '.');
                 metaObjects = eval(expression);
             else
-                % Submit the current datalocation model on create of
-                % objects that have datalocation information.
-                if any(strcmp(entries.Properties.VariableNames, 'DataLocation'))
-                    nvPairs = {'DataLocationModel', app.DataLocationModel, ...
-                                'VariableModel', app.VariableModel};
-                else
-                    nvPairs = {};
-                end
+                % Check if objects already exists:
+                idName = app.MetaTable.SchemaIdName;
+                ids = entries.(idName);
 
-                metaObjects = schema(entries, nvPairs{:});
-                addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
+                if isnumeric(ids)
+                    if isnumeric(ids) && numel(ids) == 1
+                        ids = num2str(ids);
+                        ids = {ids};
+                    elseif isnumeric(ids) && numel(ids) > 1
+                        ids = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
+                    end
+                    allIds = cellfun(@num2str, app.MetaObjectMembers, 'UniformOutput', false);
+                else
+                    allIds = app.MetaObjectMembers;
+                end
+                
+                [matchedIds, indInTableEntries, indInMetaObjects] = ...
+                    intersect(ids, allIds, 'stable');
+
+                metaObjectsOld = app.MetaObjectList(indInMetaObjects);
+                entries(indInTableEntries, :) = []; % Don't need these anymore
+                
+                % Create meta objects for remaining entries if any
+                metaObjectsNew = app.createMetaObjects(entries);
+
+                if isequal(matchedIds, ids)
+                    metaObjects = metaObjectsOld;
+                elseif ~isempty(matchedIds)
+                    metaObjects = utility.insertIntoArray(metaObjectsNew, metaObjectsOld, indInTableEntries);
+                else
+                    metaObjects = metaObjectsNew;
+                end
             end
+        end
+
+        function metaObjects = createMetaObjects(app, tableEntries, useCache)
+        %createMetaObjects Create new meta objects from table entries
             
-            
+            if nargin < 3 || isempty(useCache); useCache = true; end
+
+            schema = str2func(class(app.MetaTable));
+
+            if isempty(tableEntries)
+                try
+                    metaObjects = schema().empty;
+                catch
+                    metaObjects = [];
+                end
+                return;
+            end
+
+            % Relevant for meta objects that have datalocations: 
+            % Create list of name value pairs for the current datalocation 
+            % model and variable model.
+            if any(strcmp(tableEntries.Properties.VariableNames, 'DataLocation'))
+                nvPairs = {'DataLocationModel', app.DataLocationModel, ...
+                            'VariableModel', app.VariableModel};
+            else
+                nvPairs = {};
+            end
+
+            metaObjects = schema(tableEntries, nvPairs{:});
+
+            try
+                addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
+                addlistener(metaObjects, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
+            catch
+                % Todo: Either throw warning or implement inteface for
+                % easily implementing PropertyChanged on any table
+                % class..
+            end
+
+            if useCache
+                % Add newly created metaobjects to the list
+                if isempty(app.MetaObjectList)
+                    app.MetaObjectList = metaObjects;
+                else
+                    app.MetaObjectList = [app.MetaObjectList, metaObjects];
+                end
+                app.updateMetaObjectMembers()
+            end
+        end
+
+        function updateMetaObjectMembers(app)
+        %updateMetaObjectMembers Update list of ids for members of the
+        %metaobject list
+            idName = app.MetaTable.SchemaIdName;
+            app.MetaObjectMembers = {app.MetaObjectList.(idName)};
+
+            if isnumeric(app.MetaObjectMembers)
+                app.MetaObjectMembers = cellfun(@num2str, app.MetaObjectMembers, 'UniformOutput', false);
+            end
         end
         
+        function resetMetaObjectList(app)
+        %resetMetaObjectList Delete all meta objects from the list    
+            for i = numel(app.MetaObjectList):-1:1
+                if isvalid( app.MetaObjectList(i) )
+                    delete( app.MetaObjectList(i) )
+                end
+            end
+            app.MetaObjectList = [];
+            app.MetaObjectMembers = {};
+        end
+
         function onMetaObjectPropertyChanged(app, src, evt)
             
             % Todo: generalize from session
@@ -1243,8 +1499,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             sessionID = src.sessionID;
             metaTableEntryIdx = find(strcmp(app.MetaTable.members, sessionID));
-            app.MetaTable.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
             
+            if numel(metaTableEntryIdx) > 1
+                metaTableEntryIdx = metaTableEntryIdx(1);
+                msg = sprintf('Multiple sessions have the sessionID "%s"', sessionID);
+                warndlg(msg)
+            end
+            
+            app.MetaTable.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
             
             rowIdx = metaTableEntryIdx;
             colIdx = find(strcmp(app.MetaTable.entries.Properties.VariableNames, evt.Property));
@@ -1258,6 +1520,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % app.UiMetaTableViewer.replaceTable( app.MetaTable );
         end
         
+        function onMetaObjectDestroyed(app, src, evt)
+            if ~isvalid(app); return; end
+            
+            idName = app.MetaTable.SchemaIdName;
+            objectID = src.(idName);
+            
+            [~, ~, iC] = intersect(objectID, app.MetaObjectMembers);
+            app.MetaObjectList(iC) = [];
+
+            app.updateMetaObjectMembers()
+        end
+
         function onTaskAddedEventTriggered(app, src, evt)
         %onTaskAddedEventTriggered Callback for event when task is added to
         %batchProcessor task list
@@ -1270,13 +1544,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 fcnName = func2str(task.method);
                 
                 if strcmp(task.status, 'Completed')
-                    if numel(sessionObj) == 1
+                    if ismethod(sessionObj, 'updateProgress') && numel(sessionObj) == 1
                         sessionObj.updateProgress(fcnName, task.status)
                     end
                 end
-                
             end
-        
         end
  
         function onTaskProcessorStatusChanged(app, src, evt)
@@ -1345,10 +1617,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                                         
                     entries = getSelectedMetaTableEntries(app);
                     if isempty(entries); return; end
-
+                    
                     metaObj = app.tableEntriesToMetaObjects(entries(1,:));
-                                    
-                    currentSessionID = app.UiFileViewer.getCurrentObjectId();
+                    
+                    try
+                        currentSessionID = app.UiFileViewer.getCurrentObjectId();
+                    catch ME
+                        switch ME.identifier
+                            % This is necessary in case the session object
+                            % cache was cleared.
+                            case 'MATLAB:class:InvalidHandle'
+                                currentSessionID = '';
+                        end
+                    end
 
                     if strcmp(metaObj.sessionID, currentSessionID)
                         return
@@ -1366,9 +1647,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     if isempty(app.BatchProcessorUI)
                         app.initializeBatchProcessorUI(evt.NewValue)
                     end
-                    
             end
-            
         end
         
         function onMousePressed(app, src, evt)
@@ -1378,7 +1657,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if ~isempty(app.UiMetaTableViewer.ColumnFilter)  
                 app.UiMetaTableViewer.ColumnFilter.hideFilters();
             end
-            
         end
         
         function onMouseMotion(app, src, evt)
@@ -1387,40 +1665,54 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
        
         function onKeyPressed(app, src, evt)
             
+% % %             persistent lastKeyPressTime 
+% % %             if isempty(lastKeyPressTime); lastKeyPressTime = tic; end
+
             if isa(evt, 'java.awt.event.KeyEvent')
                 evt = uim.event.javaKeyEventToMatlabKeyData(evt);
             end
             
-            
             switch evt.Key
-                
-                case 'shift'
-                    app.SessionTaskMenu.Mode = 'Preview';
-                case 'q'
-                    app.SessionTaskMenu.Mode = 'TaskQueue';
-                case 'e'
-                    app.SessionTaskMenu.Mode = 'Edit';
-                case 'r'
-                    app.SessionTaskMenu.Mode = 'Restart';
-                    
+        
+                case {'shift', 'q', 'e', 'r', 'h'}
+
+% % %                     timeSinceLastPress = toc(lastKeyPressTime);
+% % %                     timeSinceLastPress
+% % %                     if timeSinceLastPress < 0.1
+% % %                         lastKeyPressTime = tic; 
+% % %                         return; 
+% % %                     end
+
+                    switch evt.Key
+                        case 'shift'
+                            app.SessionTaskMenu.Mode = 'Preview';
+                        case 'q'
+                            app.SessionTaskMenu.Mode = 'TaskQueue';
+                        case 'e'
+                            app.SessionTaskMenu.Mode = 'Edit';
+                        case 'r'
+                            app.SessionTaskMenu.Mode = 'Restart';
+                        case 'h'
+                            app.SessionTaskMenu.Mode = 'Help';
+                    end
+
+% % %                     lastKeyPressTime = tic; 
+
                 case 'w'
                     app.sendToWorkspace()
             end
-            
         end
         
         function onKeyReleased(app, src, evt)
-            
+
             if isa(evt, 'java.awt.event.KeyEvent')
                 evt = uim.event.javaKeyEventToMatlabKeyData(evt);
             end
             
             switch evt.Key
-                case {'shift', 'q', 'e', 'r'}
+                case {'shift', 'q', 'e', 'r', 'h'}
                     app.SessionTaskMenu.Mode = 'Default';
-                    
             end
-
         end
         
         function updateLayoutPositions(app)
@@ -1445,7 +1737,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 %             app.hLayout.TopBorder.Position(4) = normalizedHeight;
             
             app.hLayout.TabGroup.Position = [10,6,figPosPix(3)-20,figPosPix(4)-30];
-            
         end
         
     %%% Methods for updating statusfield (Q: Should this be a separate class?)
@@ -1463,13 +1754,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             projectName = getpref('Nansen', 'CurrentProject');
             titleStr = sprintf('%s | Project: %s | Metatable: %s (%s)', app.AppName, projectName, fileName, status);
             app.Figure.Name = titleStr;
-        
         end
     
         function setIdle(app)
             app.IsIdle = true;
-            app.h.StatusField.String = sprintf(' Status: Idle');
-            
+            app.StatusText.Status = sprintf('Status: Idle');
             app.updateFigureTitle()
             
             app.Figure.Pointer = 'arrow';
@@ -1480,21 +1769,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
             app.IsIdle = false;
             app.Figure.Pointer = 'watch';
+            drawnow
             
             app.updateFigureTitle()
             
             if nargin < 2 || isempty(statusStr)
                 S = dbstack();
                 runningMethod = strrep(S(2).name, 'sessionBrowser.', '');
-                statusStr = sprintf(' Status: Running %s', runningMethod);
+                statusStr = sprintf('Status: Running %s', runningMethod);
             elseif isa(statusStr, 'function_handle')
                 methodName = func2str(statusStr);
                 methodName = utility.string.varname2label(methodName) ;
-                statusStr = sprintf(' Status: Running %s', methodName );
+                statusStr = sprintf('Status: Running %s', methodName );
             else
-                statusStr = sprintf(' Status: %s', statusStr );
+                statusStr = sprintf('Status: %s', statusStr );
             end
-            app.h.StatusField.String = statusStr;
+            app.StatusText.Status = statusStr;
             
             if nargout
                 finishup = onCleanup(@app.setIdle);
@@ -1505,12 +1795,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function updateStatusWhenBusy(app)
 
-            endOfString = app.hStatusField.String(end-3:end);
+            endOfString = app.StatusText.Status(end-3:end);
             
             if contains(endOfString, '...')
-                app.h.StatusField.String = app.hStatusField.String(1:end-3);
+                app.StatusText.Status = app.StatusText.Status(1:end-3);
             else
-                app.h.StatusField.String = strcat(app.hStatusField.String, '.');
+                app.StatusText.Status = strcat(app.StatusText.Status, '.');
             end
   
 %             if contains(endOfString, '...')
@@ -1524,11 +1814,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 %             end
 
             drawnow limitrate
-
         end
         
-        function updateStatusField(app, i, n, methodName)
-            
+        function updateStatusText(app, i, n, methodName)
             
             if isa(methodName, 'function_handle')
                 methodName = func2str(methodName);
@@ -1537,18 +1825,46 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         
             % Update statusfield text showing progress.
             if i == 0
-                app.h.StatusField.String = strrep(app.h.StatusField.String, ...
+                app.StatusText.Status = strrep(app.StatusText.Status, ...
                     methodName, sprintf('%s (%d/%d finished)', methodName, i, n));
             else
-                app.h.StatusField.String = strrep(app.h.StatusField.String, ...
+                app.StatusText.Status = strrep(app.StatusText.Status, ...
                     sprintf('(%d/%d finished)', i-1, n), ...
                     sprintf('(%d/%d finished)', i, n));
             end 
             
             drawnow
-            
         end
         
+        function updateSessionCount(app, numSessionsTotal, numSessionsSelected)
+            if ~isempty(app.StatusText)
+                
+                if nargin < 2 || isempty(numSessionsTotal)
+                    if isempty(app.UiMetaTableViewer)
+                        numSessionsTotal = size(app.MetaTable.entries, 1);
+                    else
+                        numSessionsTotal = size(app.UiMetaTableViewer.HTable.Data, 1);
+                    end
+                end
+
+                if nargin < 3 || isempty(numSessionsSelected)
+                    if isempty(app.UiMetaTableViewer)
+                        numSessionsSelected = 0;
+                    else
+                        numSessionsSelected = numel(app.UiMetaTableViewer.HTable.SelectedRows);
+                    end
+                end
+
+                if numSessionsSelected > 0
+                    str = sprintf('Selected %d/%d sessions', numSessionsSelected, numSessionsTotal);
+                else
+                    str = sprintf('%d sessions', numSessionsTotal);
+                end
+
+                app.StatusText.Sessions = str;
+            end
+        end
+
         function clearStatusIn(app, n)
              t = timer('ExecutionMode', 'singleShot', 'StartDelay', n);
              t.TimerFcn = @(myTimerObj, thisEvent) app.clearStatus(t);
@@ -1565,20 +1881,53 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             delete(t)
             
             if ~isvalid(app); return; end
-            app.h.StatusField.String = 'Status: Idle';
+            app.StatusText.Status = 'Status: Idle';
         end
         
     end
     
     methods (Access = private) % Methods for meta table loading and saving
         
+        function onSessionSelectionChanged(app, src, evt)
+        %onSessionSelectionChanged Callback for session table
+            numSessionsSelected = numel(evt.SelectedRows);
+            numSessionsTotal = size(src.HTable.Data, 1);
+            
+            app.updateSessionCount(numSessionsTotal, numSessionsSelected)
+        end
+
         function onMetaTableDataChanged(app, src, evt)
             
             % Todo: Can this be put somewhere else?? I.e the Date table variable definition...
             if isa(evt.NewValue, 'datetime')
                 evt.NewValue.TimeZone = '';
             end
+
             app.MetaTable.entries(evt.Indices(1), evt.Indices(2)) = {evt.NewValue};
+
+            % The following is hopefully a temporary solution. If user
+            % ticks the ignore checkbox for a session, and the settings are
+            % set to hide ignored sessions, the table should be updated and
+            % the session should disappear. However, there is some delays,
+            % when refreshing the table and in the meantime the user could 
+            % go on and select more sessions to ignore. Since the visible
+            % table in this small delay will not match the table model, the
+            % wrong session could be ticked for ignoring. To avoid this,
+            % the table is temporily made un-editable.
+
+            if strcmp(app.MetaTable.getVariableName(evt.Indices(2)), 'Ignore')
+                if ~app.settings.MetadataTable.ShowIgnoredEntries
+                    % Make table temporarily uneditable
+                    allowTableEdits = app.UiMetaTableViewer.AllowTableEdits;
+                    if allowTableEdits
+                        app.UiMetaTableViewer.AllowTableEdits = false;
+                    end
+                    app.UiMetaTableViewer.refreshTable(app.MetaTable)
+                    if allowTableEdits
+                        app.UiMetaTableViewer.AllowTableEdits = true;
+                    end
+                end
+            end
         end
         
         function addTableVariable(app, metadataClass)
@@ -1593,7 +1942,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % Todo: Use class instead of functions / add class as a third
         % choice. Can make more configurations using a class, i.e class can
         % provides a mouse over effect etc.
-
     
             % Create a struct to open in a dialog window
             
@@ -1675,6 +2023,71 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateSessionInfoDependentMenus()
         end
         
+        function importTableVariable(app, metadataClass)
+        %importTableVariable Import a table variable definition (.m file)    
+            
+            [filename, folder] = uigetfile('*.m', 'Select a Table Variable File');
+            if isequal(filename, 0); return; end
+            
+            % Copy selected file into the table variable package
+            filePath = fullfile(folder, filename);
+            
+            rootPathTarget = nansen.localpath('Custom Metatable Variable', 'current');
+            fcnTargetPath = fullfile(rootPathTarget, ['+', lower(metadataClass)] );
+            if ~isfolder(fcnTargetPath); mkdir(fcnTargetPath); end
+
+            copyfile(filePath, fullfile(fcnTargetPath, filename))
+
+            % Does the variable exist in the table from before?
+            [~, variableName] = fileparts(filename);
+           
+            fcnName = utility.path.abspath2funcname(fullfile(fcnTargetPath, filename));
+            tableVarMetaClass = meta.class.fromName(fcnName);
+
+            if ~app.MetaTable.isVariable( variableName )
+                % Add a new table column to the table for new variable
+                
+                % Determine default value of ths variable.
+                if isempty(tableVarMetaClass)
+                    tablevarFcn = str2func(fcnName);
+                    initValue = tablevarFcn();
+                else
+                    tablevarFcn = strjoin({fcnName, 'DEFAULT_VALUE'}, '.');
+                    initValue = eval( tablevarFcn );
+                end
+
+                [~, variableName] = fileparts(filename);
+                app.MetaTable.addTableVariable(variableName, initValue)
+
+
+                app.UiMetaTableViewer.refreshColumnModel();
+                app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            else
+                if ~isempty(tableVarMetaClass)
+                    clear(fcnName) % clear class
+                    rehash
+                end
+
+                % Table variable exists, so we only need to reformat the 
+                % table colum and refresh
+
+                % This should ideally be done in a better way. It is not
+                % this app's responsibility to do this, but unfortunate side
+                % effect of having decided to set metatable of
+                % metatableviewer to type table...
+                columnIndex = app.MetaTable.getColumnIndex(variableName);
+                columnData = app.MetaTable.getFormattedTableData(columnIndex);
+                app.UiMetaTableViewer.updateFormattedTableColumnData(variableName, columnData)
+
+                app.UiMetaTableViewer.refreshColumnModel();
+                app.UiMetaTableViewer.refreshTable([])
+                drawnow
+            end
+
+            % Refresh menus that show the variables of the session table...
+            app.updateSessionInfoDependentMenus()
+        end
+        
         function editTableVariableDefinition(app, src, evt)
             
             import nansen.metadata.utility.getTableVariableUserFunctionPath
@@ -1683,7 +2096,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Todo: Conditional, other variables does not have a function
             app.editTableVariableFunction(varName)
-            
         end
         
         function editTableVariableFunction(app, tableVariableName)
@@ -1693,9 +2105,54 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             varName = tableVariableName;
             filepath = getTableVariableUserFunctionPath(varName, 'session');
             edit(filepath)
-            
         end
         
+        function addMetadataSchema(app, src, metadataModel)
+            import nansen.metadata.utility.createClassForCustomTableVar
+
+            schemaName = src.Text;
+            schemaInstanceNames = metadataModel.listSchemaInstances(schemaName);
+            
+            S = struct();
+            S.VariableName = schemaName;
+            S.MetadataClass = 'session';
+            S.DataType = 'text';
+            S.InputMode = 'Get values from list';
+
+            %S.DataType_ = {'numeric', 'text', 'logical'};
+            S.SelectionList = schemaInstanceNames;
+            createClassForCustomTableVar(S)
+
+             % Todo: Add variable to table and table settings....
+            initValue = nansen.metadata.utility.getDefaultValue(S.DataType);
+            
+            app.MetaTable.addTableVariable(S.VariableName, initValue)
+            app.UiMetaTableViewer.refreshColumnModel();
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+            % Refresh menus that show the variables of the session table...
+            app.updateSessionInfoDependentMenus()
+        end
+
+        function viewSchemaInfo(app, src, evt)
+            
+            if isempty(app.SchemaViewerApp)
+                app.SchemaViewerApp = schemaViewer;
+            else
+                app.SchemaViewerApp.Visible = 'on';
+            end
+            
+            s = app.getSelectedMetaObjects();
+            s = s(1);
+
+            % Todo: Get schema type...
+            % Todo: Get schema name
+            
+            s = getSchemaItem(schemaName, instance);
+
+            app.SchemaViewerApp.Schema = s;
+        end
+
         function resetTableVariable(app, src, evt)
             app.updateTableVariable(src, evt, true)
         end
@@ -1722,20 +2179,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             switch updateMode
                 case 'SelectedRows'
+                    app.assertSessionSelected()
+
                     sessionObj = app.getSelectedMetaObjects();
                     rows = app.UiMetaTableViewer.getSelectedEntries();
 
-                    if isempty(sessionObj)
-                        error('No sessions are selected'); 
-                    end
-                    
                 case 'AllEmptyRows'
                     % Todo....
                     
                 case 'AllRows'
                     rows = 1:size(app.MetaTable.entries, 1);
                     sessionObj = app.tableEntriesToMetaObjects(app.MetaTable.entries);
-
             end
             
             numSessions = numel(sessionObj);
@@ -1743,7 +2197,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if numSessions > 5 && ~reset
                 h = waitbar(0, 'Please wait while updating values');
             end
-            
             
             % Todo: This function call is different for preprogrammed
             % table variables, i.e data location.
@@ -1756,16 +2209,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             updateFcnName = S(isMatch).FunctionName;
             
             % Create function call for variable:
-            %updateFcnName = strjoin( {'tablevar', 'session', varName}, '.');
             updateFcn = str2func(updateFcnName);
-            
+            defaultValue = updateFcn();
+            expectedDataType = class(defaultValue);
+
             updatedValues = cell(numSessions, 1);
-            skipRow = [];
+            skippedRowInd = [];
             
             if reset
                 [updatedValues{:}] = deal(updateFcn());
             else
-            
+                
+                wasWarned = false;
+
                 for iSession = 1:numSessions
                     try % Todo: Use error handling here. What if some conditions can not be met...
                         newValue = updateFcn(sessionObj(iSession));
@@ -1781,24 +2237,61 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
                         %if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but thats for later
 
-                        updatedValues{iSession} = newValue;
+                        % Currently, only three data types are accepted,
+                        % numerics, cell array of character vector and
+                        % logicals
+
+                        isValid = false;
+
+                        if isa(defaultValue, 'double')
+                            if isnumeric(newValue)
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+                        elseif isa(defaultValue, 'logical')
+                            if islogical(newValue)
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+                        elseif isequal(defaultValue, {'N/A'}) % Character vectors should be in a scalar cell
+                            expectedDataType = 'character vector or a scalar cell containing a character vector';
+                            if iscell(newValue) && numel(newValue)==1 && ischar(newValue{1})
+                                updatedValues{iSession} = newValue{1};
+                                isValid = true;
+                            elseif isa(newValue, 'char')
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+                        else
+                            % Invalid;
+                        end
+
+                        if ~isValid
+                            skippedRowInd = [skippedRowInd, iSession]; %#ok<AGROW>
+                            if ~wasWarned
+                                warningMessage = sprintf('The table variable function returned something unexpected.\nPlease make sure that the table variable function for "%s" returns a %s.', varName, expectedDataType);
+                                app.openMessageBox(warningMessage, 'Update failed')
+                                wasWarned = true;
+                                ME = MException('TableVar:WrongType', warningMessage);
+                            end
+                        end
+
 
                     catch ME
-                        skipRow = [skipRow, iSession];
+                        skippedRowInd = [skippedRowInd, iSession]; %#ok<AGROW> 
                     end
 
                     if numSessions > 5
                         waitbar(iSession/numSessions, h)
                     end
                 end
-                
             end
             
-            updatedValues(skipRow) = [];
-            rows(skipRow) = [];
+            updatedValues(skippedRowInd) = [];
+            rows(skippedRowInd) = [];
             
-            if ~isempty(skipRow)
-                sessionIDs = strjoin({sessionObj(skipRow).sessionID}, newline);
+            if ~isempty(skippedRowInd)
+                sessionIDs = strjoin({sessionObj(skippedRowInd).sessionID}, newline);
                 messageStr = sprintf( 'Failed to update %s for the following sessions:\n\n%s\n', varName, sessionIDs);
                 errorMessage = sprintf('\nThe following error message was caught:\n%s', ME.message);
                 app.openMessageBox([messageStr, errorMessage], 'Update failed')
@@ -1807,8 +2300,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isempty(rows); return; end
             
             % Update values in the metatable..
-            app.MetaTable.editEntries(rows, varName, updatedValues);
-            
+            app.MetaTable.editEntries(rows, varName, updatedValues);            
 
             % Need to keep selected entries before refreshing table. 
             if numSessions < 20
@@ -1831,7 +2323,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if numSessions > 5 && ~reset
                 delete(h)
             end
-            
         end
 
         function copySessionIdToClipboard(app)
@@ -1842,7 +2333,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             sessionID = cellfun(@(sid) sprintf('''%s''', sid), sessionID, 'uni', 0);
             sessionIDStr = strjoin(sessionID, ', ');
             clipboard('copy', sessionIDStr)
+        end
 
+        function removeSessionFromTable(app)
+            selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
+            app.MetaTable.removeEntries(selectedEntries)
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
         
         function onAssignPipelinesMenuItemClicked(app, src, ~)
@@ -1864,7 +2360,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             noteObj = nansen.notes.Note.uiCreate('session', sessionID);
             
             sessionObj.addNote(noteObj)
-            
+        end
+
+        function onRemoveSessionMenuClicked(app)
+            app.removeSessionFromTable()
         end
         
         function onViewSessionNotesContextMenuClicked(app)
@@ -1919,14 +2418,35 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 hApp.transferOwnership(app)
                 app.VariableModelApp = hApp;
                 
-                % Not implemented. I don't see any situation where it is
-                % necessary, but maybe later?
-% %                 addlistener(hApp, 'VariableModelChanged', ...
-% %                     @app.onVariableModelChanged);
+                % Add listener for when the model is changed.
+                addlistener(hApp, 'VariableModelChanged', ...
+                    @app.onVariableModelChanged);
                 
             else
                 app.VariableModelApp.Visible = 'on';
             end
+        end
+
+        function onConfigureDatalocationRootMenuClicked(app, src, evt)
+            
+            import nansen.dataio.dialog.editDataLocationRootDeviceName
+            
+            % - Get selected item from data location model
+            dataLocationName = src.Text;
+            dlIdx = app.DataLocationModel.getItemIndex(dataLocationName);
+            rootConfig = app.DataLocationModel.Data(dlIdx).RootPath;
+
+            % - Update data location model
+            updatedRootConfig = editDataLocationRootDeviceName(rootConfig);
+            app.DataLocationModel.modifyDataLocation(dataLocationName, ...
+                'RootPath', updatedRootConfig);
+            app.DataLocationModel.save()
+            
+            % - Update data location structs
+            app.updateDataLocationFromModel()
+
+            % - Refresh table on these events
+            app.onRefreshTableMenuItemClicked()
         end
 
         function removeTableVariable(app, src, evt)
@@ -1978,6 +2498,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if nargin < 2
                 metaTable = app.MetaTable;
             end
+
+            if isempty(metaTable.entries); return; end
         
             tableVarNames = metaTable.entries.Properties.VariableNames;
             
@@ -2037,6 +2559,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 switch answer
                     case 'Yes'
                         metaTable.removeTableVariable(thisName)
+                        metaTable.save()
                     case {'Cancel', 'No', ''}
                         
                         % Todo (Is it necessary): Maybe if the variable is
@@ -2080,7 +2603,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             referenceVarNames = {variableAttributes.Name};
             customVarNames = referenceVarNames([variableAttributes.IsCustom]);
             
-            
             % Check if any functions are present the tablevar folder, but
             % the corresponding variable is missing from the table.
             missingVarNames = setdiff(customVarNames, tableVarNames);
@@ -2096,7 +2618,36 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
                 metaTable.addTableVariable(thisName, defaultValue)
             end
+        end
 
+        function onMetaTableModifiedChanged(app, src, evt)
+            if app.settings.MetadataTable.AutosaveMetaTable
+                if evt.AffectedObject.IsModified
+                    app.saveMetaTable()
+                end
+            end
+        end
+        
+        function metaTable = updateDataLocationFromModel(app, metaTable)
+        %updateDataLocationFromModel Update dataLocations in meta table
+        %
+        % Make sure all data location entries in the metatable matches the
+        % configurations in the data location model.
+            if nargin < 2
+                metaTable = app.MetaTable;
+            end
+
+            if any(strcmp(metaTable.entries.Properties.VariableNames, 'DataLocation'))
+                dataLocationStructs = metaTable.entries.DataLocation;
+                dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
+                metaTable.entries.DataLocation = dataLocationStructs;
+                metaTable.markClean() % This change does not make the table dirty.
+            end
+
+            if nargin < 2 && ~nargout
+                app.MetaTable = metaTable;
+                clear metaTable
+            end
         end
         
         function loadMetaTable(app, loadPath)
@@ -2131,30 +2682,35 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 else % Todo: do i need this...?
                     metaTable = nansen.metadata.MetaTable;
                 end
-            
+                
                 % Checks if metatable matches with custom table variables
                 metaTable = app.checkIfMetaTableComplete(metaTable);
                 
                 % Temp fix. Todo: remove
                 metaTable = nansen.metadata.temp.fixMetaTableDataLocations(metaTable, app.DataLocationModel);
+                metaTable = nansen.metadata.temp.fixDataLocationSubfolders(metaTable);
+
+                % Temp fix. Todo: remove
+                if any(strcmp(metaTable.entries.Properties.VariableNames, 'Data'))
+                    metaTable.removeTableVariable('Data')
+                end
                 
                 % Update data location paths based on the local
                 % DataLocation model and make sure paths are according to
                 % operating system.
-                if any(strcmp(metaTable.entries.Properties.VariableNames, 'DataLocation'))
-                    dataLocationStructs = metaTable.entries.DataLocation;
-                    dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
-                    metaTable.entries.DataLocation = dataLocationStructs;
-                    metaTable.markClean() % This change does not make the table dirty.
-                end
-                
+                metaTable = app.updateDataLocationFromModel(metaTable);
+
                 app.MetaTable = metaTable;
-                
+
+                addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
+                    @app.onMetaTableModifiedChanged);
+                                
 % %                 if app.initialized % todo
 % %                     app.updateRelatedInventoryLists()
 % %                 end
             catch ME
                 app.openErrorDialog(ME.message, 'Could Not Load Session Table')
+                disp(getReport(ME, 'extended'))
             end
             
             % Add name of loaded inventory to figure title
@@ -2163,20 +2719,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             app.updateMetaTableMenu()
-            
         end
         
-        function saveMetaTable(app, src, ~)
+        function saveMetaTable(app, src, ~, forceSave)
             
+            if nargin < 4; forceSave = false; end
+
             if app.settings.MetadataTable.AllowTableEdits
-                app.MetaTable.save()
+                wasSaved = app.MetaTable.save(forceSave);
                 
-                app.h.StatusField.String = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
-                app.clearStatusIn(5)
+                if wasSaved
+                    app.StatusText.Status = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
+                    app.clearStatusIn(5)
+                end
             else
                 error('Can not save metatable because access is read only')
             end
-
         end
         
         function reloadMetaTable(app)
@@ -2236,6 +2794,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             answer = app.openQuestionDialog(qstring, title, alternatives{:}, default);
             doExit = strcmp(answer, 'Yes'); 
         end
+    
     end
     
     methods (Access = protected) % Callbacks
@@ -2266,7 +2825,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
             app.openMessageBox(sprintf('%d sessions were successfully added', numel(newSessionObjects)))
-
+            % Display sessions that were added on the commandline
+            fprintf('The following sessions were added: \n%s\n', strjoin({newSessionObjects.sessionID}, '\n'))
         end
         
         %onSettingsChanged Callback for change of fields in settings
@@ -2292,9 +2852,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 case {'TimerPeriod', 'RunTasksWhenQueued', 'RunTasksOnStartup'}
                     app.settings_.TaskProcessor.(name) = value;
                     app.BatchProcessor.(name) = value;
-
             end
-            
         end
         
         function onNewMetaTableSet(app)
@@ -2303,332 +2861,355 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
         
-        function onSessionSelectionChanged(app, src, evt)
-            
-            % Count number of sessions selected
-            selectedRows = app.UiMetaTableViewer.getSelectedEntries();
-            
-            str = 'Status: Idle';
-            
-            if numel(selectedRows) == 1
-                strA = sprintf( '%d session selected', numel(selectedRows) );
-                str = strjoin({strA, str}, ' | ');
-            elseif numel(selectedRows) > 1
-                strA = sprintf( '%d sessions selected', numel(selectedRows) );
-                str = strjoin({strA, str}, ' | ');
-            end
-            
-            app.h.StatusField.String = str;
-            
-        end
-        
         function onSessionTaskSelected(app, ~, evt)
+        %onSessionTaskSelected Callback for event on session task menu.
+        %
+        % This function prepares tasks to run based on the selected method
+        % from the session task menu, the selected sessions from the
+        % session table and the selected mode for running the task.
+        %
+        %
+        %   Supported modes:
+        %       q   - add task(s) the the task processor's queue.
+        %       e   - edit session method function
+        %       ... - preview options for method 
+
+
+            % Todo: Implement saving or errors to a log file. (right now,
+            % in most cases it is available in the task processor's
+            % history)
             
-            % Todo: Implement error handling.
-            
-            sessionObj = app.getSelectedMetaObjects();
-            numSessions = numel(sessionObj);
-            
+            % If the edit mode was selected, open the function file for
+            % editing and return.
             if strcmp(evt.Mode, 'Edit')
-                edit(func2str(evt.MethodFcn))
+                edit( evt.TaskAttributes.FunctionName )
+                app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode 
+                return
+            elseif strcmp(evt.Mode, 'Help')
+                help(evt.TaskAttributes.FunctionName)
+                applify.helpDialog(evt.TaskAttributes.FunctionName)
                 return
             end
-            
-            
-            if numSessions == 0
-                msg = 'No sessions are selected';
-                app.openMessageBox(msg, 'Aborted')
-                return
+
+            if strcmp(evt.Mode, 'Preview')
+                if isempty( app.UiMetaTableViewer.getSelectedEntries )
+                    % Just edit options for this method.
+                    % optsName = evt.OptionsSelection;
+                    optsManager = evt.TaskAttributes.OptionsManager;
+                    optsManager.editOptions()
+                    return
+                end
             end
             
-            functionName = func2str(evt.MethodFcn);
+            % Throw error if no sessions are selected.
+            app.assertSessionSelected()
+            
+            % Note: If the task(s) should be added to the queue, the
+            % session objects need to be uncached. This is because the
+            % cache can be cleared, and when the cache is cleared the
+            % session objects will become invalid. Thus the tasks in the
+            % task list would also be corrupt/unrunnable.
+            if strcmp(evt.Mode, 'TaskQueue')
+                useSessionObjectCache = false;
+            else
+                useSessionObjectCache = true;
+            end
+            
+            % Get the session objects that are selected in the metatable
+            sessionObj = app.getSelectedMetaObjects(useSessionObjectCache);
+
+            % Get the function name 
+            functionName = evt.TaskAttributes.FunctionName;
             returnToIdle = app.setBusy(functionName); %#ok<NASGU>
                            
-            app.SessionTaskMenu.Mode = 'Default';
+            app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode 
             drawnow
 
-            % Get configuration attributes for session method. 
-            try
-                % Call with no inputs should give configuration struct
-                mConfig = evt.MethodFcn();
-
-                if isa(mConfig, 'struct')
-                    % Add an options manager to the mConfig struct
-                    mConfig.OptionsManager = nansen.manage.OptionsManager(..., 
-                        functionName, mConfig.DefaultOptions);
-                    
-                elseif isa(mConfig, 'nansen.session.SessionMethod')
-                    % Pass
-                    
-                else
-                    %TODO: create proper exception
-                    error('%s is not a valid SessionMethod')
-                end
-
-            catch ME
-                throwAsCaller(ME)
-                %rethrow(ME)
-            end
-            
-            
             % Check if session task should be run in serial or batch
-            isSerial = strcmp(mConfig.BatchMode, 'serial');
+            isSerial = strcmp(evt.TaskAttributes.BatchMode, 'serial');
             
-            % Todo: What if session method is just a function handle???
-            % Should add as ExternalFcn in a SessionMethod instance (make 
-            % subclass for such cases....)
-            
-            % Place session objects in a cell array based on batch mode.
+            % Place session objects in a cell array based on batch mode. If
+            % mode is serial, each cell holds one session, and if mode is
+            % batch, one cell holds all session objects
             if isSerial
                 sessionObj = arrayfun(@(sObj) sObj, sessionObj, 'uni', 0);
             else
                 sessionObj = {sessionObj};
             end
-            
-            sessionMethod = evt.MethodFcn; 
-            
-            % Todo: What if there is a keyword???
+
+            % Todo: Add attribute for maximum number of sessions and check 
+            % if the maximum number of sessions for this method is exceeded.
+
+            % Get the correct optionsSet if a preset optionsSet was
+            % selected. If evt.OptionsSelection is empty, the default is
+            % retrieved
             optsName = evt.OptionsSelection;
-            [opts, optsName] = mConfig.OptionsManager.getOptions(optsName);
-                
-            switch evt.Mode
-                case 'Restart'
-                    app.runTasksWithDefaults(sessionMethod, sessionObj, opts, optsName, true)
-                
-                case 'Default'
-                    app.runTasksWithDefaults(sessionMethod, sessionObj, opts, optsName)
+            optsManager = evt.TaskAttributes.OptionsManager;
+            [opts, optsName] = optsManager.getOptions(optsName);
+            
+            % Prepare a struct holding task configurations.
+            taskConfiguration = struct;
+            taskConfiguration.Method = evt.TaskAttributes.FunctionHandle;
+            taskConfiguration.Mode = evt.Mode;
+            taskConfiguration.SessionObject = [];
+            taskConfiguration.Options = opts;
+            taskConfiguration.OptionsName = optsName;
+            taskConfiguration.Alternative = evt.Alternative;
+            taskConfiguration.Restart = strcmp(evt.Mode, 'Restart');
+            taskConfiguration.TaskAttributes = evt.TaskAttributes;
+            
+            % Go through cell array of session objects and initialize tasks
+            numTasks = numel(sessionObj);
 
-                case 'Preview'
-                    app.runTasksWithPreview(sessionMethod, sessionObj, opts, optsName)
-
-                case 'TaskQueue'
-                    app.addTasksToQueue(sessionMethod, sessionObj, opts, optsName)
-
+            % Only edit options once when multiple sessions are selected if
+            % this is spedified in preferences.
+            if strcmp(evt.Mode, 'Preview') && numTasks > 1 && ...
+                   strcmp( app.settings.Session.OptionEditMode, 'Only once' )
+                optsManager = evt.TaskAttributes.OptionsManager;
+                [optsName, optsStruct, wasAborted] = optsManager.editOptions();
+                if wasAborted; return; end
+                taskConfiguration.Options = optsStruct;
+                taskConfiguration.OptionsName = optsName;
+                evt.Mode = 'Default';
+                taskConfiguration.Mode = 'Default';
             end
-              
-            % Clear the statusfield
-        
-            % Todo: update the session object in the session table if
-            % changes were made...?
-            
-            
-        end
-        
-        function sendToWorkspace(app)
-                    
-            sessionObj = app.getSelectedMetaObjects();
 
-% %             switch app.settings.Session.ExportSessionObjectAs
-% %                 case 'Nansen'
-% %                     % Pass
-% %                 case 'NDI'
-% %                     sessionObj = app.getNdiSessionObj(sessionObj);
-% %             end
-            
-            if ~isempty(sessionObj)
-                varName = app.settings.Session.SessionObjectWorkspaceName;
-                assignin('base', varName, sessionObj)
+            for i = 1:numTasks
+
+                % Update the status field
+                app.updateStatusText(i-1, numTasks, taskConfiguration.Method)
+
+                taskConfiguration.SessionObject = sessionObj{i};
+
+                % Call the appropriate method based on the selected mode
+                switch evt.Mode
+                    case {'Default', 'Restart'}
+                        app.runTasksWithDefaults(taskConfiguration)
+    
+                    case 'Preview'
+                        app.runTasksWithPreview(taskConfiguration)
+    
+                    case 'TaskQueue'
+                        app.addTasksToQueue(taskConfiguration)
+                end
             end
-            
         end
         
-        function ndiSessionObj = getNdiSessionObj(app, sessionObj)
-            
-            dataLocation = sessionObj.getDataLocation('Rawdata');
-            dirPath = dataLocation.RootPath;
-            
-            ndiSessionObj = ndi.session.dir('ts_exper', dirPath);
-            
-        end
-        
-        function runTasksWithDefaults(app, sessionMethod, sessionObj, opts, ~, restart)
+        function runTasksWithDefaults(app, taskConfiguration)
         %runTasksWithDefaults Run session method with default options
             
-            if nargin < 6; restart = false; end
-        
-            % Get task name
-            methodName = nansen.session.SessionMethod.getMethodName(sessionMethod);
-                        
-            % Todo: Check if there is a maximum number of tasks for this
-            % method.
+        %    Method         : Function handle of method to run
+        %    SessionObject  : Array of session objects;
+        %    Options        : Struct of options to use
+        %    OptionsName    : Name of options
+        %    Alternative    : Optional, for methods with multiple alternatives
+        %    Restart        : Boolean flag, true if method should be restarted
             
-            numTasks = numel(sessionObj);
-            for i = 1:numTasks
-                
-                % Update the status field
-                app.updateStatusField(i-1, numTasks, sessionMethod)
-                
-                if numel(sessionObj{i}) > 1
-                    taskName = 'Multisession';
-                else
-                    taskName = sessionObj{i}.sessionID;
-                end
 
-                newTask = app.BatchProcessor.createTaskItem(taskName, ...
-                    sessionMethod, 0, sessionObj(i), 'Default', 'Command window task');
+            % Unpack variables from input struct:
+            sessionMethod = taskConfiguration.Method;
+            sessionObj = taskConfiguration.SessionObject;
+            opts = taskConfiguration.Options;
 
-                % cleanupObj makes sure temp logfile is deleted later
-                [cleanUpObj, logfile] = app.BatchProcessor.initializeTempDiaryLog(); %#ok<ASGLU,NASGU>
-                
-                newTask.timeStarted = datetime(now,'ConvertFrom','datenum');
-                
-                % Run the task
+            taskName = app.createTaskName( sessionObj );
 
-                if app.settings.Session.SessionTaskDebug
-                    sessionMethod(sessionObj{i}, opts);
-                else
+            newTask = app.BatchProcessor.createTaskItem(taskName, ...
+                sessionMethod, 0, {sessionObj}, 'Default', 'Command window task');
 
-                    try
-                        if restart
-                            app.runTaskWithReset(sessionMethod, sessionObj{i}, opts)
-                        else
-                            sessionMethod(sessionObj{i}, opts);
-                        end
-                        if numel(sessionObj{i}) == 1 % Methods which accept multiple session should not be included in pipelines...
-                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-                        end
-                        newTask.status = 'Completed';
-                        diary off
-                        newTask.Diary = fileread(logfile);
-                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
+            % cleanupObj makes sure temp logfile is deleted later
+            [cleanUpObj, logfile] = app.BatchProcessor.initializeTempDiaryLog(); %#ok<ASGLU,NASGU>
+            
+            newTask.timeStarted = datetime(now,'ConvertFrom','datenum');
 
-                 
-                    catch ME
-                        newTask.status = 'Failed';
-                        diary off
-                        newTask.Diary = fileread(logfile);
-                        newTask.ErrorStack = ME;
-                        app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
-                        app.throwSessionMethodFailedError(ME, taskName, ...
-                            func2str(sessionMethod))
-                    end
-                
-                    clear cleanUpObj
-                end
+            % Prepare arguments for the session method
+            %app.prepareSessionMethodArguments() %todo
+            
+            methodArgs = {sessionObj, opts};
+            if ~isempty(taskConfiguration.Alternative)
+                methodArgs = [methodArgs, {'Alternative', taskConfiguration.Alternative}];
             end
-            
-        end
-        
-        function runTasksWithPreview(app, sessionMethod, sessionObj, opts, optsName)
-            
-            % Get default options
-            % Get task name
 
-            % Use normcorre as an example: how to open the preview mode 
-            % i.e open the image stack in imviewer and open the normcorre
-            % plugin? 
-            %
-            % While still retaining the functionality for session methods
-            % implemented through functions??
-            
-            % Todo: Add task to history.
-            
-            
-            numTasks = numel(sessionObj);
-            for i = 1:numTasks
-                
+            % Run the task
+            if app.settings.Session.SessionTaskDebug % make debug mode instead of having it as a preference?
+                sessionMethod(methodArgs{:});
+            else
+                taskType = taskConfiguration.TaskAttributes.TaskType;
                 try
-                    sMethod = sessionMethod();
-
-                    if numel(sessionObj{i}) > 1
-                        taskName = 'Multisession';
-                    else
-                        taskName = sessionObj{i}.sessionID;
+                    switch taskConfiguration.Mode
+                        case 'Default'
+                            sessionMethod(methodArgs{:});
+                        case 'Restart'
+                            app.runTaskWithReset(sessionMethod, taskType, methodArgs)
+                        case 'Preview'
+                            % Todo
                     end
-                    
-                    
-                    % Open the options / method in preview mode
-                    if isa(sMethod, 'nansen.session.SessionMethod')
-                        sMethod = sessionMethod(sessionObj{i});
-                        sMethod.usePreset(optsName)
 
-                        isSuccess = sMethod.preview();
-
-                        if isSuccess
-                            sMethod.run()
-                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-                        end
-
-                        % Update session task menu (in case new options were defined...)
-                        app.SessionTaskMenu.refresh()
-                        % Todo: Only refresh this submenu.
-                        % Todo: Only refresh if options sets were added. 
-
-                    else
-                        fcnName = func2str(sessionMethod);
-                        
-                        if ~isempty(fieldnames(opts))
-                            optManager = nansen.manage.OptionsManager(fcnName, opts, optsName);
-                            [~, opts, wasAborted] = optManager.editOptions();
-                        else
-                            app.openMessageBox('This method does not have any parameters')
-                            wasAborted = true;
-                        end
-
-                        if ~wasAborted
-                            sessionMethod(sessionObj{i}, opts);
-                            sessionObj{i}.updateProgress(sessionMethod, 'Completed')
-                        end
+                    if numel(sessionObj) == 1 && ismethod(sessionObj, 'updateProgress')
+                        % Methods which accept multiple session are not 
+                        % (should not) be included in pipelines...
+                        sessionObj.updateProgress(sessionMethod, 'Completed')
                     end
+
+                    newTask.status = 'Completed';
+                    diary off
+                    newTask.Diary = fileread(logfile);
+                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
 
                 catch ME
+                    newTask.status = 'Failed';
+                    diary off
+                    newTask.Diary = fileread(logfile);
+                    newTask.ErrorStack = ME;
+                    app.BatchProcessor.addCommandWindowTaskToHistory(newTask)
                     app.throwSessionMethodFailedError(ME, taskName, ...
                         func2str(sessionMethod))
                 end
+            
+                clear cleanUpObj
             end
+        end
 
+        function runTaskWithReset(~, sessionMethod, taskType, methodArgs)
+
+            switch taskType
+                case 'class'
+                    sMethod = sessionMethod(methodArgs{:});
+                    sMethod.RedoIfCompleted = true;
+                    sMethod.runMethod()
+                case 'function'
+                    sessionMethod(methodArgs{:});
+                    warning('Session method does not have reset mode')
+            end
+        end
+
+        function runTasksWithPreview(app, taskConfiguration)
+            
+            % Todo: Move some of this to a separate method, similar to 
+            % runTaskWithReset. Can get rid of some duplciate code, and
+            % also add as task to the taskprocessor using the
+            % runTasksWithDefaults method...
+
+            % Unpack variables from input struct:
+            sessionMethod = taskConfiguration.Method;
+            sessionObj = taskConfiguration.SessionObject;
+            opts = taskConfiguration.Options;
+            optsName = taskConfiguration.OptionsName;
+            
+            taskType = taskConfiguration.TaskAttributes.TaskType;
+            functionName = taskConfiguration.TaskAttributes.FunctionName;
+
+            try
+                
+                taskName = app.createTaskName( sessionObj );
+                % Open the options / method in preview mode
+                if strcmp(taskType, 'class')
+                    sMethod = sessionMethod(sessionObj);
+                    sMethod.usePreset(optsName)
+
+                    isSuccess = sMethod.preview();
+                    wasAborted = ~isSuccess;
+                    
+                    if isSuccess
+                        sMethod.run()
+                    else
+                        return
+                    end
+
+                    % Update session task menu (in case new options were defined...)
+                    app.SessionTaskMenu.refresh()
+                        
+                    %functionName = taskConfiguration.TaskAttributes.FunctionName;
+                    %app.SessionTaskMenu.refreshMenuItem(functionName) % todo
+    
+                    % Todo: Only refresh this submenu.
+                    % Todo: Only refresh if options sets were added. 
+
+                elseif strcmp(taskType, 'function')
+                    
+                    if isempty(fieldnames(opts))
+                        app.openMessageBox('This method does not have any parameters')
+                        wasAborted = true;
+                    else
+                        optManager = taskConfiguration.TaskAttributes.OptionsManager;
+                        %optManager = nansen.manage.OptionsManager(functionName, opts, optsName);
+                        [~, opts, wasAborted] = optManager.editOptions(optsName, opts);
+                    end
+
+                    if ~wasAborted
+                        methodArgs = {sessionObj, opts};
+                        if ~isempty(taskConfiguration.Alternative)
+                            methodArgs = [methodArgs, ...
+                                {'Alternative', taskConfiguration.Alternative}];
+                        end
+                        sessionMethod(methodArgs{:});
+                    else
+                        return
+                    end
+                end
+
+                if numel(sessionObj) == 1 && ~wasAborted
+                    % Methods which accept multiple session are not 
+                    % (should not) be included in pipelines...
+                    if ismethod(sessionObj, 'updateProgress')
+                        sessionObj.updateProgress(sessionMethod, 'Completed')
+                    end
+                end
+
+            catch ME
+                app.throwSessionMethodFailedError( ME, taskName, ...
+                    functionName )
+            end
         end
         
-        function addTasksToQueue(app, sessionMethod, sessionObj, opts, optsName)
+        function addTasksToQueue(app, taskConfiguration)
             
             % Todo: 
             %   [ ] try/catch
             %   [ ] if session method - should run a "validation" method
-            
+
             if isempty(app.BatchProcessor)
                 app.BatchProcessor = nansen.TaskProcessor;
             end
+                        
+            % Unpack variables from input struct:
+            sessionMethod = taskConfiguration.Method;
+            sessionObj = taskConfiguration.SessionObject;
+            opts = taskConfiguration.Options;
+            optsName = taskConfiguration.OptionsName;
             
-            
-            % Add tasks to the queue
-            numTasks = numel(sessionObj);
-            for i = 1:numTasks
 
-                % Get/create task name
-                if numel(sessionObj{i}) > 1
-                    taskId = 'Multiple sessions';
-                else
-                    taskId = sessionObj{i}.sessionID;
-                end
-                
-                % Todo: Make preliminary test to check if method will run,
-                % i.e check required variables
-                
-                % Prepare input args for function (session object and 
-                % options)
-                
-                methodArgs = {sessionObj{i}, opts};
-                
-                % Add task to the queue / submit the job
-                app.BatchProcessor.submitJob(taskId,...
-                                sessionMethod, 0, methodArgs, optsName )
+            % Get/create task name
+            taskName = app.createTaskName( sessionObj );
+            
+            % Todo: Make preliminary test to check if method will run,
+            % i.e check required variables
+            
+            % Prepare input args for function (session object and 
+            % options)
+            
+            methodArgs = {sessionObj, opts};
+            if ~isempty(taskConfiguration.Alternative)
+                methodArgs = [methodArgs, {'Alternative', taskConfiguration.Alternative}];
             end
+
+            % Add task to the queue / submit the job
+            app.BatchProcessor.submitJob(taskName,...
+                            sessionMethod, 0, methodArgs, optsName )
         end
 
-        function runTaskWithReset(app, sessionMethod, sessionObj, opts)
-            
-            sMethod = sessionMethod();
-            
-            if isa(sMethod, 'nansen.session.SessionMethod')
-                sMethod = sessionMethod(sessionObj, opts);
-                sMethod.RedoIfCompleted = true;
-                sMethod.runMethod()
+        function taskName = createTaskName(~, sessionObjects)
+                
+            if numel(sessionObjects) > 1
+                taskName = 'Multisession';
             else
-                sessionMethod(sessionObj, opts);
-                warning('Session method does not have reset mode')
+                try % Todo: Use metatable class to determine variablename of id 
+                    taskName = sessionObjects.sessionID;
+                catch
+                    taskName = sessionObjects.id;
+                end
             end
         end
-        
+
         function createBatchList2(app, mode)
             
             figName = sprintf( 'List of %s Tasks', mode);
@@ -2671,8 +3252,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 close(f)
                 app.openMessageBox('No tasks were found')
             end
-            
-            
         end
         
         function createBatchList(app, mode)
@@ -2698,7 +3277,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 else
                     taskList = cat(1, taskList, thisTaskList);
                 end
-                
             end
             
             if ~isempty(taskList)
@@ -2712,7 +3290,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 app.openMessageBox('No tasks were found')
             end
-            
         end
         
         function openFolder(app, dataLocationName)
@@ -2723,7 +3300,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 folderPath = sessionObj(i).getSessionFolder(dataLocationName);
                 utility.system.openFolder(folderPath)
             end
+        end
+        
+        function sendToWorkspace(app)
+                    
+            sessionObj = app.getSelectedMetaObjects();
 
+            if ~isempty(sessionObj)
+                varName = app.settings.Session.SessionObjectWorkspaceName;
+                assignin('base', varName, sessionObj)
+            end
+        end
+        
+        % Todo: Make a setting to specify which session definition to use
+        % for creating a session object.
+        function ndiSessionObj = getNdiSessionObj(app, sessionObj)
+            dataLocation = sessionObj.getDataLocation('Rawdata');
+            dirPath = dataLocation.RootPath;
+            
+            ndiSessionObj = ndi.session.dir('ts_exper', dirPath);
         end
         
     end
@@ -2751,19 +3346,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         otherwise
                             % Do nothing
                     end
-
                     
                 case 'Add Existing...'
                     [success, projectName] = ProjectManagerUI().addExistingProject();
                     
                     if success
+                        app.ProjectManager.loadCatalog() % reload
                         app.promptOpenProject(projectName)
                     end
-                    
             end
             
             app.updateProjectList()
-
         end
         
         function onChangeProjectMenuClicked(app, src, ~)
@@ -2787,7 +3380,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uiwait(hFigure)
             % Note: Change to addlistener if not using uiwait.
             app.updateProjectList()
-            
         end
         
         function onOpenProjectFolderMenuClicked(app, src, evt)
@@ -2861,13 +3453,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.updateRelatedInventoryLists()
                 end
             end
-                
         end
 
         function metatable = MenuCallback_CreateMetaTable(app, src, evt)
             
             metatable = [];
-            
+            currentTableClass = class(app.MetaTable);
+            if ~strcmp(currentTableClass, 'nansen.metadata.type.Session') %#ok<STISA> 
+                errordlg(sprintf('This operation is not supported for tables with "%s" items yet...', currentTableClass))
+                return
+            end
+
             S = struct();
             S.MetaTableName = '';
             S.MakeDefault = false;
@@ -2877,6 +3473,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             [S, wasAborted] = tools.editStruct(S, [], 'New Metatable Collection', 'Prompt', 'Configure new metatable');
             if wasAborted; return; end
             
+            if isempty(S.MetaTableName)
+                errordlg('Please enter a name to create a new metatable...')
+                return
+            end
+
             S_ = struct;
             S_.MetaTableName = S.MetaTableName;
             S_.IsDefault = S.MakeDefault;
@@ -2885,9 +3486,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             projectRootDir = getpref('Nansen', 'CurrentProjectPath');
             S_.SavePath = fullfile(projectRootDir, 'Metadata Tables');
 
-            MT = nansen.metadata.MetaTableCatalog.quickload();
+            metaTableCatalog = nansen.metadata.MetaTableCatalog();
+            MT = metaTableCatalog.Table;
             isMaster = MT.IsMaster; %#ok<PROP>
             
+            S_.MetaTableIdVarname = MT{isMaster, 'MetaTableIdVarname'}{1};
             S_.MetaTableKey = MT{isMaster, 'MetaTableKey'}{1};
             S_.MetaTableClass = MT{isMaster, 'MetaTableClass'}{1};
             
@@ -2896,8 +3499,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if S.AddSelectedSessions
                 sessionEntries = app.getSelectedMetaObjects;
-                metatable.addEntries(sessionEntries)
-                metatable.save()
+                if ~isempty(sessionEntries)
+                    metatable.addEntries(sessionEntries)
+                    metatable.save()
+                end
             end
             
             if S.OpenMetaTable
@@ -2931,8 +3536,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Todo: Wrap this into a separate method
             app.loadMetaTable(filePath)
-            
-            
         end
         
         function onSetDefaultMetaTableMenuItemClicked(app, src, evt)
@@ -3000,7 +3603,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Update uitable
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
-
         end
         
         function onConfigPipelineAssignmentMenuItemClicked(app, src, event)
@@ -3017,7 +3619,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if wasSuccess
                 app.SessionTaskMenu.refresh()
             end
-            
         end
         
         function onRefreshSessionMethodMenuClicked(app, src, evt)
@@ -3026,11 +3627,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onRefreshTableMenuItemClicked(app, ~, ~)
              
-            returnToIdle = app.setBusy('Updating table');
+            returnToIdle = app.setBusy('Updating table'); %#ok<NASGU> 
             %uipopup(app.Figure, 'Updating table')
-            app.UiMetaTableViewer.resetTable()            
+            resetView = false;
+            app.UiMetaTableViewer.resetTable(resetView)
             onNewMetaTableSet(app)
-            
+        end
+
+        function onClearMemoryMenuClicked(app, ~, ~)
+            app.resetMetaObjectList()
         end
         
         function onOpenFigureMenuClicked(app, packageName, figureName)
@@ -3078,11 +3683,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 % Save preferences
                 app.savePreferences();
-                
             end
         
         function saveMetatableColumnSettingsToProject(app)
-            
+            if isempty(app.UiMetaTableViewer); return; end
             columnSettings = app.UiMetaTableViewer.ColumnSettings;
             currentProjectName = app.ProjectManager.CurrentProject;
             projectObj = app.ProjectManager.getProjectObject(currentProjectName);
@@ -3116,7 +3720,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             propGroup = matlab.mixin.util.PropertyGroup(thisProps,titleTxt);
             
         end %function
-        
+    end
+
+    methods (Access = private) % Assertions
+
+        function assertSessionSelected(app)
+
+            entryIdx = app.UiMetaTableViewer.getSelectedEntries();
+            
+            if isempty(entryIdx)
+                msg = 'No sessions are selected. Select one or more sessions for this operation.';
+                app.openMessageBox(msg, 'Session Selection Required')
+                error('NansenApp:SessionSelectionRequired', msg)
+            end
+        end
     end
    
     methods (Access = private) % Open dialog windows. Todo: make separate class
@@ -3133,7 +3750,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             elseif nargin == 3
                 msgbox(messageStr, titleStr, opts)
             end
-            
         end
         
         function answer = openQuestionDialog(app, varargin)
@@ -3156,7 +3772,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 opts.Default = 'Yes';
             end
             answer = questdlg(messageStr, varargin{:}, opts);
-            
         end
         
         function openInputDialog()
@@ -3172,15 +3787,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             messageStr = app.getFormattedMessage(messageStr);
             opts = app.getDialogOptions();
             errordlg(messageStr, titleStr, opts)
-            
         end
         
         function formattedMessage = getFormattedMessage(~, message)
-            formattedMessage = strcat('\fontsize{12}', message);
+            formattedMessage = strcat('\fontsize{14}', message);
             
             % Fix some characters that are interpreted as tex markup
             formattedMessage = strrep(formattedMessage, '_', '\_');
-            
         end
         
         function opts = getDialogOptions(~)
@@ -3199,7 +3812,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Display error stack for better chance at debugging
             disp(getReport(ME, 'extended'))
-
         end
         
     end

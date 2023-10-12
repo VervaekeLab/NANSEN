@@ -1,5 +1,9 @@
 classdef uicontrolSchemer < handle
     
+% Disclaimer: This is a complete mess of undocumented matlab. It makes
+% things look a bit better than the default matlab style, but it is buggy
+% and will most likely break in some new release of MATLAB
+
 %   Works with:
 %       checkbox - remove icon and plot checkbox % todo: make uim.control
 %       edit - remove border and plot new border
@@ -21,9 +25,29 @@ classdef uicontrolSchemer < handle
 %       - glitch with popupmenu, where it sometimes becomes visible very
 %       briefly.
 
-%   Todo: Set colors dynamically based on figure/panel background and
-%   foreground colors.
-    
+%   Todo: 
+%       [ ] Set colors dynamically based on figure/panel background and
+%           foreground colors.
+%       [ ] Implement themes
+%       [ ] Reconsider using ancestor resized / moved callback as these
+%           fire quite often
+
+
+% Windows: Buttons will reset to original matlab style when the panel is
+%  resized. There are a couple of strategies to prevent this from being
+%  visible:
+%    Adding matlab callback on panel resize 
+%    Adding java callback for ancestor resized and ancestor moved.
+%  
+% This will not work if buttons are not visible during the resize. This
+% needs to be solved externally by calling the stripAllUiControls whenever
+% a panel is made visible (for example)
+% Question: Necessary for all, or only buttons?
+% 
+% #aa It appears that if the BackgroundColor of an uicontrol is explicitly set,
+% the removeJButtonStyle does not work. Todo: test if it works to change
+% any hcontrol property, then drawnow, then removeJButtonStyle
+
     properties(Access = private)
         hPanel          % Panel which uicontrols are parented to.
         hAxes           % Axes where uicontrol visualizations are plotted
@@ -37,26 +61,28 @@ classdef uicontrolSchemer < handle
         ParentContainerSizeChanged
         FigureDestroyedListener
     end
-    
-    
-    properties
+
+    properties % Appearance
         borderColor = [209, 210, 211] ./ 255
         highlightColor = [0.9454    0.8998    0.1127]
         
         cornerRadius = 5
         checkboxSize = [14, 14] % Pixels (14,14)
-
     end
-    
-    
+
+    properties (Access = private)
+        Debug = false;
+    end
     
     methods
         
         function obj = uicontrolSchemer(hUIControls, hPanel, colorTheme)
+        % uicontrolSchemer Class constructor
+
+            if ~nargin; return; end 
             
             % Get parent of uicontrol
             if nargin < 2 || isempty(hPanel)
-%                 obj.hPanel = hUIControls(1).Parent;
                 obj.hPanel = ancestor(hUIControls(1), 'uipanel');
                 if isempty(obj.hPanel)
                     error('The uicontrol must be located in a panel for uicontrolSchemer to work.')
@@ -65,22 +91,77 @@ classdef uicontrolSchemer < handle
                 obj.hPanel = hPanel;
             end
             
-% % %             % For debugging...
-% % %             varName = sprintf('uischemer%05d', randi(10000));
-% % %             assignin('base', varName, obj)
+            try
+                obj.assignUiControlsAndRetrieveJavahandles(hUIControls)
+            catch
+                return
+            end
             
-            obj.ParentContainerSizeChanged = addlistener(obj.hPanel, ...
-                'SizeChanged', @obj.onPanelSizeChanged);
-            
-            obj.FigureDestroyedListener = listener(ancestor(obj.hPanel, 'figure'), ...
-            'ObjectBeingDestroyed', @obj.delete);
-            
-            obj.PanelColor = obj.hPanel.BackgroundColor;
-        
+            obj.assignStyleProperties()
             obj.initializeStylerAxes()
             
-            cmap = magma(255);
-            obj.highlightColor = cmap(randi([128,255], 1), :);
+            obj.restyleControls()
+
+            obj.createListenersOnConstruction()
+            
+            ifDebug(obj)
+
+            if ~nargout
+                clear obj
+            end
+        end
+        
+        function delete(obj, ~, ~)
+            if ~isvalid(obj); return; end
+            delete(obj.FigureDestroyedListener)
+            delete@handle(obj) % Why does this have to be explicit?
+        end
+        
+    end
+
+    methods
+
+        function stripAllUIControls(obj)
+            numUIControls = numel(obj.hUicontrol);
+            for i = 1:numUIControls
+                hTmp = obj.hUicontrol(i);
+                jTmp = obj.jhUicontrol{i};                
+                obj.stripUicontrol(hTmp, jTmp);
+            end
+        end
+
+        function restyleControls(obj)
+            
+            S = warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved');
+            C = onCleanup(@() warning(S));
+            
+            numUIControls = numel(obj.hUicontrol);
+            for i = 1:numUIControls
+                hTmp = obj.hUicontrol(i);
+                jTmp = obj.jhUicontrol{i};
+                
+                origUnits = hTmp.Units;
+                hTmp.Units = 'pixel';
+                
+                obj.stripUicontrol(hTmp, jTmp);
+
+                hS = obj.addCustomComponents(hTmp, jTmp);
+                hS = obj.createBorder(hTmp, jTmp, hS);
+                hS = obj.changeAppearance(hTmp, jTmp, hS);
+                
+                obj.configureInteractivityCallbacks(hTmp, jTmp, hS);
+                
+%                 obj.hUicontrol.DeleteFcn = @obj.deleteStyle;
+                
+                hTmp.Units = origUnits;
+            end
+        end
+
+    end
+       
+    methods (Access = private)
+
+        function assignUiControlsAndRetrieveJavahandles(obj, hUIControls)
             
             findjavacomps = @applify.uicontrolSchemer.findJavaComponents;
             javaHandles = findjavacomps(hUIControls, obj.hPanel);
@@ -93,62 +174,42 @@ classdef uicontrolSchemer < handle
             end
             
             if isempty(javaHandles) || numel(javaHandles) ~= numel(hUIControls)
-                return %Abort
+                error('UIControlSchemer:JavaHandleNotFound', ...
+                    'Could not fun java handles corresponding to each uicontrol')
             end
             
-% % %             % Assign handle of uicontrol to obj
+            % Assign handle of uicontrol to obj
             obj.hUicontrol = hUIControls;
             obj.jhUicontrol = javaHandles;
-            
-            
-            numUIControls = numel(hUIControls);
-            for i = 1:numUIControls
-                hTmp = hUIControls(i);
-                jTmp = javaHandles{i};
-                
-                origUnits = hTmp.Units;
-                hTmp.Units = 'pixel';
-                
-                obj.stripUicontrol(hTmp, jTmp);
-
-                hS = obj.addExtras(hTmp, jTmp);
-                hS = obj.createBorder(hTmp, jTmp, hS);
-                hS = obj.changeAppearance(hTmp, jTmp, hS);
-                
-                obj.configureInteractivityCallbacks(hTmp, jTmp, hS);
-                
-%                 obj.hUicontrol.DeleteFcn = @obj.deleteStyle;
-                
-                hTmp.Units = origUnits;
-
-            end
-
-            
-            if ~nargout
-                clear obj
-            end
-            
         end
-        
-        function delete(obj, ~, ~)
-            if ~isvalid(obj); return; end
-            delete(obj.FigureDestroyedListener)
-            delete@handle(obj) % Why does this have to be explicit?
+
+        function createListenersOnConstruction(obj)
+            obj.ParentContainerSizeChanged = addlistener(obj.hPanel, ...
+                'SizeChanged', @obj.onPanelSizeChanged);
+            
+            obj.FigureDestroyedListener = listener(ancestor(obj.hPanel, 'figure'), ...
+            'ObjectBeingDestroyed', @obj.delete);
         end
-        
-        
-        function onPanelSizeChanged(obj, src, evt)    
+
+        function assignStyleProperties(obj)
+            obj.PanelColor = obj.hPanel.BackgroundColor;
+
+            % Pick a random color for outline when controls are selected (in focus)
+            cmap = magma(255);
+            obj.highlightColor = cmap(randi([128,255], 1), :);
+        end
+
+        function onPanelSizeChanged(obj, src, evt)
                         
             numUIControls = numel( obj.hUicontrol );
+            
             for i = 1:numUIControls
-
 
                 hTmp = obj.hUicontrol(i);
                 jTmp = obj.jhUicontrol{i};
             
                 bgColor = hTmp.Parent.BackgroundColor;
 
-                
                 if strcmp( hTmp.Style, 'checkbox')
                     bgColor = hTmp.Parent.BackgroundColor;
 
@@ -161,9 +222,8 @@ classdef uicontrolSchemer < handle
                 elseif strcmp( hTmp.Style, 'popupmenu')
                     bgColor = hTmp.Parent.BackgroundColor;
 
-                    % Reset icon of control's java object.
-                    %jTmp.setIcon(obj.checkboxIcon);
                     hTmp.CData = ones(1,1,3).*reshape(bgColor, 1,1,3);
+                    
                     % Make sure object is transparent
                     set(jTmp, 'Opaque', false)
                     
@@ -172,26 +232,22 @@ classdef uicontrolSchemer < handle
 % %                     findjavacomps = @applify.uicontrolSchemer.findJavaComponents;
 % %                     jhBtn = findjavacomps(hS.button, hTmp.Parent);
 % %                     obj.stripUicontrol(hS.button, jhBtn{1})
-                    
-                elseif strcmp( hTmp.Style, 'pushbutton')  || strcmp( hTmp.Style, 'togglebutton')
-                    set(jTmp, 'BorderPainted', 0);
-                    set(jTmp, 'Opaque', 0)
-                    set(jTmp, 'ContentAreaFilled', 0)
-                    hTmp.CData = ones(1,1,3).*reshape(bgColor, 1,1,3);
-                    drawnow
-                end
                 
+                elseif strcmp( hTmp.Style, 'text')
+                    set(jTmp, 'Opaque', 0)
+
+                elseif any( strcmp( hTmp.Style, {'pushbutton', 'togglebutton'} ) )
+                    obj.removeJButtonStyle(jTmp)
+
+                    hTmp.CData = ones(1,1,3).*reshape(bgColor, 1,1,3);
+                    %drawnow
+                end
             end
-            
+            drawnow
         end
         
         function onButtonResized(obj, src, evt)
-            set(src, 'BorderPainted', 0)
-            set(src, 'Opaque', 0)
-            set(src, 'ContentAreaFilled', 0)
-            %pause(0.01)
-            %disp(rand)
-            %drawnow limitrate
+            obj.removeJButtonStyle(src)
         end
         
         function stripUicontrol(obj, hControl, jControl)
@@ -236,18 +292,7 @@ classdef uicontrolSchemer < handle
                     end
                     
                 case {'pushbutton', 'togglebutton'}
-                    %hControl.BackgroundColor = [40   40   40]/255;
-                    set(jControl, 'BorderPainted', 0);
-                    set(jControl, 'Opaque', 0)
-                    set(jControl, 'ContentAreaFilled', 0)
-                    set(jControl, 'border', []);
-
-                    % Need a callback for when ancestor is resized, because
-                    % on windows the button appearance resets everytime the
-                    % ancestor is resized
-                    jControl = handle(jControl, 'CallbackProperties');
-                    set(jControl, 'AncestorResizedCallback', @obj.onButtonResized)
-                    set(jControl, 'AncestorMovedCallback', @obj.onButtonResized)
+                    obj.removeJButtonStyle(jControl)
                     
                 case 'checkbox'
                     
@@ -289,9 +334,7 @@ classdef uicontrolSchemer < handle
                     
                 otherwise
                     %fprintf('Not implemented yet\n')
-                
             end
-            
         end
         
         function removeVerticalScrollbar(~, jControl)
@@ -299,20 +342,16 @@ classdef uicontrolSchemer < handle
             set(vScrollbar, 'PreferredSize', java.awt.Dimension(0,100))
             vScrollbar.updateUI()
         end
-        
-        function removeJButtonStyling(obj, jControl)
-            set(jControl, 'BorderPainted', 0);
-            set(jControl, 'Opaque', 0)
-            set(jControl, 'ContentAreaFilled', 0)
-        end
-            
-        
-        function hS = addExtras(obj, hControl, jControl, hS)
-            
+
+        function hS = addCustomComponents(obj, hControl, jControl, hS)
+        %addCustomComponents Add components to replace hidden components
+        %   which appearance can not be changed
+        %
+        %   Currently only relevant for popup menu
+
             if nargin < 4 || isempty(hS)
                 hS = struct;
             end
-
             
             switch hControl.Style
                 
@@ -328,10 +367,7 @@ classdef uicontrolSchemer < handle
 % % %                             inputbox = uim.control.Button_(guiPanel, ...
 % % %                                 'mode', 'pushbutton', config.args{:}, ...
 % % %                                 'HorizontalTextAlignment', 'center');
-                     
 
-                    
-                     
                     hS.textBox = uicontrol(hControl.Parent, 'style', 'text');
                     hS.textBox.Position = hControl.Position;
                                         
@@ -340,10 +376,11 @@ classdef uicontrolSchemer < handle
                     hS.textBox.FontName = hControl.FontName;
                     hS.textBox.FontUnits = 'pixels';
                     hS.textBox.FontSize = hControl.FontSize;
-                    hS.textBox.String = 'hello world'; 
+                    
                     % Need to add some real text, in case the value is an 
                     % empty char, because the extent property is used below
-                    
+                    hS.textBox.String = 'hello world'; 
+
                     bgColor = hControl.BackgroundColor;
                     javacolor = @javax.swing.plaf.ColorUIResource;
                     hS.textBox.BackgroundColor = bgColor;
@@ -363,8 +400,6 @@ classdef uicontrolSchemer < handle
                     
                     % Set the actual value of the textbox string
                     hS.textBox.String = hControl.String{hControl.Value};
-
-                    
                     
                     % Create a new button to replace the original hControl
                     hS.button = uicontrol(hControl.Parent, 'style', 'pushbutton');
@@ -386,6 +421,14 @@ classdef uicontrolSchemer < handle
                     jhBtn = findjavacomps(hS.button, hControl.Parent);
                     obj.stripUicontrol(hS.button, jhBtn{1})
 
+                    % Add button to list of uicontrols/java handles
+                    obj.hUicontrol(end+1) = hS.button;
+                    obj.jhUicontrol(end+1) = jhBtn;
+
+                    % Add textbox to list of uicontrols/java handles...
+                    jhTxt = findjavacomps(hS.textBox, hControl.Parent);
+                    obj.hUicontrol(end+1) = hS.textBox;
+                    obj.jhUicontrol(end+1) = jhTxt;
     
                     % Make sure text does not go too far to the right, e.g
                     % outside of the box, or under the popupmenu button
@@ -399,15 +442,19 @@ classdef uicontrolSchemer < handle
                     
                     addlistener(hControl, 'String', 'PostSet', ...
                         @(s,e, hC, h) obj.updatePopup(hControl, hS.textBox));
-
                     
                     set(jhBtn{1}, 'MousePressedCallback', @(s, e, h) obj.clickedPopupButton(jControl, hControl))
                     set(jhBtn{1}, 'MouseEnteredCallback', @(s, e) obj.mouseEnterPopupButton(hS.button))
                     set(jhBtn{1}, 'MouseExitedCallback', @(s,e) obj.mouseLeavePopupButton(hS.button))
                     set(jhBtn{1}, 'FocusGainedCallback', @(s, e, hc, h) obj.gainFocus(hControl, hS) )
                     set(jhBtn{1}, 'FocusLostCallback', @(s, e, hc, h) obj.loseFocus(hControl, hS) )
-                    jhBtn{1}.setCursor(java.awt.Cursor(java.awt.Cursor.HAND_CURSOR))
                     
+                    jButtonTemp = handle(jhBtn{1}, 'CallbackProperties');
+                    set(jButtonTemp, 'AncestorResizedCallback', @obj.onButtonResized)
+                    set(jButtonTemp, 'AncestorMovedCallback', @obj.onButtonResized)
+                    set(jButtonTemp, 'ComponentShownCallback', @obj.onButtonResized)
+
+                    jhBtn{1}.setCursor(java.awt.Cursor(java.awt.Cursor.HAND_CURSOR))
                     
                     if false % for debugging
                         hS.button.Visible = 'off';
@@ -426,13 +473,10 @@ classdef uicontrolSchemer < handle
                     % set...
 % %                     addlistener(hControl, 'String', 'PostSet', ...
 % %                         @(s,e,jH,prop, val) set(jControl, 'border', []) );
-                    
             end
-            
         end
         
-        
-        function hS = createBorder(obj, hControl, ~, hS, force)
+        function hS = createBorder(obj, hControl, jHandle, hS, force)
             
         %    hS is a struct containing handles to graphical objects that
         %    are plotted for the control
@@ -445,19 +489,16 @@ classdef uicontrolSchemer < handle
                 force = false;
             end
             
-            
             if contains(hControl.Style, {'popupmenu', 'text'}) && ~force
                 % No border on popup, because it will be underneath editbox
                 return
             end
-            
-            
+
             % Get uicontrol position
             origUnits = hControl.Units;
             hControl.Units = 'pixel';
             uicPos = hControl.Position;
             hControl.Units = origUnits;
-            
             
             % Get coordinates for a border around the uicontrol. xLoc and
             % yLox is the lower-left point of the border box.
@@ -503,16 +544,14 @@ classdef uicontrolSchemer < handle
 % %             if isequal( hControl.BackgroundColor, [0.94,0.94,0.94] )
 % %                 set(hS.hBorder, 'FaceColor', 'w', 'FaceAlpha', 1)
 % %             end
-            
-            
-            
+
             % Create a slightly bigger box
             margin2 = margin+2;
             boxSizeB = round( boxSize + margin2);
             edgeCoords = uim.shape.rectangle(boxSizeB, obj.cornerRadius);
             edgeCoords = edgeCoords + [xLoc, yLoc] - margin2/2 - [1, 1];
             edgeCoords(end+1, :) = edgeCoords(1, :); %Complete the "circle"
-            
+
             % Configure line which will be visible when hovering over X
             hS.hAmbience = plot(obj.hAxes, edgeCoords(:,1), edgeCoords(:,2));
             hS.hAmbience.Color = [obj.highlightColor, 0.3]; % +Set alpha
@@ -522,23 +561,27 @@ classdef uicontrolSchemer < handle
             hS.hAmbience.PickableParts = 'none';
             
             % Plot the tick mark in the checkbox.
-            if contains(hControl.Style, 'checkbox')
+            switch hControl.Style
+                case 'checkbox'
                 
-                centerPos = boxSize/2 + [xLoc, yLoc] - [1.1, 1.1];
-                hS.checkboxTick = plot(obj.hAxes, centerPos(1), centerPos(2), 'xr');
-                hS.checkboxTick.LineWidth = 1.5;
-                hS.checkboxTick.Color = obj.borderColor;
-                hS.checkboxTick.MarkerSize = 9;
-                hS.checkboxTick.HitTest = 'off';
-                hS.checkboxTick.PickableParts = 'none';
-                
-                if hControl.Value
-                    hS.checkboxTick.Visible = 'on';
-                else
-                    hS.checkboxTick.Visible = 'off';
-                end
-                
-                
+                    centerPos = boxSize/2 + [xLoc, yLoc] - [1.1, 1.1];
+                    hS.checkboxTick = plot(obj.hAxes, centerPos(1), centerPos(2), 'xr');
+                    hS.checkboxTick.LineWidth = 1.5;
+                    hS.checkboxTick.Color = obj.borderColor;
+                    hS.checkboxTick.MarkerSize = 9;
+                    hS.checkboxTick.HitTest = 'off';
+                    hS.checkboxTick.PickableParts = 'none';
+
+                    if hControl.Value
+                        hS.checkboxTick.Visible = 'on';
+                    else
+                        hS.checkboxTick.Visible = 'off';
+                    end
+                case {'pushbutton', 'togglebutton'}
+                    % Make sure it blends with bg on flickering 
+                    % (This does not work, see #aa)
+                    % hControl.BackgroundColor = 'r'; %obj.PanelColor;
+                    obj.removeJButtonStyle(jHandle)
             end
         end
         
@@ -553,10 +596,7 @@ classdef uicontrolSchemer < handle
                 case 'edit'
                     hControl.ForegroundColor = foregroundColor;
             end
-            
-            
         end
-        
         
         function initializeStylerAxes(obj)
         %initializeStylerAxes Create axes for plotting uicontrol styles.
@@ -583,12 +623,12 @@ classdef uicontrolSchemer < handle
             end
             
             obj.hAxes = hAx;
-
         end
-        
         
         function configureInteractivityCallbacks(obj, hControl, jControl, hS)
             
+            % NB: Todo: Make sure this only happens once
+
             if contains(hControl.Style, {'pushbutton', 'togglebutton'})
                 set(jControl, 'MouseEnteredCallback', @(s, e, hc, h) obj.mouseEnterButton(hControl, hS))
                 set(jControl, 'MouseExitedCallback', @(s, e, hc, h) obj.mouseLeaveButton(hControl, hS))
@@ -596,12 +636,17 @@ classdef uicontrolSchemer < handle
                 set(jControl, 'MouseReleasedCallback', @(s, e, hc, h) obj.mouseReleaseButton(hControl, hS))
                 %set(jControl, 'StateChangedCallback', @(s, e, hc, h) obj.valueChangeButton(hControl, hS))
 
+
+                % Need a callback for when ancestor is resized, because
+                % on windows the button appearance resets everytime the
+                % ancestor is resized
                 jControl = handle(jControl, 'CallbackProperties');
-                
+
                 %set(jControl, 'ComponentMovedCallback', @obj.onButtonResized)
                 %set(jControl, 'ComponentResizedCallback', @obj.onButtonResized)
                 set(jControl, 'AncestorResizedCallback', @obj.onButtonResized)
                 set(jControl, 'AncestorMovedCallback', @obj.onButtonResized)
+                set(jControl, 'ComponentShownCallback', @obj.onButtonResized)
 
                 %set(jControl, 'AncestorResizedCallback',@(s,e,msg)disp('resized'))
                 %set(jControl, 'AncestorMovedCallback', @(s,e,msg)disp('moved'))
@@ -630,10 +675,23 @@ classdef uicontrolSchemer < handle
             set(jControl, 'MouseClickedCallback', @(s, e, hc, h) obj.clicked(hControl, hS) )
             set(jControl, 'FocusGainedCallback', @(s, e, hc, h) obj.gainFocus(hControl, hS) )
             set(jControl, 'FocusLostCallback', @(s, e, hc, h) obj.loseFocus(hControl, hS) )
-
         end
         
+    end
+
+    methods (Access = private) % Individual component restyling
+                
+        function removeJButtonStyle(obj, jControl)
+            set(jControl, 'BorderPainted', 0);
+            set(jControl, 'Opaque', 0)
+            set(jControl, 'ContentAreaFilled', 0)
+            set(jControl, 'border', []);
+        end
         
+    end
+
+    methods (Access = private) % Individual component callbacks
+
         function gainFocus(obj, hControl, hS)
         % Change appeareance when uicontrol is in focus
             if ~isvalid(hControl); return; end
@@ -647,7 +705,6 @@ classdef uicontrolSchemer < handle
                     
             end
             
-            
             switch hControl.Style
                 case 'checkbox'
                     if hControl.Value
@@ -656,10 +713,8 @@ classdef uicontrolSchemer < handle
                         hS.checkboxTick.Visible = 'off';
                     end
                     drawnow limitrate
-                
             end
         end
-        
         
         function loseFocus(obj, hControl, hS)
             if ~isvalid(hControl); return; end
@@ -667,10 +722,9 @@ classdef uicontrolSchemer < handle
             hS.hAmbience.Visible = 'off';
             hS.hBorder.EdgeColor = obj.borderColor * 0.5;
         end
-        
 
         function clickedPopupButton(~, popupHandle, hControl)
-            
+        %clickedPopupButton Callback for click on popup menu button    
             isShown = popupHandle.isPopupVisible;
             
             if isShown
@@ -681,25 +735,21 @@ classdef uicontrolSchemer < handle
             end
             
             drawnow
-            
         end
         
-        
         function deleteStyle(obj, ~, ~)
-            
+        %deleteStyle Delete styles that are plotted (not used)
             if ~isempty(obj.hBox); delete(obj.hBox); end
             if ~isempty(obj.hOutline); delete(obj.hOutline); end
             if ~isempty(obj.hOther2); delete(obj.hOther2); end
         end
         
-        
         function updatePopup(obj, hControl, hEditBox)
-            
+        %updatePopup Callback for updating value in edit field when popup 
+        %   menu selection changes    
             hEditBox.String = hControl.String{hControl.Value};
             obj.keepTextWithinBox(hEditBox)
-          
         end
-        
         
         function mouseEnterPopupButton(obj, src)
             if isvalid(src)
@@ -707,13 +757,11 @@ classdef uicontrolSchemer < handle
             end
         end
         
-        
         function mouseLeavePopupButton(obj, src)
             if isvalid(src)
                 src.ForegroundColor = max([src.ForegroundColor / 1.5; 0,0,0]);
             end
         end
-        
         
         function mouseEnterButton(obj, hControl, hStyle)
             if isvalid(hControl)
@@ -734,7 +782,6 @@ classdef uicontrolSchemer < handle
             end
         end
         
-        
         function mouseLeaveButton(obj, hControl, hStyle)
             if isvalid(hControl)
                 hStyle.hBorder.FaceAlpha = 0.1;
@@ -752,7 +799,6 @@ classdef uicontrolSchemer < handle
                 end
             end
         end
-        
 
         function mousePressButton(obj, hControl, hStyle)
             
@@ -771,10 +817,7 @@ classdef uicontrolSchemer < handle
                 case 'pushbutton'
                     % Nothing more to be done.
             end
-            
-            
         end
-        
         
         function mouseReleaseButton(obj, hControl, hStyle)
             
@@ -791,10 +834,7 @@ classdef uicontrolSchemer < handle
                 case 'pushbutton'
                     % Nothing more to be done.
             end
-            
-            
         end
-        
         
         function valueChangeButton(obj, hControl, hStyle)
             % Todo....
@@ -813,9 +853,7 @@ classdef uicontrolSchemer < handle
 %                 case 'pushbutton'
 %                     % Nothing more to be done.
 %             end
-            
         end
-        
         
         function onValueChangedCheckbox(obj, hControl, hStyle)
             
@@ -826,13 +864,21 @@ classdef uicontrolSchemer < handle
             end
             
             drawnow limitrate
-            
         end
 
     end
-    
-    
-    
+
+
+    methods (Access = private)
+        function ifDebug(obj)
+            if obj.Debug
+                % For debugging...
+                varName = sprintf('uischemer%05d', randi(10000));
+                assignin('base', varName, obj)
+            end
+        end
+    end
+
     methods (Static)
         
         function keepTextWithinBox(hTextbox)
@@ -847,10 +893,12 @@ classdef uicontrolSchemer < handle
             if updated
                 hTextbox.String = strcat(hTextbox.String, '...');
             end
-            
         end
         
         function clicked(hControl, hS)
+
+            % What is this used for???
+
             if ~isvalid(hControl); return; end
             
             if contains(hControl.Style, 'checkbox')
@@ -862,14 +910,12 @@ classdef uicontrolSchemer < handle
 %                 end
 %                 
 %                 drawnow limitrate
-
             end
         end
         
         jhUic = findJavaComponents(hUic, hParent)
-            
-    end
-        
-        
+    end  
     
 end
+
+% What does setIgnoreRepaint do?

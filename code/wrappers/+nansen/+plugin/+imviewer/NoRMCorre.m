@@ -16,7 +16,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
 
 %   TODO:
 %       [v] Subclass from imviewer plugin class.
-%       [ ]  migrate plugin to new instance if results open in new window
+%       [ ] migrate plugin to new instance if results open in new window
 %       [v] Implement options based on OptionsManager & normcorre options.
 %       [ ] Should it have a DataIoModel property? Then its easy to plug in
 %           whatever model (i.e) a session model and save data consistently.
@@ -31,6 +31,10 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         Name = 'NoRMCorre'
     end
     
+    properties (Hidden)
+        TargetFolderName = 'motion_correction_normcorre';
+    end
+
     properties
         TestResults struct = struct     % Store results from a pretest correction
     end
@@ -50,7 +54,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
                         
             obj@imviewer.ImviewerPlugin(varargin{:})
             
-            if ~ obj.PartialConstruction
+            if ~ obj.PartialConstruction && isempty(obj.hSettingsEditor)
                 obj.openControlPanel()
             end
             
@@ -60,6 +64,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         end
         
         function delete(obj)
+
             if ~isempty(obj.hGridLines)
                 delete(obj.hGridLines)
                 delete(obj.hGridOverlaps)
@@ -88,7 +93,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             
             obj.MenuItem(1).PlotShifts = uimenu(m, 'Text', 'Plot NoRMCorre Shifts', 'Enable', 'off');
             obj.MenuItem(1).PlotShifts.Callback = @obj.plotResults;
-            
         end
         
         function onSettingsEditorClosed(obj)
@@ -107,6 +111,30 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
     
     methods % Methods for running normcorre motion correction
         
+        function sEditor = openSettingsEditor(obj)
+        %openSettingsEditor Open editor for method options.    
+                        
+            % Update folder- and filename in settings.
+            [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
+            folderPath = fullfile(folderPath, obj.TargetFolderName);
+            
+            % Prepare default filename
+            fileName = obj.buildFilenameWithExtension(fileName);
+
+            obj.settings_.Export.SaveDirectory = folderPath;
+            obj.settings_.Export.FileName = fileName;
+
+            sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
+            
+            % Need a better solution for this:
+            idx = strcmp(sEditor.Name, 'Export');
+            sEditor.dataOrig{idx}.SaveDirectory = folderPath;
+            sEditor.dataEdit{idx}.SaveDirectory = folderPath;
+
+            sEditor.dataOrig{idx}.FileName = fileName;
+            sEditor.dataEdit{idx}.FileName = fileName;
+        end
+
         function openControlPanel(obj)
             obj.plotGrid()
             obj.editSettings()
@@ -178,60 +206,48 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
                 
                 obj.saveProjections(Y, M, getSavepath)           
             end
-            
         end
         
         function runAlign(obj)
-         %runAlign Run correction on full image stack using a dummy session
-            
-            % Todo: Implement data i/o model.
-                
-            %    - This method should be able to output to file, or to
-            %    memory.
-                
-            pathStr = obj.ImviewerObj.ImageStack.FileName;
-            
-            % % hSession = nansen.metadata.schema.dummy.TwoPhotonSession( pathStr );
+         %runAlign Run correction on full image stack using a "single folder
+         %dataset"
+         
+            dataSet = obj.prepareTargetDataset();
 
-            %%hSession = nansen.metadata.type.Session( pathStr );
-            nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack, obj.settings)
-            %ophys.twophoton.process.motionCorrection.normcorre(hSession, obj.settings);
-            
+            nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack,...
+                obj.settings, 'DataIoModel', dataSet)
         end
-        
+
     end
     
     methods (Access = protected)
         
         function onSettingsChanged(obj, name, value)
             
+            % Call superclass method to deal with settings that are
+            % general motion correction settings.
+            onSettingsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+
             patchesFields = fieldnames(obj.settings.Configuration);
             templateFields = fieldnames(obj.settings.Template);
-            exportFields = fieldnames(obj.settings.Export);
             
             switch name
+                % Note: this needs to go before the patchesfield!
                 case {'numRows', 'numCols', 'patchOverlap'}
                     obj.settings.Configuration.(name) = value;
                     obj.plotGrid()
-                    
+
                 case patchesFields
                     obj.settings.Configuration.(name) = value;
                     
                 case templateFields
                     obj.settings.Template.(name) = value;
-                    
-                case exportFields
-                    obj.settings.Export.(name) = value;
-                    
+
                 case {'firstFrame', 'numFrames', 'saveResults', 'showResults'}
                     obj.settings.Preview.(name) = value;
                     
-                case 'run'
-                    obj.runTestAlign()
-                    
                 case 'runAlign'
                     obj.runAlign()
-                    
             end
         end
         
@@ -240,7 +256,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
     methods (Access = private) % Methods for plotting on imviewer
         
         function plotGrid(obj)
-            
+            % todo: use function from imviewer.plot 
             xLim = [1,obj.ImviewerObj.imWidth];
             yLim = [1,obj.ImviewerObj.imHeight];
             
@@ -291,7 +307,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             
             % could do: implement 64x2 handles with nans and update x/ydata
             % of appropriate number of handles.
-            
         end
         
         function plotResults(obj, ~, ~)

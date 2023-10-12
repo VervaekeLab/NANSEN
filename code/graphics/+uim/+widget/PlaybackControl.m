@@ -1043,7 +1043,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
             
             newXLimB = [1, obj.SliderAxes.Position(3)];
             if ~all( newXLimB == obj.SliderAxes.XLim )
-                obj.SliderAxes.XLim = newXLimB;
+                obj.SliderAxes.XLim = sort(newXLimB);
             end
 
             % Update component coordinates
@@ -1074,7 +1074,8 @@ classdef PlaybackControl < uim.mixin.assignProperties
                 params = {...
                     'Position', pos, ...
                     'NumChannels', obj.NumChannels, ...
-                    'Callback', @(ind) obj.ParentApp.changeChannel(ind) };
+                    'Callback', @(ind) obj.ParentApp.changeChannel(ind), ...
+                    'ChannelColorCallback', @(idx,rgb) obj.ParentApp.changeChannelColor(idx, rgb)};
                 
                 if ~isempty(obj.ChannelColors)
                     params = [params, {'ChannelColors', obj.ChannelColors}];

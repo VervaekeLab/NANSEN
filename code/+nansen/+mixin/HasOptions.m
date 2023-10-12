@@ -71,17 +71,24 @@ classdef HasOptions < handle
     end
     
     methods (Static)
-        function options = getDefaultOptions() % Subclasses should override
+        function options = getDefaultOptions(className) % Subclasses should override
         %getDefaultOptions Method to provide the default options.
         %
         %   Any algorithm that requires options must override this method
         %   and provide a struct containing fields and values representing
         %   the parameter names and values.
-        
-            options = struct.empty;
+            if nargin < 1 || isempty(className)
+                options = struct.empty;
+            else
+                
+                S = nansen.wrapper.suite2p.Options.getDefaults();
+                options = S;
+    
+                superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
+                options = nansen.mixin.HasOptions.combineOptions(options, superOptions{:});
+            end
         end
     end
-    
     
     methods % Public methods
         
@@ -178,7 +185,7 @@ classdef HasOptions < handle
                 options = [options, nansen.mixin.HasOptions.getSuperClassOptions(iClassName)];
                 
             end
-
+            
         end
         
         function options = combineOptions(options, varargin)
@@ -187,7 +194,14 @@ classdef HasOptions < handle
                 fields = fieldnames(varargin{i});
 
                 for j = 1:numel(fields)
-                    options.(fields{j}) = varargin{i}.(fields{j});
+                    if isfield(options, fields{j}) && ...
+                            isa(options.(fields{j}), 'struct')
+                        
+                        options.(fields{j}) = utility.struct.mergestruct(...
+                            options.(fields{j}), varargin{i}.(fields{j}) );
+                    else
+                        options.(fields{j}) = varargin{i}.(fields{j});
+                    end
                 end
             end
         end

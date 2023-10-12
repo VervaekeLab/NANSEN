@@ -276,11 +276,11 @@ classdef MetaTableColumnFilter < handle
                             obj.isColumnFilterActive(columnIdx) = false;
                             obj.MetaTableUi.DataFilterMap(:, columnIdx) = true;
                         case 'True'
-                            obj.isColumnFilterActive(columnIdx) = false;
+                            obj.isColumnFilterActive(columnIdx) = true;
                             obj.MetaTableUi.DataFilterMap(:, columnIdx) = columnData;
                             
                         case 'False'
-                            obj.isColumnFilterActive(columnIdx) = false;
+                            obj.isColumnFilterActive(columnIdx) = true;
                             obj.MetaTableUi.DataFilterMap(:, columnIdx) = ~columnData;
                             
                     end
@@ -305,6 +305,11 @@ classdef MetaTableColumnFilter < handle
                     
                 case {'searchField', 'autocomplete'}
                     currentSelection = h.SelectedItems;
+
+                    if isnumeric(columnData{1})
+                        columnData = cellfun(@num2str, columnData, 'UniformOutput', false);
+                    end
+
                     if isempty(currentSelection) || all(strcmp(currentSelection, 'Show All')) 
                         obj.isColumnFilterActive(columnIdx) = false;
                         obj.MetaTableUi.DataFilterMap(:, columnIdx) = true;
@@ -320,8 +325,10 @@ classdef MetaTableColumnFilter < handle
                     columnData = cat(1, columnData{:});
                     
                     if isempty(dateInterval)
+                        obj.isColumnFilterActive(columnIdx) = false;
                         TF = true(size(columnData, 1), 1);
                     else
+                        obj.isColumnFilterActive(columnIdx) = true;
                         dateInterval.TimeZone = columnData(1).TimeZone;
                         TF = columnData > dateInterval(1) & columnData < dateInterval(2);
                     end
@@ -332,14 +339,21 @@ classdef MetaTableColumnFilter < handle
                     columnData = cell2mat(columnData);
                     TF = columnData >= h.Low & columnData <= h.High;
                     obj.MetaTableUi.DataFilterMap(:, columnIdx) = TF;
-                    
+                    if any(~TF)
+                        obj.isColumnFilterActive(columnIdx) = true;
+                    else
+                        obj.isColumnFilterActive(columnIdx) = false;
+                    end
+
             end
-                        
+            
+            obj.MetaTableUi.updateColumnLabelFilterIndicator(obj.isColumnFilterActive)
+
             if ~skipNotify
                 evtData = event.EventData;
                 obj.notify('FilterUpdated', evtData)
             end
-            
+
             obj.isColumnFilterDirty(:) = true;
         end
         
@@ -362,7 +376,10 @@ classdef MetaTableColumnFilter < handle
         
             obj.MetaTableUi.DataFilterMap = [];
             obj.isColumnFilterDirty(:) = true;
-            
+        
+            obj.isColumnFilterActive(:) = false;
+            obj.MetaTableUi.updateColumnLabelFilterIndicator(obj.isColumnFilterActive)
+
             evtData = event.EventData;
             obj.notify('FilterUpdated', evtData)
             
@@ -371,6 +388,8 @@ classdef MetaTableColumnFilter < handle
                 if ~isempty(obj.hColumnFilterPopups{i})
                     try
                         obj.hColumnFilterPopups{i}.reset()
+                    catch
+                        warning('Could not reset filter properly for column %d', i)
                     end
                 end
             end
@@ -384,7 +403,7 @@ classdef MetaTableColumnFilter < handle
                     return
                 end
             end
-            
+
             for i = 1:numel(obj.hColumnFilterPopups)
                 if ~isempty(obj.hColumnFilterPopups{i})
                     if strcmp(obj.hColumnFilterPopups{i}.Visible, 'on')
@@ -467,8 +486,10 @@ classdef MetaTableColumnFilter < handle
             position = obj.getDropdownPosition(columnIdx);
             position(4) = 30;
             
+            % todo: make callback refreshrate dependent on table size...
+
             h = uics.rangeSelector(hParent, 'Minimum', dataRange(1), ...
-                'Maximum', dataRange(2), 'CallbackRefreshRate', 0.5 );
+                'Maximum', dataRange(2), 'CallbackRefreshRate', 0 );
             h.Position = position;
             h.Position(3) = max([position(3), 200]);
             h.Position(2) = position(2) - 10;

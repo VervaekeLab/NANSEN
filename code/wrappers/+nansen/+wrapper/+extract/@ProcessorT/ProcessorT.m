@@ -9,6 +9,7 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
     
     properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_extract')
+        VARIABLE_PREFIX = 'Extract'
     end
     
     properties (Constant)
@@ -26,7 +27,7 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
     properties (Access = private)
         SegmentationResults
         ExtractConfig
-        Results % cell array with cell for each part..
+        %Results % cell array with cell for each part..
     end
     
     methods (Static)
@@ -119,9 +120,6 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
     methods (Access = private) 
 
         function loadResults(obj)
-        end
-        
-        function saveResults(obj)
         end
 
     end

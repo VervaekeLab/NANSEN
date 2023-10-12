@@ -57,6 +57,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     properties (Dependent)
         HasStaticCache
         HasCachedData
+        StaticCacheRange
     end
     
     properties (Access = private)
@@ -93,6 +94,8 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         
         function obj = VirtualArray(filePath, varargin)
         %VirtualArray Constructor for VirtualArray class
+            
+            if isempty(filePath); return; end
         
             [nvPairs, varargin] = utility.getnvpairs(varargin{:});
 
@@ -179,7 +182,11 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         
         function tf = get.HasStaticCache(obj)
             tf = ~isempty(obj.StaticFrameCache);
-        end 
+        end
+
+        function cacheRange = get.StaticCacheRange(obj)
+            cacheRange = obj.StaticFrameCache.CacheRange;
+        end
 
     end
     
@@ -209,6 +216,11 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             % Get the subs (frame indices) for the frame indexing dimension
             dim = obj.getFrameIndexingDimension();
             frameInd = subs{dim};
+            
+            % Get actual indices if colon operator was used.
+            if ischar(frameInd) && strcmp(frameInd, ':')
+                frameInd = 1:obj.StackSize(dim);
+            end
 
             data = obj.readFrames(frameInd);
             
@@ -602,7 +614,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
     methods (Sealed)
 
         function numBytes = getCacheByteSize(obj)
-            arraySize = obj.DynamicFrameCache.DataSize;
+            arraySize = obj.DynamicFrameCache.CacheSize;
             arrayClass = obj.DynamicFrameCache.DataType;
             numBytes = nansen.stack.ImageStack.getImageDataByteSize(...
                 arraySize, arrayClass);

@@ -180,6 +180,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     properties (Access = private)
         CacheChangedListener event.listener
         isDirty struct % Temp flag for whether projection cache was updated... Should be moved to a projection cache class
+        DeleteDataOnDestruction = true;
     end
     
 
@@ -214,6 +215,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % ImageStackData and the returned object is assigned to the
             % Data property. See also onDataSet
             obj.Data = obj.initializeData(datareference, varargin{:});
+            if isequal(obj.Data, datareference); obj.DeleteDataOnDestruction = false; end
             
             obj.parseInputs(varargin{:})
             
@@ -236,12 +238,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 delete(obj.CacheChangedListener)
             end
             
-            % Delete the data property.
-            % Todo: Only delete if data is created internally. 
-            if ~isempty(obj.Data) && isvalid(obj.Data)
-                delete(obj.Data)
+            if obj.DeleteDataOnDestruction
+                if ~isempty(obj.Data) && isvalid(obj.Data)
+                    delete(obj.Data)
+                end
             end
-            
             % fprintf('Deleted ImageStack.\n') % For testing
         end
 
@@ -314,7 +315,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             doCropImage = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(1:2)));
             % Note: Do crop subsrefing only if necessary. 
             
-            selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(3:end-1)));
+            if contains(obj.Data.StackDimensionArrangement, 'T')
+                selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(3:end-1)));
+            else
+                selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(3:end)));
+            end
             % Note: Selecting frame subset is necessary if getting cached
             % data and some frame dimensions (C, Z) are subsref'ed.
             
@@ -390,6 +395,36 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
         end
         
+        function imArray = getFrameSetRGB(obj, frameInd, mode, varargin)
+        %getFrameSetRGB Get image array with 3 color channels (r,g,b)
+            if nargin < 3 || isempty(mode); mode = 'standard'; end
+            imArray = obj.getFrameSet(frameInd, mode, varargin{:});
+            imArray = obj.convertToRgb(imArray);
+        end
+        
+        function dataSize = getFrameSetSize(obj, frameInd, mode, varargin)
+        %getFrameSetSize Get size of frame set for a given number of frames    
+            
+            if nargin < 3 || isempty(mode); mode = 'standard'; end
+            
+            switch mode
+                case 'standard'
+                    indexingSubs = obj.getDataIndexingStructure(frameInd, varargin);
+                case 'extended'
+                    indexingSubs = obj.getFullDataIndexingStructure(frameInd);
+            end
+            
+            dataSize = zeros(size(indexingSubs));
+
+            for i = 1:numel(dataSize)
+                if strcmp(indexingSubs{i}, ':')
+                    dataSize(i) = size(obj.Data, i);
+                else
+                    dataSize(i) = numel(indexingSubs{i});
+                end
+            end
+        end
+
         function writeFrameSet(obj, imageArray, frameInd)
         %writeFrameSet Write set of image frames to image stack
             
@@ -550,14 +585,78 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
     % - Methods for getting processed versions of data
     
+        function imageRgb = convertToRgb(obj, image)
+        %convertToRgb Creates an rgb frame based on channel color settings
+        
+            assert(obj.NumChannels > 1, 'Can not convert single channel image to RGB, use colormap instead.')
+            
+            if size(image, 3) == obj.NumChannels
+                channelIndices = 1:obj.NumChannels;
+            elseif size(image, 3) == numel(obj.CurrentChannel)
+                channelIndices = obj.CurrentChannel;
+            else
+                error('Number of channels in image to convert to RGB is ambiguous')
+                % Todo: Add option for specifying arbitrary channel indices
+                % on input
+            end
+
+            % Preallocate new frame
+            imSize = size(image);
+            imageRgb = zeros([imSize(1), imSize(2), 3, imSize(4:end)], 'single');
+    
+            if strcmp(obj.ColorModel, 'RGB')
+                %channelColors = {'red', 'green', 'blue'};
+                channelColors = {[1,0,0], [0,1,0], [0,0,1]};
+            
+            elseif strcmp(obj.ColorModel, 'Custom')
+                channelColors = obj.CustomColorModel;
+                if ~isa(channelColors, 'cell')
+                    numCh = size(channelColors, 1);
+                    channelColors = mat2cell(channelColors, ones(1,numCh), 3);
+                end
+            end
+            
+            colorArray = cat(1, channelColors{:});
+            
+            % Restrict colors to range between 0 and 1
+            if any(colorArray > 1) % If rgb in range (1,255)
+                colorArray = colorArray / 255;
+            end
+            
+    % % %         colorArraySum = sum(colorArray, 1);
+    % % %                
+    % % %         % Weight colors, so as not to saturate them...
+    % % %         if any(colorArraySum(:) > 1)
+    % % %             colorArray = colorArray ./ max(colorArraySum(:));
+    % % %         end
+             
+            numCh = size(colorArray, 1);
+            channelColors = mat2cell(colorArray, ones(1, numCh), 3);
+            
+            % Go through image for each loaded channel and put in right
+            % color channel of newFrame
+            subs = repmat({':'}, 1, ndims(image));
+            newShape = ones(1, ndims(image));
+            newShape(3) = 3; 
+            
+            for i = 1:numel(channelIndices)
+                chNum = channelIndices(i);
+                color = channelColors{chNum};
+                subs{3} = i;
+                imageRgb = imageRgb + single( repmat(image(subs{:}), newShape)) .* reshape(color, newShape);
+            end
+            
+            imageRgb = cast(imageRgb, 'like', image);
+        end
+
         function [tf, filePath] = hasDownsampledStack(obj, method, downsampleFactor)
             
             % Todo; make this work for spatial downsampling as well.
-                        
+            
             if strcmp(method, 'temporal_mean'); method = 'mean'; end
             
             args = {obj, downsampleFactor, method};
-            filePath = nansen.stack.DownsampledStack.createDataFilepath(args{:});
+            filePath = nansen.stack.utility.getDownsampledStackFilename(args{:});
             
             tf = isfile(filePath);
             
@@ -600,12 +699,19 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
             params = struct();
             params.SaveToFile = false;
-            params.UseTransientVirtualStack = true;
+            params.UseTemporaryFile = true;
             params.FilePath = '';
             params.OutputDataType = 'same';
             params.Verbose = false;
             
             params = utility.parsenvpairs(params, 1, varargin{:});
+            
+            % Rename some fields for the downsampler class
+            params.TargetFilePath = params.FilePath;
+            params = rmfield(params, 'FilePath');
+                       
+            params.TargetFileType = params.OutputDataType;
+            params = rmfield(params, 'OutputDataType');
             
             % Calculate number of downsampled frames
             numFramesFinal = floor( obj.NumTimepoints / n );
@@ -626,49 +732,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 params.SaveToFile = true;
             end
             
-            % Create a new ImageStack object, which is an instance of a
-            % downSampled stack.
-            downsampledStack = nansen.stack.DownsampledStack(obj, n, method, params);
+            % Create a new TemporalDownsampler ImageStackProcessor object.
+            downsampler = nansen.stack.processor.TemporalDownsampler(obj, n, method, params);
             
-            % Get indices for different parts/blocks
-            [IND, numChunks] = obj.getChunkedFrameIndices(chunkLength);
-            
-            % Check metadata to see if stack is already downsampled
-            if downsampledStack.MetaData.Downsampling.IsCompleted
-                return
+            if ~downsampler.existDownsampledStack()
+                downsampler.runMethod()
             end
             
-            % Check data to see if stack is already downsampled
-            if nansen.stack.ImageStack.isStackComplete(downsampledStack, numChunks)
-                
-                if params.Verbose
-                    fprintf('Downsampled stack already exists.\n')
-                end
-                downsampledStack.MetaData.Downsampling.IsCompleted = true;
-                return % Data is already downsampled...
-            end            
-            
-            global waitbar
-            useWaitbar = false;
-            if ~isempty(waitbar); useWaitbar = true; end
-              
-            if useWaitbar
-                waitbar(0/numChunks, 'Initializing downsampling')
-            end
-            
-            % Loop through blocks and downsample frames
-            for iPart = 1:numChunks
-                imData = obj.getFrameSet( IND{iPart} );
-                downsampledStack.addFrames(imData);
-                if params.Verbose
-                    fprintf('Downsampled part %d/%d\n', iPart, numChunks)
-                end
-                if useWaitbar
-                    waitbar(iPart/numChunks, 'Downsampling image stack')
-                end
-            end
-            
-            downsampledStack.MetaData.Downsampling.IsCompleted = true;
+            downsampledStack = downsampler.getDownsampledStack();
             
             if ~nargout
                 clear downsampledStack
@@ -733,21 +804,30 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             if nargin < 4 || isempty(dim)
                 % Dim should be minimum 3, but would be 2 for single frame
-                dim = max([3, ndims(tmpStack)]);
-                dim = obj.getDimensionNumber('T');
+                if contains(obj.Data.StackDimensionArrangement, 'T')
+                    dim = obj.getDimensionNumber('T');
+                elseif contains(obj.Data.StackDimensionArrangement, 'Z')
+                    dim = obj.getDimensionNumber('Z');
+                else
+                    dim = max([3, ndims(tmpStack)]);
+                end
+
             elseif ischar(dim)
                 dim = obj.getDimensionNumber(dim);
+                
             else
                 error('Not implemented yet')
             end
             
             % Special case if the imagedata is a single rgb frame, need to
             % find max along 4th dimensions..
-            if dim == 3 && numel(obj.CurrentChannel) > 1 
+
+            if isempty(dim)
+                dim = ndims(tmpStack) + 1; % (If not T dimension is present, i.e XYC or XYZ. Todo: IS this correct in all cases 
+            elseif dim == 3 && numel(obj.CurrentChannel) > 1 
                 dim = 4;
             end
 
-            
             % Calculate the projection image
             switch lower(projectionName)
                 case {'avg', 'mean', 'average'}
@@ -906,6 +986,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 
             % Make sure chunk length does not exceed number of frames.
             numFramesPerChunk = min([numFramesPerChunk, numFramesDim]);
+
+            if isempty(numFramesPerChunk)
+                % Is it possible that this is empty?
+                error('Something unexpected has happened. Image stack has %d frames along dimension %s', numFramesDim, dim)
+            end
             
             % If there will be more than one chunk... Adjust so that last
             % chunkSize so that last chunk is not smaller than 1/3rd of
@@ -964,7 +1049,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if nargout == 1
                 clear IND
             end
-            
         end
         
     % - Methods for getting data specific information
@@ -1000,7 +1084,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 case {'Y', 'Height', 'ImageHeight'}
                     length = obj.ImageHeight;
             end
-            
         end
 
         function tf = isDummyStack(obj)
@@ -1140,8 +1223,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function set.DynamicCacheEnabled(obj, newValue)
-            obj.Data.UseDynamicCache = newValue;
-            obj.onDynamicCacheEnabledChanged()
+            if obj.IsVirtual
+                obj.Data.UseDynamicCache = newValue;
+                obj.onDynamicCacheEnabledChanged()
+            end
         end
         
         function state = get.DynamicCacheEnabled(obj)
@@ -1160,7 +1245,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function numChunks = get.NumChunks(obj)
             % Todo: Depend on chunking dimension..
-            numChunks = ceil( obj.numTimepoints / obj.ChunkLength );
+            numChunks = ceil( obj.NumTimepoints / obj.ChunkLength );
         end
         
         function numFrames = get.NumFrames(obj)
@@ -1175,12 +1260,15 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function clim = get.DataTypeIntensityLimits(obj)
-            clim = obj.getDataTypeIntensityLimits(obj.DataType);
-            if strcmp(obj.DataType, 'single') ||  strcmp(obj.DataType, 'double')
-                clim(1) = min([clim(1), obj.DataIntensityLimits]);
-                clim(2) = max([clim(2), obj.DataIntensityLimits]);
+            if ~isempty(obj.Data.BitDepth)
+                clim = [1, 2^obj.Data.BitDepth];
+            else
+                clim = obj.getDataTypeIntensityLimits(obj.DataType);
+                if strcmp(obj.DataType, 'single') ||  strcmp(obj.DataType, 'double')
+                    clim(1) = min([clim(1), obj.DataIntensityLimits]);
+                    clim(2) = max([clim(2), obj.DataIntensityLimits]);
+                end
             end
-            
         end
         
         function physicalSize = get.ImagePhysicalSize(obj)
@@ -1277,8 +1365,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 
                 switch thisDim
                     case 'C'
-                        subs{i} = obj.CurrentChannel;
-                        
+                        if isfield(S, 'C')
+                            subs{i} = S.C;
+                        else
+                            subs{i} = obj.CurrentChannel;
+                        end
+
                     case 'Z'
                         
                         if ~contains(obj.Data.DataDimensionArrangement, 'T')
@@ -1427,6 +1519,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             	obj.ColorModel = 'Grayscale';
             elseif obj.NumChannels == 3
             	obj.ColorModel = 'RGB';
+                obj.CustomColorModel = [1,0,0;0,1,0;0,0,1];
             else
                 obj.ColorModel = 'Custom';
                 if isempty(obj.CustomColorModel)
@@ -1534,7 +1627,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 
                 obj.FileName = obj.Data.FilePath;
                 [~, obj.Name] = fileparts(obj.Data.FilePath);
-                
+                if ~isempty(obj.Data.Description)
+                    obj.Name = strjoin({obj.Name, obj.Data.Description}, '_');
+                end
             else
                 
                 obj.IsVirtual = false;
@@ -1641,7 +1736,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function tf = isStackComplete(fileRef, numChunks)
-        %isDownsampledStackComplete Check if image stack is complete 
+        %isStackComplete Check if image stack is complete 
         %
         %   Note, check that a random subset of frames are not just zeros.
         
@@ -1657,7 +1752,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             % Pick 100 random frames.
-            randFrameIdx = randperm(imageStack.NumTimepoints, 100);
+            numFrames = min([imageStack.NumTimepoints, 100]);
+            randFrameIdx = randperm(imageStack.NumTimepoints, numFrames);
+            
             data = imageStack.getFrameSet(sort(randFrameIdx));
             tf = all( mean(mean(data,2),1) ~= 0 );
             
@@ -1705,7 +1802,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
     
     methods (Static) %Methods in separate files
         data = initializeData(datareference, varargin)
-        
     end
     
 end

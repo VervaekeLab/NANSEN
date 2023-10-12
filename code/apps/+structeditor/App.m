@@ -3,7 +3,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %
 %   This class provides properties and methods for creating a viewer for
 %   editing the values of fields in a struct. It can also have a callback
-%   assigned, which will be invoked whenever a values is changed
+%   assigned, which will be invoked whenever a value is changed
 %
 %       h = structeditor(S) creates an app for editing struct S and assigns
 %       the app object to h.
@@ -24,18 +24,20 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       Other configurations:
 %           rangeslider
 %           button
-%
-%
-%   PARAMETERS:    
+% 
+%   PARAMETERS: (todo, clean up public properties and add documentation)
+%       Title
+%       Prompt
+%       LabelPosition
+%       TabMode
+%       Callback
 
 
-%   Main things to change:
+%   Todo list:
 %
-%       [x] Fix Scroller... Does it need its own panel???
-%       [ ] Scrollerposition does not reset to top when changing tabs... 
 %      *[ ] Implement dependable fields...
 %       [ ] Implement validation of inputs. Each field should have a
-%           validation function to thest that the entered value is valid.
+%           validation function to test that the entered value is valid.
 %       [ ] Implement transient fields
 %           Q: 1) How are these updated? Is there any way of making that
 %           simple, or not? True/false, enable/diable... 
@@ -77,7 +79,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     properties (Constant, Hidden = true) % Move to appwindow superclass
         DEFAULT_THEME = nansen.theme.getThemeColors('dark-purple');
         ICONS = uim.style.iconSet(structeditor.App.getIconPath)
-
     end
     
     properties % Configurations of appearance and layout of app
@@ -111,6 +112,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     properties % Options manager / preset selection
         OptionsManager = []
         CurrentOptionsSet = ''
+        currentOptionsName = '' % Name of currently selected options set.
     end
     
     properties % Callback properties. Need to clean 
@@ -128,7 +130,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         hControls
         
         wasCanceled = false;
-        currentOptionsName = '' % Name of currently selected options set.
     end
     
     properties (Access = private) % Internal properties. Need to clean
@@ -171,14 +172,17 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         headerSubtitle
         sidePanelToggleButton
-        
+
+        UIControlSchemer applify.uicontrolSchemer
+        UIControlSchemerHeader applify.uicontrolSchemer
+        UIControlSchemerFooter applify.uicontrolSchemer
+
         % Move to options manager ui class.
         OptionsManagerControls
         OptionsSelectionDropdown
     end 
     
     properties (Access = protected, Dependent, Hidden = true )
-
         showFooter
         showSidePanel
         showSidePanenButton
@@ -205,6 +209,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if nargin < 1
                 return
             end
+
+            cleanupObj = onCleanup(@obj.onConstructorExit);
             
             obj.Panel.Units = 'normalized'; 
             % Todo: Fix this. Why does panel get pixel units from superclass
@@ -241,26 +247,25 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 
                 if obj.showFooter
                     h = applify.uicontrolSchemer(obj.OptionsManagerControls);
-                    el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
+                    obj.UIControlSchemerFooter = h;
+                    addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
                     drawnow
                 end
-                
             end
 
             % Find handles of all uicontrols.
-            hUic = findobj(obj.header.hPanel, 'type','uicontrol'); 
+            hUic = findobj(obj.header.hPanel, 'type', 'uicontrol'); 
             
             % Make them look good.
             if ~isempty(hUic)
                 h = applify.uicontrolSchemer(hUic);
+                obj.UIControlSchemerHeader = h;
                 %el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
             end
-            
             
 %             % Center position of figure on screen
 %             screenSize = get(0, 'ScreenSize');
 %             obj.Figure.Position(1:2) = screenSize(3:4)/2 - obj.Figure.Position(3:4)/2;
-            
 
             % Make size fixed, and add close callback
             
@@ -275,7 +280,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             delete(obj.main.tmpPanel)
             obj.main.constructionCurtain.Visible = 'off';
            
-
             obj.isConstructed = true;
             
             % Need to assign windowbuttonmotion function for rangebars to
@@ -287,7 +291,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if ~nargout
                 clear obj
             end
-            
         end
         
         function delete(obj)
@@ -295,6 +298,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 if isvalid(obj.Figure)
                     delete(obj.Figure)
                 end
+            end
+        end
+
+        function onConstructorExit(obj)
+            if ~obj.isConstructed
+                delete(obj)
+                fprintf('Window self destructed because something went wrong\n')
             end
         end
         
@@ -493,7 +503,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if obj.virtualWidth(obj.currentPanel) > obj.visibleWidth
                 w = obj.virtualWidth(obj.currentPanel);
             else
-                w = obj.visibleWidthOrig;
+                if obj.virtualWidth(obj.currentPanel) > obj.visibleWidthOrig
+                    w = obj.virtualWidth(obj.currentPanel);
+                else
+                    w = obj.visibleWidthOrig;
+                end
             end
             
             newFigureWidth = w + sum(obj.Margins([1,3]));
@@ -501,7 +515,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             dx = newFigureWidth - obj.Figure.Position(3);
             obj.Figure.Position(3) = obj.Figure.Position(3) + dx;
             drawnow
-            
         end
         
         function resizePanel(obj, src, evt)
@@ -837,9 +850,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if strcmp(obj.mode, 'standalone')
                 hTxt = text(obj.header.hAxes, 0.1, 0.5, '');
                 hTxt.Color = obj.Theme.FigureFgColor;
+                hTxt.FontUnits = 'pixels';
                 hTxt.FontSize = 14;
                 hTxt.FontName = obj.FontName;
                 hTxt.FontWeight = 'normal';
+                hTxt.Interpreter = 'none';
                 obj.headerTitle = hTxt;
             else
                 obj.headerTitle = uicontrol(obj.header.hPanel, 'style', 'text');
@@ -848,7 +863,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.headerTitle.ForegroundColor = obj.Theme.FigureFgColor;
                 obj.headerTitle.BackgroundColor = min([1,1,1;obj.Theme.FigureBgColor+0.05]);
                 obj.headerTitle.HitTest = 'off';
-                obj.headerTitle.FontSize = 10;
+                obj.headerTitle.FontUnits = 'pixels';
+                obj.headerTitle.FontSize = 12;
                 obj.headerTitle.Position = [50,5,100,35];
             end
             
@@ -856,6 +872,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.headerSubtitle.String = '';
             obj.headerSubtitle.HorizontalAlignment = 'center';
             obj.headerSubtitle.ForegroundColor = obj.Theme.FigureFgColor;
+            obj.headerSubtitle.FontUnits = 'pixels';
             obj.headerSubtitle.FontSize = 10;
             obj.headerSubtitle.Position = [2,3,48,15];
 
@@ -865,7 +882,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if obj.numTabs > 1 && strcmp(obj.TabMode, 'dropdown')
                 obj.createTabDropdownSelector()
             end
-            
             
             % Create a button for showing/hiding tabpanel
             if obj.showSidePanel && contains(obj.TabMode, 'popup')
@@ -905,6 +921,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             textbox.String = 'Options:';
             textbox.Color = obj.Theme.FigureFgColor*0.8;
             textbox.FontName = obj.FontName;
+            textbox.FontUnits = 'pixels';
             textbox.FontSize = obj.FontSize;
             
             if obj.numTabs > 1
@@ -923,6 +940,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hDropdown.Position = [X(1), 12, W(1), 22];
             hDropdown.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hDropdown.FontName = obj.FontName;
+            hDropdown.FontUnits = 'pixels';
             hDropdown.FontSize = obj.FontSize;
             hDropdown.Callback = @obj.onOptionsSetChanged;
             
@@ -940,6 +958,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hButton1.Position = [X(2), 12, W(2), 22];
             hButton1.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hButton1.FontName = obj.FontName;
+            hButton1.FontUnits = 'pixels';
             hButton1.FontSize = obj.FontSize;
             hButton1.Callback = @(s,e) obj.saveOptionsSet();
             hButton1.Enable = 'off';
@@ -950,6 +969,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hButton2.Position = [X(3), 12, W(3), 22];
             hButton2.ForegroundColor = obj.Theme.FigureFgColor*0.8;
             hButton2.FontName = obj.FontName;
+            hButton2.FontUnits = 'pixels';
             hButton2.FontSize = obj.FontSize;
             hButton2.Callback = @(s,e,h) obj.makeOptionsSetDefault(hDropdown);
 
@@ -1194,14 +1214,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             barColor = min([1,1,1;obj.Theme.FigureBgColor+0.3]);
             
             % Add a homemade scrollbar
-            hScrollerTmp = uim.widget.scrollerBar(obj.sidebar.hPanel, ...
+            obj.hScroller = uim.widget.scrollerBar(obj.sidebar.hPanel, ...
                 'Orientation', 'vertical', ...
                 'Maximum', 1/visibleRatio*100, ...
                 'VisibleAmount', 100, ...
                 'BarColor', barColor);
 
-            hScrollerTmp.Callback = @obj.scrollValueChange;
-            obj.hScroller = hScrollerTmp;
+            obj.hScroller.Callback = @obj.scrollValueChange;
             
             if visibleRatio > 1
                 obj.hScroller.Visible = 'off';
@@ -1228,20 +1247,25 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function updateScrollbar(obj, panelNum)
-            
+        %updateScrollbar Update scrollbar height based on panel height
+        %
+        % Note: This method also resets the scrollar value and moves all
+        % the elements to the top. This should be handled better. Pages
+        % should be reset when they are unselected, and scrollbar could
+        % have a reset method.
+        
             visibleRatio = obj.visibleHeight/obj.virtualHeight(panelNum);
             obj.hScroller.Maximum = 1/visibleRatio*100;
-            
+
+            obj.hScroller.resetValue()
+            obj.moveElementsToTop()
+
             if obj.virtualHeight(panelNum) > obj.visibleHeight
                 obj.hScroller.Visible = 'on';
                 obj.lastScrollValue = 0;
-                obj.moveElementsToTop()
             else
-                obj.moveElementsToTop()
                 obj.hScroller.Visible = 'off';
             end
-            
-            
         end
         
         function parseStruct(obj, S)
@@ -1568,6 +1592,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     end
                 end
             end
+
+% % %             % Alternative version:
+% % %             fieldIdx = strcmp(currentFieldName, allFieldNames);
+% % %             configIdx = strcmp([currentFieldName,'_'], allFieldNames);
+% % % 
+% % %             if ~isempty(fieldIdx) && ~isempty(configIdx)
+% % %                 ind = configIdx;
+% % %             end
         end
         
         % Note inputbox belongs to guiPanel
@@ -1620,9 +1652,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             inputbox.String = strjoin(val, ', ');
                         end
 
-                    case 'char'
+                    case {'char', 'string'}
                         inputbox = uicontrol(guiPanel, 'style', 'edit');
-                        inputbox.String = val;
+                        inputbox.String = char( val );
                         
                     case 'struct'
                         % Not implemented
@@ -1774,7 +1806,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             textbox.VerticalAlignment = 'bottom';
             
             % Compute virtual width.
-            currentWidth = obj.visibleWidth + ( textbox.Extent(3) + 20 - x );
+            currentWidth = obj.visibleWidthOrig + ( textbox.Extent(3) + 20 - x );
+            
             obj.virtualWidth(obj.currentPanel) = ...
                 nanmax( [obj.virtualWidth(obj.currentPanel), currentWidth] );
             
@@ -1783,7 +1816,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if isa(config, 'struct') && any( strcmp(config.type, buttonTypes) )
                 delete(textbox)
             end
-            
             
             
             % Add control to a struct of controls using same fieldnames as
@@ -1887,7 +1919,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function setControlValue(obj, hControl, value)
             
-            
             % Special case: (Some controls are split into many controls)
             if isprop(hControl, 'UserData')
                 if numel(hControl) ~= numel(value)
@@ -1913,7 +1944,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                     case 'char'
                         if strcmp(hControl.Style, 'popupmenu')
-                            value = find(contains(hControl.String, value));
+                            value = find(strcmp(hControl.String, value));
+                            if isempty(value)
+                                warning('No items in popup menu for "%s" matched the value "%s"', hControl.Tag, value);
+                                value = 1;
+                            elseif numel(value)>1
+                                warning('Multiple items in popup menu for "%s" matched the value "%s"', hControl.Tag, value);
+                                value = value(1);
+                            end
+
                             hControl.Value = value;
                         else
                             hControl.String = value;
@@ -1983,8 +2022,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Make them look good.
             if ~isempty(hUic)
                 h = applify.uicontrolSchemer(hUic);
+                obj.UIControlSchemer(panelNum) = h;
+
                 el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(h));
-                
+            else
+                h = applify.uicontrolSchemer();
+                obj.UIControlSchemer(panelNum) = h;
             end
             %drawnow
             
@@ -2081,6 +2124,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             pixelPos(1) = x0 + difference;
             setpixelposition( obj.main.hPanel(i), pixelPos);
             
+            % Adjust position of axes elements (text labels)
             children = obj.main.hAxes(i).Children;
             for j = 1:numel(children)
                 if isprop( children(j), 'Position')
@@ -2090,6 +2134,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
             end
             
+            % Adjust position of panel elements
             children = obj.main.hPanel(i).Children;
             for j = 1:numel(children)
                 if isa(children(j), 'matlab.graphics.axis.Axes'); continue; end
@@ -2104,14 +2149,16 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 error('Please report')
             end
             
+            % Adjust position of custom input widgets, i.e slidebar
             % Todo: Generalize!
             tmpControls = struct2cell(tmpControls);
             for j = 1:numel(tmpControls)
                 if isa(tmpControls{j}, 'uim.widget.slidebar')
-                    tmpControls{j}.Position(1) = tmpControls{j}.Position(1) - difference;
+                    if isequal(tmpControls{j}.Parent, obj.main.hAxes(i))
+                        tmpControls{j}.Position(1) = tmpControls{j}.Position(1) - difference;
+                    end
                 end
             end
-                
         end
         
         function flipUpsideDown(obj, y, panelNum)
@@ -2136,7 +2183,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         
             name = src(1).Tag;
-
+            
+            
             switch src(1).Style
                 case 'edit'
                     val = src.String;
@@ -2198,10 +2246,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             try
                 newVal = eval(val);
-            catch
+            catch ME
                 obj.setControlValue(src, oldVal)
-                msgbox('Invalid value'); return
-                
+                msgbox('Invalid value'); 
+                disp( getReport(ME.message) )
+                return
                 %error('Invalid value')
             end
 
@@ -2213,7 +2262,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 tmpVal(idx) = newVal;
                 newVal = tmpVal;
             end
-            
 
             if isequal(newVal, oldVal) % Todo: Rounding errors....
                 return
@@ -2425,8 +2473,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             %matchedName = hDropdown.String{matchedInd(1)};
             
-            hDropdown.Value = matchedInd;
-            
+            if ~isempty(matchedInd)
+                hDropdown.Value = matchedInd;
+                obj.currentOptionsName = newName;
+            else
+                error('Trying to select an options set that does not exist.')
+            end
         end
         
         function name = getCurrentOptionsSetSelection(obj, hDropdown)
@@ -2685,17 +2737,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             obj.editCallback_propertyValueChange(hControl(k), [], true)
                         end
                     end
-                        
-                
                 end
-                
             end
             
             % Reset current panel prop
             obj.currentPanel = currentPanelOrig;
-            
         end
-        
         
 % % % % User interaction callbacks
 
@@ -2748,8 +2795,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % %             else
 % %                 obj.main.disablePanel.Visible = 'off';
 % %             end
-                
-
             
             obj.updateHeaderTitle()
             
@@ -2786,7 +2831,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
             
             obj.main.hPanel(panelNum).Visible = 'on';
+            drawnow
 
+            obj.UIControlSchemer(panelNum).stripAllUIControls()
+            if obj.showFooter
+                obj.UIControlSchemerFooter.stripAllUIControls()
+            end
 
             % Update scrollbar.
             obj.updateScrollbar(panelNum)
@@ -2936,7 +2986,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function pathStr = getIconPath()
             % Set system dependent absolute path for icons.
 
-            rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 0);
+            rootDir = utility.path.getAncestorDir(mfilename('fullpath'), 1);
             pathStr = fullfile(rootDir, 'resources', 'icons');
 
         end

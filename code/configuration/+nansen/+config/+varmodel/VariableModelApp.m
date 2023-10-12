@@ -11,6 +11,10 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
         ModelBackup % Backup of data from variable model
     end
 
+    events
+        VariableModelChanged
+    end
+
     methods % Constructor
         
         function obj = VariableModelApp(varargin)
@@ -75,6 +79,7 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
                         obj.VariableModel.setVariableList(newModel)
                         obj.VariableModel.save()
                         obj.ModelBackup = obj.VariableModel.Data;
+                        obj.notify('VariableModelChanged', event.EventData)
                     case 'No'
                         obj.VariableModel.setVariableList(obj.ModelBackup)
                         obj.VariableModel.save()

@@ -7,9 +7,12 @@ function S = getDefaultOptions()
     S = struct();
 
     S.Preprocessing.NumFlybackLines = 0;
+
     S.Preprocessing.BidirectionalCorrection = 'None';
-    S.Preprocessing.BidirectionalCorrection_ = {'None', 'Constant', 'Time Dependent'};
-    %S.General.correctDrift = false;
+    S.Preprocessing.BidirectionalCorrection_ = {'None', 'Constant', 'Continuous'};
+    %S.Preprocessing.BidirectionalCorrection_ = {'None', 'One Time', 'Continuous'};
+    
+    S.General.correctDrift = false;
     
     
     S.Preview.firstFrame = 1;
@@ -31,7 +34,11 @@ function S = getDefaultOptions()
     S.Export.SaveDirectory_ = 'uigetdir';  %internal  
     S.Export.OutputDataType = 'uint8';
     S.Export.OutputDataType_ = {'uint8', 'uint16'};
-    S.Export.OutputFormat = 'Binary';
+    S.Export.IntensityAdjustmentPercentile = 0.005;
+    S.Export.IntensityAdjustmentPercentile_ = {0.05, 0.005, 0};
+    S.Export.IntensityAdjustmentMode = 'mean for all frames';
+    S.Export.IntensityAdjustmentMode_ = {'mean for all frames', 'brightest/darkest frame'};
+    S.Export.OutputFormat = 'Tiff';
     S.Export.OutputFormat_ = {'Binary', 'Tiff'};
     S.Export.saveAverageProjection = true;
     S.Export.saveMaximumProjection = true;

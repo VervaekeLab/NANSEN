@@ -1,4 +1,4 @@
-classdef Time < nansen.metadata.abstract.TableVariable
+classdef Time < nansen.metadata.abstract.TableVariable & nansen.metadata.abstract.TableColumnFormatter
 %TIME Definition for table variable
 %   Detailed explanation goes here
 %
@@ -22,7 +22,6 @@ classdef Time < nansen.metadata.abstract.TableVariable
         function str = getCellDisplayString(obj)
         %getCellDisplayString Return text to display in cell of table
             
-            
             if isa(obj(1).Value, 'datetime')
                 dtVector = [obj.Value];
                 dtVector.Format = obj.TimeFormat;
@@ -36,10 +35,6 @@ classdef Time < nansen.metadata.abstract.TableVariable
             else
                 str = repmat({'N/A'}, 1, numel(obj));
             end
-            
-            
-            
-
         end
         
 %         function value = getValue(obj)
@@ -48,7 +43,6 @@ classdef Time < nansen.metadata.abstract.TableVariable
     end
     
 end
-
 
 % % %     % Slower to get formatted character vectors from loop.
 % % %     tic

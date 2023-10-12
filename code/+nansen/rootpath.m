@@ -1,9 +1,5 @@
-function folder = rootpath()
-
-    folder = fileparts( mfilename( 'fullpath' ) );
-
-    % Todo (need to change all references to rootpath across code files): 
-    % Now go two steps up:
-    % folder = utility.path.getAncestorDir(folder, 1);
-    
+function folderPath = rootpath()
+%rootpath Return the absolute path for the nansen repository folder.
+    folderPath = fileparts( mfilename( 'fullpath' ) );
+    folderPath = utility.path.getAncestorDir(folderPath, 2);
 end

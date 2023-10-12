@@ -7,10 +7,13 @@ function S = getDefaultSettings()
 S = struct();
 S.MetadataTable.ShowIgnoredEntries = true;
 S.MetadataTable.AllowTableEdits = true;
+S.MetadataTable.AutosaveMetaTable = true;
 
 % % S.Session.ExportSessionObjectAs = 'Nansen';
 % % S.Session.ExportSessionObjectAs_ = {'Nansen', 'NDI'};
 S.Session.SessionObjectWorkspaceName = 'sessionObjects';
+S.Session.OptionEditMode = 'Only once';
+S.Session.OptionEditMode_ = {'Only once', 'For each session'};
 S.Session.SessionTaskDebug = false;
 
 % Task processor settings:

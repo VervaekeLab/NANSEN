@@ -46,7 +46,7 @@ function S = getMetaTableVariableAttributes(tableClassName)
     for iVar = 1:numel(varNames)
         
         S(iVar).Name = varNames{iVar};
-        S(iVar).IsCustom = ~contains(varNames{iVar}, varNamesSchema);
+        S(iVar).IsCustom = ~any(strcmp(varNames{iVar}, varNamesSchema));
         S(iVar).IsEditable = false; % Default assumption
         S(iVar).HasFunction = false; % Default assumption
         

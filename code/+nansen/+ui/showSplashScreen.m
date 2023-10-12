@@ -23,7 +23,9 @@ function [jFrame, jLabel, C] = showSplashScreen(imFilePath, titleStr, subTitleSt
     
     im = imread(imFilePath);
     
+    warning('off', 'MATLAB:im2java:functionToBeRemoved')
     jImage = im2java(im);
+    warning('on', 'MATLAB:im2java:functionToBeRemoved')
     jFrame = javax.swing.JFrame;
     jFrame.setUndecorated(true);
     
@@ -54,7 +56,7 @@ function [jFrame, jLabel, C] = showSplashScreen(imFilePath, titleStr, subTitleSt
     jLabel.setBounds(35, 70, 250, 25);
 
     
-    imPath = fullfile( nansen.localpath('root'), 'code', 'setup', '_icons', 'loading.gif');
+    imPath = fullfile( nansen.rootpath, 'code', 'setup', '_icons', 'loading.gif');
     jIcon2 = javax.swing.ImageIcon(imPath);
     jLabelLoadGif = javax.swing.JLabel(jIcon2);
     jLabelLoadGif.setBounds(5, 100, 112, 112);

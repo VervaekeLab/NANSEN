@@ -10,7 +10,7 @@ function varargout = plotImageStats(sessionObj, varargin)
 
     
     % % % Initialization block for a session method function.
-    ATTRIBUTES = {'serial', 'nonqueueable'};
+    ATTRIBUTES = {'serial', 'unqueueable'};
     settings = nansen.session.SessionMethod.setAttributes(params, ATTRIBUTES{:});
     
     if ~nargin && nargout > 0
@@ -23,11 +23,15 @@ function varargout = plotImageStats(sessionObj, varargin)
     
     
     % % % Implementation of the session method
-    S = sessionObj.loadData('imageStats');
+    S = sessionObj.loadData('ImageStats');
+    S = S{1,1};
     
     hViewer = signalviewer.App(timeseries(S.meanValue, 'Name', 'Mean Fluorescence'));
-        
-    hViewer.Axes.YLim = [0, 2^16];
+    hLine = hViewer.getHandle('Mean Fluorescence');
+    set(hLine, 'LineWidth', 1.5)
+
+    hViewer.Axes.YLim = [0, max(S.maximumValue) .* 1.1];
+    hViewer.YLimExtreme.left = hViewer.Axes.YLim;
 
     %f = figure;
     %ax = axes(f); 
@@ -43,33 +47,39 @@ function varargout = plotImageStats(sessionObj, varargin)
         lowerBound = (S.meanValue - S.minimumValue)';
         upperBound = (S.maximumValue - S.meanValue)';
         h = shadedErrorBar([], S.meanValue, [upperBound; lowerBound], 'lineprops',{'color', cmap(:,1)});
+        set(h.patch, 'HitTest', 'off', 'PickableParts', 'none')
         drawnow
 
 %       hViewer.addTimeseries( timeseries(S.minimumValue, 'Name', 'Minimum Level'))
 %       hViewer.addTimeseries( timeseries(S.maximumValue, 'Name', 'Maximum Level'))
     end
+    uistack(hLine, 'top')
     
     if params.ShowPrctile1
         lowerBound = (S.meanValue - S.prctileL1)';
         upperBound = (S.prctileU1 - S.meanValue)';
         h = shadedErrorBar([], S.meanValue, [upperBound; lowerBound], 'lineprops',{'color', cmap(:,2)});
+        set(h.patch, 'HitTest', 'off', 'PickableParts', 'none')
         drawnow
     end
-    
+    uistack(hLine, 'top')
+
     if params.ShowPrctile2
         lowerBound = (S.meanValue - S.prctileL2)';
         upperBound = (S.prctileU2 - S.meanValue)';
         h = shadedErrorBar([], S.meanValue, [upperBound; lowerBound], 'lineprops',{'color', cmap(:,3)});
+        set(h.patch, 'HitTest', 'off', 'PickableParts', 'none')
         drawnow
     end
+    uistack(hLine, 'top')
     
 
 end
 
 
-function S = getDefaultParameters()
-    S = struct();
-    S.ShowExtremes = true;
-    S.ShowPrctile1 = true;
-    S.ShowPrctile2 = true;
+function params = getDefaultParameters()
+    params = struct();
+    params.ShowExtremes = true;
+    params.ShowPrctile1 = true;
+    params.ShowPrctile2 = true;
 end

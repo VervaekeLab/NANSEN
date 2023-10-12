@@ -12,7 +12,7 @@ function createClassForCustomTableVar(S)
     assert(isvarname(variableName), '%s is not a valid variable name', variableName)
     
     % Get the path for the template function
-    folderPathSource = fullfile( nansen.rootpath, '+metadata', '+tablevar');
+    folderPathSource = nansen.localpath('table_variable_templates');
     
     switch S.InputMode
         case 'Enter values manually'

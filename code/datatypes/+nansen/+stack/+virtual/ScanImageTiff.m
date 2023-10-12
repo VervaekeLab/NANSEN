@@ -7,12 +7,17 @@ properties (Constant, Hidden)
     FILE_PERMISSION = 'read'
 end
 
-properties (Access = private, Hidden)
+properties (Hidden)
+    AutoConcatenateFiles = true     % Automatically concatenate files if multiple files are detected in file location
+    ConcatenationMode = 1           % Mode for file concatenation. See nansen.stack.FileConcatenator/lookForMultipartFiles
+end
+
+properties (Access = protected, Hidden)
     hTiffStack  % TIFFStack object
     tiffInfo Tiff    % TIFF object
 end
 
-properties (Access = private, Hidden) % File Info
+properties (Access = protected, Hidden) % File Info
     UseTiffStack = false % Flag whether to use DylanMuirs TIFFStack class
 
     NumChannels_
@@ -76,26 +81,29 @@ methods (Access = protected) % Implementation of abstract methods
             obj.FilePath = obj.tiffInfo.Filename;
         end
         
-        filePath = nansen.stack.FileConcatenator.lookForMultipartFiles(obj.FilePath, 1);
+        if obj.AutoConcatenateFiles
+            filePath = nansen.stack.FileConcatenator.lookForMultipartFiles(...
+                obj.FilePath, obj.ConcatenationMode);
         
-        if numel(filePath) > 1
-            
-            %idx = strcmp(filePath, obj.FilePath);
-            %obj.tiffInfo([idx, numel(filePath)]) = obj.tiffInfo;
-            
-            for i = 1:numel( filePath )
-                %if i == idx; continue; end
-                obj.tiffInfo(i) = Tiff(filePath{i}, 'r+');
+            if numel(filePath) > 1
+                
+                %idx = strcmp(filePath, obj.FilePath);
+                %obj.tiffInfo([idx, numel(filePath)]) = obj.tiffInfo;
+                
+                for i = 1:numel( filePath )
+                    %if i == idx; continue; end
+                    obj.tiffInfo(i) = Tiff(filePath{i}, 'r+');
+                end
+                
+                obj.FileConcatenator = nansen.stack.FileConcatenator(filePath);
+            else
+                obj.FileConcatenator = nansen.stack.FileConcatenator({obj.FilePath});
             end
-            
-            obj.FileConcatenator = nansen.stack.FileConcatenator(filePath);
-        else
-            obj.FileConcatenator = nansen.stack.FileConcatenator({obj.FilePath});
         end
         
         % Determine whether TIFFStack is on path and should be used.
         if exist('TIFFStack', 'file') == 2
-            obj.UseTiffStack = false;
+            obj.UseTiffStack = false; % Todo: Change to true, but make dependent on some preference.
         end
     end
     
@@ -333,12 +341,13 @@ methods % Implementation of VirtualArray abstract methods
 end
 
 
-methods (Access = private)
+methods (Access = protected) % Todo: Scan image and subclass
     
     function sIParams = getScanParameters(obj)
         
         % Todo: 
         %       Read info about channel colors...
+        %import nansen.stack.utility.findNumTiffDirectories
 
         % Specify parameters that are required for creating image stack
         paramNames = { ...
@@ -349,13 +358,16 @@ methods (Access = private)
             'hStackManager.actualNumVolumes', ...
             'hStackManager.framesPerSlice', ...
             'hChannels.channelSave' ...
-            };
+            'objectiveResolution'};
         
         %obj.ImageSize(1) = SI.hRoiManager.linesPerFrame;
         %obj.ImageSize(2) = SI.hRoiManager.pixelsPerLine;
         
-        numFramesPerFile = zeros(obj.FileConcatenator.NumFiles, 1);
-        
+        if ~isempty(obj.FileConcatenator)
+            numFramesPerFile = zeros(obj.FileConcatenator.NumFiles, 1);
+        else
+            numFramesPerFile = 1;
+        end
         for i = 1:numel(obj.tiffInfo)
             scanImageTag = obj.tiffInfo(i).getTag('Software');
 
@@ -368,17 +380,35 @@ methods (Access = private)
                 numFramesPerFile(i) = sIParams.hStackManager.framesPerSlice;
             end
             
+            if numFramesPerFile(i) == inf
+                numFramesPerFile(i) = nansen.stack.utility.findNumTiffDirectories(obj.tiffInfo(i), 1, 10000);
+            end
+            
         end
-        numFramesPerFile(i) = numFramesPerFile(i) .* sIParams.hChannels.channelSave .* siParams.hStackManager.actualNumSlices;
+        % Todo: Is this always true?? I.e are there files where numFrames
+        % should be multiplied with number of channels, like multicolor
+        % tiff stacks
         obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
-        obj.NumTimepoints_ = sum(numFramesPerFile);
+
+        numChannels = numel( sIParams.hChannels.channelSave );
+        numPlanes = sIParams.hStackManager.actualNumSlices;
+        
+        obj.NumTimepoints_ = sum(numFramesPerFile) ./ numChannels ./ numPlanes;
         
     end
     
     function assignScanImageParametersToMetadata(obj, sIParams)
         
-        obj.MetaData.ImageSize = abs( sum(sIParams.hRoiManager.imagingFovUm(1,:) ));
-        %obj.MetaData.PhysicalSizeY = nan;
+        try
+            obj.MetaData.ImageSize = abs( sum(sIParams.hRoiManager.imagingFovUm(1,:) ));
+        catch
+            try
+                obj.MetaData.ImageSize = fliplr(sIParams.fovInfo.pixelResolutionXY);
+            catch
+                error('Could not determine image size')
+            end
+        end
+            %obj.MetaData.PhysicalSizeY = nan;
         %obj.MetaData.PhysicalSizeX = nan;
         
         obj.MetaData.PhysicalSizeYUnit = 'micrometer'; % Todo: Will this always be um?
@@ -461,7 +491,93 @@ methods (Static)
     function createFile(filePath, arraySize, arrayClass)
         error('Creation of ScanImage Tiffs are not supported.')
     end
+
+    function isValid = fileCheck(pathStr)
+    %fileCheck Check if filepath points to a scanimage file
+        
+        isValid = false;
+
+        if isa(pathStr, 'cell')
+            pathStr = pathStr{1};
+        end
+
+        [~, ~, fileExtension] = fileparts(pathStr);
+
+        switch lower(fileExtension)
+            
+            case {'.tif', '.tiff'}
+                
+                if isfile(pathStr)
+                    % Get tiff info, but supress a common warning
+                    warning('off', 'imageio:tiffmexutils:libtiffWarning')
+                    imInfo = Tiff(pathStr);
+                    warning('on', 'imageio:tiffmexutils:libtiffWarning')
+
+                    % Check if the tiff 'Software' tag contains SI
+                    try 
+                        softwareName = imInfo.getTag('Software');
+                        if strcmp(softwareName(1:2), 'SI')
+                            isValid = true;
+                        end
+                    catch
+                        % Not valid
+                    end
+
+                else
+                    % Not valid
+                end
+            
+            otherwise 
+                % Not valid (not aware of any other file formats)
+        end
+    end
     
+    function [isMultiRoi, numRois] = checkIfMultiRoi(tiffRef)
+    %checkIfMultiRoi Checks if ScanImage recording is a multi roi recording
+    %
+    %   isMultiRoi = checkIfMultiRoi(tiffRef) returns true if the ScanImage
+    %   recording represented by tiffRef is a multi roi (fov) recording.
+    %   The input, tiffRef can be the absolute file path to a tiff file or
+    %   a Tiff object.
+
+        tiffObject = nansen.stack.utility.getTiffObject(tiffRef);
+        
+        if numel(tiffObject) > 1
+            scanImageTag = arrayfun(@(tiff) tiff.getTag('Software'), ...
+                tiffObject, 'UniformOutput', false);
+
+            %   - Check light paths
+            info = cellfun( @(str) ...
+                ophys.twophoton.scanimage.getScanParameters(str, 'imagingSystem'), ...
+                scanImageTag, 'UniformOutput', true);
+            
+            imagingSystem = {info.imagingSystem};
+            numImagingSystems = numel( unique(imagingSystem) );
+            if numImagingSystems > 1
+                assert(numImagingSystems == numel(tiffObject), 'Number of light paths must match number of tiff files')
+                numRois = zeros(1, numImagingSystems);
+                for j = 1:numel(tiffObject)
+                    [~, numRois(j)] = nansen.stack.virtual.ScanImageTiff.checkIfMultiRoi(tiffObject(j));
+                end
+                numRois = sum(numRois);
+                isMultiRoi = numRois > 1;
+                if isMultiRoi; return; end
+            end
+            %   - Todo: Check FoV Position + FoV Size
+
+            %   - Todo: Check start time
+        else
+            % ScanImage writes information about Rois to the Artist tag
+            artistTagValue = tiffObject.getTag('Artist');
+            data = jsondecode(artistTagValue);
+            numRois = numel( data.RoiGroups.imagingRoiGroup.rois );
+            isMultiRoi = numRois > 1;
+        end
+
+        if nargout == 1
+            clear numRois
+        end
+    end
 end
 
 end

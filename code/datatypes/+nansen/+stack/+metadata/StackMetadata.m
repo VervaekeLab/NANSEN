@@ -17,7 +17,7 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
         SizeT (1,1) double = 1           % Dimensional size of image data array
         
         PhysicalSizeX (1,1) double = 1   % Physical width of a pixel. um per pixel
-        PhysicalSizeY (1,1) double = 1   % Physical height of a pixel. 
+        PhysicalSizeY (1,1) double = 1   % Physical height of a pixel. um per pixel
         PhysicalSizeZ (1,1) double = 1   % Physical distance between planes. 
         PhysicalSizeXUnit char = 'pixel' % The units of the physical size of a pixel.
         PhysicalSizeYUnit char = 'pixel' % The units of the physical size of a pixel.
@@ -121,6 +121,10 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
     end
     
     methods
+
+        function save(obj)
+            writeToFile(obj)
+        end
         
         function updateTimeUnit(obj)
             % Todo: Turn 0.001 second into 1 microsecond etc.

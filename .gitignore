@@ -8,6 +8,9 @@ _userdata/
 # Settings file
 *settings.mat
 
+# Fovmanager screendumps Todo: Save them somewhere else
+code/apps/+fovmanager/@App/screendump/
+
 # Windows default autosave extension
 *.asv
 

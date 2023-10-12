@@ -3,42 +3,67 @@ classdef ProjectManager < handle
 %
 %   The purpose of this class is to simplify the process of listing
 %   projects, adding new projects and changing the current project.
+%
+%   This is a singleton class, so any instance will always point to the
+%   same object in memory.
+
+%   Abbreviations:
+%       PM - ProjectManager
 
 % Todo:
-%   [ ] Implement as subclass of StorableCatalog, or make a ProjectCatalog
-%       as a property of the projectmanager.
+%   [-] Implement as subclass of StorableCatalog, 
+%   [+] or make a ProjectCatalog as a property of the projectmanager.
+%   [ ] or make a HasCatalog superclass...
 %   [ ] Have methods that are called from the UI class return messages,
 %       and only call the fprintf on those messages whenever those methods
 %       are called without outputs. something like (status, tf] = method()
 %       This way the UI can catch info, warning, errors.
-%   [ ] Make a Project class
-%
-%   [ ] IMPORTANT: Need to rename internal paths if an already existing
-%       project is added. Need to rename metatable etc...?
-%       % Only rootpath???
+%   [x] Make a Project class.
+%   [ ] Move methods from projectmanager to project 
 %   [ ] Add method for renaming project.
+%   [ ] Add standard preferences
+%   [x] Add option for saving as json
+%   [ ] Add option for loading from json
+%   [ ] Create a project object cache in order to have singleton-like projects?
 
+    properties (Hidden) % Todo: Add to preferences.
+        CatalogSaveFormat string {mustBeMember(CatalogSaveFormat, ["mat", "json"])} = "mat" % not implemented yet
+    end
 
-    properties
+    properties (Hidden) % SetAccess = private
         Catalog             % A catalog of available projects
     end
     
-    properties (SetAccess = private)
+    properties (Hidden, SetAccess = private)
         CatalogPath         % Path where catalog is saved
     end
-    
-    properties (Dependent) 
-        CurrentProject
-        Projects
-    end
-    
+        
     properties (Dependent, SetAccess = private)
         NumProjects
+        ProjectNames
+    end
+
+    properties (Dependent) 
+        CurrentProject
         CurrentProjectPath
     end
     
+    methods (Static, Hidden)
+
+        function obj = instance()
+        %instance Get singleton instance of class
+            persistent instance
+
+            if isempty(instance)
+                instance = nansen.config.project.ProjectManager();
+            end
+            
+            obj = instance;
+        end
+
+    end
     
-    methods
+    methods (Access = private) % Constructor
        
         function obj = ProjectManager()
             % Create instance of the project manager class
@@ -50,7 +75,8 @@ classdef ProjectManager < handle
     
     methods (Static)
         
-        function pStruct = getEmptyProject()
+        function pStruct = getEmptyProjectStruct()
+        %getEmptyProjectStruct Return a struct with fields for new project
             pStruct = struct('Name', {}, 'Description', {}, 'Path', {});
         end
 
@@ -62,7 +88,7 @@ classdef ProjectManager < handle
             
         end
         
-        function P = get.CurrentProject(obj)
+        function P = get.CurrentProject(~)
             P = getpref('Nansen', 'CurrentProject', []);
         end
         
@@ -70,44 +96,25 @@ classdef ProjectManager < handle
             numProjects = numel(obj.Catalog);
         end
         
-        function pathStr = get.CurrentProjectPath(obj)
-            pathStr = '';
+        function pathStr = get.CurrentProjectPath(~)
+            pathStr = getpref('Nansen', 'CurrentProjectPath', []);
         end
-        
-        function projects = get.Projects(obj)
-            projects = obj.Catalog;
+
+        function projectNames = get.ProjectNames(obj)
+            projectNames = string( {obj.Catalog.Name} );
         end
         
     end
     
     methods
-        
-        function setProject(obj)
-            
-            currentProject = obj.CurrentProject();
-            
-            projectNames = {obj.Catalog.Name};
-            if ~any(strcmp(currentProject, projectNames))
-                wasSuccess = obj.uiSelectProject(projectNames);
-                if ~wasSuccess
-                    error('Nansen:NoProjectSet', 'No project is set')
-                end
-            else
-                projectPath = nansen.localpath('Current Project');
-                %if ~contains(path, projectPath)
-                    addpath(genpath(projectPath), '-end') % todo. dont brute force this..
-                %end
-            end
-        end
-        
+
         function pStruct = createProjectInfo(obj, name, description, pathStr)
         %createProjectInfo Create a struct with info for a project
             
-            pStruct = obj.getEmptyProject();
+            pStruct = obj.getEmptyProjectStruct();
             pStruct(1).Name = name;
             pStruct(1).Description = description;
             pStruct(1).Path = pathStr;
-            
         end
         
         function createProject(obj, name, description, projectRootDir)
@@ -120,11 +127,7 @@ classdef ProjectManager < handle
             % Make folder to save project related setting and metadata to
             if ~exist(projectRootDir, 'dir');    mkdir(projectRootDir);   end
             
-            fileName = 'nansen_project_configuration.mat';
-            
-            % Save project info to file.
-            S.ProjectConfiguration = projectInfo;
-            save(fullfile(projectRootDir, fileName), '-struct', 'S')
+            obj.saveProjectConfiguration(projectRootDir, projectInfo)
 
             % Todo:
             % (Initialize a metatable Catalog and add to project config)
@@ -142,36 +145,93 @@ classdef ProjectManager < handle
 
             % Set as current project
             obj.changeProject(name)
-
         end
         
-        function projectName = addExistingProject(obj, filePath)
-            
+        function projectName = importProject(obj, filePath)
+        %importProject Add an existing project to the PM catalog.
+        %
+        %   importProject(obj, filePath) import an existing project. The
+        %   filePath should point to the project_configuration file located
+        %   in the existing project folder.
+
             projectName = ''; %#ok<NASGU>
-            
+            projectDirectory = fileparts( filePath );
+
             S = load(filePath, 'ProjectConfiguration');
-            projectConfig = S.ProjectConfiguration;
+            projectInfo = S.ProjectConfiguration;
             
             % Update filepath of project configuration to match the path
             % of the folder where the project file is located now
-            projectConfig.Path = fileparts( filePath );
+            projectInfo.Path = projectDirectory;
             
+            obj.saveProjectConfiguration(projectDirectory, projectInfo)
+
             % Update metatable catalog filepaths
-            metaTableDir = fullfile(projectConfig.Path, 'Metadata Tables');
+            metaTableDir = fullfile(projectInfo.Path, 'Metadata Tables');
             MT = nansen.metadata.MetaTableCatalog(fullfile(metaTableDir, 'metatable_catalog.mat'));
-            MT.updatePath( fullfile(projectConfig.Path, 'Metadata Tables') )
+            MT.updatePath( fullfile(projectInfo.Path, 'Metadata Tables') )
             MT.save()
             
             % Todo: Update datalocation filepaths (if they are not detected)...
             
-            obj.addProject(projectConfig)
+            obj.addProject(projectInfo)
             
-            projectName = projectConfig.Name;
+            projectName = projectInfo.Name;
             if ~nargout; clear projectName; end
         end
         
-        function moveProject(obj, projectName, newLocation)
+        function updateProjectDirectory(obj, projectName, newProjectDirectory)
+        %updateProjectDirectory Change the directory of an existing project.
+        %
+        %   Inputs:
+        %       obj                 : The ProjectManager object that this method 
+        %                             is a part of.
+        %
+        %       projectName         : A string that specifies the name of the 
+        %                             project whose directory needs to be changed.
+        %
+        %       newProjectDirectory : A string that specifies the path to the 
+        %                             new directory for the project.
+        %
+        %   Example usage: 
+        %       updateProjectDirectory(obj, 'myProject', 'C:\Users\Documents\myNewProject');
+        %
+        %   Note: Use this method if the project directory has been moved already.
+        %   If you want to move the project directory, use 'moveProject' instead
+
+            IND = strcmp({obj.Catalog.Name}, projectName);
+
+            oldProjectDirectory = obj.Catalog(IND).Path;
+
+            obj.Catalog(IND).Path = newProjectDirectory;
             
+            obj.saveCatalog()
+
+            % If project is current project, need to update prefs...
+            if strcmp(obj.CurrentProject, projectName)
+                setpref('Nansen', 'CurrentProjectPath', newProjectDirectory);
+            end
+
+            % Todo: Update project folder in project instance.
+
+            % Update project folder in the metatable catalog
+            obj.updateMetatableCatalogFilePaths(projectName, ...
+                oldProjectDirectory, newProjectDirectory)
+        end
+        
+        function moveProject(obj, projectName, newLocation)
+        %moveProject Move the project to a new directory / file system location
+        %
+        %   Inputs:
+        %       obj                 : The ProjectManager object that this method 
+        %                             is a part of.
+        %
+        %       projectName         : A string that specifies the name of the 
+        %                             project to move.
+        %
+        %       newProjectDirectory : A string that specifies the path where the
+        %                             project should be moved to.
+        
             project = obj.getProject(projectName);
             if isempty(project); return; end
             
@@ -189,59 +249,27 @@ classdef ProjectManager < handle
             
             obj.saveCatalog()
 
-            currentProject = obj.CurrentProject;
-            if ~strcmp(projectName, currentProject)
-                obj.changeProject(projectName)
-            end
-
-            % Todo: make method for this... :
-            MTC = nansen.metadata.MetaTableCatalog.quickload();
-            for i = 1:size(MTC,1)
-                MTC{i, 'SavePath'} = strrep(MTC{i, 'SavePath'}, currentLocation, newLocation);
-                mtFilePath = fullfile( MTC{i, {'SavePath', 'FileName'}}{:} );
-                MT = load( mtFilePath );
-                MT.SavePath = MTC{i, 'SavePath'}{1};
-                save(mtFilePath, '-struct', 'MT')
-            end
-            nansen.metadata.MetaTableCatalog.quicksave(MTC)
-
-            obj.changeProject(currentProject)
-            
-        end
-        
-        function disp(obj)
-        %disp Override display function to show table of projects.
-            titleTxt = sprintf(['<a href = "matlab: helpPopup %s">', ...
-                'ProjectManager</a> with available projects:'],class(obj));
-            if isempty(obj.Catalog)
-                disp('NO AVAILABLE PROJECTS')
-            else
-                T = struct2table(obj.Catalog, 'AsArray', true);
-                fprintf('%s\n\n', titleTxt)
-                disp(T)
-            end
-        end
-        
-        function loadCatalog(obj)
-        %loadCatalog Load the project catalog
-            if ~exist(obj.CatalogPath, 'file')
-                newCatalog = obj.getEmptyProject();
-                S.projectCatalog = newCatalog;
-            else
-                S = load(obj.CatalogPath, 'projectCatalog');
-            end
-            
-            obj.Catalog = S.projectCatalog;
-        end
-       
-        function saveCatalog(obj)
-        %saveCatalog Save the project catalog
-            projectCatalog = obj.Catalog;  %#ok<NASGU
-            save(obj.CatalogPath, 'projectCatalog')
+            obj.updateMetatableCatalogFilePaths(projectName, ...
+                currentLocation, newLocation)
         end
         
         function addProject(obj, varargin)
         %addProject Add project to the project catalog.
+        %
+        %   Input:
+        %       obj      : An instance of this class.
+        %
+        %       varargin : A variable-length input argument list that can 
+        %                  contain either a structure representing project 
+        %                  information or a list of name-value pairs representing 
+        %                  project information.
+        %
+        %   Example usage: 
+        %       pm = nansen.ProjectManager(); 
+        %       projectInfo = struct('Name', 'Project 1', 'Description', 'This is a test project', 'Path', 'C:\Users\Documents\myNewProject');
+        %       pm.addProject(projectInfo);
+
+        %   Todo : catalog method
         
             if numel(varargin) == 1 && isa(varargin{1}, 'struct')
                 pStruct = varargin{1};
@@ -259,17 +287,35 @@ classdef ProjectManager < handle
             end
             
             nextInd = numel(obj.Catalog) + 1;
+
+            % Add a preference struct if it does not exist
+            if ~isfield(pStruct, 'Preferences')
+                pStruct.Preferences = struct;
+            end
             
             % Add project info struct to catalog
             obj.Catalog(nextInd) = pStruct;
             
             obj.saveCatalog()
-            
         end
        
         function removeProject(obj, name, deleteProjectFolder)
         %removeProject Remove project from project manager.
-        
+        %
+        %   Inputs:
+        %       obj                 : The ProjectManager object that this method 
+        %                             is a part of.
+        %
+        %       projectName         : A string that specifies the name of the 
+        %                             project whose directory needs to be changed.
+        %
+        %       deleteProjectFolder : (Optional) Logical flag for whether to 
+        %                             delete the project directory from the file 
+        %                             system (Default is false)
+        %
+        %   Example usage: 
+        %       removeProject(obj, 'myProject');
+
             if nargin < 3
                 deleteProjectFolder = false;
             end
@@ -315,14 +361,16 @@ classdef ProjectManager < handle
                 
                 msg = sprintf('Project "%s" removed from project catalog\n', name);
                 fprintf(msg)
-
             end
 
             obj.saveCatalog()
         end
        
         function s = getProject(obj, name)
-        %getProject Get project entry given its name 
+        %getProject Get project entry as struct given its name 
+
+        % Todo: rename getProjectStruct or just remove and always return
+        % object?
             IND = obj.getProjectIndex(name);
             
             if any(IND)
@@ -330,26 +378,26 @@ classdef ProjectManager < handle
             else
                 s = struct.empty;
             end
-            
         end
         
         function projectObj = getProjectObject(obj, name)
+        %getProjectObject Get project entry as object given its name
             s = obj.getProject(name);
             projectObj = nansen.config.project.Project(s.Name, s.Path);
         end
-        
-        function idx = getProjectIndex(obj, projectName)
-            
-            if isnumeric(projectName) % Assume index was given instead of name
-                idx = projectName;
-            else
-                idx = find(strcmp({obj.Catalog.Name}, projectName));
-            end
-            
+
+        function projectObj = getCurrentProject(obj)
+            currentProjectName = obj.CurrentProject;
+            s = obj.getProject(currentProjectName);
+            projectObj = nansen.config.project.Project(s.Name, s.Path);
         end
         
         function msg = changeProject(obj, name)
-            
+        %changeProject Change the current project
+        %
+        %   changeProject(obj, name) changes the current project to project
+        %   with given name
+
             projectEntry = obj.getProject(name);
             
             if isempty(projectEntry)
@@ -381,13 +429,12 @@ classdef ProjectManager < handle
                     nansenPreferences.localPath = containers.Map;
                 end
             end
-            
         end
         
         function tf = uiSelectProject(obj, projectNames)
-            
+        %uiSelectProject Open selection dialog for selecting current projects    
             if nargin < 2
-                projectNames = {obj.Catalog.Names};
+                projectNames = {obj.Catalog.Name};
             end
             
             promptStr = 'Select a project to open:';
@@ -398,13 +445,93 @@ classdef ProjectManager < handle
             
             projectName = projectNames{ind};
             obj.changeProject(projectName);
+        end
+        
+        function updateProjectItem(obj, projectName, name, value)
+            IND = obj.getProjectIndex(projectName);
+            if any(IND)
+                obj.Catalog(IND).(name) = value;
+                obj.saveCatalog()
+            end
+        end
+    end
+
+    methods % Load/save catalog
+
+        function loadCatalog(obj)
+        %loadCatalog Load the project catalog
+            if ~exist(obj.CatalogPath, 'file')
+                newCatalog = obj.getEmptyProjectStruct();
+                S.projectCatalog = newCatalog;
+            else
+                S = load(obj.CatalogPath, 'projectCatalog');
+            end
             
+            % Add preferences to each project entry if missing.
+            if ~isfield( S.projectCatalog, 'Preferences' )
+                % Todo: Fill out struct with default preference names?
+                [S.projectCatalog(:).Preferences] = deal(struct);
+            end
+
+            obj.Catalog = S.projectCatalog;
+        end
+       
+        function saveCatalog(obj)
+        %saveCatalog Save the project catalog
+
+            projectCatalog = obj.Catalog;  %#ok<NASGU
+
+            if obj.CatalogSaveFormat == "mat"
+                save(obj.CatalogPath, 'projectCatalog')
+            elseif obj.CatalogSaveFormat == "json"
+                jsonStr = jsonencode(projectCatalog, 'PrettyPrint', true);
+                jsonPath = replace(obj.CatalogPath, '.mat', '.json');
+                fid=fopen(jsonPath, 'w');
+                fwrite(fid, jsonStr);
+                fclose(fid);
+            else
+
+            end
+        end
+
+    end
+       
+    methods (Access = {?nansen.App})
+
+        function setProject(obj)
+        %setProject Method for nansen app to initialize project and open
+        % uiselection if current project is not available.
+
+            currentProject = obj.CurrentProject;
+            
+            projectNames = {obj.Catalog.Name};
+            if ~any(strcmp(currentProject, projectNames))
+                wasSuccess = obj.uiSelectProject(projectNames);
+                if ~wasSuccess
+                    error('Nansen:NoProjectSet', 'No project is set')
+                end
+            else
+                projectPath = nansen.localpath('Current Project');
+                %if ~contains(path, projectPath)
+                    addpath(genpath(projectPath), '-end') % todo. dont brute force this..
+                %end
+            end
         end
         
     end
-   
-    methods % Todo: Create a project class and put these methods there...
+
+    methods (Hidden)
+    % Todo: Create a project class and put these methods there...
         
+        function saveProjectConfiguration(obj, projectDirectory, projectInfo)
+            % Todo: project method
+            fileName = 'nansen_project_configuration.mat';
+            
+            % Save project info to file.
+            S.ProjectConfiguration = projectInfo;
+            save(fullfile(projectDirectory, fileName), '-struct', 'S')
+        end
+
         function S = listFigures(obj)
             
             S = struct('Name', '', 'FigureNames', '');
@@ -421,20 +548,132 @@ classdef ProjectManager < handle
                 
                 figNames = strrep({L2.name}, '+', '');
                 S(i).FigureNames = figNames;
-                
             end
-            
         end
         
     end
+
+    methods (Access = private)
+        
+        function idx = getProjectIndex(obj, projectName)
+        %getProjectIndex Get catalog index from name
+
+            if isnumeric(projectName) % Assume index was given instead of name
+                idx = projectName;
+            else
+                idx = find(strcmp({obj.Catalog.Name}, projectName));
+            end
+        end
+        
+        function updateMetatableCatalogFilePaths(obj, projectName, oldDirectory, newDirectory)
+        %updateMetatableCatalogFilePaths Update filepaths in the metatable
+        % catalog
+
+            % Todo: move this method to project class
+            projectRootDir = obj.getProjectPath(projectName);
+            pathStr = obj.getProjectSubPath('MetaTableCatalog', projectRootDir);
+
+            % Todo: Make this a method of metatable catalog. 
+            %  - Create or get project object
+            %  - Call method on he project object's metatble catalog
+
+            MTC = nansen.metadata.MetaTableCatalog.quickload(pathStr);
+
+            for i = 1:size(MTC,1)
+                MTC{i, 'SavePath'} = strrep(MTC{i, 'SavePath'}, oldDirectory, newDirectory);
+                mtFilePath = fullfile( MTC{i, {'SavePath', 'FileName'}}{:} );
+                MT = load( mtFilePath );
+                MT.SavePath = MTC{i, 'SavePath'}{1};
+                save(mtFilePath, '-struct', 'MT')
+            end
+            nansen.metadata.MetaTableCatalog.quicksave(MTC, pathStr)
+        end
     
-    methods (Static)
+    end
+
+    methods (Sealed, Hidden) % Overridden display methods
+
+        function display(obj, varName) %#ok<DISPLAY> 
+            fprintf(newline)
+            disp(obj)
+            fprintf('  Use project = %s(rowNumber) to retrieve a Project from the catalog', varName)
+            fprintf(newline)
+            fprintf(newline)
+            fprintf('See also %s\n', '<a href="matlab:methods nansen.config.project.ProjectManager" style="font-weight:bold">available methods</a>')
+        end
+
+        function disp(obj)
+        %disp Override display function to show table of projects.
+
+        % Inherit from matlab custom display?
+
+            %titleTxt = sprintf(['<a href = "matlab: helpPopup %s">', ...
+            %    'ProjectManager</a> with available projects:'],class(obj));
+            
+            builtin('disp', obj)
+            
+            if isempty(obj.Catalog)
+                disp('NO AVAILABLE PROJECTS')
+            else
+                titleTxt = sprintf('  <strong>Available projects:</strong>');
+
+                T = struct2table(obj.Catalog, 'AsArray', true);
+                T.Properties.RowNames = arrayfun(@(i) num2str(i), 1:obj.NumProjects, 'uni', 0);
+                T.Name = string(T.Name);
+                fprintf('%s\n\n', titleTxt)
+                disp(T)
+                %fprintf('  The current project is <strong>%s</strong>\n\n', obj.CurrentProject)
+            end
+        end
+
+    end
+
+    methods (Sealed, Hidden) % Overridden indexing method
+
+        function varargout = subsref(obj, s)
+            
+            numOutputs = nargout;
+            varargout = cell(1, numOutputs);
+                        
+            if strcmp( s(1).type, '()')
+                projectInfo = builtin('subsref', obj.Catalog, s(1));
+                projectInstance = nansen.config.project.Project.fromStruct(projectInfo);
+                if numel(s) == 1
+                    [varargout{1}] = projectInstance;
+                else
+                    if numOutputs > 0
+                        [varargout{:}] = builtin('subsref', projectInstance, s(2:end));
+                    else
+                        builtin('subsref', projectInstance, s(2:end))
+                    end
+                end
+            else
+                if numOutputs > 0
+                    [varargout{:}] = builtin('subsref', obj, s);
+                else
+                    builtin('subsref', obj, s)
+                end
+            end
+        end
+        
+        function n = numArgumentsFromSubscript(obj, s, indexingContext)
+            if strcmp( s(1).type, '()')
+                projectInfo = builtin('subsref', obj.Catalog, s(1));
+                projectInstance = nansen.config.project.Project.fromStruct(projectInfo);
+                n = builtin('numArgumentsFromSubscript', projectInstance, s(2:end), indexingContext);
+            else
+                n = builtin('numArgumentsFromSubscript', obj, s, indexingContext);
+            end
+        end
+
+    end
+
+    methods (Static, Hidden) % Todo: private?
         
         function pathStr = getCatalogPath()
             
             % Get default project path
-            nansenRoot = utility.path.getAncestorDir(nansen.rootpath, 1);
-            projectRootPath = fullfile(nansenRoot, '_userdata', 'projects');
+            projectRootPath = fullfile(nansen.rootpath, '_userdata', 'projects');
             if ~exist(projectRootPath, 'dir'); mkdir(projectRootPath); end
             
             % Add project details to project catalog file
@@ -469,8 +708,8 @@ classdef ProjectManager < handle
                 
             elseif strcmp(location, 'local')
                 
-                nansenRoot = utility.path.getAncestorDir(nansen.rootpath, 1);
-                localProjectPath = fullfile(nansenRoot, '_userdata', 'projects');
+                % Todo: get from nansen preferences
+                localProjectPath = fullfile(nansen.rootpath, '_userdata', 'projects');
                 
                 pathStr = fullfile(localProjectPath, projectName);
                 if ~exist(pathStr, 'dir'); mkdir(pathStr); end
@@ -478,9 +717,7 @@ classdef ProjectManager < handle
             else
                 
                 error('Unknown location')
-                
             end
-            
         end
         
         function pathStr = getProjectCatalogPath(catalogName, subfolder)
@@ -508,7 +745,6 @@ classdef ProjectManager < handle
             if ~exist(folderPath, 'dir');  mkdir(folderPath);    end
             
             pathStr = fullfile(folderPath, fileName);
-            
         end
         
         function pathStr = getProjectSubPath(keyword, projectRootDir)
@@ -573,8 +809,19 @@ classdef ProjectManager < handle
         function pathStr = getFilePath(keyword)
             pathStr = nansen.config.project.ProjectManager.getProjectSubPath(keyword);
         end
-        
     end
-   
     
 end
+
+
+% Change log
+%
+% 2023-03-05
+% 
+%   [x] Added documentation to public methods
+%   [x] Improved object display
+%   [x] Overrode subsref for better project retrieval 
+%   [x] Implement as singleton
+%   [x] Rename internal paths if an already existing project is added. 
+%       Need to rename metatable etc...? Tested this. Was partly implemented 
+%       from before. 

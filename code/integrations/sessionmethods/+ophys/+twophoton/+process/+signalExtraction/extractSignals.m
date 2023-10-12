@@ -11,6 +11,11 @@ classdef extractSignals < nansen.session.SessionMethod
             nansen.OptionsManager(mfilename('class')) % todo...
     end
     
+    properties (Constant)
+        DATA_SUBFOLDER = 'roisignals' % defined in nansen.DataMethod
+        VARIABLE_PREFIX	= 'RoiSignals'          % defined in nansen.DataMethod
+    end
+
     properties 
         RequiredVariables = {'TwoPhotonSeries_Corrected', 'roiArray'}
     end
@@ -49,7 +54,7 @@ classdef extractSignals < nansen.session.SessionMethod
             roiArray = sessionData.RoiArray;
             
             extractF = @nansen.twophoton.roisignals.extractF;
-            [signalArray, P] = extractF(imageStack, roiArray, 'verbose', true, obj.Parameters);
+            [signalArray, P] = extractF(imageStack, roiArray, 'verbose', true, obj.Options);
             
             % Todo: Save results...
             obj.saveData('RoiSignals_MeanF', squeeze(signalArray(:, 1, :)) )
@@ -66,6 +71,12 @@ classdef extractSignals < nansen.session.SessionMethod
             %fileAdapter.setMetadata('StartTimeStr', imageStack.getStartTime('string'), 'Data')
         end
         
+    end
+
+    methods
+        function printTask(obj, varargin)
+            fprintf(varargin{:})
+        end
     end
 
 end

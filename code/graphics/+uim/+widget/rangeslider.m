@@ -1,44 +1,45 @@
-classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignProperties
+classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignProperties & matlab.mixin.SetGet
     
-    % todo: add orientation vertical
-    
-    % Todo: 
+    % Todo:
+    %   [ ] add vertical orientation
     %   [ ] updateSize and updateLocation should happen automatically when
     %   position is set.
     
     properties (Dependent)
-        Min                 % Minimum slider value
-        Max                 % Maximum slider value
-        Low
-        High
+        Min                 % Minimum possible slider value
+        Max                 % Maximum possible slider value
+        Low                 % Current low value of slider
+        High                % Current high value of slider
     end
     
     properties
         NumTicks = 100
+
+        Label = ''                  % Todo: Add to superclass (a widget class)
+        LabelLocation = 'left'      % Todo: Add to superclass (a widget class)
         
-        TrackWidth = 2  % width of the slider track
+        TrackWidth = 2              % Width of the slider track
         TrackColor = ones(1,3)*0.75;
         KnobSize = 15
-        KnobMarkerStyle = 'round' % only round available shoud implement line/bar
+        KnobMarkerStyle = 'round'   % Only round available shoud implement line/bar
                
         % Todo: move to uim.style definition....
         KnobEdgeColorInactive = ones(1,3)*0.7;
         KnobEdgeColorActive = [0.1195    0.6095    0.5395]; % ones(1,3)*0.3; %;
         KnobFaceColorInactive = ones(1,3)*0.8;
         KnobFaceColorActive = ones(1,3)*0.65;
-           
-        TickLength = 5
+        
+        TickLength = 5 % Length of tick marks
         
         TextColor = ones(1,3)*0.8;
         TextBackgroundColor = 'none';
         
-        ShowLabel = true;
+        ShowLabel = true; % Show value label
 
         ValueChangingFcn = []
         
-        CallbackRefreshRate = inf % allowed number of updates per second. Useful for applications that do heavy computations.
         Callback = []
-       
+        CallbackRefreshRate = inf % allowed number of updates per second. Useful for applications that do heavy computations.
     end
     
     properties (Access = private, Transient = true)
@@ -49,29 +50,26 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         High_ = inf
     end
     
-    properties (Access = private, Transient)
-
+    properties (Access = private)
         hTrack
         hSliderKnob
         hText
         hTicks
+        hLabel
         
         IsKnobPressed = false
         
         WindowButtonUpListener
         WindowMouseMotionListener
-        
     end
     
     
-    
-    methods
+    methods % Structors
         
         function obj = rangeslider(hParent, varargin)
 
             if isa(hParent, 'matlab.graphics.axis.Axes')
             
-                
                 obj.Parent = hParent;
                 obj.Canvas = struct('Axes', hParent);
                 obj.hAxes = hParent;
@@ -86,13 +84,13 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 obj.Parent = hParent;
                 obj.Canvas = hParent;
                 obj.hAxes = obj.Canvas.Axes;
-                
             end
 
             obj.parseInputs(varargin{:})
             obj.IsFixedSize = [1, 1]; % No floating!
             
             obj.createSlider()
+            obj.plotLabel()
             
             obj.IsConstructed = true;
             
@@ -105,7 +103,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             obj.onVisibleChanged()
         
             obj.hBackground.Tag = 'Range Slider Background';
-            
         end
         
         function delete(obj)
@@ -115,7 +112,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         end
         
     end
-    
     
     methods (Access = private) % Component construction
         
@@ -137,9 +133,48 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             % Set visibility of subcomponents.
             obj.hTrack.Visible = obj.Visible;
             set(obj.hSliderKnob, 'Visible', obj.Visible);
-            
         end
         
+        function plotLabel(obj)
+            
+            [xCoords, yCoords] = obj.getTrackCoordinates();
+
+            if isempty(obj.hLabel)
+                obj.hLabel = text(obj.Canvas.Axes, 1, 1, obj.Label);
+                obj.hLabel.Color = obj.TextColor;
+                obj.hLabel.HitTest = 'off';
+                obj.hLabel.PickableParts = 'none';
+                obj.hLabel.Visible = obj.Visible;
+            end
+
+            switch obj.LabelLocation
+                case 'left'
+                    x = min(xCoords) - obj.KnobSize;
+                    y = mean(yCoords);
+                    hAlign = 'right';
+                    vAlign = 'middle';
+                case 'right'
+                    x = max(xCoords) + obj.KnobSize;
+                    y = mean(yCoords);
+                    hAlign = 'left';
+                    vAlign = 'middle';
+                case 'top'
+                    x = mean(xCoords);
+                    y = max(yCoords) + obj.KnobSize;
+                    hAlign = 'left';
+                    vAlign = 'bottom';
+                case 'bottom'
+                    x = min(xCoords);
+                    y = mean(yCoords) - obj.KnobSize;
+                    hAlign = 'left';
+                    vAlign = 'top';                    
+            end
+
+            obj.hLabel.Position(1:2) = [x, y];
+            obj.hLabel.HorizontalAlignment = hAlign;
+            obj.hLabel.VerticalAlignment = vAlign;
+        end
+
         function plotTrack(obj)
                        
             % Plot the track as a line
@@ -159,7 +194,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             else
                 set(obj.hTrack, 'XData', xCoords, 'YData', yCoords)
             end
-            
         end
 
         function plotTicks(obj)
@@ -178,7 +212,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             y = repmat([y1;y2;nan], 1, numTicks);
             
             obj.hTicks = plot(obj.Canvas.Axes,x,y, obj.TrackColor);
-            
         end
         
         function plotKnobs(obj)
@@ -210,7 +243,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 set(obj.hSliderKnob(1), 'XData', xCoordsLow, 'YData', yCoordsLow)
                 set(obj.hSliderKnob(2), 'XData', xCoordsHigh, 'YData', yCoordsHigh)
             end
-        
         end
         
         function plotText(obj, whichSlider)
@@ -230,7 +262,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             else
                 obj.hText.Position(1:2) = [xCoords, yCoords];
             end
-            
         end
         
     end
@@ -266,7 +297,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             xCoords = obj.Position(1) + obj.Padding(1) + ...
                 xRangeAxes .* xRelativePosition;
             yCoords = obj.Position(2) + obj.Position(4) .* 0.85;
-        
         end
         
         function [xCoords, yCoords] = getKnobCoordinates(obj, whichKnob)
@@ -292,7 +322,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             xCoords = xCoords + obj.Position(1) + obj.Padding(1) + ...
                 (obj.Position(3)-sum(obj.Padding([1,3]))) .* xRelativePosition;
             yCoords = yCoords + obj.Position(2) + obj.Position(4)/2;
-
         end
         
         function [xCoords, yCoords] = getTrackCoordinates(obj)
@@ -335,7 +364,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             xCoords(3,:) = nan;
            
             yCoords = repmat([y1;y2;nan], 1, numTicks);
-            
         end
         
         
@@ -366,7 +394,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             
             iptSetPointerBehavior(h, pointerBehavior);
             iptPointerManager(ancestor(h, 'figure'));
-
         end
         
     end
@@ -402,7 +429,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             if obj.ShowLabel
                 obj.hText.Visible = 'on';
             end
-            
         end
         
         function onSliderMoved(obj, src, ~)
@@ -427,7 +453,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                     obj.onValueChanging(newValue, 'high')
                     obj.updateValuetipString('high')
                 otherwise
-                    % Move the know which is closest to where the track was
+                    % Move the knob which is closest to where the track was
                     % pressed
                     if newValue <= obj.Low
                         whichValue = 'low';
@@ -443,16 +469,21 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                     
                     obj.onValueChanging(newValue, whichValue)
                     obj.updateValuetipString(whichValue)  
-                    
             end
-            
+
+            % make sure the callback is executed if source is the track
+            if strcmp(src.Tag, 'Range Slider Track')
+                if ~isempty(obj.Callback)
+                    evtData = struct('Low', obj.Low, 'High', obj.High);
+                    obj.Callback(obj, evtData)
+                end
+            end
         end
         
         function onSliderKnobReleased(obj, src, event)
 
             obj.IsKnobPressed = false;
 
-            
             delete(obj.WindowButtonUpListener)
             delete(obj.WindowMouseMotionListener)
             obj.WindowButtonUpListener = [];
@@ -477,7 +508,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 evtData = struct('Low', obj.Low, 'High', obj.High);
                 obj.Callback(obj, evtData)
             end
-            
         end
         
         function updateLocation(obj, mode)
@@ -488,6 +518,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             obj.plotTrack()
             obj.plotKnobs()
             obj.plotText()
+            obj.plotLabel()
             obj.updateBackground()
         end
         
@@ -507,14 +538,14 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             % Set visibility of subcomponents.
             obj.hTrack.Visible = obj.Visible;
             set(obj.hSliderKnob, 'Visible', obj.Visible);
-                        
+            obj.hLabel.Visible = obj.Visible;
+
             switch obj.Visible
                 case 'on'
                     obj.hBackground.PickableParts = 'all';
                 case 'off'
                     obj.hBackground.PickableParts = 'none';
             end
-            
         end
          
         function onValueChanging(obj, newValue, whichValue)
@@ -532,7 +563,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                     if newValue <= obj.Low; newValue = obj.Low; end
                     obj.High = newValue;
             end
-                    
         end
         
         function onValueChanged(obj, src, event)
@@ -571,7 +601,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         
     end
     
-    methods
+    methods % Set/get methods
         
         function set.Min(obj, newMin)
             assert(newMin < obj.Max_, 'Slider lower limit must be smaller than slider upper limit')
@@ -616,7 +646,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 obj.Low_ = newLow;
                 obj.onValueChanged()
             end
-            
         end
         
         function low = get.Low(obj)
@@ -631,7 +660,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 obj.High_ = newHigh;
                 obj.onValueChanged()
             end
-            
         end
         
         function high = get.High(obj)
@@ -646,9 +674,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             stepSize = (obj.Max-obj.Min) / obj.NumTicks;
         end
         
-        
     end
-    
-    
-    
+
 end

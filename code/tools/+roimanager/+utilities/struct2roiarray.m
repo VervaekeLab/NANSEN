@@ -1,6 +1,12 @@
 function roiArray = struct2roiarray(roiStruct)
 
 if isa(roiStruct, 'RoI')
+    roiArray = roiStruct;
+    return
+end
+
+if isempty(roiStruct)
+    roiArray = RoI.empty;
     return
 end
 

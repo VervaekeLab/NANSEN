@@ -25,7 +25,7 @@ function virtualData = open(pathStr, varargin)
 
     % Todo: Add a call to a function that checks whether data should be
     % loaded using a custom FileAdapter class.
-    virtualData = openUsingCustomFileAdapter(pathStr);
+    virtualData = openUsingCustomFileAdapter(pathStr, nvPairs{:});
     if ~isempty(virtualData)
         return
     end
@@ -49,7 +49,12 @@ function virtualData = open(pathStr, varargin)
             try
                 softwareName = imInfo.getTag('Software');
                 if strcmp(softwareName(1:2), 'SI')
-                    virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
+                    isMultiFov = nansen.stack.virtual.ScanImageTiff.checkIfMultiRoi(imInfo);
+                    if isMultiFov
+                        ophys.twophoton.ScanImageMultiRoi2PSeries(pathStr).view()
+                    else
+                        virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
+                    end
                 elseif contains(softwareName, 'Prairie View')
                     virtualData = nansen.stack.virtual.PrairieViewTiffs(pathStr, varargin{:}, nvPairs{:});
                 end
@@ -73,6 +78,9 @@ function virtualData = open(pathStr, varargin)
         case '.h5'
             virtualData = nansen.stack.virtual.HDF5(pathStr, '', varargin{:}, nvPairs{:});
             
+        case '.mdf'
+            virtualData = nansen.stack.virtual.MDF(pathStr, nvPairs{:});
+
         case {'.jpg', '.png', '.bmp'}
 %             tic
 %             if numFiles > 1
@@ -105,6 +113,9 @@ function virtualData = open(pathStr, varargin)
             
         case {'.avi', '.mov', '.mpg', '.mp4'}
             virtualData = nansen.stack.virtual.Video(pathStr, nvPairs);
+
+        case {'.tsm'}
+            virtualData = nansen.stack.virtual.TSM(pathStr, nvPairs);
             
         otherwise
 
@@ -120,7 +131,7 @@ function virtualData = open(pathStr, varargin)
 end
 
 
-function virtualData = openUsingCustomFileAdapter(filePath)
+function virtualData = openUsingCustomFileAdapter(filePath, varargin)
 %openUsingCustomFileAdapter Get virtual data using file adapter based on name    
     import nansen.dataio.fileadapter.imagestack.ImageStack
     
@@ -130,7 +141,7 @@ function virtualData = openUsingCustomFileAdapter(filePath)
     
     if ~isempty(virtualDataClass)
         virtualDataClassFcn = str2func(virtualDataClass);
-        virtualData = virtualDataClassFcn(filePath);
+        virtualData = virtualDataClassFcn(filePath, varargin{:});
     else
         virtualData = [];
     end

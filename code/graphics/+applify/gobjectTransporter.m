@@ -11,7 +11,7 @@ classdef gobjectTransporter < uim.handle
         TransportFcn = []
     end
     
-    properties (Access = private)
+    properties (Access = protected)
         hFigure
         hAxes
         
@@ -24,14 +24,16 @@ classdef gobjectTransporter < uim.handle
         WindowMouseMotionListener
         WindowMouseReleaseListener
     end
-    
-    
-    
+
     methods
         
         function obj = gobjectTransporter(hAxes)
             obj.hFigure = ancestor(hAxes, 'figure');
             obj.hAxes = hAxes;
+
+            if isempty(obj.hFigure.WindowButtonMotionFcn)
+                obj.hFigure.WindowButtonMotionFcn = @(s,e,x) isempty([]);
+            end
         end
         
         function delete(obj)
@@ -60,7 +62,6 @@ classdef gobjectTransporter < uim.handle
             x = event.IntersectionPoint(1);
             y = event.IntersectionPoint(2);
             obj.previousMousePointAxes = [x, y];
-            
             
             obj.currentHandle.FaceAlpha = 0.6;
 
@@ -113,9 +114,6 @@ classdef gobjectTransporter < uim.handle
             
             obj.currentHandle.FaceAlpha = 0.4;
             obj.currentHandle = [];
-
-            
-            
         end
 
         function resetInteractiveFigureListeners(obj)

@@ -13,7 +13,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %    [ ] Do the centering when getting the cell locations.
 %    [ ] Set fontsize/bg color and other properties in batch.
 %
-%    [ ] Update DL Model whenever new values are entered.
+%    [ ] Update DL Model whenever new values are entered. - Why???
 %
 %    [ ] Fix error that will occur if several subfolders are
 %        given the same subfolder type?
@@ -178,8 +178,28 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         
         function onFolderNameSelectionChanged(obj, src, ~)
         % Add value to tooltip of control
-        
+                        
+            rowNumber = obj.getComponentRowNumber(src);
+            idx = obj.getSubfolderLevel(rowNumber);
+            
+            obj.Data(rowNumber).SubfolderLevel = idx;
+                        
+            try
+                obj.updateStringResult(rowNumber)
+            catch ME
+                if strcmp(ME.identifier, 'MATLAB:badsubscript')
+                    ME = obj.getModifiedBadSubscriptException();
+                end
+                hFig = ancestor(src, 'figure');
+                uialert(hFig, ME.message, 'Update Failed')
+            end
+
+            obj.updateStringResult(rowNumber)
+
+            %obj.onStringInputValueChanged(hComp)
+
             src.Tooltip = src.Value;
+            obj.IsDirty = true;
         end
 
         function onSelectSubstringButtonPushed(obj, src, evt)
@@ -200,22 +220,18 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 pause(0.1)
                 figure(hFig) % Bring uifigure back to focus
                 return
-            else % ...Or update data and controls
-                
-                % Update values in editboxes
-                substring = folderName(IND);
+            % ...Or update data and controls
+            else 
                 hRow.StrfindInputEditbox.Value = obj.simplifyInd(IND);
-                
-                hRow.StrfindResultEditbox.Value = substring;
-                hRow.StrfindResultEditbox.Tooltip = substring;
 
                 % If the variable is date or time, try to convert to
                 % datetime value:
                 if obj.isDateTimeVariable(hRow.VariableName.Text)
                     
                     shortName = strrep(hRow.VariableName.Text, 'Experiment', '');
-   
-                    [dtInFormat, dtOutFormat] = obj.getDateTimeFormat(hRow.VariableName.Text, substring);
+    
+                    substring = obj.getFolderSubString(rowNumber);
+                    [dtInFormat, dtOutFormat] = obj.uiGetDateTimeFormat(hRow.VariableName.Text, substring);
                     
                     if ~isempty(dtInFormat)
                         try
@@ -230,15 +246,14 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                         message = 'This value will be represented as text. You can still change your mind!';
                         uialert(hFig, message, sprintf('%s is represented as text', shortName), 'Icon','warning')
                     end
-                    
+                else
+                    obj.updateStringResult(rowNumber)
                 end
-                
             end
             
             obj.IsDirty = true;
             
             figure(hFig) % Bring uifigure back into focus
-            
         end
 
         function onStringInputValueChanged(obj, src, event)
@@ -251,23 +266,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             M = thisDataLocation.MetaDataDef;
             
             rowNumber = obj.getComponentRowNumber(src);
-            mode = obj.getStrSearchMode(rowNumber);
-            
             hRow = obj.RowControls(rowNumber);
-            
-            strPattern = obj.getStrSearchPattern(rowNumber, mode);
-            
-            folderName = hRow.FolderNameSelector.Value;
 
             try
-                switch lower(mode)
-                    case 'ind'
-                        substring = eval( ['folderName([' strPattern '])'] );
-
-                    case 'expr'
-                        substring = regexp(folderName, strPattern, 'match', 'once');
-                end
-            
+                substring = obj.getFolderSubString(rowNumber);
             catch ME
                 hFig = ancestor(src, 'figure');
                 uialert(hFig, ME.message, 'Invalid input')
@@ -275,7 +277,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             % Convert date/time value if date/time format is available
             if obj.isDateTimeVariable(M(rowNumber).VariableName)
-                
                 
                 examplePath = thisDataLocation.ExamplePath;
                 try
@@ -296,6 +297,25 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hRow.StrfindResultEditbox.Tooltip = substring;
             
             obj.IsDirty = true;
+        end
+
+    end
+
+    methods % Methods for updating the Result column
+
+        function substring = getFolderSubString(obj, rowNumber)
+        %getFolderSubString Get folder substring based on user selections
+            mode = obj.getStrSearchMode(rowNumber);
+            strPattern = obj.getStrSearchPattern(rowNumber, mode);
+            folderName = obj.RowControls(rowNumber).FolderNameSelector.Value;
+            
+            switch lower(mode)
+                case 'ind'
+                    substring = eval( ['folderName([' strPattern '])'] );
+
+                case 'expr'
+                    substring = regexp(folderName, strPattern, 'match', 'once');
+            end
         end
 
     end
@@ -334,8 +354,14 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 S(i).StringDetectInput = obj.getStrSearchPattern(i);
                 S(i).SubfolderLevel = obj.getSubfolderLevel(i);
                 S(i).StringFormat = obj.StringFormat{i};
-            end
 
+                if isnan(S(i).SubfolderLevel)
+                    % Revert to the original value if current value is nan.
+                    % Current value might be nan if there are currently no
+                    % available folders in the dropdown selector.
+                    S(i).SubfolderLevel = obj.Data(i).SubfolderLevel;
+                end
+            end
         end
         
         function onModelSet(obj)
@@ -346,8 +372,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             dlIdx = obj.DataLocationIndex;
             thisDataLocation = obj.DataLocationModel.Data(dlIdx);
             
-            % Update Items and Value of subfolder dropdown
+            % Update Items of subfolder dropdown
             obj.setFolderSelectionItems()
+            
+            % Update values of subfolder dropdown based on the metadata
+            % defintions
+            M = thisDataLocation.MetaDataDef;
+            obj.updateFolderSelectionValue(M)
             
             % Update value in string detection input
             
@@ -384,44 +415,88 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             folderChoices(cellfun(@isempty, folderChoices)) = deal({'Foldername not found'});
             set(h, 'Items', folderChoices)
-            
+        end
+
+        function updateFolderSelectionValue(obj, M)
+        %updateFolderSelectionValue Set the dropdown value based on the model
+            % Get all the folder selector controls
+            h = [obj.RowControls.FolderNameSelector];
+
+            dlIdx = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            subFolderStructure = thisDataLocation.SubfolderStructure;
+
             for i = 1:numel(h)
                 %itemInd = oldValues(i);
-                itemInd = M(i).SubfolderLevel;
+                itemIdx = M(i).SubfolderLevel;
                 
                 % If there is no selection, try to infer from the data
                 % organization.
-                if isempty(itemInd)
-                    switch obj.RowControls(i).VariableName.Text
-                        case 'Animal ID'
-                            isMatched = strcmp({subFolderStructure.Type}, 'Animal');
-                            if any(isMatched)
-                                itemInd = find(isMatched);
-                            end
-                        case 'Session ID'
-                            isMatched = strcmp({subFolderStructure.Type}, 'Session');
-                            if any(isMatched)
-                                itemInd = find(isMatched);
-                            end
-                        case {'Date', 'Experiment Date'}
-                            isMatched = strcmp({subFolderStructure.Type}, 'Date');
-                            if any(isMatched)
-                                itemInd = find(isMatched);
-                            end
-                        case {'Time', 'Experiment Time'}
-                            itemInd = 0; 
-                        otherwise
-                            itemInd = 0; 
+                if isempty(itemIdx)
+                    itemIdx = obj.initFolderSelectionItemIndex(i, subFolderStructure);
+                end
+                
+                if isempty(itemIdx)
+                    itemIdx = 0;
+                elseif numel(itemIdx)>1
+                    itemIdx = itemIdx(1);
+                end
+                
+                set(h(i), 'Value', h(i).Items{itemIdx+1})
+            end
+        end
+
+        function itemIdx = initFolderSelectionItemIndex(obj, rowNumber, subFolderStructure)
+        %initFolderSelectionItemIndex Guess which index should be selected
+        %
+        %   For each subfolder level in the folder organization, there is a
+        %   type. If the type matches with the current row, use the index
+        %   of that subfolder level as the initial choice.
+            
+            itemIdx = 0;
+            switch obj.RowControls(rowNumber).VariableName.Text
+                case 'Animal ID'
+                    isMatched = strcmp({subFolderStructure.Type}, 'Animal');
+                    if any(isMatched)
+                        itemIdx = find(isMatched);
                     end
-                end
-                
-                if isempty(itemInd)
-                    itemInd = 0;
-                elseif numel(itemInd)>1
-                    itemInd = itemInd(1);
-                end
-                
-                set(h(i), 'Value', folderChoices{itemInd+1})
+                case 'Session ID'
+                    isMatched = strcmp({subFolderStructure.Type}, 'Session');
+                    if any(isMatched)
+                        itemIdx = find(isMatched);
+                    end
+                case {'Date', 'Experiment Date'}
+                    isMatched = strcmp({subFolderStructure.Type}, 'Date');
+                    if any(isMatched)
+                        itemIdx = find(isMatched);
+                    end
+                case {'Time', 'Experiment Time'}
+                    itemIdx = 0; 
+                otherwise
+                    itemIdx = 0; 
+            end
+        end
+        
+        function updateStringResult(obj, rowNumber)
+            
+            hRow = obj.RowControls(rowNumber);
+
+            % Update values in editboxes
+            substring = obj.getFolderSubString(rowNumber);
+            hRow.StrfindResultEditbox.Value = substring;
+            hRow.StrfindResultEditbox.Tooltip = substring;
+
+            if ~isempty( obj.StringFormat{rowNumber} )
+                dtInFormat = obj.StringFormat{rowNumber};
+                datetimeValue = datetime(substring, 'InputFormat', dtInFormat);
+
+                dtOutFormat = obj.getDateTimeOutFormat(hRow.VariableName.Text);
+                datetimeValue.Format = dtOutFormat;
+                substring = char(datetimeValue);
+
+                hRow.StrfindResultEditbox.Value = substring;
+                hRow.StrfindResultEditbox.Tooltip = substring;
+
             end
         end
 
@@ -471,12 +546,25 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function num = getSubfolderLevel(obj, rowNumber)
             
             hDropdown = obj.RowControls(rowNumber).FolderNameSelector;
-            items = hDropdown.Items(2:end); % Exclude first choice.
-            num = find(strcmp(items, hDropdown.Value));
+
+            if strcmp(hDropdown.Value, 'Foldername not found') || ...
+                    strcmp(hDropdown.Value, 'Data location root folder not found')
+                num = nan;
+            else
+                items = hDropdown.Items(2:end); % Exclude first choice.
+                num = find(strcmp(items, hDropdown.Value));
+                
+                % Note: important to exclude first entry. If no folder was
+                % explicitly selected, the value of num should be empty.
+            end
             
-            % Note: important to exclude first entry. If no folder was
-            % explicitly selected, the value of num should be empty.
-            
+            % Todo: Make this more robust. Is it ever going to happen
+            % unless the folder is not found like above?
+            if numel( num ) > 1
+                num = num(1);
+                warning(['Multiple folders has the same name. Selected the first ' ...
+                    'one in the list to use for metadata detection' ] )
+            end
         end
         
     end
@@ -616,17 +704,24 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                     % Currently, only the first data location requires an
                     % update of this ui.
                     if idx == obj.DataLocationIndex
-                        obj.onModelSet()
+
+                        obj.setFolderSelectionItems()
+                        obj.updateFolderSelectionValue(obj.Data)
+
+                        % Update result of string indexing based on model...
+                        for i = 1:obj.NumRows
+                            hComp = obj.RowControls(i).StrfindInputEditbox;
+                            obj.onStringInputValueChanged(hComp)
+                        end
+
+                        %%%obj.onModelSet()
                     end
                     
                 otherwise
                     % No change is necessary
-                
             end
-            
         end
         
-
     end
         
     
@@ -636,8 +731,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             tf = contains(variableName, {'Date', 'Time'});
         end
         
-        function [inFormat, outFormat] = getDateTimeFormat(variableName, strValue)
-        %getDateTimeFormat Get datetime input and output format
+        function [inFormat, outFormat] = uiGetDateTimeFormat(variableName, strValue)
+        %uiGetDateTimeFormat Get datetime input and output format
         
             % Get datetime values for date & time variables.
             if strcmp(variableName, 'Experiment Date')
@@ -658,7 +753,15 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             else
                 inFormat = '';
             end
-            
+        end
+
+        function outFormat = getDateTimeOutFormat(variableName)
+                    
+            if strcmp(variableName, 'Experiment Date')
+                outFormat = 'MMM-dd-yyyy';
+            elseif strcmp(variableName, 'Experiment Time')
+                outFormat = 'HH:mm:ss';
+            end
         end
         
         function IND = simplifyInd(IND)
@@ -698,6 +801,12 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             if numel(IND) > indOrig
                 IND = indOrig;
             end
+        end
+
+        function ME = getModifiedBadSubscriptException()
+
+            ME = MException('NANSEN:SubstringSelection:BadSubscript', ...
+                'The indices for selecting a substring does not match the length of the foldername');
         end
     end
     

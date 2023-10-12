@@ -20,6 +20,8 @@ function [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData, varargin)
         spatialWeightArray = roiData.spatial_weights;
     elseif isa(roiData, 'single') && ndims(roiData)==3
         spatialWeightArray = roiData;
+    elseif isa(roiData, 'logical') && ndims(roiData)==3
+        spatialWeightArray = roiData;
     end
         
     % Create the rgb and alpha matrices.

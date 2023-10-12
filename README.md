@@ -4,7 +4,10 @@
 
 A collection of apps and modules for processing, analysis and visualization of two-photon imaging data. Check out the introduction to Nansen on [YouTube](https://youtu.be/_u0Aw1n5gHg) and/or see the [Wiki](https://github.com/VervaekeLab/NANSEN/wiki) for more details.
 
+<img src="https://user-images.githubusercontent.com/17237719/201542036-3be1b9b2-b59c-4e2d-9104-52f6d3806f02.gif?raw=true" alt="Session table demo" width="100%"/>
+<!---
 <img src="https://github.com/ehennestad/ehennestad.github.io/blob/main/images/app_overview.png?raw=true" alt="Imviewer instance" width="100%"/>
+--->
 
 ## Contents
 
@@ -17,7 +20,7 @@ A collection of apps and modules for processing, analysis and visualization of t
 
 
 ## Disclaimer
-The NANSEN toolbox is still under development, so don't be surprised if you find occasional bugs here and there! If you manage to break something, please report under the issues section! Secondly, suggestions for improvements and general feedback are very welcome!
+The NANSEN toolbox is still under development, so don't be surprised if you find occasional bugs here and there! If you manage to break something, please report under the issues section! Also, suggestions for improvements and general feedback are very welcome!
 
 ## Installation
  1) Clone the repository and add all subfolders to MATLAB's search path. 
@@ -42,7 +45,7 @@ navigating to MATLAB's Home tab and then selecting Add-Ons > Get Add-Ons
 
 ** The Widgets Toolbox can also be installed using MATLAB's addon manager, 
 but it is important to install a compatibility version (v1.3.330) of the 
-toolbox, so please use the download link above or install using nansen.setup´.
+toolbox, so please use the download link above or install using `nansen.setup`.
 
 ## Apps
 
@@ -54,7 +57,11 @@ App for viewing and interacting with videos & image stacks
 ### Fovmanager
 App for registering cranial implants, injection spots and imaging field of views (and RoIs) on an atlas of the dorsal surface of the cortex.
 
-<img src="https://ehennestad.github.io/images/fovmanager.png" alt="Imviewer instance" width="500"/>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/17237719/197357426-248bc6e4-cbe4-4f80-9fae-3d54382edcd9.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://ehennestad.github.io/images/fovmanager.png">
+  <img alt="Fovmanager." src="https://ehennestad.github.io/images/fovmanager.png" width="500">
+</picture>
 
 ## Plugins
 Example of toolbox plugins that are included in NANSEN

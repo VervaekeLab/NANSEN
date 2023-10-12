@@ -26,6 +26,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     %   [x] Revert change from metatable. need to get formatted data from
     %       table!
     %   [ ] Should the filter be a RowModel?
+    %   [ ] Make method for getting colorcoded column names (based on
+    %   column filters, and always run columnNames through this method
+    %   before setting the on the table object
+    %   [ ] Will ColumnFilter.isColumnFilterActive always match the columns
+    %       in the column model? Need to verify
     %   [ ] Straighten out what to do about the MetaTable property.
     %       Problem: if the input metatable was a MetaTable object, it
     %       might contain data which is not renderable in the uitable, i.e
@@ -47,7 +52,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     properties % Table preferences
         ShowIgnoredEntries = true
         AllowTableEdits = true
-        MetaTableType = 'session'
+        MetaTableType = 'session' %Note: should always be lowercase
     end
     
     properties
@@ -103,6 +108,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     end
     
     properties (Access = private)
+        ColumnSettings_
         lastMousePressTic
         isConstructed = false;
     end
@@ -122,9 +128,15 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         
             % Take care of input arguments.
             obj.parseInputs(varargin)
+
+            %if ~isempty(obj.ColumnSettings)
+                nvPairs = {'ColumnSettings', obj.ColumnSettings};
+            %else
+            %    nvPairs = {};
+            %end
             
             % Initialize the column model.
-            obj.ColumnModel = nansen.ui.MetaTableColumnLayout(obj);
+            obj.ColumnModel = nansen.ui.MetaTableColumnLayout(obj, nvPairs{:});
             
             obj.createUiTable()
             
@@ -173,12 +185,24 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
         end
        
+        function set.MetaTableType(obj, newValue)
+            obj.MetaTableType = lower(newValue);
+        end
+
         function set.ColumnSettings(obj, newSettings)
-            obj.ColumnModel.replaceColumnSettings(newSettings);
-            obj.updateColumnLayout()
+            if isempty(obj.ColumnModel) 
+                obj.ColumnSettings_ = newSettings;
+            else
+                obj.ColumnModel.replaceColumnSettings(newSettings);
+                obj.updateColumnLayout()
+            end
         end
         function colSettings = get.ColumnSettings(obj)
-            colSettings = obj.ColumnModel.settings;
+            if isempty(obj.ColumnModel)
+                colSettings = obj.ColumnSettings_;
+            else
+                colSettings = obj.ColumnModel.settings;
+            end
         end
 
         function set.ColumnFilter(obj, newValue)
@@ -227,8 +251,20 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.ColumnModel.updateColumnEditableState()
         end
         
-        function resetTable(obj)
+        function resetTable(obj, resetView)
+            
+            % Note: There is an option here to not reset the table view,
+            % This is useful for aethetic reasons, to prevent flickering
+            % when updating a table.
+            if nargin < 2
+                resetView = true; % todo: make nv pair args
+            end
+
             obj.MetaTable = table.empty;
+            
+            if resetView
+                obj.refreshTable(table.empty, true)
+            end
         end
         
         function resetColumnFilters(obj)
@@ -302,6 +338,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.updateCells(rowIdxData, colIdx, newData)
         end        
 
+        function updateFormattedTableColumnData(obj, columnName, columnData)
+        %reformatTableColumnData Reformat data for specified column
+            columnIndex = find(strcmp(obj.MetaTable.Properties.VariableNames, columnName));
+            obj.MetaTableCell(:, columnIndex) = table2cell(columnData);
+        end
+
         function appendTableRow(obj, rowData)
             % Would be neat, but havent found a way to do it.
         end
@@ -324,12 +366,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % This might be used in some cases where the table should be
             % kept, but the flushTable flag is provided.
             
+            requireReset = isempty( obj.MetaTable );
+
             if nargin >= 2 && ~(isnumeric(newTable) && isempty(newTable))
                 obj.MetaTable = newTable;
             end
             
-            if nargin < 3
-                flushTable = false;
+            if nargin < 3 || isempty(flushTable)
+                flushTable = requireReset;
             end
             
             % Todo: Save selection
@@ -338,7 +382,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             if flushTable % Empty table, gives smoother update in some cases
                 obj.HTable.Data = {};
                 obj.DataFilterMap = []; % reset data filter map
-                obj.ColumnFilter.onMetaTableChanged()
+                if ~isempty(obj.MetaTable)
+                    obj.ColumnFilter.onMetaTableChanged()
+                end
             else
                 if ~isempty(obj.ColumnFilter)
                     obj.ColumnFilter.onMetaTableUpdated()
@@ -346,9 +392,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
             
             drawnow
-            obj.updateColumnLayout()
-            obj.updateTableView()
-            
+            if ~isempty(obj.MetaTable)
+                obj.updateColumnLayout()
+                obj.updateTableView()
+            else
+                obj.HTable.ColumnName = cell(1,0);
+            end
             drawnow
             % Todo: Restore selection
             %obj.setSelectedEntries(selectedEntries);
@@ -410,9 +459,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             IND = visibleRowInd(IND);
         end
        
-        function setSelectedEntries(obj, IND)
+        function setSelectedEntries(obj, IND, preventCallback)
         %setSelectedEntries Set row selection
         
+            if nargin < 3
+                preventCallback = false; % todo: make nv pair args
+            end
+
             % Get currently visible row indices.
             visibleRowInd = obj.getCurrentRowSelection();
             
@@ -430,10 +483,15 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             selectedRows = find(ismember(visibleRowInd, IND));
 
             % Set the row selection
-            obj.HTable.SelectedRows = selectedRows;
-            
+            if preventCallback
+                obj.HTable.disableCallbacks();
+                obj.HTable.SelectedRows = selectedRows;
+                drawnow
+                obj.HTable.enableCallbacks();
+            else
+                obj.HTable.SelectedRows = selectedRows;
+            end
         end
-
     end
    
     methods (Access = private) % Create components
@@ -602,21 +660,28 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     
     methods (Access = {?nansen.MetaTableViewer, ?nansen.ui.MetaTableColumnLayout, ?nansen.ui.MetaTableColumnFilter})
           
-        function updateTableView(obj, visibleRows)
+        function updateTableView(obj, visibleRows, requestFocus)
+
+            % visibleRows : list of indices of rows to show
+            % requestFocus : boolean, whether table should request focus.
+
+            % Note: When updating filters (especially search autocomplete)
+            % the table should not request focus. In other cases, I dont
+            % remember why the table should request focus...
 
             if isempty(obj.ColumnModel); return; end % On construction...
                         
             [numRows, numColumns] = size(obj.MetaTableCell); %#ok<ASGLU>
 
-            if nargin < 2; visibleRows = 1:numRows; end
-            
+            if nargin < 2 || isempty(visibleRows); visibleRows = 1:numRows; end
+            if nargin < 3 || isempty(requestFocus); requestFocus = true; end
+
             % Get based on user selection of which columns to display
             visibleColumns = obj.getCurrentColumnSelection();
             
             % Get visible rows based on filter states
             filteredRows = obj.getCurrentRowSelection(); 
             visibleRows = intersect(filteredRows, visibleRows, 'stable');
-            
 
             % Get subset of data from metatable that should be put in the
             % uitable. 
@@ -631,7 +696,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Assign updated table data to the uitable property
             obj.HTable.Data = tableDataView;
             obj.HTable.Visible = 'on';
-            obj.HTable.JTable.requestFocus()
+
+            obj.updateColumnLabelFilterIndicator()
+            
+            % Why????
+            if requestFocus
+                obj.HTable.JTable.requestFocus()
+            end
 
             drawnow
         end
@@ -640,7 +711,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         %updateColumnLayout Update the columnlayout based on user settings
         
             if isempty(obj.ColumnModel); return; end
-            if isempty(obj.MetaTable); return; end
+            if isempty(obj.MetaTable)
+                obj.HTable.ColumnName = {''};
+                drawnow
+                return; 
+            end
             
             colIndices = obj.ColumnModel.getColumnIndices();
             
@@ -654,51 +729,89 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             newColumnWidths = obj.ColumnModel.getColumnWidths();
             obj.changeColumnWidths(newColumnWidths)
             
-            
-            T = obj.MetaTableCell; % Column format is determined from the cell version of table.
+            C = obj.MetaTableCell; % Column format is determined from the cell version of table.
+            C = C(:, colIndices);
+            T = obj.MetaTable(1,:); % Need to check original data for special data types, i.e enums
             T = T(:, colIndices);
             
             % Return if table has no rows. 
-            if size(T,1)==0; return; end
+            if size(C,1)==0; return; end
             
             % Set column format and formatdata
-            dataTypes = cellfun(@(cell) class(cell), T(1,:), 'uni', 0);
+            dataTypes = cellfun(@(cell) class(cell), C(1,:), 'uni', 0);
             colFormatData = arrayfun(@(i) [], 1:numel(dataTypes), 'uni', 0);
             
-            
+            dataTypes(strcmp(dataTypes, 'string')) = {'char'};
+            dataTypes(strcmp(dataTypes, 'categorical')) = {'char'};
+
+
+            % Note, this is done before checking for enum on purpose 
+            % (Todo: Adapt special enum classes to also use the CompactDisplayProvider...)
+            isCustomDisplay = @(x) isa(x, 'matlab.mixin.CustomCompactDisplayProvider');
+            isCustomDisplayObj = cellfun(@(cell) isCustomDisplay(cell), table2cell(T(1,:)), 'uni', 1);
+            dataTypes(isCustomDisplayObj) = {'char'};
+
+
 % % %             % Note: Important to reset this before updating. Columns can be 
 % % %             % rearranged and number of columns can change. If 
 % % %             % ColumnFormatData does not match the specified column format
 % % %             % an error might occur.
 % % %             obj.HTable.ColumnFormatData = colFormatData;
-            
-            
+
+            % Enums: (here we need to use non-cell version). Todo: Find
+            % better solution...
+            isEnumeration = cellfun(@(cell) isenum(cell), table2cell(T(1,:)), 'uni', 1);
+            dataTypes(isEnumeration) = {'popup'};
+            enumerationIdx = find(isEnumeration);
+            for i = enumerationIdx
+                enumObject = T{1,i};
+                if iscell(enumObject); enumObject = enumObject{1}; end
+                [~, m] = enumeration( enumObject ); % need to get enum for original....
+                %colFormatData{i} = [C(1,i); m];
+                colFormatData{i} = m;
+            end
+
+            isCategorical = cellfun(@(cell) iscategorical(cell), table2cell(T(1,:)), 'uni', 1);
+            dataTypes(isCategorical) = {'popup'};
+            categoricalIdx = find(isCategorical);
+            for i = categoricalIdx
+                categoricalObject = T{1,i};
+                if iscell(categoricalObject); categoricalObject = categoricalObject{1}; end
+                colFormatData{i} = categories(categoricalObject); % need to get enum for original....
+            end
+
             % All numeric types should be called 'numeric'
-            isNumeric = cellfun(@(cell) isnumeric(cell), T(1,:), 'uni', 1);
+            isNumeric = cellfun(@(cell) isnumeric(cell), C(1,:), 'uni', 1);
             dataTypes(isNumeric) = {'numeric'};
             
-            isDatetime = cellfun(@(cell) isdatetime(cell), T(1,:), 'uni', 1);
+            isDatetime = cellfun(@(cell) isdatetime(cell), C(1,:), 'uni', 1);
             dataTypes(isDatetime) = {'date'};
-        
+            
             % Todo: get from nansen preferences...      
             colFormatData(isDatetime) = {'MMM-dd-yyyy    '};      
-            
+
+
             % NOTE: This is temporary. Need to generalize, not make special
             % treatment for session table
-            customVars = nansen.metadata.utility.getCustomTableVariableNames();
+            customVars = nansen.metadata.utility.getCustomTableVariableNames(obj.MetaTableType);
             [customVars, iA] = intersect(variableNames, customVars);
             
             for i = 1:numel(customVars)
                 thisName = customVars{i};
-                varFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
+                varFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName, [], obj.MetaTableType);
                 varDef = varFcn();
                 
                 if isa(varDef, 'nansen.metadata.abstract.TableVariable')
                     if isprop(varDef, 'LIST_ALTERNATIVES')
                         dataTypes(iA(i)) = {'popup'};
                         colFormatData(iA(i)) = {varDef.LIST_ALTERNATIVES};
+                        obj.HTable.ColumnEditable(iA(i))=true;
                     end
                 end
+            end
+
+            if any(strcmp(dataTypes, 'cell'))
+                error('The table contains values that can not be rendered. Please contact support.')
             end
             
             % Update the column formatting properties
@@ -709,6 +822,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % the correct number of columns are shown.
             obj.HTable.ColumnName = columnLabels;
             
+            % Update indicators for table filters because these are reset
+            % when column name is set
+            obj.updateColumnLabelFilterIndicator()
+
             obj.ColumnModel.updateJavaColumnModel()
 
             % Maybe call this separately???
@@ -718,6 +835,32 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % stuff better.
             obj.HTable.Theme = obj.HTable.Theme;
 
+        end
+
+        function updateColumnLabelFilterIndicator(obj, filterActive)
+
+            if nargin < 2
+                filterActive = obj.ColumnFilter.isColumnFilterActive;
+            end
+
+            onColor = '#017100';
+
+            colIndices = obj.ColumnModel.getColumnIndices();
+            filterActive = filterActive(colIndices);
+
+            columnNames = obj.ColumnModel.getColumnNames();
+
+            for i = 1:numel(obj.HTable.ColumnName)
+                if ~isempty(filterActive) && filterActive(i)
+                    columnNames{i} = sprintf('<HTML><FONT color="%s">%s</Font>', onColor, columnNames{i});
+                    %columnNames{i} = sprintf('<HTML><FONT
+                    %color="%s"><b>%s</Font>', onColor, columnNames{i});
+                    %makes very bold
+                end
+            end
+            if ~isempty(columnNames)
+                obj.changeColumnNames(columnNames)
+            end
         end
         
         function updateColumnEditable(obj)
@@ -812,7 +955,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function onFilterUpdated(obj, src, evt)
         %onFilterUpdated Callback for table filter update events
             
-            obj.updateTableView()
+            obj.updateTableView([], false)
             
             if ~isempty(obj.ExternalFilterMap)
                 visibleRows = find( obj.ExternalFilterMap );
@@ -899,7 +1042,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
 
         function onMousePressedInHeader(obj, src, evt)
-            
+        %onMousePressedInHeader Handles mouse press in the table header.
+
             buttonNum = get(evt, 'Button');
             obj.lastMousePressTic = tic;
 
@@ -914,7 +1058,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 return
             end
             
-            
+            % The action of pressing and holding for a split second should
+            % open the column filter. This is managed by a timer, and here,
+            % if a timer is not already active we start it and set the
+            % sortable to false
             if buttonNum == 1 && get(evt, 'ClickCount') == 1
                 
                 if isempty(obj.ColumnPressedTimer)
@@ -926,6 +1073,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     obj.HTable.JTable.getModel().setSortable(0)
                 end
                 
+            % For right clicks, open the context menu.
             elseif buttonNum == 3 %rightclick
                 
                 % These are coords in table
@@ -933,10 +1081,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 clickPosY = get(evt, 'Y');
                 
                 % todo: get column header x- and y positions in figure.
-                
                 obj.openColumnContextMenu(clickPosX, clickPosY);
             end
-
         end
         
         function onMouseDraggedInTableHeader(obj, src, evt)
@@ -987,13 +1133,28 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 if row == 0 || col == 0
                     obj.HTable.SelectedRows = [];
                     
-                    % Make sure editable cell is not in focus, because that
-                    % shit is ugly...
+                    % Make sure editable cell is not in focus when editing
+                    % is stopped, because it will be rendered with a black
+                    % background.
                     colIdx = find( ~obj.HTable.ColumnEditable, 1, 'first');
+                    
+                    cellEditor = obj.HTable.JTable.getCellEditor();
+                    if ~isempty( cellEditor )
+                        cellEditor.stopCellEditing();
+                    end
+
                     selectionModel = obj.HTable.JTable.getColumnModel.getSelectionModel;
-                    set(selectionModel, 'LeadSelectionIndex', colIdx-1)
+
+                    if ~isempty(colIdx)
+                        % Give focus to a non-editable cell.
+                        set(selectionModel, 'LeadSelectionIndex', colIdx-1)
+                    else
+                        % Set selection index to something near guaranteed
+                        % to not be in the current table (if no cells are
+                        % non-editable)
+                        set(selectionModel, 'LeadSelectionIndex', 9999) 
+                    end
                 end
-                
                     
             elseif strcmp(evt.SelectionType, 'open')
             
@@ -1030,6 +1191,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     return % Command click on mac should not count as right click
                 end
 
+                if ispc && evt.Button == 1 && evt.ControlOn
+                    return % Control click on windows should not count as right click
+                end
+
                 % Get row where mouse press ocurred.
                 row = evt.Cell(1); col = evt.Cell(2);
                 
@@ -1050,7 +1215,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     obj.openTableContextMenu(position(1), position(2));
                 end
             end
-
         end  
         
         function onMouseMotionInTable(obj, src, evt)

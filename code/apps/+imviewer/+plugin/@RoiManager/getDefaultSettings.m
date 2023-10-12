@@ -32,6 +32,7 @@ function S = getExperimentSettings()
     S.SaveRois = false;
     S.SaveRois_ = struct('type', 'button', 'args', {{'String', 'Save Rois...', 'FontWeight', 'bold', 'ForegroundColor', [0.1840    0.7037    0.4863]}});
 
+    S.ActiveChannel = 'Channel 1';
 end
 
 function S = getSelectionSettings()

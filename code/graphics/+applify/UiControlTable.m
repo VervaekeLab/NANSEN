@@ -608,7 +608,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         %getToolbarPosition Get position of toolbar above main panel.
         
             HEIGHT = 30;
-            MARGINS = [3,4];
+            MARGINS = [3,4]; %x, y
             
             referencePosition = obj.Parent.Position;
             

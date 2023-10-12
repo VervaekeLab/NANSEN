@@ -10,6 +10,11 @@ classdef Caiman < nansen.session.SessionMethod
         OptionsManager = nansen.OptionsManager(mfilename('class')) % todo...
     end
     
+    properties (Constant)
+        DATA_SUBFOLDER = 'roisignals' % defined in nansen.DataMethod
+        VARIABLE_PREFIX	= ''          % defined in nansen.DataMethod
+    end
+
     methods (Static)
         function options = getDefaultOptions()
         %GETDEFAULTOPTIONS Summary of this function goes here
@@ -41,14 +46,14 @@ classdef Caiman < nansen.session.SessionMethod
             signalArray = obj.loadData('RoiSignals_Dff');
             
             dff = signalArray.RoiSignals_Dff;
-            [deconvolved, denoised] = deconvolveDff(dff, obj.Parameters);
+            [deconvolved, denoised] = deconvolveDff(dff, obj.Options);
             
             obj.SessionObjects.saveData('RoiSignals_Deconvolved', deconvolved)
             obj.SessionObjects.saveData('RoiSignals_Denoised', denoised)
             
             % Todo: get computed timeconstants and other params and save
             
-            obj.saveData('OptionsDeconvolution', obj.Parameters, ...
+            obj.saveData('OptionsDeconvolution', obj.Options, ...
                 'Subfolder', 'roisignals', 'IsInternal', true)
             
         end
@@ -57,7 +62,10 @@ classdef Caiman < nansen.session.SessionMethod
             h = openDeconvolutionExplorer(obj.SessionObjects);
             wasSuccess = obj.finishPreview(h);
         end
-        
+                
+        function printTask(obj, varargin)
+            fprintf(varargin{:})
+        end
     end
 
 end
@@ -101,7 +109,7 @@ function hDffPlugin = openDeconvolutionExplorer(sessionObj)
     hSignalviewer.showLegend()
     
     % Open the dff options
-    hDffPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(hSignalviewer, [], 'Modal', false);
+    hDffPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(hSignalviewer, struct.empty, 'Modal', false);
     
     % Position apps on screen
     hSignalviewer.place('bottom')

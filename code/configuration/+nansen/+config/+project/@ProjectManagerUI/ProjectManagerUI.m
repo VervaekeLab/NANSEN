@@ -4,9 +4,10 @@ classdef ProjectManagerUI < handle
     % Todo:
     %   [ ] Flag for whether to create tabs or not (should not create on setup?)
     %   [ ] Only disable create new project controls if this is the initial setup...
-    %   [ ] Add a context menu on the table. 
-    %   [ ] Add boolean column to table. Configure it like a
+    %   [v] Add a context menu on the table. 
+    %   [v] Add boolean column to table. Configure it like a
     %       radiobuttongroup... Use for selecting current project.
+    %   [ ] Add menu item for editing preferences
     
     properties
         ProjectManager
@@ -39,7 +40,7 @@ classdef ProjectManagerUI < handle
         function obj = ProjectManagerUI(hParent)
             
             obj.assignInitialProjectRootFolderPath()
-            obj.ProjectManager = nansen.config.project.ProjectManager();
+            obj.ProjectManager = nansen.config.project.ProjectManager.instance();
             % If no parent is added, return before creating components
             if nargin < 1 || isempty(hParent)
                 return
@@ -51,7 +52,6 @@ classdef ProjectManagerUI < handle
             obj.createTabGroup()
             obj.createUiControls()
             obj.createProjectTable()
-
         end
         
     end
@@ -78,7 +78,7 @@ classdef ProjectManagerUI < handle
             
             try
                 filePath = fullfile(folder, fileName);
-                projectName = obj.ProjectManager.addExistingProject(filePath);
+                projectName = obj.ProjectManager.importProject(filePath);
                 success = ~isempty( projectName );
             catch ME
                 throw(ME)
@@ -225,21 +225,18 @@ classdef ProjectManagerUI < handle
             
             obj.UIControls.ProjectTable = uitable(obj.TabList(taxIdx));
             obj.UIControls.ProjectTable.Position = [10,10,530,200];
-            
-            
-            %set(obj.UIControls)
-            
         end
         
         function createProjectTable(obj)
             
             obj.updateProjectTableData()
-            obj.setProjectTablePosition()
             
-            obj.UIControls.ProjectTable.ColumnWidth = {50, 100, 300, 500};
+            obj.UIControls.ProjectTable.ColumnWidth = {58, 100, 300, 500};
             obj.UIControls.ProjectTable.ColumnEditable = [true, false,true,false];
             
             obj.UIControls.ProjectTable.CellEditCallback = @obj.onTableCellEdited;
+
+            obj.setProjectTablePosition()
         end
         
         function updateProjectTableData(obj)
@@ -289,11 +286,11 @@ classdef ProjectManagerUI < handle
         
             margin = 10;
             drawnow
+            pause(0.05)
 
             parentPosition = obj.TabList(2).InnerPosition;
             tablePosition = parentPosition + [1, 1, -2, -2] * margin;
             obj.UIControls.ProjectTable.Position = tablePosition;
-            
         end
         
         function createTableContextMenu(obj)
@@ -304,6 +301,7 @@ classdef ProjectManagerUI < handle
                 'Set current project', ...
                 'Remove project', ...
                 'Delete project', ...
+                'Update project folder location', ...
                 'Open project folder' };
             
             hMenuItem = gobjects(numel(contextMenuItemNames), 1);
@@ -313,7 +311,6 @@ classdef ProjectManagerUI < handle
             end
             
             obj.UIControls.ProjectTable.UIContextMenu = cMenu;
-            
         end
         
         function disableCreateNewProjectControls(obj)
@@ -328,12 +325,12 @@ classdef ProjectManagerUI < handle
             obj.UIControls.CreateNewProjectButton.Text = 'Project Created!';
             obj.UIControls.CreateNewProjectButton.BackgroundColor = [0.47,0.87,0.19];
             obj.UIControls.CreateNewProjectButton.Enable = 'off';
-
         end
         
     end
     
     methods (Access = protected)
+    % Project context menu action handlers
         
         function changeProject(obj, rowIdx)
             
@@ -354,7 +351,14 @@ classdef ProjectManagerUI < handle
             end
 
             obj.notify('ProjectChanged', event.EventData)
-            
+        end
+        
+        function updateProjectDirectory(obj, rowIdx, newProjectDirectory)
+            projectName = obj.getNameFromRowIndex(rowIdx);
+            if ~isequal(projectName, 0)
+                obj.ProjectManager.updateProjectDirectory(projectName, newProjectDirectory)
+                obj.UIControls.ProjectTable.Data(rowIdx, 'Path') = {newProjectDirectory};
+            end
         end
         
         function deleteProject(obj, rowIdx)
@@ -377,7 +381,6 @@ classdef ProjectManagerUI < handle
                 otherwise
                     % Cancel
             end
-
         end
         
         function removeProject(obj, rowIdx, deleteFolder)
@@ -397,9 +400,20 @@ classdef ProjectManagerUI < handle
             catch ME
                 obj.uialert(ME.message, 'Project Not Removed', 'error')
             end
-                
         end
         
+        function openProjectFolder(obj, rowIdx)
+            folderPath = obj.UIControls.ProjectTable.Data{rowIdx, 4};
+            utility.system.openFolder(folderPath{1})
+        end
+
+        function uiLocateProjectFolder(obj, rowIdx)
+            folderPath = uigetdir();
+            if ~isequal(folderPath, 0)
+                obj.updateProjectDirectory(rowIdx, folderPath)
+            end
+        end
+
         function setRowStyle(obj, styleType, rowIdx)
         %setRowStyle Set style on row according to type
         %
@@ -424,7 +438,6 @@ classdef ProjectManagerUI < handle
             end
             
             addStyle(obj.UIControls.ProjectTable, s, 'row', rowIdx);
-
         end
         
         function name = getNameFromRowIndex(obj, rowIndex)
@@ -477,7 +490,6 @@ classdef ProjectManagerUI < handle
             % Set current project root folder (This is added to prefs in
             % uisetProjectFolder if it was changed)
             obj.ProjectRootFolderPath = getpref('NansenSetup', 'DefaultProjectPath');
-
         end
         
         % Button pushed function: CreateNewProjectButton
@@ -519,10 +531,8 @@ classdef ProjectManagerUI < handle
                 title = 'Project Path Missing';
                 
                 obj.uialert(message, title)
-
                 return
             end
-
 
             if strcmp(obj.UIControls.CreateNewProjectButton.Text, 'Create New Project')
                 
@@ -579,9 +589,6 @@ classdef ProjectManagerUI < handle
             
             % Update the value of the local path field
             obj.UIControls.ProjectPathInput.Value = projectFolder;
-            
-            %obj.ProjectRootFolderPath = getpref('NansenSetup', 'DefaultProjectPath');
-            
         end
 
         % Value changing function: ProjectLabelEditField
@@ -590,7 +597,6 @@ classdef ProjectManagerUI < handle
             
             obj.UIControls.ProjectPathInput.Value = fullfile(obj.ProjectRootFolderPath, changingValue);
             obj.UIControls.ProjectPathInput.Tooltip = obj.UIControls.ProjectPathInput.Value;
-        
         end
 
         % Tab selection chaged function: TabGroupSelectionChanged
@@ -606,7 +612,6 @@ classdef ProjectManagerUI < handle
                         title = 'No Projects Available';
                         obj.uialert(msg, title)
                     end
-            
             end
         end
         
@@ -626,25 +631,27 @@ classdef ProjectManagerUI < handle
         
             obj.SelectedRow = displayIndices(1);
             try
-            obj.setRowStyle('Selected Row', displayIndices(1))
+                obj.setRowStyle('Selected Row', displayIndices(1))
             end
         end
         
         function onTableCellEdited(obj, src, evt)
             
-            if evt.Indices(2) == 3
-                return % Todo: Save project data...
-            end
-            
-            rowIdx = evt.Indices(1);
-            
-            if evt.NewData
-                obj.changeProject(rowIdx)
-            else
-                src.Data(rowIdx, 1) = {true};
-                return
-            end
+            rowIdx = evt.Indices(1); colIdx = evt.Indices(2);
 
+            if colIdx == 3 % Description
+                % Save project data...
+                obj.ProjectManager.updateProjectItem(rowIdx, 'Description', evt.NewData);
+
+            elseif colIdx == 1
+                if evt.NewData
+                    obj.changeProject(rowIdx)
+                else
+                    src.Data(rowIdx, 1) = {true};
+                end
+            else
+                error('Could not update data in column %d', colIdx)
+            end
         end
         
         function onContextMenuItemClicked(obj, src, ~)
@@ -652,6 +659,7 @@ classdef ProjectManagerUI < handle
             if isempty(obj.SelectedRow)
                 msg = 'No project is selected. Please select a project and try again.';
                 obj.uialert(msg, 'No project is selected', 'error')
+                return
             end
             
             switch src.Text
@@ -665,9 +673,10 @@ classdef ProjectManagerUI < handle
                     obj.deleteProject(obj.SelectedRow)
                     
                 case 'Open project folder'
-                    folderPath = obj.UIControls.ProjectTable.Data{obj.SelectedRow, 4};
-                    utility.system.openFolder(folderPath{1})
+                    obj.openProjectFolder(obj.SelectedRow)
                     
+                case 'Update project folder location'
+                    obj.uiLocateProjectFolder(obj.SelectedRow)
             end
         end
        
@@ -682,11 +691,9 @@ classdef ProjectManagerUI < handle
         function assignInitialProjectRootFolderPath(obj)
             %
             % Set default value of path for project root folder
-            rootdir = utility.path.getAncestorDir(nansen.rootpath, 1);
-            projectFolder = fullfile(rootdir, '_userdata', 'projects'); % <-- Default value
+            projectFolder = fullfile(nansen.rootpath, '_userdata', 'projects'); % <-- Default value
             projectFolder = getpref('NansenSetup', 'DefaultProjectPath', projectFolder);
             obj.ProjectRootFolderPath = projectFolder;
-            
         end
         
     end

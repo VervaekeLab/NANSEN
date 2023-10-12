@@ -50,6 +50,8 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
 
 % Todo: Add generic write2mat for subclasses to use...
 %   [ ] implement selection of multiple files..
+%   [ ] add cautious mode, i.e do not allow overwrting without
+%       confirmation.
 
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
 
@@ -119,7 +121,6 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         %FileAdapter Constructor of file adapter object.
         
             if isempty(varargin); return; end % uninitialized file adapter
-            
     
             flagProps = {...
                 'Writable', 'DiscardConvertedMatfile', ...
@@ -308,7 +309,6 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             data = obj.readData(varargin{:});
             
             obj.setCachedData(data)
-
         end
         
         function save(obj, data, varargin)
@@ -405,6 +405,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                     if ~isfile(obj.Filename)
                         error('Nansen:FileIO:FilenameDoesNotExist', ...
                             'Can not %s data because file does not exist.', action)
+                    end
+                case 'save'
+                    if isfile(obj.Filename)
+                        % Todo: File already exists. Do you want to
+                        % overwrite?
                     end
             end
 

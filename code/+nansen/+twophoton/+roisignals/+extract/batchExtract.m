@@ -56,7 +56,7 @@ function signalArray = batchExtract(imArray, roiData, varargin)
 %           weighted mean? See serialExtract...
 
     
-    assert( ndims(imArray) == 3, 'Image array must be 3D')
+    assert( ndims(imArray) == 2 || ndims(imArray) == 3, 'Image array must be 3D')
     
     % If roidata is an array of RoIs, it must be prepared for extraction.
     if isa(roiData, 'RoI')

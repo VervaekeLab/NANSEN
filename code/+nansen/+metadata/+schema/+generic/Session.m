@@ -306,19 +306,17 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             %       trials or are just split into multiple parts...
             
             
-            % Get the model for data file paths.
-            %global dataFilePathModel
-            %if isempty(dataFilePathModel)
-                dataFilePathModel = nansen.setup.model.FilePathSettingsEditor;
-            %end
-
+            % Get the model for data file paths. %Todo: Should be property
+            % of session object... See nansen.metadata.type.Session
+            dataVariableModel = nansen.config.varmodel.VariableModel();
             
             % Check if mode is given as input:
             [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
             parameters = struct(varargin{:});
             
             % Get the entry for given variable name from model
-            [S, isExistingEntry] = dataFilePathModel.getEntry(varName);
+            [S, isExistingEntry] = dataVariableModel.getVariableStructure(varName);
+
         
             if ~isExistingEntry
                 S = utility.parsenvpairs(S, [], parameters);

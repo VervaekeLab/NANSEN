@@ -6,7 +6,7 @@ versionAsNumber = strrep(matlabVersion(1:ind(2)+1), '.', '');
 nansen.addpath()
 
 if str2double(versionAsNumber) >= 960
-    NansenSetupApp2 % Run app coded in appdesigner
+    nansen.setup.SetupWizardApp % Run app coded in appdesigner
 else
     error('Setup requires MATLAB release 2019a or later')
     %setup.App

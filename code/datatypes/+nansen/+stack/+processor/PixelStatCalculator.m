@@ -1,0 +1,262 @@
+classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
+%PixelStatCalculator Calculate pixel statistics for imagestack
+%
+%   Mean, limits and percentiles of all pixels for stack.
+
+%   Todo:
+%       [ ] Calculate noise levels...
+%       [ ] Use ImageStackProcessor's Results instead of ImageStats?
+    
+    properties (Constant)
+        MethodName = 'Compute Pixel Stats'
+        IsManual = false        % Does method require manual supervision
+        IsQueueable = true      % Can method be added to a queue
+        OptionsManager = nansen.OptionsManager('nansen.stack.ImageStackProcessor')
+    end
+    
+    properties (Constant, Hidden) % Inherited from DataMethod
+        DATA_SUBFOLDER = '' %'image_pixel_stats';
+        VARIABLE_PREFIX = 'PixelStats'
+    end
+    
+    properties %Options
+        %ChannelMode = 'serial'  % Compute values for each channel individually
+        %PlaneMode = 'serial'    % Compute values for each plane individually
+        %pLevels = [0.05, 0.005];
+    end
+    
+    properties (Access = private)  
+        ImageStats
+        SaturationValue
+    end
+    
+    methods (Static)
+        function S = getDefaultOptions()
+            S = struct();
+            S.PercentileLevels = [0.05, 0.005];
+            
+            className = mfilename('class');
+            superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
+            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
+        end
+    end
+    
+    
+    methods % Structor
+        
+        function obj = PixelStatCalculator(varargin)
+            
+            obj@nansen.stack.ImageStackProcessor(varargin{:})
+            
+            if ~nargout
+                obj.runMethod()
+                clear obj
+            end
+        end
+        
+    end
+    
+    methods (Access = protected)
+        
+        function onInitialization(obj)
+            
+            % obj.openSourceStack() % todo...
+            obj.initializeImageStats();
+            
+            % Get saturation value from ImageStack object.
+            dataIntensityLimits = obj.SourceStack.DataTypeIntensityLimits;
+            obj.SaturationValue = dataIntensityLimits(2);
+        end
+
+    end
+    
+    methods (Access = protected) % Implement methods from ImageStackProcessor
+        
+        function [Y, results] = processPart(obj, Y)
+            obj.updateImageStats(Y)
+            obj.saveImageStats() % Save results for every part
+            Y = []; results = true;
+        end
+        
+        function tf = allIsFinished(obj)
+            
+            numParts = numel( obj.ImageStats(:) );
+
+            tf = false(1, numParts );
+
+            for i = 1:numParts
+                if isempty(obj.ImageStats{i})
+                    continue
+                elseif all(~isnan(obj.ImageStats{i}.meanValue))
+                    tf(i) = true;
+                end
+            end
+            
+            tf = all(tf);
+        end
+
+        function tf = checkIfPartIsFinished(obj, partNumber)
+        %checkIfPartIsFinished Check if specified part is completed        
+
+            tf = false;return
+            
+            frameIndices = obj.FrameIndPerPart{partNumber};
+            i = obj.CurrentChannel;
+            j = obj.CurrentPlane;
+            
+            if isempty(obj.ImageStats{i,j}) || ~isfield( obj.ImageStats{i,j}, 'meanValue' )
+                obj.initializeImageStats('reset')
+            end
+            tf = all( ~isnan(obj.ImageStats{i,j}.meanValue(frameIndices) ) );
+        end
+        
+        function saveResults(obj)
+            % Not implemented, see saveImageStats
+        end
+
+        function saveMergedResults(obj)
+            % Not implemented, see saveImageStats
+        end
+
+    end
+    
+    methods (Access = private) 
+
+        function S = initializeImageStats(obj, mode)
+        %initializeImageStats Create new or load existing struct.
+        %
+        %   S = initializeImageStats(obj) initializes a struct of image
+        %   stats.
+        %
+        %   S = initializeImageStats(obj, mode) initializes image stats
+        %   using specified mode. mode can be 'initialize' (default) or 
+        %   'reset'
+        
+            if nargin < 2
+                mode = 'initialize';
+            end
+        
+            % Check if image stats already exist for this datalocation
+            filePath = obj.getDataFilePath('ImageStats', '-w', ...
+                'Subfolder', 'raw_image_info', 'IsInternal', true);
+            
+            if isfile(filePath) && ~strcmp(mode, 'reset')
+                S = obj.loadData('ImageStats');
+                if ~isa(S, 'cell') % Stats were saved before multichannel/multiplance 
+                    S = {S};
+                end
+            else
+                
+                numFrames = obj.SourceStack.NumTimepoints;
+
+                nanArray = nan(numFrames, 1);
+                    
+                S = struct();
+                
+                S.meanValue = nanArray;
+                S.medianValue = nanArray;
+                S.minimumValue = nanArray;
+                S.maximumValue = nanArray;
+
+                pLevels = [0.05, 0.005];
+                pLevels = [pLevels, 100-pLevels];
+
+                S.percentileValues = pLevels;
+
+                S.prctileL1 = nanArray;
+                S.prctileL2 = nanArray;
+                S.prctileU1 = nanArray;
+                S.prctileU2 = nanArray;
+                
+                nanArrayDs = nan(ceil(numFrames/5), 1);
+                S.prctileL1Ds = nanArrayDs;
+                S.prctileL2Ds = nanArrayDs;
+                S.prctileU1Ds = nanArrayDs;
+                S.prctileU2Ds = nanArrayDs;
+                
+                S.pctSaturatedValues = nanArray;
+                
+                S = obj.repeatStructPerDimension(S);
+                
+                obj.saveData('ImageStats', S);
+                
+            end
+            
+            obj.ImageStats = S;
+            
+            if ~nargout 
+                clear S
+            end
+        end
+        
+        function updateImageStats(obj, Y)
+        %updateImageStats Update image stats for current part.
+        
+            % Skip computation if results already exist...
+            if obj.checkIfPartIsFinished(obj.CurrentPart)
+                return
+            end
+            
+            i = obj.CurrentChannel;
+            j = obj.CurrentPlane;
+            IND = obj.CurrentFrameIndices;
+
+            Y = single(Y);
+            
+            % Reshape to 2D array where all pixels from each image is 1D
+            Y_ = reshape(Y, [], size(Y, 3));
+            
+            obj.ImageStats{i,j}.meanValue(IND) = nanmean( Y_ );
+            obj.ImageStats{i,j}.medianValue(IND) = nanmedian( Y_ );
+            obj.ImageStats{i,j}.minimumValue(IND) = min( Y_ );
+            obj.ImageStats{i,j}.maximumValue(IND) = max( Y_ );
+            
+            pLevels = obj.ImageStats{i,j}.percentileValues;
+
+            % Collect different stats.
+            prctValues = prctile(Y_, pLevels)';
+            if iscolumn(prctValues); prctValues = prctValues'; end % If size(Y, 3)==1. 
+            
+            obj.ImageStats{i,j}.prctileL1(IND) = prctValues(:, 1);
+            obj.ImageStats{i,j}.prctileL2(IND) = prctValues(:, 2);
+            obj.ImageStats{i,j}.prctileU1(IND) = prctValues(:, 3);
+            obj.ImageStats{i,j}.prctileU2(IND) = prctValues(:, 4);
+            
+            % Note: hardcoded downsamplingfactor = 5
+
+            nFramesKeep = floor(size(Y, 3)/5)*5;
+            if nFramesKeep == 0 %return if number of frames are too low
+                return
+            end
+            
+            YDs = stack.downsample.binprojection(Y(:,:,1:nFramesKeep), 5);
+            YDs_ = reshape(YDs, [], size(YDs, 3));
+            % Collect different stats.
+            prctValuesDs = prctile(YDs_, pLevels)';
+            if iscolumn(prctValuesDs); prctValuesDs = prctValuesDs'; end % If size(Y, 3)==1. 
+            
+            prctValuesUs = repmat(prctValuesDs, 1,1,5);
+            prctValuesUs = permute(prctValuesUs, [3,1,2]);
+            prctValuesUs = reshape(prctValuesUs, [], 4); % 4 = number of columns
+            
+            IND = IND(1:size(prctValuesUs, 1)); %Cut according to length of resampled values
+            
+            obj.ImageStats{i,j}.prctileL1Ds(IND) = prctValuesUs(:, 1);
+            obj.ImageStats{i,j}.prctileL2Ds(IND) = prctValuesUs(:, 2);
+            obj.ImageStats{i,j}.prctileU1Ds(IND) = prctValuesUs(:, 3);
+            obj.ImageStats{i,j}.prctileU2Ds(IND) = prctValuesUs(:, 4);
+        end
+        
+        function saveImageStats(obj)
+        %saveImageStats Save statistical values of image data  
+        %
+        %   saveImageStats(obj, Y)
+        
+            % Save updated image stats to data location
+            S = obj.ImageStats;
+            obj.saveData('ImageStats', S)
+        end
+
+    end
+    
+end

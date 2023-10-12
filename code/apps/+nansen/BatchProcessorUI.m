@@ -215,7 +215,6 @@ classdef BatchProcessorUI < handle
                     hTable = obj.UITableHistory;
                     taskList = obj.BatchProcessor.TaskHistory;
             end
-            
         end
         
         function taskTable = getTableData(~, taskList, tableType)
@@ -257,8 +256,6 @@ classdef BatchProcessorUI < handle
             
             hTable.Table.Data = table2cell(taskTable);
             %hTable.Table.ColumnNames = obj.getTableVariableNames(tableType);
-            
-
         end
         
         function refreshRow(obj, rowIdx, tableType)
@@ -299,7 +296,6 @@ classdef BatchProcessorUI < handle
             
             % Add the task to the uitable.
             obj.UITableQueue.addTask(tableEntry, 'end')
-
         end
         
         function insertTaskToHistoryTable(obj, ~, evt)
@@ -351,16 +347,19 @@ classdef BatchProcessorUI < handle
             
             obj.refreshTableCells(rowIdx, 3, data) % 3rd column is status...
             drawnow
-            
         end
         
         function onTaskOrderChanged(obj, ~, evt)
             
             rowIdx = evt.IndexOrder;
             obj.UITableQueue.Table.Data = obj.UITableQueue.Table.Data(rowIdx, :);
-            
         end
         
+        function onTableUpdated(obj, ~, ~)
+            obj.refreshTable('queue')
+            obj.refreshTable('history')
+        end
+
         function updateQueueContextMenu(obj, taskList)
         %updateQueueContextMenu Set enabled state of menu items
         %
@@ -402,8 +401,6 @@ classdef BatchProcessorUI < handle
                     mItem.Text = 'Abort Task';
                 end
             end
-            
-            
         end
     end
     
@@ -455,7 +452,6 @@ classdef BatchProcessorUI < handle
             end
 
             obj.BatchProcessor.setTaskStatus(newStatus, rowIdx)
-
         end
 
         function onMoveTasksMenuItemClicked(obj, src)
@@ -469,43 +465,11 @@ classdef BatchProcessorUI < handle
             % Give session objects and specified options as inputs to
             % the options manager / options adapter?
             
+            obj.setOptionsForAll()
             
-            % Loop through selected rows:
-            for i = obj.UITableQueue.selectedRows
-            
-                % Get task object:
-                hTask = obj.BatchProcessor.getQueuedTask(i);
-                
-                if strcmp(hTask.status, 'Running')
-                    msgbox('Can not edit options for a running task')
-                    continue
-                end
-                
-                
-                optsName = hTask.parameters;
-                optsStruct = hTask.args{2};
-                
-                mConfig = hTask.method();
-                if isa(mConfig, 'struct')
-                    % Add an options manager to the mConfig struct
-                    mConfig.OptionsManager = nansen.manage.OptionsManager(..., 
-                        func2str(hTask.method), mConfig.DefaultOptions);
-                end
-                
-                optManager = mConfig.OptionsManager;
-                
-                [optsName, optsStruct] = optManager.editOptions(optsName, optsStruct);
-
-                hTask.parameters = optsName;
-                hTask.args{2} = optsStruct;
-                
-                % Update task object in the queue.
-                obj.BatchProcessor.setQueuedTask(hTask, i);
-                
-                obj.refreshRow(i)
-                                
-            end
-            
+            % Todo: Implement this. Should be synched up with the
+            % preference in nansen to edit options individually.
+            %obj.setOptionsIndividually()
         end
 
         function onShowDiaryMenuItemClicked(obj, ~, mode)
@@ -528,7 +492,6 @@ classdef BatchProcessorUI < handle
                     taskItems(i).comments} ;
                 obj.BatchProcessor.submitJob( taskArgs{:} )
             end
-            
         end
         
         function onTableCellEdited(obj, src, evt)
@@ -540,7 +503,6 @@ classdef BatchProcessorUI < handle
                 newComment = evt.NewValue;
                 obj.BatchProcessor.updateTaskComment(taskType, taskIdx, newComment)
             end
-            
         end
         
     end
@@ -552,7 +514,6 @@ classdef BatchProcessorUI < handle
             taskItems = obj.BatchProcessor.getArchivedTask(rowIdx);
             obj.displayErrors(taskItems)    
         end
-        
         
         function showDiaryForSelectedRows(obj, mode)
             
@@ -592,6 +553,79 @@ classdef BatchProcessorUI < handle
             obj.displayDiary(taskItems)
         end
         
+        function setOptionsIndividually(obj)
+            
+            % Loop through selected rows:
+            for i = obj.UITableQueue.selectedRows
+            
+                % Get task object:
+                hTask = obj.BatchProcessor.getQueuedTask(i);
+                
+                if strcmp(hTask.status, 'Running')
+                    msgbox('Can not edit options for a running task')
+                    continue
+                end
+                
+                optsName = hTask.parameters;
+                optsStruct = hTask.args{2};
+                
+                mConfig = hTask.method();
+                if isa(mConfig, 'struct')
+                    % Add an options manager to the mConfig struct
+                    mConfig.OptionsManager = nansen.manage.OptionsManager(..., 
+                        func2str(hTask.method), mConfig.DefaultOptions);
+                end
+                
+                optManager = mConfig.OptionsManager;
+                
+                [optsName, optsStruct] = optManager.editOptions(optsName, optsStruct);
+
+                hTask.parameters = optsName;
+                hTask.args{2} = optsStruct;
+                
+                % Update task object in the queue.
+                obj.BatchProcessor.setQueuedTask(hTask, i);
+                
+                obj.refreshRow(i)
+            end
+        end
+        
+        function setOptionsForAll(obj)
+            
+            % Get the first task object:
+            firstIdx = obj.UITableQueue.selectedRows;
+            hTask = obj.BatchProcessor.getQueuedTask(firstIdx);
+
+            if strcmp(hTask.status, 'Running')
+                msgbox('Can not edit options for a running task')
+                return
+            end
+
+            optsName = hTask.parameters;
+            optsStruct = hTask.args{2};
+
+            mConfig = hTask.method();
+            if isa(mConfig, 'struct')
+                % Add an options manager to the mConfig struct
+                mConfig.OptionsManager = nansen.manage.OptionsManager(..., 
+                    func2str(hTask.method), mConfig.DefaultOptions);
+            end
+
+            optManager = mConfig.OptionsManager;
+
+            [optsName, optsStruct] = optManager.editOptions(optsName, optsStruct);
+            
+            for i = obj.UITableQueue.selectedRows
+                hTask = obj.BatchProcessor.getQueuedTask(i);
+                hTask.parameters = optsName;
+                hTask.args{2} = optsStruct;
+                
+                % Update task object in the queue.
+                obj.BatchProcessor.setQueuedTask(hTask, i);
+                
+                obj.refreshRow(i)
+            end
+        end
     end
     
     methods (Access = private) % Internal callbacks
@@ -609,7 +643,9 @@ classdef BatchProcessorUI < handle
             
             addlistener(obj.BatchProcessor, 'TaskOrderChanged', ...
                 @obj.onTaskOrderChanged);
-            
+
+            addlistener(obj.BatchProcessor, 'TableUpdated', ...
+                @obj.onTableUpdated);
         end
         
         function onMouseRightClickedInTable(obj, src, evt)

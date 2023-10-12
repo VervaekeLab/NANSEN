@@ -23,6 +23,7 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
 % TODO:
 % [ ] Simplify roi mask format.
 
+    imArray = squeeze(imArray);
     assert( ndims(imArray) == 3, 'Image array must be 3D')
 
     [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();

@@ -53,17 +53,18 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 obj.Figure.Position = obj.initializeFigurePosition();
             end
             
-            roiTable = obj.rois2table(roiGroup.roiArray);
+            roiTable = obj.rois2table(cat(1, roiGroup.roiArray));
             obj.roiTable = roiTable;
             
             nansen.assert('WidgetsToolboxInstalled')
-            obj.UITable = nansen.MetaTableViewer(obj.Panel, roiTable, 'MetaTableType', 'Roi');
+            obj.UITable = nansen.MetaTableViewer(obj.Panel, roiTable, 'MetaTableType', 'roi');
             
             % Set table properties
             obj.UITable.HTable.hideHorizontalScroller()
-            obj.UITable.HTable.hideVerticalScroller()
+            %obj.UITable.HTable.hideVerticalScroller()
             obj.UITable.HTable.RowHeight = 18;
             obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;
+            obj.UITable.HTable.CellEditCallback = @obj.onTableCellEdited;
             obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressedInTable;
             
             % Load and set column model settings from preferences.
@@ -126,6 +127,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             roiIdxToRemove = obj.SelectedRois;
             
             obj.UITable.HTable.Enable = 'off';
+            C = onCleanup(@obj.enableTable);
+            
             % Important:  Change roi selection to first element in list
             % which is slected. Then, after rois are removed, "next" row in
             % table is selected
@@ -135,9 +138,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             newSelection = obj.UITable.getSelectedEntries();
             obj.RoiGroup.changeRoiSelection([], newSelection)
             obj.UITable.HTable.JTable.requestFocus()
-                        
-            obj.UITable.HTable.Enable = 'on';
+        end
 
+        function enableTable(obj)
+            obj.UITable.HTable.Enable = 'on';
         end
         
         function classifyRois(obj, classificationIdx, currentRoiInd)
@@ -230,6 +234,13 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
         end
         
+        function onTableCellEdited(obj, src, evt)
+            %obj.roiTable.Properties.VariableNames( evt.Indices(2) )
+            % Todo: find right column name.
+            % Todo, trigger roi update...
+            %obj.RoiGroup.roiArray(evt.Indices(1)) = evt.NewValue;
+        end
+
         function onTableUpdated(obj, src, evt)
             obj.RoiGroup.changeVisibleRois(evt.RowIndices, evt.Type);
         end
@@ -290,7 +301,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         end
         
         function roiTable = rois2table(obj, roiArray)
-                
+            
+            roiTable = table.empty;
+            if isempty(roiArray); return; end
+
             S = roimanager.utilities.roiarray2struct(roiArray);
             
             S = rmfield(S, {'coordinates', 'imagesize', 'boundary', ...
@@ -305,7 +319,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 
                 roiClassification = getappdata(roiArray, 'roiClassification');
                 if ~isempty(roiClassification)
-                    roiClassification = roimanager.ManualClassification.index2labels(roiClassification);
+                    roiClassification = roimanager.enum.ManualClassification.index2labels(roiClassification);
                     roiClassification = struct('Classification', roiClassification);
                     S = utility.struct.mergestruct(S, roiClassification);
                 end
@@ -366,6 +380,27 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     
     methods (Access = protected) % Inherited from roimanager.roiDisplay
         
+        function onRoiGroupSet(obj, ~)
+
+            obj.resetRoiDisplay()
+
+            if ~isempty(obj.RoiGroup)
+                obj.roiTable = obj.rois2table(obj.RoiGroup.roiArray);
+            else
+                obj.roiTable = table.empty;
+            end
+
+            obj.UITable.refreshTable(obj.roiTable)
+
+            if ~isempty(obj.RoiGroup) && obj.RoiGroup.roiCount > 0
+                obj.updateRoiLabels()
+            end
+        end
+
+        function resetRoiDisplay(obj)
+            obj.UITable.resetTable()
+        end
+
         function onRoiGroupChanged(obj, evtData)
             
             oldTable = obj.roiTable;
@@ -377,10 +412,11 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 
                 case {'initialize', 'append'}
                     T = obj.rois2table(evtData.roiArray);
+
                     if isempty(oldTable)
                         newTable = T;
                     else
-                        newTable = cat(1, oldTable, T);
+                        newTable = nansen.external.fex.datautil.merge_tables(oldTable, T);
                     end
                 case 'insert'
                     T = obj.rois2table(evtData.roiArray);
@@ -400,10 +436,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     elseif numel(evtData.roiIndices) == 0
                         return
                     end
-                    
                     newTable = oldTable;
                     newTable(evtData.roiIndices, :) = T;
-                    
+                
                 case 'remove'
                     newTable = obj.roiTable;
                     newTable(evtData.roiIndices,:) = [];
@@ -459,7 +494,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             if ~isequal( sort(currentRowSelection), sort(newRowSelection) )
                 %~all( ismember(currentRowSelection, newRowSelection) )
                 
-                obj.UITable.setSelectedEntries(newRowSelection);
+                % Note: Had to explicitly prevent callbacks from being
+                % executed here, because a drawnow in the updateSignalPlot
+                % method of roiSignalViewer app would trigger the
+                % onSelectionChanged callback in uiw.widget.Table
+                preventCallback = true;
+                obj.UITable.setSelectedEntries(newRowSelection, preventCallback);
                 obj.SelectedRois = newRowSelection;
             else
                 obj.SelectedRois = newRowSelection;

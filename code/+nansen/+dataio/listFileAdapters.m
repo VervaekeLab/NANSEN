@@ -17,7 +17,7 @@ function fileAdapterList = listFileAdapters()
     rootPath = {};
 
     % Get folder containing file adapters from nansen core package, ...
-    rootPath{end+1} = fullfile(nansen.rootpath, '+dataio', '+fileadapter');
+    rootPath{end+1} = nansen.localpath('builtin_file_adapter');
     rootPath{end+1} = fullfile(nansen.localpath('integrations'), 'fileadapters');
     
     % ... from project folder

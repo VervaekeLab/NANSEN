@@ -73,6 +73,14 @@ classdef (Abstract) UserSettings < uim.handle
     %     multiple fields?
     
     
+    % Note to self:
+    % Programmatic update of settings:
+    % I.e obj.settings.name = value % Callback version 
+    %       update settings and trigger the onSettingsChanged
+    % or  obj.settings_.name = value % No callback
+    %       update settings and do not trigger onSettingsChanged
+
+    
     properties(Abstract, Constant, Hidden = true)
         USE_DEFAULT_SETTINGS        % Ignore settings file                      Can be used for debugging/dev or if settings should be consistent.
         DEFAULT_SETTINGS            % Struct with default settings
@@ -114,11 +122,9 @@ classdef (Abstract) UserSettings < uim.handle
         end
         
         function delete(obj)
-            
             if ~isempty(obj.hSettingsEditor) && isvalid(obj.hSettingsEditor)
                 delete(obj.hSettingsEditor)
             end
-            
         end
         
     end
@@ -303,6 +309,7 @@ classdef (Abstract) UserSettings < uim.handle
         
             if isempty(obj.settings_) % Initialization
                 obj.settings_ = newSettings;
+                obj.assignSettingNames()
                 return
             end
             
@@ -312,13 +319,17 @@ classdef (Abstract) UserSettings < uim.handle
             % updates to the current instance of the class. However, if the
             % settings are changed internally, this should not happen. 
 
-            S = dbstack;
-            internalMethods = {'onSettingsChanged'};
+            wasCaller = @(fcnName, stack) numel(stack) >= 2 && ...
+                contains(stack(2).name, fcnName);
             
-            if numel(S) >= 2 && contains(S(2).name, internalMethods)
+            if wasCaller({'onSettingsChanged'}, dbstack)
                 obj.settings_ = newSettings; % Update settings and return
             else
                 obj.onSettingsSet(newSettings)
+            end
+            
+            if ~isempty(obj.hSettingsEditor)
+                obj.hSettingsEditor.replaceEditedStruct(obj.settings_)
             end
         end
         
@@ -327,6 +338,7 @@ classdef (Abstract) UserSettings < uim.handle
         % more fields of settings without triggering the onSettingsChanged
         % callback. For internal use only.
             obj.settings_ = value;
+            obj.assignSettingNames()
         end
         
         function S = get.settings(obj)
@@ -394,7 +406,7 @@ classdef (Abstract) UserSettings < uim.handle
         %assignSettingNames 
         %
         %   Assign settings names using fieldnames recursively, so it
-        %   includes fields of all substructs. THis function also assigns
+        %   includes fields of all substructs. This function also assigns
         %   the settingsSubs, which makes it easier to assign individual
         %   settings fields without declaring the field names explicitly in
         %   the code. See for example set.Settings for use case

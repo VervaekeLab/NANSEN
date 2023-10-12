@@ -22,7 +22,7 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
         end 
     end
     
-    if nargin > 3 && ~isempty(titleStr) % Preserve backwarsd compatibility.
+    if nargin >= 3 && ~isempty(titleStr) % Preserve backwards compatibility.
         varargin = [varargin, {'Title', titleStr}];
     end
     

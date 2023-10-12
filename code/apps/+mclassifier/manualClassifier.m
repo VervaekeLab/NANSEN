@@ -4,7 +4,11 @@ classdef manualClassifier < applify.mixin.UserSettings
 %
 %   Abstract class for manual classification of images or plot segments
 %   or a combination of the two. 
-    
+%
+%   Options:
+%       tileUnits : Units for tiles: pixel | scaled
+%       numChan   : Number of channels
+
     
 % ABSTRACT PROPERTIES:
 % --------------------

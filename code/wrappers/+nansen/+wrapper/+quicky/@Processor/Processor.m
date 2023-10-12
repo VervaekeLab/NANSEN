@@ -1,13 +1,23 @@
 classdef Processor < nansen.processing.RoiSegmentation & ...
                         nansen.wrapper.abstract.ToolboxWrapper
-%nansen.wrapper.quicky.Processor Wrapper for running Quicky on nansen
+%nansen.wrapper.quicky.Processor Wrapper for running Quicky within nansen
 %
-%   h = nansen.wrapper.quicky.Processor(imageStackReference)
+%   h = nansen.wrapper.quicky.Processor(imageStackReference) runs quicky
+%       on the ImageStack referred to by the imageStackReference. Valid
+%       references are an ImageStack object or a filepath to a file that 
+%       can be opened as an ImageStack object.
 %
-%   This class provides functionality for running Quicky within
-%   the nansen package.
+%   h = nansen.wrapper.quicky.Processor(__, options) additionally
+%       specifies the options to use for the processor.
 %
+%   To get the default options:
+%       defOptions = nansen.wrapper.quicky.Processor.getDefaultOptions()
 %
+%   For additional optional parameters that can be used for configuring the 
+%   processor;
+%   See also nansen.stack.ImageStackProcessor
+
+
 %   This class creates the following data variables:
 %
 %     * <strong>QuickyOptions</strong> : Struct with options used.
@@ -15,27 +25,26 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %     * <strong>QuickyResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack. 
 %           Struct contains output from Quicky
 %
-%     * <strong>roiArrayQuickyAuto</strong> : 
-%
+%     * <strong>roiArrayQuickyAuto</strong> :
+
+% Todo: delegate saving of results to superclasses, and have relevant
+% superclass check if results already exists.
+
+
     properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_quicky')
-        ROI_VARIABLE_NAME = 'roiArrayQuickyAuto'
+        ROI_VARIABLE_NAME = 'roiArrayQuickyAuto' %roiArrayFlufinderAuto
+        VARIABLE_PREFIX = 'Quicky' %'FluFinder'
     end
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
-        MethodName = 'Autosegmentation (Quicky)'
-        IsManual = false        % Does method require manual supervision
-        IsQueueable = true      % Can method be added to a queue
+        MethodName = 'Quicky (Autosegmentation)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.quicky.Processor')
     end
     
-    properties (Constant) % From imagestack...
-        ImviewerPluginName = ''
-    end
-    
-    properties (Access = private)
-        MergedResults
+    properties (Constant) % Implement property from ImageStackProcessor
+        ImviewerPluginName = 'FluFinder'
     end
     
     
@@ -45,7 +54,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %nansen.wrapper.quicky.Processor Construct quicky processor
         %
         %   h = nansen.wrapper.quicky.Processor(imageStackReference)
-            
+        %
+        %   See also nansen.stack.ImageStackProcessor/ImageStackProcessor
+
             obj@nansen.processing.RoiSegmentation(varargin{:})
         
             % Return if there are no inputs.
@@ -64,119 +75,10 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         end
         
     end
-    
-    methods (Access = protected) % Implementation of RoiSegmentation methods
         
-        function opts = getToolboxSpecificOptions(obj, varargin)
-        %getToolboxSpecificOptions Get options from parameters or file
-        %
-        %   OPTS = getToolboxSpecificOptions(OBJ, STACKSIZE) return a
-        %   struct of parameters for the EXTRACT pipeline.
-        %
-        %
-        %   Todo: Need to adapt to aligning on multiple channels/planes.
-            % validate/assert that arg is good
-            %stackSize = varargin{1};
-            
-            import nansen.wrapper.quicky.Options
-            opts = Options.convert(obj.Options);
-            
-            optionsVarname = 'QuickyOptions';
-
-            % Initialize options (Load from session if options already
-            % exist, otherwise save to session)
-            opts = obj.initializeOptions(opts, optionsVarname);
-            
-        end
-        
-        function runPreInitialization(obj)
-            runPreInitialization@nansen.processing.RoiSegmentation(obj)
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Combine and refine detected components';
-            obj.StepDescription = [obj.StepDescription, descr];
-            
-            obj.NumSteps = obj.NumSteps + 1;
-            descr = 'Compute roi images & roi stats';
-            obj.StepDescription = [obj.StepDescription, descr];
-        end
-        
-        function saveResults(obj)
-            tempResults = obj.Results;
-            obj.saveData('QuickyResultsTemp', tempResults) 
-        end
-        
-        function mergeResults(obj)
-        %mergeResults Merge results from each processing part
-                    
-            import flufinder.detect.findUniqueRoisFromComponents
-            
-            obj.displayStartCurrentStep()
-
-            % Combine spatial segments
-            obj.Results = cat(1, obj.Results{:});
-            S = cat(1, obj.Results.spatialComponents );
-                
-            imageSize = obj.SourceStack.FrameSize;
-            roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
-
-            obj.RoiArray = roiArrayT;
-            
-            obj.displayFinishCurrentStep()
-        end
-        
-        function finalizeResults(obj)
-        %finalizeResults Finalize the results using flufinder's pipeline
-
-            import nansen.twophoton.roi.compute.computeRoiImages
-        
-            opts = obj.ToolboxOptions;
-            roiArrayT = obj.RoiArray;
-            imArray = obj.getImageArray();
-            
-            %avgIm = mean( cat(3, obj.Results(1).meanFovImage ), 3);
-
-            % % Improve estimates of rois which were detected based on activity
-            % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-            
-            fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
-            [fMean, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
-
-            % get images:
-        %     roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
-        %        'ImageType', {'Activity Weighted Mean', 'Local Correlation'});
-%             roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
-%                 'ImageType', 'Local Correlation');
-
-            %roiArrayT = flufinder.module.improveRoiMasks(roiArrayT, roiImages, opts.RoiType);
-            
-            
-            % % Detect rois from a shape-based kernel convolution
-            % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-            if opts.UseShapeDetection
-                fprintf('Searching for %s-shaped cells...\n', ...
-                    opts.MorphologicalShape)%MorphologicalShape)
-                averageImage = mean(imArray, 3);
-
-                roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
-                roiArray = flufinder.utility.combineRoiArrays(roiArrayS, roiArrayT, opts);
-            else
-                roiArray = roiArrayT;
-            end
-            
-            obj.RoiArray = roiArray;
-            
-        end
-
-        function roiArray = getRoiArray(obj)
-        %getRoiArray Get results as a roi array
-            roiArray = obj.RoiArray;
-        end
-        
-    end
-    
     methods (Access = protected) % Implementation of ImageStackProcessor methods
-
+        
+        % Step 1
         function onInitialization(obj)
             
             onInitialization@nansen.processing.RoiSegmentation(obj)
@@ -189,18 +91,18 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             if isfile(filePath)
                 obj.Results = obj.loadData('QuickyResultsTemp');
             end
-            
         end
 
+        % Step 2
         function Y = preprocessImageData(obj, Y)
             % Subclasses may override
             % Todo: 
             % Y_ = flufinder.preprocessImages(Y, options);
             %
             %   Need to save mean of original to summary/results 
-
         end
 
+        % Step 3
         function results = segmentPartition(obj, Y)
         %segmentPartition Run segmentation on subpart of image stack  
             options = obj.ToolboxOptions; %todo...
@@ -221,10 +123,125 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
         function onCompletion(obj)
             onCompletion@nansen.processing.RoiSegmentation(obj)
+            
+            if isempty(obj.MergedResults)
+                obj.mergeResults()
+            end
         end
         
     end
     
+    methods (Access = protected) % Implementation of RoiSegmentation methods
+        
+        function opts = getToolboxSpecificOptions(obj, varargin)
+        %getToolboxSpecificOptions Get options from parameters or file
+        %
+        %   OPTS = getToolboxSpecificOptions(OBJ) return a
+        %   struct of parameters for the quicky algorithm.
+
+            import nansen.wrapper.quicky.Options
+            opts = Options.convert(obj.Options);
+            
+            optionsVarname = 'QuickyOptions';
+
+            % Initialize options (Load from data folder if options already
+            % exist, otherwise initialize and save to data folder)
+            opts = obj.initializeOptions(opts, optionsVarname);
+        end
+        
+        function saveResults(obj)
+            tempResults = obj.Results;
+            obj.saveData('QuickyResultsTemp', tempResults) 
+        end
+        
+        function mergeSpatialComponents(obj, iPlane, iChannel)
+            
+            import flufinder.detect.findUniqueRoisFromComponents
+
+            tmpMergedResults = cat(1, obj.Results{:, iPlane, iChannel});
+            obj.MergedResults{iPlane, iChannel} = tmpMergedResults;
+        end
+
+% %         function mergeResults(obj, iPlane, iChannel)
+% %         %mergeResults Merge results from each processing part
+% %                     
+% %             import flufinder.detect.findUniqueRoisFromComponents
+% %             
+% %             obj.displayStartCurrentStep()
+% % 
+% %             % Combine spatial segments
+% %             obj.Results = cat(1, obj.Results{:});
+% %             S = cat(1, obj.Results.spatialComponents );
+% %                 
+% %             imageSize = obj.SourceStack.FrameSize;
+% %             roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
+% % 
+% %             obj.RoiArray = roiArrayT;
+% %             
+% %             obj.displayFinishCurrentStep()
+% %         end
+        
+        function finalizeResults(obj)
+        %finalizeResults Finalize the results using flufinder's pipeline
+            import nansen.twophoton.roi.compute.computeRoiImages
+            import flufinder.detect.findUniqueRoisFromComponents
+
+            if isempty(obj.MergedResults)
+                obj.mergeResults()
+            end
+
+            [numZ, numC] = size(obj.MergedResults);
+            
+            obj.RoiArray = cell(numZ, numC);
+
+            opts = obj.ToolboxOptions;
+             
+            obj.StackIterator.reset()
+            for i = 1:obj.StackIterator.NumIterations
+                [iZ, iC] = obj.StackIterator.next();
+                
+                tmpMergedResults = obj.MergedResults{iZ, iC};
+                
+                S = cat(1, tmpMergedResults.spatialComponents );
+                if isempty(S)
+                    obj.RoiArray{iZ, iC} = RoI.empty;
+                    continue
+                end
+
+                imageSize = obj.SourceStack.FrameSize;
+                roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
+
+                imArray = obj.getImageArray();
+
+                fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
+                [fMean, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
+
+
+                % % Detect rois from a shape-based kernel convolution
+                % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+                if opts.UseShapeDetection
+                    fprintf('Searching for %s-shaped cells...\n', ...
+                        opts.MorphologicalShape)%MorphologicalShape)
+                    averageImage = mean(imArray, 3);
+    
+                    roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
+                    roiArray = flufinder.utility.combineRoiArrays(roiArrayS, roiArrayT, opts);
+                else
+                    roiArray = roiArrayT;
+                end
+                
+                obj.RoiArray{iZ, iC} = roiArray;
+            end
+        end
+
+        function roiArray = getRoiArray(obj)
+        %getRoiArray Get results as a roi array
+            roiArray = obj.RoiArray;
+        end
+        
+    end
+    
+
     methods (Static) % Method in external file.
         options = getDefaultOptions()
         

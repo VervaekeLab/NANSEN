@@ -1,14 +1,15 @@
-classdef DataLocation < nansen.metadata.abstract.TableVariable
+classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata.abstract.TableColumnFormatter
 %DataLocation Controls behavior of table cells containing datalocation items.
 %
 %   
-    
+
+    % Todo: Add an update function
+
     properties (Constant)
         IS_EDITABLE = false
         DEFAULT_VALUE = struct.empty
     end
 
-    
     properties
         % Value is a struct of pathstrings pointing to data locations.
         % Each field is a key representing the datatype, i.e rawdata or
@@ -26,8 +27,7 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
             assert( all( arrayfun(@isstruct, [obj.Value])), 'Value must be a struct')
         end
     end
-   
-   
+    
     methods
         
         function str = getCellDisplayString(obj)
@@ -71,16 +71,15 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
                         tmpStr = obj.getIconHtmlString('dot_off');
                     elseif isfolder(fullfile(rootPath, subFolder)) && ~isempty(subFolder)
                         tmpStr = obj.getIconHtmlString('dot_on');
-                    elseif isfolder(subFolder) % ref legacy...
-                        tmpStr = obj.getIconHtmlString('dot_on');
                     elseif isempty(subFolder)
                         tmpStr = obj.getIconHtmlString('dot_off');
+                    elseif isfolder(subFolder) % ref legacy...
+                        tmpStr = obj.getIconHtmlString('dot_on');
                     else
                         tmpStr = obj.getIconHtmlString('dot_none');
                     end
 
                     thisStr = strcat(thisStr, tmpStr);
-
                 end
 
                 if numDataLocations == 0
@@ -89,7 +88,6 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
                 
                 str{i} = thisStr;
             end
-            
         end
        
         function str = getCellTooltipString(obj)
@@ -103,58 +101,35 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
             
             if isempty(datalocStruct)
                 str = '';
+            
             else
-                
                 % Create a html formatted string from values in struct
                 str = cell(size(datalocStruct));
                 strtab = '&nbsp;&nbsp;&nbsp;&nbsp;';
+                
                 for i = 1:numel(datalocStruct)
-                    str{i} = sprintf('%s (%s)<br/>%s Root: %s<br />%s Folder: %s', ...
+                    str{i} = sprintf(['%s (%s)',...
+                        '<br/>%s Root Number: %d', ...
+                        '<br/>%s DiskName: %s', ...
+                        '<br/>%s RootPath: %s', ...
+                        '<br/>%s Folder: %s'], ...
                         datalocStruct(i).Name, char( datalocStruct(i).Type ), ...
+                        strtab, datalocStruct(i).RootIdx,...
+                        strtab, datalocStruct(i).Diskname, ...
                         strtab, datalocStruct(i).RootPath, ...
                         strtab, datalocStruct(i).Subfolders);
                 end
                 
                 str = strjoin(str, '<br /><br />'); % Add blank line between data locations
                 str = sprintf('<html><div align="left"> %s </div>', str);
-                                
-            end
-        end
-        
-        function str = getCellTooltipStringOld(obj)
-            
-            datalocStruct = obj.Value;
-            
-            if isa(datalocStruct, 'cell')
-                datalocStruct = datalocStruct{1};
-            end
-            
-            if isempty(datalocStruct)
-                str = '';
-            else
-                % Format struct into a multiline string:
-                %structStr = evalc('disp(datalocStruct)');
-                
-                while true % Remove trailing newlines...
-                    if strcmp(structStr(end),  sprintf('\n'))                   %#ok<SPRINTFN>
-                        structStr(end)='';
-                    else
-                        break
-                    end
-                end
-                structStr = strrep(structStr, sprintf('\n'), '<br />');         %#ok<SPRINTFN>
-                
-                % This is hanging around from previous implementation.
-                % structStr = [sprintf('<b>%s:</b> <br />', metaVar.sessionID{1}), structStr];
-                
-                % Align all lines to the right, i.e justify at the : sign 
-                % since all struct values are same length (0 or 1).
-                str = sprintf('<html><div align="left"> %s </div>', structStr);
-                                
             end
         end
         
         function onCellDoubleClick(obj, metaObj)
+        %onCellDoubleClick Callback for doubleclick on table cell
+        %
+        % Open ui editor for changing data location root and subfolders.
+        % Each data location gets its own page
             
             if ~isempty(obj.Value)
                 
@@ -179,11 +154,15 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
                     S.(fieldName).RootPath_ = allRootPaths;
                        
                     S.(fieldName).Subfolder = obj.Value(i).Subfolders;
+                    if isempty(S.(fieldName).Subfolder)
+                        if isa(S.(fieldName).Subfolder, 'double')
+                            S.(fieldName).Subfolder = '';
+                        end
+                    end
                     
                     %structeditor is not advanced enough for this yet.. 
                     % todo for the future
                     %S.(fieldName).Subfolder_ = @(x)uigetdir(rootPath);
-                    
                 end
                 
                 h = structeditor.App(S, 'AdjustFigureSize', true, ...
@@ -204,13 +183,16 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
                         metaObj.updateRootDir(sNew)
                     end
                 end
-                
             end
-            
         end
         
         function onCellDoubleClick2(obj, metaObj)
-            
+        %onCellDoubleClick Callback for doubleclick on table cell
+        %
+        % Open ui editor for changing data location roots. All roots are
+        % listed with a dropdown for selecting a different root for each
+        % data location
+
             if ~isempty(obj.Value)
                 
                 S = struct();
@@ -251,9 +233,7 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
                         metaObj.updateRootDir(sNew)
                     end
                 end
-                
             end
-            
         end
         
     end
@@ -323,9 +303,9 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable
             if nargin < 2
                 iconSize = 16;
             end
-        
-            iconPath = fullfile(nansen.rootpath, '+metadata', '+tablevar', '_symbols');
-            iconPath = fullfile(iconPath, sprintf('%s.png', iconName));
+            
+            folderPath = nansen.localpath('table_variable_templates');
+            iconPath = fullfile(folderPath, '_symbols', sprintf('%s.png', iconName));
             
             sizeSpec = sprintf('width="%d" height="%d"', iconSize, iconSize);
             str = sprintf('<img src="file:%s" %s margin="0">', iconPath, sizeSpec);

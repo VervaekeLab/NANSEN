@@ -115,7 +115,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 S = obj.getVariableInfoFromField(varName, 'FileNameExpression');
             end
             
-            
             isExistingEntry = ~isempty(S);
             
             % Create a default variable structure
@@ -206,9 +205,117 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             
         end
         
+        % % Variable interaction and utility methods
+
+        function varName = findVariableByFilename(obj, filePath)
+            
+            [~, filename, ext] = fileparts(filePath);
+
+            filenameExpressions = {obj.Data.FileNameExpression};
+            fileTypes = {obj.Data.FileType};
+            
+            isEmpty = cellfun(@isempty, filenameExpressions);
+            matchesFiletype = strcmp(fileTypes, ext);
+            matchesFilename = cellfun(@(expr) contains(filename, expr), filenameExpressions);
+
+            % Find the longest match
+            matchedFilenameExpressions = filenameExpressions(matchesFilename);
+            matchLength = cellfun(@numel, matchedFilenameExpressions);
+            maxLength = max(matchLength);
+            matchedFilenameExpressions = unique( matchedFilenameExpressions(matchLength == maxLength) );
+            
+            % Refine match by only the longest matches
+            matchesFilename = cellfun(@(expr) ...
+                any(strcmp(matchedFilenameExpressions, expr)), ...
+                filenameExpressions, 'UniformOutput', true);
+            
+            isMatch = matchesFiletype & matchesFilename & ~isEmpty;
+
+            warnMultiple = false;
+            if ~any(isMatch)
+                isMatch = matchesFiletype;
+                if sum(isMatch) == 1
+                    matchedIdx = find(isMatch);
+                else
+                    matchedIdx = [];
+                end
+
+            elseif sum(isMatch) > 1
+                matchedIdx = find(isMatch, 1, 'first');
+                warnMultiple = true;
+            else
+                matchedIdx = find(isMatch);
+            end
+            
+            if ~isempty(matchedIdx)
+                varName = obj.Data(matchedIdx).VariableName;
+                if warnMultiple
+                    warning('Multiple matching variables were detected, selected first one (%s)' )
+                end
+            else
+                varName = '';
+            end
+        end
+
+        function fileAdapter = getFileAdapter(obj, variableName)
+            [filePath, variableInfo] = obj.getDataFilePath(variableName);
+            fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
+            fileAdapter = fileAdapterFcn(filePath);
+        end
+
+        function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
+        %getFileAdapterFcn Get function handle for creating file adapter                
+            
+% %             %Todo: Make fileAdapter class for this....
+% %             %persistent fileAdapterList
+% %             
+% %             if isempty(fileAdapterList)
+% %                 fileAdapterList = nansen.dataio.listFileAdapters();
+% %             end
+
+            fileAdapterList = nansen.dataio.listFileAdapters();
+
+            if ischar(variableInfo)
+                [~, variableInfo] = obj.getDataFilePath(variableInfo);
+            end
+            
+            % Get file adapter % Todo: make this more persistent...
+            isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
+            
+            if ~any(isMatch)
+                error('File adapter was not found')
+            elseif sum(isMatch) > 1
+                error('This is a bug. Please report')
+            end
+            
+            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+        end
+    
+        function varNames = getVariableNamesOfType(obj, typeName)
+        %getVariableNamesOfType Get name of variables of specified datatype
+        %
+        %   Syntax:
+        %       varNames = obj.getVariableNamesOfType(typeName) returns a
+        %       cell array of variable names. The variable names represent
+        %       all the variables in the model of the specified datatype
+        %       iven by typeName
+        %
+        %   Input arguments:
+        %       typeName - A character vector or a string of a data type.
+        %           Note: This is case sensitive. Todo: Should it be?
+        %
+        %   Output arguments:
+        %       varNames - A cell array of character vectors. If no
+        %       variables were found for the given type, the cell array
+        %       contains one element, 'N/A'. Todo: Return empty cell array?
+    
+            allDataTypes = {obj.Data.DataType};
+            isOfGivenType = strcmp(allDataTypes, typeName);
+            varNames = {obj.Data(isOfGivenType).VariableName};
+        end
     end
     
-    methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?NansenSetupApp2})
+    methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?nansen.setup.SetupWizardApp})
         function setVariableList(obj, S)
             obj.Data = S;
         end
@@ -242,6 +349,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             isMatch = strcmp(names, varName);
             
             if any(isMatch) && sum(isMatch) == 1
+                S = obj.Data(isMatch);
+            elseif any(isMatch) && sum(isMatch) > 1
+                %warning('Found multiple matched variables, selected to first')
+                isMatch = find(isMatch, 1, 'first');
                 S = obj.Data(isMatch);
             end
         end
