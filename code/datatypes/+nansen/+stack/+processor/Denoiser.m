@@ -329,7 +329,10 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
             mFileUrl = 'https://raw.githubusercontent.com/MATLAB-Community-Toolboxes-at-INCF/DeepInterpolation-MATLAB/main/network_layers/maeRegressionLayer.m';
             classdefStr = webread(mFileUrl);
             savePath = fullfile(modelSaveDirectory, 'maeRegressionLayer.m');
-            filewrite(savePath, classdefStr);
+            %filewrite(savePath, classdefStr);
+            fid = fopen(savePath, 'w');
+            fwrite(fid, classdefStr);
+            fclose(fid);
             addpath(modelSaveDirectory)
         end
     end
