@@ -459,12 +459,10 @@ classdef AddonManager < handle
         function pathStr = getPathForAddonList(obj)
         %getPathForAddonList Get path where local addon list is saved.
         
-            rootDir = nansen.rootpath();
-            pathStr = fullfile(rootDir, '_userdata', 'settings');
+            prefDir = fullfile(nansen.prefdir, 'settings');
+            if ~exist(prefDir, 'dir'); mkdir(prefDir); end
             
-            if ~exist(pathStr, 'dir'); mkdir(pathStr); end
-            
-            pathStr = fullfile(pathStr, 'installed_addons.mat');
+            pathStr = fullfile(prefDir, 'installed_addons.mat');
         end
         
         function fileType = getFileTypeFromUrl(obj, addonEntry)

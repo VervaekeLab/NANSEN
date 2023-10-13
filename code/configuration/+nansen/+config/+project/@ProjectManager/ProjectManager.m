@@ -673,7 +673,7 @@ classdef ProjectManager < handle
         function pathStr = getCatalogPath()
             
             % Get default project path
-            projectRootPath = fullfile(nansen.rootpath, '_userdata', 'projects');
+            projectRootPath = fullfile(nansen.prefdir, 'projects');
             if ~exist(projectRootPath, 'dir'); mkdir(projectRootPath); end
             
             % Add project details to project catalog file
@@ -709,7 +709,7 @@ classdef ProjectManager < handle
             elseif strcmp(location, 'local')
                 
                 % Todo: get from nansen preferences
-                localProjectPath = fullfile(nansen.rootpath, '_userdata', 'projects');
+                localProjectPath = fullfile(nansen.prefdir, 'projects');
                 
                 pathStr = fullfile(localProjectPath, projectName);
                 if ~exist(pathStr, 'dir'); mkdir(pathStr); end

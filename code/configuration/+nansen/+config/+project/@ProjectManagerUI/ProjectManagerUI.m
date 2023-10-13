@@ -691,7 +691,7 @@ classdef ProjectManagerUI < handle
         function assignInitialProjectRootFolderPath(obj)
             %
             % Set default value of path for project root folder
-            projectFolder = fullfile(nansen.rootpath, '_userdata', 'projects'); % <-- Default value
+            projectFolder = fullfile(nansen.prefdir, 'projects'); % <-- Default value
             projectFolder = getpref('NansenSetup', 'DefaultProjectPath', projectFolder);
             obj.ProjectRootFolderPath = projectFolder;
         end

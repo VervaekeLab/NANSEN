@@ -99,7 +99,7 @@ classdef Project < handle
 
         function folderPath = getLocalProjectFolderPath(obj)
 
-            localProjectPath = fullfile(nansen.rootpath, '_userdata', 'projects');
+            localProjectPath = fullfile(nansen.prefdir, 'projects');
             
             folderPath = fullfile(localProjectPath, obj.Name);
             if ~exist(folderPath, 'dir'); mkdir(folderPath); end

@@ -71,8 +71,7 @@ function pathStr = localpath(pathKeyword, projectName)
             folderPath = folderPath(1:end-1);
 
         case {'_user_data', 'user_data', '_userdata', 'userdata'} % Todo...
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata');
+            folderPath = nansen.prefdir();
             
         case {'current_project_dir', 'project'}
             rootDir = fullfile(nansen.localpath('user_data'));
@@ -80,16 +79,13 @@ function pathStr = localpath(pathKeyword, projectName)
             folderPath = getpref('Nansen', 'CurrentProjectPath', defaultProjectDir); %todo: add default
             
         case 'project_settings'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata', 'projects');
+            folderPath = fullfile(nansen.prefdir, 'projects');
             
         case 'custom_options'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata', 'custom_options');
+            folderPath = fullfile(nansen.prefdir, 'custom_options');
             
         case 'user_settings'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata', 'settings');
+            folderPath = fullfile(nansen.prefdir, 'settings');
             
         case {'current_project_folder', 'Current Project'}
             folderPath = getpref('Nansen', 'CurrentProjectPath');
