@@ -36,14 +36,16 @@ classdef HasSessionData < uim.handle
     methods
         function obj = HasSessionData()
             % Assign data for each obj individually
-            obj.assignSessionData()
+            for i = 1:numel(obj)
+                obj(i).Data_ = nansen.session.SessionData(obj(i)); %#ok<AGROW>
+            end
         end
 
         function delete(obj)
             delete(obj.Data_)
         end
     end
-
+    
     methods % Set/get
 
         function data = get.Data(obj)
@@ -57,7 +59,7 @@ classdef HasSessionData < uim.handle
         end
 
     end
-    
+
 % %         Todo: Is this even possible without breaking my head. How to
 % %         properly output stuff from properties that i.e contains struct
 % %         arrays.
@@ -131,17 +133,8 @@ classdef HasSessionData < uim.handle
         end
 
     end
-    
+
     methods (Access = private)
-        
-        function assignSessionData(obj)
-            % Assign data for each obj individually
-            for i = 1:numel(obj)
-                if isempty(obj(i).Data_) || ~isvalid(obj(i).Data_)
-                    obj(i).Data_ = nansen.session.SessionData(obj(i));
-                end
-            end
-        end
 
         function [tf, idx] = isDataSubsrefed(obj, s)
             
@@ -186,6 +179,6 @@ classdef HasSessionData < uim.handle
             numArgouts = n(1);
             
         end
-        
+
     end
 end
