@@ -80,7 +80,8 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
                     [numDirs, finished] = findNumTiffDirectories(tiffObj, dirNumInit, newStepSize);
                 
                 otherwise
-                    error('Could not determine number of tiff directories, please report...')
+                    numDirs = numel( imfinfo(tiffRef.FileName) );
+                    %error('Could not determine number of tiff directories, please report...')
             end
         end
     end
