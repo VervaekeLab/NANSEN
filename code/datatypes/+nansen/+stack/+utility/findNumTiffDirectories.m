@@ -68,10 +68,13 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
                     finished = tiffObj.lastDirectory();
                     % For MATLAB 2023a and later, this case does not work anymore.
                     % Will revert back to using the counting of imfinfo
-                    % until a better solution is found.
-                    if finished == 0 
+                    % until a better (?) solution is found.
+                    if finished == 0
                         numDirs = numel( imfinfo(tiffRef.FileName) );
                         finished = true;
+                        % dirNumInit = tiffObj.currentDirectory();
+                        % newStepSize = stepSize / 10;
+                        % [numDirs, finished] = findNumTiffDirectories(tiffObj, dirNumInit, newStepSize);
                     end
                 
                 case 'MATLAB:imagesci:validate:argumentOutOfBounds'

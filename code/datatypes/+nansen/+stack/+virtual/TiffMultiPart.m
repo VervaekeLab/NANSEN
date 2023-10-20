@@ -144,12 +144,17 @@ methods (Access = protected) % Implementation of abstract methods
         % Set DataSize from MetaData if available.
         if ~isempty(obj.MetaData.Size)
             obj.DataSize = obj.MetaData.Size;
+            obj.DataDimensionArrangement = obj.MetaData.DimensionArrangement;
         end
-        
-        % Todo: Get DataDimensionArrangement?
-        
+                
         if ~isempty(obj.DataSize)
-            obj.countNumFrames()            
+            if size(obj.FilePathList, 1) > 1
+                % Need to know number of frames per file.
+                obj.countNumFrames()
+            else
+                obj.NumFrames = prod(obj.DataSize(3:end));
+                obj.numFramesPerFile = obj.NumFrames;
+            end
             return
         end
         
