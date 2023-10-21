@@ -11,8 +11,10 @@ classdef AddonManagerApp < nansen.config.abstract.ConfigurationApp
 
     methods
         
-        function obj = AddonManagerApp()
+        function obj = AddonManagerApp(addonManager)
 
+            import nansen.config.addons.AddonManagerUI
+            
             obj.FigureSize = [699+40, 349];
 
             obj.createFigure()
@@ -28,7 +30,7 @@ classdef AddonManagerApp < nansen.config.abstract.ConfigurationApp
             
             obj.applyTheme()
 
-            obj.UIModule{1} = nansen.config.addons.AddonManagerUI(cPanel); 
+            obj.UIModule{1} = AddonManagerUI(cPanel, addonManager); 
 
 
             if ~nargout; clear obj; end

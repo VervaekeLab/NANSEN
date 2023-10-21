@@ -1,15 +1,17 @@
-function checkLegacyDirectory()
+function checkLegacyDirectory(obj)
 % checkLegacyDirectory Check if the "legacy" directory exists and fix
+%
+%   Originally, external toolboxes were installed into the nansen
+%   repository folder. These should be stored in a separate location and
+%   will therefore be moved to MATLAB's userpath.
 
-    AM = nansen.AddonManager();
-
-    legacyInstallationDirectory = AM.getDefaultInstallationDirLegacy();
+    legacyInstallationDirectory = obj.getDefaultInstallationDirLegacy();
     %legacyInstallationDirectory = AM.getDefaultInstallationDir();
 
     if isfolder(legacyInstallationDirectory)
         
         % Inform user that addons will to move it to the userpath.
-        newInstallationDirectory = AM.getDefaultInstallationDir();
+        newInstallationDirectory = obj.getDefaultInstallationDir();
         %newInstallationDirectory = AM.getDefaultInstallationDirLegacy();
 
         msg = sprintf( ...
@@ -39,17 +41,17 @@ function checkLegacyDirectory()
         end
 
         % Update path in AddonList
-        for i = 1:numel(AM.AddonList)
-            oldFilePath = AM.AddonList(i).FilePath;
+        for i = 1:numel(obj.AddonList)
+            oldFilePath = obj.AddonList(i).FilePath;
 
             if ~isempty(oldFilePath)
                 if contains(oldFilePath, legacyInstallationDirectory)
-                    AM.AddonList(i).FilePath = replace(oldFilePath, ...
+                    obj.AddonList(i).FilePath = replace(oldFilePath, ...
                         legacyInstallationDirectory, newInstallationDirectory);
                 end
             end
         end
-        AM.saveAddonList()
+        obj.saveAddonList()
         
         % Update javaclasspath
         nansen.config.path.addYamlJarToJavaClassPath()

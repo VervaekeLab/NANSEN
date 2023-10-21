@@ -24,7 +24,8 @@ classdef AddonManagerUI < applify.apptable
             % Todo: parent might not be given as first input, it might be
             % in the list of name value pairs...
             if nargin < 2
-                hAddonManager = nansen.config.addons.AddonManager();
+                userSession = nansen.internal.user.NansenUserSession.instance();
+                hAddonManager = userSession.getAddonManage();
             end
             
             % Get data from the addonmanager handle.

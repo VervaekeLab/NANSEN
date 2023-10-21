@@ -40,7 +40,10 @@ classdef ProjectManagerUI < handle
         function obj = ProjectManagerUI(hParent)
             
             obj.assignInitialProjectRootFolderPath()
-            obj.ProjectManager = nansen.config.project.ProjectManager.instance();
+
+            userSession = nansen.internal.user.NansenUserSession.instance();
+            obj.ProjectManager = userSession.getProjectManager();
+
             % If no parent is added, return before creating components
             if nargin < 1 || isempty(hParent)
                 return

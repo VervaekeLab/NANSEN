@@ -63,25 +63,26 @@ classdef AddonManager < handle
     end
     
     
-    methods
+    methods (Access = ?nansen.internal.user.NansenUserSession)
         
-        function obj = AddonManager()
+        function obj = AddonManager(preferenceDirectory)
         %AddonManager Construct an instance of this class
         
             % Create a addon manager instance. Provide methods for
             % installing addons
+            if nargin < 1; preferenceDirectory = ''; end
             
             % Assign the path to the directory where addons are saved
             obj.InstallationDir = obj.getDefaultInstallationDir();
             
             % Get path where list of previously installed addons are saved
-            obj.AddonDefinitionsPath = obj.getPathForAddonList;
+            obj.AddonDefinitionsPath = obj.getPathForAddonList(preferenceDirectory);
             
             % Load addon list (list is initialized if it does not exist)
             obj.loadAddonList()
             
             % Check if addons are located in legacy directory. Move if yes.
-            % amobj.checkLegacyDirectory()
+            % obj.checkLegacyDirectory()
 
             % Add previously installed addons to path if they are not already there.
             obj.updateSearchPath()
@@ -456,12 +457,14 @@ classdef AddonManager < handle
     
     methods (Hidden, Access = protected) 
                
-        function pathStr = getPathForAddonList(obj)
+        function pathStr = getPathForAddonList(obj, prefDir)
         %getPathForAddonList Get path where local addon list is saved.
-        
-            prefDir = fullfile(nansen.prefdir, 'settings');
-            if ~exist(prefDir, 'dir'); mkdir(prefDir); end
             
+            if nargin < 2 || isempty(prefDir)
+                prefDir = fullfile(nansen.prefdir, 'settings');
+            end
+
+            if ~exist(prefDir, 'dir'); mkdir(prefDir); end
             pathStr = fullfile(prefDir, 'installed_addons.mat');
         end
         
@@ -530,9 +533,9 @@ classdef AddonManager < handle
         
     end
       
-    methods (Static)%, Access = ?nansen.App)
+    methods (Access = private)
         % Note: This method will be removed in a future version (todo).
-        checkLegacyDirectory() % Method in separate file
+        checkLegacyDirectory(obj) % Method in separate file
     end
 
     methods (Static)

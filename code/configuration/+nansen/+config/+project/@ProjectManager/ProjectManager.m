@@ -48,14 +48,17 @@ classdef ProjectManager < handle
         CurrentProjectPath
     end
     
-    methods (Static, Hidden)
+    methods (Static, Hidden) %(Access = ?nansen.internal.user.NansenUserSession)
 
-        function obj = instance()
+        function obj = instance(preferenceDirectory)
         %instance Get singleton instance of class
+
+            if nargin < 1; preferenceDirectory = ''; end
+
             persistent instance
 
             if isempty(instance)
-                instance = nansen.config.project.ProjectManager();
+                instance = nansen.config.project.ProjectManager(preferenceDirectory);
             end
             
             obj = instance;
@@ -65,9 +68,9 @@ classdef ProjectManager < handle
     
     methods (Access = private) % Constructor
        
-        function obj = ProjectManager()
+        function obj = ProjectManager(preferenceDirectory)
             % Create instance of the project manager class
-            obj.CatalogPath = obj.getCatalogPath();
+            obj.CatalogPath = obj.getCatalogPath(preferenceDirectory);
             obj.loadCatalog()
         end
         
@@ -670,10 +673,15 @@ classdef ProjectManager < handle
 
     methods (Static, Hidden) % Todo: private?
         
-        function pathStr = getCatalogPath()
+        function pathStr = getCatalogPath(preferenceDirectory)
+
+            if nargin < 1 || isempty(preferenceDirectory)
+                preferenceDirectory = nansen.prefdir;
+            end
+                            
+            projectRootPath = fullfile(preferenceDirectory, 'projects');
             
             % Get default project path
-            projectRootPath = fullfile(nansen.prefdir, 'projects');
             if ~exist(projectRootPath, 'dir'); mkdir(projectRootPath); end
             
             % Add project details to project catalog file

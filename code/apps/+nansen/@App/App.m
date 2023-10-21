@@ -65,20 +65,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
     properties
         MetaTablePath = ''
-        MetaTable 
+        MetaTable % Project
         
-        BatchProcessor
+        BatchProcessor % UserSession?
         BatchProcessorUI
         
         SessionTasks matlab.ui.container.Menu
         SessionTaskMenu
         SessionContextMenu
         
-        DataLocationModel
-        VariableModel
+        DataLocationModel % Project
+        VariableModel % Project
         
         CurrentProjectName  % Current project which is open in the app
-        ProjectManager
+        ProjectManager % UserSession
         
         MessagePanel % Todo: Use HasDisplay mixin...
         MessageBox
@@ -94,13 +94,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties (Access = private)
+        UserSession nansen.internal.user.NansenUserSession
         ApplicationState = 'Uninitialized';
     end
     
     
     methods % Structors
 
-        function app = App()
+        function app = App(userSession)
             
             nansen.addpath()
             
@@ -117,8 +118,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 app.Figure.Visible = 'on';
             end
+
+            app.UserSession = userSession;
+            app.ProjectManager = app.UserSession.getProjectManager();
             
-            app.ProjectManager = nansen.ProjectManager();
             app.assertProjectsAvailable()
             app.ProjectManager.setProject()
             app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
