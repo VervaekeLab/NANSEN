@@ -131,8 +131,11 @@ classdef NansenUserSession < handle
                 nansen.internal.user.migrateUserdata(obj)
             end
             
-            % Todo: Add contents of nansen.validate here...
-
+            project = obj.ProjectManager.getCurrentProject();
+            if isfolder(fullfile(project.FolderPath, 'Metadata Tables', '+tablevar'))
+                nansen.internal.refactor.moveTableVarsToProjectNameSpace( obj.ProjectManager )
+            end
+            
         end
         
     end

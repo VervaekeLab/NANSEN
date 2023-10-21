@@ -121,12 +121,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
-            
+
             app.assertProjectsAvailable()
             app.ProjectManager.setProject()
             app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
-
-            nansen.validate()
             
             % Todo: This is project dependent, should be set on
             % setProject... Dependent???
