@@ -1,9 +1,11 @@
 function hApp = nansen(varargin)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
-    
+
+    userSession = nansen.internal.user.NansenUserSession.instance();
+
     try
-        hApp = nansen.App(varargin{:});
+        hApp = nansen.App(userSession, varargin{:});
     catch ME
         hApp = [];
         switch ME.identifier

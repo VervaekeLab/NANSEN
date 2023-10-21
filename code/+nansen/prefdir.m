@@ -1,6 +1,12 @@
 function preferenceDirectory = prefdir()
-    %userSession = nansen.internal.user.NansenUserSession.instance();
-    %preferenceDirectory = userSession.getPrefdir();
-    %todo: remove this:
-    preferenceDirectory = fullfile(nansen.rootpath, '_userdata');
+% preferenceDirectory - Get preference directory for NANSEN user session
+    import nansen.internal.user.NansenUserSession
+    
+    userSession = NansenUserSession.instance('', 'nocreate');
+    if isempty(userSession)
+        error('NANSEN:NoUserSessionActive', ...
+            'No user session is active. Please start nansen and try again.')
+    else
+        preferenceDirectory = userSession.getPrefdir();
+    end
 end
