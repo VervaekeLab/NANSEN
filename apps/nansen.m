@@ -2,9 +2,8 @@ function hApp = nansen(varargin)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
-    userSession = nansen.internal.user.NansenUserSession.instance();
-
     try
+        userSession = nansen.internal.user.NansenUserSession.instance();
         hApp = nansen.App(userSession, varargin{:});
     catch ME
         hApp = [];

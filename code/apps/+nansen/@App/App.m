@@ -103,7 +103,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function app = App(userSession)
             
-            nansen.addpath()
+            nansen.addpath() % Todo: move to user session.
             
             % Call constructor explicitly to provide the nansen.Preferences
             app@uiw.abstract.AppWindow('Preferences', nansen.Preferences, 'Visible', 'off')
@@ -119,13 +119,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.Figure.Visible = 'on';
             end
 
+
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
 
-            app.assertProjectsAvailable()
-            app.ProjectManager.setProject()
+            % Todo: remove
             app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
-            
+
             % Todo: This is project dependent, should be set on
             % setProject... Dependent???
             app.DataLocationModel = nansen.DataLocationModel;
@@ -245,14 +245,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     methods (Hidden, Access = private) % Methods for app creation
         
         createSessionTableContextMenu(app) % Function in file...
-        
-        function assertProjectsAvailable(app)
-            if app.ProjectManager.NumProjects == 0
-                delete(app)
-                error('Nansen:NoProjectsAvailable', ...
-                    'No projects exists. Please run nansen.setup to configure a project')
-            end
-        end
         
         function createWindow(app)
         %createWindow Create and customize UIFigure 

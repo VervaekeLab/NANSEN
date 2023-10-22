@@ -514,9 +514,9 @@ classdef ProjectManager < handle
                     error('Nansen:NoProjectSet', 'No project is set')
                 end
             else
-                projectPath = nansen.localpath('Current Project');
+                p = obj.getCurrentProject();
                 %if ~contains(path, projectPath)
-                    addpath(genpath(projectPath), '-end') % todo. dont brute force this..
+                    addpath(genpath(p.FolderPath), '-end') % todo. dont brute force this..
                 %end
             end
         end

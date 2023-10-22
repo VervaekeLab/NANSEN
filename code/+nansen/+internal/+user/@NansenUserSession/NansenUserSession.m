@@ -19,6 +19,8 @@ classdef NansenUserSession < handle
 %       - Preferences
 %       - ProjectManager
 %       - AddonManager
+
+% Todo: Clear projectmanager instance when user session is deleted
     
     properties (SetAccess = immutable) % Public
         CurrentUserName = "default"
@@ -36,13 +38,15 @@ classdef NansenUserSession < handle
     end
 
     properties (Access = private)
+        SessionUUID
         PreferenceDirectory
     end
 
     properties (Constant, Access = private)
         DEFAULT_USER_NAME = "default"
+        LOG_UUID = false;
     end
-
+    
 
     methods (Static)
         %instance Return a singleton instance of the NansenUserSession  
@@ -86,14 +90,15 @@ classdef NansenUserSession < handle
             obj.ProjectManager = ProjectManager.instance(preferenceDirectory);
 
             obj.onStartup()
+            obj.SessionUUID = nansen.util.getuuid();
         end
 
         function delete(obj)
-            userName = obj.CurrentUserName;
-            fprintf('Closed NANSEN user session for user "%s".\n', userName)
-
-            % Todo: A clear all statement will clear the persistent variable. How to prevent
-            % that if app is open...?
+            
+            if obj.LOG_UUID
+                userName = obj.CurrentUserName;
+                fprintf('Closed NANSEN user session for user "%s" (%s).\n', userName, obj.SessionUUID)
+            end
         end
 
     end
@@ -111,6 +116,10 @@ classdef NansenUserSession < handle
         
             obj.checkIfUpdateActionsAreNeeded()
 
+            % Check that projects are available
+            obj.assertProjectsAvailable()
+            obj.ProjectManager.setProject()
+
             % Check that Addons are on path.
 
             % Check that dependencies are installed
@@ -119,6 +128,15 @@ classdef NansenUserSession < handle
     end
 
     methods (Access = private)
+
+        function assertProjectsAvailable(obj)
+            if obj.ProjectManager.NumProjects == 0
+                delete(obj)
+                error('Nansen:NoProjectsAvailable', ...
+                    'No projects exists. Please run nansen.setup to configure a project')
+            end
+        end
+
         
         function checkIfUpdateActionsAreNeeded(obj)
         % checkIfUpdateActionsAreNeeded - Are actions needed due to update?
@@ -135,7 +153,7 @@ classdef NansenUserSession < handle
             if isfolder(fullfile(project.FolderPath, 'Metadata Tables', '+tablevar'))
                 nansen.internal.refactor.moveTableVarsToProjectNameSpace( obj.ProjectManager )
             end
-            
+
         end
         
     end
