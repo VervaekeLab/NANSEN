@@ -235,8 +235,10 @@ classdef MetaTableCatalog < uim.handle
         
         function pathString = getFilePath()
         %getFilePath Get filepath where the MetaTableCatalog is located
-        
-            projectRootDir = getpref('Nansen', 'CurrentProjectPath');
+            
+            pm = nansen.ProjectManager();
+            projectRootDir = pm.CurrentProjectPath;
+            
             metaTableDir = fullfile(projectRootDir, 'Metadata Tables');
             
             if ~exist(metaTableDir, 'dir');  mkdir(metaTableDir);    end

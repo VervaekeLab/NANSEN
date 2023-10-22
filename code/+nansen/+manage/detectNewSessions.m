@@ -16,8 +16,7 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
     
     % Get current data location model. Todo: What if there are situations
     % where another datalocation model should be used?
-    filePath = nansen.localpath('DataLocationSettings');    
-    dataLocationModel = nansen.config.dloc.DataLocationModel(filePath);
+    dataLocationModel = nansen.DataLocationModel();
     
     if nargin < 2 || isempty(dataLocationName)
         %dataLocationName = dataLocationModel.DefaultDataLocation;

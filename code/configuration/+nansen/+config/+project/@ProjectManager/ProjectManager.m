@@ -43,9 +43,20 @@ classdef ProjectManager < handle
         ProjectNames
     end
 
-    properties (Dependent) 
-        CurrentProject
+    properties (SetAccess = private) 
+        CurrentProject char
+    end
+
+    properties (Dependent)
         CurrentProjectPath
+    end
+
+    events (NotifyAccess = private)
+        CurrentProjectSet
+    end
+
+    events (ListenAccess = ?nansen.internal.user.NansenUserSession)
+        CurrentProjectChanged
     end
     
     methods (Static, Hidden) %(Access = ?nansen.internal.user.NansenUserSession)
@@ -86,21 +97,14 @@ classdef ProjectManager < handle
     end
     
     methods % Set/get methods
-        
-        function set.CurrentProject(obj, value)
-            
-        end
-        
-        function P = get.CurrentProject(~)
-            P = getpref('Nansen', 'CurrentProject', []);
-        end
-        
+
         function numProjects = get.NumProjects(obj)
             numProjects = numel(obj.Catalog);
         end
         
-        function pathStr = get.CurrentProjectPath(~)
-            pathStr = getpref('Nansen', 'CurrentProjectPath', []);
+        function pathStr = get.CurrentProjectPath(obj)
+            project = obj.getCurrentProject();
+            pathStr = project.FolderPath;
         end
 
         function projectNames = get.ProjectNames(obj)
@@ -391,8 +395,12 @@ classdef ProjectManager < handle
 
         function projectObj = getCurrentProject(obj)
             currentProjectName = obj.CurrentProject;
-            s = obj.getProject(currentProjectName);
-            projectObj = nansen.config.project.Project(s.Name, s.Path);
+            if ~isempty(currentProjectName)
+                s = obj.getProject(currentProjectName);
+                projectObj = nansen.config.project.Project(s.Name, s.Path);
+            else
+                projectObj = [];
+            end
         end
         
         function msg = changeProject(obj, name)
@@ -401,26 +409,28 @@ classdef ProjectManager < handle
         %   changeProject(obj, name) changes the current project to project
         %   with given name
 
-            projectEntry = obj.getProject(name);
+            import nansen.config.project.event.CurrentProjectChangedEventData
             
+            % Check that project with given name exists.
+            projectEntry = obj.getProject(name);
+            newProjectName = projectEntry.Name;
+
             if isempty(projectEntry)
                 errMsg = sprintf('Project with name "%s" does not exist', name);
                 error('Nansen:ProjectNonExistent', errMsg) %#ok<SPERR>
             end
-                        
-            setpref('Nansen', 'CurrentProject', projectEntry.Name)
-            setpref('Nansen', 'CurrentProjectPath', projectEntry.Path)
-                        
-            % Add project to path...
-            if ~contains(path, projectEntry.Path)
-                addpath(genpath(projectEntry.Path))
+
+            oldProjectName = obj.CurrentProject;
+
+            if ~isempty(oldProjectName)
+                prevProject = obj.getProjectObject(oldProjectName);
+                obj.removeProjectFromSearchPath(prevProject.FolderPath)
             end
-            
-            msg = sprintf('Current NANSEN project was changed to "%s"\n', name);
-            if ~nargout
-                fprintf(msg); clear msg
-            end
-            
+
+            obj.CurrentProject = newProjectName;
+            obj.addProjectToSearchPath( projectEntry.Path ) 
+
+            % Todo: remove
             % Update data in nansenGlobal. Todo: Improve this...
             global nansenPreferences %dataLocationModel dataFilePathModel
             %if ~isempty(dataLocationModel); dataLocationModel.refresh(); end
@@ -431,6 +441,15 @@ classdef ProjectManager < handle
                 if isfield(nansenPreferences, 'localPath')
                     nansenPreferences.localPath = containers.Map;
                 end
+            end
+
+            eventData = CurrentProjectChangedEventData(oldProjectName, newProjectName);
+            obj.notify('CurrentProjectChanged', eventData)
+            obj.notify('CurrentProjectSet', eventData)
+            
+            msg = sprintf('Current NANSEN project was changed to "%s"\n', newProjectName);
+            if ~nargout
+                fprintf(msg); clear msg
             end
         end
         
@@ -498,27 +517,47 @@ classdef ProjectManager < handle
         end
 
     end
-       
+    
     methods (Access = {?nansen.App})
 
-        function setProject(obj)
+        function setProject(obj, newProjectName)
         %setProject Method for nansen app to initialize project and open
         % uiselection if current project is not available.
+            
+            import nansen.config.project.event.CurrentProjectChangedEventData
 
-            currentProject = obj.CurrentProject;
+            oldProjectName = obj.CurrentProject;
             
             projectNames = {obj.Catalog.Name};
-            if ~any(strcmp(currentProject, projectNames))
+            
+            if ~any(strcmp(newProjectName, projectNames))
                 wasSuccess = obj.uiSelectProject(projectNames);
                 if ~wasSuccess
                     error('Nansen:NoProjectSet', 'No project is set')
+                else
+                    return
                 end
             else
+                obj.CurrentProject = newProjectName;
                 p = obj.getCurrentProject();
-                %if ~contains(path, projectPath)
-                    addpath(genpath(p.FolderPath), '-end') % todo. dont brute force this..
-                %end
+                obj.addProjectToSearchPath(p.FolderPath)
+
+                if ~isempty(oldProjectName)
+                    prevProject = obj.getProjectObject(oldProjectName);
+                    obj.removeProjectFromSearchPath(prevProject.FolderPath)
+                end
             end
+                       
+            % Reset local path variable
+            global nansenPreferences
+            if ~isempty(nansenPreferences)
+                if isfield(nansenPreferences, 'localPath')
+                    nansenPreferences.localPath = containers.Map;
+                end
+            end
+
+            eventData = CurrentProjectChangedEventData(oldProjectName, newProjectName);
+            obj.notify('CurrentProjectSet', eventData)
         end
         
     end
@@ -671,6 +710,20 @@ classdef ProjectManager < handle
 
     end
 
+    methods (Static, Access = private)
+        function addProjectToSearchPath(projectFolderPath)
+            if ~contains(path, projectFolderPath)
+                addpath(genpath(projectFolderPath), '-end')
+            end
+        end
+
+        function removeProjectFromSearchPath(projectFolderPath)
+            if contains(path, projectFolderPath)
+                rmpath(genpath(projectFolderPath))
+            end
+        end
+    end
+
     methods (Static, Hidden) % Todo: private?
         
         function pathStr = getCatalogPath(preferenceDirectory)
@@ -705,7 +758,7 @@ classdef ProjectManager < handle
             isMatch = strcmp({S.projectCatalog.Name}, projectName);
             
             
-            if strcmp(location, 'user')
+            if strcmp(location, 'user') % user specific project data
 
                 if any(isMatch)
                     pathStr = S.projectCatalog(isMatch).Path;
@@ -716,6 +769,9 @@ classdef ProjectManager < handle
                 
             elseif strcmp(location, 'local')
                 
+                % Local refers to local project configs, andd it is stored
+                % in the preference folder
+
                 % Todo: get from nansen preferences
                 localProjectPath = fullfile(nansen.prefdir, 'projects');
                 

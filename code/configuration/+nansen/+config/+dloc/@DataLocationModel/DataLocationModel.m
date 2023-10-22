@@ -969,13 +969,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
     methods (Static)
         
         function pathString = getDefaultFilePath()
-        %getFilePath Get filepath for loading/saving datalocation settings   
-            fileName = 'DataLocationSettings';
-            try
-                pathString = nansen.config.project.ProjectManager.getFilePath(fileName);
-            catch
-                pathString = '';
-            end
+        %getFilePath Get filepath for loading/saving datalocation settings
+        
+            error('NANSEN:DefaultDataLocationNotImplemented', ...
+                ['Please specify a file path for a data location model. ' ...
+                'There is currently no default data location model.'])
         end
         
         function platformName = pathIsWhichPlatform(pathStr)

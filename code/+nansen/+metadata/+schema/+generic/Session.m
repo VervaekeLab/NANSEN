@@ -176,9 +176,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             
             % Todo: issue warning.
             if isempty( obj.DataLocationModel ); return; end
-            
-            obj.DataLocationModel
-            
+                        
             numDataLocations = numel(obj.DataLocationModel.Data);
             
             for i = 1:numDataLocations
@@ -308,7 +306,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             
             % Get the model for data file paths. %Todo: Should be property
             % of session object... See nansen.metadata.type.Session
-            dataVariableModel = nansen.config.varmodel.VariableModel();
+            dataVariableModel = nansen.VariableModel();
             
             % Check if mode is given as input:
             [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
@@ -455,9 +453,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         
             % Todo: implement secondary roots (ie cloud directories)
             
-            global dataLocationModel
-            if isempty(dataLocationModel)
-                dataLocationModel = nansen.config.dloc.DataLocationModel();
+            if isempty(obj.DataLocationModel)
+                dataLocationModel = nansen.DataLocationModel();
+            else
+                dataLocationModel = obj.DataLocationModel;
             end
             
             if nargin < 2
@@ -493,10 +492,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         function folderPath = createSessionFolder(obj, dataLocationName)
             
             % Get data location model. Question: Better way to do this?
-            global dataLocationModel
-            if isempty(dataLocationModel)
-                dataLocationModel = nansen.config.dloc.DataLocationModel;
-            end
+            dataLocationModel = nansen.DataLocationModel();
             
             S = dataLocationModel.getDataLocation(dataLocationName);
             

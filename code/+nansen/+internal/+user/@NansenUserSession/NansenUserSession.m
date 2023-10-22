@@ -27,7 +27,7 @@ classdef NansenUserSession < handle
         Preferences nansen.internal.user.Preferences
     end
 
-    properties (Dependent)
+    properties (Dependent, SetAccess = private)
         CurrentProject
     end
 
@@ -40,13 +40,14 @@ classdef NansenUserSession < handle
     properties (Access = private)
         SessionUUID
         PreferenceDirectory
+        PreferenceListenerState (1,1) struct
+        ProjectChangedListener
     end
 
     properties (Constant, Access = private)
         DEFAULT_USER_NAME = "default"
         LOG_UUID = false;
     end
-    
 
     methods (Static)
         %instance Return a singleton instance of the NansenUserSession  
@@ -110,21 +111,68 @@ classdef NansenUserSession < handle
             obj.PreferenceDirectory = prefdir;
             % Return preferences, they can only be assigned in constructor
             prefs = nansen.internal.user.Preferences(prefdir);
+
+            addlistener(prefs, 'CurrentProjectName', 'PostSet', ...
+                @obj.onCurrentProjectChangedInPreferences);
+
+            obj.PreferenceListenerState.CurrentProjectName = ...
+                matlab.lang.OnOffSwitchState('on');
         end
         
         function onStartup(obj)
         
-            obj.checkIfUpdateActionsAreNeeded()
-
             % Check that projects are available
             obj.assertProjectsAvailable()
-            obj.ProjectManager.setProject()
+            
+            addlistener(obj.ProjectManager, 'CurrentProjectChanged', ...
+                @obj.onCurrentProjectChangedInProjectManager);
+
+            currentProject = obj.Preferences.CurrentProjectName;
+            obj.ProjectManager.setProject(currentProject)
+
+            % Note: important that this happens last
+            obj.checkIfUpdateActionsAreNeeded()
+
 
             % Check that Addons are on path.
 
             % Check that dependencies are installed
 
         end
+
+        function activatePreferenceListener(obj, preferenceName)
+            obj.PreferenceListenerState.(preferenceName) = ...
+                matlab.lang.OnOffSwitchState('on');
+        end
+
+        function deactivatePreferenceListener(obj, preferenceName)
+            obj.PreferenceListenerState.(preferenceName) = ...
+                matlab.lang.OnOffSwitchState('off');
+        end
+
+        function tf = isPreferenceListenerActive(obj, preferenceName)
+            tf = logical(obj.PreferenceListenerState.(preferenceName));
+        end
+    end
+
+    methods (Access = private) % Callbacks
+        
+        function onCurrentProjectChangedInPreferences(obj, src, evt)
+        % Set new current project in project manager.
+            if obj.isPreferenceListenerActive('CurrentProjectName')
+                newProjectName = obj.Preferences.CurrentProjectName;
+                obj.ProjectManager.setProject(newProjectName)
+            end
+        end
+
+        function onCurrentProjectChangedInProjectManager(obj, src, evt)
+        % Update value for current project in preferences. Make sure that
+        % this is not triggering an event, to avoid infinite update loop.
+            obj.deactivatePreferenceListener('CurrentProjectName')
+            obj.Preferences.CurrentProjectName = evt.NewProjectName;
+            obj.activatePreferenceListener('CurrentProjectName')
+        end
+
     end
 
     methods (Access = private)
@@ -137,7 +185,6 @@ classdef NansenUserSession < handle
             end
         end
 
-        
         function checkIfUpdateActionsAreNeeded(obj)
         % checkIfUpdateActionsAreNeeded - Are actions needed due to update?
         %

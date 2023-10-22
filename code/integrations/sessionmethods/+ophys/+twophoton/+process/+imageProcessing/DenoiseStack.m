@@ -78,7 +78,7 @@ end
 
 function varNames = getVariableNameAlternatives()
 %getVariableNameAlternatives Collect a list of imagestack variables
-    variableModel = nansen.config.varmodel.VariableModel();
+    variableModel = nansen.VariableModel();
     varNames = variableModel.getVariableNamesOfType('ImageStack');
     if isempty(varNames); varNames = {'N/A'}; end
 end

@@ -31,7 +31,10 @@ function pathStr = localpath(pathKeyword, projectName)
 
     
     if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')% Should it be called current?
-        projectRootDir = nansen.config.project.ProjectManager.getProjectPath();
+        %projectRootDir = nansen.config.project.ProjectManager.getProjectPath();
+        pm = nansen.ProjectManager();
+        project = pm.getCurrentProject();
+        projectRootDir = project.FolderPath;
     else
         projectRootDir = nansen.config.project.ProjectManager.getProjectPath(projectName);
     end
@@ -88,7 +91,8 @@ function pathStr = localpath(pathKeyword, projectName)
             folderPath = fullfile(nansen.prefdir, 'settings');
             
         case {'current_project_folder', 'Current Project'}
-            folderPath = getpref('Nansen', 'CurrentProjectPath');
+            pm = nansen.ProjectManager();
+            folderPath = pm.CurrentProjectPath;
             
         case {'MetaTable', 'metatable_folder'}
             folderPath = fullfile(projectRootDir, 'Metadata Tables');

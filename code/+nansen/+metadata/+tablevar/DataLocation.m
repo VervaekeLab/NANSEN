@@ -39,7 +39,7 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
             % is a weak assumption, since it is in theory possible to have
             % a call this function with values from sessions/metatables
             % that are not part of the current project...
-            dataLocationModel = nansen.config.dloc.DataLocationModel;
+            dataLocationModel = nansen.DataLocationModel();
             
             str = cell(numel(obj), 1);
             

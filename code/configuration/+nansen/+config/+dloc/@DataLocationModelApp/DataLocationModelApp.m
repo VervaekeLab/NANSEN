@@ -76,7 +76,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             obj.assignPVPairs(nvPairs{:})            
             
             if isempty(obj.DataLocationModel)
-                obj.DataLocationModel = nansen.config.dloc.DataLocationModel;
+                obj.DataLocationModel = nansen.DataLocationModel();
             end
             
             obj.DataBackup = obj.DataLocationModel.Data;

@@ -23,11 +23,11 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
             obj.assignPVPairs(nvPairs{:})
 
             if isempty(obj.VariableModel)
-                obj.VariableModel = nansen.config.varmodel.VariableModel();
+                obj.VariableModel = nansen.VariableModel();
             end
 
             if isempty(obj.DataLocationModel)
-                obj.DataLocationModel = nansen.config.dloc.DataLocationModel();
+                obj.DataLocationModel = nansen.DataLocationModel();
             end
             
             % Todo: Should be part of VariableModel?

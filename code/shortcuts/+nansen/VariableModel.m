@@ -5,6 +5,7 @@ function hModel = VariableModel(varargin)
 %
 %   See also nansen.config.varmodel.VariableModel
 
-    hModel = nansen.config.varmodel.VariableModel(varargin{:});
-
+    pm = nansen.ProjectManager;
+    project = pm.getCurrentProject();
+    hModel = project.VariableModel;
 end

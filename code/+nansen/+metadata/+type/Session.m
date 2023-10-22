@@ -810,7 +810,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             % Todo: Rename to assertVariableAvailable?
 
-            %variableModel = nansen.config.varmodel.VariableModel;
             variableModel = obj.VariableModel;
 
             if ~isa(variableName, 'cell')
@@ -857,7 +856,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
 
         function createVariable(obj, varName, varargin)
         %createVariable Create a variable and insert in the variable model            
-            %variableModel = nansen.config.varmodel.VariableModel;
+
             variableModel = obj.VariableModel;
 
             % Get the entry for given variable name from model
@@ -929,7 +928,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % Get the model for data file paths.
             
             % Todo: Should be part of DataIoModel
-            %variableModel = nansen.config.varmodel.VariableModel;
             variableModel = obj.VariableModel;
 
             

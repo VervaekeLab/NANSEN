@@ -250,8 +250,8 @@ classdef ProjectManagerUI < handle
         
             T = struct2table(obj.ProjectManager.Catalog, 'AsArray', true);
             
-            currentProjectName = getpref('Nansen', 'CurrentProject', '');
-            
+            % Add column to indicate current/active project
+            currentProjectName = obj.ProjectManager.CurrentProject;
             isCurrent = strcmp(T.Name, currentProjectName);
             tableColumn = table(isCurrent, 'VariableNames', {'Current'});
             

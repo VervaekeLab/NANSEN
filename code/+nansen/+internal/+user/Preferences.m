@@ -6,7 +6,6 @@ classdef Preferences < nansen.config.abstract.Preferences
 
     properties (SetObservable)
         CurrentProjectName
-        CurrentProjectPath
 
         InteractionMode (1,1) string ...
             { mustBeMember(InteractionMode, ["API", "GUI"]) } = "API"

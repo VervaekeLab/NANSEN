@@ -77,7 +77,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         DataLocationModel % Project
         VariableModel % Project
         
-        CurrentProjectName  % Current project which is open in the app
         ProjectManager % UserSession
         
         MessagePanel % Todo: Use HasDisplay mixin...
@@ -123,13 +122,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
 
-            % Todo: remove
-            app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
-
             % Todo: This is project dependent, should be set on
             % setProject... Dependent???
-            app.DataLocationModel = nansen.DataLocationModel;
-            app.VariableModel = nansen.VariableModel;
+            app.DataLocationModel = nansen.DataLocationModel();
+            app.VariableModel = nansen.VariableModel();
             
             app.loadMetaTable()
             app.initializeBatchProcessor()
@@ -563,10 +559,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function updateProjectList(app, hParent)
         %updateProjectList Update lists of projects in uicomponents
             
-            pm = nansen.ProjectManager;
-            names = {pm.Catalog.Name};
-            currentProject = getpref('Nansen', 'CurrentProject');
-            
+            names = app.ProjectManager.ProjectNames;
+            currentProject = app.ProjectManager.CurrentProject;
+
             if isfield( app.Menu, 'ProjectList' )
                 app.Menu.ProjectList.Items = names;
                 app.Menu.ProjectList.Value = currentProject;
@@ -1315,7 +1310,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             app.TableIsUpdating = false;
-            app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
         end
         
         function onDataLocationModelChanged(app, src, evt)
@@ -1744,7 +1738,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 status = 'busy';
             end
             
-            projectName = getpref('Nansen', 'CurrentProject');
+            projectName = app.ProjectManager.CurrentProject;
             titleStr = sprintf('%s | Project: %s | Metatable: %s (%s)', app.AppName, projectName, fileName, status);
             app.Figure.Name = titleStr;
         end
@@ -2650,7 +2644,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             if isempty(loadPath)
-                projectName = getpref('Nansen', 'CurrentProject');
+                projectName = app.ProjectManager.CurrentProject;
                 if ~strcmp(app.ApplicationState, 'Uninitialized')
                     message = sprintf('The configuration of the current project (%s) is not completed (metatable is missing)', projectName);
                     title = 'Aborted';
@@ -2747,10 +2741,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return 
             end
             
+            currentProjectName = app.ProjectManager.CurrentProject;
+
             % Prepare inputs for the question dialog
             qstring = sprintf(['The session table for project "%s" has ', ...
                 'unsaved changes. Do you want to save changes to the ', ...
-                'table?'], app.CurrentProjectName);
+                'table?'], currentProjectName);
             
             title = 'Save changes to table?';
             alternatives = {'Save', 'Don''t Save', 'Cancel'};
@@ -3476,7 +3472,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             S_.IsDefault = S.MakeDefault;
             S_.IsMaster = false;
             
-            projectRootDir = getpref('Nansen', 'CurrentProjectPath');
+            projectRootDir = app.ProjectManager.CurrentProjectPath;
             S_.SavePath = fullfile(projectRootDir, 'Metadata Tables');
 
             metaTableCatalog = nansen.metadata.MetaTableCatalog();
