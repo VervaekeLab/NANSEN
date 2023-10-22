@@ -232,7 +232,8 @@ classdef SessionTaskMenu < handle
         function assignProjectMethodsPath(obj)
         %assignProjectMethodsPath Assign the path for project-specific tasks
 
-            projectRootPath = nansen.localpath('project');
+            pm = nansen.ProjectManager();
+            projectRootPath = pm.CurrentProjectPath;
             [~, projectName] = fileparts(projectRootPath);
             obj.ProjectMethodsPath = fullfile(projectRootPath, ...
                 'Session Methods', ['+', projectName] );

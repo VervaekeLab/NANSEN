@@ -744,7 +744,8 @@ classdef ProjectManager < handle
         function pathStr = getProjectPath(projectName, location)
             
             if ~nargin || strcmp(projectName, 'current')
-                projectName = getpref('Nansen', 'CurrentProject', '');
+                pm = nansen.ProjectManager;
+                projectName = pm.CurrentProject;
             end
             
             pathStr = '';
@@ -799,7 +800,8 @@ classdef ProjectManager < handle
                 subfolder = 'Configurations';
             end
             
-            projectRootDir = getpref('Nansen', 'CurrentProjectPath', '');
+            pm = nansen.ProjectManager;
+            projectRootDir = pm.CurrentProjectPath;
             folderPath = fullfile(projectRootDir, subfolder);
             
             catalogName = utility.string.camel2snake(catalogName);
@@ -826,7 +828,8 @@ classdef ProjectManager < handle
         %       MetaTable
 
             if nargin < 2
-            	projectRootDir = getpref('Nansen', 'CurrentProjectPath', '');
+                pm = nansen.ProjectManager;
+                projectRootDir = pm.CurrentProjectPath;
             end
             
             % Abort if project root directory is empty (non-existent)
