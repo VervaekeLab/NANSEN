@@ -182,20 +182,6 @@ classdef Project < nansen.module.Module
             
         end
 
-        function folderPath = getLocalProjectFolderPath(obj)
-        % getLocalProjectFolderPath - Get folder for local project configs
-
-        % Private?
-        % Note: Projects contains userdata that can be stored on cloud.
-        % Some configurations are needed to be local, so there is a
-        % separate folder to store platform dependent configs.
-
-            localProjectPath = fullfile(nansen.prefdir, 'projects');
-            
-            folderPath = fullfile(localProjectPath, obj.Name);
-            if ~exist(folderPath, 'dir'); mkdir(folderPath); end
-        end
-        
     end
 
     methods (Access = ?nansen.config.project.ProjectManager)
@@ -284,12 +270,18 @@ classdef Project < nansen.module.Module
         end
         
         function folderPath = getLocalProjectFolderPath(obj)
+        % getLocalProjectFolderPath - Get folder for local project configs
 
-            localProjectPath = fullfile(nansen.rootpath, '_userdata', 'projects');
+        % Note: Projects contains userdata that can be stored on cloud.
+        % Some configurations are needed to be local, so there is a
+        % separate folder to store platform dependent configs.
+
+            localProjectPath = fullfile(nansen.prefdir, 'projects');
             
             folderPath = fullfile(localProjectPath, obj.Name);
             if ~exist(folderPath, 'dir'); mkdir(folderPath); end
         end
+        
         
     end
 
