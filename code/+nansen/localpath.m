@@ -76,7 +76,7 @@ function pathStr = localpath(pathKeyword, projectName)
         case {'_user_data', 'user_data', '_userdata', 'userdata'} % Todo...
             folderPath = nansen.prefdir();
             
-        case {'current_project_dir', 'project'}
+        case {'project'}
             rootDir = fullfile(nansen.localpath('user_data'));
             defaultProjectDir = fullfile(rootDir, 'projects', 'default');
 

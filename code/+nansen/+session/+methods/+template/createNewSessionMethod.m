@@ -86,12 +86,7 @@ function wasSuccess = createNewSessionMethod(app)
     end
     
     % Save template
-    projectManager = nansen.ProjectManager();
-    currentProject = projectManager.getCurrentProject();
-
-    projectDir = currentProject.FolderPath;
-    projectName = currentProject.Name;
-    sMethodDir = fullfile(projectDir, 'Session Methods', ['+',projectName]);
+    sMethodDir = nansen.session.methods.getProjectsSessionMethodsDirectory();
     
     if ~isempty(S.MenuSubLocation)
         S.MenuLocation = [S.MenuLocation, strsplit(S.MenuSubLocation, ', ')];

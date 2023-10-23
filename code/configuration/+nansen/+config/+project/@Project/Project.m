@@ -97,7 +97,25 @@ classdef Project < handle
             filePathStr = fullfile(folderPathStr, filename);
         end
 
+        function folderPath = getProjectPackagePath(obj, packageName)
+
+            switch packageName
+                case 'Session Methods'
+                    folderPath = fullfile(obj.FolderPath, ...
+                        'Session Methods', obj.PackageName);
+                otherwise
+                    error('No package with name %s is defined.', packageName)
+            end
+            
+        end
+
         function folderPath = getLocalProjectFolderPath(obj)
+        % getLocalProjectFolderPath - Get folder for local project configs
+
+        % Private?
+        % Note: Projects contains userdata that can be stored on cloud.
+        % Some configurations are needed to be local, so there is a
+        % separate folder to store platform dependent configs.
 
             localProjectPath = fullfile(nansen.prefdir, 'projects');
             
