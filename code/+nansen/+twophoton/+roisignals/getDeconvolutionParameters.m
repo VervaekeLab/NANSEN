@@ -43,7 +43,7 @@ function [P, V] = getDeconvolutionParameters()
        
     % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
     P.modelType_                = {'ar1', 'ar2', 'exp2'};
-    P.modelParams_              = 'private';
+    P.modelParams_              = 'internal';
 
     
     % - - - - Specify validation/assertion test for each parameter - - - -

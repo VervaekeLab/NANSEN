@@ -142,7 +142,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.settings.Autosegmentation.options = [];
 %             obj.settings.ExperimentInfo = ... % Necessary?
 %                 rmfield(obj.settings.ExperimentInfo, 'ActiveChannel_');
-
             saveSettings@imviewer.plugin.RoiManager(obj)
         end
     end
@@ -348,12 +347,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             P0 = obj.settings.ExperimentInfo;
             P0.ActiveChannel_ = obj.getActiveChannelAlternatives();
 
-            [P2, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
-             
-            P2.modelType_ = {'ar1', 'ar2', 'exp2', 'autoar'};
-            P2.tauRise_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 1000, 'nTicks', 100, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});
-            P2.tauDecay_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 5000, 'nTicks', 500, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});
-
             i = 0;
             [structs, names, callbacks, valueChangedFcn] = deal( {} );
             
@@ -388,24 +381,33 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             i = i+1;
             structs{i} = obj.settings.SignalExtraction();
+            obj.signalOptions = obj.settings.SignalExtraction;
+            % Add save signal button
+            structs{i}.SaveSignals = false;
+            structs{i}.SaveSignals_ = struct('type', 'button', 'args', {{'String', 'Save Signals...', 'FontWeight', 'bold', 'ForegroundColor', [0.1840    0.7037    0.4863]}});
             names{i} = 'Signal Extraction';
             callbacks{i} = @obj.onSignalExtractionOptionsChanged; % todo
             %valueChangedFcn{i} = @obj.onSignalExtractionOptionsChanged;
             %valueChangedFcn{i} = [];
             
-            hSignalViewer = obj.SignalViewer;
-
             
             i = i+1;
+            obj.dffOptions = obj.settings.DffOptions;
             structs{i} = obj.settings.DffOptions;
             names{i} = 'DFF Options';
-            callbacks{i} = @hSignalViewer.onDffOptionsChanged;
+            callbacks{i} = @obj.onDffOptionsChanged;
             
             i = i+1;
+
+            [P2, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
+             
+            P2.modelType_ = {'ar1', 'ar2', 'exp2', 'autoar'};
+            P2.tauRise_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 1000, 'nTicks', 100, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});
+            P2.tauDecay_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 5000, 'nTicks', 500, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});
+
             structs{i} = P2;
             names{i} = 'Deconvolution';
-            callbacks{i} = @hSignalViewer.onDeconvolutionParamsChanged;
-            
+            callbacks{i} = @obj.onDeconvolutionParamsChanged;
             
             h = structeditor.App(obj.hPanels(1), structs, 'FontSize', 10, ...
                 'FontName', 'helvetica', 'LabelPosition', 'Over', ...
@@ -621,6 +623,26 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 case 'openClassifierApp'
                     obj.openManualRoiClassifier()
             end
+        end
+
+        function onSignalExtractionOptionsChanged(obj, name, value)
+
+            switch name
+                case 'SaveSignals'
+                    obj.extractSignals()
+                otherwise
+                    obj.signalOptions.(name) = value;
+            end
+        end
+
+        function onDffOptionsChanged(obj, name, value)
+            obj.SignalViewer.onDffOptionsChanged(name, value)
+            obj.dffOptions.(name) = value;
+        end
+
+        function onDeconvolutionParamsChanged(obj, name, value)
+            obj.SignalViewer.onDeconvolutionParamsChanged(name, value)
+            obj.deconvolutionOptions.(name) = value;
         end
 
         function opts = convertAutosegmentOptions(obj, options, methodName)

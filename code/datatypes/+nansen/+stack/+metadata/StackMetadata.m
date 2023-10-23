@@ -132,6 +132,7 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
         
         function readFromFile(obj)
             if isempty(obj.Filename); return; end
+            if ~isfile(obj.Filename); return; end
             %obj.ini2yaml(obj.Filename) 
             readFromFile@nansen.dataio.metadata.AbstractMetadata(obj)
         end

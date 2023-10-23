@@ -288,7 +288,9 @@ methods % Structors
         obj.addImageToolbar()
         obj.createThumbnailViewerToggleButton()
 
-
+        if isequal( obj.ImageStack.getDataIntensityLimits(), [0,0])
+            obj.displayMessage('Image stack appears to be empty')
+        end
 
         if ~all(isnan(obj.DisplayedImage(:)))
             set(obj.hDropbox, 'Visible', 'off')
@@ -2083,7 +2085,12 @@ methods % App update
                 obj.imObj = image(obj.uiaxes.imdisplay, 'CData', im);
             else
                 obj.imObj = image(obj.uiaxes.imdisplay, 'CData', im, 'CDataMapping', 'scaled');
-                obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
+                try
+                    obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
+                catch ME
+                    %warning(ME.message)
+                    obj.uiaxes.imdisplay.CLim = [0,1];
+                end
             end
             
             obj.imObj.HitTest = 'off';
@@ -5791,16 +5798,6 @@ methods (Access = private) % Methods that runs when properties are set
         newLimits = obj.ImageStack.getDataIntensityLimits();
         obj.updateBrightnessInSettings(newLimits)
         
-        
-% %         % If a "blank" stack is opened, need to readjust limits.
-% %         if all(obj.settings.ImageDisplay.imageBrightnessLimits == 0)
-% %             obj.settings.ImageDisplay.imageBrightnessLimits = [0,1];
-% %         end
-% %         
-% %         if obj.settings.ImageDisplay.imageBrightnessLimits(1) == 1
-% %             obj.settings.ImageDisplay.imageBrightnessLimits(1) = 0;
-% %         end
-
         if obj.ImageStack.IsVirtual  
             obj.currentChannel = obj.ImageStack.CurrentChannel;
         end
