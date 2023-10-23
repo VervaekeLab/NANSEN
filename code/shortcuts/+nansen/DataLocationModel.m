@@ -7,10 +7,15 @@ function dataLocationModel = DataLocationModel()
 %   h = nansen.DataLocationModel returns an instance of the
 %   DataLocationModel of the current project.
 
-    if ~nargout
-        nansen.config.dloc.DataLocationModelApp();    
-    else
-        dataLocationModel = nansen.config.dloc.DataLocationModel();
-    end
+%   Todo: Support input filepath or project name? Then it is possible to
+%   open model for another project.
 
+    pm = nansen.ProjectManager;
+    project = pm.getCurrentProject();
+    dataLocationModel = project.DataLocationModel;
+
+    if ~nargout
+        nansen.config.dloc.DataLocationModelApp('DataLocationModel', dataLocationModel);
+        clear dataLocationModel
+    end
 end

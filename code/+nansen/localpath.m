@@ -31,7 +31,10 @@ function pathStr = localpath(pathKeyword, projectName)
 
     
     if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')% Should it be called current?
-        projectRootDir = nansen.config.project.ProjectManager.getProjectPath();
+        %projectRootDir = nansen.config.project.ProjectManager.getProjectPath();
+        pm = nansen.ProjectManager();
+        project = pm.getCurrentProject();
+        projectRootDir = project.FolderPath;
     else
         projectRootDir = nansen.config.project.ProjectManager.getProjectPath(projectName);
     end
@@ -71,28 +74,30 @@ function pathStr = localpath(pathKeyword, projectName)
             folderPath = folderPath(1:end-1);
 
         case {'_user_data', 'user_data', '_userdata', 'userdata'} % Todo...
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata');
+            folderPath = nansen.prefdir();
             
-        case {'current_project_dir', 'project'}
+        case {'project'}
             rootDir = fullfile(nansen.localpath('user_data'));
             defaultProjectDir = fullfile(rootDir, 'projects', 'default');
-            folderPath = getpref('Nansen', 'CurrentProjectPath', defaultProjectDir); %todo: add default
+
+            if isempty(projectRootDir)
+                folderPath = defaultProjectDir;
+            else
+                folderPath = projectRootDir;
+            end
             
         case 'project_settings'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata', 'projects');
+            folderPath = fullfile(nansen.prefdir, 'projects');
             
         case 'custom_options'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata', 'custom_options');
+            folderPath = fullfile(nansen.prefdir, 'custom_options');
             
         case 'user_settings'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata', 'settings');
+            folderPath = fullfile(nansen.prefdir, 'settings');
             
         case {'current_project_folder', 'Current Project'}
-            folderPath = getpref('Nansen', 'CurrentProjectPath');
+            pm = nansen.ProjectManager();
+            folderPath = pm.CurrentProjectPath;
             
         case {'MetaTable', 'metatable_folder'}
             folderPath = fullfile(projectRootDir, 'Metadata Tables');

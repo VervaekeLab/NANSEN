@@ -66,6 +66,16 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
                 case 'MATLAB:imagesci:Tiff:unableToChangeDir'
                     numDirs = tiffObj.currentDirectory();
                     finished = tiffObj.lastDirectory();
+                    % For MATLAB 2023a and later, this case does not work anymore.
+                    % Will revert back to using the counting of imfinfo
+                    % until a better (?) solution is found.
+                    if finished == 0
+                        numDirs = numel( imfinfo(tiffRef.FileName) );
+                        finished = true;
+                        % dirNumInit = tiffObj.currentDirectory();
+                        % newStepSize = stepSize / 10;
+                        % [numDirs, finished] = findNumTiffDirectories(tiffObj, dirNumInit, newStepSize);
+                    end
                 
                 case 'MATLAB:imagesci:validate:argumentOutOfBounds'
                     dirNumInit = tiffObj.currentDirectory();
@@ -73,7 +83,9 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
                     [numDirs, finished] = findNumTiffDirectories(tiffObj, dirNumInit, newStepSize);
                 
                 otherwise
-                    error('Could not determine number of tiff directories, please report...')
+                    numDirs = numel( imfinfo(tiffRef.FileName) );
+                    finished = true;
+                    %error('Could not determine number of tiff directories, please report...')
             end
         end
     end

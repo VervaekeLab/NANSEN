@@ -235,8 +235,10 @@ classdef MetaTableCatalog < uim.handle
         
         function pathString = getFilePath()
         %getFilePath Get filepath where the MetaTableCatalog is located
-        
-            projectRootDir = getpref('Nansen', 'CurrentProjectPath');
+            
+            pm = nansen.ProjectManager();
+            projectRootDir = pm.CurrentProjectPath;
+            
             metaTableDir = fullfile(projectRootDir, 'Metadata Tables');
             
             if ~exist(metaTableDir, 'dir');  mkdir(metaTableDir);    end
@@ -285,7 +287,7 @@ classdef MetaTableCatalog < uim.handle
         function quicksave(MT, filePath)
         %QUICKSAVE Static method for saving catalog without constructing class
         
-            if ~nargin || isempty(filePath)
+            if nargin < 2 || isempty(filePath)
                 filePath = nansen.metadata.MetaTableCatalog.getFilePath();
             end
 

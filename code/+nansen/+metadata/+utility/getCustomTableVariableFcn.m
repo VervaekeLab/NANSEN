@@ -7,7 +7,8 @@ function funcHandles = getCustomTableVariableFcn(varNames, projectName, tableTyp
     end
     
     if nargin < 2 || isempty(projectName)
-        projectName = getpref('Nansen', 'CurrentProject');
+        projectManager = nansen.ProjectManager();
+        projectName = projectManager.CurrentProject;
     end
 
     if nargin < 3 || isempty(tableType)

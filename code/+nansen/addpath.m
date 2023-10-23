@@ -5,8 +5,8 @@ function addpath()
 %   because some functions in Nansen should take precedence over other
 %   functions from toolboxes..
 
-%   Note (Todo): This should be solved in a different way, or users need to be
-%   informed of this behavior...
+%   Note (Todo): This should be solved in a different way, or users need 
+%   to be informed of this behavior...
     
     currentpath = path;
     expression = sprintf('.*?(?=%s)', pathsep); % Everything before the first pathsep
@@ -27,6 +27,5 @@ function addpath()
     pathListNoGit = strjoin(pathListCell, pathsep);
     
     addpath(pathListNoGit)
-    
 end
 

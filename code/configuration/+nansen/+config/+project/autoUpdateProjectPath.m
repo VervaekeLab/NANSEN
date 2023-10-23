@@ -4,9 +4,8 @@ function newProjectPath = autoUpdateProjectPath(projectNewName, projectOldName, 
 
     % Initialize a folder path based if one is not given
     if isempty(currentProjectPath)
-        projectRootFolder = fullfile(nansen.rootpath, '_userdata', 'projects');
-
-        projectRootFolder = getpref('NansenSetup', 'DefaultProjectPath', projectRootFolder);
+        defaultRootFolder = fullfile(nansen.prefdir, 'projects');
+        projectRootFolder = getpref('NansenSetup', 'DefaultProjectPath', defaultRootFolder);
     else
         projectRootFolder = currentProjectPath;
     end

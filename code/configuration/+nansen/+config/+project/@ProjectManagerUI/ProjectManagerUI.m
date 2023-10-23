@@ -40,7 +40,10 @@ classdef ProjectManagerUI < handle
         function obj = ProjectManagerUI(hParent)
             
             obj.assignInitialProjectRootFolderPath()
-            obj.ProjectManager = nansen.config.project.ProjectManager.instance();
+
+            userSession = nansen.internal.user.NansenUserSession.instance();
+            obj.ProjectManager = userSession.getProjectManager();
+
             % If no parent is added, return before creating components
             if nargin < 1 || isempty(hParent)
                 return
@@ -247,8 +250,8 @@ classdef ProjectManagerUI < handle
         
             T = struct2table(obj.ProjectManager.Catalog, 'AsArray', true);
             
-            currentProjectName = getpref('Nansen', 'CurrentProject', '');
-            
+            % Add column to indicate current/active project
+            currentProjectName = obj.ProjectManager.CurrentProject;
             isCurrent = strcmp(T.Name, currentProjectName);
             tableColumn = table(isCurrent, 'VariableNames', {'Current'});
             
@@ -691,7 +694,7 @@ classdef ProjectManagerUI < handle
         function assignInitialProjectRootFolderPath(obj)
             %
             % Set default value of path for project root folder
-            projectFolder = fullfile(nansen.rootpath, '_userdata', 'projects'); % <-- Default value
+            projectFolder = fullfile(nansen.prefdir, 'projects'); % <-- Default value
             projectFolder = getpref('NansenSetup', 'DefaultProjectPath', projectFolder);
             obj.ProjectRootFolderPath = projectFolder;
         end

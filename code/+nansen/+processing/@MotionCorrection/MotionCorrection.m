@@ -147,7 +147,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %RecastOutput Determine if output needs to be recast.    
             dataTypeIn = obj.SourceStack.DataType;
             dataTypeOut = obj.Options.Export.OutputDataType;
-            recastOutput = ~strcmp(dataTypeIn, dataTypeOut);
+            if strcmp(obj.Options.Export.OutputDataType, 'same')
+                recastOutput = false;
+            else
+                recastOutput = ~strcmp(dataTypeIn, dataTypeOut);
+            end
         end
     end
     
@@ -206,6 +210,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 
             % Open output file
             dataTypeOut = obj.Options.Export.OutputDataType;
+            if strcmp(dataTypeOut, 'same')
+                dataTypeOut = obj.SourceStack.DataType;
+            end
             obj.openTargetStack(stackSize, dataTypeOut, dimensionArrangement);
             
             obj.ImageStats = obj.getImageStats(numFrames); % Todo: Remove???
@@ -406,14 +413,20 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Check if brightness of output should be adjusted...
             dataTypeIn = obj.SourceStack.DataType;
             dataTypeOut = obj.Options.Export.OutputDataType;
-            adjustOutputBrightness = ~strcmp(dataTypeIn, dataTypeOut);
+            
+            % Todo: Should there also be an option to recast output, but
+            % keep the dynamic range of the pixels?
+            adjustOutputBrightness = obj.RecastOutput;
             
             if adjustOutputBrightness
+                minValue = obj.getCurrentPixelBaseline();
+                maxValue = obj.getCurrentPixelUpperBound();                
+                
                 switch dataTypeOut
                     case 'uint8'
-                        minValue = obj.getCurrentPixelBaseline();
-                        maxValue = obj.getCurrentPixelUpperBound();
                         M = stack.makeuint8(Y, [minValue, maxValue]);
+                    case 'uint16'
+                        M = stack.makeuint16(Y, [minValue, maxValue]);
                     otherwise
                         error('Not implemented yet')
                 end

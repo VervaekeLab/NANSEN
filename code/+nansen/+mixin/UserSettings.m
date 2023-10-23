@@ -49,7 +49,7 @@ classdef UserSettings < applify.mixin.UserSettings
         %createSettingsPath Create filepath for settings of subclass 
             
             % Save settings into the nansen/_userdata folder.
-            settingsFolderPath = fullfile(nansen.rootpath, '_userdata', 'settings');
+            settingsFolderPath = fullfile(nansen.prefdir, 'settings');
         
             % Create a filename
             className = lower( strrep(className, '.', '_') );

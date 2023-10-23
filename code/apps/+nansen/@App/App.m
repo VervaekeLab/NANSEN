@@ -65,20 +65,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
     properties
         MetaTablePath = ''
-        MetaTable 
+        MetaTable % Project
         
-        BatchProcessor
+        BatchProcessor % UserSession?
         BatchProcessorUI
         
         SessionTasks matlab.ui.container.Menu
         SessionTaskMenu
         SessionContextMenu
         
-        DataLocationModel
-        VariableModel
+        DataLocationModel % Project
+        VariableModel % Project
         
-        CurrentProjectName  % Current project which is open in the app
-        ProjectManager
+        ProjectManager % UserSession
         
         MessagePanel % Todo: Use HasDisplay mixin...
         MessageBox
@@ -98,15 +97,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties (Access = private)
+        UserSession nansen.internal.user.NansenUserSession
         ApplicationState = 'Uninitialized';
     end
     
     
     methods % Structors
 
-        function app = App()
+        function app = App(userSession)
             
-            nansen.addpath()
+            nansen.addpath() % Todo: move to user session.
             
             % Call constructor explicitly to provide the nansen.Preferences
             app@uiw.abstract.AppWindow('Preferences', nansen.Preferences, 'Visible', 'off')
@@ -121,18 +121,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 app.Figure.Visible = 'on';
             end
-            
-            app.ProjectManager = nansen.ProjectManager();
-            app.assertProjectsAvailable()
-            app.ProjectManager.setProject()
-            app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
 
-            nansen.validate()
-            
+
+            app.UserSession = userSession;
+            app.ProjectManager = app.UserSession.getProjectManager();
+
             % Todo: This is project dependent, should be set on
             % setProject... Dependent???
-            app.DataLocationModel = nansen.DataLocationModel;
-            app.VariableModel = nansen.VariableModel;
+            app.DataLocationModel = nansen.DataLocationModel();
+            app.VariableModel = nansen.VariableModel();
             
             app.loadMetaTable()
             app.initializeBatchProcessor()
@@ -248,14 +245,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     methods (Hidden, Access = private) % Methods for app creation
         
         createSessionTableContextMenu(app) % Function in file...
-        
-        function assertProjectsAvailable(app)
-            if app.ProjectManager.NumProjects == 0
-                delete(app)
-                error('Nansen:NoProjectsAvailable', ...
-                    'No projects exists. Please run nansen.setup to configure a project')
-            end
-        end
         
         function createWindow(app)
         %createWindow Create and customize UIFigure 
@@ -417,7 +406,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             mitem = uimenu(m, 'Text','Refresh Data Locations');
             mitem.MenuSelectedFcn = @app.onDataLocationModelChanged;
-            
+
+            mitem = uimenu(m, 'Text','Clear Memory');
+            mitem.MenuSelectedFcn = @app.onClearMemoryMenuClicked;
 
             % % % % % % Create EXIT menu items % % % % % % 
 
@@ -528,16 +519,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             m = uimenu(app.Figure, 'Text', 'Session');
             app.createSessionMenu(m)
 
+            %m = uimenu(app.Figure, 'Text', 'Apps');
 
-            menuRootPath = fullfile(nansen.rootpath, '+session', '+methods');
-            
+            % Create a separator
+            %m = uimenu(app.Figure, 'Text', '| Session Methods ->', 'Enable', 'off');
+            m = uimenu(app.Figure, 'Text', '|', 'Enable', 'off');
+
             app.SessionTaskMenu = nansen.SessionTaskMenu(app);
             
             l = listener(app.SessionTaskMenu, 'MethodSelected', ...
                 @app.onSessionTaskSelected);
             app.TaskInitializationListener = l;
-            
-            
+
             % app.createMenuFromDir(app.Figure, menuRootPath)
             
             
@@ -576,10 +569,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function updateProjectList(app, hParent)
         %updateProjectList Update lists of projects in uicomponents
             
-            pm = nansen.ProjectManager;
-            names = {pm.Catalog.Name};
-            currentProject = getpref('Nansen', 'CurrentProject');
-            
+            names = app.ProjectManager.ProjectNames;
+            currentProject = app.ProjectManager.CurrentProject;
+
             if isfield( app.Menu, 'ProjectList' )
                 app.Menu.ProjectList.Items = names;
                 app.Menu.ProjectList.Value = currentProject;
@@ -1325,7 +1317,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             app.TableIsUpdating = false;
-            app.CurrentProjectName = getpref('Nansen', 'CurrentProject');
         end
         
         function onDataLocationModelChanged(app, src, evt)
@@ -1340,7 +1331,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.saveMetaTable()
             try
-             close(d)
+                close(d)
             end
         end
 
@@ -1376,11 +1367,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         % % Todo: The following methods could become its own class 
         % MetaObjectCache
-        function metaObjects = getSelectedMetaObjects(app)
-        %getSelectedMetaObjects Get session objects for the selected table rows     
-            returnToIdle = app.setBusy('Creating session objects...'); %#ok<NASGU> 
+        function metaObjects = getSelectedMetaObjects(app, useCache)
+        %getSelectedMetaObjects Get session objects for the selected table rows
+            if nargin < 2; useCache = true; end
+            returnToIdle = app.setBusy('Creating session objects...'); %#ok<NASGU>
             entries = app.getSelectedMetaTableEntries();
-            metaObjects = app.tableEntriesToMetaObjects(entries);
+            if useCache
+                metaObjects = app.tableEntriesToMetaObjects(entries);
+            else
+                metaObjects = app.createMetaObjects(entries, useCache);
+            end
         end
         
         function metaObjects = tableEntriesToMetaObjects(app, entries)
@@ -1428,9 +1424,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
-        function metaObjects = createMetaObjects(app, tableEntries)
+        function metaObjects = createMetaObjects(app, tableEntries, useCache)
         %createMetaObjects Create new meta objects from table entries
             
+            if nargin < 3 || isempty(useCache); useCache = true; end
+
             schema = str2func(class(app.MetaTable));
 
             if isempty(tableEntries)
@@ -1453,6 +1451,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             metaObjects = schema(tableEntries, nvPairs{:});
+
             try
                 addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
                 addlistener(metaObjects, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
@@ -1462,13 +1461,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % class..
             end
 
-            % Add newly created metaobjects to the list
-            if isempty(app.MetaObjectList)
-                app.MetaObjectList = metaObjects;
-            else
-                app.MetaObjectList = [app.MetaObjectList, metaObjects];
+            if useCache
+                % Add newly created metaobjects to the list
+                if isempty(app.MetaObjectList)
+                    app.MetaObjectList = metaObjects;
+                else
+                    app.MetaObjectList = [app.MetaObjectList, metaObjects];
+                end
+                app.updateMetaObjectMembers()
             end
-            app.updateMetaObjectMembers()
         end
 
         function updateMetaObjectMembers(app)
@@ -1620,10 +1621,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                                         
                     entries = getSelectedMetaTableEntries(app);
                     if isempty(entries); return; end
-
+                    
                     metaObj = app.tableEntriesToMetaObjects(entries(1,:));
-                                    
-                    currentSessionID = app.UiFileViewer.getCurrentObjectId();
+                    
+                    try
+                        currentSessionID = app.UiFileViewer.getCurrentObjectId();
+                    catch ME
+                        switch ME.identifier
+                            % This is necessary in case the session object
+                            % cache was cleared.
+                            case 'MATLAB:class:InvalidHandle'
+                                currentSessionID = '';
+                        end
+                    end
 
                     if strcmp(metaObj.sessionID, currentSessionID)
                         return
@@ -1745,7 +1755,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 status = 'busy';
             end
             
-            projectName = getpref('Nansen', 'CurrentProject');
+            projectName = app.ProjectManager.CurrentProject;
             titleStr = sprintf('%s | Project: %s | Metatable: %s (%s)', app.AppName, projectName, fileName, status);
             app.Figure.Name = titleStr;
         end
@@ -2691,7 +2701,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             if isempty(loadPath)
-                projectName = getpref('Nansen', 'CurrentProject');
+                projectName = app.ProjectManager.CurrentProject;
                 if ~strcmp(app.ApplicationState, 'Uninitialized')
                     message = sprintf('The configuration of the current project (%s) is not completed (metatable is missing)', projectName);
                     title = 'Aborted';
@@ -2788,10 +2798,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return 
             end
             
+            currentProjectName = app.ProjectManager.CurrentProject;
+
             % Prepare inputs for the question dialog
             qstring = sprintf(['The session table for project "%s" has ', ...
                 'unsaved changes. Do you want to save changes to the ', ...
-                'table?'], app.CurrentProjectName);
+                'table?'], currentProjectName);
             
             title = 'Save changes to table?';
             alternatives = {'Save', 'Don''t Save', 'Cancel'};
@@ -2921,6 +2933,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return
             elseif strcmp(evt.Mode, 'Help')
                 help(evt.TaskAttributes.FunctionName)
+                applify.helpDialog(evt.TaskAttributes.FunctionName)
                 return
             end
 
@@ -2937,9 +2950,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Throw error if no sessions are selected.
             app.assertSessionSelected()
             
-            % Get the session objects that are selected in the metatable
-            sessionObj = app.getSelectedMetaObjects();
+            % Note: If the task(s) should be added to the queue, the
+            % session objects need to be uncached. This is because the
+            % cache can be cleared, and when the cache is cleared the
+            % session objects will become invalid. Thus the tasks in the
+            % task list would also be corrupt/unrunnable.
+            if strcmp(evt.Mode, 'TaskQueue')
+                useSessionObjectCache = false;
+            else
+                useSessionObjectCache = true;
+            end
             
+            % Get the session objects that are selected in the metatable
+            sessionObj = app.getSelectedMetaObjects(useSessionObjectCache);
+
             % Get the function name 
             functionName = evt.TaskAttributes.FunctionName;
             returnToIdle = app.setBusy(functionName); %#ok<NASGU>
@@ -3505,7 +3529,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             S_.IsDefault = S.MakeDefault;
             S_.IsMaster = false;
             
-            projectRootDir = getpref('Nansen', 'CurrentProjectPath');
+            projectRootDir = app.ProjectManager.CurrentProjectPath;
             S_.SavePath = fullfile(projectRootDir, 'Metadata Tables');
 
             metaTableCatalog = nansen.metadata.MetaTableCatalog();
@@ -3669,6 +3693,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             resetView = false;
             app.UiMetaTableViewer.resetTable(resetView)
             onNewMetaTableSet(app)
+        end
+
+        function onClearMemoryMenuClicked(app, ~, ~)
+            app.resetMetaObjectList()
         end
         
         function onOpenFigureMenuClicked(app, packageName, figureName)

@@ -17,7 +17,7 @@ classdef AddonManager < handle
     %     a settings file by a keyword or something similar.
     % [ ] Better warning/resolving when addons are duplicated...
     
-    % [ ] Use matlab.addons.install(filename) for matlab toolbox files.
+    % [v] Use matlab.addons.install(filename) for matlab toolbox files.
     
     
     % QUESTIONS:
@@ -63,23 +63,27 @@ classdef AddonManager < handle
     end
     
     
-    methods
+    methods (Access = ?nansen.internal.user.NansenUserSession)
         
-        function obj = AddonManager()
+        function obj = AddonManager(preferenceDirectory)
         %AddonManager Construct an instance of this class
         
             % Create a addon manager instance. Provide methods for
             % installing addons
+            if nargin < 1; preferenceDirectory = ''; end
             
             % Assign the path to the directory where addons are saved
             obj.InstallationDir = obj.getDefaultInstallationDir();
             
             % Get path where list of previously installed addons are saved
-            obj.AddonDefinitionsPath = obj.getPathForAddonList;
+            obj.AddonDefinitionsPath = obj.getPathForAddonList(preferenceDirectory);
             
             % Load addon list (list is initialized if it does not exist)
             obj.loadAddonList()
             
+            % Check if addons are located in legacy directory. Move if yes.
+            % obj.checkLegacyDirectory()
+
             % Add previously installed addons to path if they are not already there.
             obj.updateSearchPath()
         
@@ -453,15 +457,15 @@ classdef AddonManager < handle
     
     methods (Hidden, Access = protected) 
                
-        function pathStr = getPathForAddonList(obj)
+        function pathStr = getPathForAddonList(obj, prefDir)
         %getPathForAddonList Get path where local addon list is saved.
-        
-            rootDir = nansen.rootpath();
-            pathStr = fullfile(rootDir, '_userdata', 'settings');
             
-            if ~exist(pathStr, 'dir'); mkdir(pathStr); end
-            
-            pathStr = fullfile(pathStr, 'installed_addons.mat');
+            if nargin < 2 || isempty(prefDir)
+                prefDir = fullfile(nansen.prefdir, 'settings');
+            end
+
+            if ~exist(prefDir, 'dir'); mkdir(prefDir); end
+            pathStr = fullfile(prefDir, 'installed_addons.mat');
         end
         
         function fileType = getFileTypeFromUrl(obj, addonEntry)
@@ -528,7 +532,50 @@ classdef AddonManager < handle
         end
         
     end
-        
+      
+    methods (Access = private)
+        % Note: This method will be removed in a future version (todo).
+        checkLegacyDirectory(obj) % Method in separate file
+    end
+
+    methods (Static)
+        function checkIfAddonsAreOnPath()
+            
+            import nansen.config.addons.AddonManager
+
+            addonDir = AddonManager.getDefaultInstallationDir();
+            parentFolders = utility.path.listSubDir(addonDir, '', {}, 0);
+            subfolders = utility.path.listSubDir(addonDir, '', {}, 1);
+            
+            subfolders = setdiff(subfolders, parentFolders);
+            
+            isOnPath = true(size(subfolders));
+
+            if ~isempty(subfolders)
+                for i = 1:numel(subfolders)
+                    if ~contains(path, subfolders{i})
+                        isOnPath(i)=false;
+                    end
+                end
+            end
+
+            if any(~isOnPath)
+                subfoldersNotOnPath = subfolders(~isOnPath);
+                [~, addonNames] = fileparts(subfoldersNotOnPath);
+
+                msg = sprintf("The following add-ons where not present on the MATLAB path: \n\n%s \n\nDo you want to add them now?", strjoin(addonNames, newline));
+                answer = questdlg(msg, 'Update MATLAB path?');
+
+                switch answer
+                    case 'Yes'
+                        for i = 1:numel(subfoldersNotOnPath)
+                            addpath(genpath(subfoldersNotOnPath{i}))
+                        end
+                        savepath()
+                end                
+            end
+        end
+    end
     
     methods (Static)
         
@@ -549,11 +596,16 @@ classdef AddonManager < handle
         %   installing addons
         
             % Assign Installation dir
-            nansenDir = nansen.rootpath;
-            pathStr = fullfile(nansenDir, 'external');
+            %nansenDir = nansen.rootpath;
+            %pathStr = fullfile(nansenDir, 'external');
 
             % Todo:
-            % pathStr = fullfile(userpath, 'Nansen-Addons');
+            pathStr = fullfile(userpath, 'Nansen', 'Add-Ons');
+        end
+
+        function pathStr = getDefaultInstallationDirLegacy()
+            nansenDir = nansen.rootpath;
+            pathStr = fullfile(nansenDir, 'external');
         end
         
         function folderPath = moveGithubAddonDirectory(folderPath)

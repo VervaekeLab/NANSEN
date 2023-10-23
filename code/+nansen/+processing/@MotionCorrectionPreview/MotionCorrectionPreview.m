@@ -80,14 +80,18 @@ classdef MotionCorrectionPreview < handle
             %folderPath = fullfile(folderPath, 'motion_correction_flowreg');
             if ~isfolder(folderPath); mkdir(folderPath); end
 
+            [~, datasetID] = fileparts(obj.settings.Export.FileName);
+            
             dataSet = nansen.dataio.dataset.SingleFolderDataSet(folderPath, ...
-                'DataSetID', obj.settings.Export.FileName );
+                'DataSetID', datasetID );
             
             dataSet.addVariable('TwoPhotonSeries_Original', ...
                 'Data', obj.ImviewerObj.ImageStack)
+            
 
             dataSet.addVariable('TwoPhotonSeries_Corrected', ...
-                'FilePath', obj.settings.Export.FileName );
+                'FilePath', obj.settings.Export.FileName, ...
+                'Subfolder', 'motion_corrected');
         end
 
         function folderPath = getExportDirectory(obj)

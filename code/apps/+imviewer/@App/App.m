@@ -288,7 +288,9 @@ methods % Structors
         obj.addImageToolbar()
         obj.createThumbnailViewerToggleButton()
 
-
+        if isequal( obj.ImageStack.getDataIntensityLimits(), [0,0])
+            obj.displayMessage('Image stack appears to be empty')
+        end
 
         if ~all(isnan(obj.DisplayedImage(:)))
             set(obj.hDropbox, 'Visible', 'off')
@@ -2083,7 +2085,12 @@ methods % App update
                 obj.imObj = image(obj.uiaxes.imdisplay, 'CData', im);
             else
                 obj.imObj = image(obj.uiaxes.imdisplay, 'CData', im, 'CDataMapping', 'scaled');
-                obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
+                try
+                    obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
+                catch ME
+                    %warning(ME.message)
+                    obj.uiaxes.imdisplay.CLim = [0,1];
+                end
             end
             
             obj.imObj.HitTest = 'off';
@@ -4805,18 +4812,29 @@ methods (Access = protected) % Event callbacks
                 if obj.ImageStack.IsVirtual  %Update cache size of virtual stack.
                     if isempty(value); value = 0; end
                     
-                    obj.displayMessage('Updating cache size...')
-                    obj.ImageStack.Data.DynamicCacheSize = value; % Todo: test
-                    bytes = obj.ImageStack.Data.getCacheByteSize(); % Todo
-                    
-                    if bytes > 1e9
-                        msg = sprintf('Cache uses ~%.1f GB of memory', round(bytes/1e9, 1));
-                    elseif bytes > 1e6
-                        msg = sprintf('Cache uses ~%d MB of memory', round(bytes/1e6));
+                    if obj.ImageStack.Data.UseDynamicCache
+                        obj.displayMessage('Updating cache size...')
+                        try
+                            oldSize = obj.ImageStack.Data.DynamicCacheSize;
+                            obj.ImageStack.Data.DynamicCacheSize = value; % Todo: test
+                            bytes = obj.ImageStack.Data.getCacheByteSize(); % Todo
+                            
+                            if bytes > 1e9
+                                msg = sprintf('Cache uses ~%.1f GB of memory', round(bytes/1e9, 1));
+                            elseif bytes > 1e6
+                                msg = sprintf('Cache uses ~%d MB of memory', round(bytes/1e6));
+                            else
+                                msg = sprintf('Cache uses ~%d kB of memory', round(bytes/1e3));
+                            end
+                        catch ME
+                            msg = sprintf(ME.message);
+                            obj.ImageStack.Data.DynamicCacheSize = oldSize;
+                            obj.settings.(thisField).(name) = oldSize;
+                        end
                     else
-                        msg = sprintf('Cache uses ~%d kB of memory', round(bytes/1e3));
+                        msg = 'The dynamic cache for this image stack is disabled';
                     end
-                    
+
                     obj.displayMessage(msg, [], 2)
                     
                 end
@@ -5780,16 +5798,6 @@ methods (Access = private) % Methods that runs when properties are set
         newLimits = obj.ImageStack.getDataIntensityLimits();
         obj.updateBrightnessInSettings(newLimits)
         
-        
-% %         % If a "blank" stack is opened, need to readjust limits.
-% %         if all(obj.settings.ImageDisplay.imageBrightnessLimits == 0)
-% %             obj.settings.ImageDisplay.imageBrightnessLimits = [0,1];
-% %         end
-% %         
-% %         if obj.settings.ImageDisplay.imageBrightnessLimits(1) == 1
-% %             obj.settings.ImageDisplay.imageBrightnessLimits(1) = 0;
-% %         end
-
         if obj.ImageStack.IsVirtual  
             obj.currentChannel = obj.ImageStack.CurrentChannel;
         end

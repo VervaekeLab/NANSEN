@@ -131,7 +131,10 @@ classdef uicontrolSchemer < handle
         end
 
         function restyleControls(obj)
-
+            
+            S = warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved');
+            C = onCleanup(@() warning(S));
+            
             numUIControls = numel(obj.hUicontrol);
             for i = 1:numUIControls
                 hTmp = obj.hUicontrol(i);
@@ -229,14 +232,18 @@ classdef uicontrolSchemer < handle
 % %                     findjavacomps = @applify.uicontrolSchemer.findJavaComponents;
 % %                     jhBtn = findjavacomps(hS.button, hTmp.Parent);
 % %                     obj.stripUicontrol(hS.button, jhBtn{1})
-                    
+                
+                elseif strcmp( hTmp.Style, 'text')
+                    set(jTmp, 'Opaque', 0)
+
                 elseif any( strcmp( hTmp.Style, {'pushbutton', 'togglebutton'} ) )
                     obj.removeJButtonStyle(jTmp)
 
                     hTmp.CData = ones(1,1,3).*reshape(bgColor, 1,1,3);
-                    drawnow
+                    %drawnow
                 end
             end
+            drawnow
         end
         
         function onButtonResized(obj, src, evt)
@@ -417,6 +424,11 @@ classdef uicontrolSchemer < handle
                     % Add button to list of uicontrols/java handles
                     obj.hUicontrol(end+1) = hS.button;
                     obj.jhUicontrol(end+1) = jhBtn;
+
+                    % Add textbox to list of uicontrols/java handles...
+                    jhTxt = findjavacomps(hS.textBox, hControl.Parent);
+                    obj.hUicontrol(end+1) = hS.textBox;
+                    obj.jhUicontrol(end+1) = jhTxt;
     
                     % Make sure text does not go too far to the right, e.g
                     % outside of the box, or under the popupmenu button
@@ -436,6 +448,12 @@ classdef uicontrolSchemer < handle
                     set(jhBtn{1}, 'MouseExitedCallback', @(s,e) obj.mouseLeavePopupButton(hS.button))
                     set(jhBtn{1}, 'FocusGainedCallback', @(s, e, hc, h) obj.gainFocus(hControl, hS) )
                     set(jhBtn{1}, 'FocusLostCallback', @(s, e, hc, h) obj.loseFocus(hControl, hS) )
+                    
+                    jButtonTemp = handle(jhBtn{1}, 'CallbackProperties');
+                    set(jButtonTemp, 'AncestorResizedCallback', @obj.onButtonResized)
+                    set(jButtonTemp, 'AncestorMovedCallback', @obj.onButtonResized)
+                    set(jButtonTemp, 'ComponentShownCallback', @obj.onButtonResized)
+
                     jhBtn{1}.setCursor(java.awt.Cursor(java.awt.Cursor.HAND_CURSOR))
                     
                     if false % for debugging
@@ -628,6 +646,7 @@ classdef uicontrolSchemer < handle
                 %set(jControl, 'ComponentResizedCallback', @obj.onButtonResized)
                 set(jControl, 'AncestorResizedCallback', @obj.onButtonResized)
                 set(jControl, 'AncestorMovedCallback', @obj.onButtonResized)
+                set(jControl, 'ComponentShownCallback', @obj.onButtonResized)
 
                 %set(jControl, 'AncestorResizedCallback',@(s,e,msg)disp('resized'))
                 %set(jControl, 'AncestorMovedCallback', @(s,e,msg)disp('moved'))

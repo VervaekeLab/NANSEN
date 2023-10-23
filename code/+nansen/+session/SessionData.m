@@ -176,7 +176,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 return
             end
             
-            obj.DataVariableModel = nansen.config.varmodel.VariableModel();
+            obj.DataVariableModel = nansen.VariableModel();
             varNames = {obj.DataVariableModel.Data.VariableName};
             
             for i = 1:numel(varNames)
@@ -205,7 +205,8 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             if nargin < 3; mustExist = true; end
 
             % Todo: get from session object:
-            dataVariableModel = nansen.config.varmodel.VariableModel();
+            %dataVariableModel = obj.SessionObject.VariableModel;
+            dataVariableModel = nansen.VariableModel();
             fileAdapters = {dataVariableModel.Data.FileAdapter};
 
             switch typeName

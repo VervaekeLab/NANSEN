@@ -57,6 +57,7 @@ classdef SessionTaskMenu < handle
     properties
         Mode char = 'Default' % Mode for running session task. See doc
         CurrentProject
+        TitleColor = '#0072BD';
     end
     
     properties (SetAccess = private)
@@ -296,11 +297,16 @@ classdef SessionTaskMenu < handle
             
             % Check if menu with this label already exists
             hMenuItem = findobj( hParent, 'Type', 'uimenu', '-and', ...
-                                 'Text', menuName, '-depth', 1 );
+                                 'Tag', menuName, '-depth', 1 );
             
             % Create new menu item if menu with this label does not exist
             if isempty(hMenuItem)
-                hMenuItem = uimenu(hParent, 'Text', menuName);
+                if isa(hParent, 'matlab.ui.Figure')
+                    styledMenuName = obj.styleTopLevelMenuTitle(menuName);
+                else
+                    styledMenuName = menuName;
+                end
+                hMenuItem = uimenu(hParent, 'Text', menuName, 'Tag', menuName);
                 obj.hMenuDirs(end+1) = hMenuItem;
             end
             
@@ -493,6 +499,11 @@ classdef SessionTaskMenu < handle
             if obj.IsConstructed
                 obj.refresh()
             end
+        end
+        
+        function menuName = styleTopLevelMenuTitle(obj, menuName)
+            menuName = sprintf('<HTML><FONT color="%s">%s</Font></HTML>', ...
+                obj.TitleColor, menuName);
         end
 
         function packagePathList = listPackageHierarchy(obj)

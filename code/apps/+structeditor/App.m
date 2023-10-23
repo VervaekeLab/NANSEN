@@ -2025,7 +2025,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.UIControlSchemer(panelNum) = h;
 
                 el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(h));
-                
+            else
+                h = applify.uicontrolSchemer();
+                obj.UIControlSchemer(panelNum) = h;
             end
             %drawnow
             
@@ -2908,17 +2910,23 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             panelNum = obj.currentPanel;
         
             % Get the fraction which the scrollbar has moved
-            fractionMoved = (scroller.Value - obj.lastScrollValue) / 100;
+            %fractionMoved = (scroller.Value - obj.lastScrollValue) / 100;
             obj.lastScrollValue = scroller.Value;
 
             % Get textsfields of panel
-            hUicTmp = findobj(obj.main.hPanel(panelNum), 'Type', 'UIControl');
+            %hUicTmp = findobj(obj.main.hPanel(panelNum), 'Type', 'UIControl');
 
-            % Calculate the shift of components in pixels
-            pixelShiftY = fractionMoved * obj.visibleHeight;
-            
+            % Calculate the shift of components in pixels %Todo: remove,
+            % this was buggy:
+            %pixelShiftY = fractionMoved * obj.visibleHeight;
+
             pixelpos = getpixelposition( obj.main.hPanel(panelNum) );
-            pixelpos(2) = pixelpos(2) + pixelShiftY;
+            %pixelpos(2) = pixelpos(2) + pixelShiftY;
+
+            % Calculate new y-position for panel in pixels:
+            offsetY = scroller.Value / 100 * obj.visibleHeight;
+            newY = obj.visibleHeight - pixelpos(4) + offsetY;
+            pixelpos(2) = newY;
             setpixelposition( obj.main.hPanel(panelNum), pixelpos );
             
             return

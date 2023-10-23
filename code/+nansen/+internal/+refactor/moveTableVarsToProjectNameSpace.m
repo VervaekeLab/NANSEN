@@ -1,7 +1,4 @@
-function moveTableVarsToProjectNameSpace()
-    
-    % Get project catalog
-    projectManager = nansen.ProjectManager;
+function moveTableVarsToProjectNameSpace(projectManager)
     
     % Loop through projects
     for iProject = 1:projectManager.NumProjects
