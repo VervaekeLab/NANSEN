@@ -21,4 +21,6 @@ S.Session.SessionTaskDebug = false;
 S.TaskProcessor.RunTasksWhenQueued = false;
 S.TaskProcessor.RunTasksOnStartup = false;
 
+S.General.MonitorDrives = true;
+
 end

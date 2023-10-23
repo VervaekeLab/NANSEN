@@ -160,7 +160,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.initializeTimer()
             app.ApplicationState = 'idle';
 
-            app.initDiskConnectionMonitor()
+            if app.settings.General.MonitorDrives
+                app.initDiskConnectionMonitor()
+            end
             
             if nargout == 0
                 clear app
