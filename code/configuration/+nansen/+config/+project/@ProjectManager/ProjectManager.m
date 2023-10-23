@@ -50,6 +50,10 @@ classdef ProjectManager < handle
         CurrentProjectPath
     end
 
+    properties (Access = private)
+        ProjectCache
+    end
+
     events (NotifyAccess = private)
         CurrentProjectSet
     end
@@ -414,16 +418,14 @@ classdef ProjectManager < handle
         %   changeProject(obj, name) changes the current project to project
         %   with given name
                         
-            projectEntry = obj.getProject(nameOrIndex);
-
             import nansen.config.project.event.CurrentProjectChangedEventData
-            
+
             % Check that project with given name exists.
-            projectEntry = obj.getProject(name);
+            projectEntry = obj.getProject(nameOrIndex);
             newProjectName = projectEntry.Name;
 
             if isempty(projectEntry)
-                errMsg = sprintf('Project with name "%s" does not exist', name);
+                errMsg = sprintf('Project with name "%s" does not exist', newProjectName);
                 error('Nansen:ProjectNonExistent', errMsg) %#ok<SPERR>
             end
 
