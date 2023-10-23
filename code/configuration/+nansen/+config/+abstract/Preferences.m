@@ -22,7 +22,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
         Filename
     end
 
-    properties (SetAccess = immutable, GetAccess = private)
+    properties (SetAccess = immutable, GetAccess = protected)
         FileName_   % If anything else than the default file name should be used
     end
 
@@ -81,8 +81,8 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
             else
 
                 if isfile(obj.Filename)
-                    S = load(obj.Filename);
-                    obj = S.obj;
+                    S = load(obj.Filename, 'preferences');
+                    obj.fromStruct(S.preferences);
                 end
 
                 objStore(thisClassName) = obj;
@@ -90,7 +90,8 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
         end
 
         function save(obj)
-            save(obj.Filename, 'obj');
+            preferences = obj.toStruct();
+            save(obj.Filename, 'preferences');
         end
     end
 
@@ -171,6 +172,21 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
     end
 
     methods (Access = private)
+        
+        function S = toStruct(obj)
+            propNames = properties(obj);
+            S = struct();
+            for i = 1:numel(propNames)
+                S.(propNames{i}) = obj.(propNames{i});
+            end
+        end
+                
+        function fromStruct(obj, S)
+            propNames = fieldnames(S);
+            for i = 1:numel(propNames)
+                obj.(propNames{i}) = S.(propNames{i});
+            end
+        end
 
         function propertyNames = getActivePreferenceGroup(obj)
         %getCurrentPreferenceGroup Get current preference group
