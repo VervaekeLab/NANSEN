@@ -1828,14 +1828,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % the input field.
             if ~isempty(config) && isa(config, 'char') && ~strcmp(config, 'transient')        
                 
-                inputbox.Position(3) = inputbox.Position(3);
+                %inputbox.Position(3) = inputbox.Position(3);
                 
                 hButton = uicontrol(guiPanel, 'style', 'pushbutton');
                 hButton.String = '...';
                 hButton.Units = 'pixel';
                 hButton.ForegroundColor = inputbox.ForegroundColor;
                 
-                xPos = sum(inputbox.Position([1,3]) + 6 );
+                xPos = sum(inputbox(end).Position([1,3]) + 6 );
                 if strcmp(obj.mode, 'standalone')
                     hButton.Position = [xPos, y+1, 22,  22]; %Slightly smaller..
                 elseif strcmp(obj.mode, 'docked')
@@ -1847,7 +1847,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 hButton.ButtonDownFcn = {@obj.onButtonPressed, config};
 
                 hButton.Tag = name;
-                inputbox.TooltipString = inputbox.String;
+                [inputbox(:).TooltipString] = deal(inputbox.String); % Works for triplets.
                 
             elseif ~isempty(config) && isa(config, 'function_handle')
                 
@@ -2369,8 +2369,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     else
                         obj.dataEdit{iPanel}.(propertyName) = newRGB;
                         inputfield = findobj(guiFig, 'Tag', propertyName, 'Style', 'edit');
-                        inputfield.String = num2str(newRGB, '%.2f  %.2f  %.2f');
-                        inputfield.TooltipString = inputfield.String;
+                        %inputfield.String = num2str(newRGB, '%.2f  %.2f  %.2f');
+                        
+                        rgbCellStr = arrayfun(@(x) num2str(x, '%.2f'), newRGB, 'UniformOutput', 0);
+                        [inputfield(:).String] = deal( rgbCellStr{:} );
+
+                        [inputfield(:).TooltipString] = deal(inputfield.String); % Works for triplets.
+                        %inputfield.TooltipString = inputfield.String;
                     end
                     
             end
