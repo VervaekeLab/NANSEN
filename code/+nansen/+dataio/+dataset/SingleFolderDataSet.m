@@ -169,6 +169,21 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
                 '"%s" already exists for this DataSet'], varName )
 
             variableItem = obj.initializeVariableItem(varName, varargin{:});
+            
+            %If a new variable is added, and it has a filepah provided,
+            %make sure it contains the dataset folder location (i.e make
+            %sure it is an absolute filepath rooted in the dataset foleder)
+            if ~isempty(variableItem.FilePath)
+                folderPath = obj.FolderPath;
+        
+                if ~isempty(variableItem.Subfolder)
+                    folderPath = fullfile( folderPath, variableItem.Subfolder);
+                end
+        
+                if ~contains(variableItem.FilePath, folderPath)
+                    variableItem.FilePath = fullfile(folderPath, variableItem.FilePath);
+                end
+            end
 
             if isempty(obj.VariableList)
                 obj.VariableList = variableItem;

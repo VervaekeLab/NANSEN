@@ -544,6 +544,8 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             
             % Find files in folder
             expression = ['*', fileNameExpression, '*'];
+            % Make sure we don't have two successive wildcards.
+            expression = strrep(expression, '**', '*');
             L = dir(fullfile(folderPath, expression));
             keep = ~strncmp({L.name}, '.', 1);
             L = L(keep);

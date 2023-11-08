@@ -110,6 +110,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         ImageDataCache struct   % Todo: This does not belong on roimanager!
         
         signalOptions           % ? Should not be part of roimanager!
+        dffOptions
         deconvolutionOptions    % ? Should not be part of roimanager!
         
         PointerManager  % make dependent property on imviewerplugin class
@@ -692,10 +693,8 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         end % /function openManualRoiClassifier
         
         function extractSignals(obj) % Todo: Use imageStackProcessors and external methods!
-                    
-            global fprintf
-            fprintf = @(msg) obj.PrimaryApp.displayMessage(msg);
             
+            C = obj.ImviewerObj.activateGlobalMessageDisplay(); %#ok<NASGU>
             
             % % Get image stack and rois. Cancel if there are no rois
             imageStack = obj.ImviewerObj.ImageStack;
@@ -713,12 +712,15 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             import nansen.twophoton.roisignals.computeDff
             import nansen.twophoton.roisignals.deconvolveDff
             
+            if isempty(obj.dffOptions)
+                obj.dffOptions = nansen.twophoton.roisignals.computeDff();
+            end
             
             % % Define options for what to save
             options = struct;
             options.saveNeuropilSignals = true;
             options.computeDff = true;
-            options.dffMethod = 'dffClassic';
+            options.dffMethod = obj.dffOptions.dffFcn;
             options.dffMethod_ = {'dffClassic', 'dffChenEtAl2013', 'dffRoiMinusDffNpil'};
             
             options.deconvolveSignals = true;
@@ -727,16 +729,17 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             
             options.savePath = fullfile('..', 'roisignals');
 
-            options = tools.editStruct(options);
+            [options, wasAborted] = tools.editStruct(options);
+            if wasAborted; return; end
             
-            
+            obj.dffOptions.dffFcn = options.dffMethod;
+
             % % Get signal extraction options
             if isempty(obj.signalOptions)
                 obj.signalOptions = nansen.twophoton.roisignals.extract.getDefaultParameters();
             end
             
             obj.ImviewerObj.displayMessage('Extracting signals...')
-            
             
             % % Extract signals
             signalArray = extractF(imageStack, roiArray, obj.signalOptions);
@@ -768,7 +771,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             
             if options.computeDff || options.deconvolveSignals
                 obj.ImviewerObj.displayMessage('Computing DFF...')
-                dff = computeDff(signalArray, 'dffFcn', options.dffMethod);
+                dff = computeDff(signalArray, obj.dffOptions);
                 save(savePath, 'dff', '-append')
             end
             
@@ -786,7 +789,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             end
             
             obj.ImviewerObj.clearMessage()
-            fprintf = str2func('fprintf');
 
         end %RM
         

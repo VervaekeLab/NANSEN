@@ -1,4 +1,4 @@
-classdef RoiSignalVideo < uim.handle & applify.mixin.HasSettings
+classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
     
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false        % Ignore settings file
@@ -70,7 +70,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.HasSettings
             obj.loadSettings()
             obj.imviewerRef.displayMessage('Preparing video export')
             
-            sEditor = clib.structEditor(obj.settings, 'Set preferences for video export');
+            sEditor = structeditor.App(obj.settings, 'Title', 'Set preferences for video export');
             sEditor.waitfor()
 
             if sEditor.wasCanceled
