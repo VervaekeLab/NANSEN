@@ -1352,7 +1352,9 @@ classdef OptionsManager < handle
 
             % Get filepath
             savePath = obj.FilePath;
-            
+            if ~isfolder(fileparts(savePath))
+                mkdir(fileparts(savePath))
+            end
             if isfile(savePath)
                 S = load(savePath);
             

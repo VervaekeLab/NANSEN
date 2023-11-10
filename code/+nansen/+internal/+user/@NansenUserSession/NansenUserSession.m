@@ -44,6 +44,10 @@ classdef NansenUserSession < handle
         ProjectChangedListener
     end
 
+    properties (Access = private)
+        SkipProjectCheck = false
+    end
+
     properties (Constant, Access = private)
         DEFAULT_USER_NAME = "default"
         LOG_UUID = false;
@@ -51,7 +55,7 @@ classdef NansenUserSession < handle
 
     methods (Static)
         %instance Return a singleton instance of the NansenUserSession  
-        obj = instance(userName, mode) % Method in separate file
+        obj = instance(userName, mode, skipProjectCheck) % Method in separate file
     end
 
     methods % Set/get methods for dependent properties
@@ -77,12 +81,13 @@ classdef NansenUserSession < handle
 
     methods (Access = private)
 
-        function obj = NansenUserSession(userName)
+        function obj = NansenUserSession(userName, skipProjectCheck)
             
             import nansen.config.addons.AddonManager
             import nansen.config.project.ProjectManager
 
             obj.CurrentUserName = userName;
+            obj.SkipProjectCheck = skipProjectCheck;
 
             obj.Preferences = obj.initializePreferences();
             preferenceDirectory = obj.getPrefdir();
@@ -100,6 +105,9 @@ classdef NansenUserSession < handle
                 userName = obj.CurrentUserName;
                 fprintf('Closed NANSEN user session for user "%s" (%s).\n', userName, obj.SessionUUID)
             end
+
+            delete(obj.ProjectManager)
+            delete(obj.Preferences)
         end
 
     end
@@ -122,13 +130,17 @@ classdef NansenUserSession < handle
         function onStartup(obj)
         
             % Check that projects are available
-            obj.assertProjectsAvailable()
+            if ~obj.SkipProjectCheck
+                obj.assertProjectsAvailable()
+            end
             
             addlistener(obj.ProjectManager, 'CurrentProjectChanged', ...
                 @obj.onCurrentProjectChangedInProjectManager);
 
             currentProject = obj.Preferences.CurrentProjectName;
-            obj.ProjectManager.setProject(currentProject)
+            if ~isempty(currentProject)
+                obj.ProjectManager.setProject(currentProject)
+            end
 
             % Note: important that this happens last
             obj.checkIfUpdateActionsAreNeeded()
@@ -197,8 +209,10 @@ classdef NansenUserSession < handle
             end
             
             project = obj.ProjectManager.getCurrentProject();
-            if isfolder(fullfile(project.FolderPath, 'Metadata Tables', '+tablevar'))
-                nansen.internal.refactor.moveTableVarsToProjectNameSpace( obj.ProjectManager )
+            if ~isempty(project)
+                if isfolder(fullfile(project.FolderPath, 'Metadata Tables', '+tablevar'))
+                    nansen.internal.refactor.moveTableVarsToProjectNameSpace( obj.ProjectManager )
+                end
             end
 
         end

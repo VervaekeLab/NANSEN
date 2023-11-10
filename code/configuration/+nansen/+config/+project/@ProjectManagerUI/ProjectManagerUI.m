@@ -692,9 +692,9 @@ classdef ProjectManagerUI < handle
     methods (Access = private)
         
         function assignInitialProjectRootFolderPath(obj)
-            %
             % Set default value of path for project root folder
-            projectFolder = fullfile(nansen.prefdir, 'projects'); % <-- Default value
+            projectFolder = fullfile(userpath, 'Nansen', 'Projects'); % <-- Default value
+            % Get value from preferences. Todo: use user session preferences
             projectFolder = getpref('NansenSetup', 'DefaultProjectPath', projectFolder);
             obj.ProjectRootFolderPath = projectFolder;
         end

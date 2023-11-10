@@ -1,11 +1,10 @@
-function obj = instance(userName, mode)
+function obj = instance(userName, mode, skipProjectCheck)
 %instance Return a singleton instance of the NansenUserSession
 %
 %   Input arguments:
-%
 %       userName    - Not supported yet
-%   
 %       mode        -  char, 'check' (default) | 'force' | 'nocreate' | 'reset'
+%       skipProjectCheck - logical (default = false)
 
 %   Note: to achieve persistent singleton instance that survives a clear
 %   all statement, the singleton instance is stored in the graphics root
@@ -22,6 +21,10 @@ function obj = instance(userName, mode)
 
     if nargin < 2 || isempty(mode)
         mode = "check";
+    end
+
+    if nargin < 3 || isempty(skipProjectCheck)
+        skipProjectCheck = false;
     end
 
     userName = string(userName); mode = string(mode);
@@ -90,7 +93,7 @@ function obj = instance(userName, mode)
 
     % - Construct the user session if singleton instance is not present
     if isempty(userSessionObject) && ~strcmp(mode, 'nocreate') && ~strcmp(mode, 'reset')
-        userSessionObject = nansen.internal.user.NansenUserSession(userName);
+        userSessionObject = nansen.internal.user.NansenUserSession(userName, skipProjectCheck);
         
         rootUserData.SingletonInstances.NansenUserSession = userSessionObject;
         set(0, 'UserData', rootUserData)

@@ -750,7 +750,7 @@ classdef FileViewer < handle
             
             % Todo: get variable model for current project. In practice
             % this will always happen, but it should be explicit!
-            VM = VariableModel();
+            VM = nansen.VariableModel();
             VM.insertItem(varItem)
             obj.notify('VariableModelChanged', event.EventData)
             
