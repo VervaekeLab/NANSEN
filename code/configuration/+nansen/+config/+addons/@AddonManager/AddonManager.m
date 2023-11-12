@@ -130,10 +130,16 @@ classdef AddonManager < handle
         
         function saveAddonList(obj)
         %saveAddonList Sve the list of addons to file.
-        
+            
+            S = struct;
+            S.type = 'Nansen Configuration: List of Installed Addons';
+            S.description = 'This file lists all the addons that have been installed through NANSEN';
+            
             S.AddonList = obj.AddonList; %#ok<STRNU>
             save(obj.AddonDefinitionsPath, '-struct', 'S')
             
+            jsonFilePath = strrep(obj.AddonDefinitionsPath, '.mat', '.json');
+            utility.filewrite(jsonFilePath, jsonencode(S, 'PrettyPrint', true))
         end
         
         function S = updateAddonList(~, S)
@@ -242,7 +248,9 @@ classdef AddonManager < handle
                 tempFilepath = websave(tempFilepath, addonEntry.DownloadUrl);
                 fileCleanupObj = onCleanup( @(fname) delete(tempFilepath) );
             catch ME
-                error(ME)
+                if throwErrorIfFails
+                    rethrow(ME)
+                end
             end
             
             if updateFlag && ~isempty(addonEntry.FilePath)
@@ -290,9 +298,7 @@ classdef AddonManager < handle
                 renamedDir = obj.moveGithubAddonDirectory(pkgInstallationDir);
                 pkgInstallationDir = renamedDir;
             end
-            
-            obj.AddonList(addonIdx).IsInstalled = true;
-            obj.AddonList(addonIdx).DateInstalled = datestr(now);
+
             obj.AddonList(addonIdx).FilePath = pkgInstallationDir;
             
             % Addon is added using this addon manager. Addon should 
@@ -300,9 +306,7 @@ classdef AddonManager < handle
             % class is initialized. (assume it should not permanently be 
             % saved to the search path)
             obj.AddonList(addonIdx).AddToPathOnInit = true;
-           
             obj.markDirty()
-            
             addpath(genpath(pkgInstallationDir))
 
             try
@@ -311,14 +315,20 @@ classdef AddonManager < handle
                     setupFcn = str2func(obj.AddonList(addonIdx).SetupFileName);
                     setupFcn()
                 end
-            catch ME
+            catch MECause
                 if throwErrorIfFails
-                    rethrow(ME)
+                    ME = MException("Nansen:AddonInstallFailed", 'Setup of the toolbox %s failed.', addonEntry.Name);
+                    ME = ME.addCause(MECause);
+                    disp(getReport(MECause, 'extended'))
+                    throw(ME)
                 else
                     warning('Setup of the toolbox %s failed with the following error:', addonEntry.Name)
-                    disp(getReport(ME, 'extended'))
+                    disp(getReport(MECause, 'extended'))
                 end
             end
+
+            obj.AddonList(addonIdx).IsInstalled = true;
+            obj.AddonList(addonIdx).DateInstalled = datestr(now);
         end
         
         function updateSearchPath(obj)
