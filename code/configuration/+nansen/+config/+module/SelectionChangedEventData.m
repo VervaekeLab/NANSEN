@@ -1,6 +1,6 @@
 classdef (ConstructOnLoad) SelectionChangedEventData < event.EventData
    properties
-      SelectedData
+      SelectedData (1,:) struct
    end
    
    methods

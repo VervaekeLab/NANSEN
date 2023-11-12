@@ -1,9 +1,5 @@
 classdef ModuleManagerApp < nansen.config.abstract.ConfigurationApp
 %ModuleManagerApp Create an app for the module manager
-%
-%   Todo: Program this using traditional gui figure for backwards
-%   compatibility and more responsive figure.
-
 
     properties (Constant)
         AppName = 'Module Manager'
@@ -28,12 +24,12 @@ classdef ModuleManagerApp < nansen.config.abstract.ConfigurationApp
             
             obj.UIControlPanel = obj.createControlPanel(obj.Figure);
             obj.UIControlPanel.BorderType = "None";
+            obj.UIControlPanel.BackgroundColor = "white";
 
             obj.updateControlPanelPosition()
             obj.createLoadingPanel()
 
             %obj.setLayout()
-
             obj.applyTheme()
 
             obj.UIModule{1} = nansen.config.module.ModuleManagerUI(obj.UIControlPanel); 
@@ -44,10 +40,6 @@ classdef ModuleManagerApp < nansen.config.abstract.ConfigurationApp
             end
 
             if ~nargout; clear obj; end
-            
-            %obj@applify.ModularApp
-            % Create tabs
-            %obj.isConstructed = true;
         end
     end
 

@@ -57,7 +57,11 @@ classdef ModuleManagerUI < handle
             assert(isa(hModuleManager, 'nansen.config.module.ModuleManager'))
             obj.ModuleManager = hModuleManager;
 
-            obj.createLayout()
+            % Comment this out, but keep in case it will be needed later.
+            % The layout was used to also create a dropdown for selecting
+            % between a general (required) module. (This will most likely 
+            % not be needed)
+            %%obj.createLayout()
             obj.createUiControls()
             obj.configureUiTable()
             obj.configureUiDropdown()
@@ -69,18 +73,28 @@ classdef ModuleManagerUI < handle
         function selectedModules = getSelectedModules(obj)
         %getSelectedModules Return a list (struct array) of selected modules
         %
-        %   selectedModules = getSelectedModules(obj)
-            selectedModules = obj.ModuleManager.ModuleList(obj.SelectedRows);
+        %   selectedModules = obj.getSelectedModules() returns a list of
+        %   the currently selected modules from the table. selectedModules
+        %   is a struct array with information about each module.
+        
+            % Only optional modules are selectable from table
+            optionalModules = obj.ModuleManager.listModules('optional');
+            selectedData = optionalModules(obj.SelectedRows, :);
+            selectedModules = table2struct(selectedData);
         end
 
         function setSelectedModules(obj, selectedModules)
-        %getSelectedModules Set selectedModules
+        %setSelectedModules Set (check) selectedModules in table
         %
         %   setSelectedModules(obj, selectedModules) sets the given modules
-        %   as the current selection in the ui. selectedModules should be a cell
-        %   array of module package names
+        %   as the current selection in the ui. selectedModules should be a 
+        %   cell array of module package names
 
-            modulePackages = {obj.ModuleManager.ModuleList.modulePackage};
+            if isempty(selectedModules); return; end
+
+            optionalModules = obj.ModuleManager.listModules('optional');
+            modulePackages = optionalModules{:, 'PackageName'};
+            if iscolumn(modulePackages); modulePackages = modulePackages'; end
             indices = find( ismember(modulePackages, selectedModules) );
             obj.UIControls.ModuleTable.Data{indices, 1} = true;
 
@@ -123,14 +137,14 @@ classdef ModuleManagerUI < handle
         end
 
         function createUiControls(obj)
-            %obj.UIControls.ModuleTable = uitable(obj.hParent);
-            obj.UIControls.ModuleTable = uitable(obj.UIPanels.Main);    
-            obj.UIControls.ModuleTable.Position = [0,0,obj.UIPanels.Main.Position(3:4)];    
+            obj.UIControls.ModuleTable = uitable(obj.hParent);
+            % % % obj.UIControls.ModuleTable = uitable(obj.UIPanels.Main);    
+            obj.UIControls.ModuleTable.Position = [0,0,obj.hParent.Position(3:4)];    
 
-            obj.UIControls.CoreModuleDropdown = uidropdown(obj.HeaderGridLayout);
-            obj.UIControls.CoreModuleDropdown.Position = [10, 10, 100, 22];
-            obj.UIControls.CoreModuleDropdown.Layout.Row = 1;
-            obj.UIControls.CoreModuleDropdown.Layout.Column = 1;
+            % % % obj.UIControls.CoreModuleDropdown = uidropdown(obj.HeaderGridLayout);
+            % % % obj.UIControls.CoreModuleDropdown.Position = [10, 10, 100, 22];
+            % % % obj.UIControls.CoreModuleDropdown.Layout.Row = 1;
+            % % % obj.UIControls.CoreModuleDropdown.Layout.Column = 1;
         end
         
         function configureUiTable(obj)
@@ -151,11 +165,13 @@ classdef ModuleManagerUI < handle
         
         function updateTableData(obj)
         %updateTableData Update data in the uitable
+        %
+        % Updates uitable data based on available modules from the
+        % ModuleManager
         
             if isempty(obj.ModuleManager); return; end
             if ~isfield(obj.UIControls, 'ModuleTable'); return; end
             
-            %T = struct2table(obj.ModuleManager.Catalog, 'AsArray', true);
             T = obj.ModuleManager.listModules();
             T = T(~T.isCoreModule, :);
             
@@ -201,7 +217,7 @@ classdef ModuleManagerUI < handle
             T = T(T.isCoreModule, :);
             
             numRows = size(T, 1);
-            options = arrayfun( @(row) sprintf('%s (%s)', T{row, 'moduleLabel'}, T{row, 'moduleDescription'}), 1:numRows, 'uni', 0); 
+            options = arrayfun( @(row) sprintf('%s (%s)', T{row, 'Name'}, T{row, 'Description'}), 1:numRows, 'uni', 0); 
             
             obj.UIControls.CoreModuleDropdown.Items = options;
             obj.UIControls.CoreModuleDropdown.Value = options{1};
@@ -214,10 +230,10 @@ classdef ModuleManagerUI < handle
             drawnow
             pause(0.05)
 
-            %parentPosition = obj.hParent.InnerPosition;
-            parentPosition = obj.UIPanels.Main.InnerPosition;
+            parentPosition = obj.hParent.InnerPosition;
+            %parentPosition = obj.UIPanels.Main.InnerPosition;
             %tablePosition = [0,0,parentPosition(3:4)] + [1, 1, -2, -2] * margin;
-            tablePosition = [0,0,parentPosition(3:4)+[2,2]];
+            tablePosition = [10,10,parentPosition(3:4)-20];
             obj.UIControls.ModuleTable.Position = tablePosition;
         end
         
@@ -299,7 +315,10 @@ classdef ModuleManagerUI < handle
         end
 
         function triggerModuleSelectionChangedEvent(obj)
-            selectedData = obj.ModuleManager.ModuleList(obj.SelectedRows);
+            % Only optional modules are selectable from table
+            optionalModules = obj.ModuleManager.listModules('optional');
+            selectedData = optionalModules(obj.SelectedRows, :);
+            selectedData = table2struct(selectedData);
             evtData = nansen.config.module.SelectionChangedEventData(selectedData);
             obj.notify('ModuleSelectionChanged', evtData)
         end
@@ -329,9 +348,11 @@ classdef ModuleManagerUI < handle
             
             switch styleType
                 case 'Selected Row'
-                    s = uistyle('BackgroundColor', obj.SelectedRowBgColor,...
-                        'FontColor', obj.SelectedRowFgColor);
-                    addStyle(obj.UIControls.ModuleTable, s, 'row', rowIdx);
+                    for i = 1:numel(rowIdx)
+                        s = uistyle('BackgroundColor', obj.SelectedRowBgColor,...
+                            'FontColor', obj.SelectedRowFgColor);
+                        addStyle(obj.UIControls.ModuleTable, s, 'row', rowIdx(i));
+                    end
 
                 case 'Unselected Row'
                     isStyleForRow = [sConfig.TargetIndex{:}] == rowIdx;
