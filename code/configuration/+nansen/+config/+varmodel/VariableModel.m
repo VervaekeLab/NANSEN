@@ -1,14 +1,18 @@
 classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.CatalogWithBackup
-    
+ 
+% Categories
+%   Preset / Custom
+%   Internal / Public?
+%   Favorites
+
+
     % Todo: 
     %   [x] Add IsEditable? I.e is it possible to change the filename
     %   [x] Add subfolders. I.e if session folder should be further organized in subfolders. 
     %   [ ] Methods for above...
-    
-    %   [ ] Flag for whether model data has changed....
-    
-    %  *[ ] Variables must be sorted, so that default/preset are listed
-    %       first.
+    %
+    %   [ ] Should internal variables be custom or preset? Preset...
+    %   [ ] Flag for whether model data has changed...
     
     properties (Constant)
 %         FileTypes
@@ -49,20 +53,23 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 'DataType', '', ...             % Datatype of variable: Will depend on file adapter
                 'Alias', '', ...                % alias or "nickname" for varibles
                 'GroupName', '', ...            % Placeholder...
-                'IsDefaultVariable', false, ... % Rename: IsDefault
                 'IsCustom', false, ...          % Is variable custom, i.e user made?
                 'IsInternal', false, ...        % Flag for internal variables
                 'IsFavorite', false );          % Flag for favorited variables
         end
         
         function S = getDefaultItem(varName)
-            % Todo. remove?
-            S = nansen.config.varmodel.VariableModel.getBlankItem;
+        % getDefaultItem -  Get default data variable configuration struct
+        %
+        %   A default variable configuration will use the default file
+        %   adapter (i.e mat files) and it is Custom by default. 
+            S = nansen.config.varmodel.VariableModel.getBlankItem();
 
             S.VariableName = varName;
             S.DataLocation = '';
             S.FileType = '.mat';
             S.FileAdapter = 'Default';
+            S.IsCustom = true;
         end
         
     end 
@@ -75,7 +82,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             obj@utility.data.StorableCatalog(varargin{:})
             
             obj.updateDefaultValues() %  This should be temporary, to account for changes made during development
-             
         end
         
     end
@@ -120,7 +126,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             % Create a default variable structure
             if ~isExistingEntry
                 S = obj.getDefaultItem(varName);
-                S.IsCustom = true;              
+                S.IsCustom = true;
             end
 
             % Check if subfolder uses different fileseparator than current 
@@ -139,10 +145,8 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         end
         
         function view(obj)
-            
             T = struct2table(obj.Data);
             disp(T)
-            
         end
 
         function updateDefaultValues(obj)
@@ -202,7 +206,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             if ~isfield(obj.Data, 'IsFavorite')
                 [obj.Data(:).IsFavorite] = deal(false);
             end
-            
         end
         
         % % Variable interaction and utility methods
@@ -313,6 +316,76 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             isOfGivenType = strcmp(allDataTypes, typeName);
             varNames = {obj.Data(isOfGivenType).VariableName};
         end
+    
+        function addDataVariableSet(obj, variableList)
+        % addDataVariableSet - Add a set of variables to the variable model
+        %
+        %   Inputs:
+        %       variableList - variableList is a struct array of variable
+        %       configurations
+
+            dataLocationModel = nansen.DataLocationModel(); % dependent prop?
+            defaultDataLocation = dataLocationModel.getDefaultDataLocation;
+            
+            % Insert variable specifications to the model
+            for j = 1:numel(variableList)
+                thisName = variableList(j).VariableName;
+
+                if ~any(obj.containsItem(thisName))
+                    if useDefaultDataLocation(variableList(j).DataLocation)     % Local function
+                        variableList(j).DataLocation = defaultDataLocation.Name;
+                        variableList(j).DataLocationUuid = defaultDataLocation.Uuid;
+                    end
+
+                    obj.insertItem(variableList(j))
+                end
+            end
+            obj.save()
+        end
+
+        function removeDataVariableSet(obj, variableList)
+        % removeDataVariables - Remove a set of data variables  
+        %
+        %   Inputs:
+        %       variableList - variableList is a string array of names 
+        %           of variables to remove
+
+        %   Note: This is most likely not going to be used. User should 
+        %   instead remove variables individually.
+
+        %   Todo: 
+        %       [ ] backup items that are removed...
+
+            for i = 1:numel(variableList)
+                thisName = variableList(i);
+
+                if any(obj.containsItem(thisName))
+                    obj.removeItem(thisName)
+                end
+            end
+            obj.save()
+        end
+    
+        function data = getVariableSet(obj, flag)
+            
+            if nargin < 2 || isempty(flag)
+                flag = 'public';
+            end
+            
+            flag = validatestring(flag, {'all', 'public', 'internal'}, 1);
+            
+            keep = true(size(obj.Data));
+
+            if strcmp(flag, 'all')
+                % Keep all
+            elseif strcmp(flag, 'public')
+                keep = keep & ~[obj.Data.IsInternal];
+            elseif strcmp(flag, 'internal')
+                keep = keep & [obj.Data.IsInternal];
+            end
+        
+            data = obj.Data(keep);
+        end
     end
     
     methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?nansen.setup.SetupWizardApp})
@@ -334,7 +407,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 dataLocationModel = nansen.DataLocationModel();
                 item.DataLocation = dataLocationModel.DefaultDataLocation;
             end
-            
         end
         
     end
@@ -369,18 +441,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                     
                     obj.save()
                 end                    
-                
             end
-            
-        end
-        
-        % Todo: Should be external...
-        % Todo: Should depend on user-selected template model..
-        function variableList = initializeVariableList(~)
-
-            import nansen.config.varmodel.template.*
-            variableList = twophoton.getVariableList();
-
         end
         
         function onDataLocationModelModified(obj, src, evt)
@@ -413,7 +474,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             
             evtData = event.EventData;
             obj.notify('DataLocationNameChanged', evtData);
-            
         end
         
     end
@@ -457,7 +517,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 C(1).SupportedFileTypes = {};
                 C(1).DataType = '';
             end
-            
         end
         
         function className = getFileAdapterFunctionName(fileAdapterName)
@@ -466,8 +525,12 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 case 'ImageStack'
                     className = 'nansen.stack.ImageStack';
             end
-            
         end
         
     end
+end
+
+% Local utility functions
+function tf = useDefaultDataLocation(dataLocationName)
+    tf = strcmp(dataLocationName, 'DEFAULT') || isempty(dataLocationName);
 end

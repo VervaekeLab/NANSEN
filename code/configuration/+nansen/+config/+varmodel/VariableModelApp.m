@@ -1,6 +1,5 @@
 classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
     
-    
     properties (Constant)
         AppName = 'Configure Variable Model'
     end
@@ -89,7 +88,6 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
                         return
                 end
             end
-
         end
 
     end
@@ -146,7 +144,6 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
             
             panelSize = obj.Figure.Position(3:4) - [40, 60];
             obj.ControlPanels.Position = [20, 20, panelSize];
-
         end
         
     end
@@ -172,9 +169,8 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
                 obj.ControlPanels(1), args{:});
 
             obj.LoadingPanel.Visible = 'off';
-
         end
-        
+
     end
     
 end

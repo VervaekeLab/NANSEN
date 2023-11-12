@@ -394,10 +394,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 return;
             end
             
-            isDefault = [obj(1).VariableList.IsDefaultVariable];
             isInternal = [obj(1).VariableList.IsInternal];
             isFavorite = [obj(1).VariableList.IsFavorite];
             isCustom = [obj(1).VariableList.IsCustom];
+            isPreset = ~isCustom;
             
             propGroup = matlab.mixin.util.PropertyGroup.empty;
                         
@@ -406,7 +406,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Favorite Variables:')];
             end
             
-            if obj.settings.ShowDefaultVariables && any(isDefault)
+            if obj.settings.ShowDefaultVariables && any(isPreset)
                 propNames = sort( {obj.VariableList(isDefault).VariableName} ); 
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Default Variables:')];
             end
