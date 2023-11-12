@@ -119,7 +119,8 @@ classdef apptable < applify.UiControlTable
             obj.ColumnHeaderBorder = uiimage(obj.Parent);
             obj.ColumnHeaderBorder.Position = obj.ColumnHeaderPosition;
             obj.ColumnHeaderBorder.ImageSource = imagePathStr;
-            
+            obj.ColumnHeaderBorder.ScaleMethod='stretch';
+
             yOff = 5; % Correction factor in pixels to keep labels closer 
                       % to horizontal border below
                       
@@ -190,6 +191,7 @@ classdef apptable < applify.UiControlTable
             msg = 'Table scroll state must be ''on'' or ''off''';
             assert( any( strcmp(state, {'on', 'off'}) ), msg)
             obj.TablePanel.Scrollable = state;
+            obj.Parent.Scrollable = state;
         end
 
 %         function createTableRow(obj, rowNum)

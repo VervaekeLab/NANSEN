@@ -356,7 +356,10 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             obj.TablePanelPosition = obj.Position;
             obj.TablePanelPosition(4) = obj.TablePanelPosition(4) - ...
                 obj.ColumnHeaderPosition(4) - headerTableSpacing;
-            
+
+            obj.TablePanelPosition(3) = sum(obj.ColumnWidths) + numel(obj.ColumnWidths)*obj.ColumnSpacing +20;
+            obj.ColumnHeaderPosition(3) = obj.TablePanelPosition(3)-20;
+
         end
         
         function deleteRowControls(obj)
