@@ -79,10 +79,10 @@ classdef DataIoModel < handle
             end
             
             % Set FilePathModel %Todo: Do we need to get it from a global
-            % variable. Why??
+            % variable. Why?? 
             global dataFilePathModel dataLocationModel
             if isempty(dataFilePathModel)
-                dataFilePathModel = nansen.dataio.FilePathSettingsEditor;
+                dataFilePathModel = nansen.config.varmodel.VariableModel;
             end
             
             obj.FilePathModel = dataFilePathModel;
