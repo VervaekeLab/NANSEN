@@ -1345,7 +1345,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             p = app.ProjectManager.getCurrentProject();
 
             % Update preferences
-            p.Preferences.DataModule = {evtData.SelectedData.modulePackage};
+            p.Preferences.DataModule = [evtData.SelectedData.PackageName];
             p.assignModules()
             app.SessionTaskMenu.CurrentProject = p;
         end
