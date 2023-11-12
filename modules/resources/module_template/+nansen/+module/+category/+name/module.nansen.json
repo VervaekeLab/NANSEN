@@ -1,8 +1,0 @@
-{
-  "_type": "NANSEN Module Specification",
-  "_version": "1.0.0",
-  "attributes": {
-    "moduleLabel": "<Module Name>",
-    "moduleDescription": "<Module description>"
-  }
-}
