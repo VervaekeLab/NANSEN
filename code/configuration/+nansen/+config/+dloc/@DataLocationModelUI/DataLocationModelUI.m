@@ -56,7 +56,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             %obj.ColumnNames = {'Data location type', 'Data location root folder', 'Set backup'};
             %obj.ColumnWidths = [130, 365, 125];
             obj.ColumnNames = {'', 'Data location name', 'Data type', 'Data location root directory'};
-            obj.ColumnWidths = [22, 130, 100, 350, 80];
+            obj.ColumnWidths = [22, 130, 100, 500];
             obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
             obj.RowSpacing = 20;
 
@@ -252,9 +252,9 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             h.UIButton_BrowseRootDir.FontName = 'Segoe UI';
             h.UIButton_BrowseRootDir.Position(3:4) = BUTTON_SIZE;
             h.UIButton_BrowseRootDir.Text = 'Browse...';
+            %h.UIButton_BrowseRootDir.Icon = 'folder.png';
             h.UIButton_BrowseRootDir.ButtonPushedFcn = ...
                 @obj.onBrowseRootDirButtonPushed;
-            
         end
         
         function h = createRootPathButtonGroup(obj)

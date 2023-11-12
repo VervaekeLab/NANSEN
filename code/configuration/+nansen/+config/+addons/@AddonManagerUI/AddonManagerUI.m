@@ -25,7 +25,7 @@ classdef AddonManagerUI < applify.apptable
             % in the list of name value pairs...
             if nargin < 2
                 userSession = nansen.internal.user.NansenUserSession.instance();
-                hAddonManager = userSession.getAddonManage();
+                hAddonManager = userSession.getAddonManager();
             end
             
             % Get data from the addonmanager handle.
@@ -282,9 +282,26 @@ classdef AddonManagerUI < applify.apptable
             catch
                 d = uiprogressdlg(hFig, 'Title', title, 'Message', message, 'Indeterminate', 'on');
             end
-            obj.AddonManager.downloadAddon(addonName)
             
-            close(d)
+            try
+                obj.AddonManager.downloadAddon(addonName, false, true)
+                close(d)
+
+            catch ME
+                try
+                    errorMessage =  ME.message;
+                    if ~isempty(ME.cause)
+                        errorMessage = sprintf('%s\nCaused by:\n%s\n\nSee command window for more details.', errorMessage, ME.cause{1}.message);
+                    end
+                    answer = uiconfirm(hFig, errorMessage, "Something went wrong", ...
+                        'Icon', 'error', 'Options', {'Ok'}, 'Interpreter', 'html');
+                catch
+                    answer = uiconfirm(hFig, 'Title', "Something went wrong", ...
+                        'Message', ME.message, 'Icon', 'error', 'Options', {'Ok'});
+                end
+                close(d)
+                return
+            end
             
             obj.RowControls(iRow).IsInstalledImage.ImageSource = 'check-01.png';
             obj.RowControls(iRow).IsInstalledImage.Tooltip = 'Toolbox is installed';
