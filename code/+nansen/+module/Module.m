@@ -24,7 +24,7 @@ classdef Module < handle
         DEFAULT_SESSION_METHOD_CATEGORIES = {'data', 'processing', 'analysis', 'plot'};
     end
 
-    properties (SetAccess = protected)% (SetAccess = immutable)
+    properties (SetAccess = protected)
         Name
         Description
     end
@@ -33,8 +33,12 @@ classdef Module < handle
         SessionMethods
         TableVariables
         FileAdapters
-        DataVariables
+        DataVariables % Rename to preset data variables.
         Pipelines
+    end
+
+    properties (Dependent)
+        ID
     end
     
     properties (Access = private)
@@ -47,12 +51,25 @@ classdef Module < handle
         CachedFilePaths
     end
 
+    properties (Constant, Hidden)
+        MODULE_CONFIG_FILENAME = "module.nansen.json"
+    end
+
     events
         ModuleUpdated % Todo
     end
 
     methods % Constructor
-        function obj = Module(configFilePath, options)
+        function obj = Module(pathStr, options)
+        % Module - Create a module instance
+        %
+        %   Syntax: 
+        %       nansen.module.Module(filePath) creates a module given the
+        %       path of a module config file given by filePath.
+        %
+        %       nansen.module.Module(folderPath) creates a module given the
+        %       path of a folder containing a module config file.
+        %
 
 % %             arguments
 % %                 configFilePath
@@ -61,12 +78,15 @@ classdef Module < handle
 
             if ~nargin; return; end
             
-            fileStr = fileread(configFilePath);
-            moduleSpecification = jsondecode(fileStr);
-
-            obj.Name = moduleSpecification.attributes.moduleLabel;
-            obj.Description = moduleSpecification.attributes.moduleDescription;
-            obj.FolderPath = fileparts(configFilePath);
+            % Check if the given path is a folder
+            if isfolder(pathStr)
+                pathStr = fullfile(pathStr, obj.MODULE_CONFIG_FILENAME);
+            end
+            
+            % Read the configuration file
+            obj.readConfigurationFile(pathStr)
+            
+            obj.FolderPath = fileparts(pathStr);
             obj.PackageName = utility.path.pathstr2packagename(obj.FolderPath);
 
             obj.CachedFilePaths = containers.Map();
@@ -90,7 +110,7 @@ classdef Module < handle
         end
 
         function itemTable = getTable(obj, itemType)
-            itemType = validatestring(itemType, {'SessionMethod', 'TableVariable', 'FileAdapter'}, 1);
+            itemType = validatestring(itemType, {'SessionMethod', 'TableVariable', 'FileAdapter', 'DataVariable'}, 1);
             itemTable = obj.rehash(itemType);
         end
 
@@ -106,6 +126,10 @@ classdef Module < handle
         % Todo: get from cache? Or do the following:
         % - rehash
         % - update if necessary
+
+        function id = get.ID(obj)
+            id = obj.PackageName;
+        end
 
         function fileAdapterList = get.FileAdapters(obj)
             itemTable = obj.rehash('FileAdapter');
@@ -125,14 +149,40 @@ classdef Module < handle
             tableVariableList = string(tableVariableList)';
         end
 
-        function dataVariables = get.DataVariables(obj)
-            dataVariables = "N/A";
+        function dataVariableList = get.DataVariables(obj)
+            itemTable = obj.rehash('DataVariable');
+            dataVariableList = itemTable.VariableName;
+            dataVariableList = string(dataVariableList)';
         end      
 
         function pipelines = get.Pipelines(obj)
             pipelines = "N/A";
         end
 
+    end
+    
+    methods % Set methods for configuration properties
+
+        function set.Name(obj, newValue)
+            obj.Name = newValue;
+            obj.onNameSet()
+        end
+
+        function set.Description(obj, newValue)
+            obj.Description = newValue;
+            obj.onDescriptionSet()
+        end
+
+    end
+
+    methods (Access = protected) % Callback for property set 
+        function onNameSet(obj)
+            % Todo: Update the name in the configuration file
+        end
+
+        function onDescriptionSet(obj)
+            % Todo: Update the description in the configuration file
+        end
     end
 
     methods (Access = protected)
@@ -162,10 +212,22 @@ classdef Module < handle
             end
             if nargout > 1
                 filePaths = utility.dir.abspath(fileList);
-                relativePaths = strrep(filePaths, [rootFolder, filesep], '');
+                if ~isempty(filePaths)
+                    relativePaths = strrep(filePaths, rootFolder+filesep, '');
+                else
+                    relativePaths = cell(size(filePaths));
+                end
             end
         end
         
+        function readConfigurationFile(obj, filePath)
+        % readConfigFile - Read a module config file and assign properties
+            fileStr = fileread(filePath);
+            moduleSpecification = jsondecode(fileStr);
+            
+            obj.Name = moduleSpecification.Properties.Name;
+            obj.Description = moduleSpecification.Properties.Description;
+        end
     end
 
     methods (Access = private)
@@ -201,11 +263,30 @@ classdef Module < handle
                 case 'TableVariable'
                     itemTable = buildTableVariableTable(fileList);
                 case 'DataVariable'
-                    itemTable = [];
+                    filePaths = utility.dir.abspath(fileList);
+                    itemTable = obj.buildTableFromJsonFiles(filePaths);
                 case 'Pipeline'
                     itemTable = [];
             end
             obj.ItemTables(itemType) = itemTable;
+        end
+    
+        function resultTable = buildTableFromJsonFiles(~, filePaths)
+            
+            % Initialize an empty table
+            resultTable = [];
+        
+            % Loop over all file paths
+            for i = 1:length(filePaths)
+                % Read the JSON file
+                jsonData = jsondecode(fileread(filePaths{i}));
+        
+                % Convert the JSON data to a table
+                tempTable = struct2table(jsonData.Properties, 'AsArray', true);
+        
+                % Append the table to the result
+                resultTable = [resultTable; tempTable]; %#ok<AGROW>
+            end
         end
         
     end
@@ -257,6 +338,12 @@ classdef Module < handle
             tf = false;
         end
     
+        function moduleTemplateFolder = getModuleTemplateDirectory()
+        % getModuleTemplateDirectory - Get pathstring for template folder
+            rootFolder = fileparts( mfilename('fullpath') );
+            moduleTemplateFolder = fullfile(rootFolder, "resources", ...
+                "module_template", "+nansen", "+module", "+category", "+name");
+        end
     end
 
 end
