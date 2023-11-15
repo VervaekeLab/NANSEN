@@ -363,11 +363,12 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         end
         
         function deleteRowControls(obj)
-           
-            fields = fieldnames(obj.RowControls);
-            for i = 1:numel(obj.RowControls)
-                for j = 1:numel(fields)
-                    delete(obj.RowControls(i).(fields{j}))
+            if ~isempty(obj.RowControls)
+                fields = fieldnames(obj.RowControls);
+                for i = 1:numel(obj.RowControls)
+                    for j = 1:numel(fields)
+                        delete(obj.RowControls(i).(fields{j}))
+                    end
                 end
             end
         end

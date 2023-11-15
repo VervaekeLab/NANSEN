@@ -524,6 +524,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             visibleRowIndices = getVisibleRowIndices(obj);
             makeVisible(visibleRowIndices) = true;
 
+            if isempty(obj.RowControls); return; end
             rowComponentNames = fieldnames(obj.RowControls);
             
             for iRow = 1:numel(obj.RowControls)
