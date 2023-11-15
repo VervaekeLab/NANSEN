@@ -274,7 +274,7 @@ classdef Module < handle
         function resultTable = buildTableFromJsonFiles(~, filePaths)
             
             % Initialize an empty table
-            resultTable = [];
+            resultTable = table.empty;
         
             % Loop over all file paths
             for i = 1:length(filePaths)
@@ -292,6 +292,26 @@ classdef Module < handle
     end
 
     methods (Static)
+
+        function module = fromName(moduleName)
+        %fromName - Get a module instance from name
+            
+            % Build the folder path
+            moduleRootFolder = fullfile(nansen.rootpath, 'modules');
+            modulePackageFolder = utility.path.packagename2pathstr(moduleName);
+            moduleFolder = fullfile(moduleRootFolder, modulePackageFolder);
+            
+            % Get the filename and build the full filepath
+            configFileName = nansen.module.Module.MODULE_CONFIG_FILENAME;
+            moduleConfigFilePath = fullfile(moduleFolder, configFileName);
+            
+            if isfile(moduleConfigFilePath)
+                module = nansen.module.Module(moduleConfigFilePath);
+            else
+                error('Nansen:ModuleConfigurationNotFound', ...
+                    'Module configuration file does not exist.')
+            end
+        end
 
         function fileList = listMFiles(rootFolder)
             
