@@ -556,11 +556,10 @@ classdef AddonManager < handle
             import nansen.config.addons.AddonManager
 
             addonDir = AddonManager.getDefaultInstallationDir();
-            parentFolders = utility.path.listSubDir(addonDir, '', {}, 0);
-            subfolders = utility.path.listSubDir(addonDir, '', {}, 1);
             
-            subfolders = setdiff(subfolders, parentFolders);
-            
+            % Get all subfolders two levels down
+            subfolders = utility.path.listSubDir(addonDir, '', {}, 2);
+                        
             isOnPath = true(size(subfolders));
 
             if ~isempty(subfolders)
