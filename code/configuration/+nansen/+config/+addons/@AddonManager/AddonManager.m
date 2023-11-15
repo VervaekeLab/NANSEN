@@ -316,6 +316,8 @@ classdef AddonManager < handle
                     setupFcn()
                 end
             catch MECause
+                rmpath(genpath(pkgInstallationDir))
+                rmdir(pkgInstallationDir, "s")
                 if throwErrorIfFails
                     ME = MException("Nansen:AddonInstallFailed", 'Setup of the toolbox %s failed.', addonEntry.Name);
                     ME = ME.addCause(MECause);
