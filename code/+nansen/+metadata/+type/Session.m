@@ -342,6 +342,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             obj.fixDataLocations()
             
+            % Update name and type from model, as these can change at any
+            % time.
+
             for iObj = 1:numel(obj)
                 
                 for jDl = 1:numel(obj(iObj).DataLocation)
@@ -356,6 +359,14 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     end
                     
                     rootUid = obj(iObj).DataLocation(jDl).RootUid;
+                    if isempty(rootUid)
+                        % If the rootUid is empty, use the last available
+                        % rootpath from the model, using this as the 
+                        % automatic location.
+                        rootUid = S(jDl).RootPath(end).Key;
+                        obj(iObj).DataLocation(jDl).RootUid = rootUid;
+                    end
+
                     rootIdx = find( strcmp( {S(jDl).RootPath.Key}, rootUid ) );
                     
                     if ~isempty(rootIdx)

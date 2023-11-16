@@ -194,7 +194,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                           obj.SourceStack, 'DataIoModel', obj.DataIoModel);
             processor.IsSubProcess = true;
             
-            if obj.RecastOutput % Calculate imagestats if needed (for recasting).
+            if true % obj.RecastOutput % Calculate imagestats if needed (for recasting).
                 obj.displayStartStep('pixelstats')
                 processor.runMethod()
                 obj.displayFinishStep('pixelstats')

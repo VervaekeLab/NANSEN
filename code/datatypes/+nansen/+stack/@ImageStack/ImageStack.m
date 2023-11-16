@@ -1786,6 +1786,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     limits = [0, 2^16-1];
                 case 'uint32'
                     limits = [0, 2^32-1];
+                case 'uint64'
+                    limits = [0, 2^64-1];
                 case 'int8'
                     limits = [-2^7, 2^7-1];
                 case 'int16'
