@@ -321,8 +321,13 @@ classdef Module < handle
             fileListA = listClassdefFilesInClassFolder(rootFolder);
             
             % List all m-files that are not located in a class folder
+            % fileListB = utility.dir.recursiveDir(rootFolder, ...
+            %     'IgnoreList', "@", 'Type', 'file', 'FileType', 'm', ...
+            %     'RecursionDepth', 2, 'IsCumulative', false, ...
+            %     'OutputType', 'FilePath');
+            
             fileListB = utility.dir.recursiveDir(rootFolder, ...
-                'IgnoreList', "@", 'Type', 'file', 'FileType', 'm');
+                'IgnoreList', ["@", 'deprecated'], 'Type', 'file', 'FileType', 'm');
             
             fileList = cat(1, fileListA, fileListB);
         end

@@ -27,7 +27,7 @@ function fileAdapterList = listFileAdapters()
     
     
     % Find all subfolders and list m files.
-    fileAdapterFolders = utility.path.listSubDir(rootPath, '', {}, inf);
+    fileAdapterFolders = utility.path.listSubDir(rootPath, '', {}, inf, true);
     fileAdapterMfiles = utility.path.listFiles(fileAdapterFolders, '.m');
     
     fileAdapterList = struct('FileAdapterName', 'Default', 'FunctionName', 'load', ...

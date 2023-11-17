@@ -69,7 +69,11 @@ classdef ModuleManagerUI < handle
         
     end
 
-    methods 
+    methods % Public methods
+        function addExternalModule(obj)
+            % pass. todo
+        end
+
         function selectedModules = getSelectedModules(obj)
         %getSelectedModules Return a list (struct array) of selected modules
         %
@@ -89,7 +93,8 @@ classdef ModuleManagerUI < handle
         %   setSelectedModules(obj, selectedModules) sets the given modules
         %   as the current selection in the ui. selectedModules should be a 
         %   cell array of module package names
-
+            
+            obj.resetSelectedRows()
             if isempty(selectedModules); return; end
 
             optionalModules = obj.ModuleManager.listModules('optional');
@@ -275,12 +280,6 @@ classdef ModuleManagerUI < handle
             end
         end
     end
-
-    methods % Public methods
-        function addExternalModule(obj)
-            % pass. todo
-        end
-    end
     
     methods (Access = private) % Uicontrol callbacks
 
@@ -321,6 +320,14 @@ classdef ModuleManagerUI < handle
             selectedData = table2struct(selectedData);
             evtData = nansen.config.module.SelectionChangedEventData(selectedData);
             obj.notify('ModuleSelectionChanged', evtData)
+        end
+    
+        function resetSelectedRows(obj)
+            selectedRows = find(obj.UIControls.ModuleTable.Data{:,1});
+            obj.UIControls.ModuleTable.Data{:, 1} = false;
+            for i = 1:numel(selectedRows)
+                obj.setRowStyle('Unselected Row', selectedRows(i))
+            end
         end
     end
 

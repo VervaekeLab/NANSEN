@@ -76,10 +76,9 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
                 objStore = containers.Map;
             end
 
-            if isKey(objStore, thisClassName)
+            if isKey(objStore, thisClassName) && isvalid( objStore(thisClassName) )
                 obj = objStore(thisClassName);
             else
-
                 if isfile(obj.Filename)
                     S = load(obj.Filename, 'preferences');
                     obj.fromStruct(S.preferences);

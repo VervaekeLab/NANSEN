@@ -101,10 +101,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             for i = 1:obj.NumRows
                 obj.updateSubfolderItems(i);
             end
+            obj.IsDirty = false;
             obj.IsUpdating = false;
-            
             obj.AppFigure = ancestor(obj.Parent, 'figure');
-                        
         end
         
         function delete(obj)
@@ -116,7 +115,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             end
 
             obj.closeFolderListViewer()
-            
         end
         
     end
@@ -129,7 +127,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
             obj.ColumnWidths = [22, 175, 130, 90, 125, 22];
             obj.RowSpacing = 20;   
-            
         end
         
         function hRow = createTableRowComponents(obj, rowData, rowNum)
@@ -254,7 +251,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 % Disable the button to add new row on the previous row.
                 obj.RowControls(rowNum-1).AddImage.Enable = 'off';
             end
-            
         end
             
         function createToolbarComponents(obj, hPanel)
@@ -344,7 +340,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.ShowFilterOptionsButton.Position = [Xr(3) Y Wr(3) 22];
             
             obj.updateDataLocationSelector()
-            
         end
         
         function toolbarComponents = getToolbarComponents(obj)
@@ -373,7 +368,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             if ~isequal(sNew, sOld)
                 obj.DataLocationModel.updateSubfolderStructure(sNew, idx)
             end
-            
         end
         
         function closeFolderListViewer(obj)
@@ -419,7 +413,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             end
 
             obj.IsUpdating = false;
-
         end
         
     end
@@ -438,7 +431,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             else
                 notify@handle(obj, eventName, eventData)
             end
-            
         end
         
         function showAdvancedOptions(obj)
@@ -453,7 +445,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             obj.IsAdvancedView = true;
             drawnow
-            
         end
         
         function hideAdvancedOptions(obj)
@@ -492,7 +483,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             obj.ColumnHeaderLabels{5}.Visible = visibility;
             obj.ColumnLabelHelpButton{5}.Visible = visibility;
-            
         end
         
         function setRowDisplayMode(obj, rowNum, showAdvanced)
@@ -510,7 +500,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             hRow.SubfolderTypeDropdown.Position(1) = hRow.SubfolderTypeDropdown.Position(1) + xOffset;
             hRow.DynamicRegexp.Visible = visibility;
             hRow.IgnoreList.Visible = visibility;
-            
         end
         
         function markClean(obj)
@@ -528,7 +517,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             if obj.FolderListViewerActive
                 obj.showFolderListViewer()
             end
-            
         end
         
         function setInactive(obj)
@@ -540,7 +528,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             end
             
             obj.updateDataLocationModel()
-            
         end
         
         function wasSuccess = addRow(obj, src, ~)
@@ -565,7 +552,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             evtData = event.EventData();
             obj.notify('FilterChanged', evtData)
-                        
         end
         
         function removeRow(obj, src, ~)
@@ -588,7 +574,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             evtData = event.EventData();
             obj.notify('FilterChanged', evtData)
-            
         end
         
         function onAddSubfolderButtonPushed(obj, src, ~)
@@ -601,7 +586,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 hFigure = ancestor(obj.Parent, 'figure');
                 uialert(hFigure, message, 'Aborting')
             end
-            
         end
         
         function onSubfolderSelectionValueChanged(obj, src, ~)
@@ -609,7 +593,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.subfolderChanged(src)
             
             % obj.updateDataLocationModel()
-            
         end
         
         function subfolderChanged(obj, src, ~)
@@ -634,7 +617,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             for i = iRow+2:numel(obj.NumRows)
                 obj.removeRow()
             end
-            
         end
         
         function subFolderTypeChanged(obj, src, evt)
@@ -659,7 +641,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.notify('FilterChanged', evtData)
             
             obj.updateSubfolderItems(iRow)
-
         end
         
         function expressionChanged(obj, src, evt)
@@ -671,7 +652,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.notify('FilterChanged', evtData)
             
             obj.updateSubfolderItems(iRow); % supress output
-
         end
         
         function success = updateSubfolderItems(obj, iRow, folderPath)
@@ -693,7 +673,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             
             % Look for subfolders in the folderpath
-            [~, dirName] = utility.path.listSubDir(folderPath, S(iRow).Expression, S(iRow).IgnoreList);
+            [~, dirName] = utility.path.listSubDir(folderPath, ...
+                S(iRow).Expression, S(iRow).IgnoreList);
             
             % Todo: Add something like this if implementing virtual folders
             % in a datalocation
@@ -723,7 +704,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 if ~nargout; clear success; end
                 return
             end
-            
             
             % Need to update field based on current data.
             hSubfolderDropdown.Items = dirName;
@@ -758,7 +738,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.IsDirty = true;
             
             if ~nargout; clear success; end
-            
         end
         
         function S = getSubfolderStructure(obj)
@@ -798,7 +777,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                     end
                 end
             end
-
         end
         
     end
@@ -828,7 +806,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                     obj.SelectDataLocationDropDown.Items(i) = [];
                 end
             end
-            
         end
         
         function onDataLocationSelectionChanged(obj, ~, event)
@@ -868,7 +845,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             % Important: Restore listener.
             obj.FolderOrganizationFilterListener = listener(obj, ...
                 'FilterChanged', @(s,e) obj.updateFolderList);
-            
         end
     
         function onTemplateSelectionChanged(obj, src, event)
@@ -907,9 +883,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                         obj.IsDirty = true;
                         % Todo: Make sure metadata tab is updated as well
                 end
-                
             end
-            
         end
         
         % Image clicked function: InfoIcon_2
@@ -942,7 +916,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 obj.FolderListViewerActive = true;
                 obj.showFolderListViewer()
             end
-        
         end
         
         % Value changed function: ShowFilterOptionsButton
@@ -982,7 +955,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 
             % Give focus to the app figure
             figure(obj.AppFigure)
-            
         end
     
         function showFolderListViewer(obj)
@@ -1004,7 +976,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             if ~isempty(obj.AppFigure)
                 figure(obj.AppFigure)
             end
-            
         end
                 
         function hideFolderListViewer(obj)
@@ -1016,9 +987,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 if ~isempty(obj.AppFigure)
                     uim.utility.centerFigureOnScreen(obj.AppFigure)
                 end
-
             end
-            
         end
         
         function onFolderListViewerDeleted(obj)
@@ -1065,7 +1034,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             % Update table data in folderlist viewer
             obj.FolderListViewer.Data = sessionFolders';
-            
         end
         
     end
@@ -1117,13 +1085,10 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 % %                     obj.IsUpdating = false;
 % %                     
                         obj.updateFolderList()
-                        
                     end
                                         
                 otherwise
-                    
             end
-        
         end
         
         function onDataLocationRemoved(obj, ~, evt)
@@ -1134,7 +1099,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         %   the DataLocationModel object
             
             obj.updateDataLocationSelector()
-        
         end
          
     end
@@ -1145,11 +1109,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             % Todo: definitions should be generalized away from .m
             % functions
-            
-            nansenRootDir = nansen.localpath('nansen_root');
-            templateDir = fullfile( nansenRootDir, ...
-                'templates', 'datalocation');
-            
+            templateDir = fullfile( nansen.rootpath, 'templates', 'datalocation');
             addpath(genpath(templateDir))
             
             subfolderPath = utility.path.listSubDir(templateDir);
@@ -1173,7 +1133,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 S(i).Name = tempS.Name;
                 S(i).DataType = tempS.DataType;
                 S(i).FunctionName = functionName;
-                
             end
         end
     end

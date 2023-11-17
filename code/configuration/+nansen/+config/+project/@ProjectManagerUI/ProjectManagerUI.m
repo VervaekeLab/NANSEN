@@ -504,7 +504,6 @@ classdef ProjectManagerUI < handle
             
             isValidProjectName = isvarname(projectShortName);
             
-            
             if ~isValidProjectName
                 if isempty(projectShortName)
                     message = 'Please enter a name for the project';
@@ -554,7 +553,6 @@ classdef ProjectManagerUI < handle
                 
                 obj.notify('ProjectChanged', event.EventData)
                 obj.updateProjectTableData()
-                
                 
                 % Disable controls for creating new project
                 % Todo: only do this during the initial setup

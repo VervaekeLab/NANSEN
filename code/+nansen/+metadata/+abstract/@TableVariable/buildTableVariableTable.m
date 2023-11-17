@@ -75,8 +75,9 @@ function attributeTable = buildTableVariableTable(fileList)
             end
             
             if ismethod(fcnResult, 'update')
+                thisFcnName = strjoin({thisFcnName, 'update'}, '.');
             	S(count).HasUpdateFunction = true;
-                S(count).UpdateFunctionName = func2str(varFunction);
+                S(count).UpdateFunctionName = thisFcnName;
             end
         else
             S(count).HasUpdateFunction = true;

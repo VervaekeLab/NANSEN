@@ -468,8 +468,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                         obj.RowControls(i).(rowFields{j}).Position(2) + dY;
                 end
             end
-            
-            
         end
         
     end
@@ -818,7 +816,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             % Create the new row in the specified row index position
             rowData = obj.getRowData(rowNumber);
             obj.createTableRow(rowData, rowNumber)
-                        
         end
         
         function removeRow(obj, rowNumber)

@@ -177,7 +177,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                 return
             end
             
-            
             switch currentModuleName
                 case ''
 %                 {'DataLocations', 'FolderOrganization', 'MetadataInit'}
@@ -196,7 +195,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                 case 'MetadataInit'
                     
             end
-
         end
         
         function d = openProgressDialog(obj, title)
@@ -208,7 +206,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             
             d = uiprogressdlg(obj.Figure, 'Title', title,...
                 'Message', message, 'Indeterminate','on');
-            
         end
         
         function doAbort = promptSaveChanges(obj)
@@ -336,7 +333,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             obj.TabList = hTabs;
             
             obj.TabGroup.SelectionChangedFcn = @obj.onTabSelectionChanged;
-
         end
  
         function createControlPanels(obj)
@@ -345,7 +341,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                 hPanel = obj.createControlPanel( obj.TabList(i) );
                 obj.ControlPanels(i) = hPanel;
             end
-            
         end
         
         function setLayout(obj)
@@ -366,9 +361,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             
             obj.LoadingPanel.Position = [1,1,obj.TabGroup(1).Position(3:4)];
             obj.updateLoadPanelComponentPositions()
-
         end
-            
 
         function createDataLocationUI(obj, varargin)
             
@@ -383,7 +376,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             end
             
             obj.UIModule{i} = nansen.config.dloc.DataLocationModelUI(h, args{:});
-
         end
         
         function createFolderOrganizationUI(obj, varargin)
@@ -409,7 +401,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             obj.UIModule{i} = nansen.config.dloc.MetadataInitializationUI(h, args{:});
             % Todo: Make adjustable using properties...
             obj.UIModule{i}.hideAdvancedOptions()
-                        
         end
         
     end
@@ -430,7 +421,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             obj.exitTab( evt.OldValue )
             
             obj.enterTab( evt.NewValue )
-            
         end
         
         function enterTab(obj, uiTab)
@@ -445,7 +435,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                 case 'Metadata Initialization'
                 
             end
-            
         end
         
         function exitTab(obj, uiTab)

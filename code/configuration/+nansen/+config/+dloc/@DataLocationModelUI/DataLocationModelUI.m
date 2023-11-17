@@ -56,7 +56,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             %obj.ColumnNames = {'Data location type', 'Data location root folder', 'Set backup'};
             %obj.ColumnWidths = [130, 365, 125];
             obj.ColumnNames = {'', 'Data location name', 'Data type', 'Data location root directory'};
-            obj.ColumnWidths = [22, 130, 100, 500];
+            obj.ColumnWidths = [22, 130, 100, 350];
             obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
             obj.RowSpacing = 20;
 

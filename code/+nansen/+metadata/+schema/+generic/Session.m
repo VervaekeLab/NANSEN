@@ -195,7 +195,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         end
         
         function pathString = detectSessionFolder(obj, dataLocation)
-            
+                        
+            % todo: similar to nansen.dataio.session.listSessionFolders
             rootPath = dataLocation.RootPath{1};
             S = dataLocation.SubfolderStructure;
 
