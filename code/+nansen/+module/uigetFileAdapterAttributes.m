@@ -1,4 +1,4 @@
-function S = uigetFileAdapterAttributes()
+function [S, wasAborted] = uigetFileAdapterAttributes()
 %uigetFileAdapterAttributes Open dialog for selecting file adapter options.
 %
 %   S = uigetFileAdapterAttributes() opens dialog and returns a struct S
@@ -18,8 +18,9 @@ function S = uigetFileAdapterAttributes()
     S.AccessMode = 'Read';
     S.AccessMode_ = {'Read', 'Read/Write'};
 
-    S = tools.editStruct(S);
-
+    [S, wasAborted] = tools.editStruct(S, '', 'Create File Adapter', ...
+        'Prompt', 'Configure new file adapter:');
+    
     S.SupportedFileTypes = strsplit(S.SupportedFileTypes, ',');
     if strcmp(S.AccessMode, 'Read')
         S.AccessMode = 'R';
@@ -28,3 +29,22 @@ function S = uigetFileAdapterAttributes()
     end
 
 end
+
+% Todo:
+%   [ ] Output a struct with 3 fields: Name, Attributes, Configuration:
+% 
+%     S = struct();
+%     S.Name = S_.Name;
+% 
+%     S.Attributes = struct();
+%     S.Attributes.SupportedFileTypes = strsplit(S_.SupportedFileTypes, ',');
+%     S.Attributes.DataType = S_.DataType;
+%
+%     S.Configuration = struct();
+%     if strcmp(S_.AccessMode, 'Read')
+%         S.Configuration.AccessMode = 'R';
+%     elseif strcmp(S_.AccessMode, 'Read/Write')
+%         S.Configuration.AccessMode = 'RW';
+%     end
+
+

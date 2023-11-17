@@ -27,7 +27,7 @@ function sessionMethodPathList = listSessionMethods(integrationNames)
 
         [absPath, ~] = utility.path.listSubDir(sesMethodRootPathList);
 
-        if isempty(absPath)
+        if isempty(absPath) || isequal(absPath, sesMethodRootPathList)
             finished = true;
         else
             packagePathList = [packagePathList, absPath];
