@@ -53,7 +53,7 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
         for j = 1:numel(S)
             expression = S(j).Expression;
             ignoreList = S(j).IgnoreList;
-            [rootPath, ~] = utility.path.listSubDir(rootPath, expression, ignoreList, 1, 1);
+            [rootPath, ~] = utility.path.listSubDir(rootPath, expression, ignoreList);
         end
                 
         fieldName = dataLocationModel.Data(i).Name;
