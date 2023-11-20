@@ -324,6 +324,8 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         %       variableList - variableList is a struct array of variable
         %       configurations
 
+            if isempty(variableList); return; end
+
             dataLocationModel = nansen.DataLocationModel(); % dependent prop?
             defaultDataLocation = dataLocationModel.getDefaultDataLocation;
             
@@ -498,7 +500,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             
             if nargin < 1; fileType = ''; end
             if ~isempty(fileType); fileType = strrep(fileType, '.', ''); end
-            
+
             fileAdapterList = nansen.dataio.listFileAdapters();
             
             if ~isempty(fileType)

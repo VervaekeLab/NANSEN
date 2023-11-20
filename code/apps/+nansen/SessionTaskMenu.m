@@ -52,6 +52,8 @@ classdef SessionTaskMenu < handle
     properties (Constant, Hidden)
         ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Help', 'Restart'} % Available modes
         MenuOrder = {'+data', '+process', '+analyze', '+plot'}              % Todo: preference?
+        %MenuOrder = {'+data', '+processing', '+analysis', '+plotting'}              % Todo: preference?
+
     end
     
     properties
@@ -568,7 +570,8 @@ classdef SessionTaskMenu < handle
             end
             
             % Put custom names at the end...
-            sortIdx(sortIdx == 0) = count + (1:sum(sortIdx==0));
+            unsortedIdx = setdiff( 1:numel(menuNames), sortIdx(sortIdx~=0) );
+            sortIdx(sortIdx == 0) = unsortedIdx;
 
             sortedNames = menuNames(sortIdx);
         end

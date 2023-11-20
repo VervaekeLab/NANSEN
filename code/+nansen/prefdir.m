@@ -4,8 +4,7 @@ function preferenceDirectory = prefdir()
     
     userSession = NansenUserSession.instance('', 'nocreate');
     if isempty(userSession)
-        error('NANSEN:NoUserSessionActive', ...
-            'No user session is active. Please start nansen and try again.')
+        throw(nansen.common.exception.NoUserSessionActive(userName))
     else
         preferenceDirectory = userSession.getPrefdir();
     end

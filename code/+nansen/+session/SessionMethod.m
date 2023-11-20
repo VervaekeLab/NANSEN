@@ -358,6 +358,7 @@ classdef SessionMethod < nansen.DataMethod
             % Loop through m-files and add to file adapter list if this 
             for i = 1:numel(fileList)
                 mFilePath = utility.dir.abspath(fileList(i));
+                mFilePath = mFilePath{1};
                 thisFcnName = utility.path.abspath2funcname(mFilePath);                
                 
                 [~, fileName] = fileparts(mFilePath);

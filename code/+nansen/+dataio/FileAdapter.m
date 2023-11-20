@@ -557,9 +557,9 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             if ispc
                 commandStrTemplate = 'python.exe "%s" "%s" "%s"'; % pyFile, sourceFile, targetFile
             elseif ismac
-                commandStrTemplate = 'python "%s" "%s" "%s"'; % pyFile, sourceFile, targetFile
+                commandStrTemplate = 'python3 "%s" "%s" "%s"'; % pyFile, sourceFile, targetFile
             elseif isunix
-                commandStrTemplate = 'python "%s" "%s" "%s"'; % Todo: Is this correct?
+                commandStrTemplate = 'python3 "%s" "%s" "%s"'; % Todo: Is this correct?
             else
                 error('Unknown operating system')
             end
@@ -610,6 +610,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             for i = 1:numel(fileList)
 
                 thisFilePath = utility.dir.abspath(fileList(i));
+                thisFilePath = thisFilePath{1};
                 thisFcnName = utility.path.abspath2funcname(thisFilePath);
                 try
                     mc = meta.class.fromName(thisFcnName);

@@ -14,11 +14,13 @@ function removeFilepathFromStaticJavaPath(filePath)
     pathItems = strsplit(fileContents, '\n');
 
     tf = contains(pathItems, filePath);
-    pathItems(tf)=[];
-
-    updatedPath = strjoin(pathItems, '\n');
-
-    fid = fopen(staticJavaFilepath, 'w');
-    fwrite(fid, updatedPath);
-    fclose(fid);
+    if any(tf)
+        pathItems(tf)=[];
+    
+        updatedPath = strjoin(pathItems, '\n');
+    
+        fid = fopen(staticJavaFilepath, 'w');
+        fwrite(fid, updatedPath);
+        fclose(fid);
+    end
 end

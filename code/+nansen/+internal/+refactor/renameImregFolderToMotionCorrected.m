@@ -9,7 +9,7 @@ function renameImregFolderToMotionCorrected()
         
         project = projectManager.getProjectObject(iProject);
         
-        metaTable = project.MetatableCatalog.getMasterMetaTable;
+        metaTable = project.MetaTableCatalog.getMasterMetaTable;
         dlModel = project.DataLocationModel;
         % Loop through all sessions and move files from old folder to new
         % folder

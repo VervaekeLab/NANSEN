@@ -18,10 +18,17 @@ function fileAdapterList = listFileAdapters()
 
     % Get folder containing file adapters from nansen core package, ...
     rootPath{end+1} = nansen.localpath('builtin_file_adapter');
-    rootPath{end+1} = fullfile(nansen.localpath('integrations'), 'fileadapters');
     
     % ... from project folder
-    
+    pm = nansen.ProjectManager();
+    p = pm.getCurrentProject();
+
+    if isempty(p)
+        fileAdapterList = struct.empty; return
+    end
+
+    rootPath{end+1} = char(p.getFileAdapterFolder);
+
     
     % ... and from watch folders.
     
