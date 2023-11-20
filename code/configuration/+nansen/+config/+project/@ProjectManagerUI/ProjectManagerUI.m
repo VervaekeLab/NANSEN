@@ -75,16 +75,20 @@ classdef ProjectManagerUI < handle
             success = false;
             
             hFigure = ancestor(obj.hParent, 'figure');
-            answer = uiconfirm(hFigure, 'Please select a project folder', ...
-                'Import project', 'Options', 'Ok'); %#ok<NASGU>
-            % Minimize figure, because folder dialog appear below figure
-            hFigure.WindowState = 'minimized';
+            if ~isempty(hFigure)
+                answer = uiconfirm(hFigure, 'Please select a project folder', ...
+                    'Import project', 'Options', 'Ok'); %#ok<NASGU>
+                % Minimize figure, because folder dialog appear below figure
+                hFigure.WindowState = 'minimized';
+            end
 
             folderPath = uigetdir(obj.ProjectRootFolderPath);
             
             % Bring figure back to view
-            hFigure.WindowState = 'normal';
-            figure( hFigure )
+            if ~isempty(hFigure)
+                hFigure.WindowState = 'normal';
+                figure( hFigure )
+            end
 
             if folderPath == 0
                 return
