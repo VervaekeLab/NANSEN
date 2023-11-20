@@ -22,7 +22,7 @@ function S = getdata(sessionID, dataName)
 
     % Eivind's example code:
     
-    loadPath = nansen.metadata.MetaTableCatalog.getDefaultMetaTablePath();
+    loadPath = nansen.getCurrentProject().MetaTableCatalog.getDefaultMetaTablePath();
     metaTable = nansen.metadata.MetaTable.open(loadPath);
     
     isMatch = strcmp( metaTable.members, sessionID);

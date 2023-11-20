@@ -19,24 +19,20 @@ classdef MetaTable < handle
 
 % Todo:
 %   [ ] Inherit from VersionedFile
-    
-    properties (Constant, Access = private) % Variable names for export
-        
-        % These are variables that will be saved to a MetaTable mat file.
-        FILEVARS = struct(  'MetaTableMembers', {{}}, ...
-                            'MetaTableEntries', {{}} );
-        
-        % These are variables that will be saved to the MetaTableCatalog.
-        MTABVARS = struct(  'IsMaster', false, ...
-                            'MetaTableName', '', ...
-                            'MetaTableClass', '', ...
-                            'MetaTableIdVarname', '', ...
-                            'MetaTableKey', '', ...
-                            'SavePath', '', ...
-                            'FileName', '', ...
-                            'IsDefault', false  );
-    end
+%   [ ] Constructor access should be MetaTableCatalog...
+%   [ ] Should archive be a method on this class? Would it not be better son
+%       metatablecatalog..?
+%   [ ] openMetaTableFromName should be a metatable catalog method...
 
+
+% Features: Should think about grouping this better.
+%       Catalog/Collection, ie adding, removing and modifying entries
+%       VersionedFile
+%       GetFormattedTableData
+%       Methods for adding/removing columns
+%       Master/dummy 
+%       PartOfCatalog
+    
     properties (SetAccess=private, SetObservable)
         IsModified = false;
     end
@@ -63,18 +59,36 @@ classdef MetaTable < handle
         filepath = ''       % Filepath where metatable is saved locally
         members             % IDs for MetaTable entries 
         entries table       % MetaTable entries
-
     end
 
     properties (Access = private)
         VersionNumber int64
+        ReferenceTable % Reference to master table. Todo
     end
 
     properties (Dependent = true, Hidden = true)
         SchemaIdName % The property name for id of a schema/object of this table
     end
     
-    
+    properties (Constant, Access = private) % Variable names for export
+        
+        % These are variables that will be saved to a MetaTable mat file.
+        FILEVARS = struct(  'MetaTableMembers', {{}}, ...
+                            'MetaTableEntries', {{}} );
+        
+        % These are variables that will be saved to the MetaTableCatalog.
+        CATALOG_VARIABLES = struct( ...
+            'IsMaster', false, ...
+            'MetaTableName', '', ...
+            'MetaTableClass', '', ...
+            'MetaTableIdVarname', '', ...
+            'MetaTableKey', '', ...
+            'SavePath', '', ...
+            'FileName', '', ...
+            'IsDefault', false ...
+            );
+    end
+
     methods % Structor
         
         function obj = MetaTable(varargin)
@@ -254,21 +268,9 @@ classdef MetaTable < handle
         %   (members) are saved as a cell array. This way, the MetaTables
         %   can be read even if the MetaTable class is not on Matlabs path.
             
-        
-            % If a filepath does not exist, assume it is a metatable name?
-            % Todo: This should not be necessary.
+            % If a filepath does not exist, throw error.
             if ~exist(obj.filepath, 'file')
-                
-                % Is it only name of MetaTable. Todo: HUH???
-                MT = nansen.metadata.MetaTableCatalog.quickload();
-
-                isMatched = contains(MT.MetaTableName, obj.filepath);
-                if any(isMatched)
-                    mtEntry = MT(isMatched, :);
-                    obj.filepath = fullfile(mtEntry{1, {'SavePath', 'FileName'}}{:}); %Picking first entry (There should only be one, but thats having good faith...)
-                else
-                    error('MetaTable file was not found')
-                end
+                error('File "%s" does not exist.')
             end
             
             % Load variables from MetaTable file.
@@ -280,7 +282,7 @@ classdef MetaTable < handle
                 [~, fileName] = fileparts(obj.filepath);
                 msg = sprintf(['The file "%s" does not contain ', ...
                     'a MetaTable'], fileName);
-                error('MetaTable:InvalidFileType', msg) %#ok<SPERR>
+                error('NANSEN:MetaTable:InvalidFileType', msg) %#ok<SPERR>
             end
             
             % Assign the variables from the loaded file to properties of
@@ -291,10 +293,7 @@ classdef MetaTable < handle
                 obj.VersionNumber = 0; 
             end
             
-            % Check if file is part of MetaTable Catalog (adds if missing)
-            %metaCatalogEntry = obj.toStruct('metatable_catalog');
-            %nansen.metadata.MetaTableCatalog.checkMetaTableCatalog(metaCatalogEntry)
-            
+            % Synch from master if this is a dummy
             if ~obj.IsMaster
                 obj.synchFromMaster()
             end
@@ -313,7 +312,6 @@ classdef MetaTable < handle
             % Assign flag stating that entries are not modified.
             obj.IsModified = false;
             %obj.IsModified = false(size(obj.entries));
-            
         end
         
         function versionNumber = loadVersionNumber(obj)
@@ -394,7 +392,7 @@ classdef MetaTable < handle
             originalPath = obj.filepath;
             obj.filepath = savePath;
             obj.save();
-            obj.filePath = originalPath;
+            obj.filepath = originalPath;
         end
         
         function archive(obj, Sin)
@@ -472,14 +470,14 @@ classdef MetaTable < handle
         
             switch source
                 case 'metatable_catalog'
-                    S = obj.MTABVARS;
+                    S = obj.CATALOG_VARIABLES;
                     
                 case 'metatable_file'
                     S = obj.FILEVARS;
-                    f = fieldnames(obj.MTABVARS);
+                    f = fieldnames(obj.CATALOG_VARIABLES);
                     
                     for i = 1:length(f)
-                        S.(f{i}) = obj.MTABVARS.(f{i});
+                        S.(f{i}) = obj.CATALOG_VARIABLES.(f{i});
                     end
             end
             
@@ -1134,7 +1132,6 @@ classdef MetaTable < handle
         %
         %       - A keyword ('master' or 'dummy') to create a blank
         %         MetaTable
-        
             
             metaTable = nansen.metadata.MetaTable();
             
@@ -1196,21 +1193,7 @@ classdef MetaTable < handle
             
             filename = sprintf('%s_%s.mat', filename, nameExtension);
         end
-        
-        function tf = hasDefault(className)
-        %HASDEFAULT Check if a default MetaTable of given class exists.    
-            
-            MT = nansen.metadata.MetaTableCatalog();
-            
-            if isempty(MT); return; end
-            
-            isClassMatch = strcmp(className, MT.MetaTableClass);
-            isDefault = MT.IsDefault;
-            
-            S = table2struct( MT(isClassMatch & isDefault, :) );
-            tf = ~isempty(S);
-        end
-        
+
         function T = addTableVariableStatic(T, variableName, initValue)
         %   addTableVariable(obj, variableName, initValue) adds a new
         %   variable to the table and initializes all column values to the

@@ -6,7 +6,6 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
         ModelName = 'Pipeline Model'
     end
     
-    
     properties
         Model
         ModelBackup
@@ -31,13 +30,10 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
 
                 obj.createUIModules()
                 
-                
                 if ~nargout
                     clear obj
                 end
             end
-            
-            
         end
         
     end
@@ -72,11 +68,9 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
                         return
 
                 end
-                
             end
 
             delete(obj.Figure)
-            
         end
         
     end
@@ -100,7 +94,6 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
             obj.Figure.Position(3:4) = obj.Figure.Position(3:4) + deltaSize;
             obj.LoadingPanel.Position(3:4) = obj.Figure.Position(3:4);
             uim.utility.layout.centerObjectInRectangle(obj.LoadingImage, obj.LoadingPanel)
-
         end
 
         function createControlPanels(obj)
@@ -117,8 +110,8 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
             obj.Model = pipelineModel;
             obj.ModelBackup = pipelineModel.Data;
             
-            MT = nansen.metadata.MetaTableCatalog();
-            metaTable = MT.getMasterTable('session');
+            metatableCatalog = nansen.getCurrentProject().MetaTableCatalog;
+            metaTable = metatableCatalog.getMasterTable('session');
             
             args = {'PipelineModel', pipelineModel, 'Data', pipelineModel.Data(1).SessionProperties, ...
                 'MetaTable', metaTable};
@@ -127,7 +120,6 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
             obj.UIModule{1}.createToolbar(obj.ControlPanels(1))
 
             obj.LoadingPanel.Visible = 'off';
-
         end
         
     end

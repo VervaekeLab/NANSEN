@@ -457,7 +457,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % Section with menu items for creating table variables
 
             mitem = uimenu(m, 'Text','New Table Variable', 'Separator', 'on');
-            uimenu( mitem, 'Text', 'Create...', 'MenuSelectedFcn', @(s,e, cls) app.addTableVariable('session'));
+            uimenu( mitem, 'Text', 'Create...', 'MenuSelectedFcn', @(s,e, cls) app.onCreateTableVariableMenuItemClicked('session'));
             uimenu( mitem, 'Text', 'Import...', 'MenuSelectedFcn', @(s,e, cls) app.importTableVariable('session'));
             
             % Menu with submenus for editing table variable definition:
@@ -953,7 +953,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 switch pageName
                     case 'Overview'
-                        app.createMetaTableViewer(hTab)
+                        app.initializeMetaTableViewer(hTab)
                         
                     case 'File Viewer'
                         h = nansen.FileViewer(hTab);
@@ -972,7 +972,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.hLayout.TabGroup.SelectionChangedFcn = @app.onTabChanged;
         end
         
-        function createMetaTableViewer(app, hTab)
+        function initializeMetaTableViewer(app, hTab)
             
             % Prepare inputs
             S = app.settings.MetadataTable;
@@ -1343,10 +1343,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onModuleSelectionChanged(app, src, evtData)
             % Get current project
             p = app.ProjectManager.getCurrentProject();
+            
+            % Update the optional modules for the project
+            p.setOptionalModules( {evtData.SelectedData.PackageName} )
 
-            % Update preferences
-            p.Preferences.DataModule = [evtData.SelectedData.PackageName];
-            p.assignModules()
             app.SessionTaskMenu.CurrentProject = p;
         end
         
@@ -1933,15 +1933,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
         end
+
+        function onCreateTableVariableMenuItemClicked(app, metadataClass)
+            app.createTableVariable(metadataClass)
+        end
         
-        function addTableVariable(app, metadataClass)
-        %addTableVariable Opens a dialog where user can add table variable
+        function createTableVariable(app, metadataClass)
+        %createTableVariable Open a dialog where user can add table variable
         %
         %   User gets the choice to create a variable that can be edited
-        %   from the table or which is retrieved from a function.
-        
-        %  Q: This belongs to MetaTableViewer, but was more convenient to
-        %  add it here for now. 
+        %   from the table or one which is retrieved from a function.
         
         % Todo: Use class instead of functions / add class as a third
         % choice. Can make more configurations using a class, i.e class can
@@ -2694,10 +2695,31 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
         
+        function openMetaTable(app, metaTableName)
+        % openMetaTable - Open a metatable with the given name
+
+            % Get selected metatable item from the metatable catalog
+            MTC = app.CurrentProject.MetaTableCatalog;
+            mtItem = MTC.getEntry(metaTableName);
+
+            % Create metatable filepath
+            rootDir = fileparts(mtcFilePath);
+            mtFilePath = fullfile(rootDir, mtItem.FileName);
+            
+            if ~contains(mtFilePath, '.mat')
+                mtFilePath = strcat(mtFilePath, '.mat');
+            end
+            
+            returnToIdle = app.setBusy('Opening table...'); %#ok<NASGU>
+
+            app.loadMetaTable(mtFilePath)
+        end
+
         function loadMetaTable(app, loadPath)
             
             if nargin < 2 || isempty(loadPath)
-                loadPath = app.getDefaultMetaTablePath();
+                MTC = app.CurrentProject.MetaTableCatalog;
+                loadPath = MTC.getDefaultMetaTablePath();
             end
             
             if isempty(loadPath)
@@ -2845,36 +2867,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     methods (Access = protected) % Callbacks
 
-        function menuCallback_DetectSessions(app, src, evtData)
-
-            % Default to use the first datalocation or all?
-            %dataLocationName = app.DataLocationModel.Data(1).Name;
-            dataLocationName = 'all';
-            newSessionObjects = nansen.manage.detectNewSessions(app.MetaTable, dataLocationName);
-            
-            if isempty(newSessionObjects)
-                app.openMessageBox('No sessions were detected')
-                return
-            end
-            
-            % Initialize a MetaTable using the given session schema and the
-            % detected session folders.
-            
-            tmpMetaTable = nansen.metadata.MetaTable.new(newSessionObjects);
-            tmpMetaTable = app.addMissingVarsToMetaTable(tmpMetaTable, 'session');
-
-            
-            % Find all that are not part of existing metatable
-            app.MetaTable.appendTable(tmpMetaTable.entries)
-            app.MetaTable.save()
-            
-            app.UiMetaTableViewer.refreshTable(app.MetaTable)
-            
-            app.openMessageBox(sprintf('%d sessions were successfully added', numel(newSessionObjects)))
-            % Display sessions that were added on the commandline
-            fprintf('The following sessions were added: \n%s\n', strjoin({newSessionObjects.sessionID}, '\n'))
-        end
-        
         %onSettingsChanged Callback for change of fields in settings
         function onSettingsChanged(app, name, value)    
             
@@ -3370,6 +3362,36 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     methods (Access = protected) % Menu Callbacks
+
+        function menuCallback_DetectSessions(app, src, evtData)
+
+            % Default to use the first datalocation or all?
+            %dataLocationName = app.DataLocationModel.Data(1).Name;
+            dataLocationName = 'all';
+            newSessionObjects = nansen.manage.detectNewSessions(app.MetaTable, dataLocationName);
+            
+            if isempty(newSessionObjects)
+                app.openMessageBox('No sessions were detected')
+                return
+            end
+            
+            % Initialize a MetaTable using the given session schema and the
+            % detected session folders.
+            
+            tmpMetaTable = nansen.metadata.MetaTable.new(newSessionObjects);
+            tmpMetaTable = app.addMissingVarsToMetaTable(tmpMetaTable, 'session');
+
+            
+            % Find all that are not part of existing metatable
+            app.MetaTable.appendTable(tmpMetaTable.entries)
+            app.MetaTable.save()
+            
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+            
+            app.openMessageBox(sprintf('%d sessions were successfully added', numel(newSessionObjects)))
+            % Display sessions that were added on the commandline
+            fprintf('The following sessions were added: \n%s\n', strjoin({newSessionObjects.sessionID}, '\n'))
+        end
         
         function onNewProjectMenuClicked(app, src, evt)
         %onNewProjectMenuClicked Let user add a new project
@@ -3387,7 +3409,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     switch answer
                         case 'Yes'
                             app.onExit(app.Figure)
-                            nansen.setup
+                            nansen.setup.SetupWizardApp(["ProjectTab", "ModulesTab", "DataLocationsTab", "FolderHierarchyTab", "MetadataTab", "VariablesTab"])
                             return
                         otherwise
                             % Do nothing
@@ -3486,9 +3508,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     metaTable = app.MenuCallback_CreateMetaTable();
                     if isempty(metaTable); return; end % User canceled
                 otherwise
-                    
-                    MT = nansen.metadata.MetaTableCatalog();
-                    metaTable = MT.getMetaTable(src.Text);
+                    MTC = app.CurrentProject.MetaTableCatalog;
+                    metaTable = MTC.getMetaTable(src.Text);
             end
 
             metaTable.addEntries(sessionEntries)
@@ -3528,17 +3549,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             S_.MetaTableName = S.MetaTableName;
             S_.IsDefault = S.MakeDefault;
             S_.IsMaster = false;
+            S_.SavePath = app.CurrentProject.getProjectPackagePath('Metadata Tables');
+                        
+            metaTableCatalog = app.CurrentProject.MetaTableCatalog;
+            catalogTable = metaTableCatalog.Table;
+            isMaster = catalogTable.IsMaster; %#ok<PROP>
             
-            projectRootDir = app.ProjectManager.CurrentProjectPath;
-            S_.SavePath = fullfile(projectRootDir, 'Metadata Tables');
-
-            metaTableCatalog = nansen.metadata.MetaTableCatalog();
-            MT = metaTableCatalog.Table;
-            isMaster = MT.IsMaster; %#ok<PROP>
-            
-            S_.MetaTableIdVarname = MT{isMaster, 'MetaTableIdVarname'}{1};
-            S_.MetaTableKey = MT{isMaster, 'MetaTableKey'}{1};
-            S_.MetaTableClass = MT{isMaster, 'MetaTableClass'}{1};
+            S_.MetaTableIdVarname = catalogTable{isMaster, 'MetaTableIdVarname'}{1};
+            S_.MetaTableKey = catalogTable{isMaster, 'MetaTableKey'}{1};
+            S_.MetaTableClass = catalogTable{isMaster, 'MetaTableClass'}{1};
             
             metatable = nansen.metadata.MetaTable();
             metatable.archive(S_)
@@ -3565,23 +3584,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function MenuCallback_OpenMetaTable(app, src, ~)
             
             metaTableName = src.Text;
-            
-            % Get selected metatable item
-            MT = nansen.metadata.MetaTableCatalog;
-            mtItem = MT.getEntry(metaTableName);
-
-            % Get database filepath
-            rootDir = fileparts(nansen.metadata.MetaTableCatalog.getFilePath());
-            filePath = fullfile(rootDir, mtItem.FileName);
-            
-            if ~contains(filePath, '.mat')
-                filePath = strcat(filePath, '.mat');
-            end
-            
-            returnToIdle = app.setBusy('Opening table...');
-
-            % Todo: Wrap this into a separate method
-            app.loadMetaTable(filePath)
+            app.openMetaTable(metaTableName)
         end
         
         function onSetDefaultMetaTableMenuItemClicked(app, src, evt)
@@ -3901,11 +3904,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
         end
-        
-        function pathStr = getDefaultMetaTablePath()
-            pathStr = nansen.metadata.MetaTableCatalog.getDefaultMetaTablePath();
-        end
-        
+
         function switchJavaWarnings(newState)
         %switchJavaWarnings Turn warnings about java functionality on/off
             warning(newState, 'MATLAB:ui:javaframe:PropertyToBeRemoved')

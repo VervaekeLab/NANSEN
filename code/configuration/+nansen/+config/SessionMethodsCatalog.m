@@ -54,8 +54,10 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
         
         function refresh(obj)
         %Refresh Check known directories for methods and update catalog
-        
-            pathList = nansen.session.listSessionMethods();
+                    
+            currentProject = nansen.getCurrentProject();
+            pathList = currentProject.getFilePaths('SessionMethod');
+
             functionNames = cell(1, numel(pathList));
                        
             % Add session methods that are not part of the catalog.
