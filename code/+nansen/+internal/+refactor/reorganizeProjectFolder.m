@@ -1,53 +1,63 @@
-function reorganizeProjectFolder(projectFolderPath)
+function reorganizeProjectFolder(projectFolderPath, projectManager)
+% reorganizeProjectFolder - Reorganize a project folder based on
+% refactoring/upgrading the project folder template  
+
+%   Steps:
+%
+%   - Make backup
+%   - Load old project config
+%   - Remove project from projectManager
+%   - Use project manager to create new project
+%   - Move old files from backup to original project folder
+%       metadata
+%       session methods
+%       table variables
+%       configs
     
-    % Make backup:
-    try 
-        projectFolderPathBackup = [projectFolderPath, '_backup'];
-        copyfile(projectFolderPath, projectFolderPathBackup);
-        rmdir(projectFolderPath, 's')
-    catch
-        error('Something went wrong during backup.')
+    % Make backup
+    projectFolderPathBackup = backupProjectFolder(projectFolderPath);
+
+    % Load old project configuration file
+    S = loadOldConfigurations(projectFolderPathBackup);
+    name = S.ProjectConfiguration.Name;
+    description = S.ProjectConfiguration.Description;
+
+    % If project is current, 
+    wasCurrent = false;
+    if strcmp(projectManager.CurrentProject, name)
+        wasCurrent = true;
+        projectManager.changeProject('')
     end
 
-    % Load project configuration
-    filePath = fullfile(projectFolderPathBackup, 'nansen_project_configuration.mat');
-    S = load(filePath, 'ProjectConfiguration');
-    
-    % Create a new project folder:
-    templateFolder = fullfile(nansen.rootpath, 'modules', 'resources', 'project_template_A');
-    targetFolder = projectFolderPath;
+    % Remove project from projectManager
+    if projectManager.containsProject(name)
+        projectManager.removeProject(name)
+    end
 
-    copyfile(templateFolder, targetFolder)
+    % Create new project
+    makeCurrentProject = wasCurrent;
+    projectManager.createProject(name, description, projectFolderPath, makeCurrentProject)
 
-    % Save project configuration as project.nansen.json
-    configStr = jsonencode(S, 'PrettyPrint', true);
-    fid = fopen(fullfile(projectFolderPath, 'project.nansen.json'), 'w');
-    fwrite(fid, configStr);
-    fclose(fid);
-
+    % Move files and folders
     projectPackageName = ['+', S.ProjectConfiguration.Name];
-    
-    % Rename code package folder:
-    oldPacakgeFolder = fullfile(projectFolderPath, 'code', '+projectname');
-    newPackageFolder = fullfile(projectFolderPath, 'code', projectPackageName);
-    movefile(oldPacakgeFolder, newPackageFolder)
 
     % Move session methods
-    oldTableVarFolder = fullfile(projectFolderPathBackup, 'Session Methods', projectPackageName);
-    newTableVarFolder = fullfile(projectFolderPath, 'code', projectPackageName, '+internal', '+sessionmethod');
-    
-    copyfile(oldTableVarFolder, newTableVarFolder)
+    oldSessionMethodFolder = fullfile(projectFolderPathBackup, 'Session Methods', projectPackageName);
+    newSessionMethodFolder = fullfile(projectFolderPath, 'code', projectPackageName, '+sessionmethod');
+    copyfile(oldSessionMethodFolder, newSessionMethodFolder)
+
+    if isfolder(fullfile(projectFolderPathBackup, 'Metadata Tables', '+tablevar'))
+        nansen.internal.refactor.moveTableVarsToProjectNameSpace( projectFolderPathBackup )
+    end
 
     % Move table variables methods
     oldTableVarFolder = fullfile(projectFolderPathBackup, 'Metadata Tables', projectPackageName, '+tablevar');
-    newTableVarFolder = fullfile(projectFolderPath, 'code', projectPackageName, '+internal', '+tablevariable');
-    
+    newTableVarFolder = fullfile(projectFolderPath, 'code', projectPackageName, '+tablevariable');
     copyfile(oldTableVarFolder, newTableVarFolder)
 
     % Copy metadata:
     oldMetadataFolder = fullfile(projectFolderPathBackup, 'Metadata Tables');
-    newMetadataFolder = fullfile(projectFolderPath, 'metadata');
-    
+    newMetadataFolder = fullfile(projectFolderPath, 'metadata', 'tables');
     copyfile(oldMetadataFolder, newMetadataFolder)
 
     % Remove table variable folder:
@@ -55,8 +65,7 @@ function reorganizeProjectFolder(projectFolderPath)
 
     % Copy config files
     oldConfigFolder = fullfile(projectFolderPathBackup, 'Configurations');
-    newConfigFolder = fullfile(projectFolderPath, 'configuration');
-    
+    newConfigFolder = fullfile(projectFolderPath, 'configurations');
     copyfile(oldConfigFolder, newConfigFolder)
 
     % Rename options files:
@@ -66,10 +75,36 @@ function reorganizeProjectFolder(projectFolderPath)
     projectName = S.ProjectConfiguration.Name;
     for i = 1:numel(filePaths)
         thisFilePath = filePaths{i};
-        newFilePath = strrep(thisFilePath, [projectName, '.'], sprintf('%s.internal.sessionmethod.', projectName));
+        newFilePath = strrep(thisFilePath, [projectName, '.'], sprintf('%s.sessionmethod.', projectName));
         if ~strcmp(thisFilePath, newFilePath)
             movefile(thisFilePath, newFilePath)
         end
     end
+end
 
+function backupFolderPath = backupProjectFolder(projectFolderPath)
+
+    [~, projectName] = fileparts(projectFolderPath);
+
+    dateStr = char( datetime('now', 'Format', 'yyyyMMdd_hh_mm') );
+    backupFolderPath = fullfile(userpath, 'Nansen', 'Backup', 'Projects', dateStr, projectName);
+    if ~isfolder(backupFolderPath); mkdir(backupFolderPath); end
+
+
+    % Make backup:
+    try 
+        copyfile(projectFolderPath, backupFolderPath);
+        rmdir(projectFolderPath, 's')
+    catch
+        error('Something went wrong during backup.')
+    end
+
+end
+
+function S = loadOldConfigurations(projectFolderPath)
+    
+% Load project configuration
+    oldConfigurationFileName = 'nansen_project_configuration.mat';
+    filePath = fullfile(projectFolderPath, oldConfigurationFileName);
+    S = load(filePath, 'ProjectConfiguration');
 end

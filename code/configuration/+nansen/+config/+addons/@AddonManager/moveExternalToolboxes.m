@@ -1,5 +1,5 @@
-function checkLegacyDirectory(obj)
-% checkLegacyDirectory Check if the "legacy" directory exists and fix
+function moveExternalToolboxes(obj)
+% moveExternalToolboxes Check if the "legacy" directory exists and fix
 %
 %   Originally, external toolboxes were installed into the nansen
 %   repository folder. These should be stored in a separate location and
@@ -10,7 +10,7 @@ function checkLegacyDirectory(obj)
 
     if isfolder(legacyInstallationDirectory)
         
-        % Inform user that addons will to move it to the userpath.
+        % Inform user that addons will be moved to the userpath.
         newInstallationDirectory = obj.getDefaultInstallationDir();
         %newInstallationDirectory = AM.getDefaultInstallationDirLegacy();
 
@@ -26,8 +26,11 @@ function checkLegacyDirectory(obj)
         subFolders = {'general_toolboxes', 'neuroscience_toolboxes'};
 
         for i = 1:numel(subFolders)
+
             oldPath = fullfile(legacyInstallationDirectory, subFolders{i});
             newPath = fullfile(newInstallationDirectory, subFolders{i});
+            
+            if ~isfolder( oldPath ); continue; end
             
             % Remove java items from the javaclasspath
             utility.system.removeFilepathFromStaticJavaPath(oldPath)
@@ -67,5 +70,8 @@ function checkLegacyDirectory(obj)
         title = "External Add-Ons have been moved";
 
         uiwait( msgbox(msg, title, 'help') )
+
+        rmpath(legacyInstallationDirectory)
+        rmdir(legacyInstallationDirectory)
     end
 end

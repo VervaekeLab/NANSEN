@@ -97,6 +97,10 @@ function obj = instance(userName, mode, skipProjectCheck)
         
         rootUserData.SingletonInstances.NansenUserSession = userSessionObject;
         set(0, 'UserData', rootUserData)
+        
+        % Check if user's data need to be updated due to changes in the 
+        % code base. Important that this is done after the singleton is created.
+        userSessionObject.runPostConstructionUpdateActions()
     end
 
     % % % For development/debugging:

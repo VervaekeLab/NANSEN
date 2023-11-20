@@ -82,7 +82,8 @@ classdef NansenUserSession < handle
     methods (Access = private)
 
         function obj = NansenUserSession(userName, skipProjectCheck)
-            
+        % NansenUserSession - Constructor method
+
             import nansen.config.addons.AddonManager
             import nansen.config.project.ProjectManager
 
@@ -92,10 +93,12 @@ classdef NansenUserSession < handle
             obj.Preferences = obj.initializePreferences();
             preferenceDirectory = obj.getPrefdir();
 
+            obj.preStartup()
+
             obj.AddonManager = AddonManager(preferenceDirectory);
             obj.ProjectManager = ProjectManager.instance(preferenceDirectory);
 
-            obj.onStartup()
+            obj.postStartup()
             obj.SessionUUID = nansen.util.getuuid();
         end
 
@@ -126,9 +129,16 @@ classdef NansenUserSession < handle
             obj.PreferenceListenerState.CurrentProjectName = ...
                 matlab.lang.OnOffSwitchState('on');
         end
+
+        function preStartup(obj)
+        % preStartup - Run procedures that need to execute before startup.
+            obj.runPreStartupUpdateActions()
+
+        end
         
-        function onStartup(obj)
-        
+        function postStartup(obj)
+        % postStartup - Run procedures that need to execute after startup.
+
             % Check that projects are available
             if ~obj.SkipProjectCheck
                 obj.assertProjectsAvailable()
@@ -143,13 +153,11 @@ classdef NansenUserSession < handle
             end
 
             % Note: important that this happens last
-            obj.checkIfUpdateActionsAreNeeded()
-
+            % obj.runPostStartupUpdateActions()
 
             % Check that Addons are on path.
 
-            % Check that dependencies are installed
-
+            % Check that dependencies are installed 
         end
 
         function activatePreferenceListener(obj, preferenceName)
@@ -197,26 +205,54 @@ classdef NansenUserSession < handle
             end
         end
 
-        function checkIfUpdateActionsAreNeeded(obj)
-        % checkIfUpdateActionsAreNeeded - Are actions needed due to update?
-        %
-        %   Sometimes updates requires some one time refactoring of
-        %   userdata. This method checks if that is the case, and performs
-        %   necessary actions.
-
+        function runPreStartupUpdateActions(obj)
+        % runPreStartupUpdateActions - Run upgrade actions
+            
+        % The actions here should be a one-time thing. Sometimes changes 
+        % are made to the code which influence user data, and these actions
+        % update userdata if necessary.
+            
+            % Move _userdata folder from the nansen repository folder to
+            % MATLAB's pref dir in order to avoid having preferences saved
+            % in the reposiory folder.
             if isfolder(fullfile(nansen.rootpath, '_userdata'))
-                nansen.internal.user.migrateUserdata(obj)
+                nansen.internal.refactor.migrateUserdata(obj)
             end
             
-            project = obj.ProjectManager.getCurrentProject();
-            if ~isempty(project)
-                if isfolder(fullfile(project.FolderPath, 'Metadata Tables', '+tablevar'))
-                    nansen.internal.refactor.moveTableVarsToProjectNameSpace( obj.ProjectManager )
-                end
+            if contains( getpref('NansenSetup', 'DefaultProjectPath'), fullfile(nansen.rootpath, '_userdata'))
+                rmpref('NansenSetup', 'DefaultProjectPath')
+            end
+        end
+
+        function runPostConstructionUpdateActions(obj)
+        % runPostStartupUpdateActions - Are actions needed due to update?
+        %
+        % The actions here should be a one-time thing. Sometimes changes 
+        % are made to the code which influence user data, and these actions
+        % update userdata if necessary.
+
+        % Note: This method will be and should only be called from the 
+        % static instance method. This is because some of the procedures
+        % below might depend on the user session itself, so the singleton
+        % instance must have been created when this method is called to
+        % prevent an infinite recursion sequence.
+
+            if obj.AddonManager.existExternalToolboxInRepository()
+                obj.AddonManager.moveExternalToolboxes() % Todo: Remove
+            end
+            
+            if obj.ProjectManager.hasUnversionedProjects()
+                obj.ProjectManager.upgradeProjects()
             end
 
+            if ispref('Nansen', 'CurrentProject')
+                currentProject = getpref('Nansen', 'CurrentProject');
+                obj.ProjectManager.changeProject(currentProject)
+                rmpref('Nansen', 'CurrentProject');
+                rmpref('Nansen', 'CurrentProjectPath');
+            end
         end
-        
+
     end
     
     methods (Static)

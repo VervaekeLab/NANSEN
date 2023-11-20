@@ -10,7 +10,7 @@ classdef AddonManager < handle
     % [X] Save addon list
     % [x] System for adding addons to path on startup
     % [ ] Make another class for addons.
-    % [ ] Rename to addon manager
+    % [v] Rename to addon manager
     % [ ] Add option for setting a custom installation dir
     % [ ] File with list of addons should be saved based on which software
     %     it belongs to. Either use subclassing, or make a way to use access 
@@ -80,17 +80,13 @@ classdef AddonManager < handle
             
             % Load addon list (list is initialized if it does not exist)
             obj.loadAddonList()
-            
-            % Check if addons are located in legacy directory. Move if yes.
-            % obj.checkLegacyDirectory()
 
             % Add previously installed addons to path if they are not already there.
             obj.updateSearchPath()
-        
+            
             % Check if there are multiple versions of addons on the matlab
             % search path.
             obj.checkAddonDuplication()
-            
         end
         
     end
@@ -125,7 +121,6 @@ classdef AddonManager < handle
             
             % Assign to AddonList property
             obj.AddonList = addonList;
-
         end
         
         function saveAddonList(obj)
@@ -184,7 +179,6 @@ classdef AddonManager < handle
                 % Set this flag to false. This should change if an addon is
                 % installed, but not saved to the matlab search path.
                 S(appendIdx).AddToPathOnInit = false;
-
             end
             
             % Update package and download url links
@@ -196,7 +190,6 @@ classdef AddonManager < handle
                 S(i).DownloadUrl = defaultAddonList(isMatch).DownloadUrl;
                 S(i).WebUrl = defaultAddonList(isMatch).WebUrl;
                 S(i).SetupFileName = defaultAddonList(isMatch).SetupFileName;
-                
             end
         end
         
@@ -287,7 +280,6 @@ classdef AddonManager < handle
                     unzip(tempFilepath, pkgInstallationDir);
                 case '.mltbx'
                     obj.installMatlabToolbox(tempFilepath) % Todo: pass updateFlag
-                    
             end
             
             % Delete the temp zip file
@@ -341,9 +333,7 @@ classdef AddonManager < handle
                 if obj.AddonList(i).AddToPathOnInit
                     obj.addAddonToMatlabPath(i)
                 end
-                
             end
-            
         end
         
         function addAddonToMatlabPath(obj, addonIdx)
@@ -359,7 +349,6 @@ classdef AddonManager < handle
 
             % Add all remaining folders to path.
             addpath(pathListNoGit); 
-            
         end
         
         function addAllToMatlabPath(obj)
@@ -370,9 +359,7 @@ classdef AddonManager < handle
                 if ~isempty(obj.AddonList(i).FilePath)
                     obj.addAddonToMatlabPath(i)
                 end
-                
             end
-            
         end
         
         function restoreAddToPathOnInitFlags(obj)
@@ -385,11 +372,9 @@ classdef AddonManager < handle
                         obj.AddonList(i).AddToPathOnInit = false; 
                     end
                 end
-                
             end
-            
+
             obj.saveAddonList()
-            
         end
         
         function checkAddonDuplication(obj)
@@ -401,9 +386,7 @@ classdef AddonManager < handle
                 if isa(pathStr, 'cell') && numel(pathStr) > 1
                     obj.AddonList(i).IsDoubleInstalled = true;
                 end
-                
             end
-            
         end
         
         % Not implemented yet. Future todo
@@ -416,7 +399,6 @@ classdef AddonManager < handle
             
             % Find addon in list of addons.
             
-            
             % Add a switch block to handle different addons.
         
             % Todo Question:
@@ -424,11 +406,9 @@ classdef AddonManager < handle
             %   Or, look for a function in the package and check if it is
             %   on path...?
             
-            
             switch obj.AddonList(ind).AddonName
                 
             end
-
         end
         
         % Not implemented:
@@ -462,7 +442,6 @@ classdef AddonManager < handle
             if isempty(addonIdx)
                 error('Something went wrong, addon was not found in list.')
             end
-            
         end
     
     end
@@ -544,11 +523,6 @@ classdef AddonManager < handle
         end
         
     end
-      
-    methods (Access = private)
-        % Note: This method will be removed in a future version (todo).
-        checkLegacyDirectory(obj) % Method in separate file
-    end
 
     methods (Static)
         function checkIfAddonsAreOnPath()
@@ -599,26 +573,17 @@ classdef AddonManager < handle
             structInit = [names; values];
             
             S = struct(structInit{:});
-            
         end
         
         function pathStr = getDefaultInstallationDir()
         %getDefaultInstallationDir Get path to default directory for
         %   installing addons
         
-            % Assign Installation dir
-            %nansenDir = nansen.rootpath;
-            %pathStr = fullfile(nansenDir, 'external');
-
-            % Todo:
+            % Assign installation directory.
+            % QTodo: get "userpath" from preferences?
             pathStr = fullfile(userpath, 'Nansen', 'Add-Ons');
         end
 
-        function pathStr = getDefaultInstallationDirLegacy()
-            nansenDir = nansen.rootpath;
-            pathStr = fullfile(nansenDir, 'external');
-        end
-        
         function folderPath = moveGithubAddonDirectory(folderPath)
         %moveGithubAddonDirectory Move the folder of a github addon.
         %
@@ -658,6 +623,25 @@ classdef AddonManager < handle
             renamedDir = fullfile(rootDir, newName);
             movefile(newDir, renamedDir)
             folderPath = renamedDir;
+        end
+    end
+
+    methods (Static, Access = private)
+        function pathStr = getDefaultInstallationDirLegacy()
+            pathStr = fullfile(nansen.rootpath, 'external');
+        end
+    end
+
+    methods (Access = ?nansen.internal.user.NansenUserSession)
+        % Note: This method will be removed in a future version (todo).
+        moveExternalToolboxes(obj) % Method in separate file
+    end
+
+    methods (Static, Access = ?nansen.internal.user.NansenUserSession)
+        function tf = existExternalToolboxInRepository()
+            rootDir = fullfile(nansen.rootpath, 'external');
+            tf = isfolder(fullfile(rootDir, 'general_toolboxes')) || ...
+                    isfolder(fullfile(rootDir, 'neuroscience_toolboxes'));
         end
     end
 
