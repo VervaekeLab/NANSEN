@@ -135,71 +135,67 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         end
         
         function autoAssignPropertiesOnConstruction(obj)
-            
-            % Note: Hardcoded, get path for first entry in data
-            % location type.
+        % autoAssignPropertiesOnConstruction - Some props are extracted
+        % from session folder paths
             fieldNames = fieldnames(obj.DataLocation);
-            pathStr = obj.DataLocation.(fieldNames{1});
             
             if ~isempty(obj.DataLocationModel)
-                obj.assignSubjectID(pathStr)
-                obj.assignSessionID(pathStr)
-                obj.assignDateInfo(pathStr)
-                obj.assignTimeInfo(pathStr)
+                for i = 1:numel(fieldNames)
+                    pathStr = obj.DataLocation.(fieldNames{i});
+                    if isempty(pathStr); continue; end
+                    obj.assignSubjectID(pathStr, i)
+                    obj.assignSessionID(pathStr, i)
+                    obj.assignDateInfo(pathStr, i)
+                    obj.assignTimeInfo(pathStr, i)
+                end
             end
             
             % Todo: Either remove this, or make it more efficient
             % obj.assignPipeline()
-            
         end
         
-        function assignSubjectID(obj, pathStr)
-            % Get specification for how to retrieve subject id from
-            % datalocation..
-            
-            subjectId = obj.DataLocationModel.getSubjectID(pathStr);
+        function assignSubjectID(obj, pathStr, dataLocationIndex)
+        % Extract subject ID using DataLocationModel and assign to property
+            if ~isempty(obj.subjectID); return; end
+
+            subjectId = obj.DataLocationModel.getSubjectID(pathStr, dataLocationIndex);
             obj.subjectID = subjectId;
         end
         
-        function assignSessionID(obj, pathStr)
-            % Get specification for how to retrieve session id from
-            % datalocation..
-
-            sessionId = obj.DataLocationModel.getSessionID(pathStr);
+        function assignSessionID(obj, pathStr, dataLocationIndex)
+        % Extract session ID using DataLocationModel and assign to property
+            if ~isempty(obj.sessionID); return; end
+            sessionId = obj.DataLocationModel.getSessionID(pathStr, dataLocationIndex);
             obj.sessionID = sessionId;
-            
         end
         
-        function time = assignTimeInfo(obj, pathStr)
-            % Get specification for how to retrieve time info from
-            % datalocation..
+        function time = assignTimeInfo(obj, pathStr, dataLocationIndex)
+        % Extract time using DataLocationModel and assign to property
 
             if nargin < 2
                 pathStr = fullfile(obj.DataLocation(1).Subfolders);
             end
-            
-            obj.Time = obj.DataLocationModel.getTime(pathStr);
+            if ~isempty(obj.Time); return; end
+            obj.Time = obj.DataLocationModel.getTime(pathStr, dataLocationIndex);
             
             if nargout == 1
                 time = obj.Time;
             end
-            
         end
         
-        function date = assignDateInfo(obj, pathStr)
-            % Get specification for how to retrieve date info from
-            % datalocation..
-            
+        function date = assignDateInfo(obj, pathStr, dataLocationIndex)
+        % Extract date using DataLocationModel and assign to property
+
             if nargin < 2
                 pathStr = fullfile(obj.DataLocation(1).Subfolders);
             end
-            
-            obj.Date = obj.DataLocationModel.getDate(pathStr);
+                        
+            if ~isempty(obj.Date); return; end
+            obj.Date = obj.DataLocationModel.getDate(pathStr, dataLocationIndex);
             
             if nargout == 1
                 date = obj.Date;
             end
-
         end
         
         % Pipeline/progress
@@ -504,6 +500,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         
         function pathString = detectSessionFolder(obj, dataLocation)
             
+            % todo: similar to nansen.dataio.session.listSessionFolders
             rootPaths = {dataLocation.RootPath.Value};
             
             % Todo: Loop all? Update session's datalocation root key if

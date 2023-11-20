@@ -5,27 +5,35 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
     
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
-    
-    %sessionSchema = @nansen.metadata.schema.vlab.TwoPhotonSession;
-    
+
+
     uiWaitbar.Message = 'Locating session folders...';
     
     % % Use the folder structure to detect session folders.
     sessionFolders = listSessionFolders(dataLocationModel, 'all');
-    [sessionFolders, ~, sessionFoldersUnmatched] = matchSessionFolders(dataLocationModel, sessionFolders);
-    
-    % Check for unmatched session folders
-    if dataLocationModel.NumDataLocations > 1 && ~isempty(sessionFoldersUnmatched)
-        [sessionFolders] = nansen.manage.uiresolveUnmatchedSessions(...
-            sessionFolders, sessionFoldersUnmatched, hFigure);
-    end
-    
-    if isempty(sessionFolders)
+
+    % % Make sure session folders were detected
+    numSessionFolders = structfun(@(val) numel(val), sessionFolders);
+    if sum(numSessionFolders) == 0
         % Todo: Get exception
         errorID = 'Nansen:Configuration:NoSessionFoldersDetected';
         errorMsg = 'Can not proceed because no session folders were detected.';
         throwAsCaller(MException(errorID, errorMsg))
     end
+
+    % Todo: Check for duplicate session IDs
+
+
+    % Automatically match session folders
+    uiWaitbar.Message = 'Matching session folders from different data locations...';        
+    [sessionFolders, ~, sessionFoldersUnmatched] = matchSessionFolders(dataLocationModel, sessionFolders);
+
+    % Let user manually check and match unmatched session folders
+    if dataLocationModel.NumDataLocations > 1 && ~isempty(sessionFoldersUnmatched)
+        [sessionFolders] = nansen.manage.uiresolveUnmatchedSessions(...
+            sessionFolders, sessionFoldersUnmatched, hFigure);
+    end
+    
 
     uiWaitbar.Message = 'Creating session objects...';
     
@@ -55,13 +63,14 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
     % detected session folders.
     metaTable = nansen.metadata.MetaTable.new(sessionArray);
 
+    currentProject = nansen.getCurrentProject();
+
     % Add default information for saving the metatable to a struct
     S = struct();
     S.MetaTableName = metaTable.createDefaultName;
-    S.SavePath = nansen.config.project.ProjectManager.getProjectSubPath('MetaTable');
+    S.SavePath = currentProject.getProjectPackagePath('Metadata Tables');
     S.IsDefault = true;
     S.IsMaster = true;
-    
     
     % Save the metatable in the current project
     try
@@ -102,6 +111,5 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
     uiWaitbar.Message = 'Metatable created!'; %#ok<STRNU>
     
     wasAborted = false;
-    
     
 end
