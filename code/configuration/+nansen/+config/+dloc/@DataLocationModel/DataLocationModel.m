@@ -75,7 +75,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 'SubfolderLevel', {[]}, ...
                 'StringDetectMode', repmat({'ind'}, 1, numVars), ...
                 'StringDetectInput', repmat({''}, 1, numVars), ...
-                'StringFormat', repmat({''}, 1, numVars));
+                'StringFormat', repmat({''}, 1, numVars), ...
+                'FunctionName', repmat({''}, 1, numVars) );
         end
         
         function S = getDefaultSubfolderStructure()
@@ -259,24 +260,22 @@ classdef DataLocationModel < utility.data.StorableCatalog
     
     methods % Methods for updating substructs of data location
          
-        function updateMetaDataDefinitions(obj, newStruct)
+        function updateMetaDataDefinitions(obj, newStruct, dataLocIdx)
         %updateMetaDataDefinitions Update the metadata definition struct
         %
         %   Just replaces the struct in the MetaDataDef property with the
         %   input struct S.
-        
-            dataLocIdx = 1;
-            
+                    
             oldStruct = obj.Data(dataLocIdx).MetaDataDef;
             obj.Data(dataLocIdx).MetaDataDef = newStruct;
             
             % Trigger ModelChanged event 
             evtData = uiw.event.EventData('DataLocationIndex', dataLocIdx, ...
                 'SubField', 'MetadataDefiniton', 'OldData', oldStruct, ...
-                'NewData', newStruct);
-            
-%             obj.notify('DataLocationModified', evtData)
-            
+                'NewData', newStruct); %#ok<NASGU>
+
+            % % % Not needed at the moment
+            % % % obj.notify('DataLocationModified', evtData)
         end
         
         function updateSubfolderStructure(obj, newStruct, idx)
@@ -293,7 +292,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             obj.modifyDataLocation(dataLocationName, ...
                 'SubfolderStructure', newStruct)
-            
             
             %oldStruct = obj.Data(idx).SubfolderStructure;
             %obj.Data(idx).SubfolderStructure = newStruct;
@@ -312,7 +310,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
 % %                 'NewData', newStruct);
 % %             
 % %             obj.notify('DataLocationModified', evtData)
-            
         end
         
         function dataLocationStructArray = validateDataLocationPaths(obj, dataLocationStructArray)
@@ -465,7 +462,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 'OldValue', oldValue);
             
             obj.notify('DataLocationModified', evtData)
-            
         end
         
         function dataLocationItem = getDefaultDataLocation(obj)
@@ -483,45 +479,46 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             dataLocation = obj.getItem(dataLocationName);
             pathStr = dataLocation.ExamplePath;
-            
         end
        
     end
     
     methods % Methods for getting data descriptions from filepaths
-    % Todo: all these methods should be outsourced. THis is more like a 
-    % table variable domain..
     
-        function substring = getSubjectID(obj, pathStr)
-            % Todo: Specify index as well....
+        function substring = getSubjectID(obj, pathStr, dataLocationIndex)
+        % getSubjectID - Extract subject ID from a path string
             
-            S = obj.getMetavariableStruct('Animal ID');
-            substring = obj.getSubstringFromFolder(pathStr, S);
-
-        end
-        
-        function substring = getSessionID(obj, pathStr)
-            
-            S = obj.getMetavariableStruct('Session ID');
-            substring = obj.getSubstringFromFolder(pathStr, S);
-            
-            % If no substring is retrieved, used the foldername of the last
-            % folder in the pathstring.
-            if isempty(substring)
-                [~, substring] = fileparts(pathStr);
+            if nargin < 3 || isempty(dataLocationIndex)
+                dataLocationIndex = 1; 
             end
 
+            S = obj.getMetavariableStruct('Animal ID', dataLocationIndex);
+            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationIndex);
         end
         
-        function value = getTime(obj, pathStr)
+        function substring = getSessionID(obj, pathStr, dataLocationIndex)
+        % getSessionID - Extract session ID from a path string
             
-            S = obj.getMetavariableStruct('Experiment Time');
-            substring = obj.getSubstringFromFolder(pathStr, S);
+            if nargin < 3 || isempty(dataLocationIndex)
+                dataLocationIndex = 1; 
+            end
+
+            S = obj.getMetavariableStruct('Session ID', dataLocationIndex);
+            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationIndex);
+        end
+        
+        function value = getTime(obj, pathStr, dataLocationIndex)
+        % getTime - Extract experiment time from a path string
+
+            if nargin < 3 || isempty(dataLocationIndex)
+                dataLocationIndex = 1; 
+            end
+
+            S = obj.getMetavariableStruct('Experiment Time', dataLocationIndex);
+            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationIndex);
             
             % Convert to datetime type.
             if isfield(S, 'StringFormat') && ~isempty(S.StringFormat)
-                %if isempty(substring)
-                %end
                 try
                     value = datetime(substring, 'InputFormat', S.StringFormat);
                     value.Format = 'HH:mm:ss'; % Format output as a time.
@@ -534,10 +531,15 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
         end
         
-        function value = getDate(obj, pathStr)
+        function value = getDate(obj, pathStr, dataLocationIndex)
+        % getDate - Extract experiment date from a path string
+
+            if nargin < 3 || isempty(dataLocationIndex)
+                dataLocationIndex = 1; 
+            end
             
-            S = obj.getMetavariableStruct('Experiment Date');
-            substring = obj.getSubstringFromFolder(pathStr, S);
+            S = obj.getMetavariableStruct('Experiment Date', dataLocationIndex);
+            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationIndex);
             
             % Convert to datetime type.
             if isfield(S, 'StringFormat') && ~isempty(S.StringFormat)
@@ -545,7 +547,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             else
                 value = substring;
             end
-            
         end
         
     end
@@ -615,26 +616,28 @@ classdef DataLocationModel < utility.data.StorableCatalog
             item = validateItem@utility.data.StorableCatalog(obj, item);
         end
         
-        function S = getMetavariableStruct(obj, varName)
+        function S = getMetavariableStruct(obj, varName, dataLocationIdx)
         %getMetavariableStruct Get metadata struct for given variable
         %
         % Get struct containing instructions for how to find substring
         % (value of a metadata variable) from a directory path.
             
-            dataLocIdx = 1;
-            S = obj.Data(dataLocIdx).MetaDataDef;
+            if nargin < 3 || isempty(dataLocationIdx)
+                dataLocationIdx = 1;
+            end
+            
+            S = obj.Data(dataLocationIdx).MetaDataDef;
 
             % Find struct entry corresponding to requested variable
             variableIdx = strcmp({S.VariableName}, varName);
             S = S(variableIdx);
                 
             % Need to know how many subfolders the data location has
-            numSubfolders = numel(obj.Data(dataLocIdx).SubfolderStructure);
+            numSubfolders = numel(obj.Data(dataLocationIdx).SubfolderStructure);
             S.NumSubfolders = numSubfolders;
-
         end
 
-        function substring = getSubstringFromFolder(obj, pathStr, S)
+        function substring = getSubstringFromFolder(obj, pathStr, S, dataLocationIndex)
         %getSubstringFromFolder Find substring from a pathstring.
         %
         %   substring = getSubstringFromFolder(obj, pathStr, varName) Get a
@@ -642,10 +645,18 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %   The substring is obtained from the given pathStr based on
         %   instructions from the DataLocationModel's MetaDataDef property.
         
-        % Initialize output
+            % Initialize output
             substring = '';
+            dataLocationName = obj.Data(dataLocationIndex).Name;
 
             mode = S.StringDetectMode;
+
+            if strcmp(mode, 'func')
+                substring = feval(S.FunctionName, pathStr, dataLocationName);
+                if strcmp(substring, 'N/A'); substring = ''; end
+                return
+            end
+
             strPattern = S.StringDetectInput;
             folderLevel = S.SubfolderLevel;
             
@@ -676,9 +687,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             catch
                 substring = '';
             end
-            
         end
-        
     end
     
     methods (Access = protected) % Override superclass methods
@@ -966,6 +975,31 @@ classdef DataLocationModel < utility.data.StorableCatalog
         
     end
    
+    methods %(Access = ?nansen.config.project.Project)
+        
+        function onProjectRenamed(obj, oldName, newName)
+        % onProjectRenamed - Rename configs that depend on project name
+        
+        % Note: Function names for extracting data identifiers 
+        % (subjectId, sessionId, experimentData & experimentTime) depend on
+        % the project name
+        
+            for i = 1:obj.NumDataLocations
+                for j = 1:numel(obj.Data(i).MetaDataDef)
+                    if isfield(obj.Data(i).MetaDataDef(j), 'FunctionName')
+                        oldFunctionName = obj.Data(i).MetaDataDef(j).FunctionName;
+                        if ~isempty(oldFunctionName)
+                            newFunctionName = strrep(oldFunctionName, oldName, newName);
+                            obj.Data(i).MetaDataDef(j).FunctionName = newFunctionName;
+                        end
+                    end
+                end
+            end
+            obj.save()
+        end
+        
+    end
+
     methods (Static)
         
         function pathString = getDefaultFilePath()
