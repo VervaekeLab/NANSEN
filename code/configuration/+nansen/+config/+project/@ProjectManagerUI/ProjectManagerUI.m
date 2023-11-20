@@ -73,17 +73,28 @@ classdef ProjectManagerUI < handle
         %addExistingProject Add existing project from file
             
             success = false;
-            [fileName, folder] = uigetfile(obj.ProjectRootFolderPath);
             
-            if fileName == 0
+            hFigure = ancestor(obj.hParent, 'figure');
+            answer = uiconfirm(hFigure, 'Please select a project folder', ...
+                'Import project', 'Options', 'Ok'); %#ok<NASGU>
+            % Minimize figure, because folder dialog appear below figure
+            hFigure.WindowState = 'minimized';
+
+            folderPath = uigetdir(obj.ProjectRootFolderPath);
+            
+            % Bring figure back to view
+            hFigure.WindowState = 'normal';
+            figure( hFigure )
+
+            if folderPath == 0
                 return
             end
             
             try
-                filePath = fullfile(folder, fileName);
-                projectName = obj.ProjectManager.importProject(filePath);
+                projectName = obj.ProjectManager.importProject(folderPath);
                 success = ~isempty( projectName );
             catch ME
+                obj.uialert(ME.message, 'Failed to add project', 'error')
                 throw(ME)
             end
 
@@ -102,7 +113,6 @@ classdef ProjectManagerUI < handle
             
             % Todo: This should be flipped around, i.e 
             % CreateNewProjectButtonValueChanged should call this method...
-            
         end
         
         function uialert(obj, message, title, alertType)
@@ -117,7 +127,6 @@ classdef ProjectManagerUI < handle
             
             hFig = ancestor(obj.hParent, 'figure');
             uialert(hFig, message, title, 'Icon', alertType)
-            
         end
         
     end
@@ -140,7 +149,6 @@ classdef ProjectManagerUI < handle
             end
             
             set(obj.TabList, 'BackgroundColor', 'w')
-            
         end
         
         function createUiControls(obj)
@@ -498,7 +506,7 @@ classdef ProjectManagerUI < handle
         % Button pushed function: CreateNewProjectButton
         function CreateNewProjectButtonValueChanged(obj, ~, ~)
             
-            projectLongName = obj.UIControls.ProjectName.Value;
+            projectDescription = obj.UIControls.ProjectName.Value;
             projectShortName = obj.UIControls.ProjectShortNameInput.Value;
             projectFolderPath = obj.UIControls.ProjectPathInput.Value;
             
@@ -541,7 +549,7 @@ classdef ProjectManagerUI < handle
                 % Todo: Check that project does not exist...
                                 
                 % Create new project
-                args = {projectShortName, projectLongName, projectFolderPath};
+                args = {projectShortName, projectDescription, projectFolderPath};
                 
                 try
                     obj.ProjectManager.createProject(args{:})
@@ -682,7 +690,11 @@ classdef ProjectManagerUI < handle
         end
        
         function onAddExistingProjectButtonPushed(obj, src, evt)
-            obj.addExistingProject()
+            try
+                obj.addExistingProject()
+            catch
+
+            end
         end
         
     end
@@ -691,9 +703,9 @@ classdef ProjectManagerUI < handle
         
         function assignInitialProjectRootFolderPath(obj)
             % Set default value of path for project root folder
-            projectFolder = fullfile(userpath, 'Nansen', 'Projects'); % <-- Default value
+            defaultProjectFolder = nansen.common.constant.DefaultProjectPath;
             % Get value from preferences. Todo: use user session preferences
-            projectFolder = getpref('NansenSetup', 'DefaultProjectPath', projectFolder);
+            projectFolder = getpref('NansenSetup', 'DefaultProjectPath', defaultProjectFolder);
             obj.ProjectRootFolderPath = projectFolder;
         end
         

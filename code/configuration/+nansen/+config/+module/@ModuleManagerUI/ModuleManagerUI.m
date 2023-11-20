@@ -4,6 +4,11 @@ classdef ModuleManagerUI < handle
     % Todo: 
     %  [ ] Create a class wrapping around a table for selecting rows.
 
+    % Note: This is currently only used for selecting optional modules.
+    % Some time in the future, there might be a need for the user to also
+    % selected required (base) modules. IF this is implemented, some
+    % changes are also needed on the Project class!
+
     properties 
         ModuleManager  % Instance of ModuleManager class
     end
