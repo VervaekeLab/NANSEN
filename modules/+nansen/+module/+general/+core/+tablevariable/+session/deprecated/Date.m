@@ -3,6 +3,9 @@ classdef Date < nansen.metadata.abstract.TableVariable & nansen.metadata.abstrac
 %   Detailed explanation goes here
 %
 %   See also nansen.metadata.abstract.TableVariable
+
+% This seems to cause issues with the table display, which I have not
+% understood or had time to investigate
     
     properties (Constant)
         IS_EDITABLE = false
@@ -39,9 +42,9 @@ classdef Date < nansen.metadata.abstract.TableVariable & nansen.metadata.abstrac
     end
     
     methods (Static)
-        function value = update(sessionObject)
-            value = sessionObject.assignDateInfo();
-        end
+        % function value = update(sessionObject)
+        %     value = sessionObject.assignDateInfo();
+        % end
     end
     
 end
