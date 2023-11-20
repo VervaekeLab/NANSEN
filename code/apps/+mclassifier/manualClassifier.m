@@ -1185,6 +1185,7 @@ methods
                 valuesStr = arrayfun(@(x) sprintf(' (%.2f)', x), values, 'uni', 0);
             end
 
+            if isrow(valuesStr); valuesStr = valuesStr'; end
             cellOfStr = strcat(cellOfStr, valuesStr);
         end 
         
