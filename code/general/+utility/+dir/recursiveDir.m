@@ -2,16 +2,24 @@ function combinedListing = recursiveDir(rootPath, options)
 
     arguments
         rootPath (1,:) string
-        options.TotalDepth (1,1) double = inf
         options.IgnoreList (1,:) string = string.empty
         options.Expression (1,1) string = ""
         options.Type (1,1) string {validatestring(options.Type, {'file', 'folder', 'all'})} = "all"
         options.FileType (1,1) string = ""
+        options.RecursionDepth (1,1) double = inf
+        options.IsCumulative (1,1) logical = true
+        options.OutputType (1,1) string {mustBeMember(options.OutputType, {'FilePath', 'FileAttributes'})} = 'FileAttributes'
     end
     
     import utility.dir.recursiveDir
 
     combinedListing = utility.dir.empty();
+    
+    % Get the OutputType and change to FileAttributes. Any internal 
+    % (recursive) call to recursiveDir need to return data as
+    % FileAttributes.
+    outputType = options.OutputType;
+    options.OutputType = 'FileAttributes';
 
     if numel(rootPath) > 1
         for i = 1:numel(rootPath)
@@ -66,18 +74,26 @@ function combinedListing = recursiveDir(rootPath, options)
         keepListing = filteredListing(keep);
         combinedListing = cat(1, combinedListing, keepListing);
 
-        if options.TotalDepth > 0 && sum([filteredListing.isdir]) > 0
+        options.RecursionDepth = options.RecursionDepth - 1;
+
+        if options.RecursionDepth > 0 && sum([filteredListing.isdir]) > 0
             % Continue search through subfolders that passed the filter
             newRootPath = arrayfun(@(l) string(fullfile(l.folder, l.name)), filteredListing, 'uni', 1);
             newRootPath(~[newListing.isdir])=[];
             
-            options.TotalDepth = options.TotalDepth - 1;
-
             nvpairs = utility.struct2nvpairs(options);
             subListing = recursiveDir(newRootPath, nvpairs{:});
             if ~isempty(subListing)
-                combinedListing = cat(1, combinedListing, subListing);
+                if options.IsCumulative
+                    combinedListing = cat(1, combinedListing, subListing);
+                else
+                    combinedListing = subListing;
+                end
             end
         end
+    end
+
+    if outputType == "FilePath"
+        combinedListing = utility.dir.abspath(combinedListing);
     end
 end
