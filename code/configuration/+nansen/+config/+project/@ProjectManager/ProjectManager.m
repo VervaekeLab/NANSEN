@@ -181,6 +181,7 @@ classdef ProjectManager < handle
                 if isfile(fullfile(projectDirectory, 'nansen_project_configuration.mat'))
                     disp('Updating project...')
                     nansen.internal.refactor.reorganizeProjectFolder(projectDirectory, obj)
+                    nansen.internal.refactor.updateVariableCatalog(projectDirectory)
                     return
                 else
                     error('Expected folder to contain a "project.nansen.json file"')
@@ -915,6 +916,7 @@ classdef ProjectManager < handle
                 if ~isfile( fullfile(thisProjectDir, configFileName) )
                     try
                         nansen.internal.refactor.reorganizeProjectFolder(thisProjectDir, obj)
+                        nansen.internal.refactor.updateVariableCatalog(thisProjectDir)
                     end
                 end
             end
