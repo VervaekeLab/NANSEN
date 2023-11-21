@@ -60,7 +60,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.UITable = nansen.MetaTableViewer(obj.Panel, roiTable, 'MetaTableType', 'roi');
             
             % Set table properties
-            obj.UITable.HTable.hideHorizontalScroller()
+            if ismac
+                obj.UITable.HTable.hideHorizontalScroller()
+            end
             %obj.UITable.HTable.hideVerticalScroller()
             obj.UITable.HTable.RowHeight = 18;
             obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;

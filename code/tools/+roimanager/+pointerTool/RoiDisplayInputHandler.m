@@ -42,7 +42,7 @@ classdef RoiDisplayInputHandler < handle
                     end
                     % Todo: change roi type using shift click??
                     
-                case {'backspace', '⌫'}
+                case {'backspace', '⌫', 'del', 'delete'}
                     obj.RoiDisplay.removeRois();
                     
                 case 'i'

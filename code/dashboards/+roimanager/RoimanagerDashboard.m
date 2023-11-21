@@ -55,6 +55,11 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         RoiThumbnailViewer
         OptionsEditor
     end
+
+    properties (Access = private)
+        RowHeight =  [0.7, 0.3]
+        ColumnWidthTop = [200, 0.7, 0.3]
+    end
     
     
     methods % Structor
@@ -229,7 +234,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             % - - - Compute heights and yposition for each of the panel rows
             if obj.ShowBottomPanel
-                panelHeights = [25, 0.3, 0.7];
+                panelHeights = [25, obj.RowHeight(2), obj.RowHeight(1)];
                 iA = 3;
                 iB = 2;
             else
@@ -243,7 +248,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             % - - - Compute widths and xposition for each of the panel rows
 
             % New positions of panels on top row (controls, imviewer, roitable)
-            [xPosA, Wa] = obj.computePanelPositions([200, 0.7, 0.3], 'x');
+            [xPosA, Wa] = obj.computePanelPositions(obj.ColumnWidthTop, 'x');
             
             
             % New positions of panels on middle row (signal viewer, roi image)
@@ -409,12 +414,20 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             names{i} = 'Deconvolution';
             callbacks{i} = @obj.onDeconvolutionParamsChanged;
             
+            i=i+1;
+            structs{i} = struct('RowHeight', {{'2.3x', '1x'}}, 'ColumnWidth', {{'200', '2.3x', '1x'}});
+            names{i} = 'App Layout';
+            callbacks{i} = @obj.onLayoutParamsChanged;
+
+
             h = structeditor.App(obj.hPanels(1), structs, 'FontSize', 10, ...
                 'FontName', 'helvetica', 'LabelPosition', 'Over', ...
                 'TabMode', 'dropdown', ...
                 'Name', names, ...
                 'Callback', callbacks);%, ...
                 %'ValueChangedFcn', valueChangedFcn);
+
+            
             
             obj.AppModules(end+1) = h;
             obj.UiControls = h;
@@ -645,6 +658,29 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.deconvolutionOptions.(name) = value;
         end
 
+        function onLayoutParamsChanged(obj, name, value)
+            
+            value = strsplit(value{1}, ',');
+
+            % Convert values;
+            numberValues = zeros(size(value));
+
+            isNormalized = cellfun(@(c) contains(c, 'x'), value);
+            numberValues(~isNormalized) = cellfun(@(c) str2double(c), value(~isNormalized));
+            
+            normalizedValues = cellfun(@(c) str2double(strrep(c, 'x', '')), value(isNormalized));
+            normalizedValues = normalizedValues ./ sum(normalizedValues);
+            numberValues(isNormalized) = normalizedValues;
+
+            switch name
+                case 'RowHeight'
+                    obj.RowHeight = numberValues;
+                case 'ColumnWidth'
+                    obj.ColumnWidthTop = numberValues;
+            end
+            obj.resizePanels()
+        end
+
         function opts = convertAutosegmentOptions(obj, options, methodName)
             
         end
@@ -793,17 +829,17 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 'Padding', [0,0,0,0], 'Style', uim.style.buttonDarkMode3, ...
                 'Callback', @obj.onTabButtonPressed, 'HorizontalTextAlignment', 'center' };
 
-
             hBtn = uim.control.Button_.empty;
     
-            buttonNames = {'Signal Viewer', 'Signal Rastermap', 'Roi Info', 'Roi History Plot'};
-            
+            %buttonNames = {'Signal Viewer', 'Signal Rastermap', 'Roi Info', 'Roi History Plot'};
+            %buttonStates = [true, false, true, false];
+            buttonNames = {'Signal Viewer', 'Roi Info'};
+            buttonStates = [true, true];
+
             for i = 1:numel(buttonNames)
                 hBtn(i) = hToolbar.addButton('Text', buttonNames{i}, buttonProps{:});
+                hBtn(i).Value = buttonStates(i);
             end
-            
-            hBtn(1).Value = true;
-            hBtn(3).Value = true;
 
             obj.TabButtonGroup.Group = hToolbar;
             obj.TabButtonGroup.Buttons = hBtn;
