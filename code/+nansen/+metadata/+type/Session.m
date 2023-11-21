@@ -631,13 +631,8 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
         %getFileAdapterFcn Get function handle for creating file adapter                
             
-            % Todo: Make fileAdapter class for this....
-            persistent fileAdapterList
-            
-            if isempty(fileAdapterList)
-                fileAdapterList = nansen.dataio.listFileAdapters();
-            end
-            
+            fileAdapterList = nansen.dataio.listFileAdapters();
+
             if ischar(variableInfo)
                 [~, variableInfo] = obj.getDataFilePath(variableInfo);
             end
@@ -652,7 +647,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
             
             fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
-            
         end
         
         function data = loadData(obj, varName, varargin)
@@ -949,7 +943,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 parameters = struct(varargin{:});
                 S = utility.parsenvpairs(S, 1, parameters);
                 if isempty(S.DataLocation)
-                    dlItem = obj.DataLocationModel.getDefaultDataLocation;
+                    dlItem = obj.DataLocationModel.getDefaultDataLocation();
                     S.DataLocation = dlItem.Name;
                     S.DataLocationUuid = dlItem.Uuid;
                 end
@@ -1159,6 +1153,17 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     'any data location of type "%s" is read-only.'], dataLocationName, dlSession.Type);
                 error('Nansen:Session:CreateSessionFolderDenied', errMsg)
             end
+
+            % Get the model in order to retrieve the subfolder structure
+            dlModel = obj.DataLocationModel.getDataLocation(dataLocationName);
+            
+            % If not root path has been assigned, then assign the last
+            % added rootpath (assuming this is the most current)
+            if isempty(dlSession.RootIdx) || isnan(dlSession.RootIdx)
+                dlSession.RootUid = dlModel.RootPath(end).Key;
+                dlSession.RootPath = dlModel.RootPath(end).Value;
+                obj.DataLocation(dlIdx) = dlSession;
+            end
             
             rootPath = dlSession.RootPath;
             
@@ -1167,9 +1172,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % subfolders already exist in any of the roots and select the
             % root based on that.
             
-            % Get the model in order to retrieve the subfolder structure
-            dlModel = obj.DataLocationModel.getDataLocation(dataLocationName);
-            
+
             folderPath = rootPath;
             subfolders = '';
             
@@ -1248,7 +1251,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                         error('Can not create session folder because foldername is not specified')
                     end
             end
-            
+
+            % Remove spaces from foldername:
+            folderName = strrep(folderName, ' ', '_');
         end
         
     end

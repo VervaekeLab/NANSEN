@@ -72,6 +72,10 @@ function moveExternalToolboxes(obj)
         uiwait( msgbox(msg, title, 'help') )
 
         rmpath(legacyInstallationDirectory)
-        rmdir(legacyInstallationDirectory)
+        try
+            rmdir(legacyInstallationDirectory)
+        catch ME
+            warning(ME.message)
+        end
     end
 end
