@@ -911,15 +911,21 @@ classdef ProjectManager < handle
                 [obj.Catalog(:).ShortName] = deal('');
             end
 
-            for i = 1:numel(obj.Catalog)
+            % Run in reverse, as functions below will remove project from
+            % catalog and then re-add it...
+            for i = numel(obj.Catalog):-1:1
                 thisProjectDir = obj.Catalog(i).Path;
                 if ~isfile( fullfile(thisProjectDir, configFileName) )
                     try
                         nansen.internal.refactor.reorganizeProjectFolder(thisProjectDir, obj)
                         nansen.internal.refactor.updateVariableCatalog(thisProjectDir)
+                    catch ME
+                        disp(getReport(ME, 'extended'))
                     end
                 end
             end
+
+            % Todo: Reorder catalog to original order?
         end
 
     end
