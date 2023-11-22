@@ -6,6 +6,6 @@ function preferenceDirectory = prefdir()
     if isempty(userSession)
         throw(nansen.common.exception.NoUserSessionActive(userName))
     else
-        preferenceDirectory = userSession.getPrefdir();
+        preferenceDirectory = userSession.getPrefdir(userSession.CurrentUserName);
     end
 end

@@ -313,7 +313,7 @@ classdef Project < nansen.module.Module
                 
                 moduleNames = obj.Preferences.DataModule;
 
-                if isempty(moduleNames) || ~contains(moduleNames, obj.RequiredModuleName)
+                if isempty(moduleNames) || ~any(contains(moduleNames, obj.RequiredModuleName))
                     moduleNames = [moduleNames, {obj.RequiredModuleName}];
                     obj.Preferences.DataModule = moduleNames;
                 end

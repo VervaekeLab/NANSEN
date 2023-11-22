@@ -1,9 +1,11 @@
-function hApp = nansen(varargin)
+function hApp = nansen(userName, varargin)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
+    if nargin < 1; userName = ''; end
+
     try
-        userSession = nansen.internal.user.NansenUserSession.instance();
+        userSession = nansen.internal.user.NansenUserSession.instance(userName);
         hApp = nansen.App(userSession, varargin{:});
     catch ME
         hApp = [];

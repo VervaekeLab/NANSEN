@@ -86,17 +86,16 @@ classdef NansenUserSession < handle
 
             import nansen.config.addons.AddonManager
             import nansen.config.project.ProjectManager
-
             obj.CurrentUserName = userName;
             obj.SkipProjectCheck = skipProjectCheck;
 
             obj.Preferences = obj.initializePreferences();
-            preferenceDirectory = obj.getPrefdir();
+            preferenceDirectory = obj.getPrefdir(obj.CurrentUserName);
 
             obj.preStartup()
 
             obj.AddonManager = AddonManager(preferenceDirectory);
-            obj.ProjectManager = ProjectManager.instance(preferenceDirectory);
+            obj.ProjectManager = ProjectManager.instance(preferenceDirectory, 'reset');
 
             obj.postStartup()
             obj.SessionUUID = nansen.util.getuuid();
@@ -256,7 +255,7 @@ classdef NansenUserSession < handle
     end
     
     methods (Static)
-        
+        % Why is this static
         function preferenceDirectory = getPrefdir(userName)
             if ~nargin || isempty(userName)
                 className = mfilename('class');

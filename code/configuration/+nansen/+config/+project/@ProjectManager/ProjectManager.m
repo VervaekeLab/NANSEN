@@ -63,14 +63,15 @@ classdef ProjectManager < handle
     
     methods (Static, Hidden) %(Access = ?nansen.internal.user.NansenUserSession)
 
-        function obj = instance(preferenceDirectory)
+        function obj = instance(preferenceDirectory, mode)
         %instance Get singleton instance of class
 
             if nargin < 1; preferenceDirectory = ''; end
+            if nargin < 2; mode = 'normal'; end
 
             persistent instance
 
-            if isempty(instance)
+            if isempty(instance) || strcmp(mode, 'reset')
                 instance = nansen.config.project.ProjectManager(preferenceDirectory);
             end
             
@@ -456,7 +457,7 @@ classdef ProjectManager < handle
                     nansenPreferences.localPath = containers.Map;
                 end
             end
-
+            
             eventData = CurrentProjectChangedEventData(oldProjectName, newProjectName);
             obj.notify('CurrentProjectChanged', eventData)
             obj.notify('CurrentProjectSet', eventData)
