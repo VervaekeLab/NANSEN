@@ -57,8 +57,11 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 
     % Check that image thumbnail size is odd (symmetry around center pixel)
     boxSize = opt.BoxSize;
+    if ~all( mod(boxSize, 2) == 1)
+        boxSize( mod(boxSize, 2) ~= 1 ) = boxSize( mod(boxSize, 2) ~= 1 ) + 1;
+    end
     assert(all( mod(boxSize, 2) == 1), 'Boxsize should be odd')
-    
+
     if ~opt.Verbose; fprintf = @(x) false; end
     
     % % Check size of input data and check that they correspond

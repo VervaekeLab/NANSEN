@@ -80,7 +80,7 @@ function varargout = computeClassificationData(sessionObject, varargin)
             imArray = squeeze(imArray);
     
             [roiImages, roiStats] = ...
-                getRoiAppData(imArray, thisRoiArray); % Imported function
+                getRoiAppData(imArray, thisRoiArray, params); % Imported function
         else
             [roiImages, roiStats] = deal(struct.empty);
         end
@@ -117,7 +117,7 @@ function params = getDefaultParameters()
     % session method:
     params = struct();
     params.ImageStackVariableName = 'TwoPhotonSeries_Corrected';
-
+    params.RoiImageSize = [21, 21];
 end
 
 function throwError(errorID, sessionID)
