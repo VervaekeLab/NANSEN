@@ -401,9 +401,9 @@ classdef ProjectManager < handle
         %   with given name
 
             projectEntry = obj.getProject(name);
-            
+            projectName = projectEntry.Name;
             if isempty(projectEntry)
-                errMsg = sprintf('Project with name "%s" does not exist', name);
+                errMsg = sprintf('Project with name "%s" does not exist', projectName);
                 error('Nansen:ProjectNonExistent', errMsg) %#ok<SPERR>
             end
                         
@@ -415,7 +415,7 @@ classdef ProjectManager < handle
                 addpath(genpath(projectEntry.Path))
             end
             
-            msg = sprintf('Current NANSEN project was changed to "%s"\n', name);
+            msg = sprintf('Current NANSEN project was changed to "%s"\n', projectName);
             if ~nargout
                 fprintf(msg); clear msg
             end
