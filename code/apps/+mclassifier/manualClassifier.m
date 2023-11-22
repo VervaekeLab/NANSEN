@@ -1186,6 +1186,7 @@ methods
             end
 
             if isrow(valuesStr); valuesStr = valuesStr'; end
+            if isrow(cellOfStr); cellOfStr = cellOfStr'; end
             cellOfStr = strcat(cellOfStr, valuesStr);
         end 
         
