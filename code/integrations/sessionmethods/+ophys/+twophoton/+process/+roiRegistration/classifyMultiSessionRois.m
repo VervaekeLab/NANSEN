@@ -183,9 +183,9 @@ function saveClassifiedRois(sessionObjects, classifiedRoiGroup)
 
         for iPlane = 1:size(roiGroup, 1)
             for iChannel = 1:numel(channelNumber)
-                roiGroup(iPlane, channelNumber(iChannel)).roiArray = roiArrayUnflattened{iPlane, iChannel};
-                roiGroup(iPlane, channelNumber(iChannel)).roiImages = roiImagesUnflattened{iPlane, iChannel};
-                roiGroup(iPlane, channelNumber(iChannel)).roiClassification = roiClassificationUnflattened{iPlane, iChannel}';
+                roiGroup(iPlane, channelNumber(iChannel)).roiArray = roiArrayUnflattened{iPlane, channelNumber(iChannel)};
+                roiGroup(iPlane, channelNumber(iChannel)).roiImages = roiImagesUnflattened{iPlane, channelNumber(iChannel)};
+                roiGroup(iPlane, channelNumber(iChannel)).roiClassification = roiClassificationUnflattened{iPlane, channelNumber(iChannel)}';
             end
         end
 
