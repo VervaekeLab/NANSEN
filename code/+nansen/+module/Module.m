@@ -234,19 +234,29 @@ classdef Module < handle
         
         function itemTable = rehash(obj, itemType)
         %rehash Check for changes to modulefiles and perform update if necessary    
-            fileList = obj.listFiles(itemType);
+            
+            persistent lastTic; if isempty(lastTic); lastTic = containers.Map; end
+            deltaT = 1; % Update interval in seconds for checking file system for changes.
 
-            if ~isKey(obj.CachedFilePaths, itemType)
-                itemTable = obj.updateItemList(itemType, fileList);
-            else
-                oldFileList = obj.CachedFilePaths(itemType);
-                if obj.isFileListModified(oldFileList, fileList)
+            if ~isKey(lastTic, itemType) || toc(lastTic(itemType)) > deltaT
+            
+                fileList = obj.listFiles(itemType);
+    
+                if ~isKey(obj.CachedFilePaths, itemType)
                     itemTable = obj.updateItemList(itemType, fileList);
                 else
-                    itemTable = obj.ItemTables(itemType);
+                    oldFileList = obj.CachedFilePaths(itemType);
+                    if obj.isFileListModified(oldFileList, fileList)
+                        itemTable = obj.updateItemList(itemType, fileList);
+                    else
+                        itemTable = obj.ItemTables(itemType);
+                    end
                 end
+                obj.CachedFilePaths(itemType) = fileList;
+                lastTic(itemType) = tic;
+            else
+                itemTable = obj.ItemTables(itemType);
             end
-            obj.CachedFilePaths(itemType) = fileList;
         end
 
         function itemTable = updateItemList(obj, itemType, fileList)
