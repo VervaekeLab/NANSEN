@@ -17,8 +17,10 @@ function migrateUserdata(userSession)
     oldPath = fullfile(nansen.rootpath, '_userdata');
     newPath = userSession.getPrefdir();
 
-    dateStr = char( datetime('now', 'Format', 'yyyyMMdd_hh_mm_ss') );
-    backupPath = fullfile(userpath, 'Nansen', 'Backup', dateStr, '_userdata');
+    dateStr = char( datetime('now', 'Format', 'yyyy_MM_dd') );
+    timeStr = char( datetime('now', 'Format', '''T''_HHmmss') );
+
+    backupPath = fullfile(userpath, 'Nansen', 'Backup', dateStr, 'Userdata', timeStr, '_userdata');
     if ~isfolder(backupPath); mkdir(backupPath); end
     
     try

@@ -912,6 +912,27 @@ classdef ProjectManager < handle
                 [obj.Catalog(:).ShortName] = deal('');
             end
 
+            msg = sprintf( ...
+                "\nProject folders will be updated to work with the latest code changes. " + ...
+                "If any project folder is on a cloud location it is important " + ...
+                "that you make sure all files are downloaded before continuing.\n");
+            title = "Updating Project Folders...";
+            formattedMessage = strcat('\fontsize{16}', msg);
+            opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex');
+
+
+            uiwait( msgbox(formattedMessage, title, 'help', opts) )
+
+            msg = sprintf( ...
+                "\nI confirm that all my project files are available on the local file system.\n");
+            title = "Updating Project Folders...";
+            formattedMessage = strcat('\fontsize{16}', msg);
+            opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex', 'Default', 'Confirm');
+            answer = questdlg(formattedMessage, title, 'Confirm', 'Cancel', opts);
+            if ~strcmp(answer, 'Confirm')
+                error('Operation canceled')
+            end
+
             % Run in reverse, as functions below will remove project from
             % catalog and then re-add it...
             for i = numel(obj.Catalog):-1:1

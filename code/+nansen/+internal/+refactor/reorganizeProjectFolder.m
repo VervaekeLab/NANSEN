@@ -94,10 +94,10 @@ function backupFolderPath = backupProjectFolder(projectFolderPath)
 
     [~, projectName] = fileparts(projectFolderPath);
 
-    dateStr = char( datetime('now', 'Format', 'yyyyMMdd_hh_mm') );
-    backupFolderPath = fullfile(userpath, 'Nansen', 'Backup', 'Projects', dateStr, projectName);
+    dateStr = char( datetime('now', 'Format', 'yyyy_MM_dd') );
+    timeStr = char( datetime('now', 'Format', '''T''_HHmmss') );
+    backupFolderPath = fullfile(userpath, 'Nansen', 'Backup', dateStr, 'Projects', [timeStr, '_', projectName]);
     if ~isfolder(backupFolderPath); mkdir(backupFolderPath); end
-
 
     % Make backup:
     try 
