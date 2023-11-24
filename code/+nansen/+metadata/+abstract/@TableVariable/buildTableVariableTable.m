@@ -12,10 +12,13 @@ function attributeTable = buildTableVariableTable(fileList)
 %       - TableType : Name of table type this variable is defined for (Todo: Is this needed?) I.e do we ever want the same name for variables from different tables? 
 %       - IsCustom : Whether table variable is custom. Consider removing
 %       - IsEditable: Whether table variable is editable
+%       - HasClassDefinition: Whether table variable is defined by a class.
 %       - HasUpdateFunction: Whether table variable has update function.
 %       - UpdateFunctionName: Full name, including package prefix
 %       - HasRendererFunction: Whether table variable has renderer function.
 %       - RendererFunctionName: Full name, including package prefix
+%       - HasDoubleClickFunction:  Whether table variable has double click function.
+%       - DoubleClickFunctionName: Full name, including package prefix
 
     
     % Todo:
@@ -29,9 +32,7 @@ function attributeTable = buildTableVariableTable(fileList)
     % IsEditable is an attribute. Default table variables are not editable.
     % A table variable becomes editable if the class definition has a
     % constant IsEditable=true property.
-    
 
-    
     import nansen.metadata.abstract.TableVariable.getDefaultSessionVariables
     import nansen.metadata.abstract.TableVariable.getDefaultTableVariableAttribute;
 
@@ -65,6 +66,9 @@ function attributeTable = buildTableVariableTable(fileList)
         end
 
         if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
+            
+            S(count).HasClassDefinition = true;
+
             if fcnResult.IS_EDITABLE
                 S(count).IsEditable = true;
             end
@@ -75,9 +79,15 @@ function attributeTable = buildTableVariableTable(fileList)
             end
             
             if ismethod(fcnResult, 'update')
-                thisFcnName = strjoin({thisFcnName, 'update'}, '.');
+                updateFcnName = strjoin({thisFcnName, 'update'}, '.');
             	S(count).HasUpdateFunction = true;
-                S(count).UpdateFunctionName = thisFcnName;
+                S(count).UpdateFunctionName = updateFcnName;
+            end
+
+            if ismethod(fcnResult, 'onCellDoubleClick')
+                doubleClickFcnName = strjoin({thisFcnName, 'onCellDoubleClick'}, '.');
+            	S(count).HasDoubleClickFunction = true;
+                S(count).DoubleClickFunctionName = doubleClickFcnName;
             end
         else
             S(count).HasUpdateFunction = true;

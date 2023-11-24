@@ -1202,6 +1202,7 @@ classdef MetaTable < handle
             % This is kind of a more general table utility function..
             
             numTableRows = size(T, 1);
+            if isempty(initValue); initValue = {initValue}; end
             columnValues = repmat(initValue, numTableRows, 1);
             
             T{:, variableName} = columnValues;

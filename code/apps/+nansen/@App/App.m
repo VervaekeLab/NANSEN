@@ -1004,7 +1004,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             h.DeleteColumnFcn = @app.removeTableVariable;
             h.EditColumnFcn = @app.editTableVariableFunction;
 
-            h.GetTableVariableAttributesFcn = @app.getTableVariableAttributes;
+            h.GetTableVariableAttributesFcn = @(s,e) app.getTableVariableAttributes;
 
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
@@ -1081,80 +1081,77 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     methods (Access = private) % Internal callbacks
             
         function onMouseDoubleClickedInTable(app, src, evt)
-            
-            thisRow = evt.Cell(1);
-            thisCol = evt.Cell(2);
+        % onMouseDoubleClickedInTable - Callback for double clicks
+        %
+        %   Check if the currently selected column has an associated table
+        %   variable definition with a double click callback function.
+
+            thisRow = evt.Cell(1); % Clicked row index
+            thisCol = evt.Cell(2); % Clicked column index
             
             if thisRow == 0 || thisCol == 0
                 return
             end
             
-            colNames = app.UiMetaTableViewer.ColumnModel.getColumnNames;
-            thisColumnName = colNames{thisCol};
+            % Get name of column which was clicked
+            thisColumnName = app.UiMetaTableViewer.getColumnNames(thisCol);
+
+            % Use table variable attributes to check if a double click 
+            % callback function exists for the current table column
+            TVA = app.getTableVariableAttributes('HasDoubleClickFunction');
             
-            % Todo: Use table variable attributes....
-            if contains(thisColumnName, {'Notebook', 'Progress', 'DataLocation'})
-                                
-                columnFcn = str2func(strjoin({'nansen.metadata.tablevar', thisColumnName}, '.') );
+            isMatch = strcmp(thisColumnName, {TVA.Name});
+
+            if any( isMatch )
+                tableVariableFunctionName = TVA(isMatch).RendererFunctionName;
                 
-                tableRow = app.UiMetaTableViewer.getMetaTableRows(thisRow);
+                tableRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow); % Visible row to data row transformation
+                tableValue = app.MetaTable.entries{tableRowIdx, thisColumnName};
+                tableVariableObj = feval(tableVariableFunctionName, tableValue);
                 
-                tableValue = app.MetaTable.entries{tableRow, thisColumnName};
-                tmpObj = columnFcn(tableValue);
-                
-                metaObj = app.tableEntriesToMetaObjects( app.MetaTable.entries(tableRow,:));
-                
-                tmpObj.onCellDoubleClick( metaObj );
+                tableRowData = app.MetaTable.entries(tableRowIdx,:);
+                metaObj = app.tableEntriesToMetaObjects( tableRowData );
+                tableVariableObj.onCellDoubleClick( metaObj );
             end
         end
         
         function onMouseMoveInTable(app, src, evt)
-            
-            import nansen.metadata.utility.getColumnFormatter
+        % onMouseMoveInTable -  Callback for mouse motion
+        %
+        %   Check if the current (mouseover) column has an corresponding 
+        %   table variable definition with a tooltip getter function.
 
             if app.TableIsUpdating; return; end
             
             persistent prevRow prevCol
             
-            thisRow = evt.Cell(1);
-            thisCol = evt.Cell(2);
+            thisRow = evt.Cell(1); % Motion over row index
+            thisCol = evt.Cell(2); % Motion over column index
             
             if thisRow == 0 || thisCol == 0
                 return
             end
             
             if isequal(prevRow, thisRow) && isequal(prevCol, thisCol)
-                return
                 % Skip tooltip update if mouse pointer is still on previous cell
+                return
             else
                 prevRow = thisRow;
                 prevCol = thisCol;
             end
             
-            colNames = app.UiMetaTableViewer.ColumnModel.getColumnNames;
-            thisColumnName = colNames{thisCol};
-            tableRow = app.UiMetaTableViewer.getMetaTableRows(thisRow);
+            thisColumnName = app.UiMetaTableViewer.getColumnNames(thisCol);
 
-            % Check if a table variable definition exists in the default module...
-            coreModuleName = 'nansen.module.general.core.tablevariable.session';
-            fcnName = strjoin({coreModuleName, thisColumnName}, '.');
-            if exist(fcnName, 'class') == 8
-                mc = meta.class.fromName(fcnName);
-                if any(strcmp({mc.SuperclassList.Name}, 'nansen.metadata.abstract.TableColumnFormatter'))
-                    formatterFcnHandle = str2func(fcnName);
-                end
-            end
-            if ~exist('formatterFcnHandle', 'var')
-                formatterFcnHandle = getColumnFormatter(thisColumnName, 'session');
-                if ~isempty(formatterFcnHandle)
-                    formatterFcnHandle = formatterFcnHandle{1};
-                end
-            end
-
-            if ~isempty(formatterFcnHandle)
-                tableValue = app.MetaTable.entries{tableRow, thisColumnName};
-                tmpObj = formatterFcnHandle(tableValue);
-                str = tmpObj.getCellTooltipString();
+            TVA = app.getTableVariableAttributes('HasRendererFunction');
+            isMatch = strcmp(thisColumnName, {TVA.Name});
+            
+            if any( isMatch )
+                tableVariableFunctionName = TVA(isMatch).RendererFunctionName;
+                thisRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow);
+                tableValue = app.MetaTable.entries{thisRowIdx, thisColumnName};
+                
+                tableVariableObj = feval(tableVariableFunctionName, tableValue);
+                str = tableVariableObj.getCellTooltipString();
             else
                 str = '';
             end
@@ -2156,11 +2153,27 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.SchemaViewerApp.Schema = s;
         end
 
-        function S = getTableVariableAttributes(app, src, evt)
-            
+        function S = getTableVariableAttributes(app, condition)
+        % getTableVariableAttributes - Get table variable attributes 
+        %
+        %   Return the list attributes for all table variables or for a
+        %   subset subject to a specified condition (optional). Condition
+        %   must be one of the logical flag attributes. See
+        %   nansen.metadata.abstract.TableVariable.getDefaultTableVariableAttribute
+        %   for a list of attributes.
+
+            if nargin < 2; condition = ''; end
+
             % Todo: get specific table type...
             currentProject = app.ProjectManager.getCurrentProject();
             T = currentProject.getTable('TableVariable');
+            
+            if ~isempty(condition)
+                varNames = T.Properties.VariableNames;
+                assert( any(strcmp(varNames, condition)), 'Invalid condition')
+                T = T(T.(condition), :);
+            end
+ 
             S = table2struct(T);
         end
 
@@ -2276,6 +2289,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                                 updatedValues{iSession} = newValue;
                                 isValid = true;
                             end
+                        elseif isa(defaultValue, 'struct')
+                            if isstruct(newValue)
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
                         else
                             % Invalid;
                         end
@@ -2320,10 +2338,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if numSessions < 20
                 % Unfortunately, this is very slow for many rows.
                 colIdx = find(strcmp(app.MetaTable.entries.Properties.VariableNames, varName));
-                if isa(updatedValues{1}, 'cell')
-                    updatedValues = cat(1, updatedValues{:});
-                end
-                app.UiMetaTableViewer.updateCells(rows, colIdx, updatedValues)
+
+                % Need to insert formatted table data in the MetaTable
+                % viewer
+                updatedValuesDisplay = app.MetaTable.getFormattedTableData(colIdx, rows);
+                updatedValuesDisplay = table2cell(updatedValuesDisplay);
+                app.UiMetaTableViewer.updateCells(rows, colIdx, updatedValuesDisplay)
                 
             else % Update whole table
                 selectedEntries = app.UiMetaTableViewer.getSelectedEntries(); 

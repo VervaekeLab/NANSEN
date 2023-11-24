@@ -503,6 +503,20 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 obj.HTable.SelectedRows = selectedRows;
             end
         end
+    
+        function columnNames = getColumnNames(obj, columnIndices)
+        % getColumnNames - Get name of column(s) given column indices
+            if nargin < 2; columnIndices = []; end
+            
+            columnNames = obj.ColumnModel.getColumnNames();
+            if ~isempty(columnIndices)
+                columnNames = columnNames(columnIndices);
+            end
+            if numel(columnNames) == 1 && iscell(columnNames)
+                columnNames = columnNames{1};
+            end
+        end
+    
     end
    
     methods (Access = private) % Create components
