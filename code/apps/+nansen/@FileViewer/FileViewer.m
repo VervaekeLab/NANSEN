@@ -33,7 +33,9 @@ classdef FileViewer < handle
 %       [v] Create refresh button... Right click to refresh. Button better?
 %       [ ] Add preferences and
 %           - MaxNumItemsToShow. Currently hardcoded to 100
-%       [ ] Add reset method...
+%       [ ] Create handleDoubleClick method
+%       [ ] Use some of the logic in handling of double click also when
+%           loading variables to workspace 
 
     properties
         CurrentSessionObj
@@ -41,11 +43,6 @@ classdef FileViewer < handle
     
     properties (SetAccess = private)
         Parent
-        hFolderTree
-        jTree
-        jVerticalScroller
-        
-        TabGroup
     end
     
     properties (Access = private, Hidden)
@@ -54,14 +51,31 @@ classdef FileViewer < handle
         IsTabDirty
         IsInitialized = false
         
-        CurrentNode
-        hContextMenu % todo: rename to hFileContextMenu
+        CurrentNode % The current node selection in the tree
+    end
+
+    properties (Dependent, Access = private)
+        CurrentDataLocationName
+        CurrentTree
+    end
+
+    properties (Access = private) % GUI Components
+        TabGroup % Tabgroup for different data locations
+        hFolderTree
+        jTree
+        jVerticalScroller
         
+        FileContextMenu
+        FolderContextMenu
+                
         nwbContextMenu
         
         hPanelPreview
         hBackgroundLabel
-        
+    end
+
+    properties (Access = private) % Internal
+        KeypressListener event.listener % Todo: If fileviewer is opened in figure
         ParentSizeChangedListener event.listener
     end
 
@@ -69,35 +83,28 @@ classdef FileViewer < handle
         VariableModelChanged
     end
     
-    
     methods % Constructor
         
         function obj = FileViewer(varargin)
         %FileViewer Construct a fileviewer object
+
+            % Note: The tabgroup and filetree components will be created 
+            % on demand.
         
-            % Take care of input arguments.
+            % Parse the input arguments using private parser method.
             obj.parseInputs(varargin)
             
             obj.setIconFolderPath()  
-            
             obj.createBackgroundLabel()
-            
-            % Initialize the context menu on construction. This will be 
-            % reused across data locations and items in the uitree.
-            obj.hContextMenu = obj.createTreeItemContextMenu();
-            obj.nwbContextMenu = obj.createNwbItemContextMenu();
-            
-% % %             obj.hPanelPreview = uipanel(obj.Parent);
-% % %             obj.hPanelPreview.Units = 'pixels';
-% % %             obj.hPanelPreview.Position(3:4) = [500,300];
-% % %             obj.hPanelPreview.Visible = 'off';
-% % %             
-% % %             % center
-% % %             uim.utility.layout.centerObjectInRectangle(obj.hPanelPreview, obj.Parent);
-        
+            obj.createContextMenus()
+
+            obj.jVerticalScroller = containers.Map();
+            obj.jTree = containers.Map();
+
+            % obj.createPreviewPanel() % Not implemented yet
+
             obj.ParentSizeChangedListener = listener(obj.Parent, ...
                 'SizeChanged', @obj.onParentSizeChanged);
-
         end
 
         function delete(obj)
@@ -108,7 +115,8 @@ classdef FileViewer < handle
                 delete(obj.ParentSizeChangedListener)
             end
             
-            delete(obj.hContextMenu)
+            delete(obj.FileContextMenu)
+            delete(obj.FolderContextMenu)
             delete(obj.nwbContextMenu)
         end
     end
@@ -162,14 +170,54 @@ classdef FileViewer < handle
             end
             
             if doUpdate
-                obj.createFolderTreeControl()
+                obj.updateFolderTree()
             end
-            
-            
         end
         
     end 
     
+    methods % Set/get
+        function dataLocationName = get.CurrentDataLocationName(obj)
+            if ~isempty(obj.TabGroup)
+                dataLocationName = obj.TabGroup.SelectedTab.Title;
+            else
+                % Todo: Will this ever be needed?
+                sessionObject = obj.CurrentSessionObj;
+                allNames = fieldnames({sessionObject.DataLocation.Name});
+                dataLocationName = allNames{1};
+            end
+        end
+
+        function W = get.CurrentTree(obj)
+            W = obj.hFolderTree.(obj.CurrentDataLocationName);
+        end
+    end
+
+    methods (Access = {?nansen.App, ?nansen.FileViewer, ?uiw.widget.FileTree})
+        
+        function wasCaptured = onKeyPressed(obj, ~, evt)
+            
+            wasCaptured = true;
+            
+            switch evt.Key
+                case 'r'
+                    if strcmp(evt.Modifier, 'command') | strcmp(evt.Modifier, 'control')
+                        obj.updateFolderTree()
+                    else
+                        wasCaptured = false;
+                    end
+
+                otherwise
+                    wasCaptured = false;
+            end
+
+            if ~nargout
+                clear wasCaptured
+            end
+        end
+
+    end
+
     methods (Access = protected)
         
         function parseInputs(obj, listOfArgs)
@@ -182,14 +230,13 @@ classdef FileViewer < handle
             end
             
             if isempty(listOfArgs);    return;    end
-            
         end
         
         function setIconFolderPath(obj)
             rootDir = fileparts(mfilename('fullpath'));
             obj.IconFolderPath = fullfile(rootDir, '_graphics', 'icons');
         end
-        
+
         function createBackgroundLabel(obj)
         %createBackground
         
@@ -200,22 +247,31 @@ classdef FileViewer < handle
             obj.hBackgroundLabel.Position(3:4) = obj.hBackgroundLabel.Extent(3:4);
             uim.utility.layout.centerObjectInRectangle(obj.hBackgroundLabel, ...
                 getpixelposition(obj.Parent))
-            
         end
         
+        function createContextMenus(obj)
+        % createContextMenus - Create the context menus for the file viewer
+        %
+        % Note: The context menus are created on construction. They will be 
+        % reused across data locations and items in the uitree.
+
+            obj.FolderContextMenu = obj.createFolderContextMenu();
+            obj.FileContextMenu = obj.createFileItemContextMenu();
+            obj.nwbContextMenu = obj.createNwbItemContextMenu();
+        end
+
         function createTabgroup(obj, metaTableEntry)
             
-            dlTypes = {metaTableEntry.DataLocation.Name};
+            dlNames = {metaTableEntry.DataLocation.Name};
 
-            
             obj.TabGroup = uitabgroup(obj.Parent);
             obj.TabGroup.Units = 'normalized'; 
 
             %obj.TabGroup.Position = [0 0 1 1];
 
             % Create tab for each data location type.
-            for i = 1:numel(dlTypes)
-                tabName = dlTypes{i};
+            for i = 1:numel(dlNames)
+                tabName = dlNames{i};
 
                 hTab = uitab(obj.TabGroup);
                 hTab.Title = tabName;
@@ -225,9 +281,7 @@ classdef FileViewer < handle
             end
 
             obj.TabGroup.SelectionChangedFcn = @obj.changeTab;
-                            
             obj.IsInitialized = true;
-            
         end
         
         function markTabsAsDirty(obj)
@@ -237,9 +291,20 @@ classdef FileViewer < handle
             for i = 1:numel(tabNames)
                 obj.IsTabDirty.(tabNames{i}) = true;
             end
-            
         end
         
+        function createPreviewPanel(obj)
+            
+            import uim.utility.layout.centerObjectInRectangle
+
+            obj.hPanelPreview = uipanel(obj.Parent);
+            obj.hPanelPreview.Units = 'pixels';
+            obj.hPanelPreview.Position(3:4) = [500,300];
+            obj.hPanelPreview.Visible = 'off';
+
+            centerObjectInRectangle(obj.hPanelPreview, obj.Parent);
+        end
+
         function resetTreeControls(obj)
             
             tabNames = fieldnames(obj.hFolderTree);
@@ -249,21 +314,18 @@ classdef FileViewer < handle
             end
             
             obj.hFolderTree = [];
-            
         end
         
         function changeTab(obj, ~, ~)
             
-            dataLocationType = obj.TabGroup.SelectedTab.Title;
-            
+            dataLocationName = obj.TabGroup.SelectedTab.Title;
             % Create tree if the tab is dirty...
-            if obj.IsTabDirty.(dataLocationType)
-                obj.createFolderTreeControl()
+            if obj.IsTabDirty.(dataLocationName)
+                obj.updateFolderTree()
             end
-            
         end
     
-        function createFolderTreeControl(obj)
+        function updateFolderTree(obj)
             
             warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
             
@@ -278,14 +340,67 @@ classdef FileViewer < handle
                 alternatives = fieldnames({sessionObject.DataLocation.Name});
                 dataLocationName = alternatives{1};
             end
-            
-            % Delete old tree if it exists.
-            if isfield(obj.hFolderTree, dataLocationName) && isvalid(obj.hFolderTree.(dataLocationName))
-                delete(obj.hFolderTree.(dataLocationName))
+                          
+            drawnow limitrate
+
+            if isfield(obj.hFolderTree, dataLocationName) ...
+                    && isvalid(obj.hFolderTree.(dataLocationName))
+
+                W = obj.hFolderTree.(dataLocationName);
+                W.Visible = 'off';
+                delete(W.Root.Children)
+                W.Visible = 'on';
+
+                % Delete old tree nodes if tree already exists.
+                %todo
+            else
+                W = obj.createFolderTreeComponent(hParent);
             end
 
+            try
+                dirPath = sessionObject.getSessionFolder(dataLocationName);
+            catch ME %#ok<NASGU>
+                dirPath = '';
+            end
+                        
+            if ~isfolder(dirPath)
+                W.Root.Name = sprintf('%s (Not available)', W.Root.Name);
+            else
+                W.Root.Name = sprintf('Session: %s', sessionID);
+                W.Root.UserData.filePath = dirPath;
+            end
+            
+            obj.addSubFolderToNode(dirPath, W.Root, true)
+
+            drawnow
+            
+            % Tree is up to date
+            obj.IsTabDirty.(dataLocationName) = false;
+
+            if ~isempty(obj.hPanelPreview)
+                uistack(obj.hPanelPreview, 'top')
+            end
+        end
+        
+        function updateSubtree(obj, treeNode)
+            
+            isExpanded = obj.isNodeExpanded(treeNode);
+
+            delete(treeNode.Children)
+            pathName = treeNode.UserData.filePath;
+            obj.addSubFolderToNode(pathName, treeNode)
+
+            if isExpanded
+                treeNode.expand()
+            end
+        end
+
+        function W = createFolderTreeComponent(obj, hParent)
+        % createFolderTreeComponent - Create a new folder tree component
+
+            warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
+
             W = uiw.widget.FileTree('Parent', hParent);
-            W.Root.Name = sprintf('Session: %s', sessionID);
             W.FontName = 'Avenir New';
             W.FontSize = 8;
 
@@ -299,47 +414,32 @@ classdef FileViewer < handle
 
             W.SelectionBackgroundColor = rgb./255;
 
-            try
-                dirPath = sessionObject.getSessionFolder(dataLocationName);
-            catch ME
-                dirPath = '';
-            end
-            
-            %dirPath = sessionObject.DataLocation.(dataLocationName);
-            
-            if ~isfolder(dirPath)
-                W.Root.Name = sprintf('%s (Not available)', W.Root.Name);
-            else
-                W.Root.UserData.filePath = dirPath;
-            end
-            
-            obj.addSubFolderToNode(dirPath, W.Root, true)
-
+            % Set callbacks
             W.MouseClickedCallback = @obj.onMouseClickOnTree;
-            
+            W.KeyPressFcn = @obj.onKeyPressed;
+
             %W.MouseMotionFcn = @obj.onMouseMotionOnTree;
             % This thing is not keeping up!
             %addlistener(W, 'MouseMotion', @obj.onMouseMotionOnTree);
-            
+
             % Turn off opening of nodes on doubleclick. (Some nwb nodes are
             % datasets that should be previewed on doubleclick.
             jObj = W.getJavaObjects();
-            obj.jTree = jObj.JControl;
-            obj.jTree.setToggleClickCount(0);
+            javaTree = jObj.JControl;
+            javaTree.setToggleClickCount(0);
             
-            obj.jVerticalScroller = jObj.JScrollPane.getVerticalScrollBar();
-            
-            obj.hFolderTree.(dataLocationName) = W;
-            obj.IsTabDirty.(dataLocationName) = false;
-            
-            warning('on', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
+            % Save components to class properties
+            dataLocationName = obj.CurrentDataLocationName;
 
-            if ~isempty(obj.hPanelPreview)
-                uistack(obj.hPanelPreview, 'top')
-            end
-            
+            obj.hFolderTree.(dataLocationName) = W;
+            obj.jVerticalScroller(dataLocationName) = jObj.JScrollPane.getVerticalScrollBar();
+            obj.jTree(dataLocationName) = javaTree;
+
+            obj.IsTabDirty.(dataLocationName) = false;
+
+            warning('on', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
         end
-        
+
         function addSubFolderToNode(obj, rootDir, nodeHandle, isRecursive)
             
             if nargin < 4 || isempty(isRecursive)
@@ -396,10 +496,10 @@ classdef FileViewer < handle
                             icoFile = fullfile(matlabroot,'toolbox','matlab','icons','HDF_filenew.gif');
                         otherwise
                             icoFile = fullfile(matlabroot,'toolbox','matlab','icons','HDF_filenew.gif');
-                            
                     end
+
                     hBranches(i).UserData.filePath = fullfile(L(i).folder, L(i).name);
-                    %hBranches(i).UIContextMenu = obj.createTreeItemContextMenu(hBranches(i));
+                    %hBranches(i).UIContextMenu = obj.createFileItemContextMenu(hBranches(i));
                     setIcon(hBranches(i), icoFile);
                 end
             end
@@ -409,7 +509,6 @@ classdef FileViewer < handle
                 hBranches(i+1).Name = sprintf('%d more items are present, but not shown...', numItemsNotShown);
             end
             
-            
             if ~isRecursive % Todo: Fix/test this and recall what the meaning was
                 for i = 1:numel(L)
                     if L(i).isdir
@@ -417,32 +516,33 @@ classdef FileViewer < handle
                     end
                 end
             end
-            
         end
         
-        function onMouseClickOnTree(obj, src, event)
+        function onMouseClickOnTree(obj, ~, event)
         %onMouseClickOnTree Callback for mouseclicks on tree    
-            currentNode = event.Nodes;
             
-            if isempty(currentNode)
-                return
+            clickedNode = event.Nodes;
+            if isempty(clickedNode)
+                obj.CurrentNode = [];
+                obj.CurrentTree.SelectedNodes = [];
+            else
+                obj.CurrentNode = clickedNode;
             end
             
             if event.NumClicks == 1 && strcmp(event.SelectionType, 'alt')
-                
-                obj.CurrentNode = currentNode;
-                
-                % Open context menu on current node.
-                cMenuPos = obj.getPositionForContextMenu(event.Position);
-                obj.openContextMenu(currentNode, cMenuPos)
+                obj.handleRightClick(event)
                 
             elseif event.NumClicks == 2 && ~strcmp(event.SelectionType, 'alt')
-                
+                    
+                if isempty(clickedNode)
+                    return
+                end
+
                 % Todo: make a preview / open data method...
                 
                 %setIdle = obj.setBusy('Opening File...'); %#ok<NASGU>
 
-                [~, fileName, fileExt] = fileparts(currentNode.Name);
+                [~, fileName, fileExt] = fileparts(clickedNode.Name);
 
                 % Look in the data variable model for items / elements that
                 % match the filename and file extension.
@@ -453,7 +553,7 @@ classdef FileViewer < handle
                 if ~isempty( varName )
                     [variableInfo, ~] = varModel.getVariableStructure(varName);
                     fileAdapterFcn = varModel.getFileAdapterFcn(variableInfo);
-                    fileAdapter = fileAdapterFcn(currentNode.UserData.filePath);
+                    fileAdapter = fileAdapterFcn(clickedNode.UserData.filePath);
                     try
                         fileAdapter.view()
                     catch ME
@@ -468,55 +568,54 @@ classdef FileViewer < handle
                 switch fileExt
                     
                     case '' % Assume folder
-                        folderPath = currentNode.UserData.filePath;
+                        folderPath = clickedNode.UserData.filePath;
                         if isfolder(folderPath)
                             utility.system.openFolder(folderPath)
                         end
                     case {'.ini', '.tif', '.avi', '.raw'}
-                        imviewer(currentNode.UserData.filePath)
+                        imviewer(clickedNode.UserData.filePath)
                         
                     case '.mat'
                         if ismac
-                            [status, ~] = unix(sprintf('open -a finder ''%s''', currentNode.UserData.filePath));
+                            [status, ~] = unix(sprintf('open -a finder ''%s''', clickedNode.UserData.filePath));
                         else
-                            uiopen(currentNode.UserData.filePath)    
+                            uiopen(clickedNode.UserData.filePath)    
                         end
                         
                     case '.png'
                         if ismac
-                            filepath = strrep(currentNode.UserData.filePath, ' ', '\ ');
+                            filepath = strrep(clickedNode.UserData.filePath, ' ', '\ ');
                             [status, msg] = unix(sprintf('open -a Preview %s', filepath));
                         else
                             error('Can not open this file type')
                         end
                         
                     case '.nwb'
-                        if isfield(currentNode.UserData, 'nwbNode')
-                            disp(currentNode.UserData.nwbNode)
+                        if isfield(clickedNode.UserData, 'nwbNode')
+                            disp(clickedNode.UserData.nwbNode)
                         end
                         
                         
                     otherwise
-                        if isfile(currentNode.UserData.filePath)
+                        if isfile(clickedNode.UserData.filePath)
                             errorMsg = 'Can not open this file type';
                             errordlg(errorMsg)
                             error(errorMsg)
                             
-                        elseif isempty(currentNode.UserData.filePath)
-                            if isfield(currentNode.UserData, 'Type') && ...
-                                    strcmp(currentNode.UserData.Type, 'nwb') && ...
-                                    ~isempty(currentNode.UserData.nwbNode)
+                        elseif isempty(clickedNode.UserData.filePath)
+                            if isfield(clickedNode.UserData, 'Type') && ...
+                                    strcmp(clickedNode.UserData.Type, 'nwb') && ...
+                                    ~isempty(clickedNode.UserData.nwbNode)
  
-                                name = currentNode.Name;
-                                name = currentNode.UserData.nwbNodeName;
-                                nwbObj = currentNode.UserData.nwbNode;
+                                name = clickedNode.Name;
+                                name = clickedNode.UserData.nwbNodeName;
+                                nwbObj = clickedNode.UserData.nwbNode;
                                 previewNwbObject(name, nwbObj)
                             end
 
                         end
                 end
             end
-            
         end
         
         function onMouseMotionOnTree(obj, src, event)
@@ -550,11 +649,13 @@ classdef FileViewer < handle
 
             % Get y-position of pointer correcting for the vertical
             % scroll
-            yScroll = obj.jVerticalScroller.getValue();
+            dataLocationName = obj.CurrentDataLocationName;
+            verticalScroller = obj.jVerticalScroller(dataLocationName);
+            
+            yScroll = verticalScroller.getValue();
             y = pixelPos(4) - (mouseEventPos(2) - yScroll);
                 
             pos = [x, y];
-            
         end
         
         function openContextMenu(obj, treeNode, cMenuPosition)
@@ -562,27 +663,57 @@ classdef FileViewer < handle
                            
         % Open context menu. Select correct contextmenu based on whether 
         % node represents a file or an NWB dataset.
-        
+            
             if nargin < 3
                 
             end
         
-            if isfield(obj.CurrentNode.UserData, 'Type') && ...
-                    strcmp(obj.CurrentNode.UserData.Type, 'nwb')
-
-                if isfield(obj.CurrentNode.UserData, 'nwbNode')
-                    obj.nwbContextMenu.Position = cMenuPosition;
-                    obj.nwbContextMenu.Visible = 'on';
-                end
+            if ~isempty(obj.CurrentNode)
+                pathName = obj.CurrentNode.UserData.filePath;
             else
-                obj.hContextMenu.Position = cMenuPosition;
-                obj.hContextMenu.Visible = 'on';
+                pathName = obj.CurrentSessionObj.getSessionFolder(obj.CurrentDataLocationName);
             end
-            
+
+            if isfolder(pathName)
+                obj.FolderContextMenu.Position = cMenuPosition;
+                obj.FolderContextMenu.Visible = 'on';
+
+            elseif isfile(pathName)
+    
+                if isfield(obj.CurrentNode.UserData, 'Type') && ...
+                        strcmp(obj.CurrentNode.UserData.Type, 'nwb')
+    
+                    if isfield(obj.CurrentNode.UserData, 'nwbNode')
+                        obj.nwbContextMenu.Position = cMenuPosition;
+                        obj.nwbContextMenu.Visible = 'on';
+                    end
+                else
+    
+                    obj.FileContextMenu.Position = cMenuPosition;
+                    obj.FileContextMenu.Visible = 'on';
+                end
+            end
         end
         
-        function m = createTreeItemContextMenu(obj)
-        %createTreeItemContextMenu Create contextmenu for uitree  
+        function m = createFolderContextMenu(obj)
+        % createFolderContextMenu - Create contextmenu for folder items in tree
+        
+            hFig = ancestor(obj.Parent, 'figure');
+            m = uicontextmenu(hFig);
+
+            appName = utility.system.getOsDependentName('Finder');
+            mitem = uimenu(m, 'Text', sprintf('Show in %s', appName));
+            mitem.Callback = @(s, e) obj.onFolderContextMenuSelected(s);
+
+            mitem = uimenu(m, 'Text', 'Create New Folder');
+            mitem.Callback = @(s, e) obj.onFolderContextMenuSelected(s);
+            
+            mitem = uimenu(m, 'Text', 'Refresh', 'Separator', 'on', 'Accelerator', 'R');
+            mitem.Callback = @(s, e) obj.onFolderContextMenuSelected(s);
+        end
+
+        function m = createFileItemContextMenu(obj)
+        %createFileItemContextMenu Create contextmenu for uitree  
         %
         %   
         
@@ -592,22 +723,35 @@ classdef FileViewer < handle
             hFig = ancestor(obj.Parent, 'figure');
             m = uicontextmenu(hFig);
             
-            mitem = uimenu(m, 'Text', 'Refresh');
-            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
+            mitem = uimenu(m, 'Text', 'Refresh', 'Accelerator', 'R');
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
             
             appName = utility.system.getOsDependentName('Finder');
-            mitem = uimenu(m, 'Text', sprintf('Show In %s', appName));
-            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
-            
+            mitem = uimenu(m, 'Text', sprintf('Show in %s', appName));
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
+
+            if ismac || isunix
+                mitem = uimenu(m, 'Text', 'Open as Text', 'Separator', 'on');
+                mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
+            end
+
+            mitem = uimenu(m, 'Text', 'Open Outside MATLAB');
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
+
+            mitem = uimenu(m, 'Text', 'Copy Pathname');
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s); 
+
             mitem = uimenu(m, 'Text', 'Create New Variable from File', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onCreateVariableMenuItemClicked();
             
+            mitem = uimenu(m, 'Text', 'Create File Adapter for File');
+            mitem.Callback = @(s, e) obj.onCreateFileAdapterMenuItemClicked();
+
             mitem = uimenu(m, 'Text', 'Load Data to Workspace', 'Separator', 'on');
-            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
             
             mitem = uimenu(m, 'Text', 'Plot Data in Timeseries Plotter');
-            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
-
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
         end
         
         function m = createNwbItemContextMenu(obj)
@@ -617,55 +761,77 @@ classdef FileViewer < handle
             m = uicontextmenu(hFig);
             
             mitem = uimenu(m, 'Text', 'Preview');
-            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
             
             mitem = uimenu(m, 'Text', 'Assign to Workspace');
-            mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
+        end
 
+        function handleRightClick(obj, eventData)
+            
+            clickedNode = eventData.Nodes;
+            % Set the clicked node as the current node
+            if ~isempty(clickedNode)
+                obj.CurrentNode = clickedNode;
+            end
+
+            % Open context menu on current node.
+            cMenuPos = obj.getPositionForContextMenu(eventData.Position);
+            obj.openContextMenu(clickedNode, cMenuPos)
+        end
+
+        function onFolderContextMenuSelected(obj, src)
+            
+            if ~isempty(obj.CurrentNode)
+                folderPath = obj.CurrentNode.UserData.filePath;
+            else
+                folderPath = obj.CurrentSessionObj.getSessionFolder(...
+                    obj.CurrentDataLocationName);
+            end
+
+            switch src.Text
+
+                case 'Refresh'
+                    obj.updateSubtree(obj.CurrentNode)
+                
+                case 'Create New Folder'
+                    obj.createNewFolder(folderPath)
+                    obj.updateSubtree(obj.CurrentNode)
+                    obj.CurrentNode.expand()
+
+                case {'Show in Finder', 'Show in Explorer'}
+                    utility.system.openFolder(folderPath)
+            end
         end
         
-        function onTreeItemContextMenuSelected(obj, src)
-        %onTreeItemContextMenuSelected Callback for contect menu items
+        function onFileItemContextMenuSelected(obj, src)
+        %onFileItemContextMenuSelected Callback for contect menu items
         
             nodeHandle = obj.CurrentNode;
             
             switch src.Text
                 
                 case 'Refresh'
-                    % Refresh tree if the tab is dirty...
-                    obj.createFolderTreeControl()
+                    obj.updateFolderTree()
                 
-                case {'Show In Finder', 'Show In Explorer'}
-                    folderPath = fileparts(nodeHandle.UserData.filePath);
+                case {'Show in Finder', 'Show in Explorer'}
+                    folderPath = obj.CurrentNode.UserData.filePath;
                     utility.system.openFolder(folderPath)
-                    
+
+                case {'Open Outside MATLAB'}
+                     utility.system.openFile( obj.CurrentNode.UserData.filePath )
+
+                case {'Open as Text'}
+                     utility.system.openFile( obj.CurrentNode.UserData.filePath, 'text' )
+
+                case 'Copy Pathname'
+                    clipboard('copy', obj.CurrentNode.UserData.filePath)
+
                 case 'Load Data to Workspace'
                     % Todo: Use the sessionObject loadData and fileAdapters
-                    
-                    [~, ~, fileExt] = fileparts(nodeHandle.UserData.filePath);
+                    obj.loadFileToWorkspace( nodeHandle.UserData.filePath )
 
-                    switch fileExt
-
-                        case {'.ini', '.tif', '.avi', '.raw'}
-                            imageStack = nansen.stack.ImageStack(nodeHandle.UserData.filePath);
-                            assignin('base', 'imageStack', imageStack)
-                            
-                        case '.mat'
-                            S = load(nodeHandle.UserData.filePath);
-                            varNames = fieldnames(S);
-                            for i = 1:numel(varNames)
-                                assignin('base', varNames{i}, S.(varNames{i}))
-                            end
-                            
-                        otherwise 
-                            errordlg('Can not load files of type %s to workspace', fileExt)
-                            
-                    end
-
-
-                    
                 case 'Create New Variable from File'
-                    
                     
                 case 'Plot Data in Timeseries Plotter'
                     S = load(nodeHandle.UserData.filePath);
@@ -680,14 +846,11 @@ classdef FileViewer < handle
                     nwbObj = nodeHandle.UserData.nwbNode;
                     previewNwbObject(name, nwbObj)
                     
-                    
                 case 'Assign to Workspace'
                     % Todo: Combine with Load Data to workspace and
                     % generalize...
                     assignin('base', nodeHandle.UserData.nwbNodeName, nodeHandle.UserData.nwbNode)
-                      
             end
-
         end
         
         function onCreateVariableMenuItemClicked(obj)
@@ -705,8 +868,8 @@ classdef FileViewer < handle
             currentDataLocation = obj.TabGroup.SelectedTab.Title;
             
             sObj = obj.CurrentSessionObj;
-            fileAdapterList = VariableModel.listFileAdapters(ext);
-            
+
+            fileAdapterList = nansen.dataio.listFileAdapters(ext);
             fileName = strrep(fileName, sObj.sessionID, '');
             
             % Create a struct with fields that are required from user
@@ -726,7 +889,6 @@ classdef FileViewer < handle
             
             % Add the new item to the current variable model.
             % Todo: Get variable model from the sessionobject/dataiomodel
-
             
             varItem = VariableModel.getDefaultItem(S.VariableName);
             varItem.IsCustom = true;
@@ -756,15 +918,90 @@ classdef FileViewer < handle
             
             % Todo: Display error message if variable already exists.
             % And/or ask if variable should be replaced?
-            
         end
         
+        function onCreateFileAdapterMenuItemClicked(obj)
+            
+            nodeHandle = obj.CurrentNode;
+
+            % Get information about file's path and data location
+            [~, ~, fileExtension] = fileparts(nodeHandle.UserData.filePath);
+            fileAdapterAttributes = nansen.module.uigetFileAdapterAttributes(...
+                'SupportedFileTypes', fileExtension);
+
+            if isempty(fileAdapterAttributes); return; end
+
+            project = nansen.getCurrentProject();
+            targetPath = project.getFileAdapterFolder();
+            nansen.module.createFileAdapter(targetPath, fileAdapterAttributes)
+        end
+
         function onParentSizeChanged(obj, src, evt)
                       
             uim.utility.layout.centerObjectInRectangle(obj.hBackgroundLabel, ...
                 getpixelposition(obj.Parent))
-            
         end
+    
+        function tf = isNodeExpanded(obj, treeNode)
+        % isNodeExpanded - Check if the provided node is expanded
+            % Get current tree
+            currentJTree = obj.jTree(obj.CurrentDataLocationName);
+
+            warning('off', 'MATLAB:structOnObject')
+            S = struct(treeNode);
+            warning('on', 'MATLAB:structOnObject')
+
+            jNode = S.JNode;
+            nodePath = jNode.TreePath;
+        
+            tf = currentJTree.isExpanded(nodePath);
+        end
+
     end
     
+    methods (Access = private)
+
+        function createNewFolder(obj, folderPath)
+            inputCellArray = inputdlg('Enter folder name', 's');
+            if ~isempty(inputCellArray)
+                folderName = inputCellArray{1};
+                if ~isfolder(fullfile(folderPath, folderName))
+                    mkdir(fullfile(folderPath, folderName));
+                    % Refresh tree if the tab is dirty...
+                else
+                    msgbox('Folder already exists.')
+                end
+            end
+        end
+
+    end
+
+    methods (Static, Access = private)
+  
+        function loadFileToWorkspace( pathName )
+            % Todo: This should probably be either a method on the session
+            % class or on a data collection class.
+            
+            [~, ~, fileExt] = fileparts(pathName);
+
+            switch fileExt
+
+                case {'.ini', '.tif', '.avi', '.raw'}
+                    imageStack = nansen.stack.ImageStack(pathName);
+                    assignin('base', 'imageStack', imageStack)
+                    
+                case '.mat'
+                    S = load(pathName);
+                    varNames = fieldnames(S);
+                    for i = 1:numel(varNames)
+                        assignin('base', varNames{i}, S.(varNames{i}))
+                    end
+                    
+                otherwise
+                    message = sprintf('Can not load files of type %s to workspace', fileExt);
+                    errordlg(message)
+            end
+        end
+    
+    end
 end

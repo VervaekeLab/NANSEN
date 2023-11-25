@@ -10,11 +10,15 @@ function createFileAdapter(targetPath, fileAdapterAttributes)
 %           file adapter can be used with
 %       DataType : Expected output data type
 %       AccessMode : Whether file adapter supports read only (R) or read and write (RW) 
-
+%
+%   Input Arguments:
+%       targetPath : Pathname of folder to save file adapter in.
+%       fileAdapterAttributes Struct with file adapter attributes
 
 %     arguments
-%         targetPath (1,1) string
-%         fileAdapterAttributes (1,1) struct
+%         targetPath (1,1) string : Folder to save file adapter in.
+%         fileAdapterAttributes (1,1) struct Struct with file adapter
+%         attributes
 %     end
     
     % Get path for template

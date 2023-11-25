@@ -98,6 +98,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     properties (Access = private)
         UserSession nansen.internal.user.NansenUserSession
+        ActiveTabModule = []
         ApplicationState = 'Uninitialized';
     end
     
@@ -1610,11 +1611,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             switch evt.NewValue.Title
                 
                 case 'File Viewer'
-                    
+
                     if isempty(app.UiFileViewer) % Create file viewer
                     	thisTab = evt.NewValue;
                         app.UiFileViewer = nansen.FileViewer(thisTab);
                     end
+
+                    app.ActiveTabModule = app.UiFileViewer;
                                         
                     entries = getSelectedMetaTableEntries(app);
                     if isempty(entries); return; end
@@ -1644,10 +1647,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
                     
                 case 'Task Processor'
-                    
+
                     if isempty(app.BatchProcessorUI)
                         app.initializeBatchProcessorUI(evt.NewValue)
                     end
+
+                    app.ActiveTabModule = app.BatchProcessorUI;
+                
+                otherwise
+                    app.ActiveTabModule = [];
             end
         end
         
@@ -1671,6 +1679,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             if isa(evt, 'java.awt.event.KeyEvent')
                 evt = uim.event.javaKeyEventToMatlabKeyData(evt);
+            end
+
+            if ~isempty(app.ActiveTabModule)
+                if nansen.util.ismethod(app.ActiveTabModule, 'onKeyPressed')
+                    wasCaptured = app.ActiveTabModule.onKeyPressed(src, evt);
+                    if wasCaptured; return; end
+                end
             end
             
             switch evt.Key

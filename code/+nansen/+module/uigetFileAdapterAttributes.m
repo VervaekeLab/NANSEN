@@ -1,4 +1,4 @@
-function [S, wasAborted] = uigetFileAdapterAttributes()
+function [S, wasAborted] = uigetFileAdapterAttributes(varargin)
 %uigetFileAdapterAttributes Open dialog for selecting file adapter options.
 %
 %   S = uigetFileAdapterAttributes() opens dialog and returns a struct S
@@ -16,10 +16,16 @@ function [S, wasAborted] = uigetFileAdapterAttributes()
     S.SupportedFileTypes = '';
     S.DataType = '';
     S.AccessMode = 'Read';
+
+    S = utility.parsenvpairs(S, [], varargin{:});
+
+    % Add configuration flags
     S.AccessMode_ = {'Read', 'Read/Write'};
 
     [S, wasAborted] = tools.editStruct(S, '', 'Create File Adapter', ...
         'Prompt', 'Configure new file adapter:');
+
+    if wasAborted; S = struct.empty; return; end
     
     S.SupportedFileTypes = strsplit(S.SupportedFileTypes, ',');
     if strcmp(S.AccessMode, 'Read')
@@ -27,7 +33,6 @@ function [S, wasAborted] = uigetFileAdapterAttributes()
     elseif strcmp(S.AccessMode, 'Read/Write')
         S.AccessMode = 'RW';
     end
-
 end
 
 % Todo:
