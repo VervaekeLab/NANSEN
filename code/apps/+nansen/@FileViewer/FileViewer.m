@@ -1,4 +1,4 @@
-classdef FileViewer < handle
+classdef FileViewer < nansen.AbstractTabPageModule
 %FileViewer Display a DataLocation in a uitree structure.
 %
 %   This class can be placed in a uipanel and be used for displaying
@@ -36,18 +36,25 @@ classdef FileViewer < handle
 %       [ ] Create handleDoubleClick method
 %       [ ] Use some of the logic in handling of double click also when
 %           loading variables to workspace 
+%       [ ] More efficient creation of file trees with large number of files
+%           ( Large, nested folder tree )
+
+    properties (Constant)
+        Name = 'File Viewer'
+    end
+
+    properties (SetAccess = private)
+        DataLocationNames
+    end
 
     properties
         CurrentSessionObj
-    end
-    
-    properties (SetAccess = private)
-        Parent
+        SessionIDList
+        SessionSelectedFcn % Function handle. Will be called with a single input: sessionID
     end
     
     properties (Access = private, Hidden)
         IconFolderPath
-        DataLocationTabs
         IsTabDirty
         IsInitialized = false
         
@@ -56,27 +63,25 @@ classdef FileViewer < handle
 
     properties (Dependent, Access = private)
         CurrentDataLocationName
+        CurrentTab
         CurrentTree
     end
 
     properties (Access = private) % GUI Components
+        SessionListBox = gobjects().empty
+
         TabGroup % Tabgroup for different data locations
+        DataLocationTabs
         hFolderTree
         jTree
         jVerticalScroller
         
         FileContextMenu
         FolderContextMenu
-                
         nwbContextMenu
         
         hPanelPreview
-        hBackgroundLabel
-    end
-
-    properties (Access = private) % Internal
-        KeypressListener event.listener % Todo: If fileviewer is opened in figure
-        ParentSizeChangedListener event.listener
+        hStatusLabel = gobjects().empty % Show status message (if no session is selected)
     end
 
     events
@@ -87,34 +92,25 @@ classdef FileViewer < handle
         
         function obj = FileViewer(varargin)
         %FileViewer Construct a fileviewer object
+        %
+        %   Syntax:
+        %
+        %      h = nansen.FileViewer(hParent, dataLocationNames) creates a
+        %      file viewer for a set of data locations in the graphical 
+        %      container given by hParent
 
             % Note: The tabgroup and filetree components will be created 
             % on demand.
         
-            % Parse the input arguments using private parser method.
-            obj.parseInputs(varargin)
-            
-            obj.setIconFolderPath()  
-            obj.createBackgroundLabel()
-            obj.createContextMenus()
-
-            obj.jVerticalScroller = containers.Map();
-            obj.jTree = containers.Map();
-
-            % obj.createPreviewPanel() % Not implemented yet
-
-            obj.ParentSizeChangedListener = listener(obj.Parent, ...
-                'SizeChanged', @obj.onParentSizeChanged);
+            obj@nansen.AbstractTabPageModule(varargin{:})
         end
 
         function delete(obj)
             if obj.IsInitialized
                 delete(obj.TabGroup)
             end
-            if ~isempty(obj.ParentSizeChangedListener)
-                delete(obj.ParentSizeChangedListener)
-            end
-            
+            %delete(obj.SessionListBox)
+            %delete(obj.hStatusLabel)
             delete(obj.FileContextMenu)
             delete(obj.FolderContextMenu)
             delete(obj.nwbContextMenu)
@@ -140,27 +136,20 @@ classdef FileViewer < handle
             if isempty(metaTableEntry); return; end
             
             if ~obj.IsInitialized
-                obj.createTabgroup(metaTableEntry)
+                obj.createTabGroup(metaTableEntry)
             end
             
             sessionID = metaTableEntry.sessionID;%{:};
             
             % Determine if an update is needed.
             if ~isempty(obj.hFolderTree)
-                
-                dataLocationType = obj.TabGroup.SelectedTab.Title;
-                hTree = obj.hFolderTree.(dataLocationType);
-                
-                if ~contains(hTree.Root.Name, sessionID)
+                                
+                if ~strcmp(obj.getCurrentObjectId, sessionID)
                     
                     obj.CurrentSessionObj = metaTableEntry;
                     obj.markTabsAsDirty()
-                    
-                    obj.resetTreeControls()
-                    
+                                        
                     doUpdate = true;
-%                     delete(obj.hFolderTree)
-%                     obj.hFolderTree = [];
                 else
                     doUpdate = false;
                 end
@@ -168,15 +157,26 @@ classdef FileViewer < handle
                 doUpdate = true;
                 obj.CurrentSessionObj = metaTableEntry;
             end
+
+            obj.updateSessionListBoxSelection()
             
             if doUpdate
+                obj.updateStatusLabelText('Updating, please wait...')
                 obj.updateFolderTree()
+                obj.updateStatusLabelText('')
+                drawnow
             end
         end
         
     end 
     
     methods % Set/get
+
+        function set.SessionIDList(obj, value)
+            obj.SessionIDList = value;
+            obj.onSessionIDListSet()
+        end
+
         function dataLocationName = get.CurrentDataLocationName(obj)
             if ~isempty(obj.TabGroup)
                 dataLocationName = obj.TabGroup.SelectedTab.Title;
@@ -189,11 +189,82 @@ classdef FileViewer < handle
         end
 
         function W = get.CurrentTree(obj)
-            W = obj.hFolderTree.(obj.CurrentDataLocationName);
+            if ~isempty(obj.hFolderTree)
+                W = obj.hFolderTree.(obj.CurrentDataLocationName);
+            else
+                W = [];
+            end
+        end
+    
+        function T = get.CurrentTab(obj)
+            T = obj.TabGroup.SelectedTab;
         end
     end
 
-    methods (Access = {?nansen.App, ?nansen.FileViewer, ?uiw.widget.FileTree})
+    methods (Access = protected) % Implement superclass methods
+
+        function handleOptionalInputs(obj, listOfInputs) %#ok<*INUSD>
+            obj.DataLocationNames = listOfInputs{1};
+        end
+
+        function createComponents(obj)
+            
+            %obj.createPanels()
+            obj.setIconFolderPath()  
+            
+            obj.createTabGroup()
+
+            obj.createStatusLabel()
+            obj.createContextMenus()
+
+            obj.jVerticalScroller = containers.Map();
+            obj.jTree = containers.Map();
+                       
+            % obj.createPreviewPanel() % Not implemented yet
+        end
+
+        function updateComponentLayout(obj)
+            import uim.utility.layout.subdividePosition
+            import uim.utility.layout.centerObjectInRectangle
+
+            if isempty(obj.TabGroup); return; end
+
+            M = 0; % Margin
+
+            if ~isempty(obj.hStatusLabel)
+                parentPosition = getpixelposition(obj.Parent);
+                centerPosition = parentPosition(1:2) + parentPosition(3:4) / 2;
+                newPosition = getpixelposition(obj.hStatusLabel(1), true);
+                newPosition(1:2) = centerPosition - newPosition(3:4) / 2;
+                newPosition(2) = newPosition(2) + 50;
+                arrayfun(@(h) setpixelposition(h, newPosition, true), obj.hStatusLabel);
+            end
+
+            parentPosition = getpixelposition(obj.TabGroup.SelectedTab);
+
+            [X, W] = subdividePosition(M, parentPosition(3), [200, 1]);
+            H = parentPosition(4);
+            
+            if ~isempty(obj.SessionListBox)
+                arrayfun(@(h)setpixelposition(h, [X(1), 1, W(1), H]), obj.SessionListBox)
+            end
+            if ~isempty(obj.hFolderTree)
+                structfun(@(h) setpixelposition(h, [X(2), 0, W(2)+1, H+2]), obj.hFolderTree);
+            end
+            drawnow
+        end
+    end
+
+    methods (Access = ?uiw.widget.FileTree)
+
+        function onKeyPressedInTree(obj, src, evt)
+        % onKeyPressedInTree - Give tree to access private callback
+            obj.onKeyPressed(src, evt)
+        end
+        
+    end
+    
+    methods (Access = {?nansen.App, ?nansen.AbstractTabPageModule})
         
         function wasCaptured = onKeyPressed(obj, ~, evt)
             
@@ -218,37 +289,33 @@ classdef FileViewer < handle
 
     end
 
-    methods (Access = protected)
-        
-        function parseInputs(obj, listOfArgs)
-            
-            if isempty(listOfArgs);    return;    end
-            
-            if isgraphics(listOfArgs{1})
-                obj.Parent = listOfArgs{1};
-                listOfArgs = listOfArgs(2:end);
-            end
-            
-            if isempty(listOfArgs);    return;    end
-        end
+    methods (Access = private) % Internal creation and updating
         
         function setIconFolderPath(obj)
             rootDir = fileparts(mfilename('fullpath'));
             obj.IconFolderPath = fullfile(rootDir, '_graphics', 'icons');
         end
 
-        function createBackgroundLabel(obj)
+        function createStatusLabel(obj)
         %createBackground
-        
-            obj.hBackgroundLabel = uicontrol(obj.Parent, 'style', 'text');
-            obj.hBackgroundLabel.String = 'No Session Selected';
-            obj.hBackgroundLabel.FontSize = 20;
-            obj.hBackgroundLabel.ForegroundColor = ones(1,3)*0.6;
-            obj.hBackgroundLabel.Position(3:4) = obj.hBackgroundLabel.Extent(3:4);
-            uim.utility.layout.centerObjectInRectangle(obj.hBackgroundLabel, ...
-                getpixelposition(obj.Parent))
+            
+            for i = 1:numel(obj.TabGroup.Children)
+                hParent = obj.TabGroup.Children(i);
+                obj.hStatusLabel(i) = uicontrol(hParent, 'style', 'text');
+                obj.hStatusLabel(i).String = 'No Session Selected';
+                obj.hStatusLabel(i).FontSize = 20;
+                obj.hStatusLabel(i).ForegroundColor = ones(1,3)*0.6;
+                obj.hStatusLabel(i).Position(3:4) = obj.hStatusLabel(i).Extent(3:4);
+            end
         end
-        
+
+        function updateStatusLabelText(obj, text)
+            for i = 1:numel( obj.hStatusLabel )
+                obj.hStatusLabel(i).String = text;
+                obj.hStatusLabel(i).Position(3:4) = obj.hStatusLabel(i).Extent(3:4);
+            end
+        end
+
         function createContextMenus(obj)
         % createContextMenus - Create the context menus for the file viewer
         %
@@ -260,30 +327,91 @@ classdef FileViewer < handle
             obj.nwbContextMenu = obj.createNwbItemContextMenu();
         end
 
-        function createTabgroup(obj, metaTableEntry)
-            
-            dlNames = {metaTableEntry.DataLocation.Name};
+        function createSessionListbox(obj, hParent, num)
+            % Create listbox
+            sessionListBox = uicontrol(hParent, 'Style', 'listbox');
+            sessionListBox.Units = 'normalized';
+            sessionListBox.Position = [0, 0, 0.18, 1];
+            sessionListBox.FontSize = 14;
+            sessionListBox.FontName = 'Avenir New';
+            sessionListBox.Callback = @obj.onSessionSelected;
+            sessionListBox.Interruptible = 'off';
+            obj.SessionListBox(num) = sessionListBox;
+        end
 
+        function createTabGroup(obj)
+        % createTabGroup - Create tabgroup with one tab per data location    
             obj.TabGroup = uitabgroup(obj.Parent);
             obj.TabGroup.Units = 'normalized'; 
 
             %obj.TabGroup.Position = [0 0 1 1];
 
             % Create tab for each data location type.
-            for i = 1:numel(dlNames)
-                tabName = dlNames{i};
+            for i = 1:numel(obj.DataLocationNames)
+                tabName = obj.DataLocationNames{i};
 
                 hTab = uitab(obj.TabGroup);
                 hTab.Title = tabName;
 
                 obj.DataLocationTabs.(tabName) = hTab; 
                 obj.IsTabDirty.(tabName) = true;
+
+                obj.createSessionListbox(hTab, i)
             end
+
+            obj.onSessionIDListSet()
+            obj.updateComponentLayout()
 
             obj.TabGroup.SelectionChangedFcn = @obj.changeTab;
             obj.IsInitialized = true;
         end
         
+        function W = createFolderTreeComponent(obj, hParent)
+        % createFolderTreeComponent - Create a new folder tree component
+
+            warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
+
+            W = uiw.widget.FileTree('Parent', hParent);
+            W.FontName = 'Avenir New';
+            W.FontSize = 8;
+            W.Position = [0.2,0,0.8,1];
+
+            % Set color for selection background
+            if ismac
+                color = javax.swing.UIManager.get('Focus.color');
+                rgb = cellfun(@(name) get(color, name), {'Red', 'Green', 'Blue'});
+            else
+                rgb = [0,0,200];
+            end
+
+            W.SelectionBackgroundColor = rgb./255;
+
+            % Set callbacks
+            W.MouseClickedCallback = @obj.onMouseClickOnTree;
+            W.KeyPressFcn = @obj.onKeyPressedInTree;
+
+            %W.MouseMotionFcn = @obj.onMouseMotionOnTree;
+            % This thing is not keeping up!
+            %addlistener(W, 'MouseMotion', @obj.onMouseMotionOnTree);
+
+            % Turn off opening of nodes on doubleclick. (Some nwb nodes are
+            % datasets that should be previewed on doubleclick.
+            jObj = W.getJavaObjects();
+            javaTree = jObj.JControl;
+            javaTree.setToggleClickCount(0);
+            
+            % Save components to class properties
+            dataLocationName = obj.CurrentDataLocationName;
+            obj.hFolderTree.(dataLocationName) = W;
+            obj.jVerticalScroller(dataLocationName) = jObj.JScrollPane.getVerticalScrollBar();
+            obj.jTree(dataLocationName) = javaTree;
+
+            obj.IsTabDirty.(dataLocationName) = false;
+            obj.updateComponentLayout()
+
+            warning('on', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
+        end
+
         function markTabsAsDirty(obj)
             
             tabNames = fieldnames(obj.IsTabDirty); 
@@ -306,30 +434,57 @@ classdef FileViewer < handle
         end
 
         function resetTreeControls(obj)
+            if isempty(obj.hFolderTree); return; end
             
-            tabNames = fieldnames(obj.hFolderTree);
-            
-            for i = 1:numel(tabNames)
-                delete( obj.hFolderTree.(tabNames{i}) )
+            for i = 1:numel(obj.DataLocationNames)
+                if isfield(obj.hFolderTree, obj.DataLocationNames{i})
+                    hTree = obj.hFolderTree.(obj.DataLocationNames{i});
+                    hTree.Visible = 'off';
+                    hTree.Root.Name = '';
+                    delete(hTree.Root.Children)
+                end
             end
-            
-            obj.hFolderTree = [];
         end
         
         function changeTab(obj, ~, ~)
             
             dataLocationName = obj.TabGroup.SelectedTab.Title;
+            
             % Create tree if the tab is dirty...
             if obj.IsTabDirty.(dataLocationName)
                 obj.updateFolderTree()
             end
+            drawnow
         end
     
+        function onSessionIDListSet(obj)
+            if isempty(obj.SessionListBox); return; end
+
+            values = cat(1, {'No session selected'}, obj.SessionIDList);
+            set(obj.SessionListBox, 'String', values);
+            set(obj.SessionListBox, 'Value', 1);
+
+            obj.updateSessionListBoxSelection()
+        end
+
+        function updateSessionListBoxSelection(obj)
+            if ~isempty(obj.CurrentSessionObj)
+                currentSessionID = obj.CurrentSessionObj.sessionID;
+                currentValue = find(strcmp(obj.SessionIDList, currentSessionID));
+            else
+                currentValue = 0;
+            end
+            set(obj.SessionListBox, 'Value', currentValue+1);
+            % Added one because first item in list is the no session
+            % selected
+        end
+
         function updateFolderTree(obj)
             
             warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
-            
             sessionObject = obj.CurrentSessionObj;
+            if isempty(obj.CurrentSessionObj); return; end
+
             sessionID = sessionObject.sessionID;
             
             % Get data location type
@@ -355,6 +510,7 @@ classdef FileViewer < handle
                 %todo
             else
                 W = obj.createFolderTreeComponent(hParent);
+                %W.Visible = 'off';
             end
 
             try
@@ -372,8 +528,9 @@ classdef FileViewer < handle
             
             obj.addSubFolderToNode(dirPath, W.Root, true)
 
+            %W.Visible = 'on';
             drawnow
-            
+
             % Tree is up to date
             obj.IsTabDirty.(dataLocationName) = false;
 
@@ -393,51 +550,6 @@ classdef FileViewer < handle
             if isExpanded
                 treeNode.expand()
             end
-        end
-
-        function W = createFolderTreeComponent(obj, hParent)
-        % createFolderTreeComponent - Create a new folder tree component
-
-            warning('off', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
-
-            W = uiw.widget.FileTree('Parent', hParent);
-            W.FontName = 'Avenir New';
-            W.FontSize = 8;
-
-            % Set color for selection background
-            if ismac
-                color = javax.swing.UIManager.get('Focus.color');
-                rgb = cellfun(@(name) get(color, name), {'Red', 'Green', 'Blue'});
-            else
-                rgb = [0,0,200];
-            end
-
-            W.SelectionBackgroundColor = rgb./255;
-
-            % Set callbacks
-            W.MouseClickedCallback = @obj.onMouseClickOnTree;
-            W.KeyPressFcn = @obj.onKeyPressed;
-
-            %W.MouseMotionFcn = @obj.onMouseMotionOnTree;
-            % This thing is not keeping up!
-            %addlistener(W, 'MouseMotion', @obj.onMouseMotionOnTree);
-
-            % Turn off opening of nodes on doubleclick. (Some nwb nodes are
-            % datasets that should be previewed on doubleclick.
-            jObj = W.getJavaObjects();
-            javaTree = jObj.JControl;
-            javaTree.setToggleClickCount(0);
-            
-            % Save components to class properties
-            dataLocationName = obj.CurrentDataLocationName;
-
-            obj.hFolderTree.(dataLocationName) = W;
-            obj.jVerticalScroller(dataLocationName) = jObj.JScrollPane.getVerticalScrollBar();
-            obj.jTree(dataLocationName) = javaTree;
-
-            obj.IsTabDirty.(dataLocationName) = false;
-
-            warning('on', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
         end
 
         function addSubFolderToNode(obj, rootDir, nodeHandle, isRecursive)
@@ -460,6 +572,8 @@ classdef FileViewer < handle
             hBranches = uiw.widget.FileTreeNode.empty;
 
             for i = 1:numel(L)
+                if ~isvalid(nodeHandle); continue; end
+
                 if L(i).isdir
                     hBranches(i) = uiw.widget.FileTreeNode('Parent', nodeHandle);
                     
@@ -779,6 +893,26 @@ classdef FileViewer < handle
             cMenuPos = obj.getPositionForContextMenu(eventData.Position);
             obj.openContextMenu(clickedNode, cMenuPos)
         end
+        
+        function onSessionSelected(obj, src, evt)
+            if isempty(src.Value); return; end
+            
+            if src.Value == 1
+                obj.updateStatusLabelText('No session selected')
+                obj.resetTreeControls()
+                obj.CurrentSessionObj = [];
+                obj.updateSessionListBoxSelection()
+            else
+                sessionID = src.String{src.Value};
+
+                if ~strcmp(sessionID, obj.getCurrentObjectId())
+                    if ~isempty(obj.SessionSelectedFcn)
+                        obj.resetTreeControls()
+                        obj.SessionSelectedFcn(sessionID)
+                    end
+                end
+            end
+        end
 
         function onFolderContextMenuSelected(obj, src)
             
@@ -936,12 +1070,6 @@ classdef FileViewer < handle
             nansen.module.createFileAdapter(targetPath, fileAdapterAttributes)
         end
 
-        function onParentSizeChanged(obj, src, evt)
-                      
-            uim.utility.layout.centerObjectInRectangle(obj.hBackgroundLabel, ...
-                getpixelposition(obj.Parent))
-        end
-    
         function tf = isNodeExpanded(obj, treeNode)
         % isNodeExpanded - Check if the provided node is expanded
             % Get current tree
@@ -958,10 +1086,10 @@ classdef FileViewer < handle
         end
 
     end
-    
-    methods (Access = private)
 
-        function createNewFolder(obj, folderPath)
+    methods (Static, Access = private)
+  
+        function createNewFolder(folderPath)
             inputCellArray = inputdlg('Enter folder name', 's');
             if ~isempty(inputCellArray)
                 folderName = inputCellArray{1};
@@ -974,10 +1102,6 @@ classdef FileViewer < handle
             end
         end
 
-    end
-
-    methods (Static, Access = private)
-  
         function loadFileToWorkspace( pathName )
             % Todo: This should probably be either a method on the session
             % class or on a data collection class.

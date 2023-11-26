@@ -29,12 +29,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties (Constant)
-        Pages = {'Overview', 'File Viewer', 'Task Processor'}%, 'Figures'}
+        %Pages = {'Overview', 'File Viewer', 'Data Viewer', 'Task Processor'}%, 'Figures'}
+        Pages = {'Overview', 'File Viewer', 'Task Processor'} %, 'Figures'}
+
     end
     
     properties % Page modules
         UiMetaTableViewer
         UiFileViewer
+        UiDataViewer % Work in progress
         UiProcessor
     end
     
@@ -957,13 +960,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.initializeMetaTableViewer(hTab)
                         
                     case 'File Viewer'
-                        h = nansen.FileViewer(hTab);
-                        app.UiFileViewer = h;
-                       
-                        % Add listener for when the variable model is changed.
-                        addlistener(app.UiFileViewer, 'VariableModelChanged', ...
-                            @app.onVariableModelChanged);
-                        
+                        app.initializeFileViewer(hTab)
+
+                    case 'Data Viewer'
+                        h = nansen.DataViewer(hTab);
+                        app.UiDataViewer = h;
+
                     case 'Task Processor'
 
                 end
@@ -1015,6 +1017,29 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createSessionTableContextMenu()
         end
         
+        function initializeFileViewer(app, hTab)
+
+            if nargin < 2
+                hTabs = app.hLayout.TabGroup.Children;
+                tabIdx = strcmp({hTabs.Title}, 'File Viewer');
+                hTab = hTabs(tabIdx);
+            end
+
+            dataLocationNames = app.DataLocationModel.DataLocationNames;
+            h = nansen.FileViewer(hTab, dataLocationNames);
+            
+            app.UiFileViewer = h;
+            app.UiFileViewer.SessionSelectedFcn = @app.onFileViewerSessionChanged;
+            
+            rowInd = app.UiMetaTableViewer.DisplayedRows;
+            sessionIDs = app.MetaTable.entries{rowInd, 'sessionID'};
+            app.UiFileViewer.SessionIDList = sessionIDs;
+                    
+            % Add listener for when the variable model is changed.
+            addlistener(app.UiFileViewer, 'VariableModelChanged', ...
+                @app.onVariableModelChanged);
+        end
+
         function initializeBatchProcessor(app)
         %initializeBatchProcessor    
         
@@ -1258,6 +1283,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.BatchProcessor.closeTaskList()
 
+            % Delete current file viewer
+            delete(app.UiFileViewer); app.UiFileViewer = [];
+
             % Todo: Make method:
             app.UiMetaTableViewer.resetTable()
             app.UiMetaTableViewer.refreshTable(table.empty, true)
@@ -1298,13 +1326,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Indicating current project
             app.updateProjectList()
 
-            % Update file viewer
-            delete(app.UiFileViewer); app.UiFileViewer = [];
-            
-% %             % Find handle for tab containing file viewer
-% %             hTabs = app.hLayout.TabGroup.Children;
-% %             tabIdx = strcmp({hTabs.Title}, 'File Viewer');
-% %             app.UiFileViewer = nansen.FileViewer(hTabs(tabIdx));
+            % Re-initialize file viewer if tab is open.
+            if strcmp(app.hLayout.TabGroup.SelectedTab.Title, 'File Viewer')
+                app.initializeFileViewer()
+            end
                         
             % Close DL Model Editor app if it is open:
             if ~isempty( app.DLModelApp )
@@ -1611,14 +1636,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             switch evt.NewValue.Title
                 
                 case 'File Viewer'
-
                     if isempty(app.UiFileViewer) % Create file viewer
                     	thisTab = evt.NewValue;
-                        app.UiFileViewer = nansen.FileViewer(thisTab);
+                        app.initializeFileViewer(thisTab)
                     end
 
                     app.ActiveTabModule = app.UiFileViewer;
-                                        
+                    
+                    rowInd = app.UiMetaTableViewer.DisplayedRows;
+                    sessionIDs = app.MetaTable.entries{rowInd, 'sessionID'};
+                    app.UiFileViewer.SessionIDList = sessionIDs;
+                    
                     entries = getSelectedMetaTableEntries(app);
                     if isempty(entries); return; end
                     
@@ -1645,7 +1673,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                         app.UiFileViewer.update(metaObj)
                     end
+
+                case 'Data Viewer'
+                    app.ActiveTabModule = app.UiDataViewer;
                     
+                    selectedSessionObj = app.getSelectedMetaObjects();
+                    %if isempty(selectedSessionObj); return; end
+                    
+                    % Todo: Handle multiple session selected same as file
+                    % viewer above.
+                    if isempty(selectedSessionObj)
+                        app.UiDataViewer.reset()
+                    else
+                        app.UiDataViewer.update(selectedSessionObj(1))
+                    end
+
                 case 'Task Processor'
 
                     if isempty(app.BatchProcessorUI)
@@ -2934,6 +2976,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
         
+        function onFileViewerSessionChanged(app, sessionID)
+            
+            % Row index for session.
+
+            isRow = strcmp( app.MetaTable.entries.sessionID, sessionID);
+            
+            entry =  app.MetaTable.entries(isRow, :);
+            metaObj = app.tableEntriesToMetaObjects(entry);
+            app.UiFileViewer.update(metaObj)
+        end
+
         function onSessionTaskSelected(app, ~, evt)
         %onSessionTaskSelected Callback for event on session task menu.
         %
@@ -3747,7 +3800,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             isFigureTab = strcmp(tabNames, 'Figures');
             hFigure.reparent(app.hLayout.TabGroup.Children(isFigureTab))
         end
-            
+        
     end
     
     methods (Hidden, Access = private) % Internal methods for app deletion

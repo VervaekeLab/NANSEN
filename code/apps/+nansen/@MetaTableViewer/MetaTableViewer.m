@@ -81,6 +81,14 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
     properties (Dependent)
         ColumnSettings
+
+        % DisplayedRows - Rows of the original metatable which are 
+        % currently displayed
+        DisplayedRows
+        
+        % DisplayedColumns - Columns of the original metatable which are 
+        % currently displayed (not implemented yet)
+        % DisplayedColumns 
     end
     
     properties (SetAccess = private)
@@ -89,8 +97,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     end
     
     properties %(Access = private)
-        DisplayedRows % Rows of the original metatable which are currently displayed (not implemented yet)
-        DisplayedColumns % Columns of the original metatable which are currently displayed (not implemented yet)
         
         AppRef
         Parent
@@ -170,6 +176,17 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     
     methods % Set/get
         
+        function rowIndices = get.DisplayedRows(obj)
+            if ~isempty(obj.ExternalFilterMap)
+                visibleRows = find( obj.ExternalFilterMap );
+            else
+                visibleRows = 1:size(obj.MetaTableCell, 1);
+            end
+            
+            rowIndices = obj.getCurrentRowSelection(); 
+            rowIndices = intersect(rowIndices, visibleRows, 'stable');
+        end
+
         function set.MetaTable(obj, newTable)
         % Set method for metatable. 
         %
