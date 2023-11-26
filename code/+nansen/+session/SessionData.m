@@ -89,6 +89,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             fprintf('Updating session data variables...\n')
             obj.updateDataVariables();
         end
+
+        function varNames = getVariableNames(obj)
+            varNames = obj.VariableNames;
+        end
         
         function resetCache(obj, varNames)
             
@@ -407,7 +411,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             end
             
             if obj.settings.ShowDefaultVariables && any(isPreset)
-                propNames = sort( {obj.VariableList(isDefault).VariableName} ); 
+                propNames = sort( {obj.VariableList(isPreset).VariableName} ); 
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Default Variables:')];
             end
             
