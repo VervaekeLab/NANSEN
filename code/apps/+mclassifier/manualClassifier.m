@@ -137,6 +137,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
         % Open figure in full screen size
         screenSize = get(0, 'ScreenSize');
         obj.hFigure = figure('Position', screenSize);
+        obj.hFigure.Position = [1, 1, screenSize(3), screenSize(4)-40];
         obj.hFigure.MenuBar = 'none';
         obj.hFigure.Color = obj.guiColors.Background;
         obj.hFigure.NumberTitle = 'off';
