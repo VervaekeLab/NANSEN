@@ -55,9 +55,9 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     try
         if isempty(roiGroup.roiImages)
             imageStack = sessionData.TwoPhotonSeries_Corrected;
-            hClassifier = roiclassifier.openRoiClassifier(roiGroup, imageStack);
+            hClassifier = roiclassifier.openRoiClassifier(roiGroup, imageStack, params);
         else
-            hClassifier = roiclassifier.openRoiClassifier(roiGroup);
+            hClassifier = roiclassifier.openRoiClassifier(roiGroup, params);
         end
 
         hClassifier.dataFilePath = sessionObject.getDataFilePath('RoiArray'); % todo: varName{1}
@@ -75,6 +75,7 @@ function S = getDefaultParameters()
     
     S = struct();
     % Add more fields:
+    S.RoiSelectedCallbackFunction = '';
 
 end
 

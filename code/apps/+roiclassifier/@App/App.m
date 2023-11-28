@@ -57,6 +57,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
     end
     properties
         roiFilePath
+        RoiSelectedCallbackFunction % Callback function that will run when a roi is selected.
     end
     
     % Properties holding roi data Implementation of abstract properties.
@@ -133,6 +134,15 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 obj.RoiGroup = varargin{1};
                 varargin = varargin(2:end);
             end
+            
+            % Todo: This requires a proper cleanup
+            def = struct('RoiSelectedCallbackFunction', '');
+            opt = utility.parsenvpairs(def, [], varargin);
+            
+            if ~isempty(opt.RoiSelectedCallbackFunction)
+                obj.RoiSelectedCallbackFunction = opt.RoiSelectedCallbackFunction;
+            end
+
             nvpairs = varargin;
         end
         
@@ -709,6 +719,10 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             
             obj.SelectedRois = obj.selectedItem;
             
+            if ~isempty(obj.RoiSelectedCallbackFunction) && ~isempty(obj.selectedItem)
+                obj.RoiSelectedCallbackFunction(selectedRoiIdx, obj.selectedItem)
+            end
+
             if ~isempty(obj.selectedItem)
                 candidates = getCandidatesForUpdatedView(obj);
                 if isequal(candidates, obj.selectedItem)
