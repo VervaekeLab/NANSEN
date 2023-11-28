@@ -27,7 +27,7 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     end
     
     % Parse name-value pairs from function input.
-    params = utility.parsenvpairs(params, [], varargin);
+    params = utility.parsenvpairs(params, 1, varargin);
     
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 

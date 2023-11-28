@@ -137,7 +137,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             
             % Todo: This requires a proper cleanup
             def = struct('RoiSelectedCallbackFunction', '');
-            opt = utility.parsenvpairs(def, [], varargin);
+            opt = utility.parsenvpairs(def, 1, varargin);
             
             if ~isempty(opt.RoiSelectedCallbackFunction)
                 obj.RoiSelectedCallbackFunction = opt.RoiSelectedCallbackFunction;
@@ -720,7 +720,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             obj.SelectedRois = obj.selectedItem;
             
             if ~isempty(obj.RoiSelectedCallbackFunction) && ~isempty(obj.selectedItem)
-                obj.RoiSelectedCallbackFunction(selectedRoiIdx, obj.selectedItem)
+                obj.RoiSelectedCallbackFunction(selectedRoiIdx, obj.itemSpecs(selectedRoiIdx))
             end
 
             if ~isempty(obj.selectedItem)

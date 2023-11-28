@@ -54,7 +54,9 @@ function hClassifier = openRoiClassifier(varargin)
     if isa(varargin{end}, 'struct')
         if isfield(varargin{end}, 'RoiSelectedCallbackFunction')
             fcnName = varargin{end}.RoiSelectedCallbackFunction;
-            nvPairs = {'RoiSelectedCallbackFunction', str2func(fcnName)};
+            if ~isempty(fcnName)
+                nvPairs = {'RoiSelectedCallbackFunction', str2func(fcnName)};
+            end
         end
     end
 
