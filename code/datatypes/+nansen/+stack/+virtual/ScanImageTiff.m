@@ -399,13 +399,15 @@ methods (Access = protected) % Todo: Scan image and subclass
     
     function assignScanImageParametersToMetadata(obj, sIParams)
         
-        try
-            obj.MetaData.ImageSize = abs( sum(sIParams.hRoiManager.imagingFovUm(1,:) ));
-        catch
+        if ~isfield(obj.MetaData.ImageSize,'ImageSize')
             try
-                obj.MetaData.ImageSize = fliplr(sIParams.fovInfo.pixelResolutionXY);
+                obj.MetaData.ImageSize = abs( sum(sIParams.hRoiManager.imagingFovUm(1,:) ));
             catch
-                error('Could not determine image size')
+                try
+                    obj.MetaData.ImageSize = fliplr(sIParams.fovInfo.pixelResolutionXY);
+                catch
+                    error('Could not determine image size')
+                end
             end
         end
             %obj.MetaData.PhysicalSizeY = nan;
