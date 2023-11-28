@@ -336,6 +336,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), roiGroup);
             obj.RoiThumbnailViewer.ImageStack = obj.ImviewerObj.ImageStack;
             obj.RoiThumbnailViewer.Dashboard = obj;
+            obj.RoiThumbnailViewer.ThumbnailSize = obj.settings.RoiDisplayPreferences.roiThumbnailSize;
+                    
             %obj.AppModules(end+1) = obj.RoiThumbnailViewer;
         end
 
@@ -521,6 +523,9 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                
                 case 'showRoiGroups'
                     obj.changeVisibleRoiGroups(value)
+
+                case 'roiThumbnailSize'
+                    obj.RoiThumbnailViewer.ThumbnailSize = value;
                     
             end
             
