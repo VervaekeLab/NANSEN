@@ -366,8 +366,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(m, 'Text','Manage Projects...');
             mitem.MenuSelectedFcn = @app.onManageProjectsMenuClicked;
             
-            mitem = uimenu(m, 'Text','Open Project Folder');
+            mitem = uimenu(m, 'Text','Open Project Folder', 'Separator', 'on');
             mitem.MenuSelectedFcn = @app.onOpenProjectFolderMenuClicked;
+
+            mitem = uimenu(m, 'Text','Change Current Folder');
+            mitem = uics.MenuList(mitem, {'Nansen', 'Current Project'}, '', 'SelectionMode', 'none');
+            mitem.MenuSelectedFcn = @(s, e) app.onChangeCurrentFolderMenuClicked(s, e);
+
 
             % % % % % % Create CONFIGURATION menu items % % % % % % 
             
@@ -1329,6 +1334,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Re-initialize file viewer if tab is open.
             if strcmp(app.hLayout.TabGroup.SelectedTab.Title, 'File Viewer')
                 app.initializeFileViewer()
+                app.ActiveTabModule = app.UiFileViewer;
             end
                         
             % Close DL Model Editor app if it is open:
@@ -3541,6 +3547,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onOpenProjectFolderMenuClicked(app, src, evt)
             project = app.ProjectManager.getProject(app.ProjectManager.CurrentProject);
             utility.system.openFolder(project.Path)
+        end
+
+        function onChangeCurrentFolderMenuClicked(app, src, evt)
+            
+            switch src.Text
+                case 'Current Project' 
+                    cd(app.CurrentProject.FolderPath)
+                case 'Nansen'
+                    cd(nansen.rootpath)
+            end
         end
 
         function MenuCallback_CloseAll(app, ~, ~)

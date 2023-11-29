@@ -33,11 +33,10 @@ classdef FileViewer < nansen.AbstractTabPageModule
 %       [v] Create refresh button... Right click to refresh. Button better?
 %       [ ] Add preferences and
 %           - MaxNumItemsToShow. Currently hardcoded to 100
-%       [ ] Create handleDoubleClick method
-%       [ ] Use some of the logic in handling of double click also when
-%           loading variables to workspace 
 %       [ ] More efficient creation of file trees with large number of files
 %           ( Large, nested folder tree )
+%       [ ] Adding new variables here does not appear to update the 
+%           variable model in nansen.
 
     properties (Constant)
         Name = 'File Viewer'
@@ -278,6 +277,12 @@ classdef FileViewer < nansen.AbstractTabPageModule
                         wasCaptured = false;
                     end
 
+                case 'l'
+                    if strcmp(evt.Modifier, 'command') | strcmp(evt.Modifier, 'control')
+                        obj.loadFileToWorkspace()
+                    else
+                        wasCaptured = false;
+                    end
                 otherwise
                     wasCaptured = false;
             end
@@ -460,7 +465,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         function onSessionIDListSet(obj)
             if isempty(obj.SessionListBox); return; end
 
-            values = cat(1, {'No session selected'}, obj.SessionIDList);
+            values = cat(1, {'<No Session Selected>'}, obj.SessionIDList);
             set(obj.SessionListBox, 'String', values);
             set(obj.SessionListBox, 'Value', 1);
 
@@ -635,6 +640,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         function onMouseClickOnTree(obj, ~, event)
         %onMouseClickOnTree Callback for mouseclicks on tree    
             
+            % Update current node
             clickedNode = event.Nodes;
             if isempty(clickedNode)
                 obj.CurrentNode = [];
@@ -643,92 +649,13 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 obj.CurrentNode = clickedNode;
             end
             
+            % Handle click based on click type
             if event.NumClicks == 1 && strcmp(event.SelectionType, 'alt')
                 obj.handleRightClick(event)
                 
             elseif event.NumClicks == 2 && ~strcmp(event.SelectionType, 'alt')
-                    
-                if isempty(clickedNode)
-                    return
-                end
-
-                % Todo: make a preview / open data method...
-                
-                %setIdle = obj.setBusy('Opening File...'); %#ok<NASGU>
-
-                [~, fileName, fileExt] = fileparts(clickedNode.Name);
-
-                % Look in the data variable model for items / elements that
-                % match the filename and file extension.
-
-                varModel = obj.CurrentSessionObj.VariableModel;                
-                varName = varModel.findVariableByFilename([fileName, fileExt]);
-                
-                if ~isempty( varName )
-                    [variableInfo, ~] = varModel.getVariableStructure(varName);
-                    fileAdapterFcn = varModel.getFileAdapterFcn(variableInfo);
-                    fileAdapter = fileAdapterFcn(clickedNode.UserData.filePath);
-                    try
-                        fileAdapter.view()
-                    catch ME
-                        errordlg(ME.message)
-                    end
-                    return
-                end
-
-                % - If no file adapter was found, use standard ways of
-                % opening files:
-
-                switch fileExt
-                    
-                    case '' % Assume folder
-                        folderPath = clickedNode.UserData.filePath;
-                        if isfolder(folderPath)
-                            utility.system.openFolder(folderPath)
-                        end
-                    case {'.ini', '.tif', '.avi', '.raw'}
-                        imviewer(clickedNode.UserData.filePath)
-                        
-                    case '.mat'
-                        if ismac
-                            [status, ~] = unix(sprintf('open -a finder ''%s''', clickedNode.UserData.filePath));
-                        else
-                            uiopen(clickedNode.UserData.filePath)    
-                        end
-                        
-                    case '.png'
-                        if ismac
-                            filepath = strrep(clickedNode.UserData.filePath, ' ', '\ ');
-                            [status, msg] = unix(sprintf('open -a Preview %s', filepath));
-                        else
-                            error('Can not open this file type')
-                        end
-                        
-                    case '.nwb'
-                        if isfield(clickedNode.UserData, 'nwbNode')
-                            disp(clickedNode.UserData.nwbNode)
-                        end
-                        
-                        
-                    otherwise
-                        if isfile(clickedNode.UserData.filePath)
-                            errorMsg = 'Can not open this file type';
-                            errordlg(errorMsg)
-                            error(errorMsg)
-                            
-                        elseif isempty(clickedNode.UserData.filePath)
-                            if isfield(clickedNode.UserData, 'Type') && ...
-                                    strcmp(clickedNode.UserData.Type, 'nwb') && ...
-                                    ~isempty(clickedNode.UserData.nwbNode)
- 
-                                name = clickedNode.Name;
-                                name = clickedNode.UserData.nwbNodeName;
-                                nwbObj = clickedNode.UserData.nwbNode;
-                                previewNwbObject(name, nwbObj)
-                            end
-
-                        end
-                end
+                if isempty(clickedNode); return; end
+                obj.handleDoubleClick(event)
             end
         end
         
@@ -819,6 +746,9 @@ classdef FileViewer < nansen.AbstractTabPageModule
             mitem = uimenu(m, 'Text', sprintf('Show in %s', appName));
             mitem.Callback = @(s, e) obj.onFolderContextMenuSelected(s);
 
+            mitem = uimenu(m, 'Text', 'Make Current Folder');
+            mitem.Callback = @(s, e) obj.onFolderContextMenuSelected(s);
+
             mitem = uimenu(m, 'Text', 'Create New Folder');
             mitem.Callback = @(s, e) obj.onFolderContextMenuSelected(s);
             
@@ -861,7 +791,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             mitem = uimenu(m, 'Text', 'Create File Adapter for File');
             mitem.Callback = @(s, e) obj.onCreateFileAdapterMenuItemClicked();
 
-            mitem = uimenu(m, 'Text', 'Load Data to Workspace', 'Separator', 'on');
+            mitem = uimenu(m, 'Text', 'Load Data to Workspace', 'Accelerator', 'L', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
             
             mitem = uimenu(m, 'Text', 'Plot Data in Timeseries Plotter');
@@ -894,6 +824,79 @@ classdef FileViewer < nansen.AbstractTabPageModule
             obj.openContextMenu(clickedNode, cMenuPos)
         end
         
+        function handleDoubleClick(obj, eventData)
+
+            % Todo: make a preview / open data method...
+            
+            %setIdle = obj.setBusy('Opening File...'); %#ok<NASGU>
+
+            clickedNode = eventData.Nodes;
+            pathName = clickedNode.UserData.filePath;
+            fileAdapter = obj.detectFileAdapter(pathName);
+            
+            if ~isempty(fileAdapter)
+                try
+                    fileAdapter.view()
+                catch ME
+                    errordlg(ME.message)
+                end
+                return
+            end
+
+            % - If no file adapter was found, use standard ways of
+            % opening files:
+            [~, ~, fileExt] = fileparts(clickedNode.Name);
+
+            switch fileExt
+                
+                case '' % Assume folder
+                    folderPath = clickedNode.UserData.filePath;
+                    if isfolder(folderPath)
+                        utility.system.openFolder(folderPath)
+                    end
+                case {'.ini', '.tif', '.avi', '.raw'}
+                    imviewer(clickedNode.UserData.filePath)
+                    
+                case '.mat'
+                    if ismac
+                        [status, ~] = unix(sprintf('open -a finder ''%s''', clickedNode.UserData.filePath));
+                    else
+                        uiopen(clickedNode.UserData.filePath)    
+                    end
+                    
+                case '.png'
+                    if ismac
+                        filepath = strrep(clickedNode.UserData.filePath, ' ', '\ ');
+                        [status, msg] = unix(sprintf('open -a Preview %s', filepath));
+                    else
+                        error('Can not open this file type')
+                    end
+                    
+                case '.nwb'
+                    if isfield(clickedNode.UserData, 'nwbNode')
+                        disp(clickedNode.UserData.nwbNode)
+                    end
+                    
+                otherwise
+                    if isfile(clickedNode.UserData.filePath)
+                        errorMsg = 'Can not open this file type';
+                        errordlg(errorMsg)
+                        error(errorMsg)
+                        
+                    elseif isempty(clickedNode.UserData.filePath)
+                        if isfield(clickedNode.UserData, 'Type') && ...
+                                strcmp(clickedNode.UserData.Type, 'nwb') && ...
+                                ~isempty(clickedNode.UserData.nwbNode)
+
+                            name = clickedNode.Name;
+                            name = clickedNode.UserData.nwbNodeName;
+                            nwbObj = clickedNode.UserData.nwbNode;
+                            previewNwbObject(name, nwbObj)
+                        end
+                    end
+            end
+        end
+
         function onSessionSelected(obj, src, evt)
             if isempty(src.Value); return; end
             
@@ -932,6 +935,9 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     obj.createNewFolder(folderPath)
                     obj.updateSubtree(obj.CurrentNode)
                     obj.CurrentNode.expand()
+
+                case 'Make Current Folder'
+                    cd(folderPath)
 
                 case {'Show in Finder', 'Show in Explorer'}
                     utility.system.openFolder(folderPath)
@@ -1087,6 +1093,56 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
     end
 
+    methods (Access = private) % Nansen related methods
+
+        function [fileAdapter, varName] = detectFileAdapter(obj, filePath)
+        % detectFileAdapter - Detect if a file is associated with a file adapter    
+            [~, fileName, fileExtension] = fileparts(filePath);
+
+            % Look in the data variable model for items / elements that
+            % match the filename and file extension.
+            varModel = obj.CurrentSessionObj.VariableModel;                
+            varName = varModel.findVariableByFilename([fileName, fileExtension]);
+            
+            % Get file adapter
+            if ~isempty( varName )
+                [variableInfo, ~] = varModel.getVariableStructure(varName);
+                fileAdapterFcn = varModel.getFileAdapterFcn(variableInfo);
+                fileAdapter = fileAdapterFcn(filePath);
+            else
+                fileAdapter = [];
+            end
+
+            if nargout < 2
+                clear varName
+            end
+        end
+        
+        function openFilePreview(obj, filePath)
+            % Todo
+        end
+
+        function loadFileToWorkspace(obj, pathName)
+            % Todo: This should probably be either a method on the session
+            % class or on a data collection class.
+            
+            if nargin < 2
+                pathName = obj.CurrentNode.UserData.filePath;
+            end
+
+            if isfolder(pathName); return; end
+
+            [fileAdapter, varName] = obj.detectFileAdapter(pathName);
+            if ~isempty(fileAdapter)
+                data = fileAdapter.load();
+                assignin('base', varName, data)
+            else
+                obj.loadFileToWorkspaceByFileType(pathName)
+            end
+        end
+
+    end
+
     methods (Static, Access = private)
   
         function createNewFolder(folderPath)
@@ -1101,11 +1157,10 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 end
             end
         end
-
-        function loadFileToWorkspace( pathName )
-            % Todo: This should probably be either a method on the session
-            % class or on a data collection class.
-            
+    
+        function loadFileToWorkspaceByFileType(pathName)
+        % loadFileToWorkspaceByFileType - Try to load a file by its
+        % filetype
             [~, ~, fileExt] = fileparts(pathName);
 
             switch fileExt
@@ -1126,6 +1181,5 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     errordlg(message)
             end
         end
-    
     end
 end
