@@ -161,3 +161,16 @@ function S = getDefaultAddonList()
 % %     S(i).FunctionName = 'patchwarp.m';
 
 end
+
+% %     i = i + 1 % Not implemented yet
+% %     S(i).Name = 'DABEST';
+% %     S(i).Description = '';
+% %     S(i).IsRequired = false;
+% %     S(i).Type = 'Statistics';
+% %     S(i).Source = 'Github';
+% %     S(i).WebUrl = 'https://github.com/ACCLAB/DABEST-Matlab';
+% %     S(i).DownloadUrl = 'https://github.com/ACCLAB/DABEST-Matlab/archive/refs/heads/master.zip';
+% %     S(i).HasSetupFile = false;
+% %     S(i).SetupFileName = '';
+% %     S(i).FunctionName = 'dabest.m';
+

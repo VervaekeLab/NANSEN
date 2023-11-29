@@ -375,10 +375,13 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
 %                 warning('NANSEN:Roisegmentation:PluginMissing', ...
 %                     'Plugin for %s was not found', CLASSNAME)
 
-                % Todo: use superclass method editOptions
-                [obj.Options, wasAborted] = tools.editStruct(obj.Options);
+                % Use superclass method editOptions
+                wasSuccess = preview@nansen.DataMethod(obj);
+
+                % Fallback option. Todo: Remove 
+                %[obj.Options, wasAborted] = tools.editStruct(obj.Options);
                 %[obj.Parameters, wasAborted] = tools.editStruct(obj.Parameters);
-                wasSuccess = ~wasAborted;
+                %wasSuccess = ~wasAborted;
             end
         end
         
