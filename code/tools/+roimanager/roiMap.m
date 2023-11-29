@@ -1793,6 +1793,16 @@ classdef roiMap < roimanager.roiDisplay
             
             % Decide if field of view should be changed (if roi is not inside image)
             [y,x] = find(obj.RoiGroup.roiArray(i).mask);
+
+            if isempty(y)
+                if any(roiCenter < 1) || any(roiCenter > obj.FovSize)
+                    obj.displayApp.displayMessage('The selected roi is outside the image boundary.', [], 1.5)
+                else
+                    obj.displayApp.displayMessage('The selected roi is missing, reason unknown.', [], 1.5)
+                end
+                return
+            end
+
             roiPositionLimits = [min(x), max(x); min(y), max(y)];
             if ~ ( roiPositionLimits(1,1) > xLim(1) && roiPositionLimits(1,2) < xLim(2) )
                 changeFOV = true;
