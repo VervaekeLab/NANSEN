@@ -15,6 +15,7 @@ S = struct();
 
 % Options for image display
 S.ImageDisplay.brightnessSliderLimits = [0, 1];  % Should be automatically adjusted based on loaded image data, but allow for manual override
+S.ImageDisplay.autoAdjustmentTolerance = [1, 99];
 S.ImageDisplay.imageBrightnessLimits = [0, 255]; % Color brightness limits of displayed images
 S.ImageDisplay.movingBinSize        = 9;
 
@@ -62,5 +63,7 @@ S.AppLayout.showFooter              = true;
 S.AppLayout.imageToolbarLocation    = 'northwest';
 S.AppLayout.imageToolbarLocation_   = {'northwest', 'southwest', 'northeast', 'southeast'};
 
+S.AppLayout.XScaleFactor = 1;
+S.AppLayout.YScaleFactor = 1;
 
 end

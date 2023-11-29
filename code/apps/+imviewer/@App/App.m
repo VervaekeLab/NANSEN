@@ -460,17 +460,14 @@ methods % App initialization & creation
  
 % % Functions for creating the gui
     
-    function initializeViewer(obj)
-        
-        [figurePosition, axesSize] = obj.initializeFigurePosition();
-       
-        if strcmp( obj.mode, 'standalone' )
-            obj.Figure.Position = figurePosition;
-            obj.Panel.Position(3:4) = figurePosition(3:4); %Todo: Set this automatically through callbacks
-        end
-        
+    function resetTransientSettingsOnInitialization(obj)
+    % Some settings need to be reset before initializing a new viewer
+
+        obj.settings_.AppLayout.XScaleFactor = 1;
+        obj.settings_.AppLayout.YScaleFactor = 1;
         obj.settings_.ImageDisplay.VolumeDisplayMode = 'Single Plane';
         
+        % Create one control for image brightness for each image channel:
         if obj.ImageStack.NumChannels > 1
             for i = 1:obj.ImageStack.NumChannels
                 newFieldName = sprintf('imageBrightnessLimitsCh%d',i);
@@ -478,7 +475,19 @@ methods % App initialization & creation
             end
             obj.settings_.ImageDisplay = rmfield(obj.settings_.ImageDisplay, 'imageBrightnessLimits');
         end
+    end
 
+    function initializeViewer(obj)
+        
+        obj.resetTransientSettingsOnInitialization()
+
+        [figurePosition, axesSize] = obj.initializeFigurePosition();
+       
+        if strcmp( obj.mode, 'standalone' )
+            obj.Figure.Position = figurePosition;
+            obj.Panel.Position(3:4) = figurePosition(3:4); %Todo: Set this automatically through callbacks
+        end
+        
         obj.createUiAxes(axesSize)
         
         obj.updateImage()
@@ -491,7 +500,6 @@ methods % App initialization & creation
 %         if obj.nFrames > 1
             obj.createPlaybackWidget()
 %         end
-
 
         obj.onThemeChanged() % Apply theme colors...
         
@@ -1168,15 +1176,26 @@ methods % App initialization & creation
         obj.uiwidgets.BrightnessSlider = uim.widget.rangeslider.empty;
         obj.uiwidgets.BrightnessToolbar = uim.widget.toolbar.empty;
 
+        switch obj.ImageStack.DataType
+            case {'unit8'}
+                numTicks = 256+1;
+            case {'uint16', 'int16'}
+                numTicks = 2^16+1;
+            case {'single', 'double'}
+                numTicks = 256;
+            otherwise
+                numTicks = 256;
+        end
+        numTicks = 256;
         for i = 1:obj.ImageStack.NumChannels
 
             label = sprintf('Ch%d', i);
-
+            
             % Create brightness slider
             obj.brightnessSlider(i) = uim.widget.rangeslider(uicc, ...
                 'Location', 'northeast', 'Margin', [0,0,30,yMargin(i)], ...
                 'Size', [120, 25], 'Visible', 'off', 'Padding', [10, 5, 10, 5], ...
-                'NumTicks', 256, 'Label', label);
+                'NumTicks', numTicks, 'Label', label);
     
             obj.uiwidgets.BrightnessSlider(i) = obj.brightnessSlider(i);
             
@@ -1674,7 +1693,9 @@ methods % Set/Get
     end
     
     function imAr = get.imageAspectRatio(obj)
-        imAr = obj.imWidth / obj.imHeight;
+        xs = obj.settings.AppLayout.XScaleFactor;
+        ys = obj.settings.AppLayout.YScaleFactor;
+        imAr = (obj.imWidth*xs) / (obj.imHeight*ys);
     end
     
     function axAr = get.axesAspectRatio(obj)
@@ -1986,7 +2007,7 @@ methods % App update
                 minValue = min(thisChannelImage(:));
                 thisChannelImage = thisChannelImage - minValue;
                 thisChannelImage = thisChannelImage .* reshape(color, 1, 1, 3);
-                thisChannelImage = thisChannelImage + minValue;
+                %thisChannelImage = thisChannelImage + minValue;
             else
                 thisChannelImage = thisChannelImage .* reshape(color, 1, 1, 3);
             end
@@ -1998,7 +2019,6 @@ methods % App update
     end
         
     function im = adjustMultichannelImage(obj, im)
-
         for i = 1:size(im, 3)
 
             if i > numel(obj.currentChannel)
@@ -2783,6 +2803,7 @@ methods % Event/widget callbacks
                 imdata = obj.prepareMultiplaneImageForDisplay(imdata);
                 imdata = obj.adjustMultichannelImage(imdata);
                 imdata = obj.setChColors(imdata);
+
                 obj.imObj.CData = imdata;
             end
         else
@@ -3373,11 +3394,17 @@ methods % Misc, most can be outsourced
             obj.displayMessage('Can not adjust brightness when channel is not shown.', [], 2)
             return; 
         end
+
+        if isempty(obj.brightnessSlider)
+            obj.createBrightnessSlider()
+        end
+
         %chNum = obj.currentChannel(chNum);  
 %         if src.Value
             %obj.autoAdjustLimits = true;
             tmpImage = obj.image(:,:,iA);
-            P = prctile(double(tmpImage(:)), [0.05, 99.95]);
+            tolerance = obj.settings.ImageDisplay.autoAdjustmentTolerance;
+            P = prctile(double(tmpImage(:)), tolerance);
             if all(isnan(P)); return; end
             
             if P(1) > obj.brightnessSlider(chNum).High
@@ -3543,7 +3570,7 @@ methods % Misc, most can be outsourced
             drawnow
         end
         
-        if isfield(obj.uiwidgets, 'BrightnessSlider') && strcmp(obj.uiwidgets.BrightnessSlider.Visible, 'on')
+        if isfield(obj.uiwidgets, 'BrightnessSlider') && strcmp(obj.uiwidgets.BrightnessSlider(1).Visible, 'on')
             %toolbarVisibleState = obj.uiwidgets.Toolbar.Visible;
             obj.showBrightnessSlider()
             drawnow
@@ -3795,6 +3822,12 @@ methods % Misc, most can be outsourced
         end
     end
     
+    function onLayoutScaleFactorChanged(obj)
+        [figurePosition, ~] = initializeFigurePosition(obj);
+        deltaPos = figurePosition(3:4) - obj.Figure.Position(3:4);
+        obj.resizeWindow([], [], 'manual', deltaPos)
+    end
+
     function resizeWindow(obj, ~, ~, resizeMode, incr )
         %TODO: Fix resize behavior for non-square figures
         % Todo: Fix bug when this function is called many times in a short
@@ -3930,6 +3963,10 @@ methods % Misc, most can be outsourced
         newAxLocation = [axesMargins(1) + 1, obj.showFooter*footerSize + 1];
         obj.uiaxes.imdisplay.Position = [newAxLocation, axesSize];
 
+        obj.uiaxes.imdisplay.DataAspectRatio = [...
+            obj.settings.AppLayout.YScaleFactor, ...
+            obj.settings.AppLayout.XScaleFactor, 1];
+        
         if obj.showHeader
             % Resize header  (text display)
             obj.uiaxes.textdisplay.Position(2) = newPosition(4) - headerSize;
@@ -4792,6 +4829,11 @@ methods (Access = protected) % Event callbacks
             
             case 'brightnessSliderLimits'
                 obj.setSliderExtremeLimits(value)
+            
+            case 'autoAdjustmentTolerance'
+                for i = obj.currentChannel
+                    obj.onAutoAdjustLimitsPressed([], [], i)
+                end
 
             case 'imageBrightnessLimits' % Todo: find better solution...
                 
@@ -4867,6 +4909,10 @@ methods (Access = protected) % Event callbacks
             case 'VolumeDisplayMode'
                 obj.settings.ImageDisplay.VolumeDisplayMode = value;
                 obj.changeVolumeDisplayMode()
+
+            case {'XScaleFactor', 'YScaleFactor'}
+                obj.settings.AppLayout.(name) = value;
+                obj.onLayoutScaleFactorChanged()
         end
     end
 
@@ -5521,16 +5567,20 @@ methods (Access = protected)
             val = nan;
         end
         
-        if numel(val) > 1; val = mean(val); end
+        %if numel(val) > 1; val = mean(val); end
         
         locationStr = sprintf('x=%1d, y=%1d', x, y);
         
         switch obj.ImageStack.DataType
             case {'single', 'double'}
                 % Todo: Change precision if data is not between 0 and 1
-                pixelValueStr = sprintf('value=%.2f', val);
+                formattedValue = arrayfun(@(v) sprintf('%.2f', v), val, 'uni', 0);
+                strValue = strjoin(formattedValue, ',');
+                pixelValueStr = sprintf('value=%s', strValue);
             otherwise
-                pixelValueStr = sprintf('value=%1d', round(val));
+                formattedValue = arrayfun(@(v) sprintf('%d', round(v)), val, 'uni', 0);
+                strValue = strjoin(formattedValue, ',');
+                pixelValueStr = sprintf('value=%s', strValue);
         end
         
         pixelValueStr = strjoin({locationStr, pixelValueStr}, ', ');
@@ -5732,6 +5782,7 @@ methods (Access = private) % Methods that runs when properties are set
             
             obj.updateImage();
             obj.updateImageDisplay();
+            obj.updateInfoText()
             uistack(obj.imObj, 'bottom')
             %uistack(obj.imObj, 'up')
             
