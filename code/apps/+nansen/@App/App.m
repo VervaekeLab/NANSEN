@@ -19,6 +19,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     %   [ ] Send session object to task manager as a struct.
     %   [ ] Create a new session object in task manager when a task is
     %       started
+    %   [ ] Todo: Create quit method
 
     properties (Constant, Access=protected) % Inherited from uiw.abstract.AppWindow
         AppName char = 'Nansen'

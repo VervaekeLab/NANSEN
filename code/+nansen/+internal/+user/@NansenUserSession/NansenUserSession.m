@@ -20,7 +20,13 @@ classdef NansenUserSession < handle
 %       - ProjectManager
 %       - AddonManager
 
-% Todo: Clear projectmanager instance when user session is deleted
+% Todo: 
+%   [ ] Clear projectmanager instance when user session is deleted
+%   [ ] Add DataManager app when it is initialized and shut it down
+%   properly when a user session is ended.
+%   [ ] If DataManager app is shut down independently, DataManagerApp
+%   property should be reset
+
     
     properties (SetAccess = immutable) % Public
         CurrentUserName = "default"
@@ -34,7 +40,7 @@ classdef NansenUserSession < handle
     properties (Access = private)
         AddonManager nansen.config.addons.AddonManager
         ProjectManager nansen.config.project.ProjectManager
-        %DataManagerApp i.e nansen.App
+        DataManagerApp nansen.App
     end
 
     properties (Access = private)
@@ -77,9 +83,13 @@ classdef NansenUserSession < handle
         function pm = getProjectManager(obj)
             pm = obj.ProjectManager;
         end
+
+        function setDataManagerApp(obj, app)
+            obj.DataManagerApp = app;
+        end
     end
 
-    methods (Access = private)
+    methods (Access = private) % Structors
 
         function obj = NansenUserSession(userName, skipProjectCheck)
         % NansenUserSession - Constructor method
@@ -102,19 +112,23 @@ classdef NansenUserSession < handle
         end
 
         function delete(obj)
-            
-            if obj.LOG_UUID
-                userName = obj.CurrentUserName;
-                fprintf('Closed NANSEN user session for user "%s" (%s).\n', userName, obj.SessionUUID)
+
+            if ~isempty(obj.DataManagerApp)
+
             end
 
             delete(obj.ProjectManager)
             delete(obj.Preferences)
+
+            if obj.LOG_UUID
+                userName = obj.CurrentUserName;
+                fprintf('Closed NANSEN user session for user "%s" (%s).\n', userName, obj.SessionUUID)
+            end
         end
 
     end
 
-    methods (Access = private)
+    methods (Access = private) % Initialization procedures
     
         function prefs = initializePreferences(obj)
             prefdir = obj.getPrefdir(obj.CurrentUserName);
@@ -132,7 +146,6 @@ classdef NansenUserSession < handle
         function preStartup(obj)
         % preStartup - Run procedures that need to execute before startup.
             obj.runPreStartupUpdateActions()
-
         end
         
         function postStartup(obj)
@@ -194,7 +207,7 @@ classdef NansenUserSession < handle
 
     end
 
-    methods (Access = private)
+    methods (Access = private) % Internal actions
 
         function assertProjectsAvailable(obj)
             if obj.ProjectManager.NumProjects == 0
