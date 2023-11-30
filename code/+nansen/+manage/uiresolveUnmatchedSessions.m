@@ -34,7 +34,6 @@ function updatedFolderList = uiresolveUnmatchedSessions(...
 
     end
     
-    
     hDialog = nansen.dataio.session.FolderMatcherDialog(...
         matchedFolderList, unmatchedFolderList);
     

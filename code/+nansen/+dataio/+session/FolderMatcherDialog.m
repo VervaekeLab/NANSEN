@@ -37,11 +37,18 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
     end
     
     properties (Access = private)
+        UILabelInstructionHeader
+        UILabelInstructionText
+        UILabelTableHeader
         UITable
+        UILabelListboxHeader
         UIListbox matlab.ui.control.UIControl
+        ComponentHandles % List of all components in vertical order (bottom to top).
         TableContextMenu
+        DescriptionLabel
+        InstructionLabel
+        FigureSizeChangedListener
     end
-    
     
     methods
         
@@ -54,12 +61,16 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
             obj.MatchedSessionFolderList = matchedList;
             obj.UnmatchedSessionFolderList = unmatchedList;
             
+            obj.createHeaders()
+            obj.createInstruction()
             obj.createTable()
             obj.createListbox()
             %obj.createButtons()
 
             obj.updateTable()
             obj.updateListbox()
+
+            obj.initializeLayout()
         end
         
     end
@@ -84,6 +95,46 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
     
     methods (Access = private)
         
+        function createHeaders(obj)
+        % createHeaders - Create text components for displaying headers
+            headerTitles = {'Instructions', ...
+                'Matched sessions', ...
+                'Unmatched sessions'};
+            
+            h = gobjects;
+
+            for i = 1:numel(headerTitles)
+                h(i) = uicontrol(obj.Figure, 'style', 'text');
+                h(i).String = headerTitles{i};
+                h(i).FontSize = 14;
+                h(i).FontWeight = 'bold';
+                h(i).HorizontalAlignment = 'left';
+            end
+               
+            obj.UILabelInstructionHeader = h(1);
+            obj.UILabelTableHeader = h(2);
+            obj.UILabelListboxHeader = h(3);
+        end
+
+        function createInstruction(obj)
+        % createInstruction - Create textbox with instructions.
+
+            obj.UILabelInstructionText = uicontrol(obj.Figure, 'style', 'text');
+            obj.UILabelInstructionText.String = cat(1, {[...
+                'Here you can manually match session folders by selecting ', ...
+                'a set of matching session folders in the lists of ', ...
+                'unmatched sessions. Then right click the selected ', ...
+                'items and click "Match Selected Folders" and the table ', ...
+                'of matched sessions should update.']}, {''}, {['You ', ...
+                'can also select a row in the table and a corresponding ', ...
+                'session among one of the unmatched sessions and click ', ...
+                '"Add Selected Folder to Matched Selection".']}, {''}, ...
+                {'When you have finished, you can close this window.'} ...
+                );
+            obj.UILabelInstructionText.FontSize = 14;
+            obj.UILabelInstructionText.HorizontalAlignment = 'left';
+        end
+
         function createTable(obj)
             
             obj.UITable = uim.widget.StylableTable('Parent', obj.Figure, ...
@@ -97,7 +148,7 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
                 'ColumnResizePolicy', 'subsequent', ...
                 'MouseClickedCallback', @obj.onTableMousePress );
             
-            obj.UITable.Position = [0.05 0.5 0.9 0.45];
+            obj.UITable.Position = [0.05 0.4 0.9 0.35];
             
             hMenu = uicontextmenu(obj.Figure);
             mItem = uimenu(hMenu, 'Text', 'Unmatch sessions');
@@ -120,9 +171,9 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
             for i = 1:obj.NumDataLocations
                 obj.UIListbox(i) = uicontrol(obj.Figure, 'style', 'listbox');
                 obj.UIListbox(i).Units = 'pixels';
-                obj.UIListbox(i).Position = [x(i), pad, w(i), 0.4];
+                obj.UIListbox(i).Position = [x(i), pad, w(i), 0.35];
                 obj.UIListbox(i).Units = 'normalized';
-                obj.UIListbox(i).Position([2,4]) = [0.05 0.4];
+                obj.UIListbox(i).Position([2,4]) = [0.05 0.3];
                 obj.UIListbox(i).FontSize = 12;
                 obj.UIListbox(i).FontName = 'avenir next';
                 
@@ -140,6 +191,60 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
             % Do we need any buttons?
         end
         
+        function initializeLayout(obj)
+            obj.FigureSizeChangedListener = addlistener(obj.Figure, ...
+                'SizeChanged', @(s, e) obj.updateLayout());
+            
+            LimitFigSize(obj.Figure, 'min', [600, 600]) % FEX
+
+            obj.ComponentHandles = [...
+                obj.UILabelInstructionHeader, ...
+                obj.UILabelInstructionText, ...
+                obj.UILabelTableHeader, ...
+                obj.UITable, ...
+                obj.UILabelListboxHeader ...
+                ];
+
+            set(obj.ComponentHandles, 'Units', 'pixel')
+            set(obj.UIListbox, 'Units', 'pixel')
+
+            obj.updateLayout()
+        end
+
+        function updateLayout(obj)
+        % updateLayout - Update layout (positions) off all components
+            import uim.utility.layout.subdividePosition
+
+            figurePosition = getpixelposition(obj.Figure);
+ 
+            figureWidth = figurePosition(3);
+            figureHeight = figurePosition(4);
+
+            MARGIN = 25;
+            VSPACING = 20;
+
+            x = MARGIN; w = figureWidth - 2*MARGIN;
+            y0 = MARGIN; h = figureHeight - 2*MARGIN;
+
+            componentHeight = [20, 150, 20, 0.5, 20, 0.5];
+            componentHeight = fliplr(componentHeight); % Bottom to top
+            [Y, H] = subdividePosition(y0, h, componentHeight);
+           
+            Y = fliplr(Y); H = fliplr(H); % Top to bottom
+
+            for i = 1:numel(obj.ComponentHandles)
+                obj.ComponentHandles(i).Position = [x, Y(i), w, H(i)];
+            end
+
+            % Update listboxes:
+            componentWidth = ones(1, obj.NumDataLocations) ./ obj.NumDataLocations;
+            
+            [X, W] = subdividePosition(x, w, componentWidth, VSPACING);
+            for j = 1:numel(obj.UIListbox)
+                obj.UIListbox(j).Position = [X(j), Y(end), W(j), H(end)];
+            end
+        end
+
         function updateTable(obj)
             T = struct2table( obj.MatchedSessionFolderNameList );
             obj.UITable.Data = table2cell(T);
@@ -188,6 +293,9 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
             
             % Update table
             obj.updateTable()
+
+            % Select table row for newly matched sessions.
+            obj.UITable.SelectedRows = numel(obj.MatchedSessionFolderList);
             
             % Update listbox
             obj.updateListbox()

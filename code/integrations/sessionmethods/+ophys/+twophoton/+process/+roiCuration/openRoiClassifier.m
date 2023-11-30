@@ -27,7 +27,7 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     end
     
     % Parse name-value pairs from function input.
-    params = utility.parsenvpairs(params, [], varargin);
+    params = utility.parsenvpairs(params, 1, varargin);
     
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
@@ -63,9 +63,9 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     try
         if isempty(roiGroup.roiImages)
             imageStack = sessionData.TwoPhotonSeries_Corrected;
-            hClassifier = roiclassifier.openRoiClassifier(roiGroup, imageStack);
+            hClassifier = roiclassifier.openRoiClassifier(roiGroup, imageStack, params);
         else
-            hClassifier = roiclassifier.openRoiClassifier(roiGroup);
+            hClassifier = roiclassifier.openRoiClassifier(roiGroup, params);
         end
 
         hClassifier.dataFilePath = sessionObject.getDataFilePath(varName{1});
@@ -83,6 +83,7 @@ function S = getDefaultParameters()
     
     S = struct();
     % Add more fields:
+    S.RoiSelectedCallbackFunction = '';
 
 end
 

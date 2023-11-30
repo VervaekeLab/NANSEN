@@ -160,6 +160,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         
         hLineArray struct
         
+        FrameMarker
         hlineCurrentFrame
         hlineTsArray
         
@@ -271,6 +272,10 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             addlistener(pif.pointers.eventAnnotator, 'EventModified', ...
                 @obj.onEventVectorChanged);
+
+            % % obj.FrameMarker = uim.widget.FrameMarker(obj.InteractionAxes, ...
+            % %     'Value',1,'Minimum',1,'Maximum',obj.nSamples,...
+            % %     'ValueChangedFcn', []);
             
             if ~nargout
                 clear obj
@@ -1525,7 +1530,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 % %             end
                        
             if ~obj.isConstructed; return; end
-
         
             if nargin < 2; flag = 'update_x'; end
         

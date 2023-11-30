@@ -29,6 +29,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
         ColorMap        % Todo
         ContourColor    % Todo
         SpatialUpsampling = 4 % Factor for spatial upsampling of image.
+        ThumbnailSize = [21, 21]
     end
     
     properties
@@ -423,7 +424,8 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             
             im = computeRoiImages(imArray, roiObj, roiSignals, ...
                 'ImageType', obj.CurrentImageToShow, ...
-                'dffFcn', 'dffRoiMinusDffNpil');
+                'dffFcn', 'dffRoiMinusDffNpil', ...
+                'BoxSize', obj.ThumbnailSize);
         end
         
         function setCurrentImageToShow(obj, name)

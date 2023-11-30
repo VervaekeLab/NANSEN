@@ -49,7 +49,7 @@ S.VirtualData.preprocessData   = true;
 S.Interaction.zoomFactor    = 0.25;         % Not currently used, should be part of pointerInterface/zoomingtools
 S.Interaction.panFactor     = 0.25;         % Not currently used, should be part of pointerInterface/pantool
 S.Interaction.scrollFactor  = 1;            % Scroll sensitivity for frame scrolling or zoom scrolling
-S.Interaction.scrollFactor_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 10}});
+S.Interaction.scrollFactor_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 100}});
                      
 
 % Options for app layout

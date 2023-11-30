@@ -319,12 +319,14 @@ classdef ProjectManager < handle
                 deleteProjectFolder = false;
             end
             
-            IND = strcmp({obj.Catalog.Name}, name);
+            IND = obj.getProjectIndex(name);
+            projectName = obj.Catalog(IND).Name;
+
             assert( sum(IND)>=1, 'Multiple projects were matched. Aborting...')
             
             % Todo: what if project is the current project? Abort!
-            if strcmp(name, obj.CurrentProject)
-                message = sprintf('Can not remove "%s" because it is the current project', name);
+            if strcmp(projectName, obj.CurrentProject)
+                message = sprintf('Can not remove "%s" because it is the current project', projectName);
                 errorID = 'NANSEN:Project:RemoveCurrentProjectDenied';
                 throw(MException(errorID, message))
             end
@@ -339,7 +341,7 @@ classdef ProjectManager < handle
                         rmpath(genpath(folderPath))
                     end
                     utility.system.deleteFolder(folderPath)
-                    fprintf('Deleted project data for project "%s"\n', name)
+                    fprintf('Deleted project data for project "%s"\n', projectName)
                     
                     localDir = fileparts(obj.CatalogPath);
                     localProjectDir = fullfile(localDir, thisProject.Name);
@@ -358,7 +360,7 @@ classdef ProjectManager < handle
                 
                 obj.Catalog(IND) = [];
                 
-                msg = sprintf('Project "%s" removed from project catalog\n', name);
+                msg = sprintf('Project "%s" removed from project catalog\n', projectName);
                 fprintf(msg)
             end
 
@@ -398,9 +400,9 @@ classdef ProjectManager < handle
         %   with given name
 
             projectEntry = obj.getProject(name);
-            
+            projectName = projectEntry.Name;
             if isempty(projectEntry)
-                errMsg = sprintf('Project with name "%s" does not exist', name);
+                errMsg = sprintf('Project with name "%s" does not exist', projectName);
                 error('Nansen:ProjectNonExistent', errMsg) %#ok<SPERR>
             end
                         
@@ -412,7 +414,7 @@ classdef ProjectManager < handle
                 addpath(genpath(projectEntry.Path))
             end
             
-            msg = sprintf('Current NANSEN project was changed to "%s"\n', name);
+            msg = sprintf('Current NANSEN project was changed to "%s"\n', projectName);
             if ~nargout
                 fprintf(msg); clear msg
             end

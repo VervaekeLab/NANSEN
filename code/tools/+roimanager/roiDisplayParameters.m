@@ -23,6 +23,8 @@ function [P, V] = roiDisplayParameters()
     P.showRoiGroups             = 'Show All';
     P.showRoiGroups_            = {'Show All', 'Show Group 1'};
 
+    P.roiThumbnailSize          = [21, 21];
+
     % - - - - Specify validation/assertion test for each parameter - - - -
     
     V                           = struct();

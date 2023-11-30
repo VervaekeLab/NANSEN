@@ -20,6 +20,17 @@ classdef manualClassifier < applify.mixin.UserSettings %& uiw.mixin.AssignPVPair
     
 %   TODO:
 %       [ ] Inherit from theme mixin class.
+%
+%       [ ] Todo: Classification colors and labels should not be abstract
+%
+%       [ ] Save image scale factor in settings. Image pixel size should be
+%       determined from image data to maintain aspect ratios.
+%
+%       [ ] Grid size and grid size options should dynamically update when 
+%           the figure size changes.
+%
+%       [ ] Rename internal variable names (remove roi and replace with
+%           item)
 
 
 properties (Constant, Hidden = true) % Inherited from UserSettings
@@ -49,11 +60,12 @@ end
 % Graphical handles for gui
 properties %(Access = protected)
     hFigure
-    hPanelSettings
-    hPanelImage
-    hPanelScroller
+    hPanelSettings % Top panel (toolbar)
+    hPanelImage  % Main panel (grid view)
+    hPanelScroller % Right panel (scroller)
     hTiledImageAxes
     hMessageBox
+    UiAnnotations struct = struct
 end
 
 properties (Access = protected)
@@ -65,6 +77,11 @@ properties (Access = private)
     hScrollbarAxes
     hScrollbar
     hUicontrols
+    ImageContextMenu
+end
+
+properties (Access = private)
+    ImageResolution % Resolution of images to display
 end
 
 % Properties related to selection of "items"
@@ -73,7 +90,6 @@ properties (SetAccess = protected)
     displayedItems
     lastSelectedItem
 end
-
 
 properties (Access = public, SetObservable = true) % Todo: protected?
     mouseMode = ''
@@ -86,7 +102,7 @@ properties (Access = public, SetObservable = true) % Todo: protected?
 end
 
 
-methods
+methods % Structors
     
     function obj = manualClassifier(varargin)
     %manualClassifier Constructor    
@@ -116,8 +132,8 @@ methods
         %Initialization for subclass before gui is completed
         obj.preInitialization()
         
-        obj.configurePanels()
-        obj.addTiledImageAxes(opt)
+        obj.createPanels()
+        obj.createTiledImageAxes(opt)
         obj.createGuiControls()
         obj.createScrollbar()
         
@@ -142,9 +158,30 @@ methods
     end
 
 end
-    
-methods (Access = private, Hidden) % Gui Creation/construction
 
+methods (Abstract, Access = protected) % Subclasses must implement
+
+    nvpairs = parseInputs(obj, varargin)
+    
+    updateTile(obj)
+    
+    onSelectedItemChanged(obj)
+    
+end
+
+methods % Optional, subclasses may implement
+    
+    function preInitialization(obj)
+
+    end
+    
+    function assignClassificationColors(obj)
+
+    end
+
+end
+
+methods (Access = private, Hidden) % Gui Creation/construction
 
     % % % Gui creation
     function createFigure(obj)
@@ -153,11 +190,13 @@ methods (Access = private, Hidden) % Gui Creation/construction
         % Open figure in full screen size
         screenSize = get(0, 'ScreenSize');
         obj.hFigure = figure('Position', screenSize);
+        obj.hFigure.Position = [1, 1, screenSize(3), screenSize(4)-40];
         obj.hFigure.MenuBar = 'none';
         obj.hFigure.Color = obj.guiColors.Background;
         obj.hFigure.NumberTitle = 'off';
         obj.hFigure.Name = 'Manual Classifier';
-        
+
+        obj.hFigure.SizeChangedFcn = @obj.onFigureSizeChanged;
         obj.hFigure.CloseRequestFcn = @(s, e) obj.onFigureCloseRequest;
     end
 
@@ -170,88 +209,54 @@ methods (Access = private, Hidden) % Gui Creation/construction
         obj.hFigure.WindowButtonMotionFcn = @obj.onMouseMotion;
     end
 
-    function configurePanels(obj)
-    %configurePanels Configure gui panels and add axes/controls
-    
+    function createPanels(obj)
+    %createPanels Create gui panels
+    %
+    %   Create the top panel for toolbar, main panel for grids and right
+    %   panel for scrollbar
 
         % Create panel on top for adding uicontrols
         obj.hPanelSettings = uipanel('Parent', obj.hFigure);
-
-        % Set height of panel and padding
-        panelHeight = 50; % pixels
-        padxy = [30, 30]; % pixels
-        
-        padxy = padxy ./ obj.hFigure.Position(3:4);
-        panelHeight = panelHeight ./ obj.hFigure.Position(4);
-
-        obj.hPanelSettings.Position = [padxy(1), ...
-            1-panelHeight-padxy(2)*0.5, 1-2*padxy(1), panelHeight];
         obj.hPanelSettings.BorderType = 'none';
         obj.hPanelSettings.BackgroundColor = obj.guiColors.Background;
 
-        annotation( obj.hFigure, 'line', [padxy(1) 1-padxy(1)], ...
-            ones(1,2)*obj.hPanelSettings.Position(2)-0.005, ...
-            'Color', ones(1,3)*0.5)
-
+        % Create a divider between the top panel and the image panel
+        obj.UiAnnotations.TopDivider = annotation( obj.hFigure, 'line');
+        obj.UiAnnotations.TopDivider.Color = ones(1,3)*0.5;
 
         % Create Image Panel for the tiled image montage
         obj.hPanelImage = uipanel('Parent', obj.hFigure);
-        obj.hPanelImage.Position = [padxy(1),  padxy(2), ...
-            1-2*padxy(1), obj.hPanelSettings.Position(2) - 2*padxy(2)];
-        
-        
         obj.hPanelImage.BorderType = 'none';
         obj.hPanelImage.BackgroundColor = obj.guiColors.Background;
     
-        
         % Create a panel for a scrollbar on the right side. (Interestingly
         % parenting the scrollbar axes to this panel instead of parenting
         % it to the figure makes the scroller itself much more responsive
         % to the mouse down and mousemove callbacks
-        imPanelPos = obj.hPanelImage.Position;
         obj.hPanelScroller = uipanel('Parent', obj.hFigure);
-        obj.hPanelScroller.Position = [sum(imPanelPos([1,3]))+0.005, imPanelPos(2), 0.0075, imPanelPos(4)];
         obj.hPanelScroller.BorderType = 'none';
         obj.hPanelScroller.BackgroundColor = obj.guiColors.Background;
         uistack(obj.hPanelScroller, 'top')
+
+        obj.updatePanelLayout()
     end
 
-      
+    
     % Adapted to non-square images
-    function addTiledImageAxes(obj, varargin)
-    %addTiledImageAxes Add a tiledImageAxes object. This is the "plotter"
+    function createTiledImageAxes(obj, varargin)
+    %createTiledImageAxes Create the tiledImageAxes object.
         
         def = struct('numChan', 1, 'tileUnits', 'pixel');
         opt = utility.parsenvpairs(def, [], varargin);
     
-        % Get aspect ratio of the panel that will hold the tiledImageAxes
-        panelPixelPosition = getpixelposition(obj.hPanelImage);
-        panelAspectRatio = panelPixelPosition(3) / panelPixelPosition(4);
-        
-        
-        imSize = strsplit(obj.settings.ImageSize, 'x');
-        imSize = str2double(imSize);
-        
-        imageAspectRatio = imSize(2) ./ imSize(1);
-        
-        % Determine possible grid sizes based on panel aspect ratio
-        nRows = 2:15;
-        nCols = round( nRows .* panelAspectRatio ./ imageAspectRatio);
+        imageSize = obj.getImageSizeFromData();
 
-        opts = arrayfun(@(i) sprintf('%dx%d', nRows(i), nCols(i)), 1:numel(nRows), 'uni', 0);
-        obj.settings_.GridSize_ = opts;
+        obj.updateGridSizeOptions(imageSize)
+        newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
 
-        
-        % Get grid size for initialization based on settings
-        oldGridSize = strsplit(obj.settings.GridSize, 'x');
-        oldGridSize = str2double(oldGridSize);
-        [~, closestMatch] = min(abs(nRows - oldGridSize(1))); 
-        obj.settings_.GridSize = obj.settings.GridSize_{closestMatch};
-        newGridSize = [nRows(closestMatch), nCols(closestMatch)];
+        imageScaleFactor = eval( obj.settings.ImageScaleFactor );
+        imageSize = round( imageSize .* imageScaleFactor);
 
-        imageSize = strsplit(obj.settings.ImageSize, 'x');
-        imageSize = str2double(imageSize);
-        
         % Create a Tiled Image Axes Object in the image panel.
         tmpH = uim.graphics.tiledImageAxes(obj.hPanelImage, 'gridSize', newGridSize, ...
             'imageSize', imageSize, 'numChan', opt.numChan, 'tileUnits', opt.tileUnits);
@@ -262,8 +267,14 @@ methods (Access = private, Hidden) % Gui Creation/construction
         tmpHAX = obj.hTiledImageAxes.Axes;
         tmpHAX.Position = [0.01,0.01,0.98,0.98];
 
+        h = findobj(obj.hFigure, 'Type', 'uicontextmenu');
+        obj.ImageContextMenu = h;
     end
     
+    function updateImageMenu(obj)
+        mitem = uimenu(obj.ImageContextMenu, 'Text', 'Refresh');
+        mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
+    end
     
     function createGuiControls(obj)  
     %createGuiControls Create Gui Controls on the top panel
@@ -273,7 +284,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
         inputbox = gobjects(0,1);
         buttons = gobjects(0,1);
 
-        
         % Some sizes in normalized units.
         xPos = linspace(0.005, 0.9, 10);
         uicSize = [0.08, 0.4];
@@ -307,7 +317,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
         inputbox(end).TooltipString = 'Press number to switch selection';
         inputbox(end).Callback = @(src, event) obj.removeFocusFromControl(src);
         
-        
         % Create a textbox to label show selection dropdown menu
         i = i+1;
         textbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'text');
@@ -315,7 +324,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
         textbox(end).Units = 'normalized';
         textbox(end).Position = [xPos(i)+0.003, yPosTxt, uicSize];
         textbox(end).Tag = '';
-        
         
         % Create show selection dropdown menu
         N = numel(obj.classificationLabels);
@@ -341,7 +349,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
             textbox(end).Position = [xPos(i)+0.003, yPosTxt, uicSize];
             textbox(end).Tag = '';
 
-
             % Create image selection dropdown menu
 
             imageNames = fieldnames(obj.itemImages);
@@ -364,7 +371,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
             end
         end
         
-        
         if ~isempty(obj.itemStats)
         % Create a textbox to label variable sorting selection dropdown menu
         i = i+1;
@@ -373,7 +379,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
         textbox(end).Units = 'normalized';
         textbox(end).Position = [xPos(i)+0.003, yPosTxt, uicSize];
         textbox(end).Tag = '';
-        
         
         % Create variable sorting selection dropdown menu
         
@@ -393,7 +398,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
 %         inputbox(end).TooltipString = '';
         end
         
-        
         i = i+1;
         % Create a textbox to label grid size selection dropdown menu
         textbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'text');
@@ -411,26 +415,13 @@ methods (Access = private, Hidden) % Gui Creation/construction
         inputbox(end).Position = [xPos(i), yPosPop, uicSize];
         inputbox(end).HorizontalAlignment = 'left';
         inputbox(end).Tag = 'Set GridSize';
-        inputbox(end).Callback = {@obj.settingsValueChange 'GridSize'};
+        inputbox(end).Callback = @obj.onGridSizeDropdownValueChanged;
 
         i = i+1;
-        % Create a textbox to label image size selection dropdown menu
-        textbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'text');
-        textbox(end).String = 'Select image-size:';
-        textbox(end).Units = 'normalized';
-        textbox(end).Position = [xPos(i)+0.003, yPosTxt, uicSize];
-        textbox(end).HorizontalAlignment = 'left';
-        textbox(end).Tag = 'ImageSize';
-
-        % Create image size selection dropdown menu
-        inputbox(end+1) = uicontrol(obj.hPanelSettings, 'style', 'popupmenu');
-        inputbox(end).String = obj.settings.ImageSize_;
-        inputbox(end).Value = find(contains(obj.settings.ImageSize_, obj.settings.ImageSize));
-        inputbox(end).Units = 'normalized';
-        inputbox(end).Position = [xPos(i), yPosPop, uicSize];
-        inputbox(end).HorizontalAlignment = 'left';
-        inputbox(end).Tag = 'Set ImageSize';
-        inputbox(end).Callback = {@obj.settingsValueChange, 'ImageSize'};
+        [hLabel, hControl] = obj.createImageSizeDropdownSelector();
+        hLabel.Position = [xPos(i)+0.003, yPosTxt, uicSize];
+        hControl.Position = [xPos(i), yPosPop, uicSize];
+        textbox(end+1) = hLabel; inputbox(end+1) = hControl;
 
         set(textbox, 'BackgroundColor', obj.guiColors.Background)
         set(textbox, 'ForegroundColor', obj.guiColors.Foreground)
@@ -449,7 +440,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
         buttons(end).Callback = @obj.toggleShowOutlines;
         buttons(end).Tag = 'Show Outline Button';
         buttons(end).TooltipString = 'Press shift+s to switch visibility mode';
-
 
         i = i+1;
         buttons(end+1) = uicontrol(obj.hPanelSettings, 'style', 'pushbutton');
@@ -483,9 +473,29 @@ methods (Access = private, Hidden) % Gui Creation/construction
 % % %         h = applify.uicontrolSchemer(buttons);
 % % % 
 % % %         applify.AppWindow.switchJavaWarnings('on')
-        
     end
+    
+    function [hLabel, hControl] = createImageSizeDropdownSelector(obj)
+        
+        % Create a textbox to label image size selection dropdown menu
+        hLabel = uicontrol(obj.hPanelSettings, 'style', 'text');
+        hLabel.String = 'Select image-size:';
+        hLabel.Units = 'normalized';
+        hLabel.HorizontalAlignment = 'left';
+        hLabel.Tag = 'ImageSize';
 
+        imageSizeOptions = obj.getImageSizeOptions();
+        imageSizeSelectionIdx = obj.getImageScaleFactorSelectionIndex();
+
+        % Create image size selection dropdown menu
+        hControl = uicontrol(obj.hPanelSettings, 'style', 'popupmenu');
+        hControl.String = imageSizeOptions;
+        hControl.Value = imageSizeSelectionIdx;
+        hControl.Units = 'normalized';
+        hControl.HorizontalAlignment = 'left';
+        hControl.Tag = 'Set ImageSize';
+        hControl.Callback = @obj.onImageSizeDropdownValueChanged;
+    end
 
     function createScrollbar(obj)
     %createScrollbar Create scrollbar and add callback
@@ -498,16 +508,13 @@ methods (Access = private, Hidden) % Gui Creation/construction
 %         obj.hScrollbar.Callback = @obj.scrollValueChange;
         obj.hScrollbar.StopMoveCallback = @obj.stopScrollbarMove;
         obj.hScrollbar.showTrack()
-        
     end
-    
     
     function stopScrollbarMove(obj, src, deltaY)
     %stopScrollbarMove Update the view when scroller stops moving
         obj.updateView(struct('deltaY', deltaY), [], 'scrollbar');
         
     end
-    
     
     function updateScrollbar(obj, candidates)
     %updateScrollbar Update scrollbar position if view was changed
@@ -538,17 +545,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
         end
 
         obj.hScrollbar.Value = barInit * 100;
-
-
-% %         yData = barInit + [0,1,1,0] * barLength;
-% % 
-% %         set(obj.hScrollbar(2), 'YData', yData)
-% %         
-% %         % Move the tooltip on the scroller if it is present
-% %         if ~isa(obj.hScrollbar(2).UserData, 'struct')
-% %             obj.hScrollbar(2).UserData.Position(2) = 1-mean(yData);
-% %         end
-
     end
     
     
@@ -655,7 +651,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
 %                 hPopup = findobj(obj.hPanelSettings, 'Tag', 'ClickMode');
 %                 hPopup.Value = 3;
 
-
             case 'p'
                 if contains(event.Modifier, 'command')
                    im = frame2im(getframe(obj.hTiledImageAxes.Axes));
@@ -665,24 +660,14 @@ methods (Access = private, Hidden) % Gui Creation/construction
 
             otherwise
                 % Do nothing.
-
         end
-
     end
-    
     
     function scrollHandler(obj, src, event)
     %scrollHandler Take care of scrolling input to figure.
-    
-        %if isempty(obj.selectedItem)
-            obj.hScrollbar.moveScrollbar(src, event)
-            obj.updateView(src, event, 'scroll')
-        %else
-% %             if ~isempty(obj.hRoimanager) && isvalid(obj.hRoimanager)
-% %                 obj.hRoimanager.changeFrame(src, event, 'mousescroll')
-% %             end
-        %end
-        
+
+        obj.hScrollbar.moveScrollbar(src, event)
+        obj.updateView(src, event, 'scroll')
     end
     
     
@@ -693,9 +678,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
        
         hTmp = hittest(obj.hFigure);
        %obj.hScrollbar.hittest(hTmp)
-        
     end
-    
     
     function mousePressed(obj, src, event, tileNum)
         
@@ -708,17 +691,13 @@ methods (Access = private, Hidden) % Gui Creation/construction
         
 %         obj.lastMousePress = newMousePointAx;
 
-
         % Note: If this callback is a ButtonDownFcn and not a
         % WindowButtonDownFcn, this statement is only reached if mouse is
         % pressed outside of tiles.
         if isnan(tileNum)
             obj.changeSelectedItem('unselect')
         end
-
-        
     end
-    
     
     function setMouseMode(obj, ~, event, newMouseMode)
         
@@ -728,19 +707,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
             obj.mouseMode = newMouseMode;
         end
     end
-    
-    
-end
-
-methods (Abstract, Access = protected)
-    
-    preInitialization(obj)
-    
-    nvpairs = parseInputs(obj, varargin)
-    
-    updateTile(obj)
-    
-    onSelectedItemChanged(obj)
     
 end
 
@@ -773,66 +739,70 @@ methods (Access = protected)
         else
             candidates = find(obj.itemClassification == class);
         end
-        
     end
     
+    function updatePanelLayout(obj)
+    % updatePanelLayout - Update positions on panels
+
+        import uim.utility.layout.subdividePosition
+
+        figurePosition = getpixelposition(obj.hFigure);
+
+        % Set height of panel and padding
+        toolbarPanelHeight = 50; % pixels
+        scrollerPanelWidth = 15; % pixels
+
+        M = 30; % margin in pixels
+                
+        w = figurePosition(3) - 2*M; % Full available width
+        h = figurePosition(4) - 2*M; % Full available height
+
+        [Y, H] = subdividePosition(M, h, [1, toolbarPanelHeight] );
+        [X, W] = subdividePosition(M, w, [1, scrollerPanelWidth]);
+
+        imagePanelPosition = [X(1), Y(1), W(1), H(1)];
+        settingsPanelPosition = [X(1), Y(2), w, H(2)];
+        scrollerPanelPosition = [X(2), Y(1)+5, W(2), H(1)-10];
+
+        allPanels = [obj.hPanelImage, obj.hPanelSettings, obj.hPanelScroller];
+        allPositions = {imagePanelPosition;settingsPanelPosition;scrollerPanelPosition};
+
+        set(allPanels, 'Units', 'pixel')
+        set(allPanels', {'Position'}, allPositions)
+        set(allPanels, 'Units', 'normalized')
+
+        obj.UiAnnotations.TopDivider.Units = 'pixel';
+        set(obj.UiAnnotations.TopDivider, 'X', [X(1), X(1)+w], 'Y', [Y(2)-2, Y(2)-2]);
+        obj.UiAnnotations.TopDivider.Units = 'normalized';
+    end
+
 end
 
-methods
-
+methods % Mostly internal updating
 
     % % % Callbacks for gui controls
-    
-    function numberSize = stringSizeToNumbers(~, stringSize)
-    %stringSizeToNumbers Convert a string formatted size to numbers    
-    % 
-    %   Example: '100x100' -> [100, 100]
-    
-        stringSizeSplit = strsplit(stringSize, 'x');
-        numberSize = str2double(stringSizeSplit);
+
+    function onGridSizeDropdownValueChanged(obj, src, ~)
         
-    end
-    
-    function stringSize = numbersToStringSize(~, numberSize)
-    %numbersToStringSize Convert numbers to a string formatted size
-    %
-    %   Example: [100, 100] -> '100x100'
-    
-        stringSize = sprintf('%dx%d', numberSize(1), numberSize(2));
-    end
-
-
-    function settingsValueChange(obj, src, ~, settingsName)
-    %settingsValueChange Apply changes made to settings
-
-        switch settingsName
-
-            case 'GridSize'
-                % Get new gridsize from popup selector
-                newGridSize = src.String{src.Value};
-                
-                % Note: Changing the settings property will invoke the
-                % onSettingsChanged callback.
-                obj.settings.GridSize = newGridSize;
-                
-                if ~isa(src, 'struct')
-                    obj.removeFocusFromControl(src)
-                end
-                
-            case 'ImageSize'
-                
-                newImageSize = src.String{src.Value};
-                newImageSize = obj.stringSizeToNumbers(newImageSize);
-
-                obj.settings.ImageSize = src.String{src.Value};
-                
-                obj.removeFocusFromControl(src)
-
+        % Get new gridsize from popup selector
+        newGridSize = src.String{src.Value};
+        
+        % Note: Changing the settings property will invoke the
+        % onSettingsChanged callback.
+        obj.settings.GridSize = newGridSize;
+        
+        if ~isa(src, 'struct')
+            obj.removeFocusFromControl(src)
         end
-
     end
 
-    
+    function onImageSizeDropdownValueChanged(obj, src, ~)
+        % Update ImageScaleFactor in settings. Note: Changing the settings
+        % value will trigger the onSettingsChanged callback
+        obj.settings.ImageScaleFactor = obj.settings.ImageScaleFactor_{src.Value};
+        obj.removeFocusFromControl(src)
+    end
+
     % % % Method to take care of changes to gridsize
     
     function changeGridSize(obj, newGridSize)
@@ -843,10 +813,9 @@ methods
         
         % This needs to be set after updating the view.
         obj.setTileCallbacks()
-        
     end
     
-    
+
     % % % Methods for updating tile(s) with data
     
     function updateView(obj, src, event, mode)
@@ -858,7 +827,6 @@ methods
 % %         end
         
         nTiles = min( [obj.hTiledImageAxes.nTiles, numel(obj.itemClassification)] );
-
         
 %         % Remove rejected rois.
 %         if obj.settings.DeleteRejectedRoisOnRefresh
@@ -878,20 +846,16 @@ methods
             lastIndex = obj.displayedItems(end);
         end
     
-        
         % Get indices of all candidate items. 
         candidates = getCandidatesForUpdatedView(obj);
-        
         
         % Get order of rois. Update candidates according to current sorting.
         roiOrder = obj.getItemOrder();
         candidates = intersect(roiOrder, candidates, 'stable');
 
-        
         if isempty(candidates)
             mode = 'skip';
         end
-        
         
         switch lower(mode)
             case 'initialize'
@@ -1008,7 +972,6 @@ methods
                 % Assign the list of new candidates to display
                 nCandidates = min([nTiles,  numel(candidatesLeft)]);
                 newIndices = candidatesLeft(1:nCandidates);
-                
         end
 
         if ~isempty(newIndices) && newIndices(1) < 1
@@ -1018,22 +981,17 @@ methods
         if ~isempty(newIndices) && newIndices(end) > numel(obj.itemSpecs)
             newIndices = (1:nTiles) - nTiles + numel(obj.itemSpecs);
         end
-
         
         obj.displayedItems = newIndices;
-        
-        imageSelection = getCurrentImageSelection(obj);
-        
+                
         obj.hTiledImageAxes.resetAxes()
         
         numTilesToUpdate = numel(obj.displayedItems);
         obj.updateTile(obj.displayedItems, 1:numTilesToUpdate)
         
-        
         if numTilesToUpdate < nTiles
             obj.hTiledImageAxes.resetTile(numTilesToUpdate+1:nTiles)
         end
-
 
         updateScrollbar(obj, candidates)
         
@@ -1041,7 +999,6 @@ methods
             obj.removeFocusFromControl(src)
         end
     end
-    
     
     function changeImageType(obj)
     %changeImageType Update the image type in each tiled based on popup
@@ -1056,9 +1013,7 @@ methods
         if numTilesToUpdate < nTiles
             obj.hTiledImageAxes.resetTile(numTilesToUpdate+1:nTiles)
         end
-        
     end
-    
     
     function updateTileColor(obj, tileNum)
 
@@ -1083,10 +1038,8 @@ methods
 
         tileNum = find(tileClsf~=0);
         obj.hTiledImageAxes.setTileTransparency(tileNum, obj.settings.TileAlpha) %#ok<FNDSB>
-
     end
 
-    
     function toggleShowOutlines(obj, src, ~)
         
        if src.Value
@@ -1094,7 +1047,6 @@ methods
        else
             obj.hTiledImageAxes.setPlotVisibility('off')
        end
-       
     end
     
     
@@ -1109,7 +1061,6 @@ methods
             sortVariable = '<none>';
         end
         
-        
         switch sortVariable
             case '<none>'
                 roiOrder = 1:numel(obj.itemSpecs);
@@ -1117,9 +1068,6 @@ methods
                 val = [obj.itemStats.(sortVariable)];
                 [~, roiOrder] = sort(val, 'descend', 'MissingPlacement', 'last');
         end
-        
-        
-        
     end
     
     function imageSelection = getCurrentImageSelection(obj)
@@ -1130,13 +1078,16 @@ methods
         else
             imageAlternatives = fieldnames(obj.itemImages);
             hSelectionPopup = findobj(obj.hFigure, 'Tag', 'SelectionImage');
-            if hSelectionPopup.Value <= numel(imageAlternatives)
-                imageSelection = imageAlternatives{hSelectionPopup.Value};
+            if isempty(hSelectionPopup)
+                imageSelection = imageAlternatives{1};
             else
-                imageSelection = 'Current Frame';
+                if hSelectionPopup.Value <= numel(imageAlternatives)
+                    imageSelection = imageAlternatives{hSelectionPopup.Value};
+                else
+                    imageSelection = 'Current Frame';
+                end
             end
         end
-        
     end
     
     
@@ -1175,7 +1126,6 @@ methods
                 roiImage = cat(3, roiImage{:});
             end
         end
-        
     end
 
     function itemText = getItemText(obj, roiInd)
@@ -1190,6 +1140,9 @@ methods
 
         % Find value of variable selector:
         hTmp = findobj(obj.hFigure, 'Tag', 'VariableSelector');
+        if isempty(hTmp); itemText=cellOfStr; return; end
+        if isempty(hTmp.String); itemText=cellOfStr; return; end
+
         varName = hTmp.String{hTmp.Value};
 
         if ~strcmp(varName, '<none>')
@@ -1202,12 +1155,15 @@ methods
                 valuesStr = arrayfun(@(x) sprintf(' (%.2f)', x), values, 'uni', 0);
             end
 
+            if isrow(valuesStr); valuesStr = valuesStr'; end
+            if isrow(cellOfStr); cellOfStr = cellOfStr'; end
             cellOfStr = strcat(cellOfStr, valuesStr);
         end 
         
         itemText = cellOfStr;
     end
     
+
     % % % Methods for making changes...
     
     function classifyRoi(obj, roiInd, classNum)
@@ -1221,14 +1177,10 @@ methods
             end
         end
         
-        
         % Todo: move to updateRoi Property...
         % NB: This is currently only one way! Changes in RM does not update
         % in the classifier.
-        
-
     end
-    
     
     function removeItems(obj, indToRemove)
         
@@ -1256,7 +1208,6 @@ methods
             end
         end
         
-        
         % Remove numbers from displayedItems list...Remove from list and
         % decrease number according to elements that have disappeared.
         tmpMask = zeros(1, numel(obj.roiArray));
@@ -1271,7 +1222,6 @@ methods
         end
         
         obj.roiArray(indToRemove) = [];
-
     end
     
 
@@ -1289,7 +1239,6 @@ methods
         else
             currentTileNum = [];
         end
-        
         
         % Determine which roi to select next depending on the 'mode' input
         switch mode
@@ -1316,7 +1265,6 @@ methods
             case 'tile'
                 nextTileNum = tileNum;
         end
-            
         
         % Add roi index to selectedItem property and highlight plot 
         if exist('nextTileNum', 'var')
@@ -1325,10 +1273,8 @@ methods
         end
         
         obj.onSelectedItemChanged(obj.selectedItem)
-
     end
     
-   
     % Mouse click callbacks
     function mouseClickInTile(obj, src, event, tileNum)
     %mouseClickInTile Callback for user input (mouseclicks) on a tile
@@ -1350,30 +1296,25 @@ methods
         % Abort if tile is empty
         if tileNum > numel(obj.displayedItems); return; end
 
-        
         % Roi number currently inhabitating given tile
         roiInd = obj.displayedItems(tileNum);
         
         doClassify = false;
         
-
         switch obj.hFigure.SelectionType
             
             case 'alt'  % Right click
-                
                 mp = get(obj.hFigure, 'CurrentPoint');
                 
                 tmpIm = findobj(obj.hTiledImageAxes.Axes, 'Type', 'image');
                 tmpIm.UIContextMenu.Position(1:2) = mp;
                 tmpIm.UIContextMenu.Visible = 'on';
                 
-                
             case {'normal'}
                 doClassify = true;
                 
             case 'open' % (doubleclick)
                 % Do nothing 
-
 
             case 'extend' % Shift-click
                 
@@ -1399,9 +1340,7 @@ methods
                 if obj.settings.IgnoreClassifiedTileOnShiftClick
                     extInd = extInd(obj.itemClassification(extInd)==0);
                 end
-                
         end
-        
         
         if doClassify
             
@@ -1427,7 +1366,6 @@ methods
             % If above selection yielded a number higher than the number of
             % available classifications, cycle back to unclassified
             if newClsf > numClsf; newClsf = 0; end
-
             
             % If multiple rois were chosen through shift-click, update
             % roiInd
@@ -1437,15 +1375,12 @@ methods
             
             % Call the classification.
             obj.classifyRoi(roiInd, newClsf)
-            
         end
         
         % Update the proprty containing the roi number of the last selected
         % roi
         obj.lastSelectedItem = roiInd(end);
-        
     end
-    
     
     % Todo: Generalize
     function mouseClickInRoi(obj, src, event, tileNum)
@@ -1465,16 +1400,13 @@ methods
         else
             obj.mousePressed(src, event, tileNum)
         end
-        
     end
     
     
     % % % Handling of user input for moving a roi within a tile.
-
     
     % Methods for saving results.
     function saveClassification(obj, ~, ~, varargin)
-        
         
         % Get path for saving data to file.
         if isempty(varargin)
@@ -1500,7 +1432,6 @@ methods
             save(savePath, '-struct', 'S')
         end
         
-        
         % Save clean version:
         keep = obj.itemClassification ~= 2;
         for i = 1:numel(varNames)
@@ -1511,9 +1442,7 @@ methods
         save(savePath, '-struct', 'S')
         
         fprintf('Saved classification results to %s\n', savePath)
-        
     end
-    
     
     function savePath = getSavePath(obj)
     %getSavePath Interactive user dialog to let user choose where to save
@@ -1559,18 +1488,15 @@ methods
             end
             
             savePath = fullfile(folderPath, filename);
-            
         end
-
     end
 
 end
 
 methods (Access = protected)
-    
-        function onSettingsChanged(obj, name, val)
-       
-        % Todo: Unite with previous...
+
+    function onSettingsChanged(obj, name, val)
+    % onSettingsChanged - Callback for when settings change
         switch name
             case 'TileAlpha'
                 tileClsf = obj.itemClassification(obj.displayedItems);
@@ -1603,21 +1529,31 @@ methods (Access = protected)
                 hPopup = findobj(obj.hFigure, 'Tag', 'Set GridSize');
                 hPopup.Value = find(contains(hPopup.String, val));
 
-            case 'CustomGridSize'
+            case 'ImageScaleFactor'
+                obj.settings.(name) = val;
 
-                obj.changeGridSize(val)
-
-                % Change the value of the popup control.
-                hPopup = findobj(obj.hFigure, 'Tag', 'Set GridSize');
+                imageSize = obj.getImageSizeFromData();
+                imageScaleFactor = eval( val );
+                newImageSize = round( imageSize .* imageScaleFactor);
                 
-                if ~any(strcmp(obj.settings.GridSize_, 'Custom'))
-                    obj.settings_.GridSize_ = [{'Custom'},  obj.settings_.GridSize_];
-                    hPopup.String = cat(1, {'Custom'},  hPopup.String);
-                end
+                obj.updateGridSizeOptions(newImageSize)
+                newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
 
-                hPopup.Value = find(contains(hPopup.String, 'Custom'));
+                % Apply changes:
+                obj.hMessageBox.displayMessage('Updating Image Resolution')
+                obj.hTiledImageAxes.imageSize = newImageSize;
 
-            case 'ImageSize'
+                obj.changeGridSize(newGridSize)
+
+                obj.hMessageBox.clearMessage()
+
+                % Change the value of the image-resolution popup control.
+                hPopup = findobj(obj.hFigure, 'Tag', 'Set ImageSize');
+                hPopup.Value = find(strcmp(obj.settings.ImageScaleFactor_, val));
+
+            case 'ImageSize' % Todo: This setting was removed. However, an
+                % idea is to add an option in settings to set a custom
+                % image size, and then this could be useful.
                 obj.settings.(name) = val;
                 
                 newImageSize = obj.stringSizeToNumbers(val);
@@ -1627,48 +1563,96 @@ methods (Access = protected)
 
                 obj.hTiledImageAxes.imageSize = newImageSize;
 
-                % Change gridSize if aspect ratio changes.
-                imageAr = newImageSize(2) ./ newImageSize(1);
-                             
-                % Get aspect ratio of the panel that holds the tiledImageAxes
-                panelPixelPosition = getpixelposition(obj.hPanelImage);
-                panelAspectRatio = panelPixelPosition(3) / panelPixelPosition(4);
+                obj.updateGridSizeOptions(newImageSize)
+                newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
                 
-                % Determine possible grid sizes based on panel aspect ratio
-                nRows = 2:15;
-                nCols = round( nRows .* panelAspectRatio ./ imageAr);
-                opts = arrayfun(@(i) sprintf('%dx%d', nRows(i), nCols(i)), 1:numel(nRows), 'uni', 0);
-                
-                obj.settings.GridSize_ = opts;
-
-                % Get grid size for initialization based on settings
-                oldGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
-                
-                [~, closestMatch] = min(abs(nRows - oldGridSize(1))); 
-                obj.settings.GridSize = obj.settings.GridSize_{closestMatch};
-                newGridSize = [nRows(closestMatch), nCols(closestMatch)];
                 obj.changeGridSize(newGridSize)
 
                 obj.hMessageBox.clearMessage()
                 
-                % Change the value of the grid-size popup control.
-                hPopup = findobj(obj.hFigure, 'Tag', 'Set GridSize');
-                hPopup.String = obj.settings.GridSize_;
-                hPopup.Value = closestMatch;
-                
                 % Change the value of the image-resolution popup control.
                 hPopup = findobj(obj.hFigure, 'Tag', 'Set ImageSize');
                 hPopup.Value = find(contains(hPopup.String, val));
-                
         end
+    end
+    
+    function onFigureCloseRequest(obj)
+    % Todo: Check if there are unsaved changes and let user abort or
+    % save changes before quitting.
+        delete(obj)
+    end
+
+    function onFigureSizeChanged(obj, src, evt)
+        obj.updatePanelLayout()
+    end
+end
+
+methods (Access = private)
+    
+    function imageSize = getImageSizeFromData(obj)
         
+        imageSelection = getCurrentImageSelection(obj);
+        if numel( obj.itemImages(1) ) >= 1
+            imageData = obj.itemImages(1).(imageSelection);
+            imageSize = size(imageData);
+            imageSize = imageSize(1:2);
+        else
+            imageSize = nan;
         end
+    end
+
+    function imageSizeOptions = getImageSizeOptions(obj)
         
-        function onFigureCloseRequest(obj)
-        % Todo: Check if there are unsaved changes and let user abort or
-        % save changes before quitting.
-            delete(obj)
+        imageSize = getImageSizeFromData(obj);
+        
+        scaleFactors = obj.settings.ImageScaleFactor_;
+        imageSizeOptions = cell(size(scaleFactors));
+        for i = 1:numel(scaleFactors)
+            thisScaleFactor = eval(scaleFactors{i});
+            scaledImageSize = imageSize .* thisScaleFactor;
+            imageSizeOptions{i} = obj.numbersToStringSize(scaledImageSize);
         end
+    end
+
+    function selectedIndex = getImageScaleFactorSelectionIndex(obj)
+    % getImageScaleFactorSelectionIndex - Get selection index from settings
+        selectedIndex = find( strcmp( obj.settings.ImageScaleFactor_, ...
+                                      obj.settings.ImageScaleFactor ) );
+    end
+
+    function updateGridSizeOptions(obj, imageSize)
+    % updateGridSizeOptions - Update list of grid size options
+
+        % Get aspect ratio of the panel that will hold the tiledImageAxes
+        panelPixelPosition = getpixelposition(obj.hPanelImage);
+        panelAspectRatio = panelPixelPosition(3) / panelPixelPosition(4);
+
+        % Get the aspect ratio of the images that will be plotted
+        imageAspectRatio = imageSize(2) ./ imageSize(1);
+
+        % Determine possible grid sizes based on these aspect ratios
+        nRows = 2:15;
+        nCols = round( nRows .* panelAspectRatio ./ imageAspectRatio);
+
+        % Update grid size options in settings
+        opts = arrayfun(@(i) sprintf('%dx%d', nRows(i), nCols(i)), 1:numel(nRows), 'uni', 0);
+        obj.settings_.GridSize_ = opts;
+
+        % Compute new preferred grid size by finding the new grid size with
+        % the row number being closest to the row number in the old grid size
+        oldGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+        [~, closestMatch] = min(abs(nRows - oldGridSize(1))); 
+        obj.settings_.GridSize = obj.settings.GridSize_{closestMatch};
+
+        % Todo: update options in grid size dropdown menu
+        % Change the value of the grid-size popup control.
+        hPopup = findobj(obj.hFigure, 'Tag', 'Set GridSize');
+        if ~isempty(hPopup)
+            hPopup.String = obj.settings.GridSize_;
+            hPopup.Value = closestMatch;
+        end
+    end
+    
 end
 
 methods (Static)
@@ -1682,9 +1666,28 @@ methods (Static)
         set(h, 'Enable', 'off');
         drawnow;
         set(h, 'Enable', 'on');
-        
     end
     
+end
+
+methods (Static, Access = private)
+
+    function numberSize = stringSizeToNumbers(stringSize)
+    %stringSizeToNumbers Convert a string formatted size to numbers
+    % 
+    %   Example: '100x100' -> [100, 100]
+    
+        stringSizeSplit = strsplit(stringSize, 'x');
+        numberSize = str2double(stringSizeSplit);
+    end
+    
+    function stringSize = numbersToStringSize(numberSize)
+    %numbersToStringSize Convert numbers to a string formatted size
+    %
+    %   Example: [100, 100] -> '100x100'
+        stringSize = sprintf('%dx%d', numberSize(1), numberSize(2));
+    end
+
 end
     
 end
