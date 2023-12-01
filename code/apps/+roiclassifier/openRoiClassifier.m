@@ -9,14 +9,12 @@ function hClassifier = openRoiClassifier(varargin)
 %
 %   hClassifier = openRoiClassifier(roiArray, imageStack) 
 
-
     roiData = struct.empty;
     roiGroup = [];
     
     vararginType = cellfun(@(c) class(c), varargin, 'uni', 0);
         
     if isa( varargin{1}, 'struct' )
-        
         dataFields = fieldnames(varargin{1});
         
         if all( ismember({'roiArray', 'roiImages', 'roiStats', 'roiClassification'}, dataFields) )
@@ -36,8 +34,6 @@ function hClassifier = openRoiClassifier(varargin)
         else
             roiGroup = varargin{1};
         end
-        
-        
     end
     
     
@@ -54,7 +50,17 @@ function hClassifier = openRoiClassifier(varargin)
         error('Input is not valid for roi classifier app')
     end
 
-    hClassifier = roiclassifier.App(roiGroup, 'tileUnits', 'scaled');
+    nvPairs = {};
+    if isa(varargin{end}, 'struct')
+        if isfield(varargin{end}, 'RoiSelectedCallbackFunction')
+            fcnName = varargin{end}.RoiSelectedCallbackFunction;
+            if ~isempty(fcnName)
+                nvPairs = {'RoiSelectedCallbackFunction', str2func(fcnName)};
+            end
+        end
+    end
+
+    hClassifier = roiclassifier.App(roiGroup, 'tileUnits', 'scaled', nvPairs{:});
 
 
 end
