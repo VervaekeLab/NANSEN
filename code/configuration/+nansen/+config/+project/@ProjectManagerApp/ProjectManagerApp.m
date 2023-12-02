@@ -16,7 +16,7 @@ classdef ProjectManagerApp < nansen.config.abstract.ConfigurationApp
             obj.createFigure();
             obj.Figure.Visible = 'on';
             obj.UIModule{1} = nansen.config.project.ProjectManagerUI(obj.Figure); 
-            
+            %obj.Figure.Resize = 'on';
             if ~nargout; clear obj; end
             
             %obj@applify.ModularApp

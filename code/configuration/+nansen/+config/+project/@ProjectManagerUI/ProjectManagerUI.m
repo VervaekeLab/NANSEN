@@ -246,7 +246,7 @@ classdef ProjectManagerUI < handle
             
             obj.updateProjectTableData()
             
-            obj.UIControls.ProjectTable.ColumnWidth = {58, 100, 300, 500};
+            obj.UIControls.ProjectTable.ColumnWidth = {65, 100, 300, 500};
             obj.UIControls.ProjectTable.ColumnEditable = [true, false,true,false];
             
             obj.UIControls.ProjectTable.CellEditCallback = @obj.onTableCellEdited;
@@ -618,7 +618,7 @@ classdef ProjectManagerUI < handle
             switch event.NewValue.Title
                 
                 case 'Manage Projects'
-                    
+                    obj.setProjectTablePosition()
                     if isempty(obj.ProjectManager.Catalog)
                         obj.TabGroup.SelectedTab = obj.TabList(1);
                         msg = 'No projects are available, please create a project first.';
