@@ -40,6 +40,11 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
     properties (SetAccess = private)
         IsDirty = false % keep this....?
     end
+
+    properties (Access = private)
+        VariableAddedListener event.listener
+        VariableRemovedListener event.listener
+    end
     
     methods % Constructor
         function obj = VariableModelUI(varargin)
@@ -50,7 +55,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.UIButton_AddVariable.Enable = 'off';
             obj.UIButton_AddVariable.Tooltip = 'Tip: Show Custom Variables to Add New Variable';
             obj.updateVisibleRows()
-            
+
             if ~nargout
                 clear obj
             end
@@ -273,6 +278,8 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             if ~contains(rowData.FileAdapter, hRow.FileAdapterSelect.Items)
             
                 if isempty(rowData.FileAdapter)
+
+
                     hRow.FileAdapterSelect.Value = 'Default';
                 else
                     hRow.FileAdapterSelect.Items{end+1} = rowData.FileAdapter;
@@ -344,7 +351,24 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
                 obj.setDataLocationSelectionDropdownValues(hRow, obj.Data(i))
             end
         end
-        
+
+        function onVariableAdded(obj, src, evtData)
+        % onVariableAdded - Callback for VariableAdded event on Model
+            variableItem = evtData.VariableInfo;
+            obj.addVariableToTable(variableItem)
+        end
+
+        function onVariableRemoved(obj, src, evtData)
+        % onVariableRemoved - Callback for VariableRemoved event on Model
+
+            variableName = evtData.VariableName;
+            variableNames = obj.getVariableNamesFromControls();
+
+            % Find row number:
+            rowNumber = find(strcmp(variableNames, variableName));
+            obj.removeRow(rowNumber)
+        end
+
         function onStarButtonClicked(obj, src, ~)
             
             switch src.Tooltip
@@ -448,16 +472,18 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         function onAddNewVariableButtonPushed(obj, src, event)
         % onAddNewVariableButtonPushed - Callback for table button
             
-            newVariableItem = obj.VariableModel.getBlankItem;
-            newVariableItem.IsCustom = true;
-
+            newVariableItem = obj.VariableModel.getDefaultItem('');
             obj.addNewVariableItem(newVariableItem)
         end
         
         function onRemoveVariableButtonPushed(obj, src, ~)
         % onRemoveVariableButtonPushed - Callback for table button
             rowNumber = obj.getComponentRowNumber(src);
+
+            obj.VariableModel.disableNotifications()
             obj.VariableModel.removeItem(rowNumber)
+            obj.VariableModel.enableNotifications()
+            
             obj.removeRow(rowNumber)
         end
         
@@ -480,6 +506,18 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             
             addlistener(obj.VariableModel, 'DataLocationNameChanged', ...
                 @obj.onDataLocationNameChanged);
+
+            if ~isempty(obj.VariableAddedListener)
+                delete(obj.VariableAddedListener)
+            end
+            obj.VariableAddedListener = listener(obj.VariableModel, ...
+                'VariableAdded', @obj.onVariableAdded);
+            
+            if ~isempty(obj.VariableRemovedListener)
+                delete(obj.VariableRemovedListener)
+            end
+            obj.VariableRemovedListener = listener(obj.VariableModel, ...
+                'VariableRemoved', @obj.onVariableRemoved);
         end
 
     end
@@ -678,9 +716,8 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         end
         
         function addNewVariableItem(obj, variableItem)
-        % addNewVariableItem - Add new variable item.           
-            numRows = obj.NumRows;
-            
+        % addNewVariableItem - Add new variable item.          
+
             if ~isfield(variableItem, 'Uuid')
                 variableItem.Uuid = nansen.util.getuuid();
             end
@@ -688,10 +725,20 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             if isempty(variableItem.VariableName)
                 variableItem.VariableName = obj.VariableModel.getNewName();
             end
-                        
+
+            % Add variable to model, while disabling model notifications
+            obj.VariableModel.disableNotifications()
             obj.VariableModel.insertItem(variableItem)
-            obj.addRow(numRows+1, variableItem)
+            obj.VariableModel.enableNotifications()
+
+            obj.addVariableToTable(variableItem)
             obj.IsDirty = true;
+        end
+    
+        function addVariableToTable(obj, variableItem)
+            numRows = obj.NumRows;
+
+            obj.addRow(numRows+1, variableItem)
 
             % Place as next visible row:
             visibleRowIndices = obj.getVisibleRowIndices();
@@ -704,6 +751,20 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             for jCol = 1:numel(rowComponentNames)
                 [~, y, ~, ~] = obj.getCellPosition(numVisibleRows, 1);
                 obj.RowControls(rowNum).(rowComponentNames{jCol}).Position(2)=y;
+            end
+        end
+    
+        function variableNames = getVariableNamesFromControls(obj)
+
+            varNameControls = [obj.RowControls.VariableName];
+            variableNames = cell(size(varNameControls));
+
+            for i = 1:numel(varNameControls)
+                if isa(varNameControls(i), 'matlab.ui.control.Label')
+                    variableNames{i} = varNameControls(i).Text;
+                elseif isa(varNameControls(end), 'matlab.ui.control.EditField')
+                    variableNames{i} = varNameControls(i).Value;
+                end
             end
         end
     end

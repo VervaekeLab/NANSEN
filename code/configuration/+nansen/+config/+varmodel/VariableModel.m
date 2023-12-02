@@ -7,12 +7,12 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
 
     % Todo: 
-    %   [x] Add IsEditable? I.e is it possible to change the filename
     %   [x] Add subfolders. I.e if session folder should be further organized in subfolders. 
     %   [ ] Methods for above...
     %
     %   [ ] Should internal variables be custom or preset? Preset...
     %   [ ] Flag for whether model data has changed...
+    %   [ ] Add event for case where variable item is modified
     
     properties (Constant)
 %         FileTypes
@@ -29,12 +29,15 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     end
     
     properties (Access = private)
+        DoNotify = true
         DataLocationNameChangedListener
         %DataLocationModel % Todo: needed?
     end
     
     events
         DataLocationNameChanged
+        VariableAdded
+        VariableRemoved
     end
     
     
@@ -268,13 +271,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
         %getFileAdapterFcn Get function handle for creating file adapter                
-            
-% %             %Todo: Make fileAdapter class for this....
-% %             %persistent fileAdapterList
-% %             
-% %             if isempty(fileAdapterList)
-% %                 fileAdapterList = nansen.dataio.listFileAdapters();
-% %             end
 
             fileAdapterList = nansen.dataio.listFileAdapters();
 
@@ -282,7 +278,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 [~, variableInfo] = obj.getDataFilePath(variableInfo);
             end
             
-            % Get file adapter % Todo: make this more persistent...
+            % Find file adapter match for name
             isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
             
             if ~any(isMatch)
@@ -390,6 +386,28 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         end
     end
     
+    methods % Override superclass methods
+        function newItem = insertItem(obj, newItem)
+            import nansen.config.varmodel.event.VariableAddedEventData
+            newItem = insertItem@utility.data.StorableCatalog(obj, newItem);
+            
+            if obj.DoNotify
+                eventData = VariableAddedEventData(newItem);
+                obj.notify('VariableAdded', eventData)
+            end
+        end
+
+        function removeItem(obj, itemName)
+            import nansen.config.varmodel.event.VariableRemovedEventData
+            removeItem@utility.data.StorableCatalog(obj, itemName);
+            
+            if obj.DoNotify
+                eventData = VariableRemovedEventData(itemName);
+                obj.notify('VariableRemoved', eventData)
+            end
+        end
+    end
+
     methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?nansen.setup.SetupWizardApp})
         function setVariableList(obj, S)
             obj.Data = S;
@@ -480,6 +498,16 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         
     end
     
+    methods (Access = ?nansen.config.varmodel.VariableModelUI)
+        function enableNotifications(obj)
+            obj.DoNotify = true;
+        end
+
+        function disableNotifications(obj)
+            obj.DoNotify = false;
+        end
+    end
+
     methods (Static)
         
         function pathString = getDefaultFilePath()
@@ -493,33 +521,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     end
     
     methods (Static)
-        
-        function C = listFileAdapters(fileType)
-            % Todo: Make external function for gathering this from the
-            % path. All fileadapters should inherit from a common superclass.
-            
-            if nargin < 1; fileType = ''; end
-            if ~isempty(fileType); fileType = strrep(fileType, '.', ''); end
-
-            fileAdapterList = nansen.dataio.listFileAdapters();
-            
-            if ~isempty(fileType)
-                validationFcn = @(extList) contains(fileType, extList);
-                keep = arrayfun(@(s) validationFcn(s.SupportedFileTypes), ...
-                    fileAdapterList);
-            else
-                keep = true(1, numel(fileAdapterList));
-            end
-            
-            C = fileAdapterList(keep);
-            
-            if isempty(C)
-                C(1).FileAdapterName = 'N/A';
-                C(1).FunctionName = '';
-                C(1).SupportedFileTypes = {};
-                C(1).DataType = '';
-            end
-        end
         
         function className = getFileAdapterFunctionName(fileAdapterName)
             % Todo: This step should not be necessary...

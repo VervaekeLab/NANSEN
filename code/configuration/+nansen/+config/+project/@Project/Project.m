@@ -48,6 +48,8 @@ classdef Project < nansen.module.Module
     
     properties (Access = private)
         MetaTableCatalog_   % internal store if catalog is already loaded. However, this would not be up to date it the catalog is changed. Think it is better that this is just a dependent property... 
+        DataLocationModelSingleton
+        VariableModelSingleton
     end
 
     properties (Constant, Hidden)
@@ -263,13 +265,17 @@ classdef Project < nansen.module.Module
         end
         
         function dataLocationModel = get.DataLocationModel(obj)
-            filePath = obj.getCatalogPath('DataLocationModel');
-            dataLocationModel = nansen.config.dloc.DataLocationModel(filePath);
+            if isempty(obj.DataLocationModelSingleton)
+                obj.initializeDataLocationModel()
+            end
+            dataLocationModel = obj.DataLocationModelSingleton;
         end
         
         function variableModel = get.VariableModel(obj)
-            filePath = obj.getCatalogPath('VariableModel');
-            variableModel = nansen.config.varmodel.VariableModel(filePath);
+            if isempty(obj.VariableModelSingleton)
+                obj.initializeVariableModel()
+            end
+            variableModel = obj.VariableModelSingleton;
         end
         
     end
@@ -366,6 +372,18 @@ classdef Project < nansen.module.Module
                     obj.VariableModel.addDataVariableSet(variableList)
                 end
             end
+        end
+
+        function initializeVariableModel(obj)
+        % initializeVariableModel - Initialize a variable model
+            filePath = obj.getCatalogPath('VariableModel');
+            obj.VariableModelSingleton = nansen.config.varmodel.VariableModel(filePath);
+        end
+        
+        function initializeDataLocationModel(obj)
+        % initializeDataLocationModel - Initialize a dataloction model
+            filePath = obj.getCatalogPath('DataLocationModel');
+            obj.DataLocationModelSingleton = nansen.config.dloc.DataLocationModel(filePath);
         end
 
         function filePathStr = getCatalogPath(obj, catalogName)

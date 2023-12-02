@@ -82,10 +82,6 @@ classdef FileViewer < nansen.AbstractTabPageModule
         hPanelPreview
         hStatusLabel = gobjects().empty % Show status message (if no session is selected)
     end
-
-    events
-        VariableModelChanged
-    end
     
     methods % Constructor
         
@@ -999,65 +995,21 @@ classdef FileViewer < nansen.AbstractTabPageModule
         %   Open user dialog to get information and add an item for this
         %   file to the variable model.
         
-            import nansen.config.varmodel.VariableModel
+            import nansen.config.varmodel.uiCreateDataVariableFromFile
         
-            nodeHandle = obj.CurrentNode;
-
-            % Get information about file's path and data location
-            [folder, fileName, ext] = fileparts(nodeHandle.UserData.filePath);
+            filePath = obj.CurrentNode.UserData.filePath;
+            sessionOject = obj.CurrentSessionObj;
             currentDataLocation = obj.TabGroup.SelectedTab.Title;
-            
-            sObj = obj.CurrentSessionObj;
-
-            fileAdapterList = nansen.dataio.listFileAdapters(ext);
-            fileName = strrep(fileName, sObj.sessionID, '');
-            
-            % Create a struct with fields that are required from user
-            S = struct();
-            S.VariableName = '';
-            S.FileNameExpression = fileName;
-            S.FileAdapter_ = {fileAdapterList.FileAdapterName};
-            S.FileAdapter = fileAdapterList(1).FileAdapterName;
-            S.Favorite = false;
-            
-            % Open user dialog:
-            [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable');
-            S = rmfield(S, 'FileAdapter_');
-            if wasAborted; return; end
-            
-            % Add other fields that are required for the variable model.
-            
-            % Add the new item to the current variable model.
-            % Todo: Get variable model from the sessionobject/dataiomodel
-            
-            varItem = VariableModel.getDefaultItem(S.VariableName);
-            varItem.IsCustom = true;
-            varItem.IsFavorite = S.Favorite;
-            varItem.DataLocation = currentDataLocation;
-            varItem.FileNameExpression = S.FileNameExpression;
-            varItem.FileAdapter = S.FileAdapter;
-            
-            dloc = sObj.getDataLocation(currentDataLocation);
-            varItem.DataLocationUuid = dloc.Uuid;
-            varItem.FileType = ext;
-
-            sessionFolder = sObj.getSessionFolder(currentDataLocation);
-            varItem.Subfolder = strrep(folder, sessionFolder, '');
-            if strncmp(varItem.Subfolder, filesep, 1)
-                varItem.Subfolder = varItem.Subfolder(2:end);
+        
+            try
+                wasCreated = uiCreateDataVariableFromFile(...
+                    filePath, currentDataLocation, sessionOject);
+            catch ME
+                % Display error message if something went wrong.
+                errordlg(ME.message)
+                disp(getReport(ME, 'extended'))
+                return
             end
-            
-            fileAdapterIdx = strcmp({fileAdapterList.FileAdapterName}, S.FileAdapter);
-            varItem.DataType = fileAdapterList(fileAdapterIdx).DataType;
-            
-            % Todo: get variable model for current project. In practice
-            % this will always happen, but it should be explicit!
-            VM = nansen.VariableModel();
-            VM.insertItem(varItem)
-            obj.notify('VariableModelChanged', event.EventData)
-            
-            % Todo: Display error message if variable already exists.
-            % And/or ask if variable should be replaced?
         end
         
         function onCreateFileAdapterMenuItemClicked(obj)
