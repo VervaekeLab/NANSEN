@@ -367,7 +367,7 @@ methods (Access = protected)
     
     function metadata = getThorlabsRecordingInfo(obj)
         dataFolderPath = fileparts(obj.FilePath);
-        metadata = ophys.twophoton.thorlabs.getThorlabsMetaData( dataFolderPath );
+        metadata = nansen.module.ophys.twophoton.utility.thorlabs.getScanParameters( dataFolderPath );
     end
 
     function metadata = getPrairieViewRecordingInfo(obj)

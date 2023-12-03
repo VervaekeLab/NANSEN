@@ -148,6 +148,30 @@ function S = getDefaultAddonList()
     S(i).SetupFileName = '';
     S(i).FunctionName = 'globalSEUDOWrapper.m';
     
+    i = i + 1;
+    S(i).Name = 'Neurodata Without Borders';
+    S(i).Description = 'A Matlab interface for reading and writing NWB files';
+    S(i).IsRequired = false;
+    S(i).Type = 'Neuroscience';
+    S(i).Source = 'Github';
+    S(i).WebUrl = 'https://github.com/NeurodataWithoutBorders/matnwb';
+    S(i).DownloadUrl = 'https://github.com/NeurodataWithoutBorders/matnwb/archive/refs/heads/master.zip';
+    S(i).HasSetupFile = true;
+    S(i).SetupFileName = 'generateCore';
+    S(i).FunctionName = 'nwbRead.m';
+
+    i = i + 1;
+    S(i).Name = 'Brain Observatory Toolbox';
+    S(i).Description = 'A MATLAB toolbox for interacting with the Allen Brain Observatory';
+    S(i).IsRequired = false;
+    S(i).Type = 'Neuroscience';
+    S(i).Source = 'Github';
+    S(i).WebUrl = 'https://github.com/emeyers/Brain-Observatory-Toolbox';
+    S(i).DownloadUrl = 'https://github.com/emeyers/Brain-Observatory-Toolbox/archive/refs/heads/main.zip';
+    S(i).HasSetupFile = false;
+    S(i).SetupFileName = '';
+    S(i).FunctionName = 'EphysQuickstart.mlx';
+
 % %     i = i + 1 % Not implemented yet
 % %     S(i).Name = 'PatchWarp';
 % %     S(i).Description = 'Image processing pipeline to correct motion artifacts and complex image distortions in neuronal calcium imaging data.';

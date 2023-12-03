@@ -138,7 +138,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
 
             obj.ColumnNames = {'', 'Data variable name', 'Data location', ...
                  'Filename expression', 'File type', 'File adapter'};
-            obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
+            obj.ColumnHeaderHelpFcn = @nansen.app.setup.getHelpMessage;
             obj.ColumnWidths = [12, 200, 115, 175, 70, 125];
             obj.RowSpacing = 20;   
             obj.ColumnSpacing = 18;

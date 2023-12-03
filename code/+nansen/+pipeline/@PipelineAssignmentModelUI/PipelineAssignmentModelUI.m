@@ -67,7 +67,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
         function assignDefaultTablePropertyValues(obj)
 
             obj.ColumnNames = {'', 'Variable name', 'Selection Mode', 'Input'};
-            obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
+            obj.ColumnHeaderHelpFcn = @nansen.app.setup.getHelpMessage;
             obj.ColumnWidths = [22, 200, 150, 200];
             obj.RowSpacing = 20;   
             obj.ColumnSpacing = 25;

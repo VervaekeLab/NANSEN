@@ -124,7 +124,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         function assignDefaultTablePropertyValues(obj)
             
             obj.ColumnNames = {'', 'Select subfolder example', 'Set subfolder type', 'Exclusion list', 'Inclusion list', ''};
-            obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
+            obj.ColumnHeaderHelpFcn = @nansen.app.setup.getHelpMessage;
             obj.ColumnWidths = [22, 175, 130, 90, 125, 22];
             obj.RowSpacing = 20;   
         end

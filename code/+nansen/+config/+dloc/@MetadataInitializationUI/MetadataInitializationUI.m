@@ -67,7 +67,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             obj.ColumnNames = {'Variable name', 'Select foldername', ...
                 'Selection Mode', 'Input', 'Result'};
-            obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
+            obj.ColumnHeaderHelpFcn = @nansen.app.setup.getHelpMessage;
             obj.ColumnWidths = [110, 120, 125, 100, 100];
             obj.RowSpacing = 20;   
             obj.ColumnSpacing = 25;

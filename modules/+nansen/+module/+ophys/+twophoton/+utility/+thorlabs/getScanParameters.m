@@ -1,7 +1,9 @@
-function [ metadata ] = getThorlabsMetaData( dataFolderPath )
-%getThorlabsMetaData Load fields from a thorlabs XML file into a matlab struct.
-%   M = getThorlabsMetaData(tSeriesPATH) returns a struct with metadata (M) from a 
-%   recording specified by folderPath, where folderPath is the path to a recording folder.
+function [ metadata ] = getScanParameters( dataFolderPath )
+%getScanParameters Load fields from a thorlabs XML file into a matlab struct.
+%   
+%   M = getScanParameters(dataFolderPath) returns a struct with metadata 
+%       (M) from a recording specified by v, where folderPath is the path 
+%       to a recording folder.
 %
 %   Returned Fields:
 %       - microscope     :   Thorlabs
@@ -10,8 +12,8 @@ function [ metadata ] = getThorlabsMetaData( dataFolderPath )
 %       - pixelY         :   height of image in number of pixels
 %       - NumberOfPlanes :   zoomfactor during the recording
 %       - pixelSizeUM    :   um per pixel conversion factor
-%       - channel       :   list of channels that are recorded (e.g. 1)
-%       - nFrames       :   array of nFrames per block
+%       - channel        :   list of channels that are recorded (e.g. 1)
+%       - nFrames        :   array of nFrames per block
 
 
 % Todo : how to find planes
