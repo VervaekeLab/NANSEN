@@ -156,7 +156,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             hRow.RemoveImage.Position = [xi-4 y wi+10 h]; % Quick fix of pos...
             hRow.RemoveImage.Text = '-';
             hRow.RemoveImage.Text = '';
-            hRow.RemoveImage.Icon = 'minus.png';
+            hRow.RemoveImage.Icon = nansen.internal.getIconPathName('minus.png');
             hRow.RemoveImage.Tooltip = 'Remove Variable';
 
             hRow.RemoveImage.ButtonPushedFcn = @obj.onRemoveVariableButtonPushed;
@@ -192,10 +192,10 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             hRow.StarButton.ImageClickedFcn = @obj.onStarButtonClicked;
             
             if rowData.IsFavorite
-                hRow.StarButton.ImageSource = 'star_on.png';
+                hRow.StarButton.ImageSource = nansen.internal.getIconPathName('star_on.png');
                 hRow.StarButton.Tooltip = 'Remove from favorites';
             else
-                hRow.StarButton.ImageSource = 'star_off.png';
+                hRow.StarButton.ImageSource = nansen.internal.getIconPathName('star_off.png');
                 hRow.StarButton.Tooltip = 'Add to favorites';
             end
 
@@ -220,7 +220,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             hRow.OpenFolderImage = uiimage(obj.TablePanel);
             hRow.OpenFolderImage.Position = [xi+wi-20 y 20 20];
             obj.centerComponent(hRow.OpenFolderImage, y)
-            hRow.OpenFolderImage.ImageSource = 'look.png';
+            hRow.OpenFolderImage.ImageSource = nansen.internal.getIconPathName('look.png');
             hRow.OpenFolderImage.Tooltip = 'Open session folder';
             hRow.OpenFolderImage.ImageClickedFcn = @obj.openDataFolder;
             
@@ -374,10 +374,10 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             switch src.Tooltip
                 case 'Remove from favorites'
                     src.Tooltip = 'Add to favorites';
-                    src.ImageSource = 'star_off.png';
+                    src.ImageSource = nansen.internal.getIconPathName('star_off.png');
                 case 'Add to favorites'
                     src.Tooltip = 'Remove from favorites';
-                    src.ImageSource = 'star_on.png';
+                    src.ImageSource = nansen.internal.getIconPathName('star_on.png');
             end
         end
         
@@ -541,7 +541,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.UIButton_AddVariable.ButtonPushedFcn = @(s, e) obj.onAddNewVariableButtonPushed;
             obj.UIButton_AddVariable.Position = [location buttonSize];
             obj.UIButton_AddVariable.Text = '';
-            obj.UIButton_AddVariable.Icon = 'plus.png';
+            obj.UIButton_AddVariable.Icon = nansen.internal.getIconPathName('plus.png');
             obj.UIButton_AddVariable.Tooltip = 'Add New Variable';
         end
         

@@ -153,13 +153,13 @@ classdef AddonManagerUI < applify.apptable
             obj.centerComponent(hS.IsInstalledImage, y)
             
             if rowData.IsDoubleInstalled
-                hS.IsInstalledImage.ImageSource = 'warn.png';
+                hS.IsInstalledImage.ImageSource = nansen.internal.getIconPathName('warn.png');
                 hS.IsInstalledImage.Tooltip = 'Warning: Multiple instances of toolbox was found';
             elseif rowData.IsInstalled
-                hS.IsInstalledImage.ImageSource = 'check-01.png';
+                hS.IsInstalledImage.ImageSource = nansen.internal.getIconPathName('checkmark.png');
                 hS.IsInstalledImage.Tooltip = 'Toolbox is installed';
             else
-                hS.IsInstalledImage.ImageSource = 'cross-01.png';
+                hS.IsInstalledImage.ImageSource = nansen.internal.getIconPathName('crossmark.png');
                 hS.IsInstalledImage.Tooltip = 'Toolbox missing';
             end            
 
@@ -303,7 +303,7 @@ classdef AddonManagerUI < applify.apptable
                 return
             end
             
-            obj.RowControls(iRow).IsInstalledImage.ImageSource = 'check-01.png';
+            obj.RowControls(iRow).IsInstalledImage.ImageSource = nansen.internal.getIconPathName('checkmark.png');
             obj.RowControls(iRow).IsInstalledImage.Tooltip = 'Toolbox is installed';
 
             obj.RowControls(iRow).InstallButton.Text = 'Download';
@@ -340,7 +340,7 @@ classdef AddonManagerUI < applify.apptable
             
             if ~tf; return; end
             
-            obj.RowControls(iRow).IsInstalledImage.ImageSource = 'check-01.png';
+            obj.RowControls(iRow).IsInstalledImage.ImageSource = nansen.internal.getIconPathName('checkmark.png');
             obj.RowControls(iRow).IsInstalledImage.Tooltip = 'Toolbox already installed';
             obj.RowControls(iRow).InstallButton.Enable = 'off';
             

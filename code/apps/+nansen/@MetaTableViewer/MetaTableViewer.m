@@ -604,7 +604,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
             
             if isempty(obj.HTable)
-                tf = nansen.setup.isUiwidgetsOnJavapath();
+                tf = nansen.internal.setup.isUiwidgetsOnJavapath();
                 if ~tf
                     error('Failed to create the gui. Try to install to Widgets Toolbox v1.3.330 again')
                 else

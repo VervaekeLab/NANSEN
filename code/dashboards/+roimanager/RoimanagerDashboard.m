@@ -993,8 +993,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
 % %             jLabel = simpleLogger;
 % %             C = []; return
 
-            filepath = fullfile(nansen.localpath('root'), 'docs', ...
-                'resources', 'nansen_roiman.png');
+            filepath = fullfile(nansen.rootpath, 'code', ...
+                'resources', 'images', 'nansen_roiman.png');
             [~, jLabel, C] = nansen.ui.showSplashScreen(filepath, ...
                 'RoiManager', 'Initializing imviewer...');
         end

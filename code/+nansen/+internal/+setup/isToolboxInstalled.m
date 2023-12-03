@@ -6,5 +6,4 @@ function tf = isToolboxInstalled(requiredToolboxes)
     
     % Check if required toolboxes are installed
     tf = ismember(requiredToolboxes, installedToolboxes);
-        
 end

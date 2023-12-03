@@ -85,7 +85,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
             hRow.RemoveRowButton = uibutton(obj.TablePanel);
             hRow.RemoveRowButton.Position = [xi y wi h];
             hRow.RemoveRowButton.Text = '';
-            hRow.RemoveRowButton.Icon = 'minus.png';
+            hRow.RemoveRowButton.Icon = nansen.internal.getIconPathName('minus.png');
             obj.centerComponent(hRow.RemoveRowButton, y)
             hRow.RemoveRowButton.ButtonPushedFcn = ...
                 @obj.onRemoveSessionVariableButtonPushed;
@@ -180,7 +180,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
             obj.UIButton_AddSessionVar.ButtonPushedFcn = @(s, e) obj.onAddNewSessionVariableButtonPushed;
             obj.UIButton_AddSessionVar.Position = [location buttonSize];
             obj.UIButton_AddSessionVar.Text = '';
-            obj.UIButton_AddSessionVar.Icon = 'plus.png';
+            obj.UIButton_AddSessionVar.Icon = nansen.internal.getIconPathName('plus.png');
             obj.UIButton_AddSessionVar.Tooltip = 'Add New Session Variable';
             
         end

@@ -54,9 +54,8 @@ function [jFrame, jLabel, C] = showSplashScreen(imFilePath, titleStr, subTitleSt
     jLabel = javax.swing.JLabel(subTitleStr);
     jLabel.setForeground( java.awt.Color(0.1882, 0.2431, 0.2980) )
     jLabel.setBounds(35, 70, 250, 25);
-
     
-    imPath = fullfile( nansen.rootpath, 'code', 'setup', '_icons', 'loading.gif');
+    imPath = fullfile(nansen.rootpath, 'code', 'resources', 'images', 'loading.gif');
     jIcon2 = javax.swing.ImageIcon(imPath);
     jLabelLoadGif = javax.swing.JLabel(jIcon2);
     jLabelLoadGif.setBounds(5, 100, 112, 112);

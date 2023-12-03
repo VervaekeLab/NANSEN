@@ -75,7 +75,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             hRow.RemoveImage.Position = [xi y wi h];
             hRow.RemoveImage.Text = '-';
             hRow.RemoveImage.Text = '';
-            hRow.RemoveImage.Icon = 'minus.png';
+            hRow.RemoveImage.Icon = nansen.internal.getIconPathName('minus.png');
             hRow.RemoveImage.Tooltip = 'Remove Data Location';
             
             hRow.RemoveImage.ButtonPushedFcn = @obj.onRemoveDataLocationButtonPushed;
@@ -92,8 +92,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             hRow.DataLocationName = uieditfield(obj.TablePanel, 'text');
             hRow.DataLocationName.FontName = 'Segoe UI';
             hRow.DataLocationName.Position = [xi y wi h];
-            %hRow.DataLocationName.Position = [xi y wi-25 h];
-            %hRow.DataLocationName.BackgroundColor = [0.94,0.94,0.94];
             hRow.DataLocationName.BackgroundColor = [1, 1, 1];
             hRow.DataLocationName.Editable = true;
 
@@ -103,22 +101,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             hRow.DataLocationName.Value = rowData.Name;
             hRow.DataLocationName.ValueChangedFcn = ...
                 @obj.onDataLocationNameChanged;
-            
-% % %             % Add icon for toggling editing of field
-% % %             hRow.EditTypeImage = uiimage(obj.TablePanel);
-% % %             hRow.EditTypeImage.Position = [xi+wi-20 y 18 18];
-% % %             %hRow.EditTypeImage.Position = [xi y 18 18];
-% % %             obj.centerComponent(hRow.EditTypeImage, y)
-% % %             hRow.EditTypeImage.ImageSource = 'edit.png';
-% % %             hRow.EditTypeImage.Tooltip = 'Edit label for data location type';
-% % %             hRow.EditTypeImage.ImageClickedFcn = @obj.onEditDataLocationNameIconClicked;
-% % %                         
-% % %             if isempty(hRow.DataLocationName.Value)
-% % %                 hRow.DataLocationName.Editable = true;
-% % %                 hRow.DataLocationName.BackgroundColor = [1 1 1];
-% % %                 hRow.EditTypeImage.ImageSource = 'edit3.png';
-% % %             end
-            
             
         % % Create second column: Edit field for data location type 
             i = i+1;
@@ -252,7 +234,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             h.UIButton_BrowseRootDir.FontName = 'Segoe UI';
             h.UIButton_BrowseRootDir.Position(3:4) = BUTTON_SIZE;
             h.UIButton_BrowseRootDir.Text = 'Browse...';
-            %h.UIButton_BrowseRootDir.Icon = 'folder.png';
+            %h.UIButton_BrowseRootDir.Icon = nansen.internal.getIconPathName('folder.png');
             h.UIButton_BrowseRootDir.ButtonPushedFcn = ...
                 @obj.onBrowseRootDirButtonPushed;
         end
@@ -282,21 +264,21 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                      
             % Create button to open browse dialog for setting root directory
             h.UIButton_BrowseDir = uibutton(h.UIButtonGroup_RootDir);
-            h.UIButton_BrowseDir.Icon = 'ellipsis.png';
+            h.UIButton_BrowseDir.Icon = nansen.internal.getIconPathName('ellipsis.png');
             h.UIButton_BrowseDir.Tooltip = 'Browse...';
             h.UIButton_BrowseDir.ButtonPushedFcn = ...
                 @obj.onBrowseRootDirButtonPushed;
             
             % Create button to add root directory
             h.UIButton_AddDir = uibutton(h.UIButtonGroup_RootDir);
-            h.UIButton_AddDir.Icon = 'plus.png';
+            h.UIButton_AddDir.Icon = nansen.internal.getIconPathName('plus.png');
             h.UIButton_AddDir.Tooltip = 'Add rootpath';
             h.UIButton_AddDir.ButtonPushedFcn = ...
                 @obj.onAddRootDirButtonPushed;
             
             % Create button to remove root directory
             h.UIButton_RemoveDir = uibutton(h.UIButtonGroup_RootDir);
-            h.UIButton_RemoveDir.Icon = 'minus.png';
+            h.UIButton_RemoveDir.Icon = nansen.internal.getIconPathName('minus.png');
             h.UIButton_RemoveDir.Tooltip = 'Remove rootpath';
             h.UIButton_RemoveDir.ButtonPushedFcn = ...
                 @obj.onRemoveRootDirButtonPushed;
@@ -326,7 +308,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.UIButton_AddDataLocation.ButtonPushedFcn = @(s, e) obj.onAddDataLocationButtonPushed;
             obj.UIButton_AddDataLocation.Position = [location buttonSize];
             obj.UIButton_AddDataLocation.Text = '';
-            obj.UIButton_AddDataLocation.Icon = 'plus.png';
+            obj.UIButton_AddDataLocation.Icon = nansen.internal.getIconPathName('plus.png');
             obj.UIButton_AddDataLocation.Tooltip = 'Add New Data Location';
             
         end
@@ -474,30 +456,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 hFig = ancestor(src, 'figure');
                 uialert(hFig, ME.message, 'Aborted')
                 src.Value = evt.PreviousValue;
-            end
-            
-        end
-        
-        function onEditDataLocationNameIconClicked(obj, src, evt)
-        %onEditDataLocationNameIconClicked Callback for click on edit icon
-        %
-        %   Turn the Editable property of edit field for data location name 
-        %   on or off and change the color of the edit icon.
-        
-            i = obj.getComponentRowNumber(src);
-            hRow = obj.RowControls(i);
-            
-            % Get the edit field, and turn it on/off
-            isEditable = hRow.DataLocationName.Editable;
-            hRow.DataLocationName.Editable = ~isEditable;
-
-            % Change the icon image.
-            if isEditable
-                hRow.EditTypeImage.ImageSource = 'edit.png';
-                hRow.DataLocationName.BackgroundColor = [0.94,0.94,0.94];
-            else
-                hRow.EditTypeImage.ImageSource = 'edit3.png';
-                hRow.DataLocationName.BackgroundColor = [1,1,1];
             end
             
         end
