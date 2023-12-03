@@ -1040,10 +1040,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             rowInd = app.UiMetaTableViewer.DisplayedRows;
             sessionIDs = app.MetaTable.entries{rowInd, 'sessionID'};
             app.UiFileViewer.SessionIDList = sessionIDs;
-                    
-            % Add listener for when the variable model is changed.
-            addlistener(app.UiFileViewer, 'VariableModelChanged', ...
-                @app.onVariableModelChanged);
         end
 
         function initializeBatchProcessor(app)

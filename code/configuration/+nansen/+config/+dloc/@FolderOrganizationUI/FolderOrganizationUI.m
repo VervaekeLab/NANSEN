@@ -140,7 +140,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
 % %             hRow.RemoveImage = uiimage(obj.TablePanel);
 % %             hRow.RemoveImage.Position = [xi y 20 20];
-% %             hRow.RemoveImage.ImageSource = 'minus.png';
+% %             hRow.RemoveImage.ImageSource = nansen.internal.getIconPathName('minus.png');
 % %             hRow.RemoveImage.ImageClickedFcn = @obj.removeRow;
 % %             obj.centerComponent(hRow.RemoveImage, y)
             
@@ -148,7 +148,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             hRow.RemoveImage.Position = [xi y wi h];
             %hRow.RemoveImage.Text = '-';
             hRow.RemoveImage.Text = '';
-            hRow.RemoveImage.Icon = 'minus.png';
+            hRow.RemoveImage.Icon = nansen.internal.getIconPathName('minus.png');
 
             hRow.RemoveImage.ButtonPushedFcn = @obj.removeRow;
             if obj.NumRows == 0; hRow.RemoveImage.Enable = 'off'; end
@@ -232,20 +232,11 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             hRow.AddImage = uibutton(obj.TablePanel);
             hRow.AddImage.Position = [xi y wi h];
             hRow.AddImage.Position(2) = y + (h-hRow.RemoveImage.Position(4)) / 2;
-            %hRow.AddImage.Text = '+';
             hRow.AddImage.Text = '';
-            hRow.AddImage.Icon = 'plus.png';
+            hRow.AddImage.Icon = nansen.internal.getIconPathName('plus.png');
             hRow.AddImage.ButtonPushedFcn = @obj.onAddSubfolderButtonPushed;
             hRow.AddImage.Enable = 'off';
             obj.centerComponent(hRow.AddImage, y)
-
-            % Alternative version using an image
-% %             hRow.AddImage = uiimage(app.FolderListPanel);
-% %             hRow.AddImage.Position = [xi y wi h];
-% %             hRow.AddImage.Position(2) = y + (h-hRow.AddImage.Position(4)) / 2;
-% %             hRow.AddImage.ImageSource = 'pluss.png';
-% %             hRow.AddImage.ImageClickedFcn = @(s,e)app.addFolderLevelEntry;
-            
 
             if rowNum > 1
                 % Disable the button to add new row on the previous row.
@@ -324,14 +315,14 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 % %             obj.InfoButton = uiimage(hPanel);
 % %             obj.InfoButton.ImageClickedFcn = obj.onInfoButtonClicked;
 % %             obj.InfoButton.Position = [Xr(1) Y-2 26 26];
-% %             obj.InfoButton.ImageSource = 'info2.png';
+% %             obj.InfoButton.ImageSource = nansen.internal.getIconPathName('info.png');;
             
             % Create PreviewFolderListImage
             obj.PreviewButton = uiimage(hPanel);
             obj.PreviewButton.ImageClickedFcn = @obj.onFolderPreviewButtonClicked;
             obj.PreviewButton.Tooltip = {'Press to preview detected folders...'};
             obj.PreviewButton.Position = [Xr(2) Y-2 26 26];
-            obj.PreviewButton.ImageSource = 'look2.png';
+            obj.PreviewButton.ImageSource = nansen.internal.getIconPathName('look2.png');
             
             % Create ShowFilterOptionsButton
             obj.ShowFilterOptionsButton = uibutton(hPanel, 'state');
@@ -969,7 +960,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 obj.updateFolderList()
             end
             
-            obj.PreviewButton.ImageSource = 'look3.png';
+            obj.PreviewButton.ImageSource = nansen.internal.getIconPathName('look3.png');
             obj.FolderListViewer.Visible = 'on';
             pause(0.01)
             
@@ -981,7 +972,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         function hideFolderListViewer(obj)
             
             if ~isempty(obj.FolderListViewer) && isvalid(obj.FolderListViewer)
-                obj.PreviewButton.ImageSource = 'look2.png';
+                obj.PreviewButton.ImageSource = nansen.internal.getIconPathName('look2.png');
                 obj.FolderListViewer.Visible = 'off';
 
                 if ~isempty(obj.AppFigure)
@@ -995,7 +986,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             if ~isvalid(obj); return; end
             
             obj.FolderListViewerActive = false;
-            obj.PreviewButton.ImageSource = 'look2.png';
+            obj.PreviewButton.ImageSource = nansen.internal.getIconPathName('look2.png');
             obj.FolderListViewer = [];
             
             % % Todo: Which figure?

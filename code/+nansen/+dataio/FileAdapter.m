@@ -82,6 +82,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         % Todo?: Support grouping of filetypes for similar files in nested
         % cell arrays, i.e { {tif, tiff}, {'png, 'jpg'}, {'mov', 'avi',
         % 'mp4'} }
+        % Specify supported file extensions 
         SUPPORTED_FILE_TYPES cell
     end
     
