@@ -17,7 +17,11 @@ function addpath()
     
     warning('off', 'MATLAB:rmpath:DirNotFound')
     rmpath(genpath(nansenRootPath))
+    rmpath(genpath(nansen.common.constant.DefaultAddonPath))
     warning('on', 'MATLAB:rmpath:DirNotFound')
+
+    % Add installed dependencies
+    addpath(genpath(nansen.common.constant.DefaultAddonPath))
 
     pathList = genpath(nansenRootPath);
     
@@ -28,4 +32,3 @@ function addpath()
     
     addpath(pathListNoGit)
 end
-
