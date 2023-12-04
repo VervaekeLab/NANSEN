@@ -112,7 +112,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
                     className = 'nansen.stack.virtual.MDF';
 
                 case 'tsm'
-                    className = 'ophys.macroscope.TSMVoltageSeries';
+                    className = 'nansen.stack.virtual.TSM';
 
                 otherwise
                     error('Nansen:DataIO:FileTypeNotSupported', ...
