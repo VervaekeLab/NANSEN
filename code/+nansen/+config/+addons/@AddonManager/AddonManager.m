@@ -5,7 +5,6 @@ classdef AddonManager < handle
     %   and this class provides several methods for managing these addons.
     
     
-    
     % TODOS:
     % [X] Save addon list
     % [x] System for adding addons to path on startup
@@ -18,7 +17,8 @@ classdef AddonManager < handle
     % [ ] Better warning/resolving when addons are duplicated...
     
     % [v] Use matlab.addons.install(filename) for matlab toolbox files.
-    
+    % [ ] Provide table with addons to install as input...
+
     
     % QUESTIONS:
     %   - Use gitmodules??
@@ -27,7 +27,7 @@ classdef AddonManager < handle
 
     % NOTES:
     % addons = matlab.addons.installedAddons
-    % S = matlab.addons.toolbox.installedToolboxes Does not show MATLAB toolboxes
+    % S = matlab.addons.toolbox.installedToolboxes Does not show Mathworks toolboxes
 
         
     properties % Preferences
@@ -292,7 +292,7 @@ classdef AddonManager < handle
 
             % Fix github unzipped directory...
             if strcmp(addonEntry.Source, 'Github') 
-                renamedDir = obj.moveGithubAddonDirectory(pkgInstallationDir);
+                renamedDir = obj.restructureUnzippedGithubRepo(pkgInstallationDir);
                 pkgInstallationDir = renamedDir;
             end
 
@@ -588,8 +588,8 @@ classdef AddonManager < handle
             pathStr = fullfile(userpath, 'Nansen', 'Add-Ons');
         end
 
-        function folderPath = moveGithubAddonDirectory(folderPath)
-        %moveGithubAddonDirectory Move the folder of a github addon.
+        function folderPath = restructureUnzippedGithubRepo(folderPath)
+        %restructureUnzippedGithubRepo Move the folder of a github addon.
         %
 
         % Github packages unzips to a new folder within the created
