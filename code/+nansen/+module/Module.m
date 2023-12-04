@@ -307,7 +307,7 @@ classdef Module < handle
         %fromName - Get a module instance from name
             
             % Build the folder path
-            moduleRootFolder = fullfile(nansen.rootpath, 'modules');
+            moduleRootFolder = nansen.common.constant.ModuleRootDirectory;
             modulePackageFolder = utility.path.packagename2pathstr(moduleName);
             moduleFolder = fullfile(moduleRootFolder, modulePackageFolder);
             

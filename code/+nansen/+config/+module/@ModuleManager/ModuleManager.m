@@ -13,7 +13,7 @@ classdef ModuleManager < handle
     end
     
     properties (Constant, Access = private)
-        ModuleRootPath = fullfile(nansen.rootpath, 'modules', '+nansen')
+        ModuleRootPath = nansen.common.constant.ModuleRootDirectory()
     end
     
     methods
@@ -71,7 +71,7 @@ classdef ModuleManager < handle
         %   this function will only work properly if there is one and only
         %   on valid json file within a module directory.
 
-            moduleDirectories = utility.path.listSubDir(obj.ModuleRootPath, '', {}, 3);
+            moduleDirectories = utility.path.listSubDir(obj.ModuleRootPath, '', {}, 4);
             moduleSpecFiles = utility.path.listFiles(moduleDirectories, '.json');
 
             numModules = numel(moduleSpecFiles);
