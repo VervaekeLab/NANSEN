@@ -24,6 +24,11 @@ classdef AddonManager < handle
     %   - Use gitmodules??
     %   - Implement better git functionality, i.e version tracking
     
+
+    % NOTES:
+    % addons = matlab.addons.installedAddons
+    % S = matlab.addons.toolbox.installedToolboxes Does not show MATLAB toolboxes
+
         
     properties % Preferences
         InstallationDir char = ''   % Path where addons should be installed
@@ -495,7 +500,6 @@ classdef AddonManager < handle
             
             % Will install to the default matlab toolbox/addon directory.
             newAddon = matlab.addons.install(fileName);
-            
             
 %           NEWADDON is a table of strings with these fields:
 %               Name - Name of the installed add-on

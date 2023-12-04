@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "cmocean",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/c1b0638a-0fac-4c35-afc3-59e0f4124d4e/871e24c6-0cdc-4bf6-bde8-df9329727a94/packages/zip"
+  },
+  {
+    "Name": "spectral_color",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/7021/versions/2/download/zip"
+  },
+  {
+    "Name": "dndcontrol",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/53511/versions/1/download/zip"
+  },
+  {
+    "Name": "fieldnamesr",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/33262/versions/1/download/zip"
+  },
+  {
+    "Name": "LimitFigSize",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/38527/versions/3/download/zip"
+  },
+  {
+    "Name": "plotboxpos",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e54f087e-4a80-11e4-9553-005056977bd0/8475b2e6-1340-4a61-bba8-532f8490531d/packages/zip"
+  },
+  {
+    "Name": "findjobj",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5534541-4a80-11e4-9553-005056977bd0/d64c0ef6-8814-4e71-828b-dd2ac3a9ccf6/packages/zip"
+  },
+  {
+    "Name": "getjframe",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e554c990-4a80-11e4-9553-005056977bd0/d841b2e4-570a-4560-a67c-c62f54975f14/packages/zip"
+  },
+  {
+    "Name": "undecorateFig",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/50111/versions/2/download/zip"
+  }
+]
