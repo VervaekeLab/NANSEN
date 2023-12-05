@@ -15,6 +15,8 @@ function fileAdapterList = listFileAdapters(fileExtension)
     % Todo: Start adding from project dir, then watchfolder, then internal?
     
     project = nansen.getCurrentProject();
+    if isempty(project); fileAdapterList = struct.empty; return; end
+
     fileAdapterList = table2struct(project.getTable('FileAdapter'));
 
     if nargin < 1; fileExtension = ''; end

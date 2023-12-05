@@ -328,6 +328,7 @@ classdef ModuleManagerUI < handle
         end
     
         function resetSelectedRows(obj)
+            if isempty(obj.UIControls.ModuleTable.Data); return; end
             selectedRows = find(obj.UIControls.ModuleTable.Data{:,1});
             obj.UIControls.ModuleTable.Data{:, 1} = false;
             for i = 1:numel(selectedRows)
