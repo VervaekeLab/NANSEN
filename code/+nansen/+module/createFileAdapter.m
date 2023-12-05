@@ -23,7 +23,7 @@ function createFileAdapter(targetPath, fileAdapterAttributes)
     
     % Get path for template
     rootPath = fileparts(mfilename('fullpath'));
-    templateFolder = fullfile( rootPath, 'resources', 'templates');
+    templateFolder = fullfile( rootPath, 'resources', 'class_templates');
 
     if strcmp( fileAdapterAttributes.AccessMode, 'R' )
         sourceFolderName = '@FileAdapterR';
@@ -40,9 +40,17 @@ function createFileAdapter(targetPath, fileAdapterAttributes)
     copyfile(templateSourcePath, templateTargetPath)
 
     % Rename classdef file
-    oldFilePath = fullfile(templateTargetPath, 'FileAdapter.template.m');
+    oldFilePath = fullfile(templateTargetPath, 'FileAdapter.m.template');
     newFilepath = fullfile(templateTargetPath, [fileAdapterAttributes.Name '.m']);
     movefile(oldFilePath, newFilepath)
+
+    % Also rename read (and write) template files
+    oldTemplateFiles = utility.dir.recursiveDir(templateTargetPath, ...
+        'Expression', '.m.template', 'OutputType', 'FilePath');
+    newTemplateFiles = strrep(oldTemplateFiles, '.m.template', '.m');
+    for i = 1:numel(oldTemplateFiles)
+         movefile(oldTemplateFiles{i}, newTemplateFiles{i})
+    end
     
     % Read file contents
     classdefStr = fileread(newFilepath);
