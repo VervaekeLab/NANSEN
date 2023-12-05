@@ -76,7 +76,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
     
     properties (Access = private)
         FolderOrganizationFilterListener
-        FolderOrganizationTemplates
+        DataLocationTemplates
     end
     
     
@@ -299,12 +299,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.SelectTemplateDropdown.ValueChangedFcn = @obj.onTemplateSelectionChanged;
             obj.SelectTemplateDropdown.Position = [Xl(4) Y Wl(4) 22];
             
-            obj.FolderOrganizationTemplates = obj.getFolderOrganizationTemplates();
-            
-            
-            obj.SelectTemplateDropdown.Items = ['No Selection', {obj.FolderOrganizationTemplates.Name}];
-            obj.SelectTemplateDropdown.Value = 'No Selection';
-            
+            obj.refreshDataLocationTemplates()
             
             obj.SelectTemplateHelpIcon = obj.createHelpIconButton(hPanel);
             obj.SelectTemplateHelpIcon.Position = [Xl(5)-5 Y+1 Wl(5) 20];
@@ -358,6 +353,16 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             sOld = obj.DataLocationModel.Data(idx).SubfolderStructure; 
             if ~isequal(sNew, sOld)
                 obj.DataLocationModel.updateSubfolderStructure(sNew, idx)
+            end
+        end
+        
+        function refreshDataLocationTemplates(obj)
+        % refreshDataLocationTemplates - Refresh list of DataLocationTemplates
+            obj.DataLocationTemplates = obj.getDataLocationTemplates();
+
+            if ~isempty(obj.SelectTemplateDropdown)
+                obj.SelectTemplateDropdown.Items = ['No Selection', {obj.DataLocationTemplates.Name}];
+                obj.SelectTemplateDropdown.Value = 'No Selection';
             end
         end
         
@@ -843,14 +848,15 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             dataLoc = obj.CurrentDataLocation;
             
             % Get the selected template:
-            isMatched = strcmp({obj.FolderOrganizationTemplates.Name}, event.Value);
+            isMatched = strcmp({obj.DataLocationTemplates.Name}, event.Value);
             if ~any( isMatched ); return; end
-            
-            templateFcn = str2func(...
-                obj.FolderOrganizationTemplates(isMatched).FunctionName);
-            S = templateFcn();
+
+            S = obj.DataLocationTemplates(isMatched);
             
             % Check if template is different fram data in gui...
+
+            % Todo: Skip this if the data in the GUI is same as defaults...
+
             if ~isequal(S.SubfolderStructure, dataLoc.SubfolderStructure) || ...
                     ~isequal(S.MetaDataDef, dataLoc.MetaDataDef)
                 
@@ -1096,35 +1102,10 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
     
     methods (Static)
         
-        function S = getFolderOrganizationTemplates()
-            
-            % Todo: definitions should be generalized away from .m
-            % functions
-            templateDir = fullfile( nansen.rootpath, 'templates', 'datalocation');
-            addpath(genpath(templateDir))
-            
-            subfolderPath = utility.path.listSubDir(templateDir);
-            
-            % Get all .m files in subdirectories
-            for i = 1:numel(subfolderPath)
-                if i == 1
-                    L = dir(fullfile(subfolderPath{i}, '*.m') );
-                else
-                    L = cat(1, L, dir(fullfile(subfolderPath{i}, '*.m') ));
-                end
-            end
-            
-            S = struct('Name', {}, 'DataType', {}, 'FunctionName', {});
-            
-            for i = 1:numel(L)
-                [~, functionName, ~] = fileparts(L(i).name);
-                tmpFcn = str2func(functionName);
-                tempS = tmpFcn();
-                
-                S(i).Name = tempS.Name;
-                S(i).DataType = tempS.DataType;
-                S(i).FunctionName = functionName;
-            end
+        function S = getDataLocationTemplates()
+        % getDataLocationTemplates - Get data location templates from project
+            p = nansen.getCurrentProject();
+            S = table2struct( p.getTable('DataLocations') );
         end
     end
     

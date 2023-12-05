@@ -1,0 +1,54 @@
+{
+  "_type": "Nansen Data Location Template Specification",
+  "_version": "1.0.0",
+  "Name": "SciScan 2P",
+  "DataType": "Recorded",
+  "SubfolderStructure": [
+    {
+      "Name": "",
+      "Type": "Date",
+      "Expression": "\\d{4}_\\d{2}_\\d{2}",
+      "IgnoreList": []
+    },
+    {
+      "Name": [],
+      "Type": "Session",
+      "Expression": [],
+      "IgnoreList": []
+    }
+  ],
+  "MetaDataDef": [
+    {
+      "VariableName": "Animal ID",
+      "SubfolderLevel": [],
+      "StringDetectMode": "ind",
+      "StringDetectInput": "",
+      "StringFormat": "",
+      "FunctionName": ""
+    },
+    {
+      "VariableName": "Session ID",
+      "SubfolderLevel": [],
+      "StringDetectMode": "ind",
+      "StringDetectInput": "",
+      "StringFormat": "",
+      "FunctionName": ""
+    },
+    {
+      "VariableName": "Experiment Date",
+      "SubfolderLevel": 1,
+      "StringDetectMode": "ind",
+      "StringDetectInput": "1:10",
+      "StringFormat": "yyyy_MM_dd",
+      "FunctionName": ""
+    },
+    {
+      "VariableName": "Experiment Time",
+      "SubfolderLevel": 2,
+      "StringDetectMode": "ind",
+      "StringDetectInput": "10:17",
+      "StringFormat": "HH_mm_ss",
+      "FunctionName": ""
+    }
+  ]
+}

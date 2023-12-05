@@ -333,6 +333,7 @@ classdef ModuleManagerUI < handle
             for i = 1:numel(selectedRows)
                 obj.setRowStyle('Unselected Row', selectedRows(i))
             end
+            obj.SelectedRows = [];
         end
     end
 

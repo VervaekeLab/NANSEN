@@ -335,7 +335,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                         variableList(j).DataLocationUuid = defaultDataLocation.Uuid;
                     end
 
-                    obj.insertItem(variableList(j))
+                    obj.insertItem(variableList(j));
                 end
             end
             obj.save()

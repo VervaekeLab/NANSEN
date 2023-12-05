@@ -303,7 +303,7 @@ classdef Project < nansen.module.Module
             variableModel = nansen.config.varmodel.VariableModel(modelFilePath);
             
             % Get variable list from included modules
-            variableList = table2struct( obj.getTable('DataVariable') );
+            variableList = table2struct( obj.getTable('DataVariables') );
 
             % Call the method to initialize the variable list
             variableModel.addDataVariableSet(variableList)
@@ -368,7 +368,7 @@ classdef Project < nansen.module.Module
                     obj.IncludedModules = [module, obj.IncludedModules];
                     
                     % Update variable model based on module's template variables
-                    variableList = table2struct( module.getTable('DataVariable') );
+                    variableList = table2struct( module.getTable('DataVariables') );
                     obj.VariableModel.addDataVariableSet(variableList)
                 end
             end

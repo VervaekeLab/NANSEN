@@ -110,7 +110,9 @@ classdef Module < handle
         end
 
         function itemTable = getTable(obj, itemType)
-            itemType = validatestring(itemType, {'SessionMethod', 'TableVariable', 'FileAdapter', 'DataVariable'}, 1);
+            itemType = validatestring(itemType, {'SessionMethod', ...
+                'TableVariable', 'FileAdapter', 'DataVariables', ...
+                'DataLocations'}, 1);
             itemTable = obj.rehash(itemType);
         end
 
@@ -150,7 +152,7 @@ classdef Module < handle
         end
 
         function dataVariableList = get.DataVariables(obj)
-            itemTable = obj.rehash('DataVariable');
+            itemTable = obj.rehash('DataVariables');
             dataVariableList = itemTable.VariableName;
             dataVariableList = string(dataVariableList)';
         end      
@@ -196,7 +198,7 @@ classdef Module < handle
                 case {'sessionmethod', 'tablevariable', 'fileadapter'}
                     rootPath = fullfile(obj.FolderPath, ['+', itemType]);
 
-                case {'datavariable', 'pipeline'}
+                case {'datavariables', 'pipeline', 'datalocations'}
                     rootPath = fullfile(obj.FolderPath, 'resources', itemType);
             end
         end
@@ -207,7 +209,7 @@ classdef Module < handle
             switch itemType
                 case {'SessionMethod', 'TableVariable', 'FileAdapter'}
                     fileList = obj.listMFiles(rootFolder);
-                case {'DataVariable', 'Pipeline'}
+                case {'DataVariables', 'Pipeline', 'DataLocations'}
                     fileList = obj.listJsonFiles(rootFolder);
             end
             if nargout > 1
@@ -272,7 +274,10 @@ classdef Module < handle
                     itemTable = buildSessionMethodTable(fileList);
                 case 'TableVariable'
                     itemTable = buildTableVariableTable(fileList);
-                case 'DataVariable'
+                case 'DataVariables'
+                    filePaths = utility.dir.abspath(fileList);
+                    itemTable = obj.buildTableFromJsonFiles(filePaths);
+                case 'DataLocations'
                     filePaths = utility.dir.abspath(fileList);
                     itemTable = obj.buildTableFromJsonFiles(filePaths);
                 case 'Pipeline'
@@ -292,8 +297,11 @@ classdef Module < handle
                 jsonData = jsondecode(fileread(filePaths{i}));
         
                 % Convert the JSON data to a table
-                tempTable = struct2table(jsonData.Properties, 'AsArray', true);
-        
+                try
+                    tempTable = struct2table(jsonData.Properties, 'AsArray', true);
+                catch
+                    tempTable = struct2table(jsonData, 'AsArray', true);
+                end
                 % Append the table to the result
                 resultTable = [resultTable; tempTable]; %#ok<AGROW>
             end
