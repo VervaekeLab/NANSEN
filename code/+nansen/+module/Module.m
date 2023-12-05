@@ -385,7 +385,7 @@ classdef Module < handle
         % getModuleTemplateDirectory - Get pathstring for template folder
             rootFolder = fileparts( mfilename('fullpath') );
             moduleTemplateFolder = fullfile(rootFolder, "resources", ...
-                "module_template", "+nansen", "+module", "+category", "+name");
+                "module_folder_template", "+nansen", "+module", "+category", "+name");
         end
     end
 

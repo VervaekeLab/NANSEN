@@ -1,0 +1,1 @@
+A folder to hold data variable templates for a module.
