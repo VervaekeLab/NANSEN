@@ -1,18 +1,7 @@
-% NANSEN Toolbox
-% Version 0.0.6 (R2020b) 04-dec-2021
+% NANSEN - Neuro Analysis Software Ensemble
+% Version 0.9.0 (R2023b) 05-dec-2023
 %
-% Copyright (c) 2021 VervaekeLab, Eivind Hennestad
+% Copyright (c) 2023 VervaekeLab, Eivind Hennestad
 %
 % Contains code which make up the NANSEN package
-
-
-
-
-
-% Version log
-% 0.0.6 - 04-dec-2021 Added nansen app (session browser)
-% 0.0.5 - 03-dec-2021 Added nansen setup app for configuring the pipeline
-% 0.0.4 - 03-dec-2021 Added roimanager functionality
-% 0.0.3 - 10-nov-2021 Added imviewer and fovmanager
-
 

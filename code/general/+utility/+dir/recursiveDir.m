@@ -9,6 +9,7 @@ function combinedListing = recursiveDir(rootPath, options)
         options.RecursionDepth (1,1) double = inf
         options.IsCumulative (1,1) logical = true
         options.OutputType (1,1) string {mustBeMember(options.OutputType, {'FilePath', 'FileAttributes'})} = 'FileAttributes'
+        options.IncludeHiddenFiles = false
     end
     
     import utility.dir.recursiveDir
@@ -32,7 +33,12 @@ function combinedListing = recursiveDir(rootPath, options)
         newListing = dir(fullfile(rootPath));
         
         % 1. Remove "shadow" files / hidden files
-        newListing(strncmp({newListing.name}, '.', 1)) = [];
+        newListing(strcmp({newListing.name}, '.')) = [];
+        newListing(strcmp({newListing.name}, '..')) = [];
+        
+        if ~options.IncludeHiddenFiles
+            newListing(strncmp({newListing.name}, '.', 1)) = [];
+        end
         
         % 2. Filter listing by exclusion criteria
         keep = true(1, numel(newListing));
