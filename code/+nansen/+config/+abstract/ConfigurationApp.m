@@ -157,7 +157,7 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
             % Create LoadingImage
             uiImage = uiimage(obj.LoadingPanel);
             uiImage.Position(3:4) = [140 140];
-            uiImage.ImageSource = fullfile(nansen.rootpath, 'code', 'resources', 'images', 'loading.gif');
+            uiImage.ImageSource = fullfile(nansen.toolboxdir, 'resources', 'images', 'loading.gif');
             
             uiText = uilabel(obj.LoadingPanel);
             uiText.Text = 'Composing, just a moment please...';

@@ -11,3 +11,6 @@ else
     error('Setup requires MATLAB release 2019a or later')
     %setup.App
 end 
+
+% Todo
+% if ~verLessThan('matlab','9.6') && ~isMATLABReleaseOlderThan("R2019a")

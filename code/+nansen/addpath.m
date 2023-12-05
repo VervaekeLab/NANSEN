@@ -12,16 +12,18 @@ function addpath()
     expression = sprintf('.*?(?=%s)', pathsep); % Everything before the first pathsep
     firstPathOnPath = regexp(currentpath, expression, 'match', 'once');
 
-    nansenRootPath = nansen.rootpath();
+    nansenRootPath = nansen.toolboxdir();
     if isequal( firstPathOnPath, nansenRootPath ); return; end
+
+    nansenAddonPath = nansen.common.constant.DefaultAddonPath;
     
     warning('off', 'MATLAB:rmpath:DirNotFound')
     rmpath(genpath(nansenRootPath))
-    rmpath(genpath(nansen.common.constant.DefaultAddonPath))
+    rmpath(genpath(nansenAddonPath))
     warning('on', 'MATLAB:rmpath:DirNotFound')
 
     % Add installed dependencies
-    addpath(genpath(nansen.common.constant.DefaultAddonPath))
+    addpath(genpath(nansenAddonPath))
 
     pathList = genpath(nansenRootPath);
     

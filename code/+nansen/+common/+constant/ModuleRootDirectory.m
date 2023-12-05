@@ -1,3 +1,3 @@
 function pathName = ModuleRootDirectory()
-    pathName = fullfile(nansen.rootpath, 'code', 'modules');
+    pathName = fullfile(nansen.toolboxdir, 'modules');
 end

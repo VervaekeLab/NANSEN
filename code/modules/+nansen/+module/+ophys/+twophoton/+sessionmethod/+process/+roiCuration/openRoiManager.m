@@ -33,7 +33,7 @@ function varargout = openRoiManager(sessionObj, varargin)
     %sessionObj.validateVariable('TwoPhotonSeries_Corrected')
 
 
-% %     filepath = fullfile(nansen.localpath('root'), 'docs', 'resources', 'nansen_roiman.png');
+% %     filepath = fullfile(nansen.toolboxdir, 'resources', 'images', 'nansen_roiman.png');
 % %     [jFrame, jLabel, C] = nansen.ui.showSplashScreen(filepath, 'RoiManager'); %#ok<ASGLU>
 % %     jLabel.setText('Retrieving Session Data')
     

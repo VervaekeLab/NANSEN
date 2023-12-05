@@ -81,7 +81,7 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
         function obj = DataMethod(varargin)
         %DataMethod Constructs an instance of the DataMethod class
         %
-        %   obj = nansen.DataMethod(dataIoModel, options) creates the
+        %   obj = nansen.processing.DataMethod(dataIoModel, options) creates the
         %   object with a data i/o model and a set of options
         %
         %   Inputs:

@@ -32,7 +32,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %       [ ] Move shifts to results property of ImageStackProcessor
 
 
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Motion Correction (FlowRegistration)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.flowreg.Processor')

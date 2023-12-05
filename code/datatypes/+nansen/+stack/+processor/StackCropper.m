@@ -8,7 +8,7 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
         NewSize (1,2) double
     end
     
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Crop Stack'
         IsManual = false        % Does method require manual supervision?
         IsQueueable = true      % Can method be added to a queue?
@@ -17,8 +17,8 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
     end
 
     properties (Constant, Hidden)
-        DATA_SUBFOLDER = ''	% defined in nansen.DataMethod
-        VARIABLE_PREFIX	= '' % defined in nansen.DataMethod
+        DATA_SUBFOLDER = ''	% defined in nansen.processing.DataMethod
+        VARIABLE_PREFIX	= '' % defined in nansen.processing.DataMethod
     end 
 
     methods (Static)

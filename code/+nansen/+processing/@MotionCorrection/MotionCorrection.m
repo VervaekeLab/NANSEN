@@ -5,7 +5,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 %   motion correction on ImageStack objects. It inherits the following 
 %   classes:
 %
-%   - nansen.DataMethod : Provides data I/O model and options functionality
+%   - nansen.processing.DataMethod : Provides data I/O model and options functionality
 %   - nansen.stack.ImageStackProcessor : Process ImageStack in subparts
 %
 %   Known subclasses:
@@ -88,7 +88,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         ImviewerPluginName
     end
     
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
     end

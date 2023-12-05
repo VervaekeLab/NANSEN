@@ -47,29 +47,24 @@ function pathStr = localpath(pathKeyword, projectName)
     switch pathKeyword
         
       % % Folders
-        
-        case {'nansen_root', 'root'}
-            % Get folder for nansen root.
-            folderPath = nansen.rootpath();
-
         case 'session_method_templates'
-            rootPath = fullfile(nansen.rootpath, 'code', '+nansen');
+            rootPath = fullfile(nansen.toolboxdir, '+nansen');
             folderPath = fullfile(rootPath, '+session', '+methods', '+template');
                 
         case 'table_variable_templates'
-            rootPath = fullfile(nansen.rootpath, 'code', '+nansen');
+            rootPath = fullfile(nansen.toolboxdir, '+nansen');
             folderPath = fullfile(rootPath, '+metadata', '+tablevar');
         
         case 'builtin_file_adapter'
-            rootPath = fullfile(nansen.rootpath, 'code', '+nansen');
+            rootPath = fullfile(nansen.toolboxdir, '+nansen');
             folderPath = fullfile(rootPath, '+dataio', '+fileadapter');
 
         case 'subfolder_list'
-            initPath = fullfile(nansen.localpath('nansen_root'), 'code');
+            initPath = nansen.toolboxdir();
             folderPath = strsplit(genpath(initPath), pathsep);
             folderPath = folderPath(1:end-1);
 
-        case {'_user_data', 'user_data', '_userdata', 'userdata'} % Todo...
+        case {'_user_data', 'user_data', '_userdata', 'userdata'}
             folderPath = nansen.prefdir();
             
         case 'project_settings'
@@ -90,10 +85,6 @@ function pathStr = localpath(pathKeyword, projectName)
 
             folderPath = fullfile(projectRootDir, 'code', ...
                 ['+', projectName], '+tablevariable');
-            
-        case 'Data Variable Template Folder'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, 'templates', 'datavariables');
             
       % % Files
       

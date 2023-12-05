@@ -41,7 +41,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         VARIABLE_PREFIX = 'Extract';
     end
 
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'EXTRACT (Autosegmentation)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.extract.Processor')

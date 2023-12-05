@@ -3552,7 +3552,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 case 'Current Project' 
                     cd(app.CurrentProject.FolderPath)
                 case 'Nansen'
-                    cd(nansen.rootpath)
+                    cd(nansen.toolboxdir)
             end
         end
 

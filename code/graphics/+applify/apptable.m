@@ -179,7 +179,7 @@ classdef apptable < applify.UiControlTable
         function hIconButton = createHelpIconButton(obj, hContainer)
         %createHelpIconButton Create a help button
         
-            imgPath = fullfile(nansen.rootpath, 'code', 'resources', 'icons');
+            imgPath = fullfile(nansen.toolboxdir, 'resources', 'icons');
             hIconButton = uiimage(hContainer);
             hIconButton.Tooltip = 'Press for help';
             hIconButton.ImageSource = fullfile(imgPath, 'help.png');

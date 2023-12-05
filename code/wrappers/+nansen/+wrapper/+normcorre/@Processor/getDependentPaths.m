@@ -18,6 +18,6 @@ function pathList = getDependentPaths()
     
     % Todo: 
     %   Need nansen.stack.ImageStack
-    %   Need nansen.DataMethod
+    %   Need nansen.processing.DataMethod
     %   Need nansen.processing.MotionCorrection
 end

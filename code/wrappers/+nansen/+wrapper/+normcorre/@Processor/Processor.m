@@ -27,7 +27,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %       [ ] Move shifts to results property of ImageStackProcessor
 
 
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Motion Correction (NoRMCorre)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.normcorre.Processor')

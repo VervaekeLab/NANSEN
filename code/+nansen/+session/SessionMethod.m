@@ -1,4 +1,4 @@
-classdef SessionMethod < nansen.DataMethod
+classdef SessionMethod < nansen.processing.DataMethod
 %SessionMethod Abstract class for session methods
 %   
 %   Classes inheriting SessionMethod should provide a method for use on one

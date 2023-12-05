@@ -12,8 +12,8 @@ classdef extractSignals < nansen.session.SessionMethod
     end
     
     properties (Constant)
-        DATA_SUBFOLDER = 'roisignals' % defined in nansen.DataMethod
-        VARIABLE_PREFIX	= 'RoiSignals'          % defined in nansen.DataMethod
+        DATA_SUBFOLDER = 'roisignals' % defined in nansen.processing.DataMethod
+        VARIABLE_PREFIX	= 'RoiSignals'          % defined in nansen.processing.DataMethod
     end
 
     properties 

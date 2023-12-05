@@ -9,7 +9,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
 %
 %   (1) https://github.com/MATLAB-Community-Toolboxes-at-INCF/DeepInterpolation-MATLAB
     
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Deep Interpolation (Denoise Stack)'
         IsManual = false        % Does method require manual supervision?
         IsQueueable = true      % Can method be added to a queue?
@@ -18,8 +18,8 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
     end
 
     properties (Constant, Hidden)
-        DATA_SUBFOLDER = ''	% defined in nansen.DataMethod
-        VARIABLE_PREFIX	= '' % defined in nansen.DataMethod
+        DATA_SUBFOLDER = ''	% defined in nansen.processing.DataMethod
+        VARIABLE_PREFIX	= '' % defined in nansen.processing.DataMethod
     end
     
     properties (Access = private)

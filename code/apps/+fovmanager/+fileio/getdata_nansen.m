@@ -26,10 +26,7 @@ function S = getdata(sessionID, dataName)
     metaTable = nansen.metadata.MetaTable.open(loadPath);
     
     isMatch = strcmp( metaTable.members, sessionID);
-    entry = metaTable.entries(isMatch, :);
-
-    sessionObj = 
-    
+    entry = metaTable.entries(isMatch, :);    
     
     sData = getSessionData(sessionID);
     S = struct();

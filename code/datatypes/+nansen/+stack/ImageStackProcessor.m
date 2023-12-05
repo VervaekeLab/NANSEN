@@ -1,4 +1,4 @@
-classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous  
+classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Heterogenous  
 %NANSEN.STACK.IMAGESTACKPROCESSOR Super class for image stack method.
 %
 %   This is a super class for methods that will run on an ImageStack
@@ -223,7 +223,7 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
             
             % Call the constructor for the superclass (DataMethod)
             nvPairs = {};
-            obj@nansen.DataMethod(dataLocation, opts, nvPairs{:})
+            obj@nansen.processing.DataMethod(dataLocation, opts, nvPairs{:})
             
             if numel(varargin) == 0
                 return
@@ -376,7 +376,7 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
 %                     'Plugin for %s was not found', CLASSNAME)
 
                 % Use superclass method editOptions
-                wasSuccess = preview@nansen.DataMethod(obj);
+                wasSuccess = preview@nansen.processing.DataMethod(obj);
 
                 % Fallback option. Todo: Remove 
                 %[obj.Options, wasAborted] = tools.editStruct(obj.Options);
@@ -1063,19 +1063,19 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
         %displayProcessingSteps Display the processing steps for process    
             
             if obj.IsSubProcess; return; end
-            displayProcessingSteps@nansen.DataMethod(obj)
+            displayProcessingSteps@nansen.processing.DataMethod(obj)
         end
         
         function displayStartStep(obj, stepId)
         %displayStartStep Display message when current step starts    
             if obj.IsSubProcess; return; end
-            displayStartStep@nansen.DataMethod(obj, stepId)
+            displayStartStep@nansen.processing.DataMethod(obj, stepId)
         end
         
         function displayFinishStep(obj, stepId)
         %displayFinishStep Display message when current step stops    
             if obj.IsSubProcess; return; end
-            displayFinishStep@nansen.DataMethod(obj, stepId)
+            displayFinishStep@nansen.processing.DataMethod(obj, stepId)
         end
         
         function str = getCurrentPartString(obj, iPart)

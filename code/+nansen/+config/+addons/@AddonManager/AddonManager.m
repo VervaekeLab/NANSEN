@@ -632,6 +632,7 @@ classdef AddonManager < handle
 
     methods (Static, Access = private)
         function pathStr = getDefaultInstallationDirLegacy()
+        % Note: This method will be removed in a future version (todo).
             pathStr = fullfile(nansen.rootpath, 'external');
         end
     end
@@ -643,6 +644,7 @@ classdef AddonManager < handle
 
     methods (Static, Access = ?nansen.internal.user.NansenUserSession)
         function tf = existExternalToolboxInRepository()
+        % Note: This method will be removed in a future version (todo).
             rootDir = fullfile(nansen.rootpath, 'external');
             tf = isfolder(fullfile(rootDir, 'general_toolboxes')) || ...
                     isfolder(fullfile(rootDir, 'neuroscience_toolboxes'));

@@ -37,7 +37,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         VARIABLE_PREFIX = 'Quicky' %'FluFinder'
     end
 
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Quicky (Autosegmentation)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.quicky.Processor')

@@ -38,7 +38,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         VARIABLE_PREFIX = 'Suite2p';
     end
 
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'suite2p (Autosegmentation)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.suite2p.Processor')

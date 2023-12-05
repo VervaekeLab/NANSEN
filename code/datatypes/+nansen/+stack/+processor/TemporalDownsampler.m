@@ -19,7 +19,7 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
         VALIDMODES = {'mean', 'max', 'min'}
     end
     
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Temporal Downsampling'
         IsManual = false        % Does method require manual supervision?
         IsQueueable = true      % Can method be added to a queue?
@@ -28,8 +28,8 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
     end
 
     properties (Constant, Hidden)
-        DATA_SUBFOLDER = ''	% defined in nansen.DataMethod
-        VARIABLE_PREFIX	= '' % defined in nansen.DataMethod
+        DATA_SUBFOLDER = ''	% defined in nansen.processing.DataMethod
+        VARIABLE_PREFIX	= '' % defined in nansen.processing.DataMethod
     end 
     
     properties (SetAccess = private)

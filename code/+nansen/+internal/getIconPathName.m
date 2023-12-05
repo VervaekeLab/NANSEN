@@ -1,4 +1,4 @@
 function pathName = getIconPathName(iconFileName)
-    pathName = fullfile(nansen.rootpath, 'code', 'resources', ...
-        'icons', 'setup', iconFileName);
+    pathName = fullfile(nansen.toolboxdir, 'resources', 'icons', ...
+        'setup', iconFileName);
 end

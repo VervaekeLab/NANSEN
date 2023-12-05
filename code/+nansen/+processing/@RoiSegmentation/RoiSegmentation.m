@@ -44,7 +44,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 %         This is convenient, but not very transparent
 
 
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         IsManual = false        % Does method require manual supervision?
         IsQueueable = true      % Can method be added to a queue?
     end
