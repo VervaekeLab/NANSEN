@@ -1,0 +1,65 @@
+[
+  {
+    "Name": "LimitFigSize",
+    "FullName": "Limit figure size",
+    "FileExchangeUuid": "e591ad8c-4a80-11e4-9553-005056977bd0",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/38527/versions/3/download/zip",
+    "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e591ad8c-4a80-11e4-9553-005056977bd0/bceb5e18-99b4-307d-53f6-17ad5f2fed8d/licenses/license.txt"
+  },
+  {
+    "Name": "cmocean",
+    "FullName": "cmocean - Perceptually-uniform colormaps",
+    "FileExchangeUuid": "c1b0638a-0fac-4c35-afc3-59e0f4124d4e",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/c1b0638a-0fac-4c35-afc3-59e0f4124d4e/871e24c6-0cdc-4bf6-bde8-df9329727a94/packages/zip",
+    "LicenseUrl": "https://github.com/chadagreene/cmocean/blob/main/LICENSE"
+  },
+  {
+    "Name": "spectral_color",
+    "FullName": "Spectral and XYZ Color Functions",
+    "FileExchangeUuid": "e54c42c5-4a80-11e4-9553-005056977bd0",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/7021/versions/2/download/zip",
+    "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e54c42c5-4a80-11e4-9553-005056977bd0/6b59f926-76fd-007e-9cc4-5d7f3fdd51f4/licenses/license.txt"
+  },
+  {
+    "Name": "dndcontrol",
+    "FullName": "dndcontrol - Drag & Drop functionality for JAVA GUI components",
+    "FileExchangeUuid": "a2683379-9aab-4943-a18c-362a9c4c3ddb",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/53511/versions/1/download/zip",
+    "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/a2683379-9aab-4943-a18c-362a9c4c3ddb/141590c8-26ef-8423-884a-4d4d2ca404f1/licenses/license.txt"
+  },
+  {
+    "Name": "fieldnamesr",
+    "FullName": "fieldnamesr - Get structure field names in recursive manner",
+    "FileExchangeUuid": "e5814fde-4a80-11e4-9553-005056977bd0",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/33262/versions/1/download/zip",
+    "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5814fde-4a80-11e4-9553-005056977bd0/71395be6-3174-d984-2f3e-2b0c3520ed5e/licenses/license.txt"
+  },
+  {
+    "Name": "plotboxpos",
+    "FullName": "plotboxpos - Plot box (visible) position",
+    "FileExchangeUuid": "e54f087e-4a80-11e4-9553-005056977bd0",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e54f087e-4a80-11e4-9553-005056977bd0/8475b2e6-1340-4a61-bba8-532f8490531d/packages/zip",
+    "LicenseUrl": "https://github.com/kakearney/plotboxpos-pkg/blob/master/LICENSE.txt"
+  },
+  {
+    "Name": "findjobj",
+    "FullName": "findjobj - Find java handles of Matlab graphic objects",
+    "FileExchangeUuid": "e5534541-4a80-11e4-9553-005056977bd0",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5534541-4a80-11e4-9553-005056977bd0/d64c0ef6-8814-4e71-828b-dd2ac3a9ccf6/packages/zip",
+    "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5534541-4a80-11e4-9553-005056977bd0/d64c0ef6-8814-4e71-828b-dd2ac3a9ccf6/license/license.txt"
+  },
+  {
+    "Name": "getjframe",
+    "FullName": "getjframe - Retrieves a figure's underlying Java frame",
+    "FileExchangeUuid": "e554c990-4a80-11e4-9553-005056977bd0",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e554c990-4a80-11e4-9553-005056977bd0/d841b2e4-570a-4560-a67c-c62f54975f14/packages/zip",
+    "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e554c990-4a80-11e4-9553-005056977bd0/d841b2e4-570a-4560-a67c-c62f54975f14/license/license.txt"
+  },
+  {
+    "Name": "undecorateFig",
+    "FullName": "undecorateFig - Remove/restore figure border and title bar",
+    "FileExchangeUuid": "f79d0fad-86b6-4e5d-a029-7a846b7eca76",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/50111/versions/2/download/zip",
+    "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/f79d0fad-86b6-4e5d-a029-7a846b7eca76/3ae50acb-1eb2-1a62-b4f1-d6620f155c10/licenses/license.txt"
+  }
+]
