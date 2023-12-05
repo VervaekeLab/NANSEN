@@ -240,12 +240,17 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 obj.roiDisplay.RoiGroup = roimanager.roiGroup.empty;
             end
 
-            for i = 1%;%2:numel(obj.RoiGroup)
-                % use obj.addRois!
-                obj.ImviewerObj.displayMessage('Updating rois...')
-                obj.RoiGroup(i).addRois(roiArray, [], 'initialize')
-                obj.ImviewerObj.clearMessage()
+            if ~iscell(roiArray)
+                roiArray = {roiArray};
             end
+
+            obj.ImviewerObj.displayMessage('Updating rois...')
+            for i = 1:numel(obj.RoiGroup)
+                % use obj.addRois!
+                obj.RoiGroup(i).addRois(roiArray{i}, [], 'initialize')
+            end
+            obj.ImviewerObj.clearMessage()
+
             obj.onCurrentChannelChanged()
         end
 
@@ -378,13 +383,38 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         end
         
         function addRois(obj, roiArray)
-            if isa(obj.ActiveRoiGroup, 'roimanager.CompositeRoiGroup')
-                delete(obj.ActiveRoiGroup)
-                obj.roiDisplay.RoiGroup = roimanager.roiGroup.empty;
+            
+            % Currently only used for initialization. 
+            % Todo: Should update name and make it more intuitive...
+
+            if iscell(roiArray)
+                [numZ, numC] = size(roiArray);
+                assert( isequal( size(roiArray), size(obj.RoiGroup)), 'Roi array which is added to roimanager must be a cell array with same number of channels and planes as image data' )
+                for iZ = 1:numZ
+                    for iC = 1:numC
+                        obj.RoiGroup(iZ, iC).addRois( roiArray{iZ, iC} );
+                    end
+                end
+            else
+                obj.RoiGroup.addRois(roiArray)
             end
 
-            currentRoiGroup = obj.getCurrentRoiGroup();
-            currentRoiGroup.addRois(roiArray, [], 'append')
+        
+            % % Old version were we assume only one group is added and it 
+            % should be appended to the current roi group. This method is
+            % currently (2023-02-11) used many places, but its behavior
+            % should change and be more of an initialization method where we 
+            % can provide roiarrays and add the to roigroups as above, and
+            % then get proper documententation in place
+
+
+% % %             if isa(obj.ActiveRoiGroup, 'roimanager.CompositeRoiGroup')
+% % %                 delete(obj.ActiveRoiGroup)
+% % %                 obj.roiDisplay.RoiGroup = roimanager.roiGroup.empty;
+% % %             end
+% % % 
+% % %             currentRoiGroup = obj.getCurrentRoiGroup();
+% % %             currentRoiGroup.addRois(roiArray, [], 'append')
             %obj.updateActiveRoiGroup()
             obj.onActiveChannelSet()
         end
@@ -1184,7 +1214,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
     
     methods (Access = private) % Initialization
         
-        function initializeRoiGroup(obj)
+        function initializeRoiGroup(obj) %% Todo, public method?
             
             % Todo: Remove when type of roiGroup is properly defined in
             % property block of superclass

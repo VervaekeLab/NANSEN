@@ -1008,6 +1008,23 @@ methods
                 data{i} = obj(i).ApplicationData.(name);
             end
         end
+
+        % Find data type based on non-empty cells
+        isEmpty = cellfun('isempty', data);
+        dataType = cellfun(@class, data(~isEmpty), 'uni', 0);
+        uniqueDataType = unique(dataType);
+
+        % Todo: error handling.
+        if numel(uniqueDataType) > 1
+            %error('Nansen:Roi:ConcatenationError', 'Can not concatenate roi appdata because multiple data types are present')
+        end
+
+        % If data are struct, make sure empty cells are filled with structs
+        if numel(uniqueDataType) == 1
+            if iscell(data) && strcmp(uniqueDataType, 'struct')
+                data(isEmpty) = {struct};
+            end
+        end
         
         % concatenate data for rois into vector/qarray     
         if iscell(data) && isstruct(data{1})
@@ -1041,7 +1058,11 @@ methods
                 pixelIdxList = sub2ind(imsize, Y, X);
                 
             case {'Mask', 'IMask'}
-                pixelIdxList = sub2ind(imsize, round(obj.coordinates(:,2)), round(obj.coordinates(:,1)));
+                X = round(obj.coordinates(:,1));
+                Y = round(obj.coordinates(:,2));
+                [X, Y] = obj.validateCoordinates(X, Y);
+                pixelIdxList = sub2ind(imsize, Y, X);
+
             case 'Polygon'
                 pixelIdxList = find(obj.mask);
         end

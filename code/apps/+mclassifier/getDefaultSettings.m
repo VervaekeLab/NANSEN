@@ -4,7 +4,7 @@ function S = getDefaultSettings()
 % class is cleared and reinitialized.
 
     S = struct();
-    S.GridSize_ = {'3x5', '4x6', '5x8', '6x10', '7x12', '8x12', '9x14', '10x16'};
+    S.GridSize_ = {'Custom', '3x5', '4x6', '5x8', '6x10', '7x12', '8x12', '9x14', '10x16'};
     S.GridSize = '8x12';
     S.ImageScaleFactor = '1';
     S.ImageScaleFactor_ = {'1/8', '1/4', '1/2', '1', '2', '4', '8'};

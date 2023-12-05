@@ -52,16 +52,24 @@ function varargout = openRoiManager(sessionObj, varargin)
     hRoimanager = nansen.roimanager(imageStack);
     
     try
-        roiFilePath = sessionObj.getDataFilePath('RoiArray');
-        
-        if ~isfile(roiFilePath)
-            return
-        else
-% %             jLabel.setText('Loading rois')
-            hRoimanager.loadRois(roiFilePath)
+% %         roiFilePath = sessionObj.getDataFilePath('RoiArray');
+            
+        varName = sessionData.uiSelectVariableName('roiArray');
+        if ~isempty(varName)
+            if isa(varName, 'cell'); varName = varName{1}; end
+            roiFilePath = sessionObj.getDataFilePath(varName);
+            
+            if ~isfile(roiFilePath)
+                return
+            else
+    %             jLabel.setText('Loading rois')
+                hRoimanager.loadRois(roiFilePath)
+                hRoimanager.DataSet = sessionData;
+            end
         end
-        
-    catch
+
+    catch ME
+        disp(getReport(ME))
         return
     end
 end

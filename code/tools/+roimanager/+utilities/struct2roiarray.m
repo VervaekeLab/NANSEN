@@ -10,6 +10,11 @@ if isempty(roiStruct)
     return
 end
 
+if isa(roiStruct, 'cell') % Recursive over cell array
+    roiArray = cellfun(@(c) roimanager.utilities.struct2roiarray(c), roiStruct, 'UniformOutput', false);
+    return
+end
+
 nRois = numel(roiStruct);
 roiArray(nRois, 1) = RoI;
 

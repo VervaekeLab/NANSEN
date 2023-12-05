@@ -10,6 +10,8 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 
 
     % Todo: 
+    % [ ] Save composite roi group in roi classifier...
+    %
     % [ ] selectedItem is the same as roiDisplay's SelectedRois and 
     %     displayedItems is the same as roiDisplay's VisibleRois
     %    
@@ -51,10 +53,15 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                       
     
     end
+
+    properties
+        SaveFcn % Custom function for saving rois
+    end
     
     properties (Dependent)
         dataFilePath            % Filepath to load/save data from
     end
+
     properties
         roiFilePath
         RoiSelectedCallbackFunction % Callback function that will run when a roi is selected.
@@ -168,7 +175,8 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             
             pointerNames = {'selectObject', 'circleSelect', 'autoDetect'};
             
-            % Specify where pointer tools are defind:
+            % Specify where pointer tools are defined:
+     
             % Todo: Constant property or some roimanager constant class
             pointerRoot = strjoin({'roimanager', 'pointerTool'}, '.');
             
@@ -210,7 +218,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 % %             % Add a final option to show selected rois
 % %             label = sprintf('(%d) Current Frame', numOptions+1);
 % %             hControl.String{end+1} = label;
-            
         end
         
     end
@@ -802,7 +809,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         
 
         function onFigureCloseRequest(obj)
-                        
+
             wasAborted = obj.promptSaveRois();
             if wasAborted; return; end
             
@@ -845,7 +852,11 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 elseif strcmp(imageSelection, 'Current Frame')
                     roiImage = cat(3, obj.itemSpecs(roiInd).enhancedImage);
                 else
-                    roiImage = cat(3, obj.itemImages(roiInd).(imageSelection));
+                    roiImages = {obj.itemImages(roiInd).(imageSelection)};
+                    isEmpty = cellfun(@(c) isempty(c), roiImages);
+                    ind = find(~isEmpty, 1, 'first');
+                    [roiImages{isEmpty}] = deal(zeros(size(roiImages{ind}, [1,2]), 'like', roiImages{ind}));
+                    roiImage = cat(3, roiImages{:});
                 end
             catch
                 error('Not implemented for images of different size')
@@ -940,9 +951,29 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
     
     methods (Access = public)
         
+        function addCustomGridSize(obj, customGridSize)
+
+            if isnumeric(customGridSize)
+                assert(numel(customGridSize)==2, 'Grid size must be numerix height x width')
+                customGridSize = sprintf('%dx%d', customGridSize(1), customGridSize(2));
+            end
+
+            obj.settings_.GridSize_{end+1} = customGridSize;
+
+
+            % Add to dropdown control
+            h = findobj(obj.hPanelSettings, 'Tag', 'Set GridSize');
+            h.String{end+1} = customGridSize;
+        end
+
         % Methods for saving results.
         function saveClassification(obj, ~, ~, varargin)
         % saveClassification
+
+            if ~isempty(obj.SaveFcn)
+                obj.SaveFcn(obj.RoiGroup)
+                return
+            end
 
             % Get path for saving data to file.
             if isempty(varargin)
@@ -958,14 +989,25 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             % Save clean version of rois....
             % Todo: Show have setting for this, and default should be to
             % not save...
-            keep = obj.itemClassification ~= 2;
-            
+
+            if isa(obj.RoiGroup, 'roimanager.CompositeRoiGroup')
+                tempRoiGroup = obj.RoiGroup.getAllRoiGroups();
+            else
+                tempRoiGroup = obj.RoiGroup;
+            end
+
             roiGroupStruct = struct;
-            roiGroupStruct.roiArray = obj.RoiGroup.roiArray(keep);
-            roiGroupStruct.roiImages = obj.RoiGroup.roiImages(keep);
-            roiGroupStruct.roiStats = obj.RoiGroup.roiStats(keep);
-            roiGroupStruct.roiClassification = obj.RoiGroup.roiClassification(keep);
-            
+
+            for i = 1:numel(tempRoiGroup)
+
+                keep = tempRoiGroup(i).roiClassification ~= 2;
+                
+                roiGroupStruct(i).roiArray = tempRoiGroup(i).roiArray(keep);
+                roiGroupStruct(i).roiImages = tempRoiGroup(i).roiImages(keep);
+                roiGroupStruct(i).roiStats = tempRoiGroup(i).roiStats(keep);
+                roiGroupStruct(i).roiClassification = tempRoiGroup(i).roiClassification(keep);
+            end
+
             savePath = strrep(savePath, '.mat', '_clean.mat');
 
             % Save roigroup using roigroup fileadapter
@@ -974,7 +1016,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             fprintf('Saved clean classification results to %s\n', savePath)
             
         end
-               
+
     end
     
     methods (Access = public) % Load/save rois
@@ -1006,10 +1048,14 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         function saveRois(obj, initPath)
         %saveRois Save rois with confirmation message in app.    
             if nargin < 2; initPath = ''; end
-            saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
             
-            saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);                        
-            obj.hMessageBox.displayMessage(saveMsg, [], 2)
+            if ~isempty(obj.SaveFcn)
+                obj.SaveFcn(obj.RoiGroup)
+            else
+                saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
+                saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);                        
+                obj.hMessageBox.displayMessage(saveMsg, [], 2)
+            end
         end
         
     end
@@ -1053,7 +1099,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         end
         
     end
-    
     
     methods %Set/get
 

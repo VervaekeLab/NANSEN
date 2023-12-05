@@ -19,6 +19,11 @@ function [roiImages, roiStats] = getRoiAppData(imArray, roiArray, varargin)
 %           nansen.twophoton.roi.stats.imageprops for details
 
 
+    def = struct();
+    def.RoiImageSize = [21, 21];
+
+    opt = utility.parsenvpairs(def, [], varargin);
+
     import nansen.twophoton.roi.compute.computeRoiImages
     
     global fprintf % Use global fprintf if available
@@ -32,7 +37,7 @@ function [roiImages, roiStats] = getRoiAppData(imArray, roiArray, varargin)
     
     % Compute rois images
     imageTypes = {'Activity Weighted Mean', 'Diff Surround', 'Top 99th Percentile', 'Local Correlation'};
-    roiImageStruct = computeRoiImages(imArray, roiArray, signalArray, 'ImageType', imageTypes); % imported function
+    roiImageStruct = computeRoiImages(imArray, roiArray, signalArray, 'ImageType', imageTypes, 'BoxSize', opt.RoiImageSize); % imported function
     
     % Compute roi stats
     dff = nansen.twophoton.roisignals.computeDff(signalArray);

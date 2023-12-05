@@ -356,6 +356,35 @@ classdef roiGroup < handle
             obj.isDirty_ = true;
         end
         
+        function changeRoiProperties(obj, modifiedRois, roiInd, isUndoRedo)
+            
+            % The modifyRois method was created to only edit the roi shape.
+            % This method was added later to add support for changing
+            % values of other roi properties
+
+            if nargin < 4; isUndoRedo = false; end
+    
+            originalRois = obj.roiArray(roiInd);
+            obj.roiArray(roiInd) = modifiedRois;
+
+            eventData = roimanager.eventdata.RoiGroupChanged(obj.roiArray(roiInd), roiInd, 'modify');
+            obj.notify('roisChanged', eventData)
+            
+            % Register the action with the undo manager
+            if ~isUndoRedo && ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
+                cmd.Name            = 'Modify Rois';
+                cmd.Function        = @obj.changeRoiProperties;      % Redo action
+                cmd.Varargin        = {modifiedRois, roiInd, true};
+                cmd.InverseFunction = @obj.changeRoiProperties;         % Undo action
+                cmd.InverseVarargin = {originalRois, roiInd, true};
+
+                uiundo(obj.ParentApp.Figure, 'function', cmd);
+            end
+
+            obj.isDirty_ = true;
+
+        end
+
         function roiLabels = getRoiLabels(obj, roiInd)
             
             numRois = obj.roiCount;

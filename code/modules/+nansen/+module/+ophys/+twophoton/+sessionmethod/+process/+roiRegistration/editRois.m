@@ -1,7 +1,12 @@
 function varargout = editRois(sessionObject, varargin)
-%EDITROIS Summary of this function goes here
-%   Detailed explanation goes here
+%EDITROIS Edit rois for a set of longitudinal rois in roimanager.
+%   This method opens the roimanager for editing rois for a set of
+%   longitudinal sessions. It additionally opens a thumbnail selector for
+%   switching between each of the sessions. If changes are made to rois in
+%   one session, those changes will be copied to all other sessions.
 
+% Todo: Also support loading of roi classifications.
+%   Specify FOV image variable name in parameters.
 
 % % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % % 
 % Create a struct of default parameters (if applicable) and specify one or 
@@ -51,29 +56,24 @@ function varargout = editRois(sessionObject, varargin)
         fovImages{i} = thisImage;
     end
 
-    % Get multisession roi
+    % - Get multisession rois
     sessionObjectStruct = struct();
 
-    for i = 1:numel(sessionObject) % todo: use s.Data instead!!
+    for i = 1:numel(sessionObject) % Todo: use s.Data instead.
         sessionObjectStruct(i).sessionID = sessionObject(i).sessionID;
         sessionObjectStruct(i).ImageStack = sessionObject(i).loadData( params.ImageStackVariableName );
         sessionObjectStruct(i).RoiArray = sessionObject(i).loadData('RoiArrayLongitudinal');
         sessionObjectStruct(i).FovImage = fovImages{i};
     end
 
+    % - Open roimanager and the multisession FOV switcher
     roimanagerApp = roimanager.RoimanagerDashboard(sessionObjectStruct(1).ImageStack);
     roimanagerApp.addRois(sessionObjectStruct(1).RoiArray)
 
-
     h = MultiSessionFovSwitcher(sessionObject, sessionObjectStruct, roimanagerApp);
-
-    % Load multi session rois and add to fov switcher
     
-    % Todo
-
-    % Mount switcher in roimanager gui...
-    % Todo
-
+    % Todo: Mount switcher in roimanager gui...
+    
 end
 
 

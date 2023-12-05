@@ -119,7 +119,6 @@ classdef ProjectManager < handle
     end
     
     methods
-
         function pStruct = createProjectInfo(obj, name, description, pathStr)
         %createProjectInfo Create a struct with info for a project
             

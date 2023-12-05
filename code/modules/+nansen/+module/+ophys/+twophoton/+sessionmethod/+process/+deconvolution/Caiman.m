@@ -93,6 +93,11 @@ function hDffPlugin = openDeconvolutionExplorer(sessionObj)
         error('Invalid rois')
     end
     
+    % Create composite roigroup for multichannel/multiplane rois
+    if numel(roiGroup) > 1
+        roiGroup = roimanager.CompositeRoiGroup(roiGroup);
+    end
+
     % Open roitable app
     hTableViewer = roimanager.RoiTable(roiGroup);
     hTableViewer.SelectionMode = 'single';

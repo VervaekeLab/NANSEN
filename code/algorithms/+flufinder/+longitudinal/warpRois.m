@@ -2,14 +2,14 @@ function shiftedRoiArray = warpRois(roiArray, fovShifts)
 %warpRois Change roi positions based on shifts from image registration.
 %   shiftedRoiArray = warpRois(roiArray, sessionFovShifts)
 %       
-%   fovShifts is a struct which is created by alignSessionFov. 
+%   fovShifts is a struct which is created by alignFovs. 
 %   NB: This function should be called once for each of the elements in
 %   fovShifts if fovShifts is a struct array.
 %
-%   See also: alignSessionFov
+%   See also: flufinder.longitudinal.alignFovs
 
 % Todo: Check if rois end up outside of or on the image border.
-% Todo: Test with a smiluated case the the rotation is the right way.
+% Todo: Test with a simulated case that the rotation is applied in the right direction.
 
 nRois = numel(roiArray);
 
@@ -20,10 +20,6 @@ shiftedRoiArray = roiArray;
 
 % Go through each roi and find how much it should be shifted.
 for i = 1:nRois
-
-%     if i == 39
-%         disp('debug')
-%     end
     
     % Get the center of the roi object.
     roi = roiArray(i);
@@ -47,10 +43,13 @@ for i = 1:nRois
     roiNrSub = fliplr(round(centerNew)); % y, x position in matrix.
 
     % Make sure new centers dont end up outside image
+
+    % TODO: Verify order of nrows and ncols
+
     if roiNrSub(1) < 1; roiNrSub(1) = 1; end
     if roiNrSub(2) < 1; roiNrSub(2) = 1; end
-    if roiNrSub(1) > ncols; roiNrSub(1) = ncols; end
-    if roiNrSub(2) > nrows; roiNrSub(2) = nrows; end
+    if roiNrSub(1) > nrows; roiNrSub(1) = nrows; end
+    if roiNrSub(2) > ncols; roiNrSub(2) = ncols; end
     
     % Find the nonrigid shifts for the part of the image which roi belongs to.
     % flip left right because normcorre shifts are y, x.
@@ -62,7 +61,6 @@ for i = 1:nRois
     % roi needs to be shifted the other way.
     roiShift = centerOld - centerNew;
     shiftedRoiArray(i) = roi.move(roiShift);
-
 end
 
 

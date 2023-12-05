@@ -57,8 +57,11 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 
     % Check that image thumbnail size is odd (symmetry around center pixel)
     boxSize = opt.BoxSize;
+    if ~all( mod(boxSize, 2) == 1)
+        boxSize( mod(boxSize, 2) ~= 1 ) = boxSize( mod(boxSize, 2) ~= 1 ) + 1;
+    end
     assert(all( mod(boxSize, 2) == 1), 'Boxsize should be odd')
-    
+
     if ~opt.Verbose; fprintf = @(x) false; end
     
     % % Check size of input data and check that they correspond
@@ -178,72 +181,80 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
             % % Create the image:
             %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             
-            switch imageType
-                case {'mean', 'activity weighted mean', 'top 99th percentile'}
-                    currentRoiIm = mean(imArrayChunkTmp, 3);                
+            try
 
-                case {'std', 'activity weighted std'} % not as good as mean
-                    currentRoiIm = std(imArrayChunkTmp, 0, 3);                
+                switch imageType
+                    case {'mean', 'activity weighted mean', 'top 99th percentile'}
+                        currentRoiIm = mean(imArrayChunkTmp, 3);                
+    
+                    case {'std', 'activity weighted std'} % not as good as mean
+                        currentRoiIm = std(imArrayChunkTmp, 0, 3);                
+    
+                    case {'max', 'activity weighted max'} % crap if cell is not active
+                        currentRoiIm = max(imArrayChunkTmp, [], 3);
+                        
+                    case 'local correlation'
+                        currentRoiIm = stack.zproject.localCorrelation(imArrayChunkTmp);
+    
+                    case 'global correlation'
+                        currentRoiIm = stack.zproject.globalCorrelation(imArrayChunkTmp);
+    
+                    case 'median correlation' % use lower percentile for signal extraction to avoid selection bias?
+                        f_ = extractF(imArray, roiArray(iRoi), 'pixelComputationMethod', 'median');
+                        [rhoIm, ~] = getPixelCorrelationImage(f_(frameInd, 1), imArrayChunkTmp);
+                        rhoIm(isnan(rhoIm)) = 0;
+                        currentRoiIm = rhoIm;
+    
+                    case 'enhanced dff' % not very good...
+                        dffStack = calculateDFFStack(imArray(tmpY, tmpX, :));
+                        currentRoiIm = mean(dffStack(:, :, frameInd), 3);
+    
+                    case 'diff surround'
+                        f = roiSignals(:, :, iRoi);
+                        froi = smoothdata(f(:,1));
+                        fpil = smoothdata(f(:,2));
+    
+                        fdiff = normalizearray( froi - fpil );
+                        W = getWeights(fdiff);
+    
+                        imArrayChunkW = imArrayChunkTmp .* reshape(W, 1, 1, []);
+                        currentRoiIm = mean(imArrayChunkW, 3);                
+    
+                    case 'diff surround orig'
+                        % NB : can show signal when there is none
+                        f = roiSignals(:, :, iRoi);
+                        
+                        % Normalize each column of f:
+                        f_ = (f - min(f)) ./ (max(f)-min(f));
+                        W = getWeights(f_);
+    
+                        imArrayChunkW1 = double(imArrayChunkTmp) .* reshape(W(:,1), 1, 1, []);
+                        currentRoiIm1 = mean(imArrayChunkW1, 3);                
+                        %currentRoiIm1 = normalizeimage(currentRoiIm1);
+    
+                        imArrayChunkW2 = double(imArrayChunkTmp) .* reshape(W(:,2), 1, 1, []);
+                        currentRoiIm2 = mean(imArrayChunkW2, 3);                
+                        %currentRoiIm2 = normalizeimage(currentRoiIm2);
+    
+                        if sum(currentRoiIm1(:)) > sum(currentRoiIm2(:))
+                            currentRoiIm = currentRoiIm1-currentRoiIm2;
+                        else
+                            currentRoiIm = currentRoiIm2-currentRoiIm1;
+                        end
+    
+                end
 
-                case {'max', 'activity weighted max'} % crap if cell is not active
-                    currentRoiIm = max(imArrayChunkTmp, [], 3);
-                    
-                case 'local correlation'
-                    currentRoiIm = stack.zproject.localCorrelation(imArrayChunkTmp);
-
-                case 'global correlation'
-                    currentRoiIm = stack.zproject.globalCorrelation(imArrayChunkTmp);
-
-                case 'median correlation' % use lower percentile for signal extraction to avoid selection bias?
-                    f_ = extractF(imArray, roiArray(iRoi), 'pixelComputationMethod', 'median');
-                    [rhoIm, ~] = getPixelCorrelationImage(f_(frameInd, 1), imArrayChunkTmp);
-                    rhoIm(isnan(rhoIm)) = 0;
-                    currentRoiIm = rhoIm;
-
-                case 'enhanced dff' % not very good...
-                    dffStack = calculateDFFStack(imArray(tmpY, tmpX, :));
-                    currentRoiIm = mean(dffStack(:, :, frameInd), 3);
-
-                case 'diff surround'
-                    f = roiSignals(:, :, iRoi);
-                    froi = smoothdata(f(:,1));
-                    fpil = smoothdata(f(:,2));
-
-                    fdiff = normalizearray( froi - fpil );
-                    W = getWeights(fdiff);
-
-                    imArrayChunkW = imArrayChunkTmp .* reshape(W, 1, 1, []);
-                    currentRoiIm = mean(imArrayChunkW, 3);                
-
-                case 'diff surround orig'
-                    % NB : can show signal when there is none
-                    f = roiSignals(:, :, iRoi);
-                    
-                    % Normalize each column of f:
-                    f_ = (f - min(f)) ./ (max(f)-min(f));
-                    W = getWeights(f_);
-
-                    imArrayChunkW1 = double(imArrayChunkTmp) .* reshape(W(:,1), 1, 1, []);
-                    currentRoiIm1 = mean(imArrayChunkW1, 3);                
-                    %currentRoiIm1 = normalizeimage(currentRoiIm1);
-
-                    imArrayChunkW2 = double(imArrayChunkTmp) .* reshape(W(:,2), 1, 1, []);
-                    currentRoiIm2 = mean(imArrayChunkW2, 3);                
-                    %currentRoiIm2 = normalizeimage(currentRoiIm2);
-
-                    if sum(currentRoiIm1(:)) > sum(currentRoiIm2(:))
-                        currentRoiIm = currentRoiIm1-currentRoiIm2;
-                    else
-                        currentRoiIm = currentRoiIm2-currentRoiIm1;
-                    end
-
+                if opt.AutoAdjust
+                    currentRoiIm = normalizearray(currentRoiIm);
+                    currentRoiIm = uint8(currentRoiIm.*255); % Todo: cast to other types?
+                end
+                
+            catch %ME
+                currentRoiIm = zeros(boxSize); % initialize
+                currentRoiIm = currentRoiIm(isValidY, isValidX); % initialize
+                warning("Could not create image for roi %d.\n This might be caused by rois being located on the edge of the fov, but further investigation is needed.", iRoi)
             end
-            
-            if opt.AutoAdjust
-                currentRoiIm = normalizearray(currentRoiIm);
-                currentRoiIm = uint8(currentRoiIm.*255); % Todo: cast to other types?
-            end
-            
+
             % Add image to the stack
             roiImageStack{jImage}(isValidY, isValidX, iRoi) = currentRoiIm;
             
