@@ -213,7 +213,7 @@ classdef NansenUserSession < handle
             if obj.ProjectManager.NumProjects == 0
                 delete(obj)
                 error('Nansen:NoProjectsAvailable', ...
-                    'No projects exists. Please run nansen.setup to configure a project')
+                    'No projects exist. Please run nansen.setup to configure a project')
             end
         end
 

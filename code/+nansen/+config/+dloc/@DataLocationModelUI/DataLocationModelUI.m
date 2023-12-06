@@ -618,6 +618,8 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 initPath = '/Volumes';
             elseif ispc
                 initPath = '';
+            else
+                initPath = pwd;
             end
             
             if ~isempty(obj.LastUigetdirFolder)

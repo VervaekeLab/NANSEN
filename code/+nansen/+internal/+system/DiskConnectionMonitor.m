@@ -22,7 +22,11 @@ classdef DiskConnectionMonitor < handle
     methods
         
         function obj = DiskConnectionMonitor
-            obj.initializeTimer()
+            if ismac || ispc
+                obj.initializeTimer()
+            else
+                % pass (not implemented for linux)
+            end
         end
 
         function delete(obj)

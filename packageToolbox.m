@@ -1,6 +1,7 @@
 % Script for packaging a toolbox (mltbx)
 
-identifier = "nansen";
+% This should be the same across versions:
+identifier = "07b2cd84-23b5-43a5-a61b-a5de9d19687a"; 
 rootFolder = fileparts(mfilename("fullpath"));
 toolboxFolder = fullfile(rootFolder, "code");
 opts = matlab.addons.toolbox.ToolboxOptions(toolboxFolder, identifier);
@@ -10,7 +11,7 @@ opts.AuthorEmail = 'eivihe@uio.no';
 
 opts.ToolboxName = "NANSEN - Neuro Analysis Software Ensemble";
 opts.Summary = "A collection of apps and modules for processing, analysis and visualization of two-photon imaging data.";
-opts.ToolboxVersion = '0.9.0';
+opts.ToolboxVersion = '0.9.0.1';
 opts.ToolboxImageFile = fullfile(rootFolder, 'resources', 'images', 'toolbox_image.png');
 
 codeFolders = strsplit(genpath(toolboxFolder), pathsep);

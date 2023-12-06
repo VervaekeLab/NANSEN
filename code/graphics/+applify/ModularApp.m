@@ -564,6 +564,8 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                 menubarHeight = applify.ModularApp.MAC_MENUBAR_HEIGHT;
             elseif ispc
                 menubarHeight = 0;
+            else
+                menubarHeight = 0;
             end
             
             % Todo: For menubar offset, i.e on window when menubar is on
