@@ -6,6 +6,9 @@ rootFolder = fileparts(mfilename("fullpath"));
 toolboxFolder = fullfile(rootFolder, "code");
 opts = matlab.addons.toolbox.ToolboxOptions(toolboxFolder, identifier);
 
+toIgnore = contains(opts.ToolboxFiles, '_dev');
+opts.ToolboxFiles = opts.ToolboxFiles(~toIgnore);
+
 opts.AuthorName = 'Eivind Hennestad';
 opts.AuthorEmail = 'eivihe@uio.no';
 

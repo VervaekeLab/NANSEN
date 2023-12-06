@@ -1,5 +1,5 @@
 % NANSEN - Neuro Analysis Software Ensemble
-% Version 0.9.0 (R2023b) 05-dec-2023
+% Version 0.9.0.1 (R2023b) 06-dec-2023
 %
 % Copyright (c) 2023 VervaekeLab, Eivind Hennestad
 %
