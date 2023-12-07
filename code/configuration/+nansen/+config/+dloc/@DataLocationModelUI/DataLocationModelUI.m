@@ -649,7 +649,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
 
                 % Add name of disk to the rootpath struct.
                 diskName = obj.DataLocationModel.resolveDiskName(rootPath.Value);
-                modifiedRootPath(rootPathIdx).DiskName = diskName;
+                rootPath.DiskName = diskName;
 
                 obj.DataLocationModel.modifyDataLocation(obj.Data(2).Name, ...
                     'RootPath', rootPath)
