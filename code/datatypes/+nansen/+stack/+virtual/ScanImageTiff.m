@@ -399,7 +399,7 @@ methods (Access = protected) % Todo: Scan image and subclass
     
     function assignScanImageParametersToMetadata(obj, sIParams)
         
-        if ~isfield(obj.MetaData.ImageSize,'ImageSize')
+        if length(obj.MetaData.ImageSize) < 2
             try
                 obj.MetaData.ImageSize = abs( sum(sIParams.hRoiManager.imagingFovUm(1,:) ));
             catch

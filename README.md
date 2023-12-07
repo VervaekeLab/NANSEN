@@ -1,3 +1,9 @@
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/VervaekeLab/NANSEN/assets/17237719/2a891edd-8f80-4253-a699-ab37f9cd6b42">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/VervaekeLab/NANSEN/assets/17237719/2a891edd-8f80-4253-a699-ab37f9cd6b42">
+    <img alt="Neuro Analysis Software Ensemble" src="https://github.com/VervaekeLab/NANSEN/assets/17237719/2a891edd-8f80-4253-a699-ab37f9cd6b42" title="Neuro Analysis Software Ensemble" align="right" height="70">
+</picture>
+
 # NANSEN - Neuro ANalysis Software ENsemble
 [![Twitter](https://img.shields.io/twitter/follow/NeuroNansen?style=social)](https://twitter.com/NeuroNansen)
 [![YouTube](https://img.shields.io/youtube/channel/views/UCKOzL-MVWgy7oOMo6x_GSkQ?style=social)](https://www.youtube.com/channel/UCKOzL-MVWgy7oOMo6x_GSkQ)
