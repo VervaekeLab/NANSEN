@@ -55,7 +55,15 @@ function varargout = openRoiManager(sessionObj, varargin)
         roiFilePath = sessionObj.getDataFilePath('RoiArray');
         
         if ~isfile(roiFilePath)
-            return
+            varName = sessionData.uiSelectVariableName('roiArray');
+            if isempty(varName)
+                return
+            else
+                roiFilePath = sessionObj.getDataFilePath(varName{1});
+                if isfile(roiFilePath)
+                    hRoimanager.loadRois(roiFilePath)
+                end
+            end
         else
 % %             jLabel.setText('Loading rois')
             hRoimanager.loadRois(roiFilePath)
