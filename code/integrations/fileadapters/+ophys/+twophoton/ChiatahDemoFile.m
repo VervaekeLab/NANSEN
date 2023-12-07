@@ -31,7 +31,7 @@ classdef ChiatahDemoFile < nansen.dataio.FileAdapter
     methods
         
         function save(~, ~)
-            error('Can not save data to a Chiatah demo file file')
+            error('Can not save data to a Chiatah demo file')
         end
         
         function imageStack = open(obj)

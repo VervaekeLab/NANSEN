@@ -191,8 +191,14 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             hRow.FileAdapterSelect.Position = [xi y wi h];
             obj.centerComponent(hRow.FileAdapterSelect, y)
             
-            hRow.FileAdapterSelect.Items = {obj.FileAdapterList.FileAdapterName};
-            
+            if ~isempty(rowData.FileType)
+                fileAdapterOptions = obj.getFileAdapterOptions(rowData.FileType);
+            else
+                fileAdapterOptions = {obj.FileAdapterList.FileAdapterName};
+            end
+                
+            hRow.FileAdapterSelect.Items = fileAdapterOptions;
+
             if ~contains(rowData.FileAdapter, hRow.FileAdapterSelect.Items)
             
                 if isempty(rowData.FileAdapter)
@@ -301,28 +307,20 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             % Get the selected filetype
             fileType = hRow.FileTypeSelect.Value;
             fileType = strrep(fileType, '.', '');
-            
-            % Find file adapters that supports the filetype.
-            fileAdapterList = obj.FileAdapterList;
-            
-            matchesFiletype = cellfun(@(c) any(strcmp(fileType, c)), ...
-                {fileAdapterList.SupportedFileTypes}, 'uni', 1);
+
+            fileAdapterOptions = obj.getFileAdapterOptions(fileType);
             
             % Update the list of file adapters available for this filetype
-            if any(matchesFiletype)
-                fileAdapterNames = {fileAdapterList(matchesFiletype).FileAdapterName};
-                
-                hRow.FileAdapterSelect.Items = fileAdapterNames;
+            if ~isequal(fileAdapterOptions, {'N/A'})
+                hRow.FileAdapterSelect.Items = fileAdapterOptions;
 
-                if ~contains(hRow.FileAdapterSelect.Value, fileAdapterNames)
-                    hRow.FileAdapterSelect.Value = fileAdapterNames{1};
+                if ~contains(hRow.FileAdapterSelect.Value, fileAdapterOptions)
+                    hRow.FileAdapterSelect.Value = fileAdapterOptions{1};
                 end
-                
             else
-                hRow.FileAdapterSelect.Items = {'N/A'};
-                hRow.FileAdapterSelect.Value = 'N/A';
+                hRow.FileAdapterSelect.Items = fileAdapterOptions;
+                hRow.FileAdapterSelect.Value = fileAdapterOptions{1};
             end
-            
         end
         
         function onFileAdapterChanged(obj, src, evt)
@@ -507,7 +505,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.onVariableModelSet();
         end
         
-        function fileAdapterList = get.FileAdapterList(obj)
+        function fileAdapterList = get.FileAdapterList(~)
             fileAdapterList = nansen.dataio.listFileAdapters();
         end
         
@@ -568,6 +566,26 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             
         end
         
+        function fileAdapterNames = getFileAdapterOptions(obj, fileType)
+
+            if strncmp(fileType, '.', 1)
+                fileType = strrep(fileType, '.', '');
+            end
+
+            % Find file adapters that supports the filetype.
+            fileAdapterList = obj.FileAdapterList;
+            
+            matchesFiletype = cellfun(@(c) any(strcmp(fileType, c)), ...
+                {fileAdapterList.SupportedFileTypes}, 'uni', 1);
+            
+            % Update the list of file adapters available for this filetype
+            if any(matchesFiletype)
+                fileAdapterNames = {fileAdapterList(matchesFiletype).FileAdapterName};
+            else
+                fileAdapterNames = {'N/A'};
+            end
+        end
+
         function S = getUpdatedTableData(obj)
             
             fileAdapterList = obj.FileAdapterList;
