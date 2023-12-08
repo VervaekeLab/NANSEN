@@ -636,9 +636,15 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             fileAdapterTable = struct2table(fileAdapterList);
 
             function tf = isFileAdapterClass(mc)
-                % Todo: Does this work for subclasses of subclasses?
-                %tf = contains(mfilename('class'), {mc.SuperclassList.Name});
-                tf = contains('nansen.dataio.FileAdapter', {mc.SuperclassList.Name});
+                if isempty(mc.SuperclassList)
+                    tf = false;
+                else
+                    % Recursive checking of superclasses
+                    tf = contains('nansen.dataio.FileAdapter', {mc.SuperclassList.Name});
+                    for i = 1:numel(mc.SuperclassList)
+                        tf = tf || isFileAdapterClass(mc.SuperclassList(i));
+                    end
+                end
             end
         end
 
