@@ -169,7 +169,7 @@ methods (Abstract, Access = protected) % Subclasses must implement
     
 end
 
-methods % Optional, subclasses may implement
+methods (Access = protected) % Optional, subclasses may implement
     
     function preInitialization(obj)
 
