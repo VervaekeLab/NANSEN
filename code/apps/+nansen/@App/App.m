@@ -19,6 +19,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     %   [ ] Send session object to task manager as a struct.
     %   [ ] Create a new session object in task manager when a task is
     %       started
+    %   [ ] If table is filtered, reset row selection. Also, update custom
+    %       table status (updateCustomRowSelectionStatus).
 
     properties (Constant, Access=protected) % Inherited from uiw.abstract.AppWindow
         AppName char = 'Nansen'
@@ -933,7 +935,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.h.StatusField.HorizontalAlignment = 'left';
             app.h.StatusField.Enable = 'inactive';
 
-            app.StatusText = applify.StatusText({'Sessions', 'Status'});
+            app.StatusText = applify.StatusText({'Sessions', 'CustomStatus', 'Status'});
             app.StatusText.UpdateFcn = @app.updateStatusField;
             app.StatusText.Status = 'Status : Idle';
             app.updateSessionCount()
@@ -1839,6 +1841,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function updateSessionCount(app, numSessionsTotal, numSessionsSelected)
             if ~isempty(app.StatusText)
                 
+                elementName = 'sessions';
+
                 if nargin < 2 || isempty(numSessionsTotal)
                     if isempty(app.UiMetaTableViewer)
                         numSessionsTotal = size(app.MetaTable.entries, 1);
@@ -1856,13 +1860,27 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
 
                 if numSessionsSelected > 0
-                    str = sprintf('Selected %d/%d sessions', numSessionsSelected, numSessionsTotal);
+                    str = sprintf('Selected %d/%d %s', numSessionsSelected, numSessionsTotal, elementName);
                 else
-                    str = sprintf('%d sessions', numSessionsTotal);
+                    str = sprintf('%d %s', numSessionsTotal, elementName);
                 end
 
                 app.StatusText.Sessions = str;
             end
+        end
+    
+        function updateCustomRowSelectionStatus(app)
+            projectName = app.CurrentProjectName;
+            % Todo: Consider adding this to the tablevar package, and
+            % potentially also having functions per table type...
+            functionName = sprintf('%s.getCustomRowSelectionStatus', projectName);
+            try
+                selectedRows = app.UiMetaTableViewer.getSelectedEntries();
+                str = feval(functionName, app.MetaTable.entries, selectedRows);
+            catch
+                str = '';
+            end
+            app.StatusText.CustomStatus = str;
         end
 
         function clearStatusIn(app, n)
@@ -1894,6 +1912,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             numSessionsTotal = size(src.HTable.Data, 1);
             
             app.updateSessionCount(numSessionsTotal, numSessionsSelected)
+            app.updateCustomRowSelectionStatus()
         end
 
         function onMetaTableDataChanged(app, src, evt)
@@ -2253,7 +2272,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                                 updatedValues{iSession} = newValue;
                                 isValid = true;
                             end
-                        elseif isequal(defaultValue, {'N/A'}) % Character vectors should be in a scalar cell
+                        elseif isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}) % Character vectors should be in a scalar cell
                             expectedDataType = 'character vector or a scalar cell containing a character vector';
                             if iscell(newValue) && numel(newValue)==1 && ischar(newValue{1})
                                 updatedValues{iSession} = newValue{1};
@@ -2262,6 +2281,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                                 updatedValues{iSession} = newValue;
                                 isValid = true;
                             end
+
+                        elseif isa(defaultValue, 'categorical')
+                            if  isa(newValue, 'categorical')
+                                updatedValues{iSession} = newValue;
+                                isValid = true;
+                            end
+
                         else
                             % Invalid;
                         end
@@ -2308,6 +2334,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 colIdx = find(strcmp(app.MetaTable.entries.Properties.VariableNames, varName));
                 if isa(updatedValues{1}, 'cell')
                     updatedValues = cat(1, updatedValues{:});
+                elseif isa(updatedValues{1}, 'categorical')
+                    updatedValues = cellfun(@(c) char(c), updatedValues,'UniformOutput', false );
                 end
                 app.UiMetaTableViewer.updateCells(rows, colIdx, updatedValues)
                 
@@ -2333,6 +2361,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             sessionID = cellfun(@(sid) sprintf('''%s''', sid), sessionID, 'uni', 0);
             sessionIDStr = strjoin(sessionID, ', ');
             clipboard('copy', sessionIDStr)
+        end
+
+        function copyTableValuesToClipboard(app, src, evt)
+            % Not implemented yet. 
+            % 
+            % Not clear how to get the selected column index, as this is 
+            % currently not accessible from any property.
+            selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
         end
 
         function removeSessionFromTable(app)
