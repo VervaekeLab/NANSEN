@@ -1933,7 +1933,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
     
         function updateCustomRowSelectionStatus(app)
-            projectName = app.CurrentProjectName;
+            projectName = app.CurrentProject.Name;
             % Todo: Consider adding this to the tablevar package, and
             % potentially also having functions per table type...
             functionName = sprintf('%s.getCustomRowSelectionStatus', projectName);
