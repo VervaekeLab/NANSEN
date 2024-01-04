@@ -44,7 +44,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         hContainerSearchField
         
         lastSearchText
-        
     end
     
     properties (Access = private)
@@ -107,8 +106,13 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             
             
         end
-        
-        
+
+    end
+
+    methods 
+        function reset(obj)
+            obj.Value = '';
+        end
     end
     
     methods

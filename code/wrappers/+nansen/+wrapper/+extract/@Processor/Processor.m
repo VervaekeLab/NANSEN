@@ -63,7 +63,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %   See also nansen.stack.ImageStackProcessor/ImageStackProcessor
 
             obj@nansen.processing.RoiSegmentation(varargin{:})
-        
+
+            obj.assertAddonInstalled()
+
             % Return if there are no inputs.
             if numel(varargin) == 0
                 return
@@ -360,6 +362,12 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     methods (Static) % Method in external file.
         options = getDefaultOptions()
         pathList = getDependentPaths()
+
+        function assertAddonInstalled()
+            if ~exist('run_extract', 'file')
+                error('EXTRACT was not found on MATLAB''s search path')
+            end
+        end
     end
 
 end

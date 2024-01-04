@@ -17,6 +17,12 @@ classdef ImageStackData < uim.mixin.assignProperties
 %       [ ] Should both DataDimensionArrangement and
 %           StackDimensionArrangement be added to metadata?
 
+%       [ ] Clean up code to better reflect how to convert from data to
+%           stack indices and back.
+%           Rename StackDimensionOrder to StackPermutationOrder or
+%           something similar? Also store the DataPermutation order
+%           (equivalent to the ipermute order)?
+%   
 
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
 
@@ -191,7 +197,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                 data = obj.getData(subs);
                 
                 % Permute data according to the stack dimension order
-                data = permute(data, obj.StackDimensionOrder);
+                data = ipermute(data, obj.StackDimensionOrder);
                 
                 [varargout{:}] = data;
 
@@ -406,8 +412,15 @@ classdef ImageStackData < uim.mixin.assignProperties
         %   Update the StackDimensionOrder to reflect the mapping from
         %   DataDimensionArrangement to StackDimensionArrangement
         
-            [Lia, Locb] = ismember(obj.StackDimensionArrangement, ...
-                obj.DataDimensionArrangement);
+            % % % Could potentially also defined the data dimension order
+            % % % i.e the "ipermutation" indices.
+            % % % [Lia, Locb] = ismember(obj.StackDimensionArrangement, ...
+            % % %     obj.DataDimensionArrangement);
+            % % % 
+            % % % dataDimensionOrder = Locb(Lia);
+
+            [Lia, Locb] = ismember(obj.DataDimensionArrangement, ...
+                obj.StackDimensionArrangement);
             
             obj.StackDimensionOrder = Locb(Lia);
             
@@ -470,9 +483,12 @@ classdef ImageStackData < uim.mixin.assignProperties
             % case an error:
             nd = numel(obj.DataSize);
             if numel(obj.StackDimensionOrder) > nd
-                obj.StackSize = obj.DataSize(obj.StackDimensionOrder(1:nd));
+                obj.StackSize(obj.StackDimensionOrder(1:nd)) = obj.DataSize; % Todo: is this correct?
             else 
-                obj.StackSize = obj.DataSize(obj.StackDimensionOrder);
+                %obj.StackSize = obj.DataSize(obj.StackDimensionOrder);
+                if ~isempty(obj.StackDimensionOrder)
+                    obj.StackSize(obj.StackDimensionOrder) = obj.DataSize;
+                end
             end
         end
         

@@ -85,6 +85,9 @@ function createSessionTableContextMenu(app)
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy SessionID(s)', 'Separator', 'on');
     hMenuItem(c).Callback = @(s, e) app.copySessionIdToClipboard;
 
+    %hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy Value(s)');
+    %hMenuItem(c).Callback = @app.copyTableValuesToClipboard;
+
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Remove Session', 'Separator', 'on');
     hMenuItem(c).Callback = @(s, e) app.onRemoveSessionMenuClicked;

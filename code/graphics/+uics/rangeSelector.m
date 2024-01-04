@@ -277,13 +277,19 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
         function onMaxValuePropertySet(obj)
             %obj.updateHighValueField(obj.Maximum)
             obj.hRangeSlidebar.Max = obj.Maximum;
-            
+
+            if isempty(obj.hEditFieldHigh)
+                obj.updateComponentPositions
+            end
         end
         
         function onMinValuePropertySet(obj)
             %obj.updateLowValueField(obj.Minimum)
             obj.hRangeSlidebar.Max = obj.Minimum;
-            
+                 
+            if isempty(obj.hEditFieldLow)
+                obj.updateComponentPositions
+            end
         end
         
         
@@ -297,6 +303,11 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             else
                 src.String = obj.hEditFieldHigh.UserData.PreviousValue;
             end
+
+            if ~isempty(obj.Callback)
+                evt = struct('Low', obj.Low, 'High', obj.High);
+                obj.Callback(obj, evt)
+            end
         end
         
         function onLowValueInputChanged(obj, src, evt)
@@ -309,7 +320,11 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             else
                 src.String = obj.hEditFieldLow.UserData.PreviousValue;
             end
-                        
+
+            if ~isempty(obj.Callback)
+                evt = struct('Low', obj.Low, 'High', obj.High);
+                obj.Callback(obj, evt)
+            end
         end
     end
     
@@ -319,10 +334,17 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             
             import uim.utility.layout.subdividePosition
             
+            if isempty(obj.hEditFieldLow); return; end
+
             containerpos = getpixelposition(obj.hPanel);
             w = containerpos(3) - 10;
             
-            [x, w] = subdividePosition(5, w, [25, 1, 25], 15);
+            numCharsMin = ceil(log10(abs(obj.Minimum)));
+            numCharsMax = ceil(log10(abs(obj.Maximum)));
+            wMin = numCharsMin*8;
+            wMax = numCharsMax*8;
+
+            [x, w] = subdividePosition(5, w, [wMin, 1, wMax], 15);
             
             obj.hEditFieldLow.Position([1,3]) = [x(1), w(1)];
             obj.hRangeSlidebar.Position([1,3]) = [x(2), w(2)];

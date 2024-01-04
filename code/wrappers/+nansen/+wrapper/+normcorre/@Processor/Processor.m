@@ -61,6 +61,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             obj@nansen.processing.MotionCorrection(varargin{:})
             
+            % Check that normcorre is on path...
+            obj.assertAddonInstalled()
+
             % Return if there are no inputs.
             if numel(varargin) == 0
                 return
@@ -312,7 +315,12 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         function name = getImviewerPluginName()
             name = 'NoRMCorre';
         end
-    
+
+        function assertAddonInstalled()
+            if ~exist('NoRMCorreSetParms', 'file')
+                error('NoRMCorre was not found on MATLAB''s search path')
+            end
+        end
     end
 
 end

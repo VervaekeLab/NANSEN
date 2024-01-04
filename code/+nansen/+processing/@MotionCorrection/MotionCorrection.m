@@ -138,6 +138,9 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function obj = MotionCorrection(varargin)
         %MotionCorrection Constructor for MotionCorrection superclass
             obj@nansen.stack.ImageStackProcessor(varargin{:})
+            if isempty(obj.TargetStackName)
+                obj.TargetStackName = 'TwoPhotonSeries_Corrected';
+            end
         end
         
     end
@@ -449,7 +452,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function openTargetStack(obj, stackSize, dataType, ~)
 
             % Get file reference for corrected stack
-            DATANAME = 'TwoPhotonSeries_Corrected';
+            DATANAME = obj.TargetStackName;
             filePath = obj.getDataFilePath( DATANAME );
             
             folderPath = fileparts(filePath);

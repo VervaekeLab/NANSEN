@@ -22,10 +22,10 @@ function imageArray = removeStaticBackground(imageArray, varargin)
     bgImage = computeStaticBackgroundImage(imageArray, varargin{:});
 
     % "Remove" the background
-    imageArray = imageArray - bgImage;
+    imageArray = single(imageArray);
+    imageArray = imageArray - cast(bgImage, class(imageArray));
     
     % Normalize imageArray to values between 0 and 1
     imageArray = imageArray - min(imageArray(:));
     imageArray = imageArray ./ max(imageArray(:));
-
 end
