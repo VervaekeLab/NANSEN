@@ -129,7 +129,11 @@ classdef MetaTable < handle
             if ~isempty(obj.MetaTableIdVarname)
                 schemaIdName = obj.MetaTableIdVarname;
             else
-                schemaIdName = eval(strjoin({obj.MetaTableClass, 'IDNAME'}, '.'));
+                try
+                    schemaIdName = eval(strjoin({obj.MetaTableClass, 'IDNAME'}, '.'));
+                catch
+                    schemaIdName = 'id';
+                end
             end
         end
 
@@ -794,6 +798,48 @@ classdef MetaTable < handle
             %obj.IsModified = true;
         end
 
+        function addTable(obj, T)
+            if isempty(obj.MetaTableMembers)
+                obj.MetaTableClass = 'table';
+            end
+
+            if any(strcmp(T.Properties.VariableNames, 'id'))
+                newEntryIds = T.id;
+            else
+                newEntryIds = arrayfun(@(i) nansen.util.getuuid, 1:height(T), 'uni', 0);
+                T.id = newEntryIds';
+            end
+
+            % Check that entry/entries are not already present in the
+            % Metatable.
+            if iscell(newEntryIds) && ischar(newEntryIds{1})
+                iA = contains(newEntryIds, obj.MetaTableMembers);
+            elseif isnumeric(newEntryIds)
+                if isempty(obj.MetaTableMembers)
+                    obj.MetaTableMembers = [];
+                end
+                iA = ismember(newEntryIds, obj.MetaTableMembers);
+            end
+            
+            newEntryIds(iA) = [];
+            
+            if isempty(newEntryIds); return; end
+            
+            % Skip entries that are already present in the MetaTable.
+            T(iA, :) = [];
+            
+            % Add new entries to the MetaTable.
+            if isempty(obj.entries)
+                obj.entries = T;
+            else
+                obj.entries = [obj.entries; T];
+            end
+            
+% %             obj.updateEntries(listOfEntryIds)
+            
+            obj.MetaTableMembers = obj.entries.id;
+        end
+
         function entries = getEntry(obj, listOfEntryIds)
         %getEntry Get entry/entries from the entry IDs.
             IND = contains(obj.members, listOfEntryIds);
@@ -1146,7 +1192,7 @@ classdef MetaTable < handle
                 metaTable.addEntries(varargin{1})
                 
             elseif isa(varargin{1}, 'table')
-                metaTable.addEntries(varargin{1})
+                metaTable.addTable(varargin{1})
             
             % If keyword is provided, use this:
             elseif any( strcmp(varargin{1}, {'master', 'dummy'} ) )

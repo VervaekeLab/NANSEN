@@ -65,7 +65,7 @@ function S = getMetaTableVariableAttributes(tableClassName)
                 
                 if ismethod(fcnResult, 'update')
                 	S(iVar).HasFunction = true;
-                    S(iVar).FunctionName = func2str(varFunction);
+                    S(iVar).FunctionName = [func2str(varFunction), '.update'];
                 end
                 
             else
