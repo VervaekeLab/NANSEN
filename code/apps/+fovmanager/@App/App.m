@@ -322,7 +322,7 @@ classdef App < handle & applify.mixin.UserSettings
             ind = strfind(matlabVersion, '.');
             matlabVersionNumber = str2double(strrep(matlabVersion(1:ind(2)+1), '.', ''));
             if matlabVersionNumber >= 950
-                addToolbarExplorationButtons(obj.hFigure)
+                %addToolbarExplorationButtons(obj.hFigure)
                 obj.hAxes.Toolbar.Visible = 'off';
                  disableDefaultInteractivity(obj.hAxes)
             end
@@ -394,6 +394,7 @@ classdef App < handle & applify.mixin.UserSettings
             
             obj.hFigure = figure('Visible', 'off');
             obj.hFigure.MenuBar             = 'none';
+            obj.hFigure.ToolBar             = 'none';
             obj.hFigure.Resize              = 'off';
             obj.hFigure.Position            = figurePosition;
             obj.hFigure.FileName            = '';
