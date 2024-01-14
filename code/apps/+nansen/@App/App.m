@@ -395,11 +395,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             mitem = uimenu(m, 'Text','Preferences...');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;
-
-            if exist('bot.Preferences', 'class')
-                mitem = uimenu(m, 'Text','BOT Preferences...');
-                mitem.MenuSelectedFcn = @(s,e) bot.Preferences.edit;
-            end
             
             mitem = uimenu(m, 'Text', 'Refresh Menu', 'Separator', 'on');
             mitem.MenuSelectedFcn = @app.onRefreshSessionMethodMenuClicked;
