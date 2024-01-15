@@ -9,7 +9,7 @@ function [S, P] = getDefaultItem()
 % SubfolderStructure : A struct array of info about folder hierarchy going
 % for the rood directoty to a data directory
 % SubfolderStructure.Name       : Name of a subfolder on specific level
-% SubfolderStructure.Type       : Type of a subfolder on specific level (i.e animal, date, session etc)
+% SubfolderStructure.Type       : Type of a subfolder on specific level (i.e subject, date, session etc)
 % SubfolderStructure.Expression : String expression used for detecting folders on this level
 % SubfolderStructure.IgnoreList : List of strings to ignore...
 
@@ -35,7 +35,7 @@ function [S, P] = getDefaultItem()
     %S(i).ExamplePath = '';
     %S(i).DataSubfolders = {};
 
-    S(i).SubfolderStructure(1).Type = 'Animal';
+    S(i).SubfolderStructure(1).Type = 'Subject';
     S(i).SubfolderStructure(2).Type = 'Session';
     
     

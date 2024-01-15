@@ -1224,7 +1224,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         
             switch subfolderStruct.Type
                 
-                case 'Animal'
+                case 'Subject'
                     folderName = sprintf('subject-%s', obj.subjectID);
                     
                 case 'Session'

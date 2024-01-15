@@ -66,8 +66,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
         function S = getDefaultMetadataStructure()
             
-            varNames = {'Animal ID', 'Session ID', 'Experiment Date', 'Experiment Time'};
-            %varNames = {'Animal ID', 'Session ID'};
+            varNames = {'Subject ID', 'Session ID', 'Experiment Date', 'Experiment Time'};
             numVars = numel(varNames);
             
             S = struct(...
@@ -156,6 +155,23 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 if ~isfield( obj.Data(1).RootPath, 'DiskType' )
                     obj.addDiskTypeToAllRootPaths()
                     dirty = true;
+                end
+            end
+
+            for i = 1:numel(obj.Data)
+                % Rename Animal to Subject
+                for j = 1:numel(obj.Data(i).SubfolderStructure)
+                    if strcmp( obj.Data(i).SubfolderStructure(j).Type, "Animal")
+                        obj.Data(i).SubfolderStructure(j).Type = "Subject";
+                        dirty = true;
+                    end
+                end
+                % Rename Animal ID to Subject ID
+                for j = 1:numel(obj.Data(i).MetaDataDef)
+                    if strcmp( obj.Data(i).MetaDataDef(j).VariableName, "Animal ID")
+                        obj.Data(i).MetaDataDef(j).VariableName = "Subject ID";
+                        dirty = true;
+                    end
                 end
             end
 
@@ -492,7 +508,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 dataLocationIndex = 1; 
             end
 
-            S = obj.getMetavariableStruct('Animal ID', dataLocationIndex);
+            S = obj.getMetavariableStruct('Subject ID', dataLocationIndex);
             substring = obj.getSubstringFromFolder(pathStr, S, dataLocationIndex);
         end
         

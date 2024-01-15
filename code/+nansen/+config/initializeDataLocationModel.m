@@ -32,7 +32,7 @@ function dataLocationModel = initializeDataLocationModel(filePath)
     newItem.Name = 'Processed';
     newItem.Type = nansen.config.dloc.DataLocationType('processed');
     newItem.SubfolderStructure(1) = dataLocationModel.getDefaultSubfolderStructure;
-    newItem.SubfolderStructure(1).Type = 'Animal';
+    newItem.SubfolderStructure(1).Type = 'Subject';
     newItem.SubfolderStructure(2) = dataLocationModel.getDefaultSubfolderStructure;
     newItem.SubfolderStructure(2).Type = 'Session';
     

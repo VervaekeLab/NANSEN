@@ -588,8 +588,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             itemIdx = 0;
             switch obj.RowControls(rowNumber).VariableName.Text
-                case 'Animal ID'
-                    isMatched = strcmp({subFolderStructure.Type}, 'Animal');
+                case 'Subject ID'
+                    isMatched = strcmp({subFolderStructure.Type}, 'Subject');
                     if any(isMatched)
                         itemIdx = find(isMatched);
                     end

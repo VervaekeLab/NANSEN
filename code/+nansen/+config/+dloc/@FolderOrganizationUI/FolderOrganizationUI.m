@@ -184,7 +184,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.centerComponent(hRow.SubfolderTypeDropdown, y)
             hRow.SubfolderTypeDropdown.ValueChangedFcn = @obj.subFolderTypeChanged;
             
-            hRow.SubfolderTypeDropdown.Items = {'Select type', 'Date', 'Animal', 'Session', 'Other'};
+            hRow.SubfolderTypeDropdown.Items = {'Select type', 'Date', 'Subject', 'Session', 'Other'};
             
             if isempty(rowData.Type)
                 hRow.SubfolderTypeDropdown.Value = 'Select type';
