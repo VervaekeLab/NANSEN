@@ -87,6 +87,13 @@ classdef NansenUserSession < handle
         function setDataManagerApp(obj, app)
             obj.DataManagerApp = app;
         end
+        
+        function assertProjectsAvailable(obj)
+            if obj.ProjectManager.NumProjects == 0
+                error('Nansen:NoProjectsAvailable', ...
+                    'No projects exist. Please run nansen.setup to configure a project')
+            end
+        end
     end
 
     methods (Access = private) % Structors
@@ -153,7 +160,11 @@ classdef NansenUserSession < handle
 
             % Check that projects are available
             if ~obj.SkipProjectCheck
-                obj.assertProjectsAvailable()
+                try
+                    obj.assertProjectsAvailable()
+                catch ME
+                    warning(ME.message)
+                end
             end
             
             addlistener(obj.ProjectManager, 'CurrentProjectChanged', ...
@@ -208,14 +219,6 @@ classdef NansenUserSession < handle
     end
 
     methods (Access = private) % Internal actions
-
-        function assertProjectsAvailable(obj)
-            if obj.ProjectManager.NumProjects == 0
-                delete(obj)
-                error('Nansen:NoProjectsAvailable', ...
-                    'No projects exist. Please run nansen.setup to configure a project')
-            end
-        end
 
         function runPreStartupUpdateActions(obj)
         % runPreStartupUpdateActions - Run upgrade actions

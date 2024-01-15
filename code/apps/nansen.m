@@ -6,6 +6,8 @@ function hApp = nansen(userName, varargin)
 
     try
         userSession = nansen.internal.user.NansenUserSession.instance(userName);
+        
+        userSession.assertProjectsAvailable()
         hApp = nansen.App(userSession, varargin{:});
     catch ME
         hApp = [];
