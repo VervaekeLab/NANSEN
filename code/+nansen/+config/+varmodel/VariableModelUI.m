@@ -274,7 +274,8 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.centerComponent(hRow.FileAdapterSelect, y)
             
             if ~isempty(rowData.FileType)
-                fileAdapterOptions = obj.getFileAdapterOptions(rowData.FileType);
+                fileAdapterOptions = nansen.dataio.listFileAdapters(rowData.FileType);
+                fileAdapterOptions = {fileAdapterOptions.FileAdapterName};
             else
                 fileAdapterOptions = {obj.FileAdapterList.FileAdapterName};
             end
@@ -405,9 +406,10 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             % Get the selected filetype
             fileType = hRow.FileTypeSelect.Value;
             fileType = strrep(fileType, '.', '');
-
-            fileAdapterOptions = obj.getFileAdapterOptions(fileType);
             
+            fileAdapterOptions = nansen.dataio.listFileAdapters(fileType);
+            fileAdapterOptions = {fileAdapterOptions.FileAdapterName};
+
             % Update the list of file adapters available for this filetype
             if ~isequal(fileAdapterOptions, {'N/A'})
                 hRow.FileAdapterSelect.Items = fileAdapterOptions;
