@@ -2784,8 +2784,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.onToggleSidePanelVisibilityButtonPressed(obj.sidePanelToggleButton)
 
             end
-
-
         end
         
         function changeTab(obj, panelNum)

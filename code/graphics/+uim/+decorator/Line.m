@@ -13,6 +13,11 @@ classdef Line < uim.abstract.Control
     end
     
     properties
+        XData
+        YData
+    end
+    
+    properties
         Color = ones(1,3) * 0.5
         LineWidth = 0.5
     end
@@ -57,10 +62,18 @@ classdef Line < uim.abstract.Control
         end
         
         function [X, Y] = getPlotData(obj)
-            
-            X = [obj.Position(1), obj.Position(3)];
-            Y = [obj.Position(2), obj.Position(4)];
-            
+            if isempty(obj.XData)
+                X = [obj.Position(1), obj.Position(3)];
+            else
+                X = obj.XData;
+            end
+
+            if isempty(obj.YData)
+                Y = [obj.Position(2), obj.Position(4)];
+            else
+                Y = obj.YData;
+            end
+
         end
     end
     

@@ -5,8 +5,8 @@ classdef toolbar_ < uim.abstract.Container
     % todo: 
     %
     %   [x] add separator... I think this is done
-    %   [ ] Implement orientation functionality. See uim.widget.toolbar
-    %   [ ] Make sure button size is adapted to toolbar size + padding.
+    %   [ ] Implement orientation functionality. See uim.widget.toolbar
+    %   [ ] Make sure button size is adapted to toolbar size + padding.
     %   [x] Rename BackgroundMode to ContainerMode (move to container?)
     %   [ ] Remove DarkMode property. Use Style
     %   [ ] Move dimL_ and dimS_ to component or container??
@@ -83,8 +83,6 @@ classdef toolbar_ < uim.abstract.Container
             delete(obj.hButtons)
             delete(obj.ButtonSizeChangedListener)
         end
-        
-
     end
     
     methods % Methods to add toolbar objects
@@ -219,7 +217,6 @@ classdef toolbar_ < uim.abstract.Container
                     obj.setBarSizeToTight()
                     
             end
-            
         end
         
     end
@@ -227,6 +224,7 @@ classdef toolbar_ < uim.abstract.Container
     methods (Access = protected)
 
         function setBarSizeToTight(obj)
+        % setBarSizeToTight - Make toolbar size tight around buttons.
             
             dimL = obj.DimL_;
             dimS = obj.DimS_;
@@ -241,7 +239,11 @@ classdef toolbar_ < uim.abstract.Container
 
             extent = zeros(1,2);
             extent(dimL) = maxPositionL - minPositionL + sum(obj.Padding([dimL, dimL+2]));
-            extent(dimS) = obj.CanvasPosition(dimS+2);
+            if obj.NumButtons == 0
+                extent(dimS) = obj.CanvasPosition(dimS+2);
+            else
+                extent(dimS) = max(obj.AllButtonPosition(:, dimS+2), [], 1);
+            end
 
             minPos = zeros(1,2);
             minPos(dimL) = minPositionL - obj.Padding(dimL);

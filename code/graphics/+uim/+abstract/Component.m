@@ -57,15 +57,13 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
 % Todo:
 %       [ ] Simplify positioning. ie remove size and use position(3:4)?         (Not sure if this is needed).
 %       [x] Remove hAxes property and replace with CanvasAxes
-%       [ ] Implement a set.Parent method
-%       [ ] Implement a set.IsFixedSize method
-%       [ ] Implement a getpixelposition method.
-%       [ ] Implement a set methods for PositionMode, SizeMode
-%       [ ] Implement a set methods for MinimumSize, MaximumSize
+%       [ ] Implement a set.Parent method
+%       [ ] Implement a set.IsFixedSize method
+%       [ ] Implement a getpixelposition method.
+%       [ ] Implement a set methods for PositionMode, SizeMode
+%       [ ] Implement a set methods for MinimumSize, MaximumSize
 %       [ ] Make a component style... which is basically all the
 %           backgroundstyles...
-
-
 
 
     properties (Abstract, Constant)
@@ -875,7 +873,8 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             validGraphicsParents = {...
                 'matlab.ui.Figure', ...
                 'matlab.graphics.axis.Axes', ...
-                'matlab.ui.container.Panel' ...
+                'matlab.ui.container.Panel', ...
+                'matlab.ui.container.Tab' ...
                 };
             
             tf = false;
