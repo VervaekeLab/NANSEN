@@ -167,6 +167,11 @@ classdef MetaTable < handle
         function name = getName(obj)
             name = obj.MetaTableName;
         end
+
+        function typeName = getTableType(obj)
+            typeName = utility.string.getSimpleClassName(obj.MetaTableClass);
+            typeName = lower(typeName);
+        end
           
         function key = getKey(obj)
             key = obj.MetaTableKey;
@@ -594,7 +599,7 @@ classdef MetaTable < handle
             formattingFcn(isStruct) = {'dispStruct'};
 
             % Step 2: Get nansen table variables formatters.
-            tableClass = 'session'; % Todo: make this variable
+            tableClass = obj.getTableType();
             [fcnHandles, names] = getColumnFormatter(variableNames, tableClass);
             
             for i = 1:numel(names)

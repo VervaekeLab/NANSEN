@@ -188,9 +188,12 @@ classdef MetaTableCatalog < uim.handle
             end
         end
 
-        function metaTable = getMasterMetaTable(obj)
-                        
-            metatableFilename = obj.Table{obj.Table.IsMaster, 'FileName'}{1};
+        function metaTable = getMasterMetaTable(obj, typeName)
+            % Todo: merge with method below (getMasterTable)
+            isMatch = obj.Table.IsMaster & ...
+                contains(obj.Table.MetaTableClass, typeName, 'IgnoreCase', true);
+
+            metatableFilename = obj.Table{isMatch, 'FileName'}{1};
             metatableFilepath = fullfile(obj.FolderPath, metatableFilename);
             
             metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
@@ -198,7 +201,7 @@ classdef MetaTableCatalog < uim.handle
         
         function metaTable = getMasterTable(obj, metaTableType)
             
-            isMatch = obj.Table.IsMaster &&  contains( lower(obj.Table.MetaTableClass), metaTableType);
+            isMatch = obj.Table.IsMaster && contains( lower(obj.Table.MetaTableClass), metaTableType);
             idx = find(isMatch);
             
             if numel(idx) > 1
@@ -233,7 +236,7 @@ classdef MetaTableCatalog < uim.handle
             % Todo: Remove this
             
             if size(obj.Table, 1) >= 1
-                obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
+                %obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
                 obj.save()
             end
             

@@ -109,11 +109,12 @@ classdef Module < handle
             tableVariableFolder = obj.getItemRootFolder('TableVariable');
         end
 
-        function itemTable = getTable(obj, itemType)
+        function itemTable = getTable(obj, itemType, forceRefresh)
+            if nargin < 3; forceRefresh = false; end
             itemType = validatestring(itemType, {'SessionMethod', ...
                 'TableVariable', 'FileAdapter', 'DataVariables', ...
                 'DataLocations'}, 1);
-            itemTable = obj.rehash(itemType);
+            itemTable = obj.rehash(itemType, forceRefresh);
         end
 
         function filePaths = getFilePaths(obj, itemType)
@@ -234,9 +235,10 @@ classdef Module < handle
 
     methods (Access = private)
         
-        function itemTable = rehash(obj, itemType)
+        function itemTable = rehash(obj, itemType, forceRefresh)
         %rehash Check for changes to modulefiles and perform update if necessary    
-            
+            if nargin < 3; forceRefresh = false; end
+
             persistent lastTic; if isempty(lastTic); lastTic = containers.Map; end
             deltaT = 1; % Update interval in seconds for checking file system for changes.
 
@@ -248,7 +250,7 @@ classdef Module < handle
                     itemTable = obj.updateItemList(itemType, fileList);
                 else
                     oldFileList = obj.CachedFilePaths(itemType);
-                    if obj.isFileListModified(oldFileList, fileList)
+                    if obj.isFileListModified(oldFileList, fileList) || forceRefresh
                         itemTable = obj.updateItemList(itemType, fileList);
                     else
                         itemTable = obj.ItemTables(itemType);

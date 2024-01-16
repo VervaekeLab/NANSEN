@@ -111,6 +111,7 @@ classdef TableVariable
 
         S = getDefaultTableVariableAttribute()
 
-        defaultSessionTableVariableList = getDefaultSessionVariables()
+        defaultTableVariableList = getDefaultTableVariables(metadataType)
+
     end
 end

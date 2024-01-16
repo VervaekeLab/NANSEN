@@ -121,6 +121,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         ColumnSettings_
         lastMousePressTic
         IsConstructed = false;
+        RequireReset = false;
     end
     
     events
@@ -205,11 +206,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
             
             obj.onMetaTableSet(newTable)
-            
         end
        
         function set.MetaTableType(obj, newValue)
+            oldType = obj.MetaTableType;
             obj.MetaTableType = lower(newValue);
+            obj.onMetaTableTypeSet(oldType, lower(newValue))
         end
 
         function set.ColumnSettings(obj, newSettings)
@@ -393,7 +395,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % This might be used in some cases where the table should be
             % kept, but the flushTable flag is provided.
             
-            requireReset = isempty( obj.MetaTable );
+            requireReset = isempty( obj.MetaTable ) || obj.RequireReset;
 
             if nargin >= 2 && ~(isnumeric(newTable) && isempty(newTable))
                 obj.MetaTable = newTable;
@@ -412,6 +414,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 if ~isempty(obj.MetaTable)
                     obj.ColumnFilter.onMetaTableChanged()
                 end
+                obj.RequireReset = false;
             else
                 if ~isempty(obj.ColumnFilter)
                     obj.ColumnFilter.onMetaTableUpdated()
@@ -862,6 +865,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
             
             % Update the column formatting properties
+            obj.HTable.ColumnFormatData = []; % Reset ColumnFormatData before changing ColumnFormat
             obj.HTable.ColumnFormat = dataTypes;
             obj.HTable.ColumnFormatData = colFormatData;
 
@@ -970,16 +974,21 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 
             if isa(newTable, 'nansen.metadata.MetaTable')
                 T = newTable.getFormattedTableData();
+                obj.MetaTableType = newTable.getTableType();
                 obj.MetaTableCell = table2cell(T);
             elseif isa(newTable, 'table')
                 obj.MetaTableCell = table2cell(newTable);
             end
-            
+
             % Update metatable variable attributes.
             S = obj.getMetaTableVariableAttributes();
             obj.MetaTableVariableAttributes = S;
         end
         
+        function onMetaTableTypeSet(obj, oldType, newType)
+            obj.RequireReset = ~strcmp(oldType, newType);
+        end
+
         function onTableVariableAttributesFcnSet(obj)
             S = obj.getMetaTableVariableAttributes();
             obj.MetaTableVariableAttributes = S;
@@ -1419,7 +1428,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             columnType = obj.HTable.ColumnFormat{colNumber};
             
-            isMatch = strcmp( {obj.MetaTableVariableAttributes.Name}, currentColumnName );
+            isMatch = strcmp( {obj.MetaTableVariableAttributes.Name}, currentColumnName ) & ...
+                contains([obj.MetaTableVariableAttributes.TableType], obj.MetaTableType, 'IgnoreCase', true);
             if any(isMatch)
                 varAttr = obj.MetaTableVariableAttributes(isMatch); 
             else

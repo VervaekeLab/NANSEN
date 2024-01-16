@@ -13,7 +13,7 @@ classdef Subject < nansen.metadata.abstract.BaseSchema
     
     properties
         SubjectID         char
-        DateOfBirth       char
+        DateOfBirth       datetime
         BiologicalSex     char
         Species           char
         Strain            char % /or enum

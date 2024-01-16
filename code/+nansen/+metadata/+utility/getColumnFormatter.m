@@ -8,13 +8,9 @@ function [formatterFcnHandle, varNames] = getColumnFormatter(varNames, tableClas
 %   handles for all column formatters that match the given list of variable 
 %   names (varNames).
 %
-%   formatterFcnHandle = getColumnFormatter(varNames, tableClass, scope) 
-%   looks in the specified scope. Scope can be 'builtin' (for nansen 
-%   builtin table variables), 'project' (for current project). Default is 
-%   to look in both scopes. The project scope takes precedence over the 
-%   builtin scope, so if a column formatter exists both in the builtins
-%   and in the project, the project's column formatter is returned.
-% 
+%   formatterFcnHandle = getColumnFormatter(varNames, tableClass) 
+%   looks in the specified scope.
+%
 %   A column formatter is any class that inherits from the 
 %   nansen.metadata.abstract.TableVariable class
     
@@ -24,20 +20,23 @@ function [formatterFcnHandle, varNames] = getColumnFormatter(varNames, tableClas
     % Set default variables.
     if nargin < 1 || isempty(varNames); varNames = {}; end
     if nargin < 2 || isempty(tableClass); tableClass = 'session'; end
+    
     currentNansenProject = nansen.ProjectManager().getCurrentProject();
     tableVariablesAttributes = currentNansenProject.getTable('TableVariable');
 
+    keep = true(height(tableVariablesAttributes), 1);
+
     % Filter by variable names
     if ~isempty(varNames)
-        [~, iA] = intersect(tableVariablesAttributes.Name, varNames, 'stable');
-        tableVariablesAttributes = tableVariablesAttributes(iA, :);
+        keep = keep & ismember( tableVariablesAttributes.Name, varNames);
     end
 
     % Filter by table type
     if ~isempty(tableClass)
-        isMember = tableVariablesAttributes.TableType == string(tableClass);
-        tableVariablesAttributes = tableVariablesAttributes(isMember, :);
+        keep = keep & tableVariablesAttributes.TableType == string(tableClass);
     end
+
+    tableVariablesAttributes = tableVariablesAttributes(keep, :);
 
     hasFormatter = tableVariablesAttributes.HasRendererFunction;
     fcnNames = tableVariablesAttributes.RendererFunctionName(hasFormatter);
