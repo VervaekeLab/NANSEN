@@ -17,10 +17,11 @@ classdef Subject < nansen.metadata.abstract.BaseSchema
         BiologicalSex     char
         Species           char
         Strain            char % /or enum
+        Description       char
     end
 
     properties (Access = private, Constant)
-        Description = ''
+        %Description = ''
     end
     
 end

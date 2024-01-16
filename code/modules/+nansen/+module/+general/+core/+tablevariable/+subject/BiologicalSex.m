@@ -7,7 +7,7 @@ classdef BiologicalSex < nansen.metadata.abstract.TableVariable
     properties (Constant)
         IS_EDITABLE = true
         DEFAULT_VALUE = {'N/A'}
-        LIST_ALTERNATIVES = {'Male','Female','Not Detected'}
+        LIST_ALTERNATIVES = {'male','female','not detected'}
     end
     
     methods
