@@ -162,16 +162,15 @@ methods %Structors
 
         % Initialize grid. 
         % The changeGridSize method also takes care of the initialization
+        obj.updateScaleFactor()
         obj.changeGridSize()
-        
+
         if isFigCreated; obj.fitFigure; end
         obj.IsConstructed = true;
-
         
         if ~nargout
             clear obj
         end
-
     end
 
     % % Destructor
@@ -188,8 +187,8 @@ methods (Access = private) % Methods for setting up gui
     
     function parseVarargin(obj, cellOfVarargin)
 
-        fields = {'gridSize', 'padding', 'imageSize', 'tileConfiguration', ...
-            'numChan', 'normalizedPadding', 'tileUnits', 'Visible'};
+        fields = {'imageSize', 'gridSize', 'padding', 'tileConfiguration', ...
+            'numChan', 'normalizedPadding', 'tileUnits', 'Visible' };
 
         isInputName = cellfun(@(argin) isa(argin, 'char'), cellOfVarargin);
         inputNames = cellOfVarargin(isInputName);
@@ -644,7 +643,6 @@ methods
         nRows = obj.gridSize(1);
     end
 
-
     function nCols = get.nCols(obj)
         nCols = obj.gridSize(2);
     end
@@ -688,6 +686,14 @@ methods
         hFig = obj.hFigure;
     end
     
+    function setOriginalImageSize(obj, imageSize)
+        % Quick fix. Not quite sure if this is actually the original image
+        % size. Was needed to get the scalefactor correct, because the 
+        % hardcoded default value ([128,128]) of imageSize_ is not always 
+        % applicable. Todo: Clean this up
+        obj.imageSize_ = imageSize;
+        obj.updateScaleFactor()
+    end
     
     function pos = getTileOffset(obj, tileNum)
         

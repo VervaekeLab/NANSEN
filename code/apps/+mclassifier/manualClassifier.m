@@ -169,7 +169,7 @@ methods (Abstract, Access = protected) % Subclasses must implement
     
 end
 
-methods % Optional, subclasses may implement
+methods (Access = protected) % Optional, subclasses may implement
     
     function preInitialization(obj)
 
@@ -249,19 +249,27 @@ methods (Access = private, Hidden) % Gui Creation/construction
         def = struct('numChan', 1, 'tileUnits', 'pixel');
         opt = utility.parsenvpairs(def, [], varargin);
     
-        imageSize = obj.getImageSizeFromData();
+        originalImageSize = obj.getImageSizeFromData();
 
-        obj.updateGridSizeOptions(imageSize)
-        newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+        obj.updateGridSizeOptions(originalImageSize)
+        if strcmp(obj.settings.GridSize, 'Custom')
+            newGridSize = obj.settings.CustomGridSize;
+        else
+            newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+        end
 
         imageScaleFactor = eval( obj.settings.ImageScaleFactor );
-        imageSize = round( imageSize .* imageScaleFactor);
+        imageSize = round( originalImageSize .* imageScaleFactor);
 
         % Create a Tiled Image Axes Object in the image panel.
         tmpH = uim.graphics.tiledImageAxes(obj.hPanelImage, 'gridSize', newGridSize, ...
             'imageSize', imageSize, 'numChan', opt.numChan, 'tileUnits', opt.tileUnits);
+        tmpH.setOriginalImageSize(originalImageSize)
+
+        % Note: This is set explicitly, but should be set in the
+        % constructor of tiledImageAxes
         obj.hTiledImageAxes = tmpH;
-        
+
         obj.setTileCallbacks()
 
         tmpHAX = obj.hTiledImageAxes.Axes;
@@ -1516,7 +1524,6 @@ methods (Access = protected)
                     newGridSize = obj.stringSizeToNumbers(val);
                 end
 
-
                 % Apply!
                 if ~obj.hMessageBox.isMessageDisplaying()
                     obj.hMessageBox.displayMessage('Updating Grid Size')
@@ -1528,6 +1535,9 @@ methods (Access = protected)
                 % Change the value of the popup control.
                 hPopup = findobj(obj.hFigure, 'Tag', 'Set GridSize');
                 hPopup.Value = find(contains(hPopup.String, val));
+            
+            case 'CustomGridSize'
+                obj.changeGridSize(val)
 
             case 'ImageScaleFactor'
                 obj.settings.(name) = val;
@@ -1537,7 +1547,11 @@ methods (Access = protected)
                 newImageSize = round( imageSize .* imageScaleFactor);
                 
                 obj.updateGridSizeOptions(newImageSize)
-                newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+                if strcmp(obj.settings.GridSize, 'Custom')
+                    newGridSize = obj.settings.CustomGridSize;
+                else
+                    newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+                end
 
                 % Apply changes:
                 obj.hMessageBox.displayMessage('Updating Image Resolution')
@@ -1593,10 +1607,19 @@ methods (Access = private)
         
         imageSelection = getCurrentImageSelection(obj);
         if numel( obj.itemImages(1) ) >= 1
-            imageData = obj.itemImages(1).(imageSelection);
-            imageSize = size(imageData);
-            imageSize = imageSize(1:2);
+            for i = 1:numel(obj.itemImages)
+                imageData = obj.itemImages(i).(imageSelection);
+                if isempty(imageData)
+                    continue
+                end
+                imageSize = size(imageData);
+                imageSize = imageSize(1:2);
+            end
         else
+            imageSize = nan;
+        end
+
+        if all(imageSize==0)
             imageSize = nan;
         end
     end
@@ -1609,7 +1632,7 @@ methods (Access = private)
         imageSizeOptions = cell(size(scaleFactors));
         for i = 1:numel(scaleFactors)
             thisScaleFactor = eval(scaleFactors{i});
-            scaledImageSize = imageSize .* thisScaleFactor;
+            scaledImageSize = round( imageSize .* thisScaleFactor);
             imageSizeOptions{i} = obj.numbersToStringSize(scaledImageSize);
         end
     end
@@ -1636,13 +1659,18 @@ methods (Access = private)
 
         % Update grid size options in settings
         opts = arrayfun(@(i) sprintf('%dx%d', nRows(i), nCols(i)), 1:numel(nRows), 'uni', 0);
+        opts = ['Custom', opts];
         obj.settings_.GridSize_ = opts;
 
         % Compute new preferred grid size by finding the new grid size with
         % the row number being closest to the row number in the old grid size
-        oldGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
-        [~, closestMatch] = min(abs(nRows - oldGridSize(1))); 
-        obj.settings_.GridSize = obj.settings.GridSize_{closestMatch};
+        if strcmp(obj.settings.GridSize, 'Custom')
+            closestMatch = 1;
+        else
+            oldGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+            [~, closestMatch] = min(abs(nRows - oldGridSize(1))); 
+            obj.settings_.GridSize = obj.settings.GridSize_{closestMatch};
+        end
 
         % Todo: update options in grid size dropdown menu
         % Change the value of the grid-size popup control.
