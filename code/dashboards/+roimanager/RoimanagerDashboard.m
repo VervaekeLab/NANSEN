@@ -783,8 +783,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             % Handle key events that should be taken care of by the main
             % application:
-                        
-            switch evt.Character
+            
+            switch evt.Key
                 case 's'
                     if isequal(evt.Modifier, {'command'}) || isequal(evt.Modifier, {'control'})
                         obj.saveRois(obj.roiFilePath)
