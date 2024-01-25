@@ -5311,6 +5311,10 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                     uiundo(obj.Figure, 'execRedo')
                 elseif contains('command', event.Modifier) || contains('control', event.Modifier) 
                     uiundo(obj.Figure, 'execUndo')
+                elseif event.Character == 'z'
+                    obj.imageZoom('in');
+                elseif event.Character == 'Z'
+                    obj.imageZoom('out');
                 end
 
             case 'n'
@@ -5391,8 +5395,8 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 % Todo: Assign selection from imageStack.imageData...
                 % assignin('base', 'imviewerData')
                 
-            case {'+', 'slash', '0'}
-                if ispc && strcmp(event.Key, '0')
+            case {'+', 'slash', 'plus'}
+                if ispc && strcmp(event.Key, 'plus')
                     obj.imageZoom('in');
                 elseif ~ispc && strcmp(event.Key, '0')
                     % Skip
@@ -5400,7 +5404,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                     obj.imageZoom('out');
                 end
                     
-            case {'-', 'hyphen'}
+            case {'-', 'hyphen', 'minus'}
                 if ispc
                     obj.imageZoom('out');
                 else
