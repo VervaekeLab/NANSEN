@@ -59,6 +59,8 @@ classdef autoDetect < uim.interface.abstractPointer & ...
         function activate(obj)
             activate@uim.interface.abstractPointer(obj)
             
+            nansen.common.uiinform.roimanager.informUser('AdjustAutodetectionArea')
+            
             showCircle(obj)
             hideCircle(obj)
             obj.plotCrosshair()
@@ -66,7 +68,9 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             set(obj.hCrosshair(1:2), 'Visible', 'on')
             set(obj.hTempRoi, 'Visible', 'on')
             obj.updateRoi()
-            obj.keyReleaseListener = listener(obj.hFigure, 'WindowKeyRelease', @obj.onKeyRelease);
+            % This should not be needed after commit 71c9590, but keep
+            % around just in case I'm wrong.
+            %obj.keyReleaseListener = listener(obj.hFigure, 'WindowKeyRelease', @obj.onKeyRelease);
             obj.scrollListener = listener(obj.hFigure, 'WindowScrollWheel', @obj.onMouseScroll);
             obj.isActive = true;
             
@@ -145,7 +149,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
         end
         
         function onButtonMotion(obj, src, evt)
-           
+            
             if ~obj.isPointerInsideAxes; return; end
             if ~obj.isActive; return; end
             
@@ -245,7 +249,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
                     obj.updateRoi()
 
                     
-                case 'alt'
+                case {'alt', '⌥'}
                     obj.isAltDown = true;
                     wasCaptured = false; % Should not be captured!
 
@@ -264,12 +268,15 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             
         end
         
-        function onKeyRelease(obj, src, event)
+        function wasCaptured = onKeyRelease(obj, src, event)
+            wasCaptured = true;
             switch event.Key
-                case 'alt'
+                case {'alt', '⌥'}
                     obj.isAltDown = false;
+                    wasCaptured = false; % Should not be captured!
                 case 'control'    
                     obj.isControlDown = false;
+                    wasCaptured = false; % Should not be captured!
             end
         end
         
@@ -285,6 +292,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             x = currentPoint(1);
             y = currentPoint(2);
             r = round( obj.circleToolCoords(3) );
+            if r < 1; r = 1; end % Prevent radius from being 0
             
             r(2) = obj.extendedRadius;
             

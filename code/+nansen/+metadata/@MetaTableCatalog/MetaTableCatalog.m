@@ -198,7 +198,7 @@ classdef MetaTableCatalog < uim.handle
         
         function metaTable = getMasterTable(obj, metaTableType)
             
-            isMatch = obj.Table.IsMaster &&  contains( lower(obj.Table.MetaTableClass), metaTableType);
+            isMatch = obj.Table.IsMaster & contains( lower(obj.Table.MetaTableClass), metaTableType);
             idx = find(isMatch);
             
             if numel(idx) > 1
@@ -214,7 +214,6 @@ classdef MetaTableCatalog < uim.handle
 
             metatableFilepath = fullfile(mtItem.SavePath{1}, mtItem.FileName{1});
             metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
-            
         end
         
         function tf = hasDefaultOfType(obj, className)
