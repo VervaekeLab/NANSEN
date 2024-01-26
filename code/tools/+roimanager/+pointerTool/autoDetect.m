@@ -59,6 +59,8 @@ classdef autoDetect < uim.interface.abstractPointer & ...
         function activate(obj)
             activate@uim.interface.abstractPointer(obj)
             
+            nansen.common.uiinform.roimanager.informUser('AdjustAutodetectionArea')
+            
             showCircle(obj)
             hideCircle(obj)
             obj.plotCrosshair()
