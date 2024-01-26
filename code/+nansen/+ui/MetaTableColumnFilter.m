@@ -152,8 +152,18 @@ classdef MetaTableColumnFilter < handle
 
                     nUnique = numel(uniqueColumnData);
                     
-                    if nUnique < 10 || nUnique < numel(columnData)*0.2
-                        
+                    createDropdown = false;
+                    fractionUnique = nUnique / numel(columnData) * 100;
+
+                    if nUnique < 10
+                        createDropdown = true;
+                    elseif nUnique < 20 && fractionUnique < 90
+                        createDropdown = true;
+                    elseif nUnique < 50 && fractionUnique < 50
+                        createDropdown = true;
+                    end
+
+                    if createDropdown
                         switch obj.PopupLocation
                             case 'sidepanel'
                                 obj.createListboxSelector(filterChoices, columnIdx)
@@ -162,11 +172,9 @@ classdef MetaTableColumnFilter < handle
                         end
                         obj.columnFilterType{columnIdx} = 'multiSelection';
 
-                    else % Todo: Create a auto-search input dlg.
-                        
+                    else % Create a search/freetext filter widget
                         h = obj.createAutocompleteWidget(filterChoices, columnIdx);
                         obj.columnFilterType{columnIdx} = 'autocomplete';
-
                     end
                     
                 case {'uint8', 'uint16', 'single', 'double'}
