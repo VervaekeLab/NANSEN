@@ -293,6 +293,19 @@ classdef pointerManager < handle
         end
 
         function wasCaptured = onKeyRelease(obj, src, event)
+            persistent notifyUser
+            if isempty(notifyUser)
+                notifyUser = false;
+                if ispc; notifyUser = true; end 
+            end
+            
+            if strcmp(event.Key, 'alt')
+                if notifyUser
+                    nansen.common.uiinform.roimanager.notifyUserAboutStrangeAltBehaviorOnWindows()
+                    notifyUser = false;
+                end
+            end
+            
             if ~isempty(obj.currentPointerTool)
                 wasCaptured = obj.currentPointerTool.onKeyRelease(src, event);
             end
@@ -405,6 +418,4 @@ classdef pointerManager < handle
             
         end
     end
-    
-    
 end

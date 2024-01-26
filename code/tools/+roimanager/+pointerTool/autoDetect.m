@@ -66,7 +66,9 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             set(obj.hCrosshair(1:2), 'Visible', 'on')
             set(obj.hTempRoi, 'Visible', 'on')
             obj.updateRoi()
-            obj.keyReleaseListener = listener(obj.hFigure, 'WindowKeyRelease', @obj.onKeyRelease);
+            % This should not be needed after commit 71c9590, but keep
+            % around just in case I'm wrong.
+            %obj.keyReleaseListener = listener(obj.hFigure, 'WindowKeyRelease', @obj.onKeyRelease);
             obj.scrollListener = listener(obj.hFigure, 'WindowScrollWheel', @obj.onMouseScroll);
             obj.isActive = true;
             
@@ -145,7 +147,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
         end
         
         function onButtonMotion(obj, src, evt)
-           
+            
             if ~obj.isPointerInsideAxes; return; end
             if ~obj.isActive; return; end
             
@@ -265,7 +267,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
         end
         
         function wasCaptured = onKeyRelease(obj, src, event)
-            wasCaptured = true; 
+            wasCaptured = true;
             switch event.Key
                 case {'alt', '⌥'}
                     obj.isAltDown = false;
