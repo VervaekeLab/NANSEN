@@ -5156,8 +5156,9 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
     end
     
     function onKeyPressed(obj, ~, event, forceKey)
-        
-        if nargin < 4; forceKey = false; end
+    % onKeyPressed - Callback handler for key press events
+
+        if nargin < 4; forceKey = false; end % Todo: Describe what this is
         
         if ~obj.isMouseInApp && ~forceKey; return; end
 
@@ -5175,6 +5176,9 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             end
         end
         
+        % Note: This should eventually take over for the if block above,
+        % pointermanager is currently saved in the 'plugins' property, and 
+        % this method works on 'Plugins' property. Todo: consolidate
         wasCaptured = obj.sendKeyEventToPlugins([], event);
         if wasCaptured; return; end
         
@@ -5193,7 +5197,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         switch event.Key
             
-            case 'alt'
+            case {'alt', '⌥'}
                 obj.isAltDown = true;
             
             case 'shift'
@@ -5248,11 +5252,10 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             case 'u'
                 obj.updateImageDisplay()
                 
-                
-%             case {'leftarrow', 'rightarrow'}
             case 'return'
                 obj.Figure.UserData.lastKey = 'return';
                 uiresume(obj.Figure)
+
             case 'escape'
                 obj.Figure.UserData.lastKey = 'escape';
                 uiresume(obj.Figure)
@@ -5301,7 +5304,6 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                         obj.resizeWindow([], [], 'shrink')
                     end
                 end
-                
                 
             case {'z', 'Z'}
                 % Todo: Figure out what todo if another app is keeper of
@@ -5352,7 +5354,6 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 
             case 'c'
                 obj.showBrightnessSlider()
-
                 
             case 'p'
                 if ~contains('shift', event.Modifier)
@@ -5371,6 +5372,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 else
                     obj.playbackspeed = obj.playbackspeed / 2;
                 end
+
             case 'v'
                 if contains( event.Modifier, {'command', 'ctrl', 'control'})
                     str = clipboard('paste');
@@ -5410,6 +5412,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 else
                     obj.imageZoom('in');
                 end
+
             case 'q'
 %                 set(obj.uiaxes.imdisplay, 'XLim', [1, obj.imWidth], 'YLim', [1, obj.imHeight])
 %                 plotZoomRegion(obj, [1, obj.imWidth], [1, obj.imHeight])
@@ -5419,7 +5422,6 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
 %                 setNewImageLimits(obj, [1, obj.imWidth], [1, obj.imHeight])
  
             case 'r'
-
                 theta = -90; % CW rotation
                  
                 if contains({'control'}, event.Modifier)
@@ -5447,16 +5449,32 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
     end
     
     function onKeyReleased(obj, ~, event)
+    % onKeyReleased - Callback handler for key release events
+
+        % Check if any plugins are active, and invoke their keyRelease
+        % callback handler. If no plugins are active, or no plugins
+        % captures the key, let this app handle the key event.
+
+        if ~isempty(obj.plugins)
+            for i = 1:numel(obj.plugins)
+                try
+                    wasCaptured = obj.plugins(i).pluginHandle.onKeyRelease([], event);
+                    if wasCaptured; return; end
+                catch ME
+                    fprintf( [ME.message, '\n'] )
+                    % something went wrong, but thats fine?
+                end
+            end
+        end
+
         switch event.Key
-            
             case 'shift'
                 obj.Figure.SelectionType = 'normal';
-%                 obj.Figure.Interruptible = 'on';
-            case 'alt'   
+                % obj.Figure.Interruptible = 'on'; Not sure why this is here
+            case {'alt', '⌥'} 
                 obj.isAltDown = false;
         end
     end
-    
 end
 
 methods (Access = protected)

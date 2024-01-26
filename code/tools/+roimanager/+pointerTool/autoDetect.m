@@ -245,7 +245,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
                     obj.updateRoi()
 
                     
-                case 'alt'
+                case {'alt', '⌥'}
                     obj.isAltDown = true;
                     wasCaptured = false; % Should not be captured!
 
@@ -264,12 +264,15 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             
         end
         
-        function onKeyRelease(obj, src, event)
+        function wasCaptured = onKeyRelease(obj, src, event)
+            wasCaptured = true; 
             switch event.Key
-                case 'alt'
+                case {'alt', '⌥'}
                     obj.isAltDown = false;
+                    wasCaptured = false; % Should not be captured!
                 case 'control'    
                     obj.isControlDown = false;
+                    wasCaptured = false; % Should not be captured!
             end
         end
         
@@ -285,6 +288,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             x = currentPoint(1);
             y = currentPoint(2);
             r = round( obj.circleToolCoords(3) );
+            if r < 1; r = 1; end % Prevent radius from being 0
             
             r(2) = obj.extendedRadius;
             

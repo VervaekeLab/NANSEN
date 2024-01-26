@@ -327,7 +327,12 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         function initializeRoiTable(obj, roiGroup)
         %initializeRoiTable Initialize the roi table module
             h = roimanager.RoiTable(obj.hPanels(3), roiGroup);
+            % Note: table catches all key events by default. Setting the 
+            % following callbacks will pass uncaught key events to the
+            % roimanager/imviewer.
             h.KeyPressFcn = @(s, e) obj.onKeyPressed(s, e, 'roimanager');
+            h.KeyReleaseFcn = @(s, e) obj.onKeyReleased(s, e, 'roimanager');
+
             obj.addPanelResizeButton(obj.hPanels(3).Children(1))
             obj.AppModules(end+1) = h;
         end
@@ -792,7 +797,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                     end
             end
 
-
             % If key event was not handled so far, defer to submodules.
             if nargin < 4
                 onKeyPressed@applify.DashBoard(obj, src, evt)
@@ -807,12 +811,23 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                                 if ~isempty(obj.RoiThumbnailViewer)
                                     obj.RoiThumbnailViewer.onKeyPressed(src, evt)
                                 end
-
                         end
                 end
             end
         end
-        
+
+        function onKeyReleased(obj, src, evt, module)
+            % If key event was not handled so far, pass on to submodules.
+            
+            if nargin < 4
+                onKeyReleased@applify.DashBoard(obj, src, evt)
+            else
+                switch module
+                    case 'roimanager'
+                        obj.Imviewer.onKeyReleased(src, evt)
+                end
+            end
+        end
     end
     
     methods 

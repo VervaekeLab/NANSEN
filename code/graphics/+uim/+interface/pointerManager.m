@@ -236,7 +236,6 @@ classdef pointerManager < handle
             if ~isempty(obj.currentPointerTool)
                 obj.currentPointerTool.onButtonUp(src, event)
             end
-            
         end
         
         function keyPressCallbackFunction(varargin)
@@ -290,6 +289,12 @@ classdef pointerManager < handle
             
             if ~nargout
                 clear wasCaptured
+            end
+        end
+
+        function wasCaptured = onKeyRelease(obj, src, event)
+            if ~isempty(obj.currentPointerTool)
+                wasCaptured = obj.currentPointerTool.onKeyRelease(src, event);
             end
         end
         

@@ -51,6 +51,10 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
         function wasCaptured = onKeyPress(obj, src, event)
             wasCaptured = false;
         end
+               
+        function wasCaptured = onKeyRelease(obj, src, event)
+            wasCaptured = false;
+        end
         
         function activate(obj)
             obj.setPointerSymbol()

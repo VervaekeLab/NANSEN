@@ -25,6 +25,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     properties
         AllowRowDeletion = true % todo..
         KeyPressFcn
+        KeyReleaseFcn
     end
     
     properties (Access = protected)
@@ -68,7 +69,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;
             obj.UITable.HTable.CellEditCallback = @obj.onTableCellEdited;
             obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressedInTable;
-            
+            obj.UITable.HTable.KeyReleaseFcn = @obj.onKeyReleasedInTable;
+
             % Load and set column model settings from preferences.
             tableColumnSettings = obj.getPreference('TableColumnSettings', []);
             if ~isempty(tableColumnSettings)
@@ -249,10 +251,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         
         function onKeyPressedInTable(obj, src, evt)
         %onKeyPressedInTable Handle keypress that occur in table
-        
+            %fprintf('keypress in %s\n', 'roitable')
+
             switch evt.Key
                 case {'↓', '↑', '←', '→', 'leftarrow', 'rightarrow', ...
                         'uparrow', 'downarrow'} % arrowkeys
+                    
                     if isempty(evt.Modifier) || ~strcmp(evt.Modifier, 'alt')
                         return
                         
@@ -288,20 +292,29 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     
                 case 'a'
                     % Don't want to pass this on. Command+a (on mac) raises 
-                    % a key event with eventdata where modified is empty, 
+                    % a key event with eventdata where modifier is empty, 
                     % so can not prevent autodetection tool from being 
-                    % activated. 
-                    return
-                    
+                    % activated.
+                    % 2024-01-26 : Could not reproduce the above statement,
+                    % not sure what was meant by that. Keep these comment 
+                    % in case a bug with the "a" key reappears.
+                    if ~isempty(evt.Modifier)
+                        return
+                    end
             end
-            
             
             if ~isempty(obj.KeyPressFcn)
                 obj.KeyPressFcn(src, evt)
             end
-            
         end
         
+        function onKeyReleasedInTable(obj, src, evt)
+            %fprintf('key released in %s\n', 'roitable')
+            if ~isempty(obj.KeyReleaseFcn)
+                obj.KeyReleaseFcn(src, evt)
+            end
+        end
+
         function roiTable = rois2table(obj, roiArray)
             
             roiTable = table.empty;
@@ -551,6 +564,11 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function onKeyPressed(obj, src, evt)
             % Todo implement...
             obj.onKeyPressedInTable(src, evt)
+        end
+
+        function onKeyReleased(obj, src, evt)
+            % Todo implement...
+            obj.onKeyReleasedInTable(src, evt)
         end
         
     end

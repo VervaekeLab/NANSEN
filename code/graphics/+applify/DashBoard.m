@@ -422,14 +422,16 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
         
         function onKeyPressed(obj, src, evt, ~)
             currentApp = obj.getCurrentApp();
-            
+            %fprintf('keypress in %s\n', currentApp.AppName) % Debugging
+
             if ~isempty(currentApp)
                 currentApp.onKeyPressed(src, evt)
             end
         end
-
+        
         function onKeyReleased(obj, src, evt)
             currentApp = obj.getCurrentApp();
+            %fprintf('keyrelease in %s\n', currentApp.AppName) % Debugging
             
             if ~isempty(currentApp)
                 currentApp.onKeyReleased(src, evt)
