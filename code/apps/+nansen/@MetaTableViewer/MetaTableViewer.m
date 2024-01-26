@@ -317,7 +317,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     obj.HTable.setCell(iRow, jCol, thisValue)
                 end
             end
-            
             drawnow
         end
 
@@ -777,7 +776,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             for i = categoricalIdx
                 categoricalObject = T{1,i};
                 if iscell(categoricalObject); categoricalObject = categoricalObject{1}; end
-                colFormatData{i} = categories(categoricalObject); % need to get enum for original....
+                if isprotected(categoricalObject)
+                    colFormatData{i} = categories(categoricalObject);
+                else
+                    % Add <undefined> as an option for unprotected
+                    % categoricals
+                    colFormatData{i} = cat(1, '<undefined>', categories(categoricalObject));
+                end
             end
 
             % All numeric types should be called 'numeric'

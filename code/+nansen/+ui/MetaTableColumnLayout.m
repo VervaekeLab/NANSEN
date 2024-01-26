@@ -447,6 +447,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             currentColumnArrangement = visibleNames(currentInd);
             
+            % Ad hoc fix: Remove html tags from names
+            newColumnArrangement = regexprep(newColumnArrangement, '<.*?>', '');
+
             % Get indices (iC) describing how the newColumnArrangement is
             % relative to the arrangement in settings.
             [~, ~, iC] = intersect(currentColumnArrangement, newColumnArrangement, 'stable');

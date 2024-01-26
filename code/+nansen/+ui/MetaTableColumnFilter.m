@@ -152,7 +152,7 @@ classdef MetaTableColumnFilter < handle
 
                     nUnique = numel(uniqueColumnData);
                     
-                    if nUnique < 10 || nUnique < numel(columnData)*0.95
+                    if nUnique < 10 || nUnique < numel(columnData)*0.2
                         
                         switch obj.PopupLocation
                             case 'sidepanel'

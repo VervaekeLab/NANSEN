@@ -53,6 +53,7 @@ function varargout = openRoiManager(sessionObj, varargin)
     
     try
 % %         roiFilePath = sessionObj.getDataFilePath('RoiArray');
+% %         if ~isfile(roiFilePath)
             
         varName = sessionData.uiSelectVariableName('roiArray');
         if ~isempty(varName)
@@ -67,6 +68,7 @@ function varargout = openRoiManager(sessionObj, varargin)
                 hRoimanager.DataSet = sessionData;
             end
         end
+% %        end
 
     catch ME
         disp(getReport(ME))

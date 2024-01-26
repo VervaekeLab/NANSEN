@@ -66,6 +66,8 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             obj@nansen.processing.MotionCorrection(varargin{:})
         
+            obj.assertAddonInstalled()
+
             % Return if there are no inputs.
             if numel(varargin) == 0
                 return
@@ -414,6 +416,12 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         end
         
         pathList = getDependentPaths() % Method in external file.
+
+        function assertAddonInstalled()
+            if ~exist('OF_Options', 'file')
+                error('FlowRegistration was not found on MATLAB''s search path')
+            end
+        end
     end
 
 end

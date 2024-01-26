@@ -565,7 +565,7 @@ classdef messageBox < uim.mixin.isResizable
             % displayed quickly.
             %obj.hijackMouseOver()
 
-            msg = sprintf(msg);
+            msg = sprintf('%s', msg);
             msg = strrep(msg, newline, '');
             
             if ~isempty(obj.hText.String)

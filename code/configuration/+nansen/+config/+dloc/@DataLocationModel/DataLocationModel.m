@@ -1098,6 +1098,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                         for j = 1:numel(S.Data(i).RootPath)
                             sNew(j).Key = nansen.util.getuuid();
                             sNew(j).Value = S.Data(i).RootPath{j};
+                            sNew(j).Diskname = '';
                         end
                         
                         S.Data(i).RootPath = sNew;

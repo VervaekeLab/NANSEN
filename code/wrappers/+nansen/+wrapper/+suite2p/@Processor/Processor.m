@@ -239,6 +239,12 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         end
         
         pathList = getDependentPaths()
+
+        function assertAddonInstalled()
+            if ~exist('build_ops3', 'file')
+                error('Suite2P was not found on MATLAB''s search path')
+            end
+        end
     end
 
 end

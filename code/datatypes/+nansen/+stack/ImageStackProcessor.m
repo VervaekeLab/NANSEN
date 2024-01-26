@@ -100,6 +100,11 @@ classdef ImageStackProcessor < nansen.DataMethod %& matlab.mixin.Heterogenous
         Results cell                        % Cell array (numParts x numPlanes x numChannels) containing temporary results for each part of processing
         MergedResults cell                  % Cell array (numPlanes x numChannels) containing final (merged) results
     end
+
+    properties 
+        % SourceStackName    % Todo
+        TargetStackName = '' % Name of data variable representing a target image stack
+    end
     
     properties % User preferences
         %IsSubProcess = false        % Flag to indicate if this is a subprocess of another process (determines display output)
