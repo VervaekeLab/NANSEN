@@ -45,6 +45,6 @@ function informUser(infoID, mode)
             shownThisUserSession(infoID) = true;
             
         case "show"
-            msgbox(dialogMessage, dialogTitle)
+            msgbox(strjoin(dialogMessage), dialogTitle)
     end
 end
