@@ -162,14 +162,20 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 % Rename Animal to Subject
                 for j = 1:numel(obj.Data(i).SubfolderStructure)
                     if strcmp( obj.Data(i).SubfolderStructure(j).Type, "Animal")
-                        obj.Data(i).SubfolderStructure(j).Type = "Subject";
+                        obj.Data(i).SubfolderStructure(j).Type = 'Subject';
+                        dirty = true;
+                    elseif isstring(obj.Data(i).SubfolderStructure(j).Type)
+                        obj.Data(i).SubfolderStructure(j).Type = char(obj.Data(i).SubfolderStructure(j).Type);
                         dirty = true;
                     end
                 end
                 % Rename Animal ID to Subject ID
                 for j = 1:numel(obj.Data(i).MetaDataDef)
                     if strcmp( obj.Data(i).MetaDataDef(j).VariableName, "Animal ID")
-                        obj.Data(i).MetaDataDef(j).VariableName = "Subject ID";
+                        obj.Data(i).MetaDataDef(j).VariableName = 'Subject ID';
+                        dirty = true;
+                    elseif isstring(obj.Data(i).MetaDataDef(j).VariableName)
+                        obj.Data(i).MetaDataDef(j).VariableName = char(obj.Data(i).MetaDataDef(j).VariableName);
                         dirty = true;
                     end
                 end
@@ -332,7 +338,9 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %validateSubfolders Validate subfolders of data locations
         %
         %   This method is used to 
-        %       1) Update the root path from the model
+        %       1) Update the root path from the model, i.e, if the root
+        %          path in the model changes, need to update the rootpath 
+        %          for all items
         %       2) Ensure the file separator of subfolders is matched to
         %          the operating system
 

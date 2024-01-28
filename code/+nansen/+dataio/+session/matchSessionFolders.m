@@ -54,11 +54,12 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
     fieldValuePairs = cat(1, dataLocationNames, initPaths);
     blankList = struct(fieldValuePairs{:});
     
-    numSessions = numel(sessionFolderList.(dataLocationNames{1}));
-    sessionIDs = cell(numSessions, 1);
+    %numSessions = numel(sessionFolderList.(dataLocationNames{1}));
+    %sessionIDs = cell(numSessions, 1); % Note: Not populated
 
     sessionIds = getSessionIDsForPaths(dataLocationModel, sessionFolderList); % Local function
     uniqueSessionIds = getUniqueSessionIds(sessionIds);
+    sessionIDs = uniqueSessionIds;
 
     % Todo: check for empty ids?
 

@@ -6,7 +6,7 @@
   "SubfolderStructure": [
     {
       "Name": "",
-      "Type": "Animal",
+      "Type": "Subject",
       "Expression": "",
       "IgnoreList": []
     },
@@ -19,7 +19,7 @@
   ],
   "MetaDataDef": [
     {
-      "VariableName": "Animal ID",
+      "VariableName": "Subject ID",
       "SubfolderLevel": [],
       "StringDetectMode": "ind",
       "StringDetectInput": "",

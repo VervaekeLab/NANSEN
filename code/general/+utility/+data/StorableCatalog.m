@@ -76,6 +76,10 @@ classdef StorableCatalog < handle
     properties (Access = protected) % Might be better id this is dependent... (no need to explicity update)
         ItemNames       % Name of all items in archive
     end
+
+    properties (Hidden)
+        SaveFormat = 'mat';
+    end
     
     
     events % Tentative...
@@ -227,16 +231,20 @@ classdef StorableCatalog < handle
         
         function save(obj)
         %save Save data to file
-            S = obj.toStruct; %#ok<NASGU>
-            S = obj.cleanStructOnSave(S);
-            save(obj.FilePath, '-struct', 'S')
+            obj.saveas(obj.FilePath)
         end
         
         function saveas(obj, filePath)
         %save Save data to file at file path given as input
-            S = obj.toStruct; %#ok<NASGU>
+            S = obj.toStruct();
             S = obj.cleanStructOnSave(S);
-            save(filePath, '-struct', 'S')
+
+            if strcmp(obj.SaveFormat, 'mat')
+                save(filePath, '-struct', 'S')
+            elseif strcmp(obj.SaveFormat, 'json')
+                str = jsonencode(S, 'PrettyPrint', true);
+                utility.filewrite(strrep(filePath, 'mat', 'json'), str)
+            end
         end
         
     end

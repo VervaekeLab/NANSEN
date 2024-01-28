@@ -69,7 +69,9 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
             newSessionArray = [];
             return
         end
-    end       
+    elseif any( cellfun('isempty', sessionIDs) )
+        newSessionArray( cellfun('isempty', sessionIDs) ) = [];
+    end
 end
 
 function sessionArray = validateDataLocationStruct(metaTable, sessionArray, dataLocationModel)

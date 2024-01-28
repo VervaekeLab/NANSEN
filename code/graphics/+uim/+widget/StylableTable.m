@@ -88,7 +88,6 @@ classdef StylableTable < uiw.widget.Table
             obj.updateColumnHeaderVisibility()
             
             warning('on', 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
-
         end
         
         function delete(obj)

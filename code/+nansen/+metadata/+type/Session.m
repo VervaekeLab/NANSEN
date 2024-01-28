@@ -1106,7 +1106,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
         end
 
-        function folderPath = getSessionFolder(obj, dataLocationName)
+        function folderPath = getSessionFolder(obj, dataLocationName, mode)
         %getSessionFolder Get session folder for a given dataLocationName
         %
         %
@@ -1114,6 +1114,12 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             if nargin < 2
                 dataLocationName = obj.DataLocationModel.DefaultDataLocation;
             end
+
+            if nargin < 3
+                mode = 'create'; % 'create' or 'nocreate'
+            end
+            
+            mode = validatestring(mode, {'create', 'nocreate'});
             
             folderPath = '';
             
@@ -1122,7 +1128,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             if ~isempty(S.Subfolders)
                 folderPath = fullfile(S.RootPath, S.Subfolders);
             else
-                if strcmp(S.Type.Permission, 'write')
+                if strcmp(S.Type.Permission, 'write') && strcmp(mode, 'create')
                     folderPath = obj.createSessionFolder(dataLocationName);
                 end
             end
