@@ -515,12 +515,14 @@ classdef FileViewer < nansen.AbstractTabPageModule
             end
 
             try
-                dirPath = sessionObject.getSessionFolder(dataLocationName);
+                dirPath = sessionObject.getSessionFolder(dataLocationName, 'nocreate');
             catch ME %#ok<NASGU>
                 dirPath = '';
             end
-                        
-            if ~isfolder(dirPath)
+            
+            if isempty(dirPath)
+                W.Root.Name = sprintf('%s [Folder does not exist]', W.Root.Name);
+            elseif ~isfolder(dirPath)
                 W.Root.Name = sprintf('%s (Not available)', W.Root.Name);
             else
                 W.Root.Name = sprintf('Session: %s', sessionID);
@@ -725,9 +727,19 @@ classdef FileViewer < nansen.AbstractTabPageModule
                         obj.nwbContextMenu.Visible = 'on';
                     end
                 else
-    
+                    
                     obj.FileContextMenu.Position = cMenuPosition;
                     obj.FileContextMenu.Visible = 'on';
+                    L = dir(pathName);
+
+                    hMenu = findobj(obj.FileContextMenu, 'Text', 'Download File');
+                    if ~isempty(hMenu)
+                        if L.bytes==0
+                            hMenu.Enable = 'on';
+                        else
+                            hMenu.Enable = 'off';
+                        end
+                    end
                 end
             end
         end
@@ -760,6 +772,8 @@ classdef FileViewer < nansen.AbstractTabPageModule
         %   Note: This contextmenu is not assigned to a specific uitree
         %   because it will be reused across uitrees.
             
+            project = nansen.getCurrentProject();
+
             hFig = ancestor(obj.Parent, 'figure');
             m = uicontextmenu(hFig);
             
@@ -779,7 +793,12 @@ classdef FileViewer < nansen.AbstractTabPageModule
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
 
             mitem = uimenu(m, 'Text', 'Copy Pathname');
-            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s); 
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
+            
+            if ~isempty( which( sprintf('%s.filemethod.downloadFile',project.Name) ) )
+                mitem = uimenu(m, 'Text', 'Download File', 'Separator', 'on');
+                mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
+            end
 
             mitem = uimenu(m, 'Text', 'Create New Variable from File', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onCreateVariableMenuItemClicked();
@@ -962,6 +981,16 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
                 case 'Copy Pathname'
                     clipboard('copy', obj.CurrentNode.UserData.filePath)
+
+                case 'Download File'
+                    project = nansen.getCurrentProject;
+                    functionName = strjoin({project.Name, 'filemethod', 'downloadFile'}, '.');
+                    try
+                        rootPath = obj.CurrentSessionObj.getDataLocationRootDir(obj.CurrentDataLocationName);
+                        feval(functionName, nodeHandle.UserData.filePath, rootPath)
+                    catch ME
+                        msgbox(ME.message)
+                    end
 
                 case 'Load Data to Workspace'
                     % Todo: Use the sessionObject loadData and fileAdapters
