@@ -81,10 +81,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function S = getDefaultSubfolderStructure()
         %getDefaultSubfolderStructure Create a default struct
             S = struct(...
-                'Name', '', ...
+                'Name', '', ... % FolderName
                 'Type', '', ...
                 'Expression', '', ...
                 'IgnoreList', {{}} );
+            % Todo: Add ShortName, i.e sub / ses (ref BIDS) 
         end
         
     end
@@ -227,6 +228,10 @@ classdef DataLocationModel < utility.data.StorableCatalog
         
     end
     
+    methods % Defined in separate files
+        dataFolders = listDataFolders(obj, dataLocationName, options)
+    end
+
     methods % Modify save/load to include local settings...
         
 % %         function load(obj)
