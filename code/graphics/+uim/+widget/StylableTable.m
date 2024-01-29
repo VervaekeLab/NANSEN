@@ -33,7 +33,7 @@ classdef StylableTable < uiw.widget.Table
     end
     
     properties (Dependent)    
-        KeyPressCallback
+        KeyPressCallback % Currently not implemented.
     end
     
     properties (Access = protected)
@@ -323,6 +323,9 @@ classdef StylableTable < uiw.widget.Table
         
         function set.KeyPressCallback(obj, newValue)
             
+        end
+        function value = get.KeyPressCallback(obj)
+            value = [];
         end
         
         function jTable = get.JTable(obj)

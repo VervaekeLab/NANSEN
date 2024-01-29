@@ -23,10 +23,10 @@ function imageArray = removeDynamicBackground(imageArray, varargin)
     bgArray = movmean(imageArray, binSize, 3);
     
     % "Remove" the background
-    imageArray = imageArray - bgArray;
+    imageArray = single(imageArray);
+    imageArray = imageArray - cast(bgArray, class(imageArray));
     
     % Normalize imageArray to values between 0 and 1
     imageArray = imageArray - min(imageArray(:));
     imageArray = imageArray ./ max(imageArray(:));
-
 end
