@@ -7,13 +7,17 @@ function initializeSubjectTable(metatableCatalog, subjectSchema)
     % Find master session table from metatable catalog
     sessionTable = metatableCatalog.getMasterMetaTable('session');
 
-    uniqueSubjectIds = unique( sessionTable.entries.subjectID );
-    numSubjects = numel(uniqueSubjectIds);
+    try
+        uniqueSubjectIds = unique( sessionTable.entries.subjectID );
+        numSubjects = numel(uniqueSubjectIds);
 
-    % Create subjects.
-    subjectArray(numSubjects) = feval(subjectSchema); %#ok<FVAL>
-    for i = 1:numel(uniqueSubjectIds)
-        subjectArray(i).SubjectID = uniqueSubjectIds{i};
+        % Create subjects.
+        subjectArray(numSubjects) = feval(subjectSchema); %#ok<FVAL>
+        for i = 1:numel(uniqueSubjectIds)
+            subjectArray(i).SubjectID = uniqueSubjectIds{i};
+        end
+    catch
+        return
     end
 
     % Initialize a MetaTable
