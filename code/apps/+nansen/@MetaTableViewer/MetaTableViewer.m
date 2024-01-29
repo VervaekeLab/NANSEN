@@ -52,9 +52,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
     properties % Table preferences
         ShowIgnoredEntries = true
         AllowTableEdits = true
+        TableFontSize = 12
         MetaTableType = 'session' %Note: should always be lowercase
     end
-    
+
     properties
         SelectedEntries         % Selected rows from full table, irrespective of sorting and filtering.
         CellEditCallback
@@ -243,7 +244,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.ShowIgnoredEntries = newValue;
             
             obj.refreshTable()
-
         end
         
         function set.AllowTableEdits(obj, newValue)
@@ -252,9 +252,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.AllowTableEdits = newValue;
                       
             obj.updateColumnEditable()
-
         end
         
+        function set.TableFontSize(obj, newValue)
+            obj.TableFontSize = newValue;
+            obj.onTableFontSizeSet()
+        end
+
         function set.KeyPressCallback(obj, newValue)
             
         end
@@ -581,7 +585,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                         'Tag','MetaTable',...
                         'Editable', true, ...
                         'RowHeight', 30, ...
-                        'FontSize', 8, ...
+                        'FontSize', obj.TableFontSize, ...
                         'FontName', 'helvetica', ...
                         'FontName', 'avenir next', ...
                         'SelectionMode', 'discontiguous', ...
@@ -994,6 +998,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.MetaTableVariableAttributes = S;
             if obj.IsConstructed
                 obj.updateColumnLayout()
+            end
+        end
+
+        function onTableFontSizeSet(obj)
+            if ~isempty(obj.HTable)
+                obj.HTable.FontSize = obj.TableFontSize;
+                obj.HTable.RowHeight = obj.TableFontSize + 20;
             end
         end
 

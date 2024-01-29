@@ -9,6 +9,8 @@ S = struct();
 S.MetadataTable.ShowIgnoredEntries = true;
 S.MetadataTable.AllowTableEdits = true;
 S.MetadataTable.AutosaveMetaTable = true;
+S.MetadataTable.AutosaveMetadataToDataFolders = false;
+S.MetadataTable.TableFontSize = 10;
 
 % % S.Session.ExportSessionObjectAs = 'Nansen';
 % % S.Session.ExportSessionObjectAs_ = {'Nansen', 'NDI'};

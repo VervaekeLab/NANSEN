@@ -1,5 +1,7 @@
 classdef TableSwitcher < handle
 
+    % Todo: Rename to Menu / SidebarMenu and make sure its general purpose
+
     properties
         CurrentSelection = 'Subject'
         Items = {'Subject', 'Session', 'Cells'}
@@ -36,9 +38,14 @@ classdef TableSwitcher < handle
     end
 
     methods 
-        function obj = TableSwitcher(hParent)
-            
+        function obj = TableSwitcher(hParent, options)
+            arguments
+                hParent
+                options.Items (1,:) cell
+            end
+
             obj.Parent = hParent;
+            obj.Items = options.Items;
             obj.createComponent()
         end
     end
