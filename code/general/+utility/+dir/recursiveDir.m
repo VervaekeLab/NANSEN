@@ -4,7 +4,7 @@ function combinedListing = recursiveDir(rootPath, options)
         rootPath (1,:) string
         options.IgnoreList (1,:) string = string.empty
         options.Expression (1,1) string = ""
-        options.Type (1,1) string {validatestring(options.Type, {'file', 'folder', 'all'})} = "all"
+        options.Type (1,1) string {mustBeMember(options.Type, {'file', 'folder', 'all'})} = "all"
         options.FileType (1,1) string = ""
         options.RecursionDepth (1,1) double = inf
         options.IsCumulative (1,1) logical = true
@@ -78,7 +78,9 @@ function combinedListing = recursiveDir(rootPath, options)
         end
                 
         keepListing = filteredListing(keep);
-        combinedListing = cat(1, combinedListing, keepListing);
+        if ~isempty(keepListing)
+            combinedListing = cat(1, combinedListing, keepListing);
+        end
 
         options.RecursionDepth = options.RecursionDepth - 1;
 
