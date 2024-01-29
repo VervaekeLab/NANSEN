@@ -126,6 +126,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     properties % Data and flags
         dataOrig
         dataEdit
+
+        DataTips = struct.empty
         
         hControls
         
@@ -1362,15 +1364,17 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         % Need for buttons in header... Highlight button & show tooltip
             
             h = hittest();
-
             if ~isequal(h, obj.currentObjectInFocus.handle)
 
                 % Reset previous object
                 if ~isa(obj.currentObjectInFocus.handle, 'matlab.graphics.GraphicsPlaceholder')
-                    set(obj.currentObjectInFocus.handle, obj.currentObjectInFocus.props{:})
+                    if ~isempty(obj.currentObjectInFocus.props) % Reset handle properties.
+                        set(obj.currentObjectInFocus.handle, obj.currentObjectInFocus.props{:})
+                    end
                     obj.currentObjectInFocus = struct('handle', gobjects(1), 'props', {{}});
                     obj.tooltipHandle.String = '';
                     obj.tooltipHandle.Visible = 'off';
+                    obj.Figure.Pointer = 'arrow';
                 end
                 
                 if isa(h, 'matlab.graphics.primitive.Patch') && contains(h.Tag, 'Button')
@@ -1380,12 +1384,21 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     pos = get(obj.header.hAxes, 'CurrentPoint');
                     
                     pos = [mean(h.XData), mean(h.YData)];
-                    
+                    obj.tooltipHandle.Parent = h.Parent;
                     obj.tooltipHandle.Position(1:2) = pos - [0.05, 0.25];
                     obj.tooltipHandle.String = text;
                     obj.tooltipHandle.Visible = 'on';
-                end
                 
+                elseif isa(h, 'matlab.graphics.primitive.Text') && ~isempty(h.UserData)
+                    pos = [mean(h.Position(1)), mean(h.Position(2))];
+                	obj.currentObjectInFocus = struct('handle', h, 'props', {{}});
+
+                    obj.tooltipHandle.Parent = h.Parent;
+                    obj.tooltipHandle.Position(1:2) = pos - [40, 10];
+                    obj.tooltipHandle.String = 'Click for info';
+                    obj.tooltipHandle.Visible = 'on';
+                    obj.Figure.Pointer = 'hand';
+                end
             end
             
         end
@@ -1469,6 +1482,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 else
                     config = S.(fieldNames{configInd});
                 end
+
+                tip = ''; 
+                if ~isempty(obj.DataTips)
+                    tip = obj.DataTips.(currentProperty);
+                end
                 
                 if ischar(config) % skip "internal" properties
                     if any(strcmp(config, {'ignore', 'internal'}))
@@ -1496,7 +1514,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             currentField = propertyFields{i};
                             name = strcat(currentProperty, '.', currentField);
                             val = eval(strcat('S', '.', name));
-                            obj.newInputField(contentPanel, y, name, val, config)
+                            obj.newInputField(contentPanel, y, name, val, config, tip)
                             y = y + obj.RowHeight + rowSpacing;
                         end
 
@@ -1532,7 +1550,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                     otherwise
                         val = eval(strcat('S', '.', currentProperty));
-                        yCorrTmp = obj.newInputField(contentPanel, y, currentProperty, val, config);
+                        yCorrTmp = obj.newInputField(contentPanel, y, currentProperty, val, config, tip);
                         %yCorr = yCorr + yCorrTmp;
                         y = y + obj.RowHeight + rowSpacing + yCorrTmp;
                 end
@@ -1603,7 +1621,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         % Note inputbox belongs to guiPanel
-        function hcorr = newInputField(obj, guiAxes, y, name, val, config)
+        function hcorr = newInputField(obj, guiAxes, y, name, val, config, tip)
         % Add input field for editing of property value
         %       y       : y position in panel
         %       name    : name of property. Used for text field and Tag
@@ -1804,6 +1822,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             textbox.FontUnits = 'pixels';
             textbox.FontSize = obj.FontSize;
             textbox.VerticalAlignment = 'bottom';
+            if ~isempty(tip)
+                textbox.UserData = tip;
+                textbox.ButtonDownFcn = @obj.showFieldTooltip;
+            end
             
             % Compute virtual width.
             currentWidth = obj.visibleWidthOrig + ( textbox.Extent(3) + 20 - x );
@@ -1878,7 +1900,25 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
             
         end
-        
+
+        function showFieldTooltip(obj, src, evt)
+            %disp(src.UserData)
+
+            mh = msgbox(src.UserData, sprintf('Help for %s', src.Tag), "help");
+
+            th = findall(mh, 'Type', 'Text');                   %get handle to text within msgbox
+            th.FontSize = 14;
+            th.Position(2) = th.Position(2) + 20;
+            deltaWidth = sum(th.Extent([1,3]))-mh.Position(3) + th.Extent(1);
+            deltaHeight = sum(th.Extent([2,4]))-mh.Position(4) + 10+20;
+            mh.Position([3,4]) = mh.Position([3,4]) + [deltaWidth, deltaHeight];
+
+            button = findall(mh, 'Type', 'Uicontrol');
+            button.Position(3:4) = [100,30];
+            button.Position(2) = button.Position(2)+5;
+            button.Position(1) = mh.Position(3) / 2 - button.Position(3) / 2;
+        end
+
         function hButton = createEllipsisButton(obj, hPanel, name, linkedComponent, y)
         %createEllipsisButton Create ellipsis button next to component
             
