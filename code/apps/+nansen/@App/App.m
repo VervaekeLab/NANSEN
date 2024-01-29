@@ -531,8 +531,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %m = uimenu(app.Figure, 'Text', 'Apps');
 
             % Create a separator
-            %m = uimenu(app.Figure, 'Text', '| Session Methods ->', 'Enable', 'off');
             m = uimenu(app.Figure, 'Text', '|', 'Enable', 'off');
+
+            % Create an apps menu
+            m = uimenu(app.Figure, 'Text', 'Apps');
+            app.createAppsMenu(m)
+
+            % Create a separator
+            m = uimenu(app.Figure, 'Text', '|', 'Enable', 'off');
+
 
             app.SessionTaskMenu = nansen.SessionTaskMenu(app);
             
@@ -692,6 +699,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %                 hSubmenuItem = uimenu(mitem, 'Text', varNames{iVar});
 % %                 hSubmenuItem.MenuSelectedFcn = @app.removeTableVariable;
 % %             end
+        end
+        
+        function createAppsMenu(~, hMenu)
+            mitem = uimenu(hMenu, 'Text', 'Imviewer');
+            mitem.MenuSelectedFcn = @(s,e) imviewer();
+
+            mitem = uimenu(hMenu, 'Text', 'FovManager');
+            mitem.MenuSelectedFcn = @(s,e) fovmanager.App();
+
+            mitem = uimenu(hMenu, 'Text', 'RoiManager');
+            mitem.MenuSelectedFcn = @(s,e) roimanager.RoimanagerDashboard();
         end
 
         function updateTableVariableMenuItems(app, hMenu)
