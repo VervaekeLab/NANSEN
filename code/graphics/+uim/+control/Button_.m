@@ -172,15 +172,19 @@ classdef Button_ < uim.abstract.Control
             obj.hButtonText.Color = obj.ForegroundColor;
             obj.hButtonText.Interpreter = 'none';
             obj.hButtonText.FontUnits = 'pixels';
+            obj.hButtonText.FontSize = obj.FontSize;
             obj.hButtonText.PickableParts = 'none';
             obj.hButtonText.HitTest = 'off';
 
             obj.updateTextLocation()
-            
         end
         
         function updateButtonText(obj)
-            obj.hButtonText.String = obj.Text;
+            if isempty(obj.hButtonText)
+                obj.plotButtonText()
+            else
+                obj.hButtonText.String = obj.Text;
+            end
             %obj.autoWrapButtonText()
             %obj.updateBackgroundSize()
         end
@@ -304,6 +308,8 @@ classdef Button_ < uim.abstract.Control
         function updateIconLocation(obj)
         %updateIconLocation Update location of the icon within the button
             
+            if isempty(obj.hButtonIcon); return; end
+
             try
                 iconSize = [obj.hButtonIcon.Width, obj.hButtonIcon.Height];
             catch
@@ -493,7 +499,7 @@ classdef Button_ < uim.abstract.Control
     
     methods (Access = protected)
         
-       function onStyleChanged(obj)
+        function onStyleChanged(obj)
             onStyleChanged@uim.abstract.Component(obj)
             
             if obj.IsConstructed
@@ -511,11 +517,12 @@ classdef Button_ < uim.abstract.Control
                 end
                 
             end
-       end
+        end
          
-       function onSizeChanged(obj, oldPosition, newPosition)
-           onSizeChanged@uim.abstract.Control(obj, oldPosition, newPosition);
-           obj.updateTextLocation()
+        function onSizeChanged(obj, oldPosition, newPosition)
+            onSizeChanged@uim.abstract.Control(obj, oldPosition, newPosition);
+            obj.updateTextLocation()
+            obj.updateIconLocation()
        end
     end
     

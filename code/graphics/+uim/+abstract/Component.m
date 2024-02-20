@@ -326,6 +326,9 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             % Todo: check with minimum size
             obj.switchSizeMode('manual')
             obj.Position_(3:4) = newValue;
+            if strcmp(obj.PositionMode, 'auto')
+                obj.setAutoLocation()
+            end
         end
         
         function size = get.Size(obj)
