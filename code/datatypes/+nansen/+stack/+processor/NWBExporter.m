@@ -5,10 +5,19 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
     % 
     % Todo:
     %   [ ] Generalize
-    %   [ ] Create Device
-    %   [ ] Create ImagingPlane
-    %   [ ] Create OpticalChannel
-    %   [ ] One nwb dataset per plane and channel
+    %   [ ] Consider the use of append when adding data. What if the method
+    %       is resumed from a previous run?
+    %   [ ] Add more metadata
+    %   [ ] Reconsider using the CorrectedImageStack type.
+    %    -  For Motion Correction (Defer this...):
+    %       [ ] Link to original file if possible
+    %       [ ] Way to insert shifts / translations
+    %       [ ] Should imaging plane be shared among original and
+    %           corrected?
+    %   [V] Create Device
+    %   [V] Create ImagingPlane
+    %   [V] Create OpticalChannel
+    %   [V] One nwb dataset per plane and channel
 
 
 
@@ -23,6 +32,10 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
     properties (Constant)
         DATA_SUBFOLDER = ""	% defined in nansen.processing.DataMethod
         VARIABLE_PREFIX	= "" % defined in nansen.processing.DataMethod
+    end
+
+    properties (Constant, Access = private)
+        TYPE_PACKAGE_PREFIX = "matnwb.types.core"
     end
 
     properties
@@ -114,9 +127,9 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             % Todo: Check if datapipe/dataset for writing already exists
             obj.initializeDataPipes()
 
-            if wasInitialized
-                nwbExport(obj.NWBObject, obj.PathName);
-            end
+            %if wasInitialized
+            nwbExport(obj.NWBObject, obj.PathName);
+            %end
         end
     end
 
@@ -157,9 +170,9 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
                 [iZ, iC] = obj.StackIterator.next();
                 
                 % Create imaging planes.
-                imagingPlane = types.core.ImagingPlane( ...
+                imagingPlane = matnwb.types.core.ImagingPlane( ...
                     'description', 'n/a', ...
-                    'device', types.untyped.SoftLink(obj.Device), ...
+                    'device', matnwb.types.untyped.SoftLink(obj.Device), ...
                     'excitation_lambda', obj.Options.NWBMetadata.ExcitationWavelength, ...
                     'imaging_rate', obj.SourceStack.MetaData.SampleRate, ...
                     'indicator', obj.Options.NWBMetadata.IndicatorNames, ...
@@ -199,13 +212,13 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
                 [iZ, iC] = obj.StackIterator.next();
 
                 % Compress the data
-                obj.DataPipeObject{iZ, iC} = types.untyped.DataPipe(...
+                obj.DataPipeObject{iZ, iC} = matnwb.types.untyped.DataPipe(...
                     'maxSize', dataSize, ...
                     'dataType', obj.SourceStack.DataType, ...
                     'axis', 3);
 
-                twoPhotonSeries = types.core.TwoPhotonSeries( ...
-                    'imaging_plane', types.untyped.SoftLink(obj.ImagingPlanes{iZ, iC}), ...
+                twoPhotonSeries = matnwb.types.core.TwoPhotonSeries( ...
+                    'imaging_plane', matnwb.types.untyped.SoftLink(obj.ImagingPlanes{iZ, iC}), ...
                     'starting_time', 0.0, ...
                     'starting_time_rate', obj.SourceStack.MetaData.SampleRate, ...
                     'data', obj.DataPipeObject{iZ, iC}, ...
@@ -217,7 +230,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
         end
         
         function device = createDevice(obj)
-            device = types.core.Device();
+            device = matnwb.types.core.Device();
 
             if ~isempty(obj.Options.NWBMetadata.DeviceDescription)
                 device.description = obj.Options.NWBMetadata.DeviceDescription;
@@ -238,7 +251,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             opticalChannels = cell(1, numChannels);
             
             for i = 1:numChannels
-                opticalChannels{i} = types.core.OpticalChannel();
+                opticalChannels{i} = matnwb.types.core.OpticalChannel();
             end
 
             % Todo: % Should be present on imagestack metadata.
@@ -260,12 +273,12 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             
                 rawTwoPhotonSeries = obj.getOriginalTwoPhotonSeriesLink(name);
 
-                xyTimeseries = types.core.TimeSeries( );
+                xyTimeseries = matnwb.types.core.TimeSeries( );
 
                 % Todo: Add shifts and link to original?
-                correctedImageStack = types.core.CorrectedImageStack(...
+                correctedImageStack = matnwb.types.core.CorrectedImageStack(...
                     'corrected', twoPhotonSeries, ...
-                    'original', types.untyped.SoftLink(rawTwoPhotonSeries), ...
+                    'original', matnwb.types.untyped.SoftLink(rawTwoPhotonSeries), ...
                     'xy_translation', xyTimeseries );
             
                 name = sprintf('corrected_%s', name);
@@ -275,16 +288,17 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
 
         function twoPhotonSeries = getOriginalTwoPhotonSeriesLink(obj, name)
 
-            optical_channel = types.core.OpticalChannel();
-            imaging_plane = types.core.ImagingPlane(...
-                'device', types.untyped.SoftLink(obj.Device), ...
+            optical_channel = matnwb.types.core.OpticalChannel();
+            
+            imaging_plane = matnwb.types.core.ImagingPlane(...
+                'device', matnwb.types.untyped.SoftLink(obj.Device), ...
                 'opticalchannel', optical_channel);
 
-            twoPhotonSeries = types.core.TwoPhotonSeries(...
+            twoPhotonSeries = matnwb.types.core.TwoPhotonSeries(...
                 'dimension', [100, 100], ...
                 'external_file', 'missing', ...
                 'external_file_starting_frame', 0, ...
-                'imaging_plane', types.untyped.SoftLink(imaging_plane), ...
+                'imaging_plane', matnwb.types.untyped.SoftLink(imaging_plane), ...
                 'format', 'external', ...
                 'starting_time', 0.0, ...
                 'starting_time_rate', 1.0 ...
@@ -306,7 +320,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             try % Todo: test for existence
                 ophysModule = obj.NWBObject.processing.get('ophys');
             catch
-                ophysModule = types.core.ProcessingModule( ...
+                ophysModule = matnwb.types.core.ProcessingModule( ...
                 'description',  'contains optical physiology data');
                 obj.NWBObject.processing.set('ophys', ophysModule);
             end
@@ -314,7 +328,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             try % Todo: test for existence
                 motionCorrection = ophysModule.nwbdatainterface.get('MotionCorrection');
             catch
-                motionCorrection = types.core.MotionCorrection();
+                motionCorrection = matnwb.types.core.MotionCorrection();
                 ophysModule.nwbdatainterface.set('MotionCorrection', motionCorrection);
             end
         end
