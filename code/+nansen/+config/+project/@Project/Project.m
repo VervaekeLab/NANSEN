@@ -55,8 +55,9 @@ classdef Project < nansen.module.Module
     properties (Constant, Hidden)
         % Todo: Folder property, with subfields?
         PROJECT_CONFIG_FILENAME = "project.nansen.json"
-        METATABLE_FOLDER_NAME = fullfile('metadata', 'tables');
-        CONFIG_FOLDER_NAME = 'configurations'; % models
+        METATABLE_FOLDER_NAME = fullfile('metadata', 'tables')
+        CONFIG_FOLDER_NAME = 'configurations' % models
+        METADATA_FOLDER_NAME = 'metadata'
     end
 
     properties (Constant, Access = private)
@@ -82,10 +83,41 @@ classdef Project < nansen.module.Module
     end
     
     methods
+        
+        function mixinNames = listMixins(obj, itemType)
+        %listFiles List files in a folder hierarchy for given item type
+            
+            % Todo: Module method should just look like this:
+            fileList = obj.listFiles(itemType);
+            filePaths = utility.dir.abspath(fileList);
+            mixinNames = cellfun(@(c) utility.path.abspath2funcname(c), filePaths, 'uni', 0);
+        end
+
+        function folderPath = getConfigurationFolder(obj, options)
+            arguments
+                obj (1,1) nansen.config.project.Project
+                % Subfolder : A list of subfolders
+                options.Subfolder (1,:) string = string.empty
+                options.NoCreate (1,1) logical = false
+            end
+            
+            folderPath = fullfile(obj.FolderPath, obj.CONFIG_FOLDER_NAME);
+            if ~isempty(options.Subfolder)
+                folderPath = fullfile(folderPath, options.Subfolder{:});
+                if ~isfolder(folderPath) && ~options.NoCreate
+                    mkdir(folderPath)
+                end
+            end
+        end
+
+        function folderPath = getMetadataFolder(obj)
+            folderPath = fullfile(obj.FolderPath, obj.METADATA_FOLDER_NAME);
+        end
+
         function folderPath = getModuleFolder(obj)
             folderPath = fullfile(obj.FolderPath, 'code', obj.PackageName);
         end
-
+        
         function addModules(obj)
 
         end
@@ -429,7 +461,7 @@ classdef Project < nansen.module.Module
         
     end
 
-    methods (Static)
+    methods (Static, Hidden)
         function project = fromStruct(S)
             project = nansen.config.project.Project(S.Name, S.Path);
         end

@@ -95,6 +95,16 @@ classdef Module < handle
     end
 
     methods (Access = public)
+        
+        function names = listMixins(obj, mixinType)
+            arguments
+                obj
+                mixinType
+            end
+            rootPath = fullfile(obj.FolderPath, '+mixin', ['+', mixinType]);
+            filePaths = utility.dir.recursiveDir(rootPath, 'OutputType', 'FilePath', 'FileType', 'm');
+            names = cellfun(@(c) utility.path.abspath2funcname(c), filePaths, 'uni', 0);
+        end
 
         function fileAdapterFolder = getFileAdapterFolder(obj)
             fileAdapterFolder = fullfile(obj.FolderPath, '+fileadapter');
@@ -201,6 +211,10 @@ classdef Module < handle
 
                 case {'datavariables', 'pipeline', 'datalocations'}
                     rootPath = fullfile(obj.FolderPath, 'resources', itemType);
+                
+                otherwise % Assume mixin
+                    rootPath = fullfile(obj.FolderPath, '+mixin', ['+', itemType]);    
+
             end
         end
 
@@ -212,6 +226,8 @@ classdef Module < handle
                     fileList = obj.listMFiles(rootFolder);
                 case {'DataVariables', 'Pipeline', 'DataLocations'}
                     fileList = obj.listJsonFiles(rootFolder);
+                otherwise
+                    fileList = obj.listMFiles(rootFolder);
             end
             if nargout > 1
                 filePaths = utility.dir.abspath(fileList);
@@ -328,8 +344,19 @@ classdef Module < handle
             if isfile(moduleConfigFilePath)
                 module = nansen.module.Module(moduleConfigFilePath);
             else
-                error('Nansen:ModuleConfigurationNotFound', ...
-                    'Module configuration file does not exist.')
+                try
+                    % Alternative (If module is external to nansen):
+                    S = what( strrep(moduleName, '.', filesep));
+                    moduleConfigFilePath = fullfile(S.path, configFileName);
+                    if isfile(moduleConfigFilePath)
+                        module = nansen.module.Module(moduleConfigFilePath);
+                    else
+                        error() %#ok<LTARG>
+                    end
+                catch
+                    error('Nansen:ModuleConfigurationNotFound', ...
+                        'Module configuration file was not found for module ''%s''.', moduleName)
+                end
             end
         end
 
