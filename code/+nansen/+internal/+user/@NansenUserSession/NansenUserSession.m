@@ -40,7 +40,10 @@ classdef NansenUserSession < handle
     properties (Access = private)
         AddonManager nansen.config.addons.AddonManager
         ProjectManager nansen.config.project.ProjectManager
-        DataManagerApp nansen.App
+        DataManagerApp % App of type nansen.App. 
+        % NB: Can not specify type for property, because the nansen.App 
+        % class depends on the Widgets Toolbox which might not be installed 
+        % when creating a UserSession for the first time.
     end
 
     properties (Access = private)
@@ -85,6 +88,7 @@ classdef NansenUserSession < handle
         end
 
         function setDataManagerApp(obj, app)
+            assert(isa(app, 'nansen.App'), 'DataManager must be of type ''nansen.App''')
             obj.DataManagerApp = app;
         end
         
