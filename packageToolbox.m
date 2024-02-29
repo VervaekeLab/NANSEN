@@ -12,6 +12,8 @@ function packageToolbox(versionNumber)
     assert( ~isempty( regexp(versionNumber, pattern, 'once')), ...
         'Invalid version number')
 
+    nansen.internal.utility.updateVersionInContents(versionNumber)
+
     % This should be the same across versions:
     identifier = "07b2cd84-23b5-43a5-a61b-a5de9d19687a"; 
     rootFolder = fileparts(mfilename("fullpath"));
