@@ -15,15 +15,36 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %   
 %       The control generated for a field can be customized using a field
 %       that has the same name but with an underscore appended.
-%       For example:
-%           S.fruitChoices = 'apple'
-%           S.fruitChoices_ = {'apple', 'mango', 'pear'}
-%       ... will generate a dropdown menu where the value is apple, and the
-%       choices are apple, mango and pear.
 %
-%       Other configurations:
+%       Configuration options:
+%           - Dropdown menu: Adding a customization field with a cell array
+%             will generate a dropdown menu
+%
+%               Example:
+%                   S.fruitChoices = 'apple'
+%                   S.fruitChoices_ = {'apple', 'mango', 'pear'}
+%               ... will generate a dropdown menu where the value is apple, 
+%               and the choices are apple, mango and pear.
+%
+%           - Custom function: Adding a customization with a function
+%             handle will generate a button next to the input field, where
+%             pushing the button will invoke a routine for updating the
+%             field value. The function handle must refer to a function
+%             which takes one input, the struct S
+%               Example: 
+%                   S.value = 5
+%                   S.value_ = @uiUpdateValue
+%
+%       Other configurations (undocumented):
 %           rangeslider
 %           button
+%       
+%           A cell array of numbers will be rendered within one inputbox,
+%           and values should be added as a space separated list of numbers
+%           A numeric array with 2 or 3 elements will be rendered using 2
+%           or 3 input boxes. For further elements, the behavior is the
+%           same as for cell array. This is very ad hoc and a better way
+%           is desirable.
 % 
 %   PARAMETERS: (todo, clean up public properties and add documentation)
 %       Title
@@ -195,6 +216,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         Debug = false
     end
     
+    properties (Constant, Access=private)
+        NUMERIC_TYPES = {'double', 'single', 'uint64', 'int64', 'uint32', 'int32', 'uint16', 'int16', 'uint8', 'int8'}
+    end
+
     events
         AppDestroyed
     end
@@ -1449,8 +1474,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
             
             
-            supportedClasses = {'logical', 'cell', 'double', 'char', ...
-                'struct', 'uint16', 'single', 'uint8'};
+            supportedClasses = [obj.NUMERIC_TYPES, {'logical', 'cell', 'char', 'struct', 'categorical'}];
             
             % Set some size preferences:
             contentPanel = obj.main.hAxes(panelNum);
@@ -1485,7 +1509,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                 tip = ''; 
                 if ~isempty(obj.DataTips)
-                    tip = obj.DataTips.(currentProperty);
+                    if isfield(obj.DataTips, currentProperty)
+                        tip = obj.DataTips.(currentProperty);
+                    else
+                        tip = 'No info for this field';
+                    end
                 end
                 
                 if ischar(config) % skip "internal" properties
@@ -1497,6 +1525,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 propertyClass = class(S.(currentProperty));
             
                 if ~contains(propertyClass, supportedClasses)
+                    warning('Skipped field ''%s'' because the datatype ''%s'' is not supported', currentProperty, propertyClass) 
                     continue
                 end
                 
@@ -1550,8 +1579,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                     otherwise
                         val = eval(strcat('S', '.', currentProperty));
-                        yCorrTmp = obj.newInputField(contentPanel, y, currentProperty, val, config, tip);
-                        %yCorr = yCorr + yCorrTmp;
+                        [yCorrTmp, wasAborted] = obj.newInputField(contentPanel, y, currentProperty, val, config, tip);
+                        if wasAborted; continue; end
+
                         y = y + obj.RowHeight + rowSpacing + yCorrTmp;
                 end
             end
@@ -1621,7 +1651,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         % Note inputbox belongs to guiPanel
-        function hcorr = newInputField(obj, guiAxes, y, name, val, config, tip)
+        function [hcorr, wasAborted] = newInputField(obj, guiAxes, y, name, val, config, tip)
         % Add input field for editing of property value
         %       y       : y position in panel
         %       name    : name of property. Used for text field and Tag
@@ -1629,6 +1659,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
             guiPanel = guiAxes.Parent;
             
+            wasAborted = false;
             
             if strcmpi(obj.LabelPosition, 'Over')
                 xMargin = [18, 40]; % Old: 65
@@ -1656,18 +1687,33 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Create input field for editing of propertyvalues
 
-            if isempty(config) || isa(config, 'char') || isa(config, 'function_handle')% Create control based on class of value
+            if isempty(config) || isa(config, 'char') || isa(config, 'function_handle') % Create control based on class of value
                 
                 switch class(val)
                     case 'logical'
                         inputbox = uicontrol(guiPanel, 'style', 'checkbox');
                         inputbox.Value = val;
                         %ycorr = 3;
+
+                    case 'categorical'
+                        inputbox = uicontrol(guiPanel, 'style', 'popupmenu');
+                        options = categories(val);
+                        
+                        inputbox.String = options;
+                        inputbox.Value = find( strcmp(char(val), options) );
                         
                     case 'cell'
-                        if all(ischar([ val{:} ]))
+                        if all( cellfun(@ischar, val) )
                             inputbox = uicontrol(guiPanel, 'style', 'edit');
                             inputbox.String = strjoin(val, ', ');
+                        elseif all( cellfun(@isnumeric, val) )
+                            strArray = num2str([val{:}]);
+                            inputbox = uicontrol(guiPanel, 'style', 'edit');
+                            inputbox.String = strArray;
+                        else
+                            warning('Skipping field %s: Cell arrays with types that are not all char or all numeric are not supported')
+                            wasAborted = true;
+                            return
                         end
 
                     case {'char', 'string'}
@@ -1678,10 +1724,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         % Not implemented
                         % skip for now
 
-                    case {'double', 'single', 'uint16', 'uint8'}
+                    case obj.NUMERIC_TYPES
                         inputbox = uicontrol(guiPanel, 'style', 'edit');
                         
-                        if numel(val) == 2 || numel(val) == 3
+                        % Todo: This logic should be a reversed, i.e a
+                        % config field should explicitly specify if
+                        % inputbox should be split.
+                        if (numel(val) == 2 || numel(val) == 3) && ~ (~isempty(config) && ischar(config) && strcmp(config, 'vector'))
                             for i = 2:numel(val)
                                 inputbox(i) = uicontrol(guiPanel, 'style', 'edit');
                             end
@@ -1691,8 +1740,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             end
                             
                         else
-                            
-                           strArray = num2str(val);
+                            strArray = num2str(val);
 
                             if size(strArray, 1) > 1
                                 strArray = arrayfun(@(i) strArray(i,:), 1:size(strArray, 1), 'uni', 0);
@@ -1700,7 +1748,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             end
                             
                             inputbox.String = strArray;
-
                         end
                         
 
@@ -1710,14 +1757,31 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 
             else % Create control based on configuration of value
                 if isa(config, 'cell')
-                    inputbox = uicontrol(guiPanel, 'style', 'popupmenu');
-                    inputbox.String = config;
-                    if ischar(val)
-                        inputbox.Value = find(strcmp(config, val));
+
+                    % This is a special case where we add a dropdown that
+                    % has options for creating new items.
+                    if isa(config{1}, 'struct')
+                        dropdownConfig = config{1};
+                        nvpairs = namedargs2cell(dropdownConfig);
+                        inputbox = nansen.ui.control.DropDown('Parent', guiPanel, 'Items', config(2:end), nvpairs{:});
+
+                        % Redefine config to allow editing dropdown items:
+                        % To whoever encounters this, I am sorry. It's a result of "I can get it done
+                        % quickly in 10 minutes or properly in 10 hours".
+                        config = @(dd, fh) obj.onDropdownItemEditRequested(inputbox, dropdownConfig);
+                    else
+                        inputbox = uicontrol(guiPanel, 'style', 'popupmenu');
+                        inputbox.String = config;
+                    end
+
+                    if isempty(val)
+                        inputbox.Value = 1;
+                    elseif ischar(val)
+                        inputbox.Value = find(strcmp(inputbox.String, val));
                     elseif isnumeric(val)
                         inputbox.Value = find(ismember(cell2mat(config), val));
                     end
-                    
+
                 elseif isa(config, 'struct')
                     switch config.type
                         case 'slider'
@@ -1758,12 +1822,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             
                             ycorr = -obj.RowSpacing.*4;
                             hcorr = obj.RowSpacing.*4;
-
-                            
                     end
                 end
             end
-            
             
             % Configure properties/appearance of uicontrol
             %pos = [x+xSpacing+xcorr, y+ycorr, guiAxes.XLim(2) - x - xMargin(2) - xSpacing, height+hcorr];
@@ -1808,9 +1869,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             	inputbox.FontSize = obj.FontSize-2;
                 inputbox.Tag = name;
                 inputbox.Callback = @obj.editCallback_propertyValueChange;
-
             end
-            
             
             % Create a textbox with the property name
             textbox = text(guiAxes, x, yTxt-ycorr, name);
@@ -1832,7 +1891,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             obj.virtualWidth(obj.currentPanel) = ...
                 nanmax( [obj.virtualWidth(obj.currentPanel), currentWidth] );
-            
             
             buttonTypes = {'button', 'pushbutton', 'togglebutton'};
             if isa(config, 'struct') && any( strcmp(config.type, buttonTypes) )
@@ -1874,8 +1932,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             elseif ~isempty(config) && isa(config, 'function_handle')
                 
                 hButton = obj.createEllipsisButton(guiPanel, name, inputbox, y);
-                hButton.Callback = @(s,e) config();
-                hButton.ButtonDownFcn = @(s,e) config();
+                %hButton.Callback = @(s,e) config();
+                %hButton.ButtonDownFcn = @(s,e) config();
+
+                hButton.Tag = name;
+                hButton.Callback = {@obj.onButtonPressed, config};
+                hButton.ButtonDownFcn = {@obj.onButtonPressed, config};
 
             elseif contains(lower(name), {'path', 'drive', 'dir'})  && isa(val, 'char') % Todo: remove this and use the uigetdir or uigetfile flags instead!!
                 
@@ -1896,9 +1958,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
             
             if ~nargout
-                clear hcorr
+                clear hcorr wasAborted
             end
-            
         end
 
         function showFieldTooltip(obj, src, evt)
@@ -1930,7 +1991,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hButton.Tag = name;
 
             % Set position
-            xPos = sum(linkedComponent.Position([1,3]) + 6 );
+            xPos = sum(linkedComponent(end).Position([1,3]) + 6 );
             if strcmp(obj.mode, 'standalone')
                 hButton.Position = [xPos, y+1, 22,  22]; %Slightly smaller..
             elseif strcmp(obj.mode, 'docked')
@@ -1978,8 +2039,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         drawnow
                         
                     case 'cell'
-                        if all(ischar([ value{:} ]))
+                        if all( cellfun(@ischar, value) )
                             hControl.String = strjoin(value, ', ');
+                        elseif all( cellfun(@isnumeric, value) )
+                            strArray = num2str([value{:}]);
+                            hControl.String = strArray;
                         end
 
                     case 'char'
@@ -2051,7 +2115,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % %             
 % %             keep = ismember(fieldNamesControls, fieldNamesPage);
             
-            hUic = findobj(hPanel, 'type','uicontrol'); 
+            hUic = findobj(hPanel, 'type', 'uicontrol'); 
             
 % %             hUic = struct2cell( obj.hControls );
 % %             hUic = hUic(keep);
@@ -2209,7 +2273,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         end
         
-        function editCallback_propertyValueChange(obj, src, ~, isInternal)
+        function editCallback_propertyValueChange(obj, src, evt, isInternal)
         % Callback for value change in inputfields. Update session property
         %
         %   Updates the value of the property corresponding to inputfield.
@@ -2231,7 +2295,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 case 'checkbox'
                     val = src.Value;
                 case 'popupmenu'
-                    val = src.String{src.Value};
+                    if isa(src, 'nansen.ui.control.DropDown')
+                        val = src.getSelectedValue();
+                    else
+                        val = src.String{src.Value};
+                    end
                 case 'slidebar'
                     val = src.Value;
                 case 'pushbutton'
@@ -2243,12 +2311,18 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 case 'autocomplete'
                     val = src.Value;
             end
-            
 
+            oldValue = obj.dataEdit{obj.currentPanel}.(name);
             
+            % Todo: Keep incase we change data from cellarray of structs to
+            % nested structs.
+            %subs = obj.getSubfieldSubs(name);
+            %oldValue = subsref(obj.dataEdit{obj.currentPanel}, subs)
+
             % Convert value to a string for the eval function later.
-            switch class(eval(['obj.dataEdit{obj.currentPanel}.', name]))
-                case {'double', 'single', 'uint16', 'uint8'}
+            switch class( oldValue )
+                
+                case obj.NUMERIC_TYPES
                     if isempty(val)
                         val = '[]';
                     else
@@ -2267,8 +2341,20 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         val = 'false';
                     end
 
+                case 'categorical'
+                    options = src.String;
+                    options = cellfun(@(c) sprintf('''%s''', c), options, 'uni', 0);
+                    options = sprintf('{%s}', strjoin(options, ', '));
+                    val = sprintf( 'categorical({''%s''}, %s)', val, options);
+
                 case 'cell'
-                    val = strcat('{', '''', val, '''', '}');
+                    if all( cellfun(@ischar, oldValue) )
+                        val = strcat('{', '''', val, '''', '}');
+
+                    elseif all( cellfun(@isnumeric, oldValue) )
+                        val = sprintf('{ %s }', val );
+                    end
+
 
                 case 'char'
                     val = ['''' val ''''];
@@ -2281,15 +2367,19 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Using eval function here because input from controls are in
             % char/string format.
             
-            oldVal = eval(['obj.dataEdit{obj.currentPanel}.', name]);
+            
             %newVal = eval(val);
             
             try
-                newVal = eval(val);
+                newValue = eval(val);
+                if any(contains(obj.NUMERIC_TYPES, class(oldValue)))
+                    newValue = cast(newValue, 'like', oldValue);
+                end
+                
             catch ME
-                obj.setControlValue(src, oldVal)
+                obj.setControlValue(src, oldValue)
                 msgbox('Invalid value'); 
-                disp( getReport(ME.message) )
+                disp( getReport(ME) )
                 return
                 %error('Invalid value')
             end
@@ -2298,12 +2388,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % multiple controls (info about this was added to userdata)
             if isprop(src, 'UserData') && ~isempty(src.UserData)
                 idx = src.UserData.ControlIdx;
-                tmpVal = oldVal;
-                tmpVal(idx) = newVal;
-                newVal = tmpVal;
+                tmpVal = oldValue;
+                tmpVal(idx) = newValue;
+                newValue = tmpVal;
             end
 
-            if isequal(newVal, oldVal) % Todo: Rounding errors....
+            if isequal(newValue, oldValue) % Todo: Rounding errors....
                 return
             else
                 
@@ -2314,13 +2404,16 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 subs = obj.getSubfieldSubs(name);
                 
                 % Add the new value to the data struct
-                obj.dataEdit{ind} = subsasgn(obj.dataEdit{ind}, subs, newVal);
-
-
+                %obj.dataEdit{ind} = subsasgn(obj.dataEdit{ind}, subs,
+                %newValue); % Does not work for categoricals for unknown
+                %reasons, but builtin works:
+                obj.dataEdit{ind} = builtin('subsasgn', obj.dataEdit{ind}, subs, newValue);
                 %eval(['obj.dataEdit{obj.currentPanel}.', name, ' = ', val , ';'])
+
+                obj.dataEdit{ind}.(name) = newValue; 
                 
                 if ~isempty(obj.Callback) && ~isempty( obj.Callback{obj.currentPanel} )
-                    obj.Callback{obj.currentPanel}(name, newVal)
+                    obj.Callback{obj.currentPanel}(name, newValue)
                 end
                 
                 if ~isempty(obj.TestFunc)
@@ -2328,7 +2421,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
                 
                 if ~isempty(obj.ValueChangedFcn) && ~isempty(obj.ValueChangedFcn{obj.currentPanel})
-                    evd = structeditor.eventdata.ValueChanged(name, oldVal, newVal, obj.hControls, obj.currentPanel);
+                    evd = structeditor.eventdata.ValueChanged(name, oldValue, newValue, obj.hControls, obj.currentPanel);
                     obj.ValueChangedFcn{obj.currentPanel}(obj, evd)
                 end
                 
@@ -2337,10 +2430,31 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
                 
                 % Todo: Enable save button
-                
-                
             end
 
+        end
+        
+        function onDropdownItemEditRequested(obj, dropdown, dropdownConfig)
+        % onDropdownItemEditRequested - Edit the selected dropdown value
+
+            selectedValue = dropdown.getSelectedValue();
+            if isempty(selectedValue)
+                actionStr = dropdown.String{dropdown.Value};
+                actionStr = strrep(actionStr, '<', '');
+                actionStr = strrep(actionStr, '>', '');
+                errMessage = sprintf('%s from the list to start editing', lower(actionStr));
+                errordlg(errMessage)
+                return
+            end
+            selectedValue = string(selectedValue);
+            updatedValue = dropdownConfig.CreateNewItemFcn(selectedValue, [], 'IsEditing', true);
+            
+            if isempty(updatedValue); return; end
+
+            % If instance was renamed
+            if ~strcmp(selectedValue, updatedValue)
+                dropdown.String{dropdown.Value} = updatedValue;
+            end
         end
         
         function onButtonPressed(obj, src, ~, action)
@@ -2350,7 +2464,25 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             propertyName = src.Tag;
             
             iPanel = obj.currentPanel;
-            
+
+            if isa(action, 'function_handle')
+
+                try
+                    newValue = feval(action, obj.dataEdit{iPanel});
+                    obj.dataEdit{iPanel}.(propertyName) = newValue;
+
+                    inputfield = findobj(guiFig, 'Tag', propertyName, 'Style', 'edit');
+                    obj.setControlValue(inputfield, newValue)
+
+                catch ME
+                    switch ME.identifier
+                        case 'MATLAB:TooManyOutputs'
+                            feval(action);
+                    end
+                end
+                return
+            end
+
             switch action
                 
                 case {'uigetdir', 'uigetfile', 'uiputfile'}
@@ -2417,9 +2549,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         [inputfield(:).TooltipString] = deal(inputfield.String); % Works for triplets.
                         %inputfield.TooltipString = inputfield.String;
                     end
-                    
             end
-
         end
         
         function buttonCallback_openBrowser(obj, src, ~)
