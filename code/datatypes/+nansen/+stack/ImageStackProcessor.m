@@ -552,8 +552,15 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 
                 % Load data Todo: Make method?
                 Y = obj.SourceStack.getFrameSet(iIndices);
-                Y = squeeze(Y);
-                
+
+                % Note: Prevent squeezing any of the first two dimensions
+                % Todo: This logic should be improved. What's special about
+                % the first two dimensions?
+                dataSize = size(Y);
+                isSingletonDim = dataSize == 1;
+                isSingletonDim(1:2)=false;
+                Y = reshape(Y, dataSize(~isSingletonDim));
+
                 if ~isempty(obj.DataPreProcessFcn)
                     Y = obj.DataPreProcessFcn(Y, iIndices, obj.DataPreProcessOpts);
                 end
