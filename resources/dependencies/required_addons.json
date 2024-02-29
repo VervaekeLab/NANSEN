@@ -61,5 +61,12 @@
     "FileExchangeUuid": "f79d0fad-86b6-4e5d-a029-7a846b7eca76",
     "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/50111/versions/2/download/zip",
     "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/f79d0fad-86b6-4e5d-a029-7a846b7eca76/3ae50acb-1eb2-1a62-b4f1-d6620f155c10/licenses/license.txt"
+  },
+  {
+    "Name": "Catalog",
+    "FullName": "Catalog - Collection for unique, named and ordered items",
+    "FileExchangeUuid": "3ba9a6b7-7d38-4d36-a014-e58cc7b78778",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/3ba9a6b7-7d38-4d36-a014-e58cc7b78778/66fca6a0-ebcf-45ce-b232-224d8190ab4f/packages/zip",
+    "LicenseUrl": "https://github.com/ehennestad/Catalog/blob/main/LICENSE"
   }
 ]

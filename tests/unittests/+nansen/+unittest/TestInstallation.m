@@ -12,6 +12,7 @@ classdef TestInstallation < matlab.unittest.TestCase
             close all force
             clear all
             clear classes
+            nansen.internal.user.NansenUserSession.instance("", "reset");
         end
 
         function setup(testCase)
@@ -67,7 +68,6 @@ classdef TestInstallation < matlab.unittest.TestCase
 
         function testCreateCatalog(testCase)
             C = Catalog();
-            disp(C)
         end
 
         function testSetup(testCase)
