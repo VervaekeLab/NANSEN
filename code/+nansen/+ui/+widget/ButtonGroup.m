@@ -1,13 +1,22 @@
-classdef TableSwitcher < handle
+classdef ButtonGroup < handle
+% A collection of buttons where one or more buttons can be selected
 
-    % Todo: Rename to Menu / SidebarMenu and make sure its general purpose
+% NB: Work in progress
+
+%   Todo:
+%   [ ] Add set width
+
 
     properties
-        CurrentSelection = 'Subject'
-        Items = {'Subject', 'Session', 'Cells'}
+        CurrentSelection = 'Button 1'
+        Items = {'Button 1', 'Button 2', 'Button 3'}
         SelectionChangedFcn
         SelectionMode % Single, multiple
         MaxSelection = 2
+    end
+
+    properties (Dependent)
+        Location
     end
 
     properties
@@ -15,6 +24,7 @@ classdef TableSwitcher < handle
         FontName = 'helvetica'
     end
     
+    % Todo: ICONS and theme should be settable
     properties (Constant, Hidden = true) % Move to appwindow superclass
         DEFAULT_THEME = nansen.theme.getThemeColors('light');
         ICONS = uim.style.iconSet(nansen.App.getIconPath)
@@ -28,9 +38,9 @@ classdef TableSwitcher < handle
 
     properties (Access = private)
         Parent
-        UIComponentCanvas
-        UIToolbar
-        TabButtonGroup
+        UIComponentCanvas % Todo: Why is this here?
+        Components (1,1) struct % Holds components of this widget Has the following fields: Group, Buttons 
+        ParentSizeChangedListener (1,:) event.listener
     end
     
     properties (Access = private)
@@ -38,7 +48,7 @@ classdef TableSwitcher < handle
     end
 
     methods 
-        function obj = TableSwitcher(hParent, options)
+        function obj = ButtonGroup(hParent, options)
             arguments
                 hParent
                 options.Items (1,:) cell
@@ -48,17 +58,38 @@ classdef TableSwitcher < handle
             obj.Items = options.Items;
             obj.createComponent()
         end
+
+        function delete(obj)
+            if ~isempty(obj.ParentSizeChangedListener)
+                delete(obj.ParentSizeChangedListener)
+            end
+        end
     end
 
     methods
         function updateLocation(obj)
-            obj.TabButtonGroup.Group.updateLocation()
+            obj.Components.Group.updateLocation()
+        end
+
+        function updateLineHeight(obj, s, e)
+            parentHeight = getpixelposition( obj.Parent );
+            obj.Parent.UserData.Separator.Size(2) = parentHeight(4);
         end
     end
 
     methods 
         function w = get.Width(obj)
-            w = obj.TabButtonGroup.Group.Width +  sum(obj.Padding([1,3]));
+            w = obj.Components.Group.Width +  sum(obj.Padding([1,3]));
+        end
+
+        function set.Location(obj, newValue)
+            try
+                obj.Components.Group.Location = newValue;
+            end
+        end
+
+        function value = get.Location(obj)
+            value = obj.Components.Group.Location;
         end
     end
 
@@ -79,28 +110,31 @@ classdef TableSwitcher < handle
                 'SizeMode', 'manual', ...
                 'ForegroundColor', obj.DEFAULT_THEME.FigureFgColor);
             obj.Parent.UserData.Separator = h;
+
+            obj.ParentSizeChangedListener = listener(obj.Parent, ...
+                'SizeChanged', @obj.onParentSizeChanged);
         end
 
         function createToolbar(obj)
-            width = 100;
+            width = 110;
             hToolbar = uim.widget.toolbar_(obj.Parent, 'Location', 'northwest', ...
                 'Margin', [0,0,0,0],'ComponentAlignment', 'top', ...
                 'BackgroundAlpha', 0, 'IsFixedSize', [true, false], ...
                 'NewButtonSize', [width, 25], 'Padding', obj.Padding, ...
                 'Spacing', 5);
-            obj.TabButtonGroup.Group = hToolbar;
+            obj.Components.Group = hToolbar;
         end
 
         function createButtons(obj)
 
             xPad = 4;
 
-            hToolbar = obj.TabButtonGroup.Group;
+            hToolbar = obj.Components.Group;
             
             buttonConfig = {'FontSize', 15, 'FontName', obj.FontName, ...
                 'Padding', [xPad,2,xPad,2], 'CornerRadius', 7, ...
                 'Mode', 'togglebutton', 'Style', uim.style.tabButtonLight, ...
-                'IconSize', [12,12], 'IconTextSpacing', 7};
+                'IconSize', [14,14], 'IconTextSpacing', 7};
             
             % Bug with toolbar so buttons are created from the bottom up
             counter = 0;
@@ -113,24 +147,24 @@ classdef TableSwitcher < handle
                     icon = obj.ICONS.tableStrong;
                 end
 
-                obj.TabButtonGroup.Buttons(counter) = hToolbar.addButton(...
+                obj.Components.Buttons(counter) = hToolbar.addButton(...
                     'Text', utility.string.varname2label(obj.Items{i}), 'Icon', icon, ...
-                    'Callback', @(s,e,n) obj.onTabButtonPressed(s,e,i), ...
+                    'Callback', @(s,e,n) obj.onButtonPressed(s,e,i), ...
                     buttonConfig{:} );
                 if i == 1
-                    obj.TabButtonGroup.Buttons(counter).Value = true;
+                    obj.Components.Buttons(counter).Value = true;
                 end
             end
         end 
     end
     
     methods (Access = private)
-        function onTabButtonPressed(obj, src, evt, pageNum)
+        function onButtonPressed(obj, src, evt, pageNum)
             
             % Make sure all other buttons than current is off
-            for iBtn = 1:numel(obj.TabButtonGroup.Buttons)
-                if ~isequal(src, obj.TabButtonGroup.Buttons(iBtn))
-                    obj.TabButtonGroup.Buttons(iBtn).Value = 0;
+            for iBtn = 1:numel(obj.Components.Buttons)
+                if ~isequal(src, obj.Components.Buttons(iBtn))
+                    obj.Components.Buttons(iBtn).Value = 0;
                 end
             end
 
@@ -144,6 +178,10 @@ classdef TableSwitcher < handle
                 % If click turns button off, turn it back on!
                 src.Value = true;
             end 
+        end
+    
+        function onParentSizeChanged(obj, src, evt)
+            obj.updateLineHeight()
         end
     end
 end
