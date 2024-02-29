@@ -1,9 +1,13 @@
-function installDependencies()
+function installDependencies(options)
 % installDependencies - Install dependencies for the Nansen Toolbox
 %
 %   Note: Currently installs the FEX submission dependencies. 
 
 %   Todo: Consolidate with AddonManager.
+
+    arguments
+        options.SaveUpdatedPath logical = logical.empty
+    end
 
     dependencies = nansen.internal.setup.listDependencies;
 
@@ -28,11 +32,17 @@ function installDependencies()
     end
 
     if ~isempty(installedAddons)
-        fprintf('The installed addons were added to MATLAB''s search path.\n')
-        fprintf('Do you want to permanently save these changes the search path?\n')
-        answer = input('Enter y or n: ', 's');
-        if strcmp(answer, 'y')
+        if isempty(options.SaveUpdatedPath)
+            fprintf('The installed addons were added to MATLAB''s search path.\n')
+            fprintf('Do you want to permanently save these changes the search path?\n')
+            answer = input('Enter y or n: ', 's');
+            if strcmp(answer, 'y')
+                savepath()
+            end
+        elseif options.SaveUpdatedPath
             savepath()
+        else
+            % Do nothing
         end
     end
 end
