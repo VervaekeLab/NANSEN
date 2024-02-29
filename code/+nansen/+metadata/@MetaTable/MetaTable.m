@@ -716,7 +716,12 @@ classdef MetaTable < handle
             % Todo; what if the id is not the 1st variable.
             schemaIdName = newTableRows.Properties.VariableNames{1};
             
-            obj.entries = [obj.entries; newTableRows];
+            try
+                obj.entries = [obj.entries; newTableRows];
+            catch
+                obj.entries = struct2table( [table2struct(obj.entries); table2struct(newTableRows)] );
+            end
+
             obj.MetaTableMembers = obj.entries.(schemaIdName);
             
             % Synch entries from master, e.g. if some entries were added
@@ -730,6 +735,50 @@ classdef MetaTable < handle
             %obj.IsModified = true;
         end
         
+        function addMissingVarsToMetaTable(obj, metaTableType)
+        %addMissingVarsToMetaTable Add variable to table if it is missing.
+        %
+        %   If a table is present in the table variable definitions, but
+        %   missing from the table, this functions adds a new variable to
+        %   the table and initializes with the default value based on the
+        %   table variable definition.
+                    
+            if nargin < 2
+                metaTableType = 'session';
+            end
+            
+            tableVarNames = obj.entries.Properties.VariableNames;
+            
+            currentProject = nansen.getCurrentProject();
+            refVariableAttributes = currentProject.getTable('TableVariable');
+            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
+
+            isCustom = refVariableAttributes.IsCustom;
+            customVariableNames = refVariableAttributes{isCustom, 'Name'};
+            
+            % Check if any variable is present in the table variable list, but
+            % the corresponding variable is missing from the table.
+            missingVarNames = setdiff(customVariableNames, tableVarNames);
+            
+            getRowIndex = @(T, varName) find( strcmp(T.Name, varName) );
+
+            for iVarName = 1:numel(missingVarNames)
+                thisName = missingVarNames{iVarName};
+                thisRowIndex = getRowIndex(refVariableAttributes, thisName);
+
+                if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
+                    fcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
+                    fcnResult = feval(fcnName);
+                    if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
+                        defaultValue = fcnResult.DEFAULT_VALUE;
+                    else
+                        defaultValue = fcnResult;
+                    end
+                    obj.addTableVariable(thisName, defaultValue)
+                end
+            end
+        end 
+
         % Add entry/entries to MetaTable table
         function addEntries(obj, newEntries)
         %addEntries Add entries to the MetaTable
@@ -1133,6 +1182,18 @@ classdef MetaTable < handle
         
     end
     
+    methods (Hidden)
+        function removeDuplicates(obj)
+            varName = obj.SchemaIdName;
+            ids = obj.entries.(varName);
+            [~, iA] = unique(ids);
+            obj.entries = obj.entries(iA,:);
+            obj.MetaTableMembers = obj.entries.(varName);
+            obj.sort()
+            obj.save()
+        end
+    end
+
     methods (Access = private, Hidden)
        
         function openMetaTableSelectionDialog(obj)

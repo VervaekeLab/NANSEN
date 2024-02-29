@@ -135,7 +135,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % associated project-dependent variables and should be updated
             % on each instance creation.
             % Todo: This is not good solution. 
-            %obj.updateColumnEditableState();
+            obj.updateColumnEditableState();
 
             obj.MetaTableUi = hViewer;
             
@@ -241,13 +241,28 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             %  Also, need to call this
             % whenever a table variable was edited in sessionbrowser/nansen
             % and when new tables are loaded.
+            
+            p = nansen.getCurrentProject();
+            tableVariableAttributes = p.getTable('TableVariable');
+            
             for i = 1:numel(obj.settings)
                 variableName = obj.settings(i).VariableName;
-                try
-                    tf = obj.checkIfColumnIsEditable(variableName);
-                catch
+                isMatch = strcmp(tableVariableAttributes.Name, variableName);
+                if any(isMatch)
+                    if sum(isMatch)>1
+                        isMatch = find(isMatch, 1, 'first');
+                        % Todo: deal with this
+                        %warning('Multiple table variables with same name')
+                    end
+                    tf = tableVariableAttributes.IsEditable(isMatch);
+                else
                     tf = false;
                 end
+                %try
+                %     tf = obj.checkIfColumnIsEditable(variableName);
+                % catch
+                %     tf = false;
+                % end
                 obj.settings_(i).IsEditable = tf;
             end
         end
@@ -338,7 +353,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 %             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
 %             isEditable(indSort) = isEditable;
                         
-            % Adjust widths according to the column order
+            % Adjust order of elements according to the column order
             colOrder = [obj.settings(IND).ColumnOrder];
             [~, indSort] = sort(colOrder);
             isEditable = isEditable(indSort);

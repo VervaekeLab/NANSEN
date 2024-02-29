@@ -2,6 +2,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     applify.HasTheme
 
     % Todo: 
+    %   [ ] Add a splash screen when this is starting up
     %   [ ] Make method for figure title name
     %   [ ] More methods/options for updating statusfield. Timers, progress
     %   [ ] Make sure that project directory is on path on startup or when
@@ -63,6 +64,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         IsIdle % todo: make dependent on app.ApplicationState 
         TableIsUpdating = false
         TaskInitializationListener
+        SessionTaskMenuUpdatedListener
     end
 
     properties (Access = private)
@@ -130,6 +132,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.Figure.Visible = 'on';
             end
 
+            % % Start app construction
+            app.switchJavaWarnings('off')
+            app.configureWindow()
+           
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
 
@@ -140,12 +146,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.loadMetaTable()
             app.initializeBatchProcessor()
-            
-            
-          % % Start app construction
-            app.switchJavaWarnings('off')
-            
-            app.configureWindow()
             
             warning('off', 'Nansen:OptionsManager:PresetChanged')
             app.createMenu()
@@ -171,7 +171,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if app.settings.General.MonitorDrives
                 app.initDiskConnectionMonitor()
             end
-            
+
             if nargout == 0
                 clear app
             end
@@ -537,15 +537,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             m = uimenu(app.Figure, 'Text', 'Apps');
             app.createAppsMenu(m)
 
+            % Create a tools menu
+            m = uimenu(app.Figure, 'Text', 'Tools');
+            app.createToolsMenu(m)
+
             % Create a separator
             m = uimenu(app.Figure, 'Text', '|', 'Enable', 'off');
 
-
             app.SessionTaskMenu = nansen.SessionTaskMenu(app);
+            app.SessionTaskMenuUpdatedListener = addlistener(...
+                app.SessionTaskMenu, 'MenuUpdated', @app.onSessionTaskMenuUpdated);
             
             l = listener(app.SessionTaskMenu, 'MethodSelected', ...
                 @app.onSessionTaskSelected);
             app.TaskInitializationListener = l;
+
+            % Create a help menu:
+            app.createHelpMenu()
 
             % app.createMenuFromDir(app.Figure, menuRootPath)
             
@@ -570,16 +578,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             return
             
-            m = uimenu(app.UIFigure,'Text', 'Options');
-
-            mitem = uimenu(m, 'Text','Edit Inventory Settings');
-            mitem.MenuSelectedFcn = @app.menuCallback_EditSettings;
-            mitem = uimenu(m, 'Text','Edit Browser Settings');
-            mitem.MenuSelectedFcn = @app.menuCallback_EditSettings;
-            mitem = uimenu(m, 'Text','Change Table Layout');
-            mitem.MenuSelectedFcn = @app.menuCallback_EditSettings;
-            mitem = uimenu(m, 'Text','Edit Search/Filter History');
-            mitem.MenuSelectedFcn = @app.menuCallback_EditSettings;
         end
         
         function updateProjectList(app, hParent)
@@ -712,6 +710,43 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem.MenuSelectedFcn = @(s,e) roimanager.RoimanagerDashboard();
         end
 
+        function createToolsMenu(app, hMenu)
+            
+            if nargin < 2
+                hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Tools');
+            end
+
+            if ~isempty(hMenu.Children)
+                delete(hMenu.Children)
+            end
+
+            dirPath = '/Users/eivihe/Code/MATLAB/VervaekeLab/NANSEN_Modules/Nansen-NWB/+nansen/+module/+nwb/+mixin/+tool';
+            app.createMenuFromDir(hMenu, dirPath)
+
+        end
+
+        function createHelpMenu(app)
+            
+            % Create a menu separator
+            uimenu(app.Figure, 'Text', '|', 'Enable', 'off', ...
+                'Tag', 'Help (Menu Separator)');
+
+            % Create the top level menu
+            m = uimenu(app.Figure, 'Text', 'Help', 'Tag', 'Help');
+
+            mitem = uimenu(m, 'Text','Show Keyboard Shortcuts');
+            %mitem.MenuSelectedFcn = @(src, event) app.shortKeyboardHelp();
+            
+            mitem = uimenu(m, 'Text','Reactivate All Popup Tips');
+            %mitem.MenuSelectedFcn = @(src, event) nansen.internal.reactivatePopupTips;
+
+            mitem = uimenu(m, 'Text','Go to NANSEN Wiki Page', 'Separator', 'on');
+            mitem.MenuSelectedFcn = @(s, e) web('https://github.com/VervaekeLab/NANSEN/wiki');
+
+            mitem = uimenu(m, 'Text','Create a GitHub Issue...');
+            mitem.MenuSelectedFcn = @(s, e) web('https://github.com/VervaekeLab/NANSEN/issues/new');
+        end
+
         function updateTableVariableMenuItems(app, hMenu)
             
             if nargin < 2
@@ -817,7 +852,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % See also app.menuCallback_SessionMethod
         
         % Requires: varname2label
-        
+            import utility.string.varname2label
+
             L = dir(dirPath);
             L = L(~strncmp({L.name}, '.', 1));
             
@@ -857,26 +893,26 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     % making a folder with multiple functions. I wanted to
                     % do this where each function call is the same, just
                     % varying by a keyword....
-                    if ~isempty(meta.class.fromName(functionName))
-                        className = strjoin({packageName, fileName}, '.');
-                        methods = findPropertyWithAttribute(className, 'Constant');
-                                           
-                        iSubMenu = uimenu(hParent, 'Text', name);
-                        for j = 1:numel(methods)
-                            name = varname2label(methods{j});
-                            iMitem = uimenu(iSubMenu, 'Text', name);
-                            hfun = str2func(functionName);
-                            iMitem.MenuSelectedFcn = @(s, e, h, kwd) app.menuCallback_SessionMethod(hfun, methods{j});
-                        end
-
-                    else
-                        hfun = str2func(functionName);
+                    % % % if ~isempty(meta.class.fromName(functionName))
+                    % % %     className = strjoin({packageName, fileName}, '.');
+                    % % %     methods = findPropertyWithAttribute(className, 'Constant');
+                    % % % 
+                    % % %     iSubMenu = uimenu(hParent, 'Text', name);
+                    % % %     for j = 1:numel(methods)
+                    % % %         name = varname2label(methods{j});
+                    % % %         iMitem = uimenu(iSubMenu, 'Text', name);
+                    % % %         hfun = str2func(functionName);
+                    % % %         iMitem.MenuSelectedFcn = @(s, e, h, kwd) app.menuCallback_SessionMethod(hfun, methods{j});
+                    % % %     end
+                    % % % 
+                    % % % else
+                    hfun = str2func(sprintf( '@(s,e) %s', functionName) );
                     
-                        iMitem = uimenu(hParent, 'Text', name);
-                        iMitem.MenuSelectedFcn = @(s, e, h) app.menuCallback_SessionMethod(hfun);
-                    end
+                    iMitem = uimenu(hParent, 'Text', name);
+                    iMitem.MenuSelectedFcn = hfun;
+                    % % % end
                     
-                    app.SessionTasks(end+1) = iMitem;
+                    %app.SessionTasks(end+1) = iMitem;
                 end
             end
         end
@@ -903,20 +939,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function createLayout(app)
-            
+        
 %             app.hLayout.TopBorder = uipanel('Parent', app.Figure);
 %             app.hLayout.TopBorder.BorderType = 'none';
 %             app.hLayout.TopBorder.BackgroundColor = [0    0.3020    0.4980];
             
-            app.hLayout.MainPanel = uipanel('Parent', app.Figure);
+            app.hLayout.MainPanel = uipanel('Parent', app.Figure, 'Tag', 'Main Panel');
             app.hLayout.MainPanel.BorderType = 'none';
             
-            app.hLayout.SidePanel = uipanel('Parent', app.Figure);
+            app.hLayout.SidePanel = uipanel('Parent', app.Figure, 'Tag', 'Side Panel');
             %app.hLayout.SidePanel.BorderType = 'none';
             app.hLayout.SidePanel.Units = 'pixels';
             app.hLayout.SidePanel.Visible = 'off';
             
-            app.hLayout.StatusPanel = uipanel('Parent', app.Figure);
+            app.hLayout.StatusPanel = uipanel('Parent', app.Figure, 'Tag', 'Status Panel');
             app.hLayout.StatusPanel.BorderType = 'none';
             
             app.hLayout.TabGroup = uitabgroup(app.hLayout.MainPanel);
@@ -930,7 +966,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                   
             app.createTabPages()
             
-            app.createSidePanelComponents()
+            %app.createSidePanelComponents()
         end
         
         function createMessagePanel(app)
@@ -1049,11 +1085,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if numel(unique(metatableTypes)) > 1
                 metatableTypes = utility.string.getSimpleClassName(metatableTypes);
                 metaTableTypes = unique(metatableTypes);
-               
-                ts = nansen.TableSwitcher(hTab, 'Items', metaTableTypes);
-                ts.updateLocation()
-                ts.SelectionChangedFcn = @app.onMetaTableTypeChanged;
-                app.UiMetaTableSelector = ts;
+
+                buttonGroup = nansen.ui.widget.ButtonGroup(hTab, 'Items', metaTableTypes);
+                buttonGroup.updateLocation()
+                buttonGroup.SelectionChangedFcn = @app.onMetaTableTypeChanged;
+                app.UiMetaTableSelector = buttonGroup;
                 app.updateTablePosition()
             end
         end
@@ -1709,6 +1745,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % end
         end
         
+        function onSessionTaskMenuUpdated(app, ~, ~)
+            % Need to recreate the Help menu in order for it to stay to the
+            % right of session task menus (uistack is not a good option,
+            % god knows why...)
+            uiMenuHelp = findobj(app.Figure, 'Type', 'uimenu',  '-and', '-regexp', 'Tag', 'Help', '-depth', 1);
+            delete(uiMenuHelp)
+            app.createHelpMenu()
+        end
+
         function onTabChanged(app, src, evt)
             
             switch evt.NewValue.Title
@@ -4225,5 +4270,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     methods (Static) % Method defined in separate file
         S = getDefaultSettings()
+    end
+
+    methods (Static)
+
+        function [jLabel, C] = showSplashScreen()
+            error('not implemented yet')
+% %             jLabel = simpleLogger;
+% %             C = []; return
+
+            filepath = fullfile(nansen.toolboxdir, 'resources', ...
+                'images', 'nansen_splash.png'); % NB nansen_splash does not exist yet
+            [~, jLabel, C] = nansen.ui.showSplashScreen(filepath, ...
+                'NAnSEn', 'Initializing nansen...');
+        end
     end
 end

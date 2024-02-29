@@ -59,7 +59,8 @@ classdef SessionTaskMenu < handle
     properties
         Mode char = 'Default' % Mode for running session task. See doc
         CurrentProject
-        TitleColor = '#0072BD';
+        %TitleColor = '#0072BD';
+        TitleColor = '#303E48';
     end
     
     properties (SetAccess = private)
@@ -86,6 +87,7 @@ classdef SessionTaskMenu < handle
     end
     
     events
+        MenuUpdated
         MethodSelected
     end
     
@@ -181,6 +183,8 @@ classdef SessionTaskMenu < handle
             
             obj.SessionTasks = struct('Name', {}, 'Attributes', {});
             obj.buildMenuFromDirectory(obj.ParentApp.Figure);
+
+            obj.notify('MenuUpdated', event.EventData)
         end
 
         function refreshMenuItem(obj, taskName)
@@ -268,7 +272,7 @@ classdef SessionTaskMenu < handle
                             str = getReport(taskAttributes.Error, 'basic', 'hyperlinks', 'off');
 
                             str = strsplit(str, newline);
-                            str = strjoin(str(2:end), '\n');
+                            str = strjoin(str(1:end), '\n');
 
                             linkStr = regexp(str, '<a href="matlab: opentoline(.*)">', 'match', 'once');
                             str = strrep(str, linkStr, '');
@@ -308,7 +312,7 @@ classdef SessionTaskMenu < handle
                 else
                     styledMenuName = menuName;
                 end
-                hMenuItem = uimenu(hParent, 'Text', menuName, 'Tag', menuName);
+                hMenuItem = uimenu(hParent, 'Text', styledMenuName, 'Tag', menuName);
                 obj.hMenuDirs(end+1) = hMenuItem;
             end
             

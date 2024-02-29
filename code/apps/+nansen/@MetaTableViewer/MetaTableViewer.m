@@ -1386,8 +1386,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             tableHeight = tablePosition(4);
             
             positionX = clickPosX + tableLocationX + 1; % +1 because ad hoc...
+            % obj.HTable.RowHeight??
             positionY = tableHeight - clickPosY + 19; % +15 because ad hoc... size of table header?
-            
             position = [positionX, positionY];
             
         end
