@@ -504,8 +504,8 @@ classdef (Abstract) UserSettings < uim.handle
                 subFields = strsplit(thisField, '.');
                 
                 if any( cellfun(@(str) endsWithUnderscore(str), subFields) )
-                    splitName = strsplit(thisField, '_');
-                    TF(i) = any(strcmp(splitName{1}, listOfFields));
+                    testName = thisField(1:end-1);
+                    TF(i) = any(strcmp(testName, listOfFields));
                 else
                     continue
                 end
