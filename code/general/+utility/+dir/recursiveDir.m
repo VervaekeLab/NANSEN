@@ -80,6 +80,8 @@ function combinedListing = recursiveDir(rootPath, options)
         options.IncludeHiddenFiles = false
     end
     
+    import utility.dir.recursiveDir
+
     combinedListing = getEmptyListing(); % Local function
     
     % Get the OutputType from options and change the value to 
