@@ -356,7 +356,6 @@ classdef messageBox < uim.mixin.isResizable
         function foldMessage(obj)
             
             msg = obj.hText.String;
-
             
             nChars = numel(msg);
             extent = obj.hText.Extent;

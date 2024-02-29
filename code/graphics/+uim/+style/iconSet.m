@@ -46,7 +46,11 @@ classdef iconSet < uim.handle
                 % Use builtin if a property is requested.
                 case '.'
                     if ~isempty(obj.iconNames) && numel(s)==1 && contains(s.subs, obj.iconNames)
-                        [varargout{:}] = obj.iconData.(s.subs);
+                        if ~nargout
+                            varargout = {obj.iconData.(s.subs)};
+                        else
+                            [varargout{:}] = obj.iconData.(s.subs);
+                        end
                     else
                         if ~nargout
                             builtin('subsref', obj, s)
