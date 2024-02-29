@@ -15,9 +15,18 @@ function centerObjectInRectangle(hContainer, position)
         end
     end
 
-    centerPosition = position(1:2) + position(3:4) / 2;
-    hContainer.Position(1:2) = centerPosition - hContainer.Position(3:4) / 2;
+    centerPoint = position(1:2) + position(3:4) / 2;
+    newLocation = centerPoint - hContainer.Position(3:4) / 2;
 
+    if isa(hContainer, 'matlab.ui.Figure')
+        [screenSize, ~] = uim.utility.getCurrentScreenSize(hContainer);
+
+        if any(newLocation < screenSize(1:2))
+            newLocation = max([newLocation; screenSize(1:2)]);
+        end
+    end
+
+    hContainer.Position(1:2) = newLocation;
 end
 
 

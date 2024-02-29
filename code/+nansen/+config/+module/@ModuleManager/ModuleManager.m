@@ -70,13 +70,20 @@ classdef ModuleManager < handle
         %   directory. It will look for json files within the module, so
         %   this function will only work properly if there is one and only
         %   on valid json file within a module directory.
-
-            moduleDirectories = utility.path.listSubDir(obj.ModuleRootPath, '', {}, 4);
-            moduleSpecFiles = utility.path.listFiles(moduleDirectories, '.json');
-
+    
+            % % Deprecated: Look only in ModuleRootPath for modules
+            % % moduleDirectories = utility.path.listSubDir(obj.ModuleRootPath, '', {}, 4);
+            % % moduleSpecFiles = utility.path.listFiles(moduleDirectories, '.json');
+            
+            % Look for all packages on path with nansen.module prefix
+            s = what(fullfile('+nansen', '+module'));
+            moduleSpecFiles = utility.dir.recursiveDir({s.path}, 'Expression', 'module.nansen', ...
+                'Ignore', 'module_folder_template', 'OutputType', 'FilePath', 'FileType', 'json');
+            
             numModules = numel(moduleSpecFiles);
             modules = cell(1, numModules);
 
+            % Get module attributes for each module.
             for i = 1:numModules
                 str = fileread(moduleSpecFiles{i});
                 modules{i} = jsondecode(str).Properties;
@@ -84,10 +91,15 @@ classdef ModuleManager < handle
                 modulePackageName = utility.path.pathstr2packagename(fileparts( moduleSpecFiles{i}) );
                 splitPackage = strsplit(modulePackageName, '.');
                 
-                modules{i}.ModuleCategory = splitPackage{3};
-                modules{i}.ShortName = splitPackage{4};
+                if strcmp( splitPackage{end-1}, 'module' )
+                    modules{i}.ModuleCategory = string(missing);
+                else
+                    modules{i}.ModuleCategory = string(splitPackage{end-1});
+                end
+                modules{i}.ShortName = splitPackage{end};
                 modules{i}.PackageName = modulePackageName;
-                modules{i}.isCoreModule = strcmp(splitPackage{3}, 'general');
+                modules{i}.isCoreModule = strcmp(modules{i}.ModuleCategory, 'general');
+                modules{i}.FolderPath = fileparts( moduleSpecFiles{i});
             end
 
             obj.ModuleList = cat(1, modules{:});
