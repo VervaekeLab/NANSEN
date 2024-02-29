@@ -234,7 +234,7 @@ classdef NansenUserSession < handle
                 nansen.internal.refactor.migrateUserdata(obj)
             end
             
-            if contains( getpref('NansenSetup', 'DefaultProjectPath'), fullfile(nansen.rootpath, '_userdata'))
+            if contains( getpref('NansenSetup', 'DefaultProjectPath', ''), fullfile(nansen.rootpath, '_userdata'))
                 rmpref('NansenSetup', 'DefaultProjectPath')
             end
         end
