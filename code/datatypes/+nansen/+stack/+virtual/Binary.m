@@ -26,7 +26,7 @@ classdef Binary < nansen.stack.data.VirtualArray
     
     properties (Access = private, Hidden)
         MemMap                          % A matlab memorymap for a binary file
-        IsDirty                         % A flag indicating whether the file has been modified
+        IsDirty = false                 % A flag indicating whether the file has been modified
     end
     
     methods % Structors
