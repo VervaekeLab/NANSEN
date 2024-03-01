@@ -167,7 +167,7 @@ classdef NansenUserSession < handle
                 try
                     obj.assertProjectsAvailable()
                 catch ME
-                    warning(ME.message)
+                    warning(ME.identifier, '%s', ME.message)
                 end
             end
             
@@ -278,6 +278,7 @@ classdef NansenUserSession < handle
         % Why is this static
         function preferenceDirectory = getPrefdir(userName)
             if ~nargin || isempty(userName)
+                warning('No username given, returning prefdir for default user')
                 className = mfilename('class');
                 userName = eval(sprintf('%s.DEFAULT_USER_NAME', className));
             end
