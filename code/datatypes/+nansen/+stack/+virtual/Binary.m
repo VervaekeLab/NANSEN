@@ -1,11 +1,15 @@
 % Class for indexing data from a binary file in the same manner that data 
 % is indexed from matlab arrays.
-
+%   
+%   Supports the following file extensions:
+%       .raw
+%       .bin
+%       .dat
+%   
+%   See also nansen.stack.virtual.Binary/Binary (Constructor)
+    
 classdef Binary < nansen.stack.data.VirtualArray
-%Binary Create a virtual data adapter for a binary file.
-%
-% NOTE: Currently assumes that data in binary file is a 3d stack. This
-% should be changed to full support for 5D stacks
+% Binary - Class for to represent a virtual data adapter for a binary file.
     
     % Todo: 
     %   [ ] Generalize.
@@ -22,12 +26,24 @@ classdef Binary < nansen.stack.data.VirtualArray
     
     properties (Access = private, Hidden)
         MemMap                          % A matlab memorymap for a binary file
+        IsDirty = false                 % A flag indicating whether the file has been modified
     end
     
     methods % Structors
         
         function obj = Binary(filePath, varargin)
-           
+        % Binary - Creates a VirtualArray from a binary file
+        %
+        %   Syntax:
+        %   
+        %   virtualData = nansen.stack.virtual.Binary(filePath) opens a
+        %       virtualData object from a file with data stored in binary
+        %       format.
+        %       
+        %   virtualData = nansen.stack.virtual.Binary(filePath, stackSize, dataType) 
+        %       initializes a new binary file with the given size and 
+        %       and datatype and returns the virtualData object.
+        
             % Open folder browser if there are no inputs.
             if nargin < 1; filePath = uigetdir; end
             
@@ -41,6 +57,10 @@ classdef Binary < nansen.stack.data.VirtualArray
          
         function delete(obj)
             
+            if obj.IsDirty
+                obj.updateLastModified()
+            end
+            
             obj.writeMetadata()
             
             % If both ini- and yaml file exists, delete the ini file.
@@ -52,6 +72,28 @@ classdef Binary < nansen.stack.data.VirtualArray
         end
     end
     
+    methods
+        function updateLastModified(obj)
+        % updateLastModified - Update the last modified date of the file
+        %
+        %   The memory mapping technique does not change the last modified
+        %   field of the file metadata, and this creates issues if the file
+        %   is stored in a cloud service like DropBox. In order for DropBox
+        %   to detect changes of files, this methods can be used to
+        %   "manually" update the last modified field.
+
+            fileID = fopen(obj.FilePath, 'a+');
+            frewind(fileID); % Go to beginning of file
+            firstByte = fread(fileID, 1, 'uint8');
+            frewind(fileID); % Go to beginning of file
+            fwrite(fileID, firstByte, 'uint8');
+            fclose(fileID);
+
+            % Reset the flag indicating if file was modified
+            obj.IsDirty = false;
+        end
+    end
+
     methods (Access = protected) % Implementation of abstract methods
             
         function assignFilePath(obj, filePath, ~)
@@ -147,6 +189,7 @@ classdef Binary < nansen.stack.data.VirtualArray
         
         function writeData(obj, subs, data)
             obj.MemMap.Data.ImageArray(subs{:}) = data;
+            obj.IsDirty = true;
         end
         
         function data = readFrames(obj, frameInd) 	% defined in nansen.stack.data.VirtualArray

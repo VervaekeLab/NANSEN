@@ -254,6 +254,13 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             if ~isempty(obj.StackIterator)
                 delete(obj.StackIterator)
             end
+
+            if ~isempty(obj.TargetStack)
+                % Work around a limitation in binary memory mapping:
+                if isa(obj.TargetStack.Data, 'nansen.stack.virtual.Binary')
+                    obj.TargetStack.Data.updateLastModified()
+                end
+            end
             
             if ~isempty(obj.TargetStack) && obj.DeleteTargetStackOnDestruction
                 delete(obj.TargetStack)
