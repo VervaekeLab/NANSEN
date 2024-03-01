@@ -88,6 +88,9 @@ classdef Binary < nansen.stack.data.VirtualArray
             frewind(fileID); % Go to beginning of file
             fwrite(fileID, firstByte, 'uint8');
             fclose(fileID);
+
+            % Reset the flag indicating if file was modified
+            obj.IsDirty = false;
         end
     end
 
