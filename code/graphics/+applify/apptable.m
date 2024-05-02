@@ -1,4 +1,4 @@
-classdef apptable < applify.UiControlTable
+classdef apptable < applify.UiControlTable %Rename? MLAppTable
 % A row based table for placing in an app using uifigure
 %
 %
@@ -66,9 +66,7 @@ classdef apptable < applify.UiControlTable
         end
         
     end
-    
 
-    
     methods (Access = protected) % Configuration and construction
         
         function assignDefaultTablePropertyValues(obj)
@@ -307,7 +305,6 @@ classdef apptable < applify.UiControlTable
             % table and column header.
             obj.TableHeaderSpacer = uiimage(obj.TablePanel);
             obj.updateTablePanelMargin()
-                    
         end
 
         function createTableRowBackgroundImages(obj)
@@ -364,7 +361,6 @@ classdef apptable < applify.UiControlTable
             end
             
             obj.updateTablePanelMargin()
-            
         end
         
         function removeRow(obj, rowNumber)
@@ -372,7 +368,6 @@ classdef apptable < applify.UiControlTable
             removeRow@applify.UiControlTable(obj, rowNumber)
         
             obj.updateTablePanelMargin()
-
         end
     end
 end

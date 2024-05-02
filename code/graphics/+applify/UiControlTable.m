@@ -1,12 +1,19 @@
 classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 %UiControlTable Interface for plotting ui components in a table like layout.
+%
+% This is an abstract class and subclasses should control which component
+% libraries to use. I.e one subclass can be made to work with appdesigner
+% figures, and another could work with traditional figures.
     
 %   Todo: 
 %     [v] many (most) sublasses have an advanced options view. Should make
 %         that behavior part of this superclass.
-    
+
+%     [ ] Toolbar should not be part of the table class...
+%     
 %     [ ] Get cell locations as array with one entry for each column of a
 %         row. (see getCellPosition)
+
 %     [ ] Do the centering when getting the cell locations.
 %     [ ] Set fontsize/bg color and other properties in batch.
 
@@ -48,14 +55,10 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
     end
     
     properties (Access = protected, Hidden) % Internal layout properties
-        
         RowLocations        % Y position of each table row
         ColumnLocations     % X position of each table column
-        RowWidth
-        
         TablePanelPosition
         ColumnHeaderPosition
-        
     end
     
     properties (Dependent)
@@ -64,7 +67,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
     end
     
     properties (Access = protected, Hidden) % Internal graphical properties
-        
         % HeaderPanel % Not implemented
         TablePanel 
         
@@ -104,7 +106,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         updateTableRowBackground(rowNumber, isSelected)
         
         setTableScrolling(obj, state)
-        
+
     end
     
     methods % Structors
@@ -115,7 +117,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         % Todo: 
         %   [ ] Accept table and/or struct array as data?
         
-            
           %%% Assign inputs.
             varargin = obj.checkForParentArgin(varargin);                       % Assigns Parent if it is given as the first input.
             varargin = obj.assignPropertyValue(varargin, 'Parent');             % Assigns Parent if it is given as a name-value combination.
@@ -135,15 +136,13 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             
             obj.assignPropertyValue(varargin, 'all');
             
-            
           %%% Run configuration and creation
             obj.configureLayout()
 
-%             obj.createTablePanel()
-%             obj.createTempAxes()
+            % obj.createTablePanel()
+            % obj.createTempAxes()
 
             obj.createLayoutContainers()
-
             
             if ~obj.NumColumns == 0
                 obj.ColumnLocations = obj.calculateColumnPositions();
@@ -169,7 +168,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             % These are not activated...
             %addlistener(ancestor(obj.Parent, 'figure'), 'SizeChanged', @obj.onParentResized)
             %addlistener(obj.Parent, 'SizeChanged', @obj.onParentResized)
-    
         end
         
         function delete(obj)
@@ -183,18 +181,14 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         
         
         function set.ShowToolbar(obj, newValue)
-            
             assert(islogical(newValue), 'Value must be logical')
             obj.ShowToolbar = newValue;
             obj.onShowToolbarPropertySet()
-            
         end
         
         function set.Data(obj, newData)
-            
             obj.Data = newData;
             obj.calculateRowPositions()
-            
         end
         
         function numRows = get.NumRows(obj)
@@ -208,7 +202,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         end
         
         function numColumns = get.NumColumns(obj)
-            
             if ~isempty(obj.Data)
                 if isa(obj.Data, 'struct')
                     numColumns1 = numel(fieldnames(obj.Data));
@@ -232,14 +225,11 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             else
                 numColumns = 0;
             end
-            
         end
         
         function set.Parent(obj, newParent)
-            
             obj.Parent = newParent;
             obj.setParentBeingDestroyedListener()
-            
         end
         
         function rowData = getRowData(obj, rowNum)
@@ -252,7 +242,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             elseif isa(obj.Data, 'table')
                 rowData = obj.Data(rowNum, :);
             end
-            
         end
         
     end
@@ -269,7 +258,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                 obj.Parent = nvPairs{1};
                 nvPairs(1) = [];
             end
-            
         end
         
         function nvPairs = assignPropertyValue(obj, nvPairs, propertyName)
@@ -296,24 +284,19 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             
                     thisName = nvPairs{nameInd};
                     obj.(thisName) = nvPairs{valueInd};
-                    
                 end
                 
                 nvPairs([matchedInd, matchedInd+1]) = [];
-
             end
             
             if ~nargout
                 clear nvPairs
             end
-            
         end
         
         function setParentBeingDestroyedListener(obj)
-            
             el = listener(obj.Parent, 'ObjectBeingDestroyed', @(s,e) obj.delete);
             obj.ParentDestroyedListener = el;
-            
         end
         
         function autoAssignPosition(obj)
@@ -328,7 +311,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             parentPosition = getpixelposition(obj.Parent);
             obj.Position = [ tableMargin(1), tableMargin(2), ...
                                 parentPosition(3:4)-tableMargin*2 ];
-            
         end
         
         function configureLayout(obj)
@@ -359,7 +341,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 
             obj.TablePanelPosition(3) = sum(obj.ColumnWidths) + numel(obj.ColumnWidths)*obj.ColumnSpacing +20;
             obj.ColumnHeaderPosition(3) = obj.TablePanelPosition(3)-20;
-
         end
         
         function deleteRowControls(obj)
@@ -383,7 +364,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                     delete( hComponents(i) )
                 end
             end
-            
         end
         
         function deleteHeader(obj)
@@ -418,14 +398,12 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                 if max(Y) > panelSize(4) - obj.RowHeight - obj.RowSpacing
                     obj.setTableScrolling('on')
                 end
-            
             end
             
             if ~nargout
                 obj.RowLocations = Y;
                 clear Y
             end
-            
         end
         
         function X = calculateColumnPositions(obj)
@@ -439,14 +417,12 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                     - (obj.NumColumns-1) * xSpace) / obj.NumColumns;
                 
                 obj.ColumnWidths = repmat(colWidth, 1, obj.NumColumns);
-                
             end
                 
             X = cumsum([0, obj.ColumnWidths]) + ...
                     (0:numel(obj.ColumnWidths)) .* xSpace;
             
             X = X + obj.TablePadding;
-            
         end
         
         function updateRowPositions(obj, rowDisplacements)
@@ -483,7 +459,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             obj.TablePanel.Position = obj.TablePanelPosition;
             obj.TablePanel.BorderType = 'none';
             obj.TablePanel.BackgroundColor = obj.BackgroundColor;
-            
         end
         
         function rowNumber = getComponentRowNumber(obj, h)
@@ -506,12 +481,9 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         function createTable(obj)
             
             for i = 1:obj.NumRows
-                
                 rowData = obj.getRowData(i);
                 obj.createTableRow(rowData, i)
-                
             end
-        
         end
         
         function resetTable(obj)
@@ -520,7 +492,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             for i = obj.NumRows:-1:1
                 obj.removeRow(i)
             end
-            
         end
         
         function createTableRow(obj, rowData, rowNumber)
@@ -547,7 +518,10 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             catch ME
                 rethrow(ME)
             end
-            
+        end
+
+        function getColumnPositions(obj, rowNum)
+
         end
         
         function [x, y, w, h] = getCellPosition(obj, rowNum, columnNum)
@@ -558,7 +532,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             w = obj.ColumnWidths(columnNum);
             h = 22;
             
-            
 % % %       Todo: Implement centering already here. Missing: Need to
 % % %       make it work so that components can have different heights
 
@@ -567,16 +540,13 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 % %             
 % %             yOffset = ( rowExtent - h ) / 2;
 % %             y = y + yOffset;
-            
         end
         
         function centerComponent(obj, hComponent, yPos)
-            
             yHeight = obj.RowHeight + obj.RowSpacing;
             
             yOffset = ( yHeight - hComponent.Position(4) ) / 2;
             hComponent.Position(2) = yPos + yOffset;
-            
         end
         
         function onTableRowSelected(obj, src, ~)
@@ -595,7 +565,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             % Update backgrond color of table row based on selection state
             obj.updateTableRowBackground(iRow, isSelected)
 
-            
             if isSelected
                 % Add row number to list of selected rows
                 obj.SelectedRows = [obj.SelectedRows, iRow];
@@ -603,7 +572,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                 % Remove row number from list of selected rows
                 obj.SelectedRows = setdiff(obj.SelectedRows, iRow, 'stable');
             end
-
         end
         
         function position = getToolbarPosition(obj)
@@ -623,7 +591,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             size = [referencePosition(3) - 2*MARGINS(1), HEIGHT];
             
             position = [location, size];
-            
         end
         
         function createToolbarComponents(obj, ~)
@@ -722,14 +689,12 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             msg = obj.ColumnHeaderHelpFcn(src.Tag);
             title = sprintf('Help for %s', src.Tag);
             uialert(hFigure, msg, title, 'Icon', 'info')
-            
         end
         
         function onParentResized(obj, src, evt)
             % Todo: Recall how to do this with uifigures...
             obj.autoAssignPosition()
             obj.configureLayout()
-
             
             if ~obj.NumColumns == 0
                 obj.ColumnLocations = obj.calculateColumnPositions();
@@ -747,8 +712,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                     obj.centerComponent(obj.TableComponentCellArray{i,j}, y)
                 end
             end
-            
-            
         end
         
         function onShowToolbarPropertySet(obj)
@@ -760,7 +723,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             else
                 obj.hideToolbar()
             end
-        
         end
     end
     
@@ -851,8 +813,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             
             rowDisplacements = obj.RowLocations - oldRowLocations;
             obj.updateRowPositions(rowDisplacements)
-            
-
         end
 
         function updateData(obj, newData)
@@ -867,7 +827,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 %             for i = 1:numel(newData)
 %                 obj.addRow(i, newData(i));
 %             end
-            
         end
         
     end

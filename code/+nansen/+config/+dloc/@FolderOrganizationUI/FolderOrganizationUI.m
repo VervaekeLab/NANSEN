@@ -126,7 +126,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.ColumnNames = {'', 'Select subfolder example', 'Set subfolder type', 'Exclusion list', 'Inclusion list', ''};
             obj.ColumnHeaderHelpFcn = @nansen.app.setup.getHelpMessage;
             obj.ColumnWidths = [22, 175, 130, 90, 125, 22];
-            obj.RowSpacing = 20;   
+            obj.RowSpacing = 20;
         end
         
         function hRow = createTableRowComponents(obj, rowData, rowNum)
@@ -156,7 +156,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             if rowNum == 1
                 hRow.RemoveImage.Enable = 'off';
             end
-            
             
             obj.centerComponent(hRow.RemoveImage, y)
             
