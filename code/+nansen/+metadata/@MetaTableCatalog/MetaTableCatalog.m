@@ -84,24 +84,6 @@ classdef MetaTableCatalog < uim.handle
         function fixCatalog(obj)
             % Todo: Remove this
             
-            if size(obj.Table, 1) >= 1
-                obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
-                obj.save()
-            end
-            
-            for i = 1:size(obj.Table,1)
-                fileValues = obj.Table{i, {'SavePath', 'FileName'}};
-                filePath = fullfile(fileValues{:});
-                
-                if isfile(filePath)
-                    S = load(filePath);
-                    if strcmp(S.MetaTableClass, 'nansen.metadata.schema.vlab.TwoPhotonSession')
-                        S.MetaTableClass = 'nansen.metadata.type.Session';
-                    end
-                    save(filePath, '-struct', 'S')
-                end
-            end
-
             % Append a table column that was added october 2022
             if ~isempty(obj.Table)
                 if ~any(strcmp(obj.Table.Properties.VariableNames, 'MetaTableIdVarname') )
@@ -346,8 +328,9 @@ classdef MetaTableCatalog < uim.handle
             else
                 MT = [];
             end
-
-            MT.SavePath = repmat( {fileparts(filePath)}, height(MT), 1 );
+            if ~isempty(MT)
+                MT.SavePath = repmat( {fileparts(filePath)}, height(MT), 1 );
+            end
         end
         
         function quicksave(MT, filePath)

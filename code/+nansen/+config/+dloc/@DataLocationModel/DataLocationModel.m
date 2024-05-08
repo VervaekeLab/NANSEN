@@ -20,7 +20,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
     end
     
     properties (Dependent)
-        IsDirty % Todo: Dependent on whether data bakcup is different than data
+        IsDirty % Todo: Dependent on whether data backup is different than data
         DefaultDataLocation
     end
 

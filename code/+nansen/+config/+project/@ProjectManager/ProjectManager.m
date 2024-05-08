@@ -230,6 +230,30 @@ classdef ProjectManager < handle
             
             obj.saveCatalog()
         end
+
+        function renameProject(obj, projectName, newProjectName)
+        %renameProject Rename a project
+            project = obj.getProject(projectName);
+            if isempty(project); return; end
+
+            error('Not implemented yet')
+
+            % Update name in project catalog
+            IND = strcmp({obj.Catalog.Name}, projectName);
+            obj.Catalog(IND).Name = newProjectName;
+            obj.Catalog(IND).ShortName = newProjectName;
+
+            IND = strcmp({obj.Catalog.Name}, projectName);
+            obj.Catalog(IND).Path = newPath;
+
+            if isKey(obj.ProjectCache, projectName)
+                % Update project folder in project instance.
+                project = obj.ProjectCache(projectName);
+                project.updateProjectFolder(newProjectDirectory);
+            end
+            
+            obj.saveCatalog()
+        end
         
         function moveProject(obj, projectName, newLocation)
         %moveProject Move the project to a new directory / file system location
@@ -505,7 +529,12 @@ classdef ProjectManager < handle
                 S = load(obj.CatalogPath, 'projectCatalog');
             end
             
+            % Ensure name and short name are char types.
             obj.Catalog = S.projectCatalog;
+            for i = 1:numel(obj.Catalog)
+                obj.Catalog(i).Name = char(obj.Catalog(i).Name);
+                obj.Catalog(i).ShortName = char(obj.Catalog(i).ShortName);
+            end
         end
        
         function saveCatalog(obj)
@@ -630,7 +659,6 @@ classdef ProjectManager < handle
     end
 
     methods (Access = private)
-        
         function idx = getProjectIndex(obj, projectName)
         %getProjectIndex Get catalog index from name
 
@@ -640,7 +668,6 @@ classdef ProjectManager < handle
                 idx = find(strcmp({obj.Catalog.Name}, projectName));
             end
         end
-        
     end
 
     methods (Sealed, Hidden) % Overridden display methods
