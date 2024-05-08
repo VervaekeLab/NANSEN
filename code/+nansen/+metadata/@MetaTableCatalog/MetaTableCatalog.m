@@ -15,6 +15,10 @@ classdef MetaTableCatalog < uim.handle
         FilePath    % Filepath where the catalog is stored locally
         Table       % Catalog represented with a table
     end
+
+    properties (Constant, Access = private)
+        DEFAULT_FILENAME = 'metatable_catalog.mat'
+    end
     
     
     methods
@@ -31,7 +35,47 @@ classdef MetaTableCatalog < uim.handle
             obj.load();
             obj.fixCatalog()
         end
+                
+        function delete(obj)
+           % Todo: Check for unsaved changes. 
+        end
+    end
+
+    methods
+        function set.FilePath(obj, newFilepath)
+            if isfolder(newFilepath)
+                obj.FilePath = fullfile(newFilepath, obj.DEFAULT_FILENAME);
+            elseif isfile(newFilepath)
+                obj.FilePath = newFilepath;
+            else
+                % Todo: Check that it is char and a folder + filename.
+                obj.FilePath = newFilepath;
+            end
+        end
+    end
+
+    methods
         
+        function addMetatable(obj, metaTable, isMaster, isDefault)
+
+            arguments
+                obj
+                metaTable
+                isMaster = false
+                isDefault = false
+            end
+            
+            metatableFolder = fileparts(obj.FilePath);
+
+            tableInfo = struct();
+            tableInfo.MetaTableName = metaTable.createDefaultName();
+            tableInfo.SavePath = metatableFolder;
+            tableInfo.IsDefault = isMaster;
+            tableInfo.IsMaster = isDefault;
+            
+            metaTable.archive(tableInfo, obj);
+        end
+
         function fixCatalog(obj)
             % Todo: Remove this
             
@@ -75,11 +119,7 @@ classdef MetaTableCatalog < uim.handle
             fprintf('%s\n\n', titleTxt)
             disp(obj.Table)
         end
-        
-        function delete(obj)
-           % Todo: Check for unsaved changes. 
-        end
-        
+
         function load(obj)
             % Todo: Call the static load method?
             filePath = obj.FilePath;
@@ -90,7 +130,6 @@ classdef MetaTableCatalog < uim.handle
             else
                 obj.Table = [];
             end
-
         end
         
         function save(obj)
@@ -229,6 +268,12 @@ classdef MetaTableCatalog < uim.handle
         
     end
      
+    methods (Access = private)
+        function folderPath = getFolder(obj)
+            folderPath = fileparts(obj.FilePath);
+        end
+    end
+
     methods (Static)
         
         function pathString = getFilePath()
@@ -240,7 +285,7 @@ classdef MetaTableCatalog < uim.handle
             if ~exist(metaTableDir, 'dir');  mkdir(metaTableDir);    end
             
             % Get path string from project settings 
-            pathString = fullfile(metaTableDir, 'metatable_catalog.mat');
+            pathString = fullfile(metaTableDir, nansen.metadata.MetaTableCatalog.DEFAULT_FILENAME);
             
 % %             % Alternatively:
 % %             token = 'MetaTableCatalog'
