@@ -20,6 +20,10 @@ classdef MetaTableCatalog < uim.handle
         FolderPath
     end
     
+    properties (Constant, Access = private)
+        DEFAULT_FILENAME = 'metatable_catalog.mat'
+    end
+    
     
     methods % Constructor
         
@@ -36,9 +40,80 @@ classdef MetaTableCatalog < uim.handle
             obj.load();
             obj.fixCatalog()
         end
-               
+                
         function delete(obj)
            % Todo: Check for unsaved changes. 
+        end
+    end
+
+    methods
+        function set.FilePath(obj, newFilepath)
+            if isfolder(newFilepath)
+                obj.FilePath = fullfile(newFilepath, obj.DEFAULT_FILENAME);
+            elseif isfile(newFilepath)
+                obj.FilePath = newFilepath;
+            else
+                % Todo: Check that it is char and a folder + filename.
+                obj.FilePath = newFilepath;
+            end
+        end
+    end
+
+    methods
+        
+        function addMetatable(obj, metaTable, isMaster, isDefault)
+
+            arguments
+                obj
+                metaTable
+                isMaster = false
+                isDefault = false
+            end
+            
+            metatableFolder = fileparts(obj.FilePath);
+
+            tableInfo = struct();
+            tableInfo.MetaTableName = metaTable.createDefaultName();
+            tableInfo.SavePath = metatableFolder;
+            tableInfo.IsDefault = isMaster;
+            tableInfo.IsMaster = isDefault;
+            
+            metaTable.archive(tableInfo, obj);
+        end
+
+        function fixCatalog(obj)
+            % Todo: Remove this
+            
+            if size(obj.Table, 1) >= 1
+                obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
+                obj.save()
+            end
+            
+            for i = 1:size(obj.Table,1)
+                fileValues = obj.Table{i, {'SavePath', 'FileName'}};
+                filePath = fullfile(fileValues{:});
+                
+                if isfile(filePath)
+                    S = load(filePath);
+                    if strcmp(S.MetaTableClass, 'nansen.metadata.schema.vlab.TwoPhotonSession')
+                        S.MetaTableClass = 'nansen.metadata.type.Session';
+                    end
+                    save(filePath, '-struct', 'S')
+                end
+            end
+
+            % Append a table column that was added october 2022
+            if ~isempty(obj.Table)
+                if ~any(strcmp(obj.Table.Properties.VariableNames, 'MetaTableIdVarname') )
+                    numRows = size(obj.Table,1);
+                    metaTableIdColumn = repmat({'sessionID'}, numRows, 1);
+                    newTableColumn = cell2table(metaTableIdColumn, "VariableNames", {'MetaTableIdVarname'});
+                    newTable = cat(2, obj.Table, newTableColumn);
+                    columnOrder = [1:3, 8, 4:7]; % MetaTable.MTABVARS
+                    obj.Table = newTable(:, columnOrder);
+                    obj.save()
+                end
+            end
         end
         
         function disp(obj)
@@ -228,44 +303,11 @@ classdef MetaTableCatalog < uim.handle
             tf = ~isempty(S);
         end
     end
-    
+     
     methods (Access = private)
-
-        function fixCatalog(obj)
-            % Todo: Remove this
-            
-            if size(obj.Table, 1) >= 1
-                %obj.Table(:, 'MetaTableClass') = {'nansen.metadata.type.Session'};
-                obj.save()
-            end
-            
-            for i = 1:size(obj.Table,1)
-                fileValues = obj.Table{i, {'SavePath', 'FileName'}};
-                filePath = fullfile(fileValues{:});
-                
-                if isfile(filePath)
-                    S = load(filePath);
-                    if strcmp(S.MetaTableClass, 'nansen.metadata.schema.vlab.TwoPhotonSession')
-                        S.MetaTableClass = 'nansen.metadata.type.Session';
-                    end
-                    save(filePath, '-struct', 'S')
-                end
-            end
-
-            % Append a table column that was added october 2022
-            if ~isempty(obj.Table)
-                if ~any(strcmp(obj.Table.Properties.VariableNames, 'MetaTableIdVarname') )
-                    numRows = size(obj.Table,1);
-                    metaTableIdColumn = repmat({'sessionID'}, numRows, 1);
-                    newTableColumn = cell2table(metaTableIdColumn, "VariableNames", {'MetaTableIdVarname'});
-                    newTable = cat(2, obj.Table, newTableColumn);
-                    columnOrder = [1:3, 8, 4:7]; % MetaTable.MTABVARS
-                    obj.Table = newTable(:, columnOrder);
-                    obj.save()
-                end
-            end
+        function folderPath = getFolder(obj)
+            folderPath = fileparts(obj.FilePath);
         end
-        
     end
 
     methods (Static)
@@ -277,12 +319,18 @@ classdef MetaTableCatalog < uim.handle
             pm = nansen.ProjectManager();
             projectRootDir = pm.CurrentProjectPath;
             
+            % Todo: get this from project instance...
             metaTableDir = fullfile(projectRootDir, 'metadata', 'tables');
             
             if ~exist(metaTableDir, 'dir');  mkdir(metaTableDir);    end
             
             % Get path string from project settings 
-            pathString = fullfile(metaTableDir, 'metatable_catalog.mat');
+            pathString = fullfile(metaTableDir, nansen.metadata.MetaTableCatalog.DEFAULT_FILENAME);
+            
+% %             % Alternatively:
+% %             token = 'MetaTableCatalog'
+% %             pathString = nansen.ProjectManager.getProjectSubPath(token);
+            
         end
         
         function MT = quickload(filePath)

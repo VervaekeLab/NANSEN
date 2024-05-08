@@ -404,7 +404,7 @@ classdef MetaTable < handle
             obj.filepath = originalPath;
         end
         
-        function archive(obj, Sin)
+        function archive(obj, Sin, metaTableCatalog)
         %ARCHIVE Save Metatable using user input and add to Catalog.
         %
         %   This function is used whenever a new MetaTable is saved to disk
@@ -413,7 +413,8 @@ classdef MetaTable < handle
         %   MetaTable is added to the MetaTableCatalog.
 
         % rename to saveas?
-        
+            if nargin < 3; metaTableCatalog = []; end
+
             S = obj.toStruct('metatable_catalog');
 
             if nargin == 1 || isempty(Sin)
@@ -453,7 +454,11 @@ classdef MetaTable < handle
             % Save to MetaTable Catalog
             S.MetaTableKey = obj.MetaTableKey;
                         
-            nansen.metadata.MetaTableCatalog.quickadd(S);
+            if isempty(metaTableCatalog)
+                nansen.metadata.MetaTableCatalog.quickadd(S);
+            else
+                metaTableCatalog.addEntry(S)
+            end
             
             if S.IsDefault
                 obj.setDefault()
