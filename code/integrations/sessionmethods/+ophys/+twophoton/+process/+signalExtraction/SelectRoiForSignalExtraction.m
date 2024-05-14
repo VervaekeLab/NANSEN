@@ -55,7 +55,7 @@ function varargout = SelectRoiForSignalExtraction(sessionObject, varargin)
             outside(roi) = xOut | yOut;
         end
 
-        roiArray.removeRois(outside)
+        roiArray.removeRois(find(outside))
 
     end
         
