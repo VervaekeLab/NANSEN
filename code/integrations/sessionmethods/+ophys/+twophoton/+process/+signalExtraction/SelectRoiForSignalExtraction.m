@@ -44,6 +44,21 @@ function varargout = SelectRoiForSignalExtraction(sessionObject, varargin)
         return
     end
     
+
+    if params.deleteRoisOutsideTheBorders
+
+        outside = false(roiArray.roiCount,1);
+
+        for roi = 1:1:roiArray.roiCount           
+            xOut = length(setdiff(round(roiArray.roiArray(roi).coordinates(:,1)), 1:1:roiArray.FovImageSize(1))) > 0;
+            yOut = length(setdiff(round(roiArray.roiArray(roi).coordinates(:,2)), 1:1:roiArray.FovImageSize(2))) > 0;
+            outside(roi) = xOut | yOut;
+        end
+
+        roiArray.removeRois(outside)
+
+    end
+        
     sessionObject.saveData('RoiArray', roiArray)
 
 end
@@ -53,5 +68,6 @@ function S = getDefaultParameters()
     
     S = struct();
     % Add more fields:
+    S.deleteRoisOutsideTheBorders = true;
 
 end
