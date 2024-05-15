@@ -50,10 +50,13 @@ function varargout = SelectRoiForSignalExtraction(sessionObject, varargin)
         outside = false(roiArray.roiCount,1);
 
         for roi = 1:1:roiArray.roiCount           
-            xOut = length(setdiff(round(roiArray.roiArray(roi).coordinates(:,1)), 1:1:roiArray.FovImageSize(1))) > 0;
-            yOut = length(setdiff(round(roiArray.roiArray(roi).coordinates(:,2)), 1:1:roiArray.FovImageSize(2))) > 0;
-            outside(roi) = xOut | yOut;
+            xOut = any( roiArray.roiArray(roi).coordinates(:,1) < 1) || any( roiArray.roiArray(roi).coordinates(:,1) > roiArray.FovImageSize(2) );
+            yOut = any( roiArray.roiArray(roi).coordinates(:,2) < 1) || any( roiArray.roiArray(roi).coordinates(:,2) > roiArray.FovImageSize(1) );
+            outside(roi) = xOut || yOut;
         end
+
+        % outside = roiArray.roiArray.isOutsideImage(); % alternative
+        % method but this checks the center
 
         roiArray.removeRois(find(outside))
 
