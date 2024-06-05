@@ -293,6 +293,8 @@ classdef pointerManager < handle
         end
 
         function wasCaptured = onKeyRelease(obj, src, event)
+            wasCaptured = false;
+            
             persistent notifyUser
             if isempty(notifyUser)
                 notifyUser = false;

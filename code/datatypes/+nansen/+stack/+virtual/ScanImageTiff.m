@@ -356,6 +356,8 @@ methods (Access = protected) % Todo: Scan image and subclass
             'hRoiManager.scanFramePeriod', ...
             'hRoiManager.imagingFovUm', ...
             'hRoiManager.scanVolumeRate', ...
+            'hScan2D.logFramesPerFile', ...
+            'hStackManager.numSlices', ...
             'hStackManager.actualNumSlices', ...
             'hStackManager.actualNumVolumes', ...
             'hStackManager.framesPerSlice', ...
@@ -370,6 +372,7 @@ methods (Access = protected) % Todo: Scan image and subclass
         else
             numFramesPerFile = 1;
         end
+
         for i = 1:numel(obj.tiffInfo)
             scanImageTag = obj.tiffInfo(i).getTag('Software');
 
@@ -377,6 +380,15 @@ methods (Access = protected) % Todo: Scan image and subclass
             
             if sIParams.hStackManager.framesPerSlice == 1
                 numFramesPerFile(i) = sIParams.hStackManager.actualNumVolumes;
+            elseif sIParams.hStackManager.framesPerSlice == inf
+                % Try to get frames per file:
+                if i ~= numel(obj.tiffInfo)
+                    numFramesPerFile(i) = sIParams.hScan2D.logFramesPerFile;
+                else % Last part:
+                    numFramesPerFile(i) = ...
+                        nansen.stack.utility.findNumTiffDirectories(...
+                            obj.tiffInfo(i), sIParams.hScan2D.logFramesPerFile/2);
+                end
             else
                 numFramesPerFile(i) = sIParams.hStackManager.framesPerSlice;
             end
@@ -392,7 +404,7 @@ methods (Access = protected) % Todo: Scan image and subclass
         obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
 
         numChannels = numel( sIParams.hChannels.channelSave );
-        numPlanes = sIParams.hStackManager.actualNumSlices;
+        numPlanes = obj.resolveNumPlanes(sIParams);
         
         obj.NumTimepoints_ = sum(numFramesPerFile) ./ numChannels ./ numPlanes;
         
@@ -411,7 +423,7 @@ methods (Access = protected) % Todo: Scan image and subclass
                 end
             end
         end
-            %obj.MetaData.PhysicalSizeY = nan;
+        %obj.MetaData.PhysicalSizeY = nan;
         %obj.MetaData.PhysicalSizeX = nan;
         
         obj.MetaData.PhysicalSizeYUnit = 'micrometer'; % Todo: Will this always be um?
@@ -421,7 +433,7 @@ methods (Access = protected) % Todo: Scan image and subclass
         obj.MetaData.SampleRate = sIParams.hRoiManager.scanVolumeRate;
 
         obj.MetaData.SizeC = numel( sIParams.hChannels.channelSave );
-        obj.MetaData.SizeZ = sIParams.hStackManager.actualNumSlices;
+        obj.MetaData.SizeZ = obj.resolveNumPlanes(sIParams);
         obj.MetaData.SizeT = obj.NumTimepoints_;
         
         obj.NumChannels_ = obj.MetaData.SizeC;
@@ -486,6 +498,13 @@ methods (Access = protected) % Todo: Scan image and subclass
         obj.NumTimepoints_ = frame_current;
     end
     
+    function numPlanes = resolveNumPlanes(~, sIParams)
+        try
+            numPlanes = sIParams.hStackManager.actualNumSlices;
+        catch
+            numPlanes = sIParams.hStackManager.numSlices;
+        end
+    end
 end
 
 

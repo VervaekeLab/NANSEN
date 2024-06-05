@@ -1,10 +1,11 @@
 function memoryBytes = getAvailableMemory()
     if ismac
-        [~,txt] = system('sysctl -a | grep hw.memsize | awk ''{print $2}'''); 
-        memory_avail_gb = (eval(txt)/1024^3);
+        [~,txt] = system('sysctl -a | grep hw.memsize | awk ''{print $2}''');
+        memory_string = strsplit(strtrim(txt), newline);
+        memory_avail_gb = (eval(memory_string{end})/1024^3);
         memoryBytes = memory_avail_gb*1e9;
     elseif ispc  
-        m = memory;
+        m = memory_string;
         memoryBytes = m.MemAvailableAllArrays;
     elseif isunix % better way?
         [~,txt] = system('free -m'); 

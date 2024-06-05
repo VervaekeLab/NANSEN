@@ -89,7 +89,7 @@ end
 function alternatives = getVariableNameAlternatives()
 %getVariableNameAlternatives Collect a list of imagestack variables
     
-variableModel = nansen.VariableModel();
+    variableModel = nansen.VariableModel();
 
     dataTypes = {variableModel.Data.DataType};
     isImageStack = contains(dataTypes, 'ImageStack');

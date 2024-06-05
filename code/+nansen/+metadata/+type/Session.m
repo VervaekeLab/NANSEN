@@ -630,7 +630,11 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         % Todo: Move to variable model
         function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
         %getFileAdapterFcn Get function handle for creating file adapter                
-            
+        
+            if strcmp(variableInfo.FileAdapter, 'Default')
+                fileAdapterFcn = []; return
+            end
+
             fileAdapterList = nansen.dataio.listFileAdapters();
 
             if ischar(variableInfo)
@@ -782,8 +786,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             [filePath, variableInfo] = obj.getDataFilePath(varName, '-w', varargin{:});
 
             obj.assertValidFileAdapter(variableInfo, 'save')
-            fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
-            
+            if ~strcmp( variableInfo.FileAdapter, 'Default' )
+                fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
+            end
+
             switch variableInfo.FileAdapter
                 case 'N/A'
                     error('Nansen:Session:SaveData', ...
@@ -951,7 +957,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 % Save filepath entry to filepath settings if it did
                 % not exist from before...
                 if strcmp(mode, 'write') % Save to model
-                    variableModel.insertItem(S)
+                    variableModel.insertItem(S);
                 end
             end
             

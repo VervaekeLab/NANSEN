@@ -52,7 +52,7 @@ function parameterStruct = getScanParameters(fileRef, parameterList)
         isMatch = contains(infoFieldsCell, varname);
         
         if ~any(isMatch)
-            warning('Parameter with name "%s" was not found');
+            warning('Parameter with name "%s" was not found', varname);
         elseif any(isMatch)
             matchedStr = infoFieldsCell{isMatch};
             

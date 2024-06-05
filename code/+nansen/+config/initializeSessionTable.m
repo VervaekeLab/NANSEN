@@ -23,17 +23,26 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
 
     % Todo: Check for duplicate session IDs
 
-
-    % Automatically match session folders
-    uiWaitbar.Message = 'Matching session folders from different data locations...';        
-    [sessionFolders, ~, sessionFoldersUnmatched] = matchSessionFolders(dataLocationModel, sessionFolders);
-
-    % Let user manually check and match unmatched session folders
-    if dataLocationModel.NumDataLocations > 1 && ~isempty(sessionFoldersUnmatched)
-        [sessionFolders] = nansen.manage.uiresolveUnmatchedSessions(...
-            sessionFolders, sessionFoldersUnmatched, hFigure);
-    end
+    if sum( numSessionFolders ~= 0 ) > 1
+        % Automatically match session folders
+        uiWaitbar.Message = 'Matching session folders from different data locations...';
+        [sessionFolders, ~, sessionFoldersUnmatched] = matchSessionFolders(dataLocationModel, sessionFolders);
     
+        % Let user manually check and match unmatched session folders
+        if dataLocationModel.NumDataLocations > 1 && ~isempty(sessionFoldersUnmatched)
+            [sessionFolders] = nansen.manage.uiresolveUnmatchedSessions(...
+                sessionFolders, sessionFoldersUnmatched, hFigure);
+        end
+    else
+        dataLocationNames = fieldnames( sessionFolders );
+        referenceName = dataLocationNames{ numSessionFolders ~= 0};
+        sessionFolders = struct(referenceName, sessionFolders.(referenceName));
+        for i = 1:numel(dataLocationNames)
+            if ~isfield(sessionFolders, dataLocationNames{i})
+                [sessionFolders(:).(dataLocationNames{i})] = deal('');
+            end
+        end
+    end
 
     uiWaitbar.Message = 'Creating session objects...';
     
