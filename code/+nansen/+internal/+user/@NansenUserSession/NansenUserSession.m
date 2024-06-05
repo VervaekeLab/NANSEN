@@ -184,7 +184,8 @@ classdef NansenUserSession < handle
 
             % Check that Addons are on path.
 
-            % Check that dependencies are installed 
+            % Check that dependencies are installed
+            nansen.internal.setup.checkWidgetsToolboxVersion()
         end
 
         function activatePreferenceListener(obj, preferenceName)
