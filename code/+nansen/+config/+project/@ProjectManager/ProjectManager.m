@@ -451,12 +451,19 @@ classdef ProjectManager < handle
             if ~isempty(nameOrIndex)
                 % Check that project with given name exists.
                 projectEntry = obj.getProject(nameOrIndex);
-                newProjectName = projectEntry.Name;
-    
+
+                if isempty(projectEntry)
+                    newProjectName = nameOrIndex;
+                else
+                    newProjectName = projectEntry.Name;
+                end
+
                 if isempty(projectEntry)
                     errMsg = sprintf('Project with name "%s" does not exist', newProjectName);
                     error('Nansen:ProjectNonExistent', errMsg) %#ok<SPERR>
                 end
+                newProjectName = projectEntry.Name;
+
             else
                 newProjectName = '';
             end

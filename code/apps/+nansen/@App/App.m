@@ -139,6 +139,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
 
+            if isempty( app.CurrentProject )
+                app.ProjectManager.uiSelectProject() 
+            end
+
             % Todo: This is project dependent, should be set on
             % setProject... Dependent???
             app.DataLocationModel = nansen.DataLocationModel();
