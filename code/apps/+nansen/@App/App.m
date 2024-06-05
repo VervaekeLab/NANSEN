@@ -4258,6 +4258,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
+        function quit()
+            openFigures = findall(0, 'Type', 'Figure');
+            if isempty(openFigures)
+                return
+            else
+                figMatch = contains({openFigures.Name}, 'Nansen |');
+                if any(figMatch)
+                    matchedFigure = openFigures(figMatch);
+                    hApp = getappdata(matchedFigure, 'AppInstance');
+                    hApp.onExit(matchedFigure)
+                end
+            end
+        end
+
         function switchJavaWarnings(newState)
         %switchJavaWarnings Turn warnings about java functionality on/off
             warning(newState, 'MATLAB:ui:javaframe:PropertyToBeRemoved')
