@@ -471,8 +471,12 @@ classdef ProjectManager < handle
             oldProjectName = obj.CurrentProject;
 
             if ~isempty(oldProjectName)
-                prevProject = obj.getProjectObject(oldProjectName);
-                obj.removeProjectFromSearchPath(prevProject.FolderPath)
+                try
+                    prevProject = obj.getProjectObject(oldProjectName);
+                    obj.removeProjectFromSearchPath(prevProject.FolderPath)
+                catch ME
+                    warning('Failed to clear project "%s". Reason:\n%s', oldProjectName, ME.message)
+                end
             end
 
             obj.CurrentProject = newProjectName;
