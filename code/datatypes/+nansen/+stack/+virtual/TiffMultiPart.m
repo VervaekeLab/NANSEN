@@ -379,7 +379,7 @@ methods % Implementation of abstract methods for readin/writing
              
         global waitbar
         useWaitbar = false;
-        if ~isempty(waitbar); useWaitbar = true; end
+        %if ~isempty(waitbar); useWaitbar = true; end
 
         % Determine size of requested data
         if strcmp(obj.ChannelMode, 'multisample')

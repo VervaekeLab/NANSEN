@@ -160,9 +160,7 @@ methods (Access = protected) % Implementation of abstract methods
             
             frIndMap = reshape(frIndMap, obj.NumChannels_, obj.NumPlanes_, obj.NumTimepoints_);
             obj.FrameIndexMap = squeeze(frIndMap);
-        
         end
-
     end
     
     function assignDataSizeOld(obj)
@@ -279,7 +277,6 @@ methods % Implementation of VirtualArray abstract methods
         end
         
         data = obj.readData(subs);
-        
     end
     
     function data = readDataTiff(obj, subs)
@@ -330,7 +327,6 @@ methods % Implementation of VirtualArray abstract methods
                 end
             end
         end
-        
         data = obj.cropData(data, subs);
     end
     
@@ -378,12 +374,18 @@ methods (Access = protected) % Todo: Scan image and subclass
 
             sIParams = getScanParameters(scanImageTag, paramNames);
             
+            numChannels = numel( sIParams.hChannels.channelSave );
+            numPlanes = obj.resolveNumPlanes(sIParams);
+
             if sIParams.hStackManager.framesPerSlice == 1
                 numFramesPerFile(i) = sIParams.hStackManager.actualNumVolumes;
             elseif sIParams.hStackManager.framesPerSlice == inf
                 % Try to get frames per file:
                 if i ~= numel(obj.tiffInfo)
-                    numFramesPerFile(i) = sIParams.hScan2D.logFramesPerFile;
+                    if numPlanes > 1
+                        error('ScanImageTiff has multiple planes, but loading this type of tiff stack is currently unsupported. Please report!')
+                    end
+                    numFramesPerFile(i) = sIParams.hScan2D.logFramesPerFile .* numChannels;
                 else % Last part:
                     numFramesPerFile(i) = ...
                         nansen.stack.utility.findNumTiffDirectories(...
@@ -396,18 +398,14 @@ methods (Access = protected) % Todo: Scan image and subclass
             if numFramesPerFile(i) == inf
                 numFramesPerFile(i) = nansen.stack.utility.findNumTiffDirectories(obj.tiffInfo(i), 1, 10000);
             end
-            
         end
         % Todo: Is this always true?? I.e are there files where numFrames
         % should be multiplied with number of channels, like multicolor
         % tiff stacks
         obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
 
-        numChannels = numel( sIParams.hChannels.channelSave );
-        numPlanes = obj.resolveNumPlanes(sIParams);
-        
+        % Todo: Is this general for multichannel / multiplane files?
         obj.NumTimepoints_ = sum(numFramesPerFile) ./ numChannels ./ numPlanes;
-        
     end
     
     function assignScanImageParametersToMetadata(obj, sIParams)

@@ -699,7 +699,7 @@ classdef messageBox < uim.mixin.isResizable
             if nargin < 4; action = 'set'; end
             
             
-            if isempty(obj.hWaitbar) % Create waitbar
+            if isempty(obj.hWaitbar) || ~isvalid(obj.hWaitbar) % Create waitbar
                 pixPos = getpixelposition(obj.hAxes);
                 obj.hWaitbar = uim.widget.Waitbar(obj.hAxes, ...
                     'Position', [0,1,pixPos(3),10], 'Visible', 'off');
