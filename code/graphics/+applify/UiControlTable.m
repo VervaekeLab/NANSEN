@@ -8,7 +8,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 %   Todo: 
 %     [v] many (most) sublasses have an advanced options view. Should make
 %         that behavior part of this superclass.
-
+%
 %     [ ] Toolbar should not be part of the table class...
 %     
 %     [ ] Get cell locations as array with one entry for each column of a
@@ -53,6 +53,10 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         Parent
         Position
     end
+
+    properties (Abstract, Constant, Access = protected)
+        DEFAULT_COMPONENT_HEIGHT
+    end
     
     properties (Access = protected, Hidden) % Internal layout properties
         RowLocations        % Y position of each table row
@@ -68,8 +72,9 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
     
     properties (Access = protected, Hidden) % Internal graphical properties
         % HeaderPanel % Not implemented
-        TablePanel 
-        
+        TablePanel matlab.ui.container.Panel
+        ToolbarPanel matlab.ui.container.Panel
+
         ColumnHeaderLabels cell  % matlab.ui.control.Label (this does not work because some of these migth be empty)
         ColumnLabelHelpButton  cell  % matlab.ui.control.Image (ditto)
         ColumnHeaderBorder
@@ -106,7 +111,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         updateTableRowBackground(rowNumber, isSelected)
         
         setTableScrolling(obj, state)
-
     end
     
     methods % Structors
@@ -121,7 +125,9 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             varargin = obj.checkForParentArgin(varargin);                       % Assigns Parent if it is given as the first input.
             varargin = obj.assignPropertyValue(varargin, 'Parent');             % Assigns Parent if it is given as a name-value combination.
             varargin = obj.assignPropertyValue(varargin, 'Position');           % Assigns Position if it is given as a name-value combination.
-            
+            varargin = obj.assignPropertyValue(varargin, 'TablePanel');         % Assigns TablePanel if it is given as a name-value combination.
+            varargin = obj.assignPropertyValue(varargin, 'ToolbarPanel');       % Assigns ToolbarPanel if it is given as a name-value combination.
+
             try % Call method that might be defined in subclasses.
                 obj.assignDefaultTablePropertyValues() %#ok<MCNPN>
             catch
@@ -159,7 +165,11 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             obj.createTable()
             
             if obj.ShowToolbar
-                hPanel = obj.Parent.Parent;
+                if isempty(obj.ToolbarPanel)
+                    hPanel = obj.Parent.Parent;
+                else
+                    hPanel = obj.ToolbarPanel;
+                end
                 obj.createToolbarComponents(hPanel)
             end
             
@@ -194,10 +204,16 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         function numRows = get.NumRows(obj)
             if isempty(obj.Data)
                 numRows = 0;
-            elseif isa(obj.Data, 'struct')
+            elseif isa(obj.Data, 'struct') || isobject(obj.Data)
                 numRows = numel(obj.Data);
             elseif isa(obj.Data, 'table')
                 numRows = size(obj.Data, 1);
+            else
+                try
+                    numRows = numel(obj.Data);
+                catch
+                    error('Could not determine number of rows')
+                end
             end
         end
         
@@ -205,6 +221,8 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             if ~isempty(obj.Data)
                 if isa(obj.Data, 'struct')
                     numColumns1 = numel(fieldnames(obj.Data));
+                elseif isobject(obj.Data)
+                    numColumns1 = numel(properties(obj.Data));
                 elseif isa(obj.Data, 'table')
                     numColumns1 = size(obj.Data, 2);
                 end
@@ -237,10 +255,12 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         %
         %   Require different indexing methods for structs and tables
         
-            if isa(obj.Data, 'struct')
+            if isa(obj.Data, 'struct') || isobject(obj.Data)
                 rowData = obj.Data(rowNum);
             elseif isa(obj.Data, 'table')
                 rowData = obj.Data(rowNum, :);
+            else
+                error('Unsupported datatype for table data ("%s")', class(obj.Data))
             end
         end
         
@@ -339,8 +359,8 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             obj.TablePanelPosition(4) = obj.TablePanelPosition(4) - ...
                 obj.ColumnHeaderPosition(4) - headerTableSpacing;
 
-            obj.TablePanelPosition(3) = sum(obj.ColumnWidths) + numel(obj.ColumnWidths)*obj.ColumnSpacing +20;
-            obj.ColumnHeaderPosition(3) = obj.TablePanelPosition(3)-20;
+            obj.TablePanelPosition(3) = sum(obj.ColumnWidths) + numel(obj.ColumnWidths)*obj.ColumnSpacing + 20;
+            obj.ColumnHeaderPosition(3) = obj.TablePanelPosition(3) - 20;
         end
         
         function deleteRowControls(obj)
@@ -453,12 +473,25 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         function createTablePanel(obj)
         %createTablePanel Create panel for adding rows to.
 
-            obj.TablePanel = uipanel(obj.Parent);
+            if isempty(obj.TablePanel)
+                obj.TablePanel = uipanel(obj.Parent);
+            end
             obj.TablePanel.Title = '';
             obj.TablePanel.Units = 'pixel';
             obj.TablePanel.Position = obj.TablePanelPosition;
             obj.TablePanel.BorderType = 'none';
             obj.TablePanel.BackgroundColor = obj.BackgroundColor;
+        end
+
+        function createToolbarPanel(obj)
+            if isempty(obj.ToolbarPanel)
+                obj.ToolbarPanel = uipanel(obj.ToolbarPanel);
+            end
+            obj.ToolbarPanel.Title = '';
+            obj.ToolbarPanel.Units = 'pixel';
+            obj.ToolbarPanel.Position = obj.getToolbarPosition;
+            obj.ToolbarPanel.BorderType = 'none';
+            obj.ToolbarPanel.BackgroundColor = obj.BackgroundColor;
         end
         
         function rowNumber = getComponentRowNumber(obj, h)
@@ -524,22 +557,22 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 
         end
         
-        function [x, y, w, h] = getCellPosition(obj, rowNum, columnNum)
+        function [x, y, w, h] = getCellPosition(obj, rowNum, columnNum, h)
         %getCellPosition Return position values for cell as variables
-        
+            
+            if nargin < 4
+                h = obj.DEFAULT_COMPONENT_HEIGHT;
+            end
+
             y = obj.RowLocations(rowNum);
             x = obj.ColumnLocations(columnNum);
             w = obj.ColumnWidths(columnNum);
-            h = 22;
             
-% % %       Todo: Implement centering already here. Missing: Need to
-% % %       make it work so that components can have different heights
+            % Update y position so that component is centered on row
+            rowExtent = obj.RowHeight + obj.RowSpacing;
 
-% %             % Update y position so that component is centered on row
-% %             rowExtent = obj.RowHeight + obj.RowSpacing;
-% %             
-% %             yOffset = ( rowExtent - h ) / 2;
-% %             y = y + yOffset;
+            yOffset = ( rowExtent - h ) / 2;
+            %y = y + yOffset;
         end
         
         function centerComponent(obj, hComponent, yPos)
@@ -787,7 +820,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             oldRowLocations = obj.RowLocations;
             
             % Remove row at given row number from data
-            if isa(obj.Data, 'struct')
+            if isa(obj.Data, 'struct') || isobject(obj.Data)
                 obj.Data(rowNumber) = [];
             elseif isa(obj.Data, 'table')
                 obj.Data(rowNumber, :) = [];

@@ -20,7 +20,7 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
 %       [ ] Come up with a nice way to add/remove columns. Ie dropbox
 %           papers table. Or add toolbar buttons above table and checkboxes
 %           for selecting  rows.
-%       [x] place tablepanel right underneatch the column header border,
+%       [x] place tablepanel right underneath the column header border,
 %           without spacing, but do something so that the interior area of
 %           the scrollpanel is a bit higher than the uppermost component.
 %       [ ] Debug why text extent of header labels change in some cases
@@ -36,6 +36,10 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
     properties (Access = protected, Hidden) % Internal graphical properties
         TableHeaderSpacer % An empty image placed in top of table panel to create some padding in the top of a scrollpanel.
         ImageGraphicPaths struct = struct()
+    end
+
+    properties (Constant, Access = protected)
+        DEFAULT_COMPONENT_HEIGHT = 22 % Default height of appdesigner components
     end
     
     
@@ -187,14 +191,14 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
         function setTableScrolling(obj, state)
             msg = 'Table scroll state must be ''on'' or ''off''';
             assert( any( strcmp(state, {'on', 'off'}) ), msg)
-            obj.TablePanel.Scrollable = state;
+            if ~isempty(obj.TablePanel)
+                obj.TablePanel.Scrollable = state;
+            end
             obj.Parent.Scrollable = state;
         end
 
 %         function createTableRow(obj, rowNum)
-%             
 %             % y = obj.RowLocations(rowNum);
-% 
 %         end
 
         function updateTableRowBackground(obj, rowNumber, isSelected)
