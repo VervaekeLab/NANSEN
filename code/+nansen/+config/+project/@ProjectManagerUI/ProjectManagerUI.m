@@ -30,11 +30,6 @@ classdef ProjectManagerUI < handle
         SelectedRowFgColor = [234,236,237]/255
     end
     
-    events
-        ProjectCreated
-        ProjectChanged
-    end
-
     methods
         
         function obj = ProjectManagerUI(hParent)
@@ -56,7 +51,6 @@ classdef ProjectManagerUI < handle
             obj.createUiControls()
             obj.createProjectTable()
         end
-        
     end
     
     methods % Public methods
@@ -94,6 +88,12 @@ classdef ProjectManagerUI < handle
                 return
             end
             
+            hFig = ancestor(obj.hParent, 'figure');
+            progressDlg = uiprogressdlg(hFig, ...
+                'Message', 'Importing project...', ...
+                'Title', 'Please wait!', ...
+                'Indeterminate', 'on');
+
             try
                 projectName = obj.ProjectManager.importProject(folderPath);
                 success = ~isempty( projectName );
@@ -102,8 +102,14 @@ classdef ProjectManagerUI < handle
                 throw(ME)
             end
 
+            % Todo: If there is no current project, make current project...
+            if isempty( obj.ProjectManager.CurrentProject )
+                obj.ProjectManager.changeProject(projectName);
+            end
             obj.updateProjectTableData()
-            
+                      
+            delete( progressDlg )
+
             if ~nargout
                 clear success projectName
             elseif nargout == 1
@@ -364,8 +370,6 @@ classdef ProjectManagerUI < handle
                 obj.UIControls.ProjectTable.Data(:, 1) = {false};
                 obj.UIControls.ProjectTable.Data(rowIdx, 1) = {true};                
             end
-
-            obj.notify('ProjectChanged', event.EventData)
         end
         
         function updateProjectDirectory(obj, rowIdx, newProjectDirectory)
@@ -562,8 +566,9 @@ classdef ProjectManagerUI < handle
                     obj.uialert(ME.message, title)
                     rethrow(ME)
                 end
-                
-                obj.notify('ProjectChanged', event.EventData)
+
+                % Should this be triggered by a listener on ProjectManager
+                % for ProjectCreatedEvent? Todo: set up that event.
                 obj.updateProjectTableData()
                 
                 % Disable controls for creating new project

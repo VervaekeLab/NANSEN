@@ -3779,10 +3779,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             hFigure.Name = 'Project Manager';
             uim.utility.layout.centerObjectInRectangle(hFigure, app.Figure)
             
-            hProjectManager = ProjectManagerUI(hFigure);
-            listener(hProjectManager, 'ProjectChanged', @app.onProjectChanged);
+            hProjectManagerUI = ProjectManagerUI(hFigure); %#ok<NASGU>
+            
+            listener(app.ProjectManager, 'CurrentProjectSet', @app.onProjectChanged);
             hFigure.WindowStyle = 'modal';
             uiwait(hFigure)
+            
             % Note: Change to addlistener if not using uiwait.
             app.updateProjectList()
         end
