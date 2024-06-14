@@ -47,14 +47,21 @@ function choices = getDffMethodChoices()
     
     if isempty(fileNames)
 
-        S = matlab.internal.language.introspective.resolveName('nansen.twophoton.roisignals.process.dff');
-        dirPath = S.nameLocation;
+        dirPath = getPackagePath('nansen.twophoton.roisignals.process.dff');
 
         L = dir(fullfile(dirPath, '*.m'));
         fileNames = {L.name};
         fileNames = strrep(fileNames, '.m', '');
-
     end
     
     choices = fileNames; 
+end
+
+function pathName = getPackagePath(packageName)
+    s = what(strrep(packageName, '.', filesep));
+    if isempty(s)
+        error('No path was found for package "%s"', packageName)
+    else
+        pathName = s.path;
+    end
 end
