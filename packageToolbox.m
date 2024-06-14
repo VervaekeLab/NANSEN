@@ -63,5 +63,6 @@ function packageToolbox(versionNumber)
     
     versionNumber = strrep(opts.ToolboxVersion, '.', '_');
     opts.OutputFile = fullfile(rootFolder, "releases", sprintf("NANSEN_v%s", versionNumber));
+    if ~isfolder( fullfile(rootFolder, "releases") ); mkdir(fullfile(rootFolder, "releases")); end
     matlab.addons.toolbox.packageToolbox(opts);
 end
