@@ -185,8 +185,12 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                 obj.jSearchField.setName(newValue)
             end
         end
-        function value = get.Value(obj)                        
-            value = char( obj.jSearchField.getText() );
+        function value = get.Value(obj)
+            if isvalid(obj)
+                value = char( obj.jSearchField.getText() );
+            else
+                value = [];
+            end
         end
         
         
