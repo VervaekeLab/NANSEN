@@ -30,10 +30,13 @@ classdef tabButtonLight < uim.style.buttonScheme
     
     methods (Static)
         function rgb = getFocusColor
-            color = javax.swing.UIManager.get('Focus.color');
-            rgb = cellfun(@(name) get(color, name), {'Red', 'Green', 'Blue'});
-            rgb = rgb/255;
+            try
+                color = javax.swing.UIManager.get('Focus.color');
+                rgb = cellfun(@(name) get(color, name), {'Red', 'Green', 'Blue'});
+                rgb = rgb/255;
+            catch
+                rgb = [0.8980, 0.3529, 0.0353];
+            end
         end
     end
-    
 end
