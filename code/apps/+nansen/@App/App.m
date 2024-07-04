@@ -737,10 +737,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Create the top level menu
             m = uimenu(app.Figure, 'Text', 'Help', 'Tag', 'Help');
 
+            helpDoc = fullfile(nansen.rootpath, 'code', 'resources', 'docs', 'nansen_app', 'keyboard_shortcuts.html');
             mitem = uimenu(m, 'Text','Show Keyboard Shortcuts');
-            %mitem.MenuSelectedFcn = @(src, event) app.shortKeyboardHelp();
+            mitem.MenuSelectedFcn = @(src, event) applify.SimpleHelp(helpDoc);
             
             mitem = uimenu(m, 'Text','Reactivate All Popup Tips');
+            mitem.Enable = 'off';
             %mitem.MenuSelectedFcn = @(src, event) nansen.internal.reactivatePopupTips;
 
             mitem = uimenu(m, 'Text','Go to NANSEN Wiki Page', 'Separator', 'on');
