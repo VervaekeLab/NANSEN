@@ -147,7 +147,20 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
     end
     
     methods %(Access = ?nansen.stack.ImageStackProcessor)
-        
+        function setChannels(obj, channelInd)
+            obj.assertIteratorUninitialized()
+            isValid = all( channelInd >= 1 & channelInd <= obj.NumChannels );
+            assert(isValid, 'Channel indices are out of range' )
+            obj.IterationValuesC = channelInd;
+        end
+
+        function setPlanes(obj, planeInd)
+            obj.assertIteratorUninitialized()
+            isValid = all( planeInd >= 1 & planeInd <= obj.NumPlane );
+            assert(isValid, 'Plane indices are out of range' )
+            obj.IterationValuesZ = planeInd;
+        end
+
         function [iZ, iC] = next(obj)
         %next Move the iterator to the next iteration state
         %
@@ -228,7 +241,6 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
         end
         
     end
-
     
     methods (Static, Access = private)
         

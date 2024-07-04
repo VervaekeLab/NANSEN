@@ -162,8 +162,12 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             obj.startTimer()
         end
         
-        function closeTaskList(obj)
+        function closeTaskList(obj, forceClose)
         %closeTaskList Stop tasks and save the current task list
+        
+            if nargin < 2 || isempty(forceClose)
+                forceClose = false;
+            end
 
             obj.stopTimer()
 
@@ -176,13 +180,16 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             end
 
             % Save task list
-            obj.saveTaskLists()
-
-            obj.TaskListFilepath = '';
-
-            obj.TaskQueue = struct.empty;
-            obj.TaskHistory = struct.empty;
-            obj.notify('TableUpdated', event.EventData)
+            try
+                obj.saveTaskLists()
+                obj.resetTaskList()
+            catch ME
+                if forceClose
+                    obj.resetTaskList
+                else
+                    rethrow(ME)
+                end
+            end
         end
 
         function tf = promptQuit(obj, titleStr, promptStr)
@@ -410,6 +417,15 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
         end
         
+        function resetTaskList(obj)
+            obj.TaskListFilepath = '';
+            
+            obj.TaskQueue = struct.empty;
+            obj.TaskHistory = struct.empty;
+
+            obj.notify('TableUpdated', event.EventData)
+        end
+
         function stopAllTasks(obj)
             
         end

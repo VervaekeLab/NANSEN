@@ -965,7 +965,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             N = min([N, obj.NumTimepoints]);
         end
         
-        function [IND, numChunks] = getChunkedFrameIndices(obj, numFramesPerChunk, chunkInd, dim)
+        function [IND, numChunks] = getChunkedFrameIndices(obj, numFramesPerChunk, chunkInd, dim, firstIdx, lastIdx)
         %getChunkedFrameIndices Calculate frame indices for each subpart
             
             if nargin < 2 || isempty(numFramesPerChunk)
@@ -979,17 +979,27 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if nargin < 4 || isempty(dim)
                 dim = 'T';
             end
+
+            if nargin < 5 || isempty(firstIdx)
+                firstIdx = 1;
+            end
+
+            if nargin < 6 || isempty(lastIdx)
+                lastIdx = inf;
+            end
             
             assert(any(strcmp(dim, {'C', 'Z', 'T'})), 'dim must be ''C'', ''Z'', or ''T''')
             
-            numFramesDim = obj.getDimensionLength(dim);
+            lastIdx = min([obj.getDimensionLength(dim), lastIdx]);
+
+            numSlices = (lastIdx - firstIdx) + 1;
 
             % Make sure chunk length does not exceed number of frames.
-            numFramesPerChunk = min([numFramesPerChunk, numFramesDim]);
+            numFramesPerChunk = min([numFramesPerChunk, numSlices]);
 
             if isempty(numFramesPerChunk)
                 % Is it possible that this is empty?
-                error('Something unexpected has happened. Image stack has %d frames along dimension %s', numFramesDim, dim)
+                error('Something unexpected has happened. Image stack has %d frames along dimension %s', lastIdx, dim)
             end
             
             % If there will be more than one chunk... Adjust so that last
@@ -1002,9 +1012,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 % % %             end
 
             % Determine first and last frame index for each chunk
-            firstFrames = 1:numFramesPerChunk:numFramesDim;
+            firstFrames = firstIdx:numFramesPerChunk:lastIdx;
             lastFrames = firstFrames + numFramesPerChunk - 1;
-            lastFrames(end) = numFramesDim;
+            lastFrames(end) = lastIdx;
             
             % Create cell array of frame indices for each block/part.
             numChunks = numel(firstFrames);

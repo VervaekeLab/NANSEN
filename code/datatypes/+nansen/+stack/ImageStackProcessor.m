@@ -451,7 +451,11 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             assert(~isempty(obj.SourceStack), 'SourceStack is not assigned')
             
             % Set name for export in options
-            obj.Options.Export.FileName = obj.SourceStack.Name;
+            if isfield(obj.Options, 'Export')
+                if isempty(obj.Options.Export.FileName)
+                    obj.Options.Export.FileName = obj.SourceStack.Name;
+                end
+            end
             
             obj.printInitializationMessage()
             
@@ -798,7 +802,13 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             N = obj.NumFramesPerPart;
 
             % Get cell array of frame indices per part (IND) and numParts
-            [IND, numParts] = obj.SourceStack.getChunkedFrameIndices(N);
+            if ~isempty(obj.Options.Run.frameInterval)
+                firstIdx = obj.Options.Run.frameInterval(1);
+                lastIdx = obj.Options.Run.frameInterval(2);
+                [IND, numParts] = obj.SourceStack.getChunkedFrameIndices(N, [], 'T', firstIdx, lastIdx);
+            else
+                [IND, numParts] = obj.SourceStack.getChunkedFrameIndices(N);
+            end
 
             % Assign to property values
             obj.FrameIndPerPart = IND;

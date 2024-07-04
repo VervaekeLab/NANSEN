@@ -259,9 +259,10 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             obj.isConstructed = true;
             
-            delete(obj.FigureInteractionListeners.WindowMouseMotion)
+            if ~isempty(obj.FigureInteractionListeners)
+                delete(obj.FigureInteractionListeners.WindowMouseMotion)
+            end
             obj.Figure.WindowButtonMotionFcn = @obj.onMouseMotion;
-            
             
             % Initialize the pointer interface.
             pif = uim.interface.pointerManager(obj.Figure, obj.ax, {'zoomIn', 'zoomOut', 'pan'});

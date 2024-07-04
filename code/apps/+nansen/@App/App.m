@@ -139,6 +139,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
 
+            if isempty( app.CurrentProject )
+                app.ProjectManager.uiSelectProject() 
+            end
+
             % Todo: This is project dependent, should be set on
             % setProject... Dependent???
             app.DataLocationModel = nansen.DataLocationModel();
@@ -3770,10 +3774,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             hFigure.Name = 'Project Manager';
             uim.utility.layout.centerObjectInRectangle(hFigure, app.Figure)
             
-            hProjectManager = ProjectManagerUI(hFigure);
-            listener(hProjectManager, 'ProjectChanged', @app.onProjectChanged);
+            hProjectManagerUI = ProjectManagerUI(hFigure); %#ok<NASGU>
+            
+            listener(app.ProjectManager, 'CurrentProjectSet', @app.onProjectChanged);
             hFigure.WindowStyle = 'modal';
             uiwait(hFigure)
+            
             % Note: Change to addlistener if not using uiwait.
             app.updateProjectList()
         end
@@ -4245,6 +4251,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     tf = true;
                 else
                     tf = false;
+                end
+            end
+        end
+
+        function quit()
+            openFigures = findall(0, 'Type', 'Figure');
+            if isempty(openFigures)
+                return
+            else
+                figMatch = contains({openFigures.Name}, 'Nansen |');
+                if any(figMatch)
+                    matchedFigure = openFigures(figMatch);
+                    hApp = getappdata(matchedFigure, 'AppInstance');
+                    hApp.onExit(matchedFigure)
                 end
             end
         end

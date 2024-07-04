@@ -104,7 +104,8 @@ function backupFolderPath = backupProjectFolder(projectFolderPath)
         copyfile(projectFolderPath, backupFolderPath);
         rmdir(projectFolderPath, 's')
     catch
-        error('Something went wrong during backup.')
+        [~, projectName] = fileparts(projectFolderPath);
+        error('Something went wrong during backup of project "%s".', projectName)
     end
 
 end

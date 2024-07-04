@@ -9,6 +9,7 @@ classdef gobjectTransporter < uim.handle
     properties
         MouseOverEffect matlab.lang.OnOffSwitchState = 'on'
         TransportFcn = []
+        StopDragFcn = []
     end
     
     properties (Access = protected)
@@ -26,7 +27,6 @@ classdef gobjectTransporter < uim.handle
     end
 
     methods
-        
         function obj = gobjectTransporter(hAxes)
             obj.hFigure = ancestor(hAxes, 'figure');
             obj.hAxes = hAxes;
@@ -42,7 +42,6 @@ classdef gobjectTransporter < uim.handle
             end
             
             delete(obj)
-            
         end
 
         function startDrag(obj, src, event)
@@ -64,7 +63,6 @@ classdef gobjectTransporter < uim.handle
             obj.previousMousePointAxes = [x, y];
             
             obj.currentHandle.FaceAlpha = 0.6;
-
         end
 
         function moveObject(obj)
@@ -80,7 +78,6 @@ classdef gobjectTransporter < uim.handle
                 obj.TransportFcn(h, shift)
 
             else
-
                 % Selected object. Force move if shift-click
                 switch class(h)
                     case 'matlab.graphics.primitive.Text'
@@ -92,11 +89,9 @@ classdef gobjectTransporter < uim.handle
                         h.XData = h.XData + shift(1);
                         h.YData = h.YData + shift(2);
                 end
-
             end
 
             obj.previousMousePointAxes = newMousePointAx;
-
         end
 
         function stopDrag(obj)
@@ -111,6 +106,10 @@ classdef gobjectTransporter < uim.handle
                 hFig = obj.hFigure;
                 hFig.Pointer = 'arrow';
             end
+
+            if ~isempty(obj.StopDragFcn)
+                obj.StopDragFcn()
+            end
             
             obj.currentHandle.FaceAlpha = 0.4;
             obj.currentHandle = [];
@@ -122,7 +121,6 @@ classdef gobjectTransporter < uim.handle
             delete(obj.WindowMouseReleaseListener)
             obj.WindowMouseMotionListener = [];
             obj.WindowMouseReleaseListener = [];
-
         end
 
         function setPointerBehavior(obj, h)
@@ -167,12 +165,7 @@ classdef gobjectTransporter < uim.handle
             
             throw = ismember(obj.mouseOnHandle, hSource);
             obj.mouseOnHandle(throw) = [];
-
-            
         end
-        
-        
     end
-    
 end
         

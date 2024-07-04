@@ -21,7 +21,10 @@ function pathList = getToolboxDependencyList(toolboxInfo)
         toolboxInfo.FolderExcludeTokens = {};
     end
     
-    nansenPathList = nansen.localpath('subfolder_list');
+    initPath = nansen.toolboxdir();
+    % Get all subfolders in the nansen toolbox directory.
+    folderPath = strsplit(genpath(initPath), pathsep);
+    nansenPathList = folderPath(1:end-1);
     
     % Find local toolbox location
     S = which(toolboxInfo.FunctionName);

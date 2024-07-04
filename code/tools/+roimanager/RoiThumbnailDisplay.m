@@ -33,7 +33,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
     end
     
     properties
-        ActiveChannel
+        ActiveChannel = 1
         ImageStack  % Handle of an ImageStack object. Necessary for creating roi images.
         PointerManager
     end

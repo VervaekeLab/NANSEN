@@ -81,6 +81,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             if roiGroup.roiCount > 0
                 obj.updateRoiLabels()
             end
+
+            obj.UITable.TableFontSize = 9;
             
             obj.WindowMousePressListener = listener(obj.Figure, ...
                 'WindowMousePress', @obj.onMousePressedInFigure);

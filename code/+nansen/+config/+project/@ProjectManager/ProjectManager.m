@@ -58,6 +58,8 @@ classdef ProjectManager < handle
     end
 
     events (ListenAccess = ?nansen.internal.user.NansenUserSession)
+        % Todo: Document why this is needed in addition to
+        % CurrentProjectSet event.
         CurrentProjectChanged
     end
     
@@ -129,11 +131,11 @@ classdef ProjectManager < handle
             pStruct(1).Path = pathStr;
         end
         
-        function createProject(obj, name, description, projectRootDir, makeCurrentProject)
+        function createProject(obj, name, description, projectRootDir, setAsCurrentProject)
         %createProject Method for creating a new project entry
         
-            if nargin < 5 || isempty(makeCurrentProject)
-                makeCurrentProject = true; 
+            if nargin < 5 || isempty(setAsCurrentProject)
+                setAsCurrentProject = true; 
             end
 
             % Add project to project manager.
@@ -160,7 +162,7 @@ classdef ProjectManager < handle
             obj.addProject(name, description, projectRootDir);
 
             % Set as current project
-            if makeCurrentProject
+            if setAsCurrentProject
                 obj.changeProject(name)
             end
         end
@@ -333,7 +335,7 @@ classdef ProjectManager < handle
             obj.saveCatalog()
         end
        
-        function removeProject(obj, name, deleteProjectFolder)
+        function removeProject(obj, name, deleteProjectFolder, allowRemoveCurrentProject)
         %removeProject Remove project from project manager.
         %
         %   Inputs:
@@ -353,21 +355,29 @@ classdef ProjectManager < handle
             if nargin < 3
                 deleteProjectFolder = false;
             end
+
+            if nargin < 4
+                allowRemoveCurrentProject = false;
+            end
             
             IND = obj.getProjectIndex(name);
             projectName = obj.Catalog(IND).Name;
 
             assert( sum(IND)>=1, 'Multiple projects were matched. Aborting...')
             
-            % Todo: what if project is the current project? Abort!
+            % Check if project is current project and take appropriate
+            % action
             if strcmp(projectName, obj.CurrentProject)
-                message = sprintf('Can not remove "%s" because it is the current project', projectName);
-                errorID = 'NANSEN:Project:RemoveCurrentProjectDenied';
-                throw(MException(errorID, message))
+                if allowRemoveCurrentProject
+                    obj.changeProject('')
+                else
+                    message = sprintf('Can not remove "%s" because it is the current project', projectName);
+                    errorID = 'NANSEN:Project:RemoveCurrentProjectDenied';
+                    throw(MException(errorID, message))
+                end
             end
 
             if any(IND)
-                
                 thisProject = obj.Catalog(IND);
                 
                 if deleteProjectFolder
@@ -451,12 +461,19 @@ classdef ProjectManager < handle
             if ~isempty(nameOrIndex)
                 % Check that project with given name exists.
                 projectEntry = obj.getProject(nameOrIndex);
-                newProjectName = projectEntry.Name;
-    
+
+                if isempty(projectEntry)
+                    newProjectName = nameOrIndex;
+                else
+                    newProjectName = projectEntry.Name;
+                end
+
                 if isempty(projectEntry)
                     errMsg = sprintf('Project with name "%s" does not exist', newProjectName);
                     error('Nansen:ProjectNonExistent', errMsg) %#ok<SPERR>
                 end
+                newProjectName = projectEntry.Name;
+
             else
                 newProjectName = '';
             end
@@ -464,8 +481,12 @@ classdef ProjectManager < handle
             oldProjectName = obj.CurrentProject;
 
             if ~isempty(oldProjectName)
-                prevProject = obj.getProjectObject(oldProjectName);
-                obj.removeProjectFromSearchPath(prevProject.FolderPath)
+                try
+                    prevProject = obj.getProjectObject(oldProjectName);
+                    obj.removeProjectFromSearchPath(prevProject.FolderPath)
+                catch ME
+                    warning('Failed to clear project "%s". Reason:\n%s', oldProjectName, ME.message)
+                end
             end
 
             obj.CurrentProject = newProjectName;
@@ -484,9 +505,9 @@ classdef ProjectManager < handle
             end
             
             eventData = CurrentProjectChangedEventData(oldProjectName, newProjectName);
-            obj.notify('CurrentProjectChanged', eventData)
             obj.notify('CurrentProjectSet', eventData)
-            
+            obj.notify('CurrentProjectChanged', eventData)
+
             msg = sprintf('Current NANSEN project was changed to "%s"\n', newProjectName);
             if ~nargout
                 fprintf(msg); clear msg
@@ -598,7 +619,6 @@ classdef ProjectManager < handle
             eventData = CurrentProjectChangedEventData(oldProjectName, newProjectName);
             obj.notify('CurrentProjectSet', eventData)
         end
-        
     end
 
     methods (Hidden)

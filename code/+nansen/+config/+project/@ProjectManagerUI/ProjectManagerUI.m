@@ -1,5 +1,9 @@
 classdef ProjectManagerUI < handle
-
+%ProjectManagerUI - UI interface for project manager.
+%
+%   This class manages the graphical user interface for the project
+%   manager. It creates ui controls, validates input data and responds to
+%   user interactions.
     
     % Todo:
     %   [ ] Flag for whether to create tabs or not (should not create on setup?)
@@ -23,19 +27,14 @@ classdef ProjectManagerUI < handle
         UILabels struct = struct
     end
     
-    properties (Access = protected)
+    properties (Access = protected) % Internal configurations
         ActiveRow = []
         SelectedRow = []
         SelectedRowBgColor = [74,86,99]/255
         SelectedRowFgColor = [234,236,237]/255
     end
     
-    events
-        ProjectCreated
-        ProjectChanged
-    end
-
-    methods
+    methods % Constructor
         
         function obj = ProjectManagerUI(hParent)
             
@@ -56,7 +55,6 @@ classdef ProjectManagerUI < handle
             obj.createUiControls()
             obj.createProjectTable()
         end
-        
     end
     
     methods % Public methods
@@ -94,6 +92,12 @@ classdef ProjectManagerUI < handle
                 return
             end
             
+            hFig = ancestor(obj.hParent, 'figure');
+            progressDlg = uiprogressdlg(hFig, ...
+                'Message', 'Importing project...', ...
+                'Title', 'Please wait!', ...
+                'Indeterminate', 'on');
+
             try
                 projectName = obj.ProjectManager.importProject(folderPath);
                 success = ~isempty( projectName );
@@ -102,8 +106,14 @@ classdef ProjectManagerUI < handle
                 throw(ME)
             end
 
+            % Todo: If there is no current project, make current project...
+            if isempty( obj.ProjectManager.CurrentProject )
+                obj.ProjectManager.changeProject(projectName);
+            end
             obj.updateProjectTableData()
-            
+                      
+            delete( progressDlg )
+
             if ~nargout
                 clear success projectName
             elseif nargout == 1
@@ -112,11 +122,70 @@ classdef ProjectManagerUI < handle
         end
         
         function createProject(obj)
-            % Trigger the button down callback function...
-            obj.CreateNewProjectButtonValueChanged()
+        % createProject - Validate entered information and create new project    
+           
+        % Question: Does this method have to be public?
+
+            projectDescription = obj.UIControls.ProjectName.Value;
+            projectShortName = obj.UIControls.ProjectShortNameInput.Value;
+            projectFolderPath = obj.UIControls.ProjectPathInput.Value;
             
-            % Todo: This should be flipped around, i.e 
-            % CreateNewProjectButtonValueChanged should call this method...
+            isValidProjectName = isvarname(projectShortName);
+            
+            if ~isValidProjectName
+                if isempty(projectShortName)
+                    message = 'Please enter a name for the project';
+                    title = 'Project Name Missing';
+                else
+                    message = 'Project short name can only consist of letters, numbers and underscores';
+                    title = 'Invalid Project Name';
+                end
+                
+                obj.uialert(message, title)
+                return
+            end
+    
+% %             if isempty(projectLongName)
+% %                 message = 'Please enter a name for project';
+% %                 title = 'Project Name Missing';
+% %                 
+% %                 % app.displayMessage(message, true)
+% %                 obj.uialert(message, title)
+% %                 return
+% %                 
+% %             end
+
+            if isempty(projectFolderPath)
+                message = 'Please enter a directory for saving project metadata';
+                title = 'Project Path Missing';
+                
+                obj.uialert(message, title)
+                return
+            end
+
+            if strcmp(obj.UIControls.CreateNewProjectButton.Text, 'Create New Project')
+                
+                % Todo: Check that project does not exist...
+                                
+                % Create new project
+                args = {projectShortName, projectDescription, projectFolderPath};
+                
+                try
+                    obj.ProjectManager.createProject(args{:})
+                catch ME
+                    title = 'Project Creation Failed';
+                    obj.uialert(ME.message, title)
+                    rethrow(ME)
+                end
+
+                % Should this be triggered by a listener on ProjectManager
+                % for ProjectCreatedEvent? Todo: set up that event.
+                obj.updateProjectTableData()
+                
+                % Disable controls for creating new project
+                % Todo: only do this during the initial setup
+                obj.disableCreateNewProjectControls()
+            end
         end
         
         function uialert(obj, message, title, alertType)
@@ -132,7 +201,6 @@ classdef ProjectManagerUI < handle
             hFig = ancestor(obj.hParent, 'figure');
             uialert(hFig, message, title, 'Icon', alertType)
         end
-        
     end
     
     methods (Access = protected) % Component creation
@@ -341,14 +409,12 @@ classdef ProjectManagerUI < handle
             obj.UIControls.CreateNewProjectButton.BackgroundColor = [0.47,0.87,0.19];
             obj.UIControls.CreateNewProjectButton.Enable = 'off';
         end
-        
     end
     
-    methods (Access = protected)
-    % Project context menu action handlers
+    methods (Access = protected) % Project context menu action handlers
         
         function changeProject(obj, rowIdx)
-            
+        % changeProject - Changes the current project
             projectName = obj.getNameFromRowIndex(rowIdx);
             
             msg = obj.ProjectManager.changeProject(projectName);
@@ -364,8 +430,6 @@ classdef ProjectManagerUI < handle
                 obj.UIControls.ProjectTable.Data(:, 1) = {false};
                 obj.UIControls.ProjectTable.Data(rowIdx, 1) = {true};                
             end
-
-            obj.notify('ProjectChanged', event.EventData)
         end
         
         function updateProjectDirectory(obj, rowIdx, newProjectDirectory)
@@ -377,7 +441,10 @@ classdef ProjectManagerUI < handle
         end
         
         function deleteProject(obj, rowIdx)
-            
+        % deleteProject - Delete project from project manager and project table
+        %
+        % NB: This removes the project and deletes the project files from disk.
+
             projectName = obj.getNameFromRowIndex(rowIdx);
             
             % Display message
@@ -399,7 +466,11 @@ classdef ProjectManagerUI < handle
         end
         
         function removeProject(obj, rowIdx, deleteFolder)
-            
+        % removeProject - Remove project from project manager and project table
+        %
+        %   NB: This does not delete the project files from disk unless
+        %   deleteFolder is set to true.
+
             if nargin < 3
                 deleteFolder = false;
             end
@@ -418,6 +489,7 @@ classdef ProjectManagerUI < handle
         end
         
         function openProjectFolder(obj, rowIdx)
+        % Open project folder in operating system i.e Finder or Explorer
             folderPath = obj.UIControls.ProjectTable.Data{rowIdx, 4};
             utility.system.openFolder(folderPath{1})
         end
@@ -478,7 +550,6 @@ classdef ProjectManagerUI < handle
        
         % Button pushed function: ChangeProjectFolderButton
         function ChangeProjectFolderButtonPushed(obj, ~, ~)
-        %    
         %   Lets user select a folder to save project files to.
         
             import nansen.config.project.uisetProjectFolder
@@ -509,67 +580,7 @@ classdef ProjectManagerUI < handle
         
         % Button pushed function: CreateNewProjectButton
         function CreateNewProjectButtonValueChanged(obj, ~, ~)
-            
-            projectDescription = obj.UIControls.ProjectName.Value;
-            projectShortName = obj.UIControls.ProjectShortNameInput.Value;
-            projectFolderPath = obj.UIControls.ProjectPathInput.Value;
-            
-            isValidProjectName = isvarname(projectShortName);
-            
-            if ~isValidProjectName
-                if isempty(projectShortName)
-                    message = 'Please enter a name for the project';
-                    title = 'Project Name Missing';
-
-                else
-                    message = 'Project short name can only consist of letters, numbers and underscores';
-                    title = 'Invalid Project Name';
-                end
-                
-                obj.uialert(message, title)
-                return
-            end
-    
-% %             if isempty(projectLongName)
-% %                 message = 'Please enter a name for project';
-% %                 title = 'Project Name Missing';
-% %                 
-% %                 % app.displayMessage(message, true)
-% %                 obj.uialert(message, title)
-% %                 return
-% %                 
-% %             end
-
-            if isempty(projectFolderPath)
-                message = 'Please enter a directory for saving project metadata';
-                title = 'Project Path Missing';
-                
-                obj.uialert(message, title)
-                return
-            end
-
-            if strcmp(obj.UIControls.CreateNewProjectButton.Text, 'Create New Project')
-                
-                % Todo: Check that project does not exist...
-                                
-                % Create new project
-                args = {projectShortName, projectDescription, projectFolderPath};
-                
-                try
-                    obj.ProjectManager.createProject(args{:})
-                catch ME
-                    title = 'Project Creation Failed';
-                    obj.uialert(ME.message, title)
-                    rethrow(ME)
-                end
-                
-                obj.notify('ProjectChanged', event.EventData)
-                obj.updateProjectTableData()
-                
-                % Disable controls for creating new project
-                % Todo: only do this during the initial setup
-                obj.disableCreateNewProjectControls()
-            end
+            obj.createProject()
         end
         
         % Value changed function: ProjectLabelEditField
@@ -608,6 +619,7 @@ classdef ProjectManagerUI < handle
         function ProjectLabelEditFieldValueChanging(obj, ~, event)
             changingValue = event.Value;
             
+            % Dynamically update the project folder path
             obj.UIControls.ProjectPathInput.Value = fullfile(obj.ProjectRootFolderPath, changingValue);
             obj.UIControls.ProjectPathInput.Tooltip = obj.UIControls.ProjectPathInput.Value;
         end
@@ -616,7 +628,6 @@ classdef ProjectManagerUI < handle
         function TabGroupSelectionChanged(obj, ~, event)
             
             switch event.NewValue.Title
-                
                 case 'Manage Projects'
                     obj.setProjectTablePosition()
                     if isempty(obj.ProjectManager.Catalog)
@@ -643,7 +654,7 @@ classdef ProjectManagerUI < handle
             end
         
             obj.SelectedRow = displayIndices(1);
-            try
+            try % Does not work for older MATLAB version
                 obj.setRowStyle('Selected Row', displayIndices(1))
             end
         end
@@ -700,7 +711,6 @@ classdef ProjectManagerUI < handle
 
             end
         end
-        
     end
 
     methods (Access = private)
@@ -712,6 +722,5 @@ classdef ProjectManagerUI < handle
             projectFolder = getpref('NansenSetup', 'DefaultProjectPath', defaultProjectFolder);
             obj.ProjectRootFolderPath = projectFolder;
         end
-        
     end
 end

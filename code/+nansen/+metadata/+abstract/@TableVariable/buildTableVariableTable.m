@@ -88,7 +88,9 @@ function attributeTable = buildTableVariableTable(fileList)
             fcnResult = feval(thisFcnName);
         catch
             % Not a valid table variable
+            warningState = warning('off', 'backtrace');
             warning('File %s is located in a table variable package, but does not appear to be a valid table variable', thisFilePath)
+            warning(warningState);
             continue
         end
 

@@ -1248,9 +1248,9 @@ classdef roiMap < roimanager.roiDisplay
                     % continue
                 otherwise
                     if nargout == 1
-                        newRoi = obj.autodetectRoi(obj, x, y, r, autodetectionMode, doReplace);
+                        newRoi = obj.autodetectRoi(x, y, r, autodetectionMode, doReplace);
                     else
-                        obj.autodetectRoi(obj, x, y, r, autodetectionMode, doReplace);
+                        obj.autodetectRoi(x, y, r, autodetectionMode, doReplace);
                     end
                     return
             end

@@ -54,11 +54,9 @@ import nansen.session.SessionMethod
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
 % Implementation of the method : Add you code here:
         
-    filePath = sessionObj.getDataFilePath(params.Alternative);
-    
-    if ~params.UseVirtualStack
-        imageStack = nansen.stack.ImageStack(filePath);
-        
+    imageStack = sessionObj.loadData(params.Alternative);
+
+    if ~params.UseVirtualStack        
         if params.LastImage > imageStack.NumTimepoints
             frameIndices = params.FirstImage:imageStack.NumTimepoints;
         else
@@ -67,13 +65,11 @@ import nansen.session.SessionMethod
         
         imData = imageStack.getFrameSet(frameIndices);
         imviewer(imData)
-        
     else
-        imviewer(filePath)
+        
+        imviewer(imageStack)
     end
-
 end
-
 
 function S = getDefaultParameters()
 %getDefaultParameters Define the default parameters for this function
@@ -82,20 +78,17 @@ function S = getDefaultParameters()
     S.UseVirtualStack = true;
     S.FirstImage = 1;
     S.LastImage = inf;
-    
 end
-
 
 function alternatives = getVariableNameAlternatives()
 %getVariableNameAlternatives Collect a list of imagestack variables
     
-variableModel = nansen.VariableModel();
+    variableModel = nansen.VariableModel();
 
     dataTypes = {variableModel.Data.DataType};
     isImageStack = contains(dataTypes, 'ImageStack');
     varNames = {variableModel.Data(isImageStack).VariableName};
     if isempty(varNames); varNames = {'N/A'}; end
-    
     
     alternatives = varNames;
 end

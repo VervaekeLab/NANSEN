@@ -52,7 +52,9 @@ function parameterStruct = getScanParameters(fileRef, parameterList)
         isMatch = contains(infoFieldsCell, varname);
         
         if ~any(isMatch)
-            warning('Parameter with name "%s" was not found');
+            warnStruct = warning('off', 'backtrace');
+            warning('Parameter with name "%s" was not found in ScanImage metadata', varname);
+            warning(warnStruct) % Reset
         elseif any(isMatch)
             matchedStr = infoFieldsCell{isMatch};
             

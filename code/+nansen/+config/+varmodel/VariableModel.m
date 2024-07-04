@@ -389,6 +389,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     methods % Override superclass methods
         function newItem = insertItem(obj, newItem)
             import nansen.config.varmodel.event.VariableAddedEventData
+            newItem = obj.updateVariableDataType(newItem);
             newItem = insertItem@utility.data.StorableCatalog(obj, newItem);
             
             if obj.DoNotify
@@ -495,7 +496,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             evtData = event.EventData;
             obj.notify('DataLocationNameChanged', evtData);
         end
-        
     end
     
     methods (Access = ?nansen.config.varmodel.VariableModelUI)
@@ -530,6 +530,21 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             end
         end
         
+    end
+
+    methods (Static) % Todo: Should be moved to a data variable class
+        function variableItem = updateVariableDataType(variableItem)
+            fileAdapterList = nansen.dataio.listFileAdapters();
+            if ~strcmp(variableItem.FileAdapter, 'Default')
+                isMatch = strcmp({fileAdapterList.FileAdapterName}, variableItem.FileAdapter);
+                if any(isMatch)
+                    fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+                    variableItem.DataType = fileAdapterFcn().DataType;
+                else
+                    % pass
+                end
+            end
+        end
     end
 end
 
