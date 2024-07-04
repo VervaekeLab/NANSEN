@@ -720,9 +720,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 delete(hMenu.Children)
             end
 
-            dirPath = '/Users/eivihe/Code/MATLAB/VervaekeLab/NANSEN_Modules/Nansen-NWB/+nansen/+module/+nwb/+mixin/+tool';
-            app.createMenuFromDir(hMenu, dirPath)
-
+            folderPathList = app.CurrentProject.getMixinFolders('tool');
+            app.createMenuFromDir(hMenu, folderPathList)
         end
 
         function createHelpMenu(app)
@@ -853,9 +852,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         % Requires: varname2label
             import utility.string.varname2label
+            import utility.dir.recursiveDir
 
-            L = dir(dirPath);
-            L = L(~strncmp({L.name}, '.', 1));
+            L = recursiveDir(dirPath, "RecursionDepth", 1);
             
             for i = 1:numel(L)
                 
@@ -2181,10 +2180,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % provides a mouse over effect etc.
     
             % Create a struct to open in a dialog window
-            
-            if nargin < 2
-                error('Missing input')
-            end
             
             import nansen.metadata.utility.createFunctionForCustomTableVar
             import nansen.metadata.utility.createClassForCustomTableVar

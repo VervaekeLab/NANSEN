@@ -93,6 +93,13 @@ classdef Project < nansen.module.Module
             mixinNames = cellfun(@(c) utility.path.abspath2funcname(c), filePaths, 'uni', 0);
         end
 
+        function folderList = getMixinFolders(obj, mixinType)
+            folderList = obj.getMixinFolder(mixinType);
+            for i = 1:numel(obj.IncludedModules)
+                folderList(end+1) = obj.IncludedModules(i).getMixinFolder(mixinType); %#ok<AGROW>
+            end
+        end
+
         function folderPath = getConfigurationFolder(obj, options)
             arguments
                 obj (1,1) nansen.config.project.Project
@@ -244,7 +251,6 @@ classdef Project < nansen.module.Module
 
             % Rename FunctionNames in DataLocationModel
             obj.DataLocationModel.onProjectRenamed(oldName, newName);
-
         end
 
         function updateProjectFolder(obj, newFolderPath)
