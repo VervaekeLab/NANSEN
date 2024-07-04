@@ -335,7 +335,7 @@ classdef ProjectManager < handle
             obj.saveCatalog()
         end
        
-        function removeProject(obj, name, deleteProjectFolder)
+        function removeProject(obj, name, deleteProjectFolder, allowRemoveCurrentProject)
         %removeProject Remove project from project manager.
         %
         %   Inputs:
@@ -355,21 +355,29 @@ classdef ProjectManager < handle
             if nargin < 3
                 deleteProjectFolder = false;
             end
+
+            if nargin < 4
+                allowRemoveCurrentProject = false;
+            end
             
             IND = obj.getProjectIndex(name);
             projectName = obj.Catalog(IND).Name;
 
             assert( sum(IND)>=1, 'Multiple projects were matched. Aborting...')
             
-            % Todo: what if project is the current project? Abort!
+            % Check if project is current project and take appropriate
+            % action
             if strcmp(projectName, obj.CurrentProject)
-                message = sprintf('Can not remove "%s" because it is the current project', projectName);
-                errorID = 'NANSEN:Project:RemoveCurrentProjectDenied';
-                throw(MException(errorID, message))
+                if allowRemoveCurrentProject
+                    obj.changeProject('')
+                else
+                    message = sprintf('Can not remove "%s" because it is the current project', projectName);
+                    errorID = 'NANSEN:Project:RemoveCurrentProjectDenied';
+                    throw(MException(errorID, message))
+                end
             end
 
             if any(IND)
-                
                 thisProject = obj.Catalog(IND);
                 
                 if deleteProjectFolder
