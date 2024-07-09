@@ -9,7 +9,7 @@ function openFile(pathName, mode)
 %       supported on windows.
     
     if nargin < 2; mode = 'default'; end
-    validatestring(mode, {'default', 'text'}, 2)
+    mode = validatestring(mode, {'default', 'text'}, 2);
     
     if isfile(pathName)
 

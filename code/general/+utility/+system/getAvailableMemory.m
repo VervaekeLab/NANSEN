@@ -5,7 +5,7 @@ function memoryBytes = getAvailableMemory()
         memory_avail_gb = (eval(memory_string{end})/1024^3);
         memoryBytes = memory_avail_gb*1e9;
     elseif ispc  
-        m = memory_string;
+        m = memory();
         memoryBytes = m.MemAvailableAllArrays;
     elseif isunix % better way?
         [~,txt] = system('free -m'); 

@@ -106,6 +106,10 @@ classdef Module < handle
             names = cellfun(@(c) utility.path.abspath2funcname(c), filePaths, 'uni', 0);
         end
 
+        function pathName = getMixinFolder(obj, mixinType)
+            pathName = obj.getItemRootFolder(mixinType);
+        end
+
         function fileAdapterFolder = getFileAdapterFolder(obj)
             fileAdapterFolder = fullfile(obj.FolderPath, '+fileadapter');
         end

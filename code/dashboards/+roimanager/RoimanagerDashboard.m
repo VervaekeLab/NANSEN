@@ -342,7 +342,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.RoiThumbnailViewer.ImageStack = obj.ImviewerObj.ImageStack;
             obj.RoiThumbnailViewer.Dashboard = obj;
             obj.RoiThumbnailViewer.ThumbnailSize = obj.settings.RoiDisplayPreferences.roiThumbnailSize;
-                    
+            obj.RoiThumbnailViewer.ActiveChannel = obj.ActiveChannel;
             %obj.AppModules(end+1) = obj.RoiThumbnailViewer;
         end
 

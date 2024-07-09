@@ -699,6 +699,11 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
             
             if isfile(filePath)
+                L = dir(filePath);
+                if L.bytes==0
+                    error("NANSEN:Session:EmptyFile", ...
+                        'Can not load data for "%s" because file is empty (0 bytes)', varName)
+                end
                 
                 switch variableInfo.FileAdapter
                     
@@ -938,7 +943,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % Todo: Should be part of DataIoModel
             variableModel = obj.VariableModel;
 
-            
             % Check if mode is given as input:
             [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
             
@@ -964,7 +968,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % Get path to session folder
             dataLocationName = S.DataLocation; % NB: Confusing naming of that field...
             try
-                sessionFolder = obj.getSessionFolder(dataLocationName);
+                sessionFolder = obj.getSessionFolder(dataLocationName, 'nocreate');
             catch ME
                 dlItem = obj.DataLocationModel.getItem(dataLocationName);
                 if strcmp(mode, 'write') && strcmp(dlItem.Type.Permission, 'write')
@@ -990,11 +994,14 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 fileName = obj.createFileName(varName, S);
             else
                 fileName = obj.lookForFile(sessionFolder, S);
-                if isempty(fileName)
+                if isempty(fileName) && strcmp(mode, 'write')
                     fileName = obj.getFileName(S);
                 end
             end
             
+            if isempty(fileName)
+                error('File not found for %s', varName)
+            end
             pathStr = fullfile(sessionFolder, fileName);
             
             if nargout == 2
@@ -1023,21 +1030,30 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         function fileName = lookForFile(obj, sessionFolder, S)
 
             % Todo: Move this method to filepath settings editor.
-            %   Move to DataIOModel/DataCollection
-            
+            %       or: Move to DataIOModel/DataCollection
+
+            % Todo: Add FEX:recursiveDir as dependency and ensure the
+            % following works:
+            % % nvPairs = {...
+            % %     "FileType", S.FileType, ...
+            % %     "Expression", S.FileNameExpression ...
+            % %     };
+            % % 
+            % % L = recursiveDir(sessionFolder, nvPairs{:});
+
             expression = S.FileNameExpression;
             fileType = S.FileType;
-            
+
             if ~strncmp(fileType, '.', 1)
                 fileType = ['.', fileType];
             end
-                
+
             if contains(expression, fileType)
                 expression = ['*', expression];
             else
                 expression = ['*', expression, fileType]; % Todo: ['*', expression, '*', fileType] <- Is this necessary???
             end
-            
+
             L = dir(fullfile(sessionFolder, expression));
             L = L(~strncmp({L.name}, '.', 1));
             
@@ -1114,7 +1130,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
 
         function folderPath = getSessionFolder(obj, dataLocationName, mode)
         %getSessionFolder Get session folder for a given dataLocationName
-        %
         %
                             
             if nargin < 2
@@ -1215,6 +1230,35 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
         end
         
+        function removeSessionFolder(obj, dataLocationName)
+            [~, dlIdx] = obj.DataLocationModel.containsItem(dataLocationName);
+
+            % Get the datalocation for this session object for the rootpath
+            dlSession = obj.getDataLocation(dataLocationName);
+
+            if strcmp(dlSession.Type.Permission, 'read')
+                errMsg = sprintf(['Can not remove session folder for data location "%s" because \n', ...
+                    'any data location of type "%s" is read-only.'], dataLocationName, dlSession.Type);
+                error('Nansen:Session:RemoveSessionFolderDenied', errMsg)
+            end
+
+            sessionFolder = obj.getSessionFolder(dataLocationName, 'nocreate');
+            L = dir(sessionFolder);
+            L(startsWith({L.name}, '.'))=[];
+            if ~isempty(L)
+                error('Session folder is not empty')
+            end
+
+            rmdir(sessionFolder, "s")
+
+            obj.DataLocation(dlIdx).Subfolders = '';
+            newValue = obj.DataLocation;
+            
+            eventData = uiw.event.EventData('Property', 'DataLocation', ...
+                'NewValue', newValue);%obj.DataLocation);
+            obj.notify('PropertyChanged', eventData)
+        end
+
         function folderName = generateFolderName(obj, subfolderStruct)
         %generateFolderName Create a foldername based on session metadata
         %

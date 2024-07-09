@@ -59,11 +59,6 @@ function pathStr = localpath(pathKeyword, projectName)
             rootPath = fullfile(nansen.toolboxdir, '+nansen');
             folderPath = fullfile(rootPath, '+dataio', '+fileadapter');
 
-        case 'subfolder_list'
-            initPath = nansen.toolboxdir();
-            folderPath = strsplit(genpath(initPath), pathsep);
-            folderPath = folderPath(1:end-1);
-
         case {'_user_data', 'user_data', '_userdata', 'userdata'}
             folderPath = nansen.prefdir();
             
