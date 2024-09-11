@@ -66,7 +66,8 @@ classdef Project < nansen.module.Module
         RequiredModuleName = nansen.common.constant.BaseModuleName;
     end
     
-    methods (Access = ?nansen.config.project.ProjectManager)
+    % Constructor.
+    methods (Access = {?nansen.config.project.ProjectManager, ?nansen.config.project.Project})
         function obj = Project(projectName, projectFolder)
             
             configFileName = nansen.module.Module.MODULE_CONFIG_FILENAME;
@@ -83,6 +84,17 @@ classdef Project < nansen.module.Module
     end
     
     methods
+
+        function addMetaTable(obj, metaTable)
+            arguments
+                obj (1,1) nansen.config.project.Project
+                metaTable (1,1) nansen.metadata.MetaTable
+            end
+
+            MTC = obj.MetaTableCatalog();
+            MTC.addMetatable(metaTable, true, true);
+            MTC.save()
+        end
         
         function mixinNames = listMixins(obj, itemType)
         %listFiles List files in a folder hierarchy for given item type
@@ -466,6 +478,39 @@ classdef Project < nansen.module.Module
         end
         
     end
+    
+    methods (Static)
+        
+        function project = new(name, description, folderpath)
+            
+            % Todo: Just add these as arguments to the project constructor...
+            
+            projectInfo = struct();
+            projectInfo.Name = name; % Todo: This should be different from short name...
+            projectInfo.ShortName = name;
+            projectInfo.Description = description;
+            projectInfo.Path = folderpath;
+            
+            nansen.config.project.Project.initializeProjectDirectory(projectInfo)
+
+            % Todo: Why is this here and not in the initialization function?
+            nansen.config.project.Project.updateProjectConfiguration(folderpath, projectInfo)
+            nansen.config.project.Project.updateModuleConfiguration(folderpath, projectInfo)
+
+            % Create a project instance and initialize the project
+            try
+                project = nansen.config.project.Project(name, folderpath);
+                project.initializeProject()
+            catch MECause
+                rmdir(projectRootDir, "s")
+                ME = MException('Nansen:CreateProjectFailed', ...
+                    'Failed to create project with name "%s"', name);
+                ME = ME.addCause(MECause);
+                throw(ME)
+            end
+            
+        end
+    end
 
     methods (Static, Hidden)
         function project = fromStruct(S)
@@ -528,14 +573,49 @@ classdef Project < nansen.module.Module
         end
     end
     
+    methods (Static, Access = private)
+
+        function updateProjectConfiguration(projectDirectory, projectInfo)
+        % updateProjectConfiguration - Update project configuration file   
+            configFileName = nansen.config.project.Project.PROJECT_CONFIG_FILENAME;
+            configFilePath = fullfile(projectDirectory, configFileName);
+            
+            S = utility.io.loadjson(configFilePath);
+
+            S.Properties.Name = projectInfo.Name; % Todo: Should be a full name. Todo: Should be collected in app...
+            S.Properties.ShortName = projectInfo.Name;
+            S.Properties.Description = projectInfo.Description;
+
+            utility.io.savejson(configFilePath, S)
+        end
+
+        function updateModuleConfiguration(projectDirectory, projectInfo)
+            % Todo: module method?
+
+            configFileName = nansen.module.Module.MODULE_CONFIG_FILENAME;
+            L = utility.dir.recursiveDir(projectDirectory, 'Expression', configFileName);
+            assert(numel(L)==1, 'Expected to found exactly one module configuration file, but found %s', numel(L))
+            
+            configFilePath = utility.dir.abspath(L);
+            configFilePath = configFilePath{1};
+            
+            S = utility.io.loadjson(configFilePath);
+
+            S.Properties.Name = projectInfo.Name;
+            S.Properties.Description = projectInfo.Description;
+
+            utility.io.savejson(configFilePath, S)
+        end
+    end
+
     % Methods related to initializing a project
-    methods (Static, Access = ?nansen.config.project.ProjectManager)
+    methods (Static, Access = {?nansen.config.project.ProjectManager, ?nansen.config.project.Project})
 
         function initializeProjectDirectory(projectInfo)
         % initializeProjectDirectory - Initialize a project  directory    
             
-            projectDirectoryPath = projectInfo.Path;
-            projectName = projectInfo.Name;
+            projectDirectoryPath = char( projectInfo.Path );
+            projectName = char( projectInfo.Name );
 
             % Make folder for saving project related configs and metadata
             if ~exist(projectDirectoryPath, 'dir')  
