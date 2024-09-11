@@ -49,6 +49,10 @@ classdef MetaTable < handle
         MetaTableMembers = {}
     end
 
+    properties (SetAccess = private)
+        ItemClassName = '';
+    end
+
     properties (Dependent)
         VariableNames
     end
@@ -81,6 +85,7 @@ classdef MetaTable < handle
             'IsMaster', false, ...
             'MetaTableName', '', ...
             'MetaTableClass', '', ...
+            'ItemClassName', '', ...    % Which specific class to use to create instances
             'MetaTableIdVarname', '', ...
             'MetaTableKey', '', ...
             'SavePath', '', ...
@@ -104,10 +109,14 @@ classdef MetaTable < handle
                 if isfield(s, 'MetaTableClass')
                     obj.MetaTableClass = s.MetaTableClass;
                 end
+                if isfield(s, 'ItemClassName')
+                    obj.ItemClassName = s.ItemClassName;
+                end
                 if isfield(s, 'MetaTableIdVarname')
                     obj.MetaTableIdVarname = s.MetaTableIdVarname;
                     obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
                 end
+
             end
         end
         
@@ -502,7 +511,6 @@ classdef MetaTable < handle
                     
                     case 'MetaTableClass'
                         className = class(obj);
-                        
                         S.MetaTableClass = className;
                     
                     case 'MetaTableEntries'

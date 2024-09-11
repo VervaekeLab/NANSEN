@@ -1520,7 +1520,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %schema = @nansen.metadata.type.Session;
             
             if isempty(entries)
-                expression = strjoin({class(app.MetaTable), 'empty'}, '.');
+                if isempty(app.MetaTable.ItemClassName)
+                    expression = sprintf('%s.empty', class(app.MetaTable));
+                else
+                    expression = sprintf('%s.empty', app.MetaTable.ItemClassName);
+                end
+                
                 metaObjects = eval(expression);
             else
                 % Check if objects already exists:
@@ -1563,7 +1568,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if nargin < 3 || isempty(useCache); useCache = true; end
 
-            schema = str2func(class(app.MetaTable));
+            % Todo: Need to apply this fix when migrating projects
+            if isempty(app.MetaTable.ItemClassName)
+                schema = str2func(class(app.MetaTable));
+            else
+                schema = str2func(app.MetaTable.ItemClassName);
+            end
 
             if isempty(tableEntries)
                 try
