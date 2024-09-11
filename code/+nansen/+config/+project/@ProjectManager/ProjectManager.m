@@ -143,8 +143,8 @@ classdef ProjectManager < handle
             
             nansen.config.project.Project.initializeProjectDirectory(projectInfo)
             
-            obj.updateProjectConfiguration(projectRootDir, projectInfo)
-            obj.updateModuleConfiguration(projectRootDir, projectInfo)
+            nansen.config.project.Project.updateProjectConfiguration(projectRootDir, projectInfo)
+            nansen.config.project.Project.updateModuleConfiguration(projectRootDir, projectInfo)
 
             % Create a project instance and initialize the project
             try
@@ -193,7 +193,7 @@ classdef ProjectManager < handle
             % Update filepath of project configuration to match the path
             % of the folder where the project file is located now
             projectInfo.Path = projectDirectory;
-            obj.updateProjectConfiguration(projectDirectory, projectInfo)
+            nansen.config.project.Project.updateProjectConfiguration(projectDirectory, projectInfo)
                         
             obj.addProject(projectInfo)
             
@@ -519,6 +519,8 @@ classdef ProjectManager < handle
             if nargin < 2
                 projectNames = {obj.Catalog.Name};
             end
+
+            if isempty(projectNames); tf = false; return; end
             
             promptStr = 'Select a project to open:';
             [ind, tf] = listdlg('ListString', projectNames, ...
@@ -623,39 +625,6 @@ classdef ProjectManager < handle
 
     methods (Hidden)
     % Todo: Create a project class and put these methods there...
-        
-        function updateProjectConfiguration(obj, projectDirectory, projectInfo)
-            % Todo: project method
-
-            configFileName = nansen.config.project.Project.PROJECT_CONFIG_FILENAME;
-            configFilePath = fullfile(projectDirectory, configFileName);
-            
-            S = utility.io.loadjson(configFilePath);
-
-            S.Properties.Name = projectInfo.Name; % Todo: Should be a full name. Todo: Should be collected in app...
-            S.Properties.ShortName = projectInfo.Name;
-            S.Properties.Description = projectInfo.Description;
-
-            utility.io.savejson(configFilePath, S)
-        end
-
-        function updateModuleConfiguration(~, projectDirectory, projectInfo)
-            % Todo: module method?
-
-            configFileName = nansen.module.Module.MODULE_CONFIG_FILENAME;
-            L = utility.dir.recursiveDir(projectDirectory, 'Expression', configFileName);
-            assert(numel(L)==1, 'Expected to found exactly one module configuration file, but found %s', numel(L))
-            
-            configFilePath = utility.dir.abspath(L);
-            configFilePath = configFilePath{1};
-            
-            S = utility.io.loadjson(configFilePath);
-
-            S.Properties.Name = projectInfo.Name;
-            S.Properties.Description = projectInfo.Description;
-
-            utility.io.savejson(configFilePath, S)
-        end
 
         function S = listFigures(obj)
             
