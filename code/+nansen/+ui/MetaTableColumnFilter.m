@@ -145,7 +145,10 @@ classdef MetaTableColumnFilter < handle
                     h = obj.createMultiSelectionDropdown(items, columnIdx);
                     obj.columnFilterType{columnIdx} = 'multiSelection-logical';
                     
-                case 'char'
+                case {'char', 'string'}
+                    if isstring(columnData{1})
+                        columnData = cellstr(columnData);
+                    end
                     
                     uniqueColumnData = unique(columnData);
                     filterChoices = cat(1, 'Show All', uniqueColumnData);
@@ -228,6 +231,7 @@ classdef MetaTableColumnFilter < handle
             
             switch obj.columnFilterType{columnIdx}
                 case 'multiSelection'
+                    columnData = cellstr(columnData); % If string array
                     uniqueColumnData = unique(columnData);
                     filterChoices = cat(1, 'Show All', uniqueColumnData);
                      
@@ -304,6 +308,7 @@ classdef MetaTableColumnFilter < handle
                         %obj.hColumnLabels(columnIdx).Color = ones(1,3)*0.8;
                     else
                         obj.isColumnFilterActive(columnIdx) = true;
+                        columnData = cellstr(columnData);
                         TF = ismember(columnData, currentSelection);
                         % TODO: Use ismember instead??
                         obj.MetaTableUi.DataFilterMap(:, columnIdx) = TF;
