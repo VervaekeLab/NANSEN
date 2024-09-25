@@ -573,7 +573,31 @@ classdef Project < nansen.module.Module
         end
     end
     
-    methods (Static, Access = private)
+    % Methods related to initializing a project
+    methods (Static, Access = {?nansen.config.project.ProjectManager, ?nansen.config.project.Project})
+
+        function initializeProjectDirectory(projectInfo)
+        % initializeProjectDirectory - Initialize a project  directory    
+            
+            projectDirectoryPath = char( projectInfo.Path );
+            projectName = char( projectInfo.Name );
+
+            % Make folder for saving project related configs and metadata
+            if ~exist(projectDirectoryPath, 'dir')  
+                mkdir(projectDirectoryPath);   
+            end
+
+            % Copy project template to new folder
+            rootFolder = utility.path.getAncestorDir( mfilename('fullpath'), 2 );
+            projectTemplateDirectory = fullfile(rootFolder, 'resources', 'project_folder_template');
+            copyfile(projectTemplateDirectory, projectDirectoryPath)
+
+            % Copy module template folder to the code folder
+            moduleTemplateDirectory = nansen.module.Module.getModuleTemplateDirectory();
+            targetDirectory = fullfile(projectDirectoryPath, 'code', ['+', projectName]);
+            copyfile(moduleTemplateDirectory, targetDirectory);
+            rmdir(fullfile(targetDirectory, 'resources'), "s")
+        end
 
         function updateProjectConfiguration(projectDirectory, projectInfo)
         % updateProjectConfiguration - Update project configuration file   
@@ -606,33 +630,5 @@ classdef Project < nansen.module.Module
 
             utility.io.savejson(configFilePath, S)
         end
-    end
-
-    % Methods related to initializing a project
-    methods (Static, Access = {?nansen.config.project.ProjectManager, ?nansen.config.project.Project})
-
-        function initializeProjectDirectory(projectInfo)
-        % initializeProjectDirectory - Initialize a project  directory    
-            
-            projectDirectoryPath = char( projectInfo.Path );
-            projectName = char( projectInfo.Name );
-
-            % Make folder for saving project related configs and metadata
-            if ~exist(projectDirectoryPath, 'dir')  
-                mkdir(projectDirectoryPath);   
-            end
-
-            % Copy project template to new folder
-            rootFolder = utility.path.getAncestorDir( mfilename('fullpath'), 2 );
-            projectTemplateDirectory = fullfile(rootFolder, 'resources', 'project_folder_template');
-            copyfile(projectTemplateDirectory, projectDirectoryPath)
-
-            % Copy module template folder to the code folder
-            moduleTemplateDirectory = nansen.module.Module.getModuleTemplateDirectory();
-            targetDirectory = fullfile(projectDirectoryPath, 'code', ['+', projectName]);
-            copyfile(moduleTemplateDirectory, targetDirectory);
-            rmdir(fullfile(targetDirectory, 'resources'), "s")
-        end
-        
     end
 end
