@@ -14,6 +14,7 @@ end
 % Install required (FEX) dependencies
 fprintf('Installing FileExchange dependencies...\n')
 nansen.internal.setup.installDependencies()
+nansen.internal.setup.installSetupTools()
 
 % Add folder to path if it was not added already
 toolboxFolderPath = fileparts(mfilename('fullpath'));
