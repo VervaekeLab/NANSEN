@@ -75,6 +75,13 @@
     "FileExchangeUuid": "e57d4c65-4a80-11e4-9553-005056977bd0",
     "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e57d4c65-4a80-11e4-9553-005056977bd0/7ffa0985-a381-8b9a-9a46-b76c9859cf2f/packages/zip",
     "LicenseUrl": "https://github.com/DylanMuir/ReadImageJROI"
+  },
+  {
+    "Name": "downloadFile",
+    "FullName": "File downloader/uploader with progress monitor",
+    "FileExchangeUuid": "441cac8c-b6f5-4134-bc1b-493e0c5bdef5",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/441cac8c-b6f5-4134-bc1b-493e0c5bdef5/d2e83faa-b77f-4e56-8052-0cbf0afc5a54/packages/zip",
+    "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/441cac8c-b6f5-4134-bc1b-493e0c5bdef5/d2e83faa-b77f-4e56-8052-0cbf0afc5a54/license/license.txt"
   }
     
 ]

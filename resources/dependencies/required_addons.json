@@ -68,5 +68,12 @@
     "FileExchangeUuid": "3ba9a6b7-7d38-4d36-a014-e58cc7b78778",
     "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/3ba9a6b7-7d38-4d36-a014-e58cc7b78778/66fca6a0-ebcf-45ce-b232-224d8190ab4f/packages/zip",
     "LicenseUrl": "https://github.com/ehennestad/Catalog/blob/main/LICENSE"
+  },
+  {
+    "Name": "downloadFile",
+    "FullName": "File downloader/uploader with progress monitor",
+    "FileExchangeUuid": "441cac8c-b6f5-4134-bc1b-493e0c5bdef5",
+    "DownloadUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/441cac8c-b6f5-4134-bc1b-493e0c5bdef5/d2e83faa-b77f-4e56-8052-0cbf0afc5a54/packages/zip",
+    "LicenseUrl": "https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/441cac8c-b6f5-4134-bc1b-493e0c5bdef5/d2e83faa-b77f-4e56-8052-0cbf0afc5a54/license/license.txt"
   }
 ]
