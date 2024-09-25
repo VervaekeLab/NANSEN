@@ -24,5 +24,5 @@ if ~contains(path, toolboxFolderPath)
 end
 
 % Open Setup Wizard
-fprintf('Opening NANSEN''s Setup Wizard...\n')
-nansen.setup()
+%fprintf('Opening NANSEN''s Setup Wizard...\n')
+%nansen.setup()
