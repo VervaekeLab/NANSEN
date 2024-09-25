@@ -1140,7 +1140,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 mode = 'create'; % 'create' or 'nocreate'
             end
             
-            mode = validatestring(mode, {'create', 'nocreate'});
+            mode = validatestring(mode, {'create', 'nocreate', 'force'});
             
             folderPath = '';
             
@@ -1148,12 +1148,14 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             if ~isempty(S.Subfolders)
                 folderPath = fullfile(S.RootPath, S.Subfolders);
-            else
-                if strcmp(S.Type.Permission, 'write') && strcmp(mode, 'create')
-                    folderPath = obj.createSessionFolder(dataLocationName);
+            end
+
+            if ~isfolder(folderPath)
+                if (strcmp(S.Type.Permission, 'write') && strcmp(mode, 'create')) || strcmp(mode, 'force')
+                    folderPath = obj.createSessionFolder(dataLocationName, mode);
                 end
             end
-            
+        
             if ~isfolder(folderPath)
                 errorID = 'NANSEN:Session:FolderNotFound';
                 errorMsg = sprintf(['Session folder at "%s" does not ', ...
@@ -1163,7 +1165,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
         end
         
-        function folderPath = createSessionFolder(obj, dataLocationName)
+        function folderPath = createSessionFolder(obj, dataLocationName, mode)
         %createSessionFolder Create a session folder if it does not exist
         
             if nargin < 2
@@ -1175,7 +1177,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % Get the datalocation for this session object for the rootpath
             dlSession = obj.getDataLocation(dataLocationName);
             
-            if strcmp(dlSession.Type.Permission, 'read')
+            if strcmp(dlSession.Type.Permission, 'read') && ~strcmp(mode, 'force')
                 errMsg = sprintf(['Can not create session folder for data location "%s" because \n', ...
                     'any data location of type "%s" is read-only.'], dataLocationName, dlSession.Type);
                 error('Nansen:Session:CreateSessionFolderDenied', errMsg)

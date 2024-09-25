@@ -176,7 +176,11 @@ classdef NansenUserSession < handle
 
             currentProject = obj.Preferences.CurrentProjectName;
             if ~isempty(currentProject)
-                obj.ProjectManager.setProject(currentProject)
+                try
+                    obj.ProjectManager.setProject(currentProject)
+                catch ME
+                    warning(ME.message)
+                end
             end
 
             % Note: important that this happens last

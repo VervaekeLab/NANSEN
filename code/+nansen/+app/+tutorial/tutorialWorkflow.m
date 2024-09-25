@@ -1,41 +1,70 @@
 
-
 % Start a tutorial user session
 userSession = nansen.internal.user.NansenUserSession.instance('tutorial');
 
 % Allow user to select an existing project
-S = ["Allen Brain Observatory - Visual Coding (Neuropixels)", ...
+S = ["Nansen Quickstart", ...
+     "Allen Brain Observatory - Visual Coding (Neuropixels)", ...
      "Allen Brain Observatory - Visual Coding (Calcium Imaging)", ...
      "EBRAINS D&K - L2/3 + L5 Visual occlusion (Calcium Imaging)"];
 
-[selection, ok] = listdlg('ListString',S, 'ListSize', [360, 240]);
+S = ["Nansen Quickstart", ...
+     "Allen Brain Observatory - Visual Coding (Calcium Imaging)"];
+
+
+[selection, ok] = listdlg('ListString', S, 'ListSize', [360, 240]);
 
 if ok
     switch S(selection)
+        case "Nansen Quickstart"
+            repositoryName = "Nansen_Demo";
+            projectName = 'nansen_demo'; 
+
         case "Allen Brain Observatory - Visual Coding (Neuropixels)"
             repositoryName = "ABO-VisualCoding-Neuropixels-Test";
 
         case "Allen Brain Observatory - Visual Coding (Calcium Imaging)"
             repositoryName = "ABO-VisualCoding-TwoPhoton-Test";
-       
+            projectName = 'abo_ophys';
+
         case "EBRAINS D&K - L2/3 + L5 Visual occlusion (Calcium Imaging)"
             repositoryName = "EBRAINS-VisualOcclusion-TwoPhoton";
-        
-        
     end
 end
 
-% Download target repository folder
-repositoryUrl = sprintf('https://github.com/NansenProjects/%s', repositoryName);
-installationLocation = fullfile(userpath, 'Nansen-Tutorial');
-repoTargetFolder = setuptools.internal.installGithubRepository(repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
-
-L = dir(fullfile(repoTargetFolder, '*', 'project.nansen.json'));
-
+% Check if project is already in the catalog
 projectManager = userSession.getProjectManager();
-projectManager.importProject(L.folder);
+
+if ~projectManager.containsProject(projectName)
+
+    % Download target repository folder (todo: function)
+    repositoryUrl = sprintf('https://github.com/NansenProjects/%s', repositoryName);
+    installationLocation = fullfile(userpath, 'Nansen-Tutorial');
+    repoTargetFolder = setuptools.internal.installGithubRepository(repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
+    
+    L = dir(fullfile(repoTargetFolder, '*', 'project.nansen.json'));
+    projectManager.importProject(L.folder);
+    projectManager.changeProject(projectName);
+
+    % Todo: Choose a datapath:
+    S = struct();
+    S.DataDirectory = fullfile(userpath, 'Nansen-Tutorial', 'Data', projectName);
+    S.DataDirectory_ = 'uigetdir';
+    
+    [S, wasAborted] = tools.editStruct(S);
+    
+    project = projectManager.getCurrentProject();
+    dlModel = project.DataLocationModel;
+    for i = 1:dlModel.NumDataLocations
+        item = dlModel.getItem(i);
+        [~,folderName] = fileparts(item.RootPath.Value);
+        item.RootPath.Value = fullfile(S.DataDirectory, folderName);
+        project.DataLocationModel.replaceItem(item)
+    end
+else
+    if ~strcmp( projectManager.CurrentProject, projectName )
+        projectManager.changeProject(projectName)
+    end
+end
 
 nansen
-
-
-

@@ -24,7 +24,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     % Make table with 3 columns, device name and root path, and disk type
     dataTable = rmfield(dataLocationRootInfo, 'Key');
     dataTable = orderfields(dataTable, {'DiskName', 'DiskType', 'Value'});
-    dataTable = struct2table(dataTable);
+    dataTable = struct2table(dataTable, 'AsArray', true);
     
     % Fix data type issue. Todo: Should be done upstream
     if isa(dataTable.DiskName, 'char')

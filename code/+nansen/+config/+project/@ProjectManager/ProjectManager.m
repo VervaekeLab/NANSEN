@@ -50,7 +50,7 @@ classdef ProjectManager < handle
     end
 
     properties (Access = private)
-        ProjectCache
+        ProjectCache % containers.Map
     end
 
     events (NotifyAccess = private)
@@ -538,6 +538,14 @@ classdef ProjectManager < handle
                 obj.Catalog(IND).(name) = value;
                 obj.saveCatalog()
             end
+        end
+
+        function reset(obj)
+            keys = obj.ProjectCache.keys();
+            for i = 1:numel(obj.ProjectCache)
+                delete(obj.ProjectCache(keys{i}))
+            end
+            obj.ProjectCache = containers.Map;
         end
     end
 
