@@ -146,7 +146,7 @@ classdef CatalogViewerApp < applify.AppWindow
         
         function onMouseRightClickedInTable(obj, src, evt)
             
-            % Get row where mouse press ocurred.
+            % Get row where mouse press occurred.
             row = evt.Cell(1);
 
             % Select row where mouse is pressed if it is not already

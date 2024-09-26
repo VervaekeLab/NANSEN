@@ -3,7 +3,7 @@ function roiArray = run(imArray, ops)
 % Todo: 
 %   1. Is there a difference between nSVDforROI and nSVD
 
-% Use highjacked fprintf if available
+% Use hijacked fprintf if available
 global fprintf 
 if isempty(fprintf); fprintf = str2func('fprintf'); end
 

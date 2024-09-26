@@ -124,13 +124,13 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             M = squeeze(M);
             obj.ImviewerObj.clearMessage;
             
-            % Show results from test aliging:
+            % Show results from test aligning:
             if obj.settings.Preview.showResults
                 h = imviewer(M);
                 h.stackname = sprintf('%s - %s', obj.ImviewerObj.stackname, 'Flowreg Test Correction');                
             end
                 
-         	% Save results from test aliging:
+         	% Save results from test aligning:
             if obj.settings.Preview.saveResults
                 getSavepath = @(name) fullfile(saveFolder, ...
                     sprintf('%s_%s', datePrefix, name ) );

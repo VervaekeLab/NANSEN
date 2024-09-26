@@ -103,7 +103,7 @@ function signalArray = getPercentileSignal(imArrayChunk, roiMaskChunk, p)
         nPixels = sum(sum(roiMaskChunk(:,:,i)));
         tmpMask = repmat(roiMaskChunk(:,:,i), 1, 1, nSamples);
         
-        % Todo: Is it signficantly faster to put this directly in the 
+        % Todo: Is it significantly faster to put this directly in the 
         % median/perctile function?
         roiPixelValues = reshape(imArrayChunk(tmpMask), nPixels, nSamples);
         

@@ -119,7 +119,7 @@ methods %Structors
     
     % % Constructor
     function obj = tiledImageAxes(varargin)
-    %tiledImageAxes Crate and configure the tileImageAxes object
+    %tiledImageAxes Create and configure the tileImageAxes object
     %   
     %   tiledImageAxes Creates a tiled image axes in a new figure.
     %
@@ -596,7 +596,7 @@ methods (Access = private) % Methods for setting up gui
     end
 
     function makeFigureTight(obj)
-    %makeFigureTight Set position of figure to wrap tighly around axes.
+    %makeFigureTight Set position of figure to wrap tightly around axes.
         
         obj.fitAxes()
         

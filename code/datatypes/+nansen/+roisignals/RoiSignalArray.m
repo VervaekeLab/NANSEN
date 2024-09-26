@@ -603,7 +603,7 @@ classdef RoiSignalArray < handle
             %   [ ] Sample numbers will depend on whether stack is virtual or
             %       not. If stack is virtual, use a options selection to
             %       determine if signals are extracted from cache, from a
-            %       subset of frames or fram the whole stack.
+            %       subset of frames or from the whole stack.
             
             if nargin < 4; options = struct(); end
             if nargin < 3; channelNum = obj.ActiveChannel; end

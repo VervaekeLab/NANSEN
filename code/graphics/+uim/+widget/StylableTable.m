@@ -220,7 +220,7 @@ classdef StylableTable < uiw.widget.Table
         
         function selectRowFromMouseEvent(obj, evtData)
             
-            % Get row where mouse press ocurred.
+            % Get row where mouse press occurred.
             row = evtData.Cell(1); col = evtData.Cell(2);
 
             % Select row where mouse is pressed if it is not already
@@ -243,7 +243,7 @@ classdef StylableTable < uiw.widget.Table
             xScroll = obj.getHorizontalScrollOffset();
             yScroll = obj.getVerticalScrollOffset();
                         
-            % Get position where mouseclick occured (in figure)
+            % Get position where mouseclick occurred (in figure)
             clickPosX = eventPosition(1) - xScroll;
             clickPosY = eventPosition(2) - yScroll;
             
@@ -402,7 +402,7 @@ classdef StylableTable < uiw.widget.Table
 
             
             % Set background of container that is slightly bigger than
-            % table and therefor appear as a border.
+            % table and therefore appear as a border.
             if ~isempty(obj.JRandomContainer)
                 obj.JRandomContainer.setBackground( jRGB(obj.Theme.CellColorUnmodified) )
             end
@@ -538,7 +538,7 @@ classdef StylableTable < uiw.widget.Table
         
         function onTableModelChanged(obj, ~, e)
             % This method is reimplemented in order to store the column
-            % arrangment of the table model, which is needed to detect
+            % arrangement of the table model, which is needed to detect
             % whether columns are rearranged when mouse is dragged in table
             % header.
             

@@ -13,7 +13,7 @@ function results = initializeComponents(imageStack, params)
     %   [ ] Downsampling before binarization
     %   [ ] Load downsampled images if they already exist....
 
-    % Use highjacked fprintf if available
+    % Use hijacked fprintf if available
     global fprintf; if isempty(fprintf); fprintf = str2func('fprintf'); end
     
     

@@ -17,7 +17,7 @@ classdef MultiSessionRoiCollection < handle
 
 
 % NOTE: The RoIArray property can be either an array of RoIs or a cell
-% array or arrays of RoIs. The latter is the case if sessions hav multiple
+% array or arrays of RoIs. The latter is the case if sessions have multiple
 % imaging channels. This could be expanded to also work for longitudinal
 % multi-plane recordings, but it requires a modified approach to aligning
 % each FoV, as FoVs for planes needs to be aligned separately. The class

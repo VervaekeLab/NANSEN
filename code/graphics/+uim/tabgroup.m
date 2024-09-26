@@ -1,5 +1,5 @@
 classdef tabgroup < uim.abstract.virtualContainer & uim.mixin.assignProperties
-%tabgroup Mimick Matlab's tabgroup container class.
+%tabgroup Mimic Matlab's tabgroup container class.
 %
 %   This tabgroup container has more flexibility in design, but is slower
 %   to update when being resized because the code is using axes and

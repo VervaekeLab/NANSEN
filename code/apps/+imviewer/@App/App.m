@@ -121,7 +121,7 @@ properties (Dependent)
 end
 
 properties (Access = public) % Components
-    LinkedApps % Todo: Make superclass for timeseries viewer. Property: currentSampleNum & Methods for synching samplenumber...
+    LinkedApps % Todo: Make superclass for timeseries viewer. Property: currentSampleNum & Methods for syncing samplenumber...
 
     uiwidgets = struct() % Todo: Inherit from modular app?
     plugins = struct('pluginName', {}, 'pluginHandle', {}); % Todo: migrate to AppWithPlugin superclass
@@ -1605,8 +1605,8 @@ methods % App initialization & creation
     
     function setImagePointerBehavior(obj)
         %NB: >Setting this on the figure object. Should be on the image
-        %object, but due to the pointerManager' way of handling mouse
-        %events, image ans axes' hittest is off, so this would have noe
+        %object, but due to the pointerManager's way of handling mouse
+        %events, image and axes' hittest is off, so this would have no
         %effect
         pointerBehavior.enterFcn    = @obj.onMouseEnteredImage;
         pointerBehavior.exitFcn     = @obj.onMouseExitedImage;
@@ -2302,7 +2302,7 @@ methods % App update
     %
     
     %   Todo: Work more on this. Seems like some of this should be moved to
-    %   the AppWithPlugin superclass...Also, shouldnt plugin be added to
+    %   the AppWithPlugin superclass...Also, shouldn't plugin be added to
     %   the plugin property here?
     
     
@@ -2515,7 +2515,7 @@ methods % Event/widget callbacks
         
         updateLinkedApps = true;
 
-        % Cant update the currentFrame of other viewers too frequently,
+        % Can't update the currentFrame of other viewers too frequently,
         % because updating gets very sluggish. Super weird. How to improve?
         if strcmp(action, 'mousescroll') || obj.isPlaying
             if ~(mod(counter, 1)==0)
@@ -3119,7 +3119,7 @@ methods % Misc, most can be outsourced
     % Callback for play button. Plays calcium images as video
         
     %   Todo: If playback speed ischanging, should adjust current position.
-    %   % As it is now, theres a big jump...
+    %   % As it is now, there's a big jump...
     
         obj.isPlaying = true;
         
@@ -3910,7 +3910,7 @@ methods % Misc, most can be outsourced
         end
         
         % Todo: Should I test any or all here. I had used any before, but
-        % changed it because that did not work for when draggin an image
+        % changed it because that did not work for when dragging an image
         % stack of different size into the window. (if new stack only had different size in 1 dim)
         if all(abs(newFigurePosition(3:4) - oldFigurePosition(3:4)) < 2)
             return
@@ -5217,7 +5217,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                     if wasCaptured; return; end
                 catch ME
                     fprintf( [ME.message, '\n'] )
-                    % something went wrong, but thats fine?
+                    % something went wrong, but that's fine?
                 end
             end
         end
@@ -5508,7 +5508,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                     if wasCaptured; return; end
                 catch ME
                     fprintf( [ME.message, '\n'] )
-                    % something went wrong, but thats fine?
+                    % something went wrong, but that's fine?
                 end
             end
         end

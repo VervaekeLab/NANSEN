@@ -52,7 +52,7 @@ function sOut = prepareRoiMasks(roiArray, varargin)
     end
     
     
-    % Configure the outout for better performance during signal extraction
+    % Configure the output for better performance during signal extraction
     % (especially relevant when extracting in blocks)
     
     if strcmp(P.roiMaskFormat, 'sparse')

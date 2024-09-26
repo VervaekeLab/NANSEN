@@ -43,7 +43,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         Description char    % A description of the session
 
         DataLocation struct % Where is session data stored
-        Progress struct     % Whats the pipeline status / progress
+        Progress struct     % What's the pipeline status / progress
         
     end
     
@@ -213,7 +213,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             elseif sum(isMatch) == 1
                 pathString = rootPath{isMatch};
             else 
-                warning('Multiple session folders mathed. Selected first one')
+                warning('Multiple session folders matched. Selected first one')
                 pathString = rootPath{find(isMatch, 1, 'first')};
             end
             

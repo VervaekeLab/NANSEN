@@ -1,5 +1,5 @@
 function [f, results] = visualizeDrift(data)
-%visualizeDrift Visualize the drift occuring throughout a stack of images
+%visualizeDrift Visualize the drift occurring throughout a stack of images
 %
 %   INPUT:
 %       avgProjImageArray : a 3D image array with an average projection for

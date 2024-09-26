@@ -54,7 +54,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 %       b) How to resolve initializing this method with a different set of
 %          options than before?
 %       
-%       - Should convertion of projection stacks and saving of fov images
+%       - Should conversion of projection stacks and saving of fov images
 %         be part of this class or should they be different methods?
 
 
@@ -158,7 +158,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         end
     end
     
-    methods (Access = protected) % Overide ImageStackProcessor methods
+    methods (Access = protected) % Override ImageStackProcessor methods
         
         function runPreInitialization(obj)
         %onPreInitialization Method that runs before the initialization step    
@@ -561,7 +561,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Todo: Optimize this. Should also adjust to the data! I.e if
             % the data is very noisy, the maximum is too high, whereas if
             % the data has very little noise, taking the maximum of the
-            % upper percentil values results in lots of saturation.
+            % upper percentile values results in lots of saturation.
             
             % Todo: throw out outliers instead of using prctile?
         end
@@ -831,7 +831,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             imArray = IS.getFrameSet('all', 'extended');
             filepath = IS.FileName;
             
-            % Todo: Need function for makeing RGB out of n-channel stack...
+            % Todo: Need function for making RGB out of n-channel stack...
             rgbArray = imArray;
             rgbArray(:, :, 3, :) = 0;
             

@@ -76,7 +76,7 @@ classdef ImageStackData < uim.mixin.assignProperties
     % These methods should not be redefined in subclasses
     
         function varargout = size(obj, dim)
-        %SIZE Implement size function to mimick array functionality.
+        %SIZE Implement size function to mimic array functionality.
             
             numObj = numel(obj);
             if numObj > 1
@@ -124,7 +124,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         end
         
         function ndim = ndims(obj)
-        %NDIMS Implement ndims function to mimick array functionality.
+        %NDIMS Implement ndims function to mimic array functionality.
             
             %ndim = numel(obj.DataSize);
             % Use dataDimensionArrangement instead because trailing
@@ -135,7 +135,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         end
         
         function dataType = class(obj)
-        %CLASS Implement class function to mimick array functionality.
+        %CLASS Implement class function to mimic array functionality.
             dataType = sprintf('%s (%s ImageStackData)', obj(1).DataType, obj(1).StackDimensionArrangement);
         end
                 
@@ -381,7 +381,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                 elseif ~isempty(newDim) && isempty(oldDim)
                     % A data dimension was added
                     % Note: This assumes the dimension was added at the end
-                    % I dont know if thats a valid assumption.
+                    % I dont know if that's a valid assumption.
                     % Todo: This need more development for special cases
                     obj.StackDimensionArrangement = strcat(obj.StackDimensionArrangement, newDim);
                 elseif isempty(newDim) && isempty(oldDim)

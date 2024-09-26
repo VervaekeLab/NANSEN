@@ -4,7 +4,7 @@ classdef AddonManagerUI < applify.apptable
         AddonManager  % Instance of AddonManager class
     end
     
-    properties (Access = private) % Component appeareance
+    properties (Access = private) % Component appearance
         ToolbarButtons matlab.ui.control.Button
     end
 
@@ -417,7 +417,7 @@ classdef AddonManagerUI < applify.apptable
         end
         
         function saveMatlabPath(obj)
-        %saveMatlabPath Save matlab path (presumaby after installing addons) 
+        %saveMatlabPath Save matlab path (presumably after installing addons) 
             message = 'This will permanently add the downloaded addons to the MATLAB search path.';
             title = 'Confirm Save';
             

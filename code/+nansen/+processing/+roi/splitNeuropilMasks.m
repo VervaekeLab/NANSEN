@@ -43,4 +43,4 @@ end
 
 
 % Questions:
-%     Whats the best way to arrange output? Cell or 4D array?
+%     What's the best way to arrange output? Cell or 4D array?

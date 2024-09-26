@@ -2,7 +2,7 @@ function imArray = makeuint16(imArray, bLims, tolerance, cropAmount)
 % Very similar to imadjustn, but scales between 1 and 65536. 
 %
 %   imArray = makeuint16(imArray, bLims)
-%       bLims should be a 1x2 vector for 3D arrays and a 1x2xn fo 4D arrays
+%       bLims should be a 1x2 vector for 3D arrays and a 1x2xn for 4D arrays
 %       with n colors
 %
 %   imArray = makeuint16(imArray, bLims, tolerance)

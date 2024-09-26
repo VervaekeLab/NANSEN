@@ -84,7 +84,7 @@ methods
 
         % Keep this for now, because some spots might be saved with virusGDocId
         % property. In general, i need some more tests in the fromStruct,
-        % to avoid setting proprties that are discontinued, or lik in this
+        % to avoid setting properties that are discontinued, or like in this
         % case, constant
         
         fields = fieldnames(S);
@@ -216,7 +216,7 @@ methods
         end
         
 
-        if ~isempty(infoText) && isequal(double(infoText(end)), 10) % 10 is the newline charater
+        if ~isempty(infoText) && isequal(double(infoText(end)), 10) % 10 is the newline character
             infoText = infoText(1:end-1);
         end
 

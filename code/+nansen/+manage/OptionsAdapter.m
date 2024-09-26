@@ -5,7 +5,7 @@ classdef OptionsAdapter < handle
 %   OptionsAdapter subclass.
 %
 %   An OptionsAdaper class should define an options struct with clear names
-%   that can be inputed to the struct editor app. It should also convert
+%   that can be inputted to the struct editor app. It should also convert
 %   these options to the format required by its corresponding toolbox.
 
     % Question: 

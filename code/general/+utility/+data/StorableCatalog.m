@@ -73,7 +73,7 @@ classdef StorableCatalog < handle
         FilePath char   % Filepath where current table is archived
     end
     
-    properties (Access = protected) % Might be better id this is dependent... (no need to explicity update)
+    properties (Access = protected) % Might be better id this is dependent... (no need to explicitly update)
         ItemNames       % Name of all items in archive
     end
 

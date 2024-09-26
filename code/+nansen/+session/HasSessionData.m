@@ -19,7 +19,7 @@ classdef HasSessionData < uim.handle
 %   Conclusion: Would be nice to solve this in a more elegant way...
 
 %   Note: The "Data" property is transient because it might potentially
-%   contain alot of in-memory cached data which should not be saved. As the
+%   contain a lot of in-memory cached data which should not be saved. As the
 %   transient properties do not follow an object if it is sent to a
 %   separate worker, the Data property is dependent and there is a private
 %   property containing the SessionData object. If the Data object is empty

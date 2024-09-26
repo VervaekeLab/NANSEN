@@ -1,5 +1,5 @@
 function [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData, varargin)
-%getRoiImageMatrix Get image and alpha matrix for a set of spatial weigths
+%getRoiImageMatrix Get image and alpha matrix for a set of spatial weights
 %
 %   [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData)
 %

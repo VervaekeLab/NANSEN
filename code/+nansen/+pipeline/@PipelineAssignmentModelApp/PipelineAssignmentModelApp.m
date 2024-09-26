@@ -1,6 +1,6 @@
 classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
 % PipelineAssignmentModelApp - This app is used to create a configuration
-% for automatically assigning a pipeline to sessions based one ore more
+% for automatically assigning a pipeline to sessions based one or more
 % session table variables.
     
     properties (Constant)

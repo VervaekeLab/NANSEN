@@ -33,7 +33,7 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
     %   [x] Implement a standard set of options across signal extraction
     %       functions and subfunctions
     %
-    %   [ ] Implemnt struct array of options for computing multiple
+    %   [ ] Implement struct array of options for computing multiple
     %       versions of signals????
     %
     %   [x] Make sure it works to extract from subset of rois....

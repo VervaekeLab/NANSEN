@@ -594,7 +594,7 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         
     end
     
-    methods % Slider Interaction Callbaks
+    methods % Slider Interaction Callbacks
         
         function activateSlider(obj)
             

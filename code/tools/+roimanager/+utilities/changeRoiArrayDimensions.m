@@ -16,7 +16,7 @@ function changeRoiArrayDimensions(filePath, numPlanes, numChannels, force)
     S = load(filePath);
 
     variableName = fieldnames(S);
-    assert(numel(variableName)==1, 'Expected file to have excactly one variable')
+    assert(numel(variableName)==1, 'Expected file to have exactly one variable')
     variableName = variableName{1};
 
     assert( contains(lower(variableName), 'roiarray'), ...

@@ -42,7 +42,7 @@ if nargin < 6
     end
 end
 
-% temp fix when calling this funcition from a gui where a vertical line
+% temp fix when calling this function from a gui where a vertical line
 % shows current frame.
 if numel(xCoords) == 2
 	xCoords = 1:numel(eventMask);

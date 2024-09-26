@@ -33,7 +33,7 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
 % Todo: 
 %   [�] Create a variation of UIComponentCanvas for single components.
 %   [ ] Outsource tooltip manager to a separate class.
-%   [ ] Debug object desctruction...
+%   [ ] Debug object destruction...
 
     
     properties (SetAccess = private, Transient)

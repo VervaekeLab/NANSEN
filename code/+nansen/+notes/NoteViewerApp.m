@@ -21,7 +21,7 @@ classdef NoteViewerApp < handle
 %   Less important
 %   [ ] Create version for traditional figure.
 %   [ ] Update tree when filtering items. 
-%   [ ] Methods for sorting, filtering and reseting list & tree
+%   [ ] Methods for sorting, filtering and resetting list & tree
 %   [ ] some overlap with ConfigurationApp. should they have a shared
 %       superclass?
 
@@ -574,11 +574,11 @@ classdef NoteViewerApp < handle
             %Todo
         end
         
-        function filterList(app, properyName, value)
+        function filterList(app, propertyName, value)
             %Todo
         end
         
-        function filterTree(app, properyName, value)
+        function filterTree(app, propertyName, value)
             %Todo
         end
         

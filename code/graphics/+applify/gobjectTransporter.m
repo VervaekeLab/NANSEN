@@ -130,7 +130,7 @@ classdef gobjectTransporter < uim.handle
             pointerBehavior.exitFcn     = @(s,e,hObject) obj.onMouseExitedMarker(h);
             pointerBehavior.traverseFcn = [];%@obj.moving;
             
-            try % Use try/catch because this reqiures image processing toolbox.
+            try % Use try/catch because this requires image processing toolbox.
                 iptPointerManager(ancestor(h, 'figure'));
                 iptSetPointerBehavior(h, pointerBehavior);
             catch

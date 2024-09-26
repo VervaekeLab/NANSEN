@@ -1,5 +1,5 @@
 classdef TaskProcessor < uiw.mixin.AssignPVPairs
-% This class implemements a manager for adding tasks to a queue-based
+% This class implements a manager for adding tasks to a queue-based
 % processor.
 %
 %   Syntax:
@@ -8,7 +8,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 %           and opens the task list specified by filepath.
 %
 %       obj = TaskProcessor(filepath, name, value) initializes the task 
-%           processor using optinal name value pairs to specify 
+%           processor using optional name value pairs to specify 
 %           configuration parameters.
 %
 %   Parameters:
@@ -31,7 +31,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 %   [ ] Happened once that task is set to running but state in table is not
 %       updated...
 %
-%   [ ] Consider wheter we can "pause" a runnning task. This would mean
+%   [ ] Consider whether we can "pause" a running task. This would mean
 %   canceling it, but keeping it in the top of the queue for resuming...
 %
 %   [ ] Convert session object to struct when placing in history, and get a
@@ -71,7 +71,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     end
     
     properties (Dependent, Access = private)
-        ActivePool % Parallell pool object
+        ActivePool % Parallel pool object
     end
     
     
@@ -171,7 +171,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 
             obj.stopTimer()
 
-            % Set all other tasks to uninitalized
+            % Set all other tasks to uninitialized
             obj.setTaskStatus('Uninitialized', 1:obj.NumQueuedTasks)
 
             % Stop running tasks

@@ -54,7 +54,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     end
     
     properties (Abstract)
-        PrimaryAppName              % What is this used for exatly? Maybe remove?
+        PrimaryAppName              % What is this used for exactly? Maybe remove?
     end
     
     properties (SetAccess = protected)
@@ -63,7 +63,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     
     properties
         RunMethodOnFinish = true    % Should we run method when settings/options are "saved"?
-        DestroyOnFinish = true      % Destory plugin when control panel is closed
+        DestroyOnFinish = true      % Destroy plugin when control panel is closed
         Modal = true                % Is figure modal or not
         DataIoModel                 % Store a data i/o model object if it is provided.
         OptionsManager              % Store optionsmanager handle if plugin is provided with an optionsmanager on construction
@@ -146,17 +146,17 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     % Methods for mouse and keyboard interactive callbacks
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} )
         
-        function tf = keyPressHandler(obj, src, evt) % Subclass can overide
+        function tf = keyPressHandler(obj, src, evt) % Subclass can override
             % todo: rename to onKeyPressed
             tf = false; % Key press event was not captured by plugin
 
         end
         
-        function tf = keyReleasedHandler(obj, src, evt) % Subclass can overide
+        function tf = keyReleasedHandler(obj, src, evt) % Subclass can override
             tf = false; % Key released event was not captured by plugin
         end
 
-        %tf = mousePressHandler(src, evt) % Subclass can overide
+        %tf = mousePressHandler(src, evt) % Subclass can override
         
     end
     

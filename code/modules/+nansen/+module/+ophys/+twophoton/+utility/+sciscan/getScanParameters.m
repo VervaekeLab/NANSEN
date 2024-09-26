@@ -5,7 +5,7 @@ function parameterStruct = getScanParameters(dataFolderPath, parameterList)
 %   returns a struct of parameters for the recording located in
 %   dataFolderPath for each of the parameters in the parameter list.
 %   Parameter list is a character vector or a cell array of character
-%   vectors with the name(s) of each paramter to get. The parameter names
+%   vectors with the name(s) of each parameter to get. The parameter names
 %   must mach the names from the ini-file.
 %
 %   parameterStruct contains the names and value of each parameter. The

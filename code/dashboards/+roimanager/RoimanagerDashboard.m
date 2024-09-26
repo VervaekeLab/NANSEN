@@ -5,10 +5,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     %   [ ] Why does the imviewer panel resize 3-4 times whenever
     %       showing/hiding the signal viewer panel
     %   [ ] Bug when creating rois and modifying them before the
-    %       roisignalarray is initalized.
+    %       roisignalarray is initialized.
     %   [v] Register roitable as a modular app, so that keypresses are
     %       passed on...
-    %   [ ] Create a reset method for reseting all roi-related data, i.e
+    %   [ ] Create a reset method for resetting all roi-related data, i.e
     %       roimap, roitable etc. 
 
 
@@ -44,7 +44,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
        
        UiControls = []
        
-       MainControlPanel % Store temorary control panel, i.e autosegmentation options
+       MainControlPanel % Store temporary control panel, i.e autosegmentation options
        TempControlPanelDestroyedListener % Listener for temporary control panel being deleted.
     end
 

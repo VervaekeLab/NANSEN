@@ -103,7 +103,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
     end
 
 
-    methods (Access = protected) % Overide ImageStackProcessor methods
+    methods (Access = protected) % Override ImageStackProcessor methods
 
         function onInitialization(obj)
         %onInitialization Custom code to run on initialization.
@@ -262,7 +262,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
         function addTwoPhotonSeriesToNwb(obj, name, twoPhotonSeries)
             
             if strcmp(obj.SemanticDataType, 'Acquired')
-            % Add the two photon series to the acquisiton group.
+            % Add the two photon series to the acquisition group.
                 name = sprintf('original_%s', name);
                 obj.NWBObject.acquisition.set(name, twoPhotonSeries);
 

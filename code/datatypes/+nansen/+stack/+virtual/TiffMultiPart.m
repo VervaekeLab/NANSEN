@@ -326,7 +326,7 @@ methods (Access = protected)
 end
 
 
-methods % Implementation of abstract methods for readin/writing
+methods % Implementation of abstract methods for reading/writing
     
     function data = readData(obj, subs)
     %readData Reads data from multipart tiff file

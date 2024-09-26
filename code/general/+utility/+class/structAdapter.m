@@ -26,8 +26,8 @@ classdef structAdapter < utility.class.nakedhandle & matlab.mixin.SetGet
 %       3) remove point 2 from list above. if there is no default property
 %       value, this class should just assume it is empty.
 
-% NB: Need to resolve the discrepency with using transient attribute in
-% parser and hidden attribut in toStruct.
+% NB: Need to resolve the discrepancy with using transient attribute in
+% parser and hidden attribute in toStruct.
 
     methods (Access = protected)
     

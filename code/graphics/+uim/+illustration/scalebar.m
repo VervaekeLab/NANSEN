@@ -109,7 +109,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             'Color', 'Location', 'FontName'};
     end
     
-    methods % Contructor/destructor
+    methods % Constructor/destructor
         
         function obj = scalebar(varargin)
         %SCALEBAR Construct an instance of this class

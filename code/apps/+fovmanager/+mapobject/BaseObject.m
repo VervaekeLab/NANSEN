@@ -166,7 +166,7 @@ classdef (Abstract) BaseObject < handle
             for i = 1:numel(obj.guiHandle.Children)
 
                 if isa(obj.guiHandle.Children(i), 'matlab.graphics.primitive.Group') && ...
-                    strcmp(obj.guiHandle.Children(i).DisplayName, 'FoV') % do i need FoV test. shouldnt this be general?
+                    strcmp(obj.guiHandle.Children(i).DisplayName, 'FoV') % do i need FoV test. shouldn't this be general?
                     continue
                 
                 elseif isa(obj.guiHandle.Children(i), 'matlab.graphics.primitive.Text')
@@ -233,7 +233,7 @@ classdef (Abstract) BaseObject < handle
                 hAx = hParent.hAxes;
             end
 
-            % Create guiHandle. This is a hggroup thats should contain all
+            % Create guiHandle. This is a hggroup that's should contain all
             % handles that are part of this fovmanager.mapobject.BaseObject.
             obj.guiHandle = hggroup(hAx);
             

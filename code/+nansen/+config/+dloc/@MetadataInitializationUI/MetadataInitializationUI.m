@@ -501,7 +501,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.setFolderSelectionItems()
             
             % Update values of subfolder dropdown based on the metadata
-            % defintions
+            % definitions
             M = thisDataLocation.MetaDataDef;
 
             % Update internal values from M

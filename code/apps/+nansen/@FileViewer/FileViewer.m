@@ -960,7 +960,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         end
         
         function onFileItemContextMenuSelected(obj, src)
-        %onFileItemContextMenuSelected Callback for contect menu items
+        %onFileItemContextMenuSelected Callback for context menu items
         
             nodeHandle = obj.CurrentNode;
             

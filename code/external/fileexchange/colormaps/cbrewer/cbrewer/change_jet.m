@@ -24,7 +24,7 @@ RGBp=[Rp;Gp;Bp];
 % Project the RGB values on your new basis
 newjet = jet*RGBp;
 
-% store data in a strcuture, easier to handle
+% store data in a structure, easier to handle
 cmap.jet=jet;
 cmap.newjet=newjet;
 cnames={'jet', 'newjet'};

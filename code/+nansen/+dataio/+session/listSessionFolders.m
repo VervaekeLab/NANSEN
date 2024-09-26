@@ -14,7 +14,7 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
 %       dataLocationName (char)    : Name of data location type. This can
 %           be a character vector or a cell array of character vectors. Use
 %           this option to list session folders for a subset of Data
-%           Locations. The default value is 'all' for which all avaliable
+%           Locations. The default value is 'all' for which all available
 %           data locations are used.
 %
 %   Outputs: 

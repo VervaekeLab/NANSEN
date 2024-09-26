@@ -17,7 +17,7 @@ function [P, V] = getDffParameters()
 
 
 
-% DESRIPTION:
+% DESCRIPTION:
 %   Change these parameters to change the behavior of the deconvolution
 %   method.
 

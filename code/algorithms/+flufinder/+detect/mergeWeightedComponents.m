@@ -2,7 +2,7 @@ function [newComponents, summary] = mergeWeightedComponents(imageSize, S, vararg
 
 % This is based on the function findUniqueRoisFromComponents, but the
 % difference being that this function works on already detected weights
-% spatial weigths, whereas the other works on tentative binary masks.
+% spatial weights, whereas the other works on tentative binary masks.
 
     assert( all( isfield(S(1), {'Centroid', 'EquivDiameter', 'PixelIdxList', 'PixelValues'}) ), ...
         'S must have the following fields: Centroid, PixelIdxList, PixelValues' )

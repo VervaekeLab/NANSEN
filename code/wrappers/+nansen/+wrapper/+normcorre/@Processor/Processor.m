@@ -243,7 +243,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % todo: get from options
             obj.StackIterator.PrimaryChannel = obj.ChannelToCorrect;
             
-            % Start parallell pool
+            % Start parallel pool
             % gcp();%parpool()
         end
         

@@ -10,7 +10,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %   
 %       Types of variables that are supported:
 %           chars  -> text edit control
-%           numbers -> numeric edit contol
+%           numbers -> numeric edit control
 %           logicals -> tickbox
 %   
 %       The control generated for a field can be customized using a field
@@ -61,7 +61,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %           validation function to test that the entered value is valid.
 %       [ ] Implement transient fields
 %           Q: 1) How are these updated? Is there any way of making that
-%           simple, or not? True/false, enable/diable... 
+%           simple, or not? True/false, enable/disable... 
 %              2) Make data models?
 %      *[x] Make a struct with the same fields as the input struct
 %           containing the controls. Will be much easier to find things 
@@ -87,7 +87,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %   Minor things to look into:
 %       [ ] Resize figure width after creation if some text labels do not fit
 %       [ ] Make sure long titles does not extend to save and cancel buttons.
-%       [ ] Browse button is assymmetric
+%       [ ] Browse button is asymmetric
 %       [ ] Tickbox update can be very slow when pressing it to tick it. Try it
 %           in fovmanager for example. Think this was fixed at some point 
 %       [ ] uicontrolSchemer might not be deleted. The objectBeingdestroyed
@@ -1789,7 +1789,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                                 'Units', 'pixel', config.args{:}, 'Value', val, ...
                                 'TextColor', obj.Theme.FigureFgColor, 'Padding', [0,9,3,9]);
                             ycorr = -3;
-                            % padding is 3pix assymmetric... i think
+                            % padding is 3pix asymmetric... i think
                             % because of the way other uicontrols are positioned.
 % %                             
 % %                         case 'rangeslider'
@@ -2314,7 +2314,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
             oldValue = obj.dataEdit{obj.currentPanel}.(name);
             
-            % Todo: Keep incase we change data from cellarray of structs to
+            % Todo: Keep in case we change data from cellarray of structs to
             % nested structs.
             %subs = obj.getSubfieldSubs(name);
             %oldValue = subsref(obj.dataEdit{obj.currentPanel}, subs)

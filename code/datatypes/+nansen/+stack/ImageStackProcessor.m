@@ -1,4 +1,4 @@
-classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Heterogenous  
+classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Heterogeneous  
 %NANSEN.STACK.IMAGESTACKPROCESSOR Super class for image stack method.
 %
 %   This is a super class for methods that will run on an ImageStack
@@ -34,7 +34,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
     
 %  A feature that can be developed: Use for processing different 
 %  methods on each part, similar to mapreduce... Requires:
-%       - Inherit from matlab.mixin.Heterogenous
+%       - Inherit from matlab.mixin.Heterogeneous
 %       - A loop within runMethod to loop over an array of class objects
 %       - A method to make sure the sourceStack of all objs are the same
 
@@ -63,7 +63,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 %     [ ] IF method is resumed, use old options and prohibit editing of 
 %         options.
 %
-%     [v] Make option for reseting results before running. I.e when you
+%     [v] Make option for resetting results before running. I.e when you
 %         want to rerun the method and overwrite previous results.
 %         Implemented on superclass DataMethod.
 %
@@ -109,7 +109,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
     properties % User preferences
         %IsSubProcess = false        % Flag to indicate if this is a subprocess of another process (determines display output)
         PreprocessDataOnLoad = false; % Flag for whether to activate image stack data preprocessing...
-        PartsToProcess = 'all'      % Parts to processs. Manually assign to process a subset of parts
+        PartsToProcess = 'all'      % Parts to process. Manually assign to process a subset of parts
         RedoProcessedParts = false  % Flag to use if processing should be done again on already processed parts
         SaveFinalResults = true
     end
@@ -199,7 +199,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
         %   Parameters:
         %       DataIoModel : An instance of a DataIoModel class
 
-        %   Not documented yet: The first input can alo be a DataIoModel
+        %   Not documented yet: The first input can also be a DataIoModel
         
             if numel(varargin) == 0
                 dataLocation = struct.empty;
@@ -664,7 +664,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 %                     'AdditionalPaths', dependentPaths);
             % Note: The problem with letting batch "inherit" the savepath
             % of matlab is that it can be very slow if the savepath
-            % conatins a lot of files (especially if git repos are part of
+            % contains a lot of files (especially if git repos are part of
             % it).
             
             job.Tag = jobDescription;

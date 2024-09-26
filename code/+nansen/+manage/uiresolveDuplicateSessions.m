@@ -7,8 +7,8 @@ function [sessionArray, wasCanceled] = uiresolveDuplicateSessions(sessionArray, 
     
     % Find duplicate sessions:
     [uniqueSessionIDs, ~, ind] = unique(allSessionIDs);
-    occurance = histcounts( ind, max(ind) );
-    duplicateSessionIDs = uniqueSessionIDs(occurance>1);
+    occurrence = histcounts( ind, max(ind) );
+    duplicateSessionIDs = uniqueSessionIDs(occurrence>1);
      
     isDuplicate = contains(allSessionIDs, duplicateSessionIDs);
 

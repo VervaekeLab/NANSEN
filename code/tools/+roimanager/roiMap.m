@@ -3,7 +3,7 @@ classdef roiMap < roimanager.roiDisplay
 
     % Todo:
     %  *[ ] Have access to signal extraction settings from roimanager.
-    %   [ ] Can I find another way than adding userdata everytime a roi is
+    %   [ ] Can I find another way than adding userdata every time a roi is
     %       created or modified....???
     %   [ ] Rename to roiFovMap?
     %   [ ] When roi is created, should it be up to roigroup to select it

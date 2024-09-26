@@ -97,7 +97,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
 
             
             obj.UITable.Position = [obj.Margins(1:2), ...
-                totalWidth, y(1) - sum(obj.Margins([2,4])) - 10]; % Substract 10 to not interfere with button tooltips...Yeah, i know...
+                totalWidth, y(1) - sum(obj.Margins([2,4])) - 10]; % Subtract 10 to not interfere with button tooltips...Yeah, i know...
             
             
             [~, colWidth] = uim.utility.layout.subdividePosition(1, ...
@@ -274,7 +274,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
         
         function onMouseRightClickedInTable(obj, src, evt)
             
-            % Get row where mouse press ocurred.
+            % Get row where mouse press occurred.
             row = evt.Cell(1);
 
             % Select row where mouse is pressed if it is not already
@@ -287,7 +287,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             xScroll = obj.UITable.JScrollPane.getHorizontalScrollBar().getValue();
             yScroll = obj.UITable.JScrollPane.getVerticalScrollBar().getValue();
 
-            % Get position where mouseclick occured (in figure)
+            % Get position where mouseclick occurred (in figure)
             clickPosX = evt.Position(1) - xScroll;
             clickPosY = evt.Position(2) - yScroll;
 

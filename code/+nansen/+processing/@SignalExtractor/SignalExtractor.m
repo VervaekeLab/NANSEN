@@ -224,7 +224,7 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
         end
 
         function assignSignalExtractionFcn(obj, iZ, iC)
-        %assignSignalExtractionFcn Assign signal extration function 
+        %assignSignalExtractionFcn Assign signal extraction function 
         %
         %   Assign a signal extraction function per plane and channel. The
         %   signal extraction function depends on how many rois are present

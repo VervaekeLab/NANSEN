@@ -22,7 +22,7 @@ classdef roiGroup < handle
 
 
 %   Todo: 
-%       [ ] Better solution to visible rois. Specifically: Now, everytime a
+%       [ ] Better solution to visible rois. Specifically: Now, every time a
 %           roi is added or removed the filtering for visible rois is reset.
 %       [ ] Add channel number and plane number as arguments that can be
 %           passed on construction
@@ -406,7 +406,7 @@ classdef roiGroup < handle
         %   selectionMode : what "type" of roi to select next. Can be:
         %       - 'with same classification'
         %       - 'Next unclassified roi'
-        %       - 'Closest' (euclidian distance)
+        %       - 'Closest' (euclidean distance)
         %       - 'None'
         
             if nargin < 3 || isempty(direction)
@@ -490,7 +490,7 @@ classdef roiGroup < handle
         % INPUTS:
         %   oldSelection : indices of rois that were selected before.
         %   newSelection : indices of rois that are newly selected.
-        %   origin       : the class/interface that origninated this call
+        %   origin       : the class/interface that originated this call
         
             if nargin < 4; origin = []; end
             
@@ -611,7 +611,7 @@ classdef roiGroup < handle
             
             % For simplicity, just notify that all rois are updated and do a 
             % relink. Relations are plotted on children references, but if
-            % parent has been readded, this needs to be updated on children
+            % parent has been re-added, this needs to be updated on children
             % that are already existing. Therefore, the relink, which will
             % flush and update all relations. 
             evtDataCls = @roimanager.eventdata.RoiGroupChanged;

@@ -2195,7 +2195,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 
                 if strcmp(isOnAxis, 'y') || strcmp(isOnAxis, 'x')
                     % This listener is necessary to make sure axis drag is
-                    % released when button is released, als in dashboards
+                    % released when button is released, also in dashboards
                     % where the mouse release might happen outside the
                     % current app.
                     obj.AxisDragReleaseListener = listener(obj.Figure, ...

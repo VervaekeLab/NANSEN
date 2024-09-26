@@ -265,7 +265,7 @@ classdef (Abstract) UserSettings < uim.handle
         end
         
         function changeSettings(obj, name, value)
-        % Public access to on settings changed... Not sure whats the point
+        % Public access to on settings changed... Not sure what's the point
         % of keeping onSettingsChanged protected.
         %
         % Q: This would be similar setting the settings directly, no?
@@ -462,7 +462,7 @@ classdef (Abstract) UserSettings < uim.handle
         %   Check if there are settings which are not loaded from file, e.g
         %   if class/settings definition was updated.
         
-        % Todo: Shouldnt this be a protected method?
+        % Todo: Shouldn't this be a protected method?
         
             % Initialize settings from default settings and update values
             % for all fields that are present in the loaded settings.

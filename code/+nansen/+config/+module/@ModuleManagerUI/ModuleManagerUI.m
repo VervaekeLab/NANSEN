@@ -31,7 +31,7 @@ classdef ModuleManagerUI < handle
         ToolbarButtonBackgroundColor = [0.94,0.94,0.94]
     end
     
-    properties (Access = private) % Component appeareance
+    properties (Access = private) % Component appearance
         ToolbarButtons matlab.ui.control.Button
         GridLayout matlab.ui.container.GridLayout
         HeaderGridLayout matlab.ui.container.GridLayout

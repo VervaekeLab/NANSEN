@@ -54,7 +54,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 'FileType', '', ...             % File type of variable
                 'FileAdapter', '', ...          % File adapter to use for loading and saving variable
                 'DataType', '', ...             % Datatype of variable: Will depend on file adapter
-                'Alias', '', ...                % alias or "nickname" for varibles
+                'Alias', '', ...                % alias or "nickname" for variables
                 'GroupName', '', ...            % Placeholder...
                 'IsCustom', false, ...          % Is variable custom, i.e user made?
                 'IsInternal', false, ...        % Flag for internal variables

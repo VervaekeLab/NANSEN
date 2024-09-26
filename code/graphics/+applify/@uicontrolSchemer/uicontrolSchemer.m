@@ -638,7 +638,7 @@ classdef uicontrolSchemer < handle
 
 
                 % Need a callback for when ancestor is resized, because
-                % on windows the button appearance resets everytime the
+                % on windows the button appearance resets every time the
                 % ancestor is resized
                 jControl = handle(jControl, 'CallbackProperties');
 
@@ -693,7 +693,7 @@ classdef uicontrolSchemer < handle
     methods (Access = private) % Individual component callbacks
 
         function gainFocus(obj, hControl, hS)
-        % Change appeareance when uicontrol is in focus
+        % Change appearance when uicontrol is in focus
             if ~isvalid(hControl); return; end
             
             switch hControl.Style

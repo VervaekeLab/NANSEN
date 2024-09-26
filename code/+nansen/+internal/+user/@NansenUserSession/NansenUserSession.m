@@ -15,7 +15,7 @@ classdef NansenUserSession < handle
 %       UserSession instance.
 
 %   This class provides a singleton instance containing the following
-%   componenets: 
+%   components: 
 %       - Preferences
 %       - ProjectManager
 %       - AddonManager

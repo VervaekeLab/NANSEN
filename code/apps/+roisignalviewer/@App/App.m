@@ -47,7 +47,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 %
 %       [ ] HOW DO I ORGANIZE PLOT HANDLES???
 %           - I want to plot signal type by signaltype. That means, for
-%           each signal type i will plot one ore more signals in a go.
+%           each signal type i will plot one or more signals in a go.
 %           - The number of plots for each signal type should always be the
 %           same
 %           -  The number of lines might increase or decrease. Is this
@@ -214,7 +214,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             
             validNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
             isValid = all(contains(newValue, validNames));
-            assert(isValid, 'One or more singal names are not valid.')
+            assert(isValid, 'One or more signal names are not valid.')
             
             if ischar(newValue)
                 newValue = {newValue};
@@ -1156,7 +1156,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
         
         function toggleDisplayMode(obj, src, mode)
             
-            if src.Checked % Todo: shoud work for older matlabs..
+            if src.Checked % Todo: should work for older matlabs..
                 obj.DisplayMode = 'normal';
             else
                 obj.DisplayMode = 'stacked';
@@ -1214,7 +1214,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 %                 eventData = uim.event.ToggleEvent(0);
 %                 hButton.toggleState([], eventData)
 
-                % Todo: Callbacks hould be called from inside button...
+                % Todo: Callbacks should be called from inside button...
                 hButton.Value = false;
                 obj.toggleSignalSelectionDropdown(hButton)
                 

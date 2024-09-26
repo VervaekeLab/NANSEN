@@ -8,7 +8,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 % properties and methods are accounted for, there could be issues if
 % subclassing this class and implementing protected properties. Long story
 % short, protected properties would not be protected in this case.
-% Another issue if trying something like {sessionData.RoiArray.area}, wont
+% Another issue if trying something like {sessionData.RoiArray.area}, won't
 % work, so assign roiArray to another variable first
 
 % Note: This class is not yet well adapted non-scalar objects!

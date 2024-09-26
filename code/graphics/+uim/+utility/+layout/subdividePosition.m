@@ -12,7 +12,7 @@ function [pos, siz] = subdividePosition(posInit, lengthInit, componentLengths, s
 %   Input arguments:
 %       posInit          - The initial position (offset) to for calculating
 %                          positions (in pixels)
-%       lengthInit       - The available length for calculcating positions
+%       lengthInit       - The available length for calculating positions
 %                          (in pixels)
 %       componentLengths - The length specification for each component
 %                          Note: Units can be pixel or normalized. See 

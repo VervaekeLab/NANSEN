@@ -23,7 +23,7 @@ function [P, V] = getDeconvolutionParameters()
 %    [ ] Rename to caiman.deconvolution.parameters
 %    [ ] Rename to caiman.deconvolution.options
 
-% DESRIPTION:
+% DESCRIPTION:
 %   Change these parameters to change the behavior of the deconvolution
 %   method.
 

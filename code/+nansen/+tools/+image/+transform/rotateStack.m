@@ -3,7 +3,7 @@ function [ imStack ] = rotateStack( imStack, angles, crop, printmsg, method)
 %   [ IMSTACK ] = rotateStack( IMSTACK, ANGLES) rotates all images of
 %   IMSTACK according to angles in ANGLES. Number of images and angles must
 %   be the same. Returns rotated version of IMSTACK, in same dimensions,
-%   eg. images are rotated and cropped to yeild same size as input.
+%   eg. images are rotated and cropped to yield same size as input.
 %
 %   [ IMSTACK ] = rotateStack( IMSTACK, ANGLES, CROP) rotates images
 %   without cropping them if CROP is true. Output images are larger than 

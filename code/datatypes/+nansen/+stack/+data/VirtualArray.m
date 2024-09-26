@@ -574,7 +574,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 return
             end
                         
-            % If we got this far, we need to concatenate cached and unchached data
+            % If we got this far, we need to concatenate cached and uncached data
             data = cat(sampleDim, cachedData, uncachedData);
 
             % Reorder data to have same order as frameIndices

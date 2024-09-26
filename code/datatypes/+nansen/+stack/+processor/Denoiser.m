@@ -70,7 +70,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
 
     end
 
-    methods (Access = protected) % Overide ImageStackProcessor methods
+    methods (Access = protected) % Override ImageStackProcessor methods
         
         function onInitialization(obj)
         %onInitialization Custom code to run on initialization.

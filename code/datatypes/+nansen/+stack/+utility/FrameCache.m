@@ -63,7 +63,7 @@ classdef FrameCache < handle %< utility.class.StructAdapter
         CachedFrameIndices = []  % Indices of image frames that are present in the cache
         CachedFrameBoolMap = [] % Indices of image frames that are present in the cache
         
-        CacheIndices = 0;       % Rolling subset of indices where data is inserted into the chache
+        CacheIndices = 0;       % Rolling subset of indices where data is inserted into the cache
     end
     
     properties (Access = private)
@@ -213,7 +213,7 @@ classdef FrameCache < handle %< utility.class.StructAdapter
             
             % If this assertion fails, either the cache length has been set
             % to a number that does not match the data size (which should
-            % not happend), or this function is called before a valid cache
+            % not happen), or this function is called before a valid cache
             % length has been set, which should also not happen. So in
             % other words, if this fails, I have made a mistake somewhere..
             assert(mod(cacheSize(end), 1) == 0, ...
@@ -326,7 +326,7 @@ classdef FrameCache < handle %< utility.class.StructAdapter
                         % 
                         % A proposed fix is to be able to set the
                         % cache length without automatically trying to
-                        % adjust the size of tha data cache.
+                        % adjust the size of the data cache.
                         % Todo: Set cachelength without adjusting data..
                         obj.CacheLength = cacheLengthOld;
                     end

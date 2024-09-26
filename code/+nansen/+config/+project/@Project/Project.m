@@ -61,7 +61,7 @@ classdef Project < nansen.module.Module
     end
 
     properties (Constant, Access = private)
-        % QTodo: Should this be retreived from a constant or from module 
+        % QTodo: Should this be retrieved from a constant or from module 
         % manager/preferences? 
         RequiredModuleName = nansen.common.constant.BaseModuleName;
     end
@@ -197,7 +197,7 @@ classdef Project < nansen.module.Module
                 relFilePath = cat(1, relFilePath, relFilePath_);
             end
 
-            % Only keep unique files based on relative paths. Occurence is
+            % Only keep unique files based on relative paths. Occurrence is
             % set to 'first', so that project files have highest priority,
             % then optional modules and last base modules.
             [~, IND] = unique(relFilePath, 'first');

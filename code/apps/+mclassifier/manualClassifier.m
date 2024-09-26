@@ -1385,7 +1385,7 @@ methods % Mostly internal updating
             obj.classifyRoi(roiInd, newClsf)
         end
         
-        % Update the proprty containing the roi number of the last selected
+        % Update the property containing the roi number of the last selected
         % roi
         obj.lastSelectedItem = roiInd(end);
     end

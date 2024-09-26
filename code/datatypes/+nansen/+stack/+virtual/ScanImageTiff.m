@@ -528,7 +528,7 @@ methods (Static)
             case {'.tif', '.tiff'}
                 
                 if isfile(pathStr)
-                    % Get tiff info, but supress a common warning
+                    % Get tiff info, but suppress a common warning
                     warning('off', 'imageio:tiffmexutils:libtiffWarning')
                     imInfo = Tiff(pathStr);
                     warning('on', 'imageio:tiffmexutils:libtiffWarning')

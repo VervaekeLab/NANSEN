@@ -21,7 +21,7 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
 %           1) The image is reshaped from a cartesian image to a polar 
 %           image, i.e the first dimension of the new image is the radius 
 %           from the center of the image, and the second dimension is the 
-%           angle fo a radial line originating from the image center.
+%           angle for a radial line originating from the image center.
 %           2) The gradient is computed along the radial dimension and the
 %           peak gradient for each angle is selected as a boundary 
 %           candidate.
@@ -83,7 +83,7 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
     grad = diff(double(unrolled));
         
 
-    % Allocate array for roi masks and initalize struct for stats
+    % Allocate array for roi masks and initialize struct for stats
     mask = zeros([imSizeSmall(1:2), numImages], 'logical');
     
     if nargout == 2
@@ -218,7 +218,7 @@ function [edgeCoords, stat] = findEdge(grad, polarity)
     end
     
     % Find big jumps in coords
-    cunt = 0;
+    count = 0;
     while true
         
         if isempty(edgeCoords)
@@ -265,8 +265,8 @@ function [edgeCoords, stat] = findEdge(grad, polarity)
         end
 
         % Prevent looping into fields of eternity.
-        cunt = cunt+1;
-        if cunt > size(grad,2)
+        count = count+1;
+        if count > size(grad,2)
             break
         end
         

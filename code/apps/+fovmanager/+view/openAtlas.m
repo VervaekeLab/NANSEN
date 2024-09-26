@@ -4,7 +4,7 @@ function hFigure = openAtlas(varargin)
 %   hFigure = fovmanager.view.openAtlas() opens the figure and returns the
 %   figure handle
 
-%   Todo: add saggital maps. 
+%   Todo: add saggittal maps. 
 %   Add lambda and bregma
 %
 

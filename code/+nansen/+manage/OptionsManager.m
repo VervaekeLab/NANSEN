@@ -672,7 +672,7 @@ classdef OptionsManager < handle
             idx = find( strcmp(loadedOptionsNames, name) );  
 
             if isempty(idx)
-                error('No options set found mathing the name "%s"', name)
+                error('No options set found matching the name "%s"', name)
             end
             
             assertMsg = 'The options to remove must be a custom options set';
@@ -700,7 +700,7 @@ classdef OptionsManager < handle
         %   functions/methods with those updated presets may produce 
         %   different end results, than running the same function methods
         %   with original functions/methods. So if earlier data is analysed
-        %   with older preset definintion and current data is analysed with
+        %   with older preset definition and current data is analysed with
         %   newer preset definitions, results might not be consistent.
         
             error('This method is not implemented yet.')
@@ -1029,7 +1029,7 @@ classdef OptionsManager < handle
                 return
             elseif numel(s) > 1
                 warning('Multiple instances of function "%s" was found on the path.', obj.FunctionName)
-                % Note: If this happens when running a job on a parallell
+                % Note: If this happens when running a job on a parallel
                 % pool of workers, it might be necessary to reset the
                 % pool(?) by deleting it from Matlab's Job Monitor...
                 % (Restarting matlab did not fix it for me)
@@ -1140,7 +1140,7 @@ classdef OptionsManager < handle
             % Format preset names
             names(isPreset) = obj.formatPresetNames(names(isPreset));
             
-            % Format prefered name.
+            % Format preferred name.
             names(isPreferred) = obj.formatDefaultName(names(isPreferred));
             
         end

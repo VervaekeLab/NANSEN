@@ -367,7 +367,7 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
                 
                 remainingLength = availableLength - sum(lengthPix);
                 
-                % Distribute remaning for panels specified in normalized
+                % Distribute remaining for panels specified in normalized
                 % units
                 lengthPix(~isPixelSize) = sizeSpecs(~isPixelSize) .* remainingLength;
             end

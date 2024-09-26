@@ -79,7 +79,7 @@ classdef Control < uim.abstract.Component
             pointerBehavior.exitFcn     = @obj.onMouseExited;
             pointerBehavior.traverseFcn = [];%@obj.moving;
             
-            try % Use try/catch because this reqiures image processing toolbox.
+            try % Use try/catch because this requires image processing toolbox.
                 iptPointerManager(ancestor(obj.hBackground, 'figure'));
                 iptSetPointerBehavior(obj.hBackground, pointerBehavior);
             catch

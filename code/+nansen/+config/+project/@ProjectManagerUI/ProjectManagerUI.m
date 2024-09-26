@@ -531,7 +531,7 @@ classdef ProjectManagerUI < handle
         %getNameFromRowIndex Get name of project from row index    
             
             try
-                name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 2};    % Name colum index = 2
+                name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 2};    % Name column index = 2
                 if iscell(name)
                     name = name{1};
                 end
@@ -560,7 +560,7 @@ classdef ProjectManagerUI < handle
             
             currentRootFolder = fileparts(currentProjectPath);
 
-            % Call function thats asks user to interactively select a new folder
+            % Call function that's asks user to interactively select a new folder
             newFolder = uisetProjectFolder(currentRootFolder, projectShortName);
 
             % Bring ui figure back into focus.
@@ -624,7 +624,7 @@ classdef ProjectManagerUI < handle
             obj.UIControls.ProjectPathInput.Tooltip = obj.UIControls.ProjectPathInput.Value;
         end
 
-        % Tab selection chaged function: TabGroupSelectionChanged
+        % Tab selection changed function: TabGroupSelectionChanged
         function TabGroupSelectionChanged(obj, ~, event)
             
             switch event.NewValue.Title

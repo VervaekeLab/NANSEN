@@ -136,7 +136,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             C = onCleanup(@obj.enableTable);
             
             % Important:  Change roi selection to first element in list
-            % which is slected. Then, after rois are removed, "next" row in
+            % which is selected. Then, after rois are removed, "next" row in
             % table is selected
             obj.RoiGroup.changeRoiSelection([], roiIdxToRemove(1))
             

@@ -157,7 +157,7 @@ classdef searchAutoCompleteInputDlg < handle
                     obj.jComboBox.showPopup;                    
                     set(obj.jSearchField, 'ScrollOffset', 1)
 
-                % If the cancle button is clicked, reset the dropdown list
+                % If the cancel button is clicked, reset the dropdown list
                 % of selections, but do not show the dropdown (popup)
                 case 'cancelButton'
                     obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.listOfChoices));

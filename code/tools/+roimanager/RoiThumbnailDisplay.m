@@ -338,7 +338,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             roiBoundary = fliplr(roiObj.boundary{1}); % yx -> xy
             %roiBoundary = (roiBoundary - ul + [1,1]) * usFactor;
             roiBoundary = (roiBoundary - ul + [1,1]) * usFactor - [0.5, 0.5];
-            % Todo: Whats the correct pixel offset? Does it depend on
+            % Todo: What's the correct pixel offset? Does it depend on
             % magnification factor?
 
             

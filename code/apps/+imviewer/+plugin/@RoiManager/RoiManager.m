@@ -15,7 +15,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         % Implement settings.
         %
         %   [ ] Consider whether to add the RoiGroupFileIoAppMixin to a
-        %   property instead. Startegy pattern might be better than
+        %   property instead. Strategy pattern might be better than
         %   inheritance here, because if a session object is added to
         %   roimanager, we want to save to "data variables" instead of
         %   files (and this functionality could have it's own class).
@@ -1323,7 +1323,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             
             %hToolbar.onVisibleChanged()
             % Call this explicitly, 
-            % incase toolbar visibility was already off. Todo, find
+            % in case toolbar visibility was already off. Todo, find
             % different solution. E.g., toolbar/widget could have dirty
             % property...
         end

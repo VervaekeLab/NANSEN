@@ -12,7 +12,7 @@ function imArray = preprocessImages(imArray, varargin)
 %                             static image for for bg subtraction.
 
     params = struct();
-    params.BinningMethod = 'maximum';          % Method for fram binning. Alternatives: 'maximum' (default) or 'average' (not implemented)
+    params.BinningMethod = 'maximum';          % Method for frame binning. Alternatives: 'maximum' (default) or 'average' (not implemented)
     params.BinningSize = 5;
     params.SpatialFilterType = 'gaussian'; % Not implemented
     params.SmoothingSigma = 20; % Todo: Depend on roisize?

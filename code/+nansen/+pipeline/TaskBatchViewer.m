@@ -7,7 +7,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             
             columnsToDisplay = {'SessionID', 'TaskName', 'OptionsName', 'Comment'};
             
-            % Put tasklist in a struct to mimick a pipeline item
+            % Put tasklist in a struct to mimic a pipeline item
             pipelineStruct = struct();
             pipelineStruct.TaskList = taskList;
             

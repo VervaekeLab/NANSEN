@@ -205,7 +205,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         %
         %   The buttons accompanying the edit field for the root directory
         %   path depends on the component type for editing the root
-        %   directoty path values. If the component is an editfield, a
+        %   directory path values. If the component is an editfield, a
         %   single browse button is created, whereas if the component is a
         %   uidropdown, a buttongroup containing three buttons is created.
         %

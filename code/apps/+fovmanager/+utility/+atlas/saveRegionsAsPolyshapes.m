@@ -8,7 +8,7 @@ polyShape = {hPoly.Shape};
 colors = {hPoly.FaceColor};
 tags = {hPoly.Tag};
 
-% Go through polyshapes and set simplfy to false to avoid calling 
+% Go through polyshapes and set simplify to false to avoid calling 
 % check and simplify on loading and plotting of polyshapes
 for i = 1:numel(polyShape)
     p1 = polyShape{i};

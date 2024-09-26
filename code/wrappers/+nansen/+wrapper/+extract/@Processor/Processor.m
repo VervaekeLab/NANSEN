@@ -319,7 +319,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             roiImages = obj.RoiImages{iZ, iC};
             numRois = numel(roiArray);            
 
-            % Get spatial weigths as uin8 roi thumbnail images.
+            % Get spatial weights as uin8 roi thumbnail images.
             imArray = nansen.wrapper.extract.util.convertSpatialWeightsToThumbnails(...
                 roiArray, spatialWeights);
 

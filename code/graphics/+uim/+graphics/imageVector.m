@@ -115,7 +115,7 @@ classdef imageVector < handle
                           
             for i = 1:numel(polyShape)
                 p1 = polyShape{i};
-                p2 = polyshape(p1.Vertices, 'Simplify', false); % Set simplfy to false to avoid calling check and simplify on creation
+                p2 = polyshape(p1.Vertices, 'Simplify', false); % Set simplify to false to avoid calling check and simplify on creation
                 polyShape{i} = p2;
             end
             

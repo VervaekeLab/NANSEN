@@ -11,7 +11,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
 
 % Add displaymessage when adding sessions...
 % Should the add session be a method of the gui??? 
-% yes and no... Benefit of having it on the Fov is that it automatcally
+% yes and no... Benefit of having it on the Fov is that it automatically
 % ends up in the right fov.... But anyway, the fov has to be selected, and
 % that happens in the gui....
 
@@ -155,7 +155,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 infoText = sprintf('%snRois: %d', infoText, round(mean(obj.nRois)));
             end
             
-            if ~isempty(infoText) && isequal(double(infoText(end)), 10) % 10 is the newline charater
+            if ~isempty(infoText) && isequal(double(infoText(end)), 10) % 10 is the newline character
                 infoText = infoText(1:end-1);
             end
             

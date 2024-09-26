@@ -40,7 +40,7 @@ function [P, V] = getDefaultParameters()
     P.excludeRoiFromNeuropil    = true;                 % Exclude pixels belonging to rois when determining neuropil regions
     P.neuropilExpansionFactor   = 4;                    % Factor that determines how large neuropil regions are relative to rois.
     P.cellNeuropilSeparation    = 0;                    % "Safe zone" between a roi and a neuropil region (in pixels)
-    P.numNeuropilSlices         = 1;                    % Number of neuropil slices to split each neuropil reigon in. Default = 1
+    P.numNeuropilSlices         = 1;                    % Number of neuropil slices to split each neuropil region in. Default = 1
     P.maxNeuropilRadius         = 50;                   % Maximum radius of neuropil region.
     P.roiMaskFormat             = 'struct';             % Format to use when rois are prepared for signal extraction. Alternatives: 'sparse' | 'struct'. (Should be internal...)
     P.extractFcn                = [];                   % Function handle for function to use for extraction (If using different than inbuilt) (Should be internal..?)

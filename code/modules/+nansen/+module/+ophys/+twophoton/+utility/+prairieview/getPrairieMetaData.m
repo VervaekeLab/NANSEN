@@ -23,7 +23,7 @@ function [ metadata ] = getPrairieMetaData( tSeriesPath, metadata )
 %       - zoomFactor    :   zoomfactor during the recording
 %       - pmtCh2        :   Voltage gain on PMT2
 %       - pmtCh3        :   Voltage gain on PMT3
-%       - zPosition     :   relative z position of microscope during data acquistion
+%       - zPosition     :   relative z position of microscope during data acquisition
 %       - umPerPx_x     :   um per pixel conversion factor along x axis
 %       - umPerPx_y     :   um per pixel conversion factor along y axis
 %       - nCh           :   number of channels acquired

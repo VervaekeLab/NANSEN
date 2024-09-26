@@ -662,7 +662,7 @@ classdef MetaTable < handle
                         if contains(ME.message, 'rgb2hsv')
                             warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
                         else
-                            warning('Failed to format data for display for table colum "%s"', jColumnName)
+                            warning('Failed to format data for display for table column "%s"', jColumnName)
                             disp(getReport(ME))
                         end
                         formattedValue = repmat({''}, numRows, 1);
@@ -1041,7 +1041,7 @@ classdef MetaTable < handle
         end
         
         
-% % % % Methods for synching a dummy MetaTable with a master MetaTable.
+% % % % Methods for syncing a dummy MetaTable with a master MetaTable.
         
         function linkToMaster(obj)
         %linkToMaster Link a dummy MetaTable to a master MetaTable

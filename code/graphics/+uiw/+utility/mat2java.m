@@ -58,7 +58,7 @@ switch class(mData)
     
     case 'cell'
         
-        % Requres recursion in each cell
+        % Requires recursion in each cell
         jData = cell(size(mData));
         for idx=1:numel(mData)
             if ~isempty(mData{idx}) %added by EH - 2022-03-03 (Otherwise, would fail if cell is empty...)

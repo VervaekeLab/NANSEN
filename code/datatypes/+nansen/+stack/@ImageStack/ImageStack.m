@@ -272,7 +272,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %   of CurrentChannel and CurrentPlane. I.e: If CurrentChannel is
         %   set to 1, and the data contains 3 channels, only data from the
         %   first channel is retrieved, even if more channelIndices are
-        %   specifiec in inputs. To override this behavior, index the Data 
+        %   specific in inputs. To override this behavior, index the Data 
         %   property instead.
         %
         %   Note: If the length of any of the frame dimensions (channel /
@@ -485,7 +485,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function insertImage(obj, newImage, insertInd, dim)
             
-            %error('Down for maintentance...')
+            %error('Down for maintenance...')
             
             if obj.IsVirtual
                 error('Can not insert image into virtual data stack')
@@ -759,7 +759,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 return 
             end
             
-            global fprintf % Use highjacked fprintf if available
+            global fprintf % Use hijacked fprintf if available
             if isempty(fprintf); fprintf = str2func('fprintf'); end
                        
             fprintf(sprintf('Calculating %s projection...\n', projectionName))

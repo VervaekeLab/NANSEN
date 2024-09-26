@@ -12,7 +12,7 @@ function stats = dffprops(dff, varargin)
 %   
 %   OUTPUT: stats is a struct containing the following fields:
 %       DffPeak          : Peak dff of the roi time series. 
-%       DffSkewness      : How assymmetric is the distribution of the signal
+%       DffSkewness      : How asymmetric is the distribution of the signal
 %                          around the mean? Positive values for right tail
 %       DffSnr           : Signal to noise ratio of dff
 %       DffSnrStd
@@ -107,7 +107,7 @@ function sn = GetSn(Y, range_ff, method)
 %   sn: scalar, std of the noise
 
 %% Authors: Pengcheng Zhou, Carnegie Mellon University, 2016
-% adapted from the MATLAB implemention by Eftychios Pnevmatikakis and the
+% adapted from the MATLAB implementation by Eftychios Pnevmatikakis and the
 % Python implementation from Johannes Friedrich
 
 %% References

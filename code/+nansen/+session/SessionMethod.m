@@ -183,7 +183,7 @@ classdef SessionMethod < nansen.processing.DataMethod
     
     methods % Set/get methods
 %         function names = get.PresetOptionNames(obj)
-%             % Todo: This should not be a proprty of this class.
+%             % Todo: This should not be a property of this class.
 %             names = obj.OptionsManager.listPresetOptions();
 %         end
     end

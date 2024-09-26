@@ -12,7 +12,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
 %   Todo:
 %       [ ] Implement methods for saving processing/analysis results to
 %           multiple times based on timestamping... New data location type:
-%           "Analyzed", where everytime a variable is saved, it is saved with
+%           "Analyzed", where every time a variable is saved, it is saved with
 %           a timestamp.
 %       [ ] Spin off loadData/saveData to a separate class (superclass)
 %       [ ] Implement save method... If changes are made, they need to be
@@ -51,7 +51,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         Description char    % A description of the session
 
         DataLocation struct % Where is session data stored % todo: setaccess should be private
-        Progress struct     % Whats the pipeline status / progress
+        Progress struct     % What's the pipeline status / progress
     end
     
     properties (Constant, Hidden)
@@ -62,7 +62,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         DataLocationModel
         VariableModel
         % Note: can not be transient because it does not get passed to a
-        % worker in a parallell pool.
+        % worker in a parallel pool.
         % Todo: Immutable setacces.. Will this work? If using
         % assignPVPairs, the property is not set in  the constructor:/ Need
         % to adapt constructor, to retrieve datalocationmodel from pvpairs
@@ -522,7 +522,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             elseif sum(isMatch) == 1
                 pathString = rootPath{isMatch};
             else 
-                warning('Multiple session folders mathed. Selected first one')
+                warning('Multiple session folders matched. Selected first one')
                 pathString = rootPath{find(isMatch, 1, 'first')};
             end
             

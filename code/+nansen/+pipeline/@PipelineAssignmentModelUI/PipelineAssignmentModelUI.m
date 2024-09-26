@@ -363,7 +363,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
         end
         
         function onVariableNameSelectionChanged(obj, src, ~)
-        %onVariableNameSelectionChanged Callback fro dropdown
+        %onVariableNameSelectionChanged Callback for dropdown
         
             rowNumber = obj.getComponentRowNumber(src);
             if strcmp( src.Value, 'Select variable name' )
@@ -410,7 +410,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
     methods % Methods for updating
         
         function createToolbar(obj, ~)
-        %createToolbar Create components of toolbar acompanying table
+        %createToolbar Create components of toolbar accompanying table
         
             import uim.utility.layout.subdividePosition
             hPanel = obj.Parent.Parent;

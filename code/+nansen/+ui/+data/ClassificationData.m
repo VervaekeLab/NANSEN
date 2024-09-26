@@ -120,7 +120,7 @@ classdef ClassificationData < handle
             error('Not implemented yet')
         end
 
-        function insertImages(obj, imageName, indicies, imageArray)
+        function insertImages(obj, imageName, indices, imageArray)
             error('Not implemented yet')
         end
         

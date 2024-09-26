@@ -49,7 +49,7 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
 
     end
 
-    methods (Access = protected) % Overide ImageStackProcessor methods
+    methods (Access = protected) % Override ImageStackProcessor methods
         function onInitialization(obj)
             
             % Create output filepath

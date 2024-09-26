@@ -213,7 +213,7 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
 % %                 colorDark = '2F76B5'; % 'FFC000'; %(yellow) - '70AD47' %(green);
 % %                 colorLight = 'DFEBF7'; % 'FFF3CC'; %(yellow) - 'C5E0B3' %(green);
 % % 
-% %             else % Hardocde all of them??? Details matter ffs!
+% %             else % Hardcode all of them??? Details matter ffs!
 
                 hsv = rgb2hsv(rgb./255);
 

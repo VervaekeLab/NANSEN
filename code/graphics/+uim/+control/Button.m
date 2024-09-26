@@ -11,7 +11,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
     % New a getPosition property.
     
     % % NB. Pickable parts of button background is visible, si if the
-    % backgroundalpha is set to 0, this interface wont work as intended
+    % backgroundalpha is set to 0, this interface won't work as intended
     % Implement onVisibleChanged.
     
     % Where did I implement a button which is released when mouse moves

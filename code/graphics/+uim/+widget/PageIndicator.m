@@ -34,7 +34,7 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
     methods
         
         function obj = PageIndicator(hParent, pageNames, varargin)
-        %PageIndicator Contruct instance of page indicator widget.    
+        %PageIndicator Construct instance of page indicator widget.    
             
             el = listener(hParent, 'SizeChanged', ...
                 @obj.onParentContainerSizeChanged);

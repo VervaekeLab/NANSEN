@@ -21,7 +21,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
 %           in the variable data. Some existing subclasses returns a memory
 %           mapped representation of the data, so in practice the data is 
 %           not actually loaded, but for simplicity of usage, the load
-%           method can present the user with both in-memory and with virtal
+%           method can present the user with both in-memory and with virtual
 %           data.
 %
 %       The filadapter gives an object oriented strategy to load, modify 
@@ -33,7 +33,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
 %       fileAdapterObj.save(modifiedData)
 %
 %   Subclasses may implement a view method, which purpose is to open the
-%   data in a custom dislay or viewer.
+%   data in a custom display or viewer.
 %
 % ABSTRACT PROPERTIES:
 %   DataType             : Which data type does the file adapter return
@@ -429,7 +429,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             fileFilter = strcat('*.', obj.SUPPORTED_FILE_TYPES );
             if isrow(fileFilter); fileFilter = fileFilter'; end
             % Note: If file filter is a cell array, its N rows x 2 columns
-            % where the second colum is an optional description.
+            % where the second column is an optional description.
         end
         
         function str = getHeader(obj) % < matlab.mixin.CustomDisplay 

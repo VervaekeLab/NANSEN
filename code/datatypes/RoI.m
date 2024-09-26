@@ -88,7 +88,7 @@ methods
     function obj = RoI(shape, coordinates, imSize)
         % RoI Constructor. Create a RoI object of specified shape.
         %   roi = RoI(SHAPE, COORDINATES, IMSIZE) creates a RoI object of
-        %   specifed SHAPE based on COORDINATES. IMSIZE is the size of
+        %   specified SHAPE based on COORDINATES. IMSIZE is the size of
         %   the image where the roi is created, in nRows, nCols
         %
         %   SHAPE (str): 'Polygon' | 'Circle' | 'Mask'
@@ -821,7 +821,7 @@ methods
                 continue
             end
             
-            % First time intialization
+            % First time initialization
             if isempty(obj(i).imagesize)
                 obj(i).imagesize = imageSize; 
                 return
@@ -1504,7 +1504,7 @@ methods(Static)
             % Fix mistake of setting boundary to empty if roi is outside of
             % the image. Also, make sure boundary is only one cell. Updated
             % version of setBoundaries concatenates all boundaries with
-            % nans inbetween.
+            % nans in between.
             if isempty(obj.boundary) || numel(obj.boundary) > 1
                 obj = obj.setBoundaries();
             end

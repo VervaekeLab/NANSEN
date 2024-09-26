@@ -206,7 +206,7 @@ classdef BatchProcessorUI < handle
         end
         
         function [hTable, taskList] = getTableRefs(obj, tableType)
-        %getTableRefs Get uitable handle and task list for gien tabletype   
+        %getTableRefs Get uitable handle and task list for given tabletype   
             switch tableType
                 case 'queue'
                     hTable = obj.UITableQueue;
@@ -285,7 +285,7 @@ classdef BatchProcessorUI < handle
         function appendTaskToQueueTable(obj, ~, evt)
         %appendTaskToQueueTable
             
-            % Select the following fields fram the task struct for
+            % Select the following fields from the task struct for
             % displaying in the uitable queue viewer
             
             S = evt.Task;

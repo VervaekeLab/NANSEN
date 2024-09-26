@@ -401,7 +401,7 @@ classdef SessionTaskMenu < handle
         %storeMenuObject Store the menuobject in class properties
         %
         %   The menu item and the session task attributes are stored in
-        %   parallell, so they should always match one to one.
+        %   parallel, so they should always match one to one.
         
             numItems = numel(obj.hMenuItems) + 1;
 

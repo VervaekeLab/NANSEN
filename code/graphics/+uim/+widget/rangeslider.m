@@ -21,7 +21,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         TrackWidth = 2              % Width of the slider track
         TrackColor = ones(1,3)*0.75;
         KnobSize = 15
-        KnobMarkerStyle = 'round'   % Only round available shoud implement line/bar
+        KnobMarkerStyle = 'round'   % Only round available should implement line/bar
                
         % Todo: move to uim.style definition....
         KnobEdgeColorInactive = ones(1,3)*0.7;
@@ -398,7 +398,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         
     end
     
-    methods % Slider Interaction Callbaks
+    methods % Slider Interaction Callbacks
 
         function onSliderKnobPressed(obj, src, ~)
             

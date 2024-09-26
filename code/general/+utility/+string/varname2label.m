@@ -52,7 +52,7 @@ elseif iscapitalized(varname)
 elseif iscamelcase(varname)
     
     % Insert space after a uppercase letter preceded by a lowercase letter
-    % OR before a uppercase letter succeded by a lowercase letter
+    % OR before a uppercase letter succeeded by a lowercase letter
     % ie aB = 'a B' and AAb = A Ab
     
     expression = '((?<=[a-z])[A-Z])|([A-Z](?=[a-z]))';

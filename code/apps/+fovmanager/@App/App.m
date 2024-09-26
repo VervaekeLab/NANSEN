@@ -1045,7 +1045,7 @@ classdef App < handle & applify.mixin.UserSettings
             obj.changeSelectedMouse(0)
             
             % Todo: Save struct db as property
-            % Todo: Make method for plotting entry on request. I.e forst
+            % Todo: Make method for plotting entry on request. I.e first
             % time mouse is selected...
             for i = 1:numel(S.fovDb)
 
@@ -2028,7 +2028,7 @@ classdef App < handle & applify.mixin.UserSettings
             obj.textCoords.Visible = 'on';
             obj.mapCoordinatesMode = pointToDisplay;
             
-            % this is a bit hacky, but thats unfortunately how it is.
+            % this is a bit hacky, but that's unfortunately how it is.
             % Assign mouse motion listener if it is empty. It will not be
             % empty if map object was selected. Then the startDrag assigns
             % moveObject to mousemotion event, and moveObject already calls

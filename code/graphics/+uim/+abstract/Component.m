@@ -3,7 +3,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
 % This class provides basic positioning (layout) and style methods.
 %
 %   The component class provides a mix of functionality for positioning a
-%   component and for giving it a background and border appeareance, i.e
+%   component and for giving it a background and border appearance, i.e
 %   layout and style. In the ideal world, these would be separate classes.
 %
 %   The layout of a component is a bit more advanced than the standard
@@ -768,7 +768,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             % updateSize
             
             obj.redrawBackground()
-            %obj.redrawBorder() Not imlemented yet
+            %obj.redrawBorder() Not implemented yet
         end
         
     end

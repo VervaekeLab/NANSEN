@@ -96,7 +96,7 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             roiDataPerGroup = cell(numAffectedRoiGroups, 4);
                        
             % Update roi array before the update of individual roi groups 
-            % (poor design, should be adressed).
+            % (poor design, should be addressed).
             obj.roiArray(roiInd) = modifiedRois;
             obj.roiImages = getappdata(obj.roiArray, 'roiImages');
             obj.roiStats = getappdata(obj.roiArray, 'roiStats');       

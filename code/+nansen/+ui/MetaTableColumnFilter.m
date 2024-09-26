@@ -236,7 +236,7 @@ classdef MetaTableColumnFilter < handle
                     filterChoices = cat(1, 'Show All', uniqueColumnData);
                      
                     % Need to store current width because setting the
-                    % string propery will resize the width of the control.
+                    % string property will resize the width of the control.
                     width = obj.hColumnFilterPopups{columnIdx}.Position(3);
                     
                     % Store currently selected values

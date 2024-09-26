@@ -237,7 +237,7 @@ classdef DataIoModel < handle
                 mode = 'read';
             end
             
-            % Todo: Save directly in folde if it is assigned...
+            % Todo: Save directly in folder if it is assigned...
 %             if ~isempty(obj.FolderPath)
 %                 folderPath = obj.FolderPath; return; 
 %             end

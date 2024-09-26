@@ -2,7 +2,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 % DropDown - A dropdown control with (optional) "action" options
 %
 % This dropdown is based on the old uicontrol, but adds the Items and
-% ItemsData properties to also mimick the uidropdown control.
+% ItemsData properties to also mimic the uidropdown control.
 %
 % Additionally it is possible to set AllowNoSelection to true, and add a
 % CreateNewItemFcn. This will populate the dropdown with extra options that
@@ -55,7 +55,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
                 options.AllowNoSelection (1,1) matlab.lang.OnOffSwitchState = 'off'
             end
     
-            % Thsi control has custom callback routines, so the callback 
+            % This control has custom callback routines, so the callback 
             % is not passed to the superclass constructor
             if isfield(superclassOptions, 'Callback')
                 callbackFcn = superclassOptions.Callback;

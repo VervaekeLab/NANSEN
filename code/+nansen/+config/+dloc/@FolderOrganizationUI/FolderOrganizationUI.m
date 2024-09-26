@@ -37,7 +37,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 %       - expressionChanged
 %       - onCurrentDataLocationSet
 %
-%   should separate beteen whether 1) names of existing subfolder levels are
+%   should separate between whether 1) names of existing subfolder levels are
 %   changed, 2) subfolders levels are added or removed and 3) datalocation
 %   is set/changed.
 
@@ -646,7 +646,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             evtData = event.EventData();
             obj.notify('FilterChanged', evtData)
             
-            obj.updateSubfolderItems(iRow); % supress output
+            obj.updateSubfolderItems(iRow); % suppress output
         end
         
         function success = updateSubfolderItems(obj, iRow, folderPath)
@@ -852,7 +852,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 
             S = obj.DataLocationTemplates(isMatched);
             
-            % Check if template is different fram data in gui...
+            % Check if template is different from data in gui...
 
             % Todo: Skip this if the data in the GUI is same as defaults...
 

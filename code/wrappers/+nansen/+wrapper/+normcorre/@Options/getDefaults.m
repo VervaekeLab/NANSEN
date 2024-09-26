@@ -1,6 +1,6 @@
 function [P, V] = getDefaults()
 
-% DESRIPTION:
+% DESCRIPTION:
 %   Change these parameters to change the behavior of the NoRMCorre method
 
 
@@ -27,7 +27,7 @@ P.Correction.boundary           = 'copy';               % Method of boundary tre
 P.Correction.phaseFlag          = false;                % Flag for using phase correlation
 
 P.Misc.Verbose                  = false;                % Flag for displaying progress
-P.Misc.UseParallell             = true;                 % Use parallell processing for patches of each frame
+P.Misc.UseParallell             = true;                 % Use parallel processing for patches of each frame
 
 
 % - - - - - - Specify customization flags (uicontrols) - - - - - - - -

@@ -742,7 +742,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             obj.updateImage()
             
 
-            % Move fovs. NB Wont work if fov image is rotated to an angle
+            % Move fovs. NB Won't work if fov image is rotated to an angle
             % different from steps of 90
             for i = 1:numel(obj.fovArray)
                 fovH = obj.fovArray(i);

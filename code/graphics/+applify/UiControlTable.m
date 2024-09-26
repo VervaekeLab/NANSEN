@@ -6,7 +6,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 % figures, and another could work with traditional figures.
     
 %   Todo: 
-%     [v] many (most) sublasses have an advanced options view. Should make
+%     [v] many (most) subclasses have an advanced options view. Should make
 %         that behavior part of this superclass.
 %
 %     [ ] Toolbar should not be part of the table class...
@@ -75,7 +75,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         TablePanel matlab.ui.container.Panel
         ToolbarPanel matlab.ui.container.Panel
 
-        ColumnHeaderLabels cell  % matlab.ui.control.Label (this does not work because some of these migth be empty)
+        ColumnHeaderLabels cell  % matlab.ui.control.Label (this does not work because some of these might be empty)
         ColumnLabelHelpButton  cell  % matlab.ui.control.Image (ditto)
         ColumnHeaderBorder
         RowControls
@@ -595,7 +595,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                 isSelected = hRow.CheckboxSelector.Value;
             end
             
-            % Update backgrond color of table row based on selection state
+            % Update background color of table row based on selection state
             obj.updateTableRowBackground(iRow, isSelected)
 
             if isSelected

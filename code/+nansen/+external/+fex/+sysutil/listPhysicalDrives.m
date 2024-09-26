@@ -98,7 +98,7 @@ function infoTable = convertListToTableMac(infoStr)
     colIdx = size(C, 2) + 1;
     C(:, colIdx) = driveTypeColumnData;
 
-    % Set varible names and create table
+    % Set variable names and create table
     variableNames = {'FileSystem', 'VolumeName', 'Size', 'DeviceID', 'SizeUnit', 'DriveType'};
     infoTable = cell2table(C(2:end,:), 'VariableNames', variableNames);
 

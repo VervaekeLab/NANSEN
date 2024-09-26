@@ -52,7 +52,7 @@ classdef HasUserData < handle
     
     events
         % DataChanged - Event that is triggered whenever the Data is
-        % modifed.
+        % modified.
         DataChanged
     end
 

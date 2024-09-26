@@ -6,7 +6,7 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
     %       called max neuropil radius....
     %   [ ] Add doc
     %   [ ] test the max radius
-    %   [ ] add warning if mask cant be created (i.e not enough neuropil available)
+    %   [ ] add warning if mask can't be created (i.e not enough neuropil available)
     
     
     % Get default parameters and assertion functions.
