@@ -8,11 +8,9 @@ classdef axisZoom < uim.interface.abstractPointer
 %       [ ] Options for syncing two axis (if axes has dual axis along the
 %           dimensions)
 
-
     properties (Constant)
         exitMode = 'previous';
     end
-    
     
     properties
         xLimOrig
@@ -26,12 +24,11 @@ classdef axisZoom < uim.interface.abstractPointer
         previousPoint (1,2) double = [nan, nan] % Todo: Should be property of pointermanager, or at least super class...???
         isButtonDown (1,1) logical = false
         
-        isMouseDown         
+        isMouseDown
         PreviousMouseClickPoint   % Point where mouse was last clicked
         PreviousMousePoint
     
     end
-    
     
     methods
             
@@ -42,7 +39,6 @@ classdef axisZoom < uim.interface.abstractPointer
             
             obj.hFigure = ancestor(hAxes, 'figure');
         end
-        
 
         function setPointerSymbol(obj)
             switch obj.CurrentAxis
@@ -54,12 +50,10 @@ classdef axisZoom < uim.interface.abstractPointer
                     % Should be manages elsewhere
             end
         end
-
         
         function onButtonDown(obj, ~, evt)
             
-            if evt.Button == 3; return; end 
-            
+            if evt.Button == 3; return; end
             
             if strcmp(obj.Figure.SelectionType, 'normal')
                 obj.isMouseDown = true;
@@ -70,7 +64,6 @@ classdef axisZoom < uim.interface.abstractPointer
             obj.isActive = true;
             
         end
-        
         
         function onButtonMotion(obj, ~, ~)
             
@@ -99,22 +92,16 @@ classdef axisZoom < uim.interface.abstractPointer
             end
         end
         
-        
         function onButtonUp(obj, src, evt)
             obj.isMouseDown = false;
             obj.PreviousMouseClickPoint = [];
             obj.isActive = false;
         end
         
-        
-        
         function changeAxisLimits(obj, shift)
         % Move image in ax according to shift
-            
 
         end
-        
-        
                 
         function dragYLimits(obj, location)
             
@@ -155,9 +142,5 @@ classdef axisZoom < uim.interface.abstractPointer
             newXLim = [obj.hAxes.XLim(1)-xLimDiff, obj.hAxes.XLim(2)+xLimDiff];
             obj.setNewXLims(newXLim)
         end
-        
-
-        
     end
-    
 end

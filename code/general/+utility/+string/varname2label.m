@@ -7,8 +7,8 @@ function label = varname2label(varname, includePackageName)
 %
 %   Example:
 %   label = varname2label('helloWorld')
-%   
-%   label = 
+%
+%   label =
 %       'Hello World'
 
 % Todo:
@@ -22,7 +22,7 @@ end
 if ~ischar(varname); varname = inputname(1); end
 
 % Special case if varname is a package name
-if contains(varname, '.') 
+if contains(varname, '.')
     splitVarname = strsplit(varname, '.');
     if includePackageName
         splitVarname = cellfun(@(c) utility.string.varname2label(c), splitVarname, 'uni', 0);
@@ -32,7 +32,6 @@ if contains(varname, '.')
         varname = splitVarname{end}; % select last item of package name
     end
 end
-
 
 % Insert spaces
 if issnakecase(varname)
@@ -77,7 +76,6 @@ end
 
 label = strtrim(label);
 
-
 end
 
 function isCamelCase = iscamelcase(varname)
@@ -88,9 +86,7 @@ function isCamelCase = iscamelcase(varname)
     else
         isCamelCase = false;
     end
-    
 end
-
 
 function isSnakeCase = issnakecase(varname)
     isSnakeCase = contains(varname, '_');
@@ -99,4 +95,3 @@ end
 function isCapitalized = iscapitalized(varname)
     isCapitalized = strcmp(varname, upper(varname)); %#ok<STCI>
 end
-

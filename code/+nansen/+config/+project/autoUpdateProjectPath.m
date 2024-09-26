@@ -20,5 +20,4 @@ function newProjectPath = autoUpdateProjectPath(projectNewName, projectOldName, 
 
     newProjectPath = fullfile(projectRootFolder, projectNewName);
 
-
 end

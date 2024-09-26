@@ -21,12 +21,9 @@ function dff = extractDff(imArray, roiArray, method, hWaitbar)
         dff = (fRoi - fRoi0) ./ fRoi0;
     end
     
-    
-    
     % %     % I thought this one would be faster but in practice it is not
     % %     tic
     % %     [fRoi, fPil] = signalExtraction.multiExtractF(imArray, roiArrayA);
     % %     toc
-    
     
 end

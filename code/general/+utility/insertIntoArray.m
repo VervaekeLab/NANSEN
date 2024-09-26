@@ -40,7 +40,7 @@ function arrayOut = insertIntoArray(arrayIn, arrayToInsert, ind, dim)
         arrayOut(rowIndNew, colInd) = arrayToInsert;
     elseif dim == 2
         arrayOut(nRowsA, nColsA+nColsB) = arrayIn(1); % Preallocate
-        rowInd = 1:nRowsB; 
+        rowInd = 1:nRowsB;
         colIndNew = ind;
         colIndOld = setdiff(1:nColsA+nColsB, colIndNew);
         arrayOut(rowInd, colIndOld) = arrayIn;
@@ -78,7 +78,7 @@ function arrayOut = insertIntoArray(arrayIn, arrayToInsert, ind, dim)
     % Preallocate array out.
     arrayOut( szA(1)+szB(1), prod(szA(2:end)) ) = arrayIn(1);
     
-    % Add data along the row (1st) dimension 
+    % Add data along the row (1st) dimension
     indNew = ind;
     indOld = setdiff(1:szA(1)+szB(1), indNew);
     
@@ -89,6 +89,5 @@ function arrayOut = insertIntoArray(arrayIn, arrayToInsert, ind, dim)
     % input.
     arrayOut = reshape(arrayOut2, [szA(1)+szB(1), szA(2:end)] );
     arrayOut = ipermute(arrayOut, dimOrder);
-    
     
 end

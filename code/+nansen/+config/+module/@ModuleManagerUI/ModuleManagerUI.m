@@ -1,7 +1,7 @@
 classdef ModuleManagerUI < handle
 %ModuleManagerUI Provides UI functionality for the ModuleManager class
 
-    % Todo: 
+    % Todo:
     %  [ ] Create a class wrapping around a table for selecting rows.
 
     % Note: This is currently only used for selecting optional modules.
@@ -9,7 +9,7 @@ classdef ModuleManagerUI < handle
     % selected required (base) modules. IF this is implemented, some
     % changes are also needed on the Project class!
 
-    properties 
+    properties
         ModuleManager  % Instance of ModuleManager class
     end
 
@@ -64,14 +64,13 @@ classdef ModuleManagerUI < handle
 
             % Comment this out, but keep in case it will be needed later.
             % The layout was used to also create a dropdown for selecting
-            % between a general (required) module. (This will most likely 
+            % between a general (required) module. (This will most likely
             % not be needed)
             %%obj.createLayout()
             obj.createUiControls()
             obj.configureUiTable()
             obj.configureUiDropdown()
         end
-        
     end
 
     methods % Public methods
@@ -96,7 +95,7 @@ classdef ModuleManagerUI < handle
         %setSelectedModules Set (check) selectedModules in table
         %
         %   setSelectedModules(obj, selectedModules) sets the given modules
-        %   as the current selection in the ui. selectedModules should be a 
+        %   as the current selection in the ui. selectedModules should be a
         %   cell array of module package names
             
             obj.resetSelectedRows()
@@ -134,7 +133,7 @@ classdef ModuleManagerUI < handle
             obj.UIPanels.Main.Layout.Column = 1;
 
             obj.UIPanels.Header.Title = "Select core module";
-            obj.UIPanels.Main.Title = "Select optional modules"; 
+            obj.UIPanels.Main.Title = "Select optional modules";
 
             % Create header layout
             obj.HeaderGridLayout = uigridlayout(obj.UIPanels.Header);
@@ -148,8 +147,8 @@ classdef ModuleManagerUI < handle
 
         function createUiControls(obj)
             obj.UIControls.ModuleTable = uitable(obj.hParent);
-            % % % obj.UIControls.ModuleTable = uitable(obj.UIPanels.Main);    
-            obj.UIControls.ModuleTable.Position = [0,0,obj.hParent.Position(3:4)];    
+            % % % obj.UIControls.ModuleTable = uitable(obj.UIPanels.Main);
+            obj.UIControls.ModuleTable.Position = [0,0,obj.hParent.Position(3:4)];
 
             % % % obj.UIControls.CoreModuleDropdown = uidropdown(obj.HeaderGridLayout);
             % % % obj.UIControls.CoreModuleDropdown.Position = [10, 10, 100, 22];
@@ -205,7 +204,7 @@ classdef ModuleManagerUI < handle
             try % Only available in newer matlab versions...
 %                 if any(isCurrent)
 %                     obj.setRowStyle('Selection', find(isCurrent))
-% 
+%
 %                     s = uistyle('FontWeight', 'bold');
 %                     addStyle(obj.UIControls.ModuleTable, s, 'row', find(isCurrent));
 %                 end
@@ -227,7 +226,7 @@ classdef ModuleManagerUI < handle
             T = T(T.isCoreModule, :);
             
             numRows = size(T, 1);
-            options = arrayfun( @(row) sprintf('%s (%s)', T{row, 'Name'}, T{row, 'Description'}), 1:numRows, 'uni', 0); 
+            options = arrayfun( @(row) sprintf('%s (%s)', T{row, 'Name'}, T{row, 'Description'}), 1:numRows, 'uni', 0);
             
             obj.UIControls.CoreModuleDropdown.Items = options;
             obj.UIControls.CoreModuleDropdown.Value = options{1};
@@ -262,7 +261,6 @@ classdef ModuleManagerUI < handle
             
             obj.UIControls.ModuleTable.UIContextMenu = cMenu;
         end
-
     end
     
     methods % Set/get
@@ -304,7 +302,6 @@ classdef ModuleManagerUI < handle
                 error('Could not update data in column %d', colIdx)
             end
         end
-        
     end
     
     methods (Access = private) % Actions

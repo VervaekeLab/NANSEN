@@ -2,10 +2,9 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
 %CLASSIFYMULTISESSIONROIS Summary of this function goes here
 %   Detailed explanation goes here
 
-
 % % % % % % % % % % % % % % % INSTRUCTIONS % % % % % % % % % % % % % % %
-% - - - - - - - - - - You can remove this part - - - - - - - - - - - 
-% Instructions on how to use this template: 
+% - - - - - - - - - - You can remove this part - - - - - - - - - - -
+% Instructions on how to use this template:
 %   1) If the session method should have parameters, these should be
 %      defined in the local function getDefaultParameters at the bottom of
 %      this script.
@@ -15,24 +14,22 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
 %      above. PS: Don't change the function definition (inputs/outputs)
 %
 %   For examples: Press e on the keyboard while browsing the session
-%   methods. (e) should appear after the name in the menu, and when you 
+%   methods. (e) should appear after the name in the menu, and when you
 %   select a session method, the m-file will open.
 
-
-% % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % % 
-% Create a struct of default parameters (if applicable) and specify one or 
-% more attributes (see nansen.session.SessionMethod.setAttributes) for 
+% % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % %
+% Create a struct of default parameters (if applicable) and specify one or
+% more attributes (see nansen.session.SessionMethod.setAttributes) for
 % details.
     
     % Get struct of parameters from local function
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'batch', 'queueable'};   
-
+    ATTRIBUTES = {'batch', 'queueable'};
     
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
     
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
@@ -45,9 +42,8 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     % Parse name-value pairs from function input and update parameters
     params = utility.parsenvpairs(params, [], varargin);
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Implementation of the method : Add your code here:    
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
+% Implementation of the method : Add your code here:
     
     varName = 'MultisessionRoiCrossReference';
     filePath = sessionObject(1).loadData(varName);
@@ -134,16 +130,15 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     
     % - Create a new roiStats
 
-        % Compute classification stats 
+        % Compute classification stats
 
         % Create labels including session id and roi number
-    
 
     % Exchange roi stats, and use some roistats for all identical rois
     hClassifier = roiclassifier.openRoiClassifier(roiGroup, 'ItemNames', roiLabels);
 
     % Get classifications and save back to roigroups.
-    hClassifier.SaveFcn = @(rois) saveClassifiedRois(sessionObject, rois);    
+    hClassifier.SaveFcn = @(rois) saveClassifiedRois(sessionObject, rois);
 
     % Return session object (please do not remove):
     % if nargout; varargout = {sessionObject}; end
@@ -200,11 +195,10 @@ function X = ensureRow(X)
     end
 end
 
-
 function params = getDefaultParameters()
 %getDefaultParameters Get the default parameters for this session method
 %
-%   params = getDefaultParameters() should return a struct, params, which 
+%   params = getDefaultParameters() should return a struct, params, which
 %   contains fields and values for parameters of this session method.
 
     % Add fields to this struct in order to define parameters for this

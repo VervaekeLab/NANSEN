@@ -11,9 +11,9 @@ classdef ChannelIndicator < uim.mixin.assignProperties
 %   [ ] Toggle on/off for "buttons"
 %   [ ] Add orientation property
 %   [ ] 
-%   [ ]   
+%   [ ]
     
-% - - - - - - - - - - PROPERTIES - - - - - - - - - - 
+% - - - - - - - - - - PROPERTIES - - - - - - - - - -
 
     properties (Dependent)
         Position (1,4) double
@@ -64,8 +64,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
         ContextMenu
     end
     
-    
-% - - - - - - - - - - - METHODS - - - - - - - - - - 
+% - - - - - - - - - - - METHODS - - - - - - - - - -
 
     methods % Structor
         
@@ -85,7 +84,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             obj.createWidgetComponents()
 
         end
-
     end
     
     methods % Set/Get
@@ -134,10 +132,9 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             obj.CurrentChannels = newValue;
             obj.onCurrentChannelsChanged()
         end
-        
     end
     
-    methods 
+    methods
         function changeChannelColor(obj, src, evt)
             chNum = obj.LastChannelPressed;
 
@@ -160,7 +157,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                     if isempty(answer); return; end
                     lambda = str2double(answer{1});
                     rgb = spectrumRGB(lambda);
-
                     
             end
             evtData = uiw.event.EventData('ChannelNumber', chNum, ...
@@ -194,7 +190,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                 obj.createAxes()
                 obj.isAxesInternal = true;
             end
-            
         end
         
         function createAxes(obj, hParent)
@@ -235,7 +230,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                 else
                     set(obj.hChannelIndicators(i), 'XData', X, 'YData', Y)
                 end
-                
             end
         end
 
@@ -266,7 +260,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             theta = deg2rad( [45:90:360, nan] );
             theta = theta([1,3,5,2,4]);
             
-            [X, Y] = pol2cart(theta, ones(size(theta))*r); 
+            [X, Y] = pol2cart(theta, ones(size(theta))*r);
             
             for i = 1:obj.NumChannels
                 
@@ -289,7 +283,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                 obj.changeIndicatorAppearance(i)
                 
             end
-            
         end
          
         function changeIndicatorAppearance(obj, channelNum)
@@ -313,7 +306,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                 end
             end
             %set(obj.hChannelForeground, 'Visible', 'off')
-
             
         end
         
@@ -382,7 +374,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
 %                 obj.Callback(obj, evtData)
                 obj.Callback(obj.CurrentChannels) % todo: generalize...
             end
-                        
         end
         
     % % % Callbacks for mouseover effects
@@ -436,9 +427,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             if ~obj.isMouseButtonPressed
                 obj.hFigure.Pointer = 'arrow';
             end
-            
         end
- 
     end
     
     methods (Access = private) % Property set callbacks
@@ -452,7 +441,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             if obj.Visible
             else
             end
-            
         end
 
         function onLocationChanged(obj)
@@ -467,7 +455,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             if obj.isAxesInternal
                 obj.hAxes.Position(3:4) = obj.Position_(3:4);
             
-                axWidth = obj.hAxes.Position(3); 
+                axWidth = obj.hAxes.Position(3);
                 axHeight = obj.hAxes.Position(4);
 
                 newYLim = [-1, 1] .* (axHeight/2);
@@ -482,8 +470,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             else
                 % Do nothing...
             end
-            
-            
         end
         
         function onNumChannelsChanged(obj)
@@ -494,7 +480,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             % Todo: Call methods to change size / resize
             obj.updateSize()
             obj.onSizeChanged()
-            
             
             if ~obj.IsConstructed; return; end
 
@@ -514,11 +499,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                 else
                     obj.changeIndicatorAppearance(i)
                 end
-                
             end
-
         end
-        
     end
-    
 end

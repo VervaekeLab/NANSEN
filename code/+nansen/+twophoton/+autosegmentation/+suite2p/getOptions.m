@@ -8,8 +8,8 @@ ops.sig                    = 0.5;       % spatial smoothing length in pixels; en
 ops.nSVDforROI             = 1000;      % how many SVD components for cell clustering
 ops.nSVD                   = 1000;      % how many SVD components for cell clustering
 ops.NavgFramesSVD          = 5000;      % how many (binned) timepoints to do the SVD based on
-ops.signalExtraction       = 'surround';% how to extract ROI and neuropil signals: 
-%  'raw' (no cell overlaps), 'regression' (allows cell overlaps), 
+ops.signalExtraction       = 'surround';% how to extract ROI and neuropil signals:
+%  'raw' (no cell overlaps), 'regression' (allows cell overlaps),
 %  'surround' (no cell overlaps, surround neuropil model)
 ops.refine                 = 1; % whether or not to refine ROIs (refinement uses unsmoothed PCs to compute masks)
 

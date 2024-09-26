@@ -1,11 +1,11 @@
 function [P, V] = getDefaultParameters()
 %getDefaultParameters Get default parameters for signal extraction
 %
-%   P = nansen.twophoton.roisignals.extract.getDefaultParameters() returns 
+%   P = nansen.twophoton.roisignals.extract.getDefaultParameters() returns
 %       a struct (P) with default parameters for signal extraction
 %
-%   [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters() 
-%       returns an additional struct (V) containing assertions for each 
+%   [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters()
+%       returns an additional struct (V) containing assertions for each
 %       parameter, for use with an input parser etc.
 %
 %   SELECTED PARAMETERS:
@@ -14,7 +14,7 @@ function [P, V] = getDefaultParameters()
 %       List of roi indices (use for extraction of signals from a subset
 %       of rois). Default : extract signals from all rois.
 %   imageMask : logical matrix (imageHeight x imageWidth)
-%       Use for excluding regions of image. Include pixels that are true 
+%       Use for excluding regions of image. Include pixels that are true
 %       and exclude pixels that are false. Default : include all pixels
 %   excludeRoiOverlaps : logical scalar
 %       Exclude pixels where rois are overlapping. Default = true
@@ -27,8 +27,7 @@ function [P, V] = getDefaultParameters()
 %   Note: for full list of parameters, run function without output, i.e
 %       nansen.twophoton.roisignals.extract.getDefaultParameters()
 
-
-    % - - - - - - - - Specify parameters and default values - - - - - - - - 
+    % - - - - - - - - Specify parameters and default values - - - - - - - -
     
     % Names                       Values (default)      Description
     P                           = struct();             %
@@ -56,17 +55,17 @@ function [P, V] = getDefaultParameters()
     
     V                           = struct();
     V.roiInd                    = @(x) assert(isempty(x) || (isvector(x) && all(x==round(x))), ...
-                                    'Value must be a vector of integers'); 
+                                    'Value must be a vector of integers');
     V.imageMask                 = @(x) assert(isempty(x) || (ismatrix(x) && islogical(x)), ...
                                     'Value must be a logical matrix');
     V.pixelComputationMethod    = @(x) assert(any(strcmp(x, {'mean', 'median'})), ...
-                                    'Value must be ''mean'' or ''median''');  
+                                    'Value must be ''mean'' or ''median''');
     V.excludeRoiOverlaps        = @(x) assert( islogical(x) && isscalar(x), ...
                                     'Value must be a logical scalar' );
     V.createNeuropilMask        = @(x) assert( islogical(x) && isscalar(x), ...
                                     'Value must be a logical scalar' );
     V.excludeRoiFromNeuropil    = @(x) assert( islogical(x) && isscalar(x), ...
-                                    'Value must be a logical scalar' );  
+                                    'Value must be a logical scalar' );
     V.neuropilExpansionFactor   = @(x) assert( isnumeric(x) && isscalar(x) && x > 0, ...
                                     'Value must be a scalar positive number' );
     V.cellNeuropilSeparation    = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0 && round(x)==x, ...
@@ -78,7 +77,7 @@ function [P, V] = getDefaultParameters()
     V.roiMaskFormat             = @(x) assert(any(strcmp(x, {'sparse', 'struct'})), ...
                                     'Value must be ''sparse'' or ''struct''');
     V.extractFcn                = @(x) assert(isempty(x) || isa(x, 'function_handle'), ...
-                                    'Value must be function handle');    
+                                    'Value must be function handle');
     
     % - - - - - Adapt output to how many outputs are requested - - - - - -
     
@@ -92,5 +91,4 @@ function [P, V] = getDefaultParameters()
     elseif nargout == 1
         clear V
     end
-    
 end

@@ -25,25 +25,24 @@ classdef uicontrolSchemer < handle
 %       - glitch with popupmenu, where it sometimes becomes visible very
 %       briefly.
 
-%   Todo: 
+%   Todo:
 %       [ ] Set colors dynamically based on figure/panel background and
 %           foreground colors.
 %       [ ] Implement themes
 %       [ ] Reconsider using ancestor resized / moved callback as these
 %           fire quite often
 
-
 % Windows: Buttons will reset to original matlab style when the panel is
 %  resized. There are a couple of strategies to prevent this from being
 %  visible:
-%    Adding matlab callback on panel resize 
+%    Adding matlab callback on panel resize
 %    Adding java callback for ancestor resized and ancestor moved.
-%  
+%
 % This will not work if buttons are not visible during the resize. This
 % needs to be solved externally by calling the stripAllUiControls whenever
 % a panel is made visible (for example)
 % Question: Necessary for all, or only buttons?
-% 
+%
 % #aa It appears that if the BackgroundColor of an uicontrol is explicitly set,
 % the removeJButtonStyle does not work. Todo: test if it works to change
 % any hcontrol property, then drawnow, then removeJButtonStyle
@@ -79,7 +78,7 @@ classdef uicontrolSchemer < handle
         function obj = uicontrolSchemer(hUIControls, hPanel, colorTheme)
         % uicontrolSchemer Class constructor
 
-            if ~nargin; return; end 
+            if ~nargin; return; end
             
             % Get parent of uicontrol
             if nargin < 2 || isempty(hPanel)
@@ -116,7 +115,6 @@ classdef uicontrolSchemer < handle
             delete(obj.FigureDestroyedListener)
             delete@handle(obj) % Why does this have to be explicit?
         end
-        
     end
 
     methods
@@ -125,7 +123,7 @@ classdef uicontrolSchemer < handle
             numUIControls = numel(obj.hUicontrol);
             for i = 1:numUIControls
                 hTmp = obj.hUicontrol(i);
-                jTmp = obj.jhUicontrol{i};                
+                jTmp = obj.jhUicontrol{i};
                 obj.stripUicontrol(hTmp, jTmp);
             end
         end
@@ -156,7 +154,6 @@ classdef uicontrolSchemer < handle
                 hTmp.Units = origUnits;
             end
         end
-
     end
        
     methods (Access = private)
@@ -169,7 +166,7 @@ classdef uicontrolSchemer < handle
             %javahandles = findjobj(hUIControls(end));
             if any(cellfun(@isempty, javaHandles))
                 for i = find( cellfun(@isempty, javaHandles) )
-                    javaHandles{i} = findjobj(hUIControls(i)) ; 
+                    javaHandles{i} = findjobj(hUIControls(i)) ;
                 end
             end
             
@@ -255,11 +252,10 @@ classdef uicontrolSchemer < handle
         %
         %   Editbox. Set background color and remove border
         %
-        %   Checkbox. Set transparent icon. Later, all visible features 
+        %   Checkbox. Set transparent icon. Later, all visible features
         %   of the checkbox is plotted in the stylerAxes.
         %
         %   Popupmenu: Set background. Remove focusability.
-        
                 
             bgColor = hControl(1).Parent.BackgroundColor;
             javacolor = @javax.swing.plaf.ColorUIResource;
@@ -280,7 +276,7 @@ classdef uicontrolSchemer < handle
                     % Set background color.
                     hControl.BackgroundColor = bgColor;
                     
-                    % Create a border with same color as background. 
+                    % Create a border with same color as background.
                     % Maybe easier to remove border completely?
                     jColor = javacolor(bgColor(1), bgColor(2), bgColor(3));
                     newBorder = javax.swing.BorderFactory.createLineBorder(jColor, 1);
@@ -317,7 +313,6 @@ classdef uicontrolSchemer < handle
                     
                     % Make sure object is transparent
                     set(jControl, 'Opaque', false)
-                    
                     
                 case 'popupmenu'
                     
@@ -377,9 +372,9 @@ classdef uicontrolSchemer < handle
                     hS.textBox.FontUnits = 'pixels';
                     hS.textBox.FontSize = hControl.FontSize;
                     
-                    % Need to add some real text, in case the value is an 
+                    % Need to add some real text, in case the value is an
                     % empty char, because the extent property is used below
-                    hS.textBox.String = 'hello world'; 
+                    hS.textBox.String = 'hello world';
 
                     bgColor = hControl.BackgroundColor;
                     javacolor = @javax.swing.plaf.ColorUIResource;
@@ -415,7 +410,6 @@ classdef uicontrolSchemer < handle
                     end
                     hS.button.String(end+1) = 'v';
                     
-                    
                     % Configure button...
                     findjavacomps = @applify.uicontrolSchemer.findJavaComponents;
                     jhBtn = findjavacomps(hS.button, hControl.Parent);
@@ -433,9 +427,8 @@ classdef uicontrolSchemer < handle
                     % Make sure text does not go too far to the right, e.g
                     % outside of the box, or under the popupmenu button
                     obj.keepTextWithinBox(hS.textBox)
-                    
 
-                    % Add callback so text in edit control updates when ui 
+                    % Add callback so text in edit control updates when ui
                     % control value changes.
                     addlistener(hControl, 'Value', 'PostSet', ...
                         @(s,e, hC, h) obj.updatePopup(hControl, hS.textBox));
@@ -524,14 +517,14 @@ classdef uicontrolSchemer < handle
             % Had to subtract 1 pixel in x&y to get box in right position.
             % I have no idea why (Java Positions??).
             
-            switch hControl.Style % attempt fix bug with button 
+            switch hControl.Style % attempt fix bug with button
                 case 'pushbutton'
                     edgeCoords = edgeCoords + [xLoc, yLoc] - [0, margin(2)]/2 - [1,1];
                 otherwise
                     edgeCoords = edgeCoords + [xLoc, yLoc]  - margin/2 - [1,1];
             end
             
-            % Plot & configure patch which will be visible border 
+            % Plot & configure patch which will be visible border
             hS.hBorder = patch(obj.hAxes, edgeCoords(:,1), edgeCoords(:,2), 'w');
             hS.hBorder.FaceColor = hControl.BackgroundColor;
             hS.hBorder.EdgeColor = obj.borderColor * 0.5;
@@ -578,7 +571,7 @@ classdef uicontrolSchemer < handle
                         hS.checkboxTick.Visible = 'off';
                     end
                 case {'pushbutton', 'togglebutton'}
-                    % Make sure it blends with bg on flickering 
+                    % Make sure it blends with bg on flickering
                     % (This does not work, see #aa)
                     % hControl.BackgroundColor = 'r'; %obj.PanelColor;
                     obj.removeJButtonStyle(jHandle)
@@ -589,7 +582,7 @@ classdef uicontrolSchemer < handle
             
             foregroundColor = mod(1-obj.PanelColor, 1);
             
-            switch hControl.Style % attempt fix bug with button 
+            switch hControl.Style % attempt fix bug with button
                 case {'pushbutton', 'togglebutton'}
                     hS.hBorder.FaceAlpha = 0.1;
                     hControl.ForegroundColor = foregroundColor;
@@ -636,7 +629,6 @@ classdef uicontrolSchemer < handle
                 set(jControl, 'MouseReleasedCallback', @(s, e, hc, h) obj.mouseReleaseButton(hControl, hS))
                 %set(jControl, 'StateChangedCallback', @(s, e, hc, h) obj.valueChangeButton(hControl, hS))
 
-
                 % Need a callback for when ancestor is resized, because
                 % on windows the button appearance resets every time the
                 % ancestor is resized
@@ -651,7 +643,6 @@ classdef uicontrolSchemer < handle
                 %set(jControl, 'AncestorResizedCallback',@(s,e,msg)disp('resized'))
                 %set(jControl, 'AncestorMovedCallback', @(s,e,msg)disp('moved'))
                 %jControl.setIgnoreRepaint(true)
-
                 
                 if contains(hControl.Style, {'pushbutton'})
                     jControl.setCursor(java.awt.Cursor(java.awt.Cursor.HAND_CURSOR))
@@ -666,7 +657,7 @@ classdef uicontrolSchemer < handle
             
             if contains(hControl.Style, 'listbox') || (contains(hControl.Style, 'edit') && hControl.Max-hControl.Min > 1)
                 % These components are placed in a scrollpane, so need
-                % to get the actual component within the scrollpane 
+                % to get the actual component within the scrollpane
                 jTmp = jControl.getComponent(0).getComponent(0);
                 set(jTmp, 'FocusGainedCallback', @(s, e, hc, h) obj.gainFocus(hControl, hS) )
                 set(jTmp, 'FocusLostCallback', @(s, e, hc, h) obj.loseFocus(hControl, hS) )
@@ -676,7 +667,6 @@ classdef uicontrolSchemer < handle
             set(jControl, 'FocusGainedCallback', @(s, e, hc, h) obj.gainFocus(hControl, hS) )
             set(jControl, 'FocusLostCallback', @(s, e, hc, h) obj.loseFocus(hControl, hS) )
         end
-        
     end
 
     methods (Access = private) % Individual component restyling
@@ -687,7 +677,6 @@ classdef uicontrolSchemer < handle
             set(jControl, 'ContentAreaFilled', 0)
             set(jControl, 'border', []);
         end
-        
     end
 
     methods (Access = private) % Individual component callbacks
@@ -724,7 +713,7 @@ classdef uicontrolSchemer < handle
         end
 
         function clickedPopupButton(~, popupHandle, hControl)
-        %clickedPopupButton Callback for click on popup menu button    
+        %clickedPopupButton Callback for click on popup menu button
             isShown = popupHandle.isPopupVisible;
             
             if isShown
@@ -745,8 +734,8 @@ classdef uicontrolSchemer < handle
         end
         
         function updatePopup(obj, hControl, hEditBox)
-        %updatePopup Callback for updating value in edit field when popup 
-        %   menu selection changes    
+        %updatePopup Callback for updating value in edit field when popup
+        %   menu selection changes
             hEditBox.String = hControl.String{hControl.Value};
             obj.keepTextWithinBox(hEditBox)
         end
@@ -768,7 +757,6 @@ classdef uicontrolSchemer < handle
                 hStyle.hBorder.FaceAlpha = 0.25;
                 hFig = ancestor(hStyle.hBorder, 'figure');
                 hFig.Pointer = 'hand';
-
 
                 switch hControl.Style
                     case 'togglebutton'
@@ -849,7 +837,7 @@ classdef uicontrolSchemer < handle
 %                         hStyle.hBorder.FaceColor = obj.borderColor;
 %                         hStyle.hBorder.FaceAlpha = 0;
 %                     end
-%                         
+%
 %                 case 'pushbutton'
 %                     % Nothing more to be done.
 %             end
@@ -865,9 +853,7 @@ classdef uicontrolSchemer < handle
             
             drawnow limitrate
         end
-
     end
-
 
     methods (Access = private)
         function ifDebug(obj)
@@ -908,14 +894,13 @@ classdef uicontrolSchemer < handle
 %                 else
 %                     hS.checkboxTick.Visible = 'off';
 %                 end
-%                 
+%
 %                 drawnow limitrate
             end
         end
         
         jhUic = findJavaComponents(hUic, hParent)
-    end  
-    
+    end
 end
 
 % What does setIgnoreRepaint do?

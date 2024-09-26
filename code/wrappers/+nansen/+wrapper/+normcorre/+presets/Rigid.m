@@ -33,8 +33,6 @@ classdef Rigid < nansen.wrapper.normcorre.Options
                 otherwise
                     newValue = value;
             end
-            
         end
     end
-    
 end

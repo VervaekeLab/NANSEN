@@ -3,11 +3,9 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
 %
 %   smCatalog = nansen.config.SessionMethodsCatalog
 
-
 %   Todo
 %       [ ] Remove functions that do not exist in a folder...
-%           - Create a method, or do it as part of refresh     
-
+%           - Create a method, or do it as part of refresh
 
     properties (Constant, Hidden)
         ITEM_TYPE = 'SessionMethod'
@@ -32,14 +30,13 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
             % Note: No default exists for this item type, so returning the
             % blank item
         end
-        
-    end 
+    end
     
     methods % Constructor
         
         function obj = SessionMethodsCatalog(varargin)
             
-            % Superclass constructor. Loads given (or default) archive 
+            % Superclass constructor. Loads given (or default) archive
             obj@utility.data.StorableCatalog(varargin{:})
             
             if ~nargout
@@ -47,7 +44,6 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
                 clear obj
             end
         end
-        
     end
     
     methods % Public methods
@@ -92,7 +88,7 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
         
         function S = getSessionMethodItemFromPath(obj, pathStr)
         %getSessionMethodItemFromPath Get info struct for session method
-        %   
+        %
         %   S = getSessionMethodItemFromPath(obj, pathStr)
         %
         %   S contains the following fields:
@@ -102,11 +98,11 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
         %         RootFolder
         %         AbsolutePath
         %
-        %   Example:        
+        %   Example:
         %       smc = nansen.config.SessionMethodsCatalog()
         %       S = smc.getSessionMethodItemFromPath(pathStr)
         
-            [folderPath, fileName, ext] = fileparts(pathStr); 
+            [folderPath, fileName, ext] = fileparts(pathStr);
             assert(strcmp(ext, '.m'), 'Input must be the path of a .m file')
         
             S = obj.getBlankItem();
@@ -116,7 +112,7 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
             S.FunctionAlias = fileName;
             S.PackageName = utility.path.pathstr2packagename(folderPath);
 
-            % Get root folder, folder containing package. Match as few 
+            % Get root folder, folder containing package. Match as few
             % characters as possible before package folder
             expression = ['.*?(?=\' filesep '\+)'];
             S.RootFolder = regexp(folderPath, expression, 'match', 'once');
@@ -152,13 +148,12 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
                 S.Data = rmfield(S.Data, 'OptionsAlternatives');
             end
         end
-
     end
     
     methods (Static)
         
         function pathString = getDefaultFilePath()
-        %getDefaultFilePath Get filepath for loading/saving filepath settings  
+        %getDefaultFilePath Get filepath for loading/saving filepath settings
             
             import nansen.config.project.ProjectManager
             
@@ -188,5 +183,4 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
             
         end
     end
-    
 end

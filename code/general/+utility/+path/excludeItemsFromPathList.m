@@ -15,5 +15,4 @@ function pathListOut = excludeItemsFromPathList(pathListIn, expr)
     if ischar(pathListIn)
         pathListOut = strjoin(pathListOut, pathsep);
     end
-
 end

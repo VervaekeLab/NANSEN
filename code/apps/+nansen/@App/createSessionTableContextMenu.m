@@ -5,7 +5,6 @@ function createSessionTableContextMenu(app)
     %hContextMenu.ContextMenuOpeningFcn = @(s,e,m) disp('test');%onContextMenuOpening;
     %hContextMenu.ContextMenuOpeningFcn = @(src,event)disp('Context menu opened');
     
-    
 % % %     if ~isempty(app.UiMetaTableViewer.HTable.ContextMenu)
 % % %         delete(app.UiMetaTableViewer.HTable.ContextMenu)
 % % %     end
@@ -22,7 +21,6 @@ function createSessionTableContextMenu(app)
     % Create a context menu
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Open Session Folder');
     
-    
     % Get available datalocations from a session object
     if contains('DataLocation', app.MetaTable.entries.Properties.VariableNames )
         if ~isempty(app.MetaTable.entries)
@@ -30,7 +28,6 @@ function createSessionTableContextMenu(app)
             dataLocationItem = app.DataLocationModel.expandDataLocationInfo(dataLocationItem);
             dataLocationNames = {dataLocationItem.Name};
         end
-    
 
         for i = 1:numel(dataLocationNames)
             mTmpI = uimenu(hMenuItem(c), 'Text', dataLocationNames{i});
@@ -41,7 +38,6 @@ function createSessionTableContextMenu(app)
     % % Todo... Create method for adding session to other databases....
     m0 = uimenu(hContextMenu, 'Text', 'Add to Metatable', 'Tag', 'Add to Metatable');
     app.updateRelatedInventoryLists(m0)
-
     
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Create New Note', 'Separator', 'on');
@@ -91,7 +87,6 @@ function createSessionTableContextMenu(app)
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Remove Session', 'Separator', 'on');
     hMenuItem(c).Callback = @(s, e) app.onRemoveSessionMenuClicked;
-
 
     %m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
     %m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');

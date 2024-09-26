@@ -1,7 +1,6 @@
 classdef HDF5 < nansen.stack.data.VirtualArray
-
     
-    % Todo: 
+    % Todo:
     %  [ ] If data set is not given, return all data sets that contain 3D
     %      arrays
     %  [ ] Make system for combining stack (i.e if channels or planes are
@@ -24,7 +23,7 @@ properties (Access = private, Hidden)
     DatasetFullName = ''
 end
 
-methods 
+methods
     
     function obj = HDF5(filePath, datasetName, varargin)
        
@@ -45,7 +44,6 @@ methods
         obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
         
     end
-       
 end
 
 methods (Access = protected) % Implementation of abstract methods
@@ -64,13 +62,11 @@ methods (Access = protected) % Implementation of abstract methods
 
         obj.FilePath = filePath;
         
-        
         if isempty(obj.DatasetName)
             warning('Dataset is not specified, will use the first dataset that looks like an imagestack')
             %datasetNames = obj.listH5Datasets();
             obj = obj.findArrayDatasets();
         end
-        
     end
     
     function getFileInfo(obj)
@@ -102,11 +98,9 @@ methods (Access = protected) % Implementation of abstract methods
     function assignDataType(obj)
         obj.DataType = obj.MetaData.Class;
     end
-    
 end
 
 methods % Implementation of abstract methods
-
     
     function data = readData(obj, subs)
         
@@ -117,18 +111,17 @@ methods % Implementation of abstract methods
             
             for i = 1:numel(start)
                 data{i} = h5read(obj.FilePath, ['/', obj.DatasetName], start{i}, count{i}, stride{i});
-            end    
+            end
             data = cat(numel(subs), data{:});
             
         else
             data = h5read(obj.FilePath, ['/', obj.DatasetName], start, count, stride);
         end
-
     end
     
     function data = readFrames(obj, frameInd)
-        % Not implemented, can read data directly from h5 file using 
-        % readData method 
+        % Not implemented, can read data directly from h5 file using
+        % readData method
     end
     
     function writeFrames(obj, data, frameInd)
@@ -174,7 +167,6 @@ methods % Implementation of abstract methods
         warning on
         
     end
-    
 end
 
 methods % Methods for finding datasets within h5 file
@@ -200,7 +192,6 @@ methods % Methods for finding datasets within h5 file
         for i = 1%:numDatasets
             obj.DatasetName = arrayDatasets(i).Name;
         end
-
     end
     
     function datasetNames = listH5Datasets(obj, groupName)
@@ -222,14 +213,11 @@ methods % Methods for finding datasets within h5 file
             datasetNames = [datasetNames, newNames];
         end
         
-        
         if ~isempty(info.Datasets)
             newNames = strcat(groupName, '/', {info.Datasets.Name});
             datasetNames = [datasetNames, newNames];
         end
-        
     end
-    
 end
 
 methods (Static) % H5 specific methods
@@ -259,7 +247,6 @@ methods (Static) % H5 specific methods
                 fprintf('%s\n', datatype.Type);
         
         end
-        
     end
     
     function [start, count, stride] = subs2h5ReadKeys(subs, sz)
@@ -276,7 +263,7 @@ methods (Static) % H5 specific methods
                 count(i) = sz(i);
                 stride(i) = 1;
             else
-                % Input is a list of indices. 
+                % Input is a list of indices.
                 I = subs{i};
 
                 if islogical(I)
@@ -310,11 +297,9 @@ methods (Static) % H5 specific methods
                 count(i) = length(I);
             end
         end
-
     end
     
     function [start, count, stride] = subs2h5ReadKeysMultiStride(subs, sz)
-        
         
         subsLastDim = subs{end};
                 
@@ -345,13 +330,10 @@ methods (Static) % H5 specific methods
             tmpSubs{end} = segments{i};
             [start{i}, count{i}, stride{i}] = nansen.stack.virtual.HDF5.subs2h5ReadKeys(tmpSubs, sz);
         end
-        
     end
     
     function initializeFile(filePath, arraySize, arrayClass)
         % Todo
     end
-    
-end 
-
+end
 end

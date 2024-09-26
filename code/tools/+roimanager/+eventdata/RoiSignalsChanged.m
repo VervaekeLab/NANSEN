@@ -1,12 +1,10 @@
 classdef (ConstructOnLoad) RoiSignalsChanged < event.EventData
-   
     
     properties
         signalType   % select, unselect
         roiIndices
         action
     end
-    
     
     methods
         
@@ -16,7 +14,5 @@ classdef (ConstructOnLoad) RoiSignalsChanged < event.EventData
             data.signalType = signalType;
             data.action = action;
         end
-        
     end
-    
 end

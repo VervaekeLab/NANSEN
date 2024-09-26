@@ -1,4 +1,4 @@
-classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSteps %nansen.dataio.DataIoModel & 
+classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSteps %nansen.dataio.DataIoModel &
 %DataMethod Abstract class to use as a base class for a data method
 %
 %   This is a base class for many of the methods in Nansen. A class that
@@ -20,8 +20,6 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
 %       DATA_SUBFOLDER : Name of subfolder(s) where to save results by default
 %
 
-
-
     % TODO:
     % [ ] Make property to determine what should be done if a method is
     %     already completed. I.e rerun and overwrite, rerun and save to new
@@ -36,7 +34,6 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
     % [ ] Remove the Parameters property?
     %
     %   Add internal list for steps if methods has multiple steps...
-    
    
     properties (Constant, Abstract)
         MethodName      % Name of method
@@ -62,7 +59,6 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
         DataId
     end
     
-    
     methods (Static)
         function pathList = getDependentPaths()
         %getDependentPaths Get dependent paths for this method.
@@ -85,7 +81,7 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
         %   object with a data i/o model and a set of options
         %
         %   Inputs:
-        %       dataIoModel : todo: define this, i.e it can be a struct, a DataIoModel, a Session object... It's confusing 
+        %       dataIoModel : todo: define this, i.e it can be a struct, a DataIoModel, a Session object... It's confusing
         %       options (struct) : A struct containing a set of options for the method
 
             if isempty(varargin)
@@ -94,14 +90,13 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
             end
             
             % Todo: if input is a file/folder path, create a generic data
-            % input/output model. 
+            % input/output model.
             %obj@nansen.dataio.DataIoModel(varargin{1})
             obj.DataIoModel = varargin{1};
 
             if nargin >= 2
                 obj.Options = varargin{2};
             end
-            
         end
     end
     
@@ -144,7 +139,6 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
             
             delete(hPreviewApp)
         end
-        
     end
     
     methods (Access = public) % Shortcuts for methods of DataIOModel
@@ -193,8 +187,8 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
         
         function variableName = getVariableName(obj, variableNameSuffix)
         %getVariableName Get variable name for a data variable
-        % 
-        % The variable name contains both the prefix (method specific) 
+        %
+        % The variable name contains both the prefix (method specific)
         % and the suffix (type specific)
             variableName = [obj.VARIABLE_PREFIX, variableNameSuffix];
         end
@@ -219,7 +213,5 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
             % 3) [ ] Implement a setVariable on the DataIoModel / VariableModel
             
         end
-        
     end
-    
 end

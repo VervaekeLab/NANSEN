@@ -32,9 +32,7 @@ classdef suite2p < nansen.session.SessionMethod & nansen.wrapper.suite2p.Process
             if ~nargout % how to generalize this???
                 obj.runMethod()
                 clear obj
-            end 
+            end
         end
-        
     end
-
 end

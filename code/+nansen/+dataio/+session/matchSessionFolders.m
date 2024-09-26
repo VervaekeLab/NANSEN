@@ -9,19 +9,19 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
 %   Syntax:
 %       FOLDERLIST = matchSessionFolders(DATALOCATIONMODEL, FOLDERLIST)
 %       returns a struct array (FOLDERLIST) containing one field for each
-%       data location and nSession number of rows. The input FOLDERLIST is 
+%       data location and nSession number of rows. The input FOLDERLIST is
 %       a struct with one field for each datalocation where the value for
 %       each field is a cell array of sessionfolder paths.
 %
 %   Input:
 %       dataLocationModel : A data location model instance
 %
-%       sessionFolderList : A struct containing lists of session folders. 
+%       sessionFolderList : A struct containing lists of session folders.
 %                           Each field of the struct corresponds to a data
 %                           location and each value will be a cell array of
 %                           path strings (char) representing session
 %                           folders in the corresponding data location
-%       
+%
 %   Output:
 %       sessionFolderListOut : A struct array (1xN) where N is the number
 %                              of sessions detected (detected session IDs)
@@ -120,9 +120,8 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
     end
 end
 
-
 function sessionIds = getSessionIDsForPaths(dataLocationModel, sessionFolderList)
-% getSessionIDs - Get session ids for a list of filepaths    
+% getSessionIDs - Get session ids for a list of filepaths
     
     dataLocationNames = {dataLocationModel.Data.Name};
 

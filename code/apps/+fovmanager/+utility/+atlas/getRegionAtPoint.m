@@ -1,5 +1,5 @@
 function [regionInd, regionName] = getRegionAtPoint(pointCoords)
-%getRegionAtPoint 
+%getRegionAtPoint
 
     persistent S atlasChoice
     
@@ -25,5 +25,4 @@ function [regionInd, regionName] = getRegionAtPoint(pointCoords)
     else
         regionName = regionLabels{regionInd};
     end
-    
 end

@@ -4,11 +4,9 @@ classdef Deinterleaver < handle
 %   The deinterleaver can be reconfigured on the fly and can be useful if
 %   users need to manually specify how stacks should be deinterleaved.
 
-
 % Todo:
 %       [ ] Add property StackSize (length of all dimensions for the stack being deinterleaved
 %       [ ] Add interleaved dimensions (number for the dimension in stack that are interleaved)
-
 
     properties (SetAccess = immutable)
         InterleavedDimensionNumbers
@@ -32,7 +30,6 @@ classdef Deinterleaver < handle
         Size_ % Internal cache for the dependent size property
     end
     
-    
     methods
         function obj = Deinterleaver(dimensions, numFrames)
         %Deinterleaver Creates a deinterleaver for stacks containing frames
@@ -40,12 +37,11 @@ classdef Deinterleaver < handle
         % 	h = Deinterleaver(dimensions, numFrames) creates a
         % 	deinterleaver for the specified dimensions and number of frames
         %
-        %   INPTUS: 
+        %   INPTUS:
         %       dimensions: character vector with letter for each dimension
         %       numFrames: scalar (total number of frames) or vector
         %       (number of frames per dimension) specifying the number of
         %       frames for the deinterleaver constructor.
-
         
             obj.Dimensions = dimensions;
 
@@ -55,13 +51,12 @@ classdef Deinterleaver < handle
             else
                 obj.NumFrames = numFrames;
             end
-
         end
         
         function setSize(obj, varargin)
         %setSize Set size (length of dimensions) that should be deinterleaved
         %
-        %   obj.setSize(sz) sets the length of each dimension of the 
+        %   obj.setSize(sz) sets the length of each dimension of the
         %       deinterleaved frameset. sz is a vector with the length of
         %       each dimension.
         %
@@ -99,7 +94,7 @@ classdef Deinterleaver < handle
         %       data : array (n-dimensional)
         %       subs : subs for indexing into original array where data
         %              comes from. (first two dimensions not required)
-        %   
+        %
         
         % This is a late night hack. Some files, i.e tiff files can have
         % multichannel frames, and in this case the 3rd dimension is also
@@ -123,7 +118,6 @@ classdef Deinterleaver < handle
             newShape = [dataSize(1:nDimU), cellfun(@numel, subs)];
             data = reshape(data, newShape);
         end
-
     end
     
     methods
@@ -145,7 +139,6 @@ classdef Deinterleaver < handle
             obj.setupDeinterleavingMap()
         end
     end
-    
     
     methods (Access = private)
         function setupDeinterleavingMap(obj)
@@ -169,8 +162,6 @@ classdef Deinterleaver < handle
                     subs{i} = 1:obj.Size(i);
                 end
             end
-            
         end
     end
-    
 end

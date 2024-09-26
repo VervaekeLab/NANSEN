@@ -1,6 +1,5 @@
 classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.mixin.UserSettings
     
-    
     % Todo:
     %
     %   [ ] Make Appwindow class?
@@ -9,7 +8,7 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
     %       responsible for resizing and draw operations. Make sure it is as
     %       efficient as possible. Make sure it is callback driven.
     %
-    %   [ ] Optimize! 
+    %   [ ] Optimize!
     %       - Resizing
     %       - mouse over
     %       - window mouse and key callbacks... 
@@ -35,7 +34,7 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
     end
     
     properties (Access = protected)
-        hFigure 
+        hFigure
         hMainPanel matlab.ui.container.Panel
         hPanels matlab.ui.container.Panel
     end
@@ -43,7 +42,6 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
     properties (Access = protected)
         IsConstructed = false;
     end
-    
     
     methods (Abstract, Access = protected)
         
@@ -88,9 +86,7 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
             if isvalid(obj.hFigure)
                 delete(obj.hFigure)
             end
-            
         end
-        
     end
     
     methods % Set/Get
@@ -149,7 +145,6 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
             if sum(obj.hFigure.Position([2,4])) >  sz(4)
                 obj.hFigure.Position(2) = sz(2) + (sz(4) - obj.hFigure.Position(4))/2;
             end
-
         end
         
         function resizeMainPanel(obj)
@@ -219,14 +214,12 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
         end
         
         function toggleMaximizePanel(obj, btn, src)
-            % Todo: 
+            % Todo:
             %   [x] Fix so that it works also if figure is resized while
             %       panel is open. Works since panel units are normalized
             %   [ ] Fix so that this works also if panel units are in pixels
             %   [ ] Add a SizeChangedFcn whil panel is maximized so that it
-            %       will resize according to margins. 
-            
-            
+            %       will resize according to margins.
             
             persistent iconSet
             if isempty(iconSet)
@@ -245,8 +238,8 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
                 src.Visible = 'off'; % Turn off visibility while restoring size
                 drawnow % Make sure visibility is off before resizing panel
                 
-                % Restore visibility of main panel. Should also trigger 
-                % resize if figure size changed while current panel was 
+                % Restore visibility of main panel. Should also trigger
+                % resize if figure size changed while current panel was
                 % maximized. This could take time for complex dashboards.
                 obj.hMainPanel.Visible = 'on';
                 src.Parent = src.UserData.OriginalParent;
@@ -303,7 +296,6 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
                 obj.onThemeChanged()
                 obj.hFigure.Visible = 'on';
             end
-            
         end
         
         function onAxesCreated(obj, src, evt)
@@ -320,9 +312,7 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
                 disableDefaultInteractivity(src)
                 src.Toolbar = [];
             end
-            
         end
-    
     end
     
     methods (Access = protected)
@@ -351,7 +341,6 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
             % Remove panel spacing from the available length
             availableLength = availableLength - SPACING*(numPanels-1);
             
-            
             if isempty(sizeSpecs)
                 lengthPix = ones(1, numPanels) .* availableLength ./ numPanels;
             else
@@ -371,17 +360,16 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
                 % units
                 lengthPix(~isPixelSize) = sizeSpecs(~isPixelSize) .* remainingLength;
             end
-
             
-            % Get lengths for each panel and correct for rounding errors 
-            % by adding 1 pixel to each panel starting at first panel 
-            % and ending at the nth panel as needed to make sure panels 
+            % Get lengths for each panel and correct for rounding errors
+            % by adding 1 pixel to each panel starting at first panel
+            % and ending at the nth panel as needed to make sure panels
             % correctly fill the available length.
             
             lengthPix = floor( lengthPix ); % Round down
             rem = floor( availableLength - sum(lengthPix) ); % Get remainders
             
-            extra = zeros(1, numPanels); 
+            extra = zeros(1, numPanels);
             extra(1:rem) = 1; % Distribute remainders
 
             siz = lengthPix + extra; % Add remainders to lengths
@@ -390,7 +378,6 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
             pos = cumsum( [1, siz(1:end-1)] ) + (0:numPanels-1) .* SPACING;
 
         end
-    
     end
 
     methods (Access = protected)
@@ -414,7 +401,6 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
                 obj.AppModules(end+1) = moduleHandle;
             end
         end
-    
     end
     
     methods (Access = protected) % Interactive callbacks
@@ -482,9 +468,7 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
                     break
                 end
             end
-            
         end
-        
     end
     
     methods (Access = protected) % Property set callbacks
@@ -503,11 +487,6 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
             for i = 1:numel(obj.AppModules)
                 obj.AppModules(i).Theme = obj.Theme;
             end
-            
-            
         end
-        
     end
-    
-    
 end

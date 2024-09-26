@@ -4,7 +4,7 @@ function signalArray = extractSingleRoi(imArray, roiData, method, n)
 %   signalArray = extractSingleRoi(imArray, roiData, method) extracts
 %   the fluorescence signal of a roi in an imageArray based on the roiMask.
 %   If a neuropil mask (npMask) is supplied, the signal in the neuropil
-%   region will also be extracted. The signal is the mean spatial pixel 
+%   region will also be extracted. The signal is the mean spatial pixel
 %   intensity within the roi for each frame.
 %
 %   signalArray = extractSingleRoi(imArray, roiData, method, n)
@@ -22,17 +22,16 @@ function signalArray = extractSingleRoi(imArray, roiData, method, n)
 %           percentile, if n is not specified, 50 (median) is used.
 %
 %   OUTPUT:
-%       signalArray : double (nFrames, 1+nSubregions). Note: The signal of 
+%       signalArray : double (nFrames, 1+nSubregions). Note: The signal of
 %       the roi will be in the first column, and the the signal of neuropil
 %       regions will be placed in the subsequent columns.
 %
-%   IMPLEMENTATION: 
+%   IMPLEMENTATION:
 %       Index the image array to get a 3D chunk of pixels tightly cropped
 %       to include only the roi (and corresponding neuropil regions),
-%       before extracting signals. 
-%       This method produce quicker results when extracting the signals 
+%       before extracting signals.
+%       This method produce quicker results when extracting the signals
 %       from a few number of rois.
-
 
     % Determine if surrounding neuropil fluorescence will be extracted
     if nargin < 3; method = 'mean'; end % Default is mean
@@ -72,7 +71,6 @@ function signalArray = extractSingleRoi(imArray, roiData, method, n)
     end
 end
 
-
 function signalArray = getPercentileSignal(imArrayChunk, roiMaskChunk, p)
 %getPercentileSignal Computes signal of roi using percentile of pixels
 %
@@ -103,7 +101,7 @@ function signalArray = getPercentileSignal(imArrayChunk, roiMaskChunk, p)
         nPixels = sum(sum(roiMaskChunk(:,:,i)));
         tmpMask = repmat(roiMaskChunk(:,:,i), 1, 1, nSamples);
         
-        % Todo: Is it significantly faster to put this directly in the 
+        % Todo: Is it significantly faster to put this directly in the
         % median/perctile function?
         roiPixelValues = reshape(imArrayChunk(tmpMask), nPixels, nSamples);
         
@@ -112,7 +110,5 @@ function signalArray = getPercentileSignal(imArrayChunk, roiMaskChunk, p)
         else
             signalArray(:, i) = prctile(roiPixelValues, p(i), 1);
         end
-        
     end
 end
-

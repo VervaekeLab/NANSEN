@@ -2,21 +2,19 @@ function varargout = DownsampleStack(sessionObject, varargin)
 %DOWNSAMPLESTACK Summary of this function goes here
 %   Detailed explanation goes here
 
-
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Create a struct of default parameters (if applicable) and specify one or 
-% more attributes (see nansen.session.SessionMethod.setAttributes) for 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
+% Create a struct of default parameters (if applicable) and specify one or
+% more attributes (see nansen.session.SessionMethod.setAttributes) for
 % details.
     
     % Get struct of parameters from local function
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'serial', 'queueable'};   
-
+    ATTRIBUTES = {'serial', 'queueable'};
     
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
     
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
@@ -28,10 +26,9 @@ function varargout = DownsampleStack(sessionObject, varargin)
     
     % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, [], varargin);
-
     
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Implementation of the method : Add your code here:    
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
+% Implementation of the method : Add your code here:
     
     imageStack = sessionObject.loadData(params.StackName);
         
@@ -45,7 +42,6 @@ function varargout = DownsampleStack(sessionObject, varargin)
     nansen.stack.processor.TemporalDownsampler(imageStack, n, binMethod, options{:});
     
 end
-
 
 function S = getDefaultParameters()
     

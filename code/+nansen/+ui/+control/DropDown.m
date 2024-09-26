@@ -8,7 +8,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 % CreateNewItemFcn. This will populate the dropdown with extra options that
 % will be handled separately from selecting a "standard" option.
 
-% Todo: 
+% Todo:
 %   [ ] Ensure items are unique?
 %   [ ] Allow arbitrary actions and action callbacks. Could be managed
 %       through a dictionary...
@@ -25,8 +25,8 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
         %SortItems = false; % Todo
         
         % CreateNewItemFcn - A function handle for a function that accepts
-        % (1) items or (2) items and itemsData as inputs and returns 
-        % (1) newItem or (2) newItem and newItemsData as outputs. If the 
+        % (1) items or (2) items and itemsData as inputs and returns
+        % (1) newItem or (2) newItem and newItemsData as outputs. If the
         % ItemData property is empty, the first form should be used,
         % otherwise the second form should be used.
         CreateNewItemFcn % Function handle
@@ -55,7 +55,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
                 options.AllowNoSelection (1,1) matlab.lang.OnOffSwitchState = 'off'
             end
     
-            % This control has custom callback routines, so the callback 
+            % This control has custom callback routines, so the callback
             % is not passed to the superclass constructor
             if isfield(superclassOptions, 'Callback')
                 callbackFcn = superclassOptions.Callback;
@@ -68,7 +68,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
             obj = obj@nansen.ui.control.AbstractControl(superclassOptions{:});
             %obj = obj@nansen.ui.mixin.IsStylableDropDown()
             
-            % Update items if items was given as input (will take 
+            % Update items if items was given as input (will take
             % precedence over the string property)
             if ~isempty(options.Items)
                 obj.setItemsOnConstruction(options.Items)
@@ -86,7 +86,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
     end
     
     methods
-        function selectedValue = getSelectedValue(obj)            
+        function selectedValue = getSelectedValue(obj)
             if obj.Value <= numel(obj.ActionItems)
                 selectedValue = '';
             else
@@ -130,7 +130,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
         end
     end
 
-    methods (Access = protected) % callbacks for property set events 
+    methods (Access = protected) % callbacks for property set events
         function onCallbackSet(obj)
             % Set up the internal handling of callback
             obj.UserCallbackFcn = obj.Callback_;
@@ -154,7 +154,6 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
                     obj.createNewItem()
                     return
                 end
-
             end
 
             % Todo: Need a good way to provide a value change event where
@@ -309,10 +308,10 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 
             ME = MException('NANSEN:UIDropDown:CreateNewItemFcn', errMessage);
             throwAsCaller(ME)
-        end    
+        end
     
         function createNewItem(obj)
-        % 
+        %
             try
                 if ~isempty(obj.ItemsData)
                     [newItem, newItemData] = obj.CreateNewItemFcn(obj.Items, obj.ItemsData);

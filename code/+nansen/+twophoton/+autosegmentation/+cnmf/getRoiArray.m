@@ -13,5 +13,4 @@ function roiArray = getRoiArray(A, options)
         newRoI.structure = 'ad';
         roiArray(i) = newRoI;
     end
-    
 end

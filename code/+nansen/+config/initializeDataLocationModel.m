@@ -4,10 +4,10 @@ function dataLocationModel = initializeDataLocationModel(filePath)
 %   initializeDataLocationModel(filePath) will initialize a datalocation-
 %   model on the given filepath. The data location model is a preset model
 %   consisting of one datalocation for recorded data and one datalocation
-%   for processed data. The datalocation for recorded data does not have 
+%   for processed data. The datalocation for recorded data does not have
 %   a defined subfolderhierarchy, whereas the datalocation for processed
 %   data is preconfigured with a subject/session subfolder hierarchy.
-%   
+%
 %   dataLocationModel = initializeDataLocationModel(filePath) returns the
 %   initialized dataLocationModel object.
 %
@@ -16,7 +16,6 @@ function dataLocationModel = initializeDataLocationModel(filePath)
 %
 %   See also nansen.config.dloc.DataLocationModel
 %   nansen.config.dloc.DataLocationModelApp
-
 
     dataLocationModel = nansen.config.dloc.DataLocationModel(filePath);
         
@@ -39,12 +38,11 @@ function dataLocationModel = initializeDataLocationModel(filePath)
     dataLocationModel.insertItem(newItem)
 
     % Set the processed data location as the default.
-    dataLocationModel.DefaultDataLocation = 'Processed'; 
+    dataLocationModel.DefaultDataLocation = 'Processed';
     
     dataLocationModel.save()
     
-    if ~nargout 
+    if ~nargout
         clear dataLocationModel
     end
-
 end

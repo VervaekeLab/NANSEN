@@ -4,7 +4,6 @@ classdef ProjectManagerApp < nansen.config.abstract.ConfigurationApp
 %   Todo: Program this using traditional gui figure for backwards
 %   compatibility and more responsive figure.
 
-
     properties (Constant)
         AppName = 'Project Manager'
     end
@@ -15,7 +14,7 @@ classdef ProjectManagerApp < nansen.config.abstract.ConfigurationApp
             
             obj.createFigure();
             obj.Figure.Visible = 'on';
-            obj.UIModule{1} = nansen.config.project.ProjectManagerUI(obj.Figure); 
+            obj.UIModule{1} = nansen.config.project.ProjectManagerUI(obj.Figure);
             %obj.Figure.Resize = 'on';
             if ~nargout; clear obj; end
             
@@ -23,8 +22,5 @@ classdef ProjectManagerApp < nansen.config.abstract.ConfigurationApp
             % Create tabs
             %obj.isConstructed = true;
         end
-        
     end
-    
-
 end

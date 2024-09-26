@@ -5,11 +5,10 @@ function fileAdapterList = listFileAdapters(fileExtension)
 %   array containing information about file adapters.
 %
 %   The fileAdapterList struct array contains the following fields:
-%       FileAdapterName     (char) : Name of fileadapter 
+%       FileAdapterName     (char) : Name of fileadapter
 %       FunctionName        (char) : Name of function for file adapter
 %       SupportedFileTypes  (cell) : File types that are supported with this fileadapter
 %       DataType            (char) : Name of datatype returned by this file adapter
-    
     
     % Todo: Ignore file adapters with a name that are already in the list
     % Todo: Start adding from project dir, then watchfolder, then internal?

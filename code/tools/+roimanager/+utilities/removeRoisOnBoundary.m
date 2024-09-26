@@ -3,7 +3,6 @@ function [roiKeep, roiBnd] = removeRoisOnBoundary(roiArray, varargin)
 %
 %   Parameters: margin (default=15) pixels from image boundary
 
-
     def = struct('margin', 15);
     opt = utility.parsenvpairs(def, [], varargin);
 
@@ -24,5 +23,4 @@ function [roiKeep, roiBnd] = removeRoisOnBoundary(roiArray, varargin)
     if nargout == 1
         clear roiBnd
     end
-
 end

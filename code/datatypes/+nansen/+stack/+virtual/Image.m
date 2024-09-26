@@ -28,9 +28,8 @@ properties (Access = private, Hidden) % File Info
     FilePathList = {} % Keep list of all filepaths if multiple files are open.
     numFiles
     
-    ImageInfo       % Should be for all images, but right now it stores info for first image... 
+    ImageInfo       % Should be for all images, but right now it stores info for first image...
 end
-
 
 methods % Structors
     
@@ -41,7 +40,6 @@ methods % Structors
     function delete(obj)
         
     end
-    
 end
 
 methods (Access = protected) % Implementation of abstract methods
@@ -61,7 +59,6 @@ methods (Access = protected) % Implementation of abstract methods
             obj.FilePathList = {filePath};
             obj.FilePath = char(filePath);
         end
-        
     end
     
     function getFileInfo(obj)
@@ -88,7 +85,6 @@ methods (Access = protected) % Implementation of abstract methods
         
         obj.DataSize = [obj.ImageInfo.Height,  obj.ImageInfo.Width];
         obj.DataDimensionArrangement = 'YX';
-        
         
         switch obj.ImageInfo.ColorType
             case 'truecolor'
@@ -132,15 +128,12 @@ methods (Access = protected) % Implementation of abstract methods
             numChannels = obj.DataSize(ind);
         end
         
-        
         bitsPerSample = obj.ImageInfo.BitDepth ./ numChannels;
         obj.DataType = sprintf('uint%d', bitsPerSample);
     end
-    
 end
 
 methods % Implementation of abstract methods for reading/writing data
-
     
     function getFrame(obj, frameInd, subs)
         obj.getFrameSet(frameInd, subs)
@@ -156,7 +149,6 @@ methods % Implementation of abstract methods for reading/writing data
         
         % Todo: Add error handling if requested image is not right
         % dimension
-
         
         % Determine size of requested data
         newDataSize = obj.DataSize;
@@ -179,9 +171,7 @@ methods % Implementation of abstract methods for reading/writing data
             else
                 error('Virtual data from images must be 3D or 4D')
             end
-
         end
-
     end
     
     function writeFrames(obj, data, frameInd)
@@ -190,10 +180,9 @@ methods % Implementation of abstract methods for reading/writing data
         % Todo: Test thoroughly
 
         % Todo: Make assertion that data has the same size as the stack
-        % (width and height, numchannels) 
+        % (width and height, numchannels)
         
         nDim = numel(obj.DataSize);
-
                 
         % Loop through frames and write data.
         for i = 1:numel( frameInd )
@@ -209,11 +198,8 @@ methods % Implementation of abstract methods for reading/writing data
             else
                 error('Virtual data from images must be 3D or 4D')
             end
-
         end
-        
     end
-
 end
 
 methods (Static)
@@ -221,7 +207,5 @@ methods (Static)
     function initializeFile(filePath, arraySize, arrayClass)
         error('Not implemented yet')
     end
-    
 end
-
 end

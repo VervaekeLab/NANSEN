@@ -13,10 +13,10 @@ function projectManager = ProjectManager()
 %   See also nansen.config.project.ProjectManager
 
     if ~nargout
-        % Todo: consider giving projectManager instance as input to app: 
+        % Todo: consider giving projectManager instance as input to app:
         nansen.config.project.ProjectManagerApp()
     else
         userSession = nansen.internal.user.NansenUserSession.instance();
-        projectManager = userSession.getProjectManager();    
+        projectManager = userSession.getProjectManager();
     end
 end

@@ -1,6 +1,6 @@
 function pathArray = checkClipboard()
 %checkClipboard Return cell array of pathstrings found on clipboard
-% 
+%
 %	pathArray = checkClipboard() returns a cell array of path
 %	strings if those are present on the clipboard, otherwise return empty
 %	str.
@@ -22,7 +22,6 @@ function pathArray = checkClipboard()
             error('Not implemented')
         end
     end
-
     
     if ~isempty(str)
         
@@ -44,6 +43,4 @@ function pathArray = checkClipboard()
     else
         pathArray = '';
     end
-
-
 end

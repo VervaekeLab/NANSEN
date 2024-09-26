@@ -38,7 +38,6 @@ classdef Date < nansen.metadata.abstract.TableVariable & nansen.metadata.abstrac
                 str = repmat({'N/A'}, 1, numel(obj));
             end
         end
-        
     end
     
     methods (Static)
@@ -46,5 +45,4 @@ classdef Date < nansen.metadata.abstract.TableVariable & nansen.metadata.abstrac
         %     value = sessionObject.assignDateInfo();
         % end
     end
-    
 end

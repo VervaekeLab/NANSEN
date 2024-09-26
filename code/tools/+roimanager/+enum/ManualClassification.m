@@ -29,9 +29,7 @@ classdef ManualClassification
                 case 3
                     obj.Color = [0.176, 0.374, 0.908];
             end
-            
         end
-        
     end
     
     methods (Static)
@@ -45,7 +43,5 @@ classdef ManualClassification
                 labels(indexVector == enums(i).Index) = {char(enums(i))};
             end
         end
-        
     end
-    
 end

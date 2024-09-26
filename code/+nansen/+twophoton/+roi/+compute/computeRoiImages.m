@@ -25,14 +25,13 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 %
 %       AutoAdjust : Autoadjust contrast (boolean) - Not implemented.
 %       SubtractBaseline : Subtract baseline from image array
-%        
+%
 %   OUTPUTS:
 %
 %       roiImageStack : array or struct. If only one image is requested,
 %           roiImageStack is a 3D array, otherwise it is a struct where
 %           each field is the name of the image and each value is a 3D
 %           array.
-
     
     import nansen.twophoton.roi.compute.getPixelCorrelationImage
     import nansen.twophoton.roisignals.extractF
@@ -41,7 +40,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     if isempty(fprintf); fprintf = str2func('fprintf'); end
 
     % % Set default parameters and parse name value pairs.
-    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def = struct();
     def.BoxSize             = [21, 21];
@@ -65,7 +64,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     if ~opt.Verbose; fprintf = @(x) false; end
     
     % % Check size of input data and check that they correspond
-    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     % Get number of frames and number of rois.
     numRois = numel(roiArray);
@@ -75,10 +74,9 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     
     [numRows, numCols, numFrames] = size(imArray);
     assert(numFrames == numTimepoints, 'Number of frames not matching number of timepoints')
-    
 
     % % Prepare for computing images
-    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     if opt.Debug; numFrames = zeros(numRois, 1); end
 
@@ -98,13 +96,12 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     centerCoords = round(cat(1, roiArray.center));
 
     % % Compute dffs
-    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     dffOpts = struct('dffFcn', opt.dffFcn);
     dff = nansen.twophoton.roisignals.computeDff(roiSignals, dffOpts);
-
     
     % % Loop through all images to compute and all provided rois
-    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     for iRoi = 1:numRois
         
@@ -141,7 +138,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
                 val = prctile(dff(:, iRoi), [5, 50]);
                 thresh = val(2) + val(2)-val(1);
 
-                frameInd = dff(:, iRoi) > thresh; 
+                frameInd = dff(:, iRoi) > thresh;
                 frameInd = imdilate(frameInd, ones(1,5) );
 
             elseif contains(imageType, 'top 99th percentile')
@@ -177,7 +174,6 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
                 imArrayChunkTmp = imArrayChunk(:, :, frameInd);
             end
             
-            
             % % Create the image:
             %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             
@@ -185,10 +181,10 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 
                 switch imageType
                     case {'mean', 'activity weighted mean', 'top 99th percentile'}
-                        currentRoiIm = mean(imArrayChunkTmp, 3);                
+                        currentRoiIm = mean(imArrayChunkTmp, 3);
     
                     case {'std', 'activity weighted std'} % not as good as mean
-                        currentRoiIm = std(imArrayChunkTmp, 0, 3);                
+                        currentRoiIm = std(imArrayChunkTmp, 0, 3);
     
                     case {'max', 'activity weighted max'} % crap if cell is not active
                         currentRoiIm = max(imArrayChunkTmp, [], 3);
@@ -218,7 +214,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
                         W = getWeights(fdiff);
     
                         imArrayChunkW = imArrayChunkTmp .* reshape(W, 1, 1, []);
-                        currentRoiIm = mean(imArrayChunkW, 3);                
+                        currentRoiIm = mean(imArrayChunkW, 3);
     
                     case 'diff surround orig'
                         % NB : can show signal when there is none
@@ -229,11 +225,11 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
                         W = getWeights(f_);
     
                         imArrayChunkW1 = double(imArrayChunkTmp) .* reshape(W(:,1), 1, 1, []);
-                        currentRoiIm1 = mean(imArrayChunkW1, 3);                
+                        currentRoiIm1 = mean(imArrayChunkW1, 3);
                         %currentRoiIm1 = normalizeimage(currentRoiIm1);
     
                         imArrayChunkW2 = double(imArrayChunkTmp) .* reshape(W(:,2), 1, 1, []);
-                        currentRoiIm2 = mean(imArrayChunkW2, 3);                
+                        currentRoiIm2 = mean(imArrayChunkW2, 3);
                         %currentRoiIm2 = normalizeimage(currentRoiIm2);
     
                         if sum(currentRoiIm1(:)) > sum(currentRoiIm2(:))
@@ -241,7 +237,6 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
                         else
                             currentRoiIm = currentRoiIm2-currentRoiIm1;
                         end
-    
                 end
 
                 if opt.AutoAdjust
@@ -279,9 +274,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
         imageNames = cellfun(@(str) strrep(str, ' ', ''), opt.ImageType, 'uni', 0);
         roiImageStack = cell2struct(roiImageStack, imageNames);
     end
-
 end
-
 
 function dff = calculateDFFStack(im)
 
@@ -293,7 +286,6 @@ function dff = calculateDFFStack(im)
     dff = dff ./ max(dff(:));
 
 end
-
 
 function W = getWeights(f)
 %getWeights Get weights from signal using a sigmoidal function.

@@ -1,5 +1,5 @@
 classdef MetaTableCatalog < uim.handle
-%MetaTableCatalog Class for interfacing a catalog of MetaTable filepaths   
+%MetaTableCatalog Class for interfacing a catalog of MetaTable filepaths
 %
 %   The purpose of this class is to interface a catalog of metatables to
 %   quickly access info about what metatables are available and where they
@@ -24,7 +24,6 @@ classdef MetaTableCatalog < uim.handle
         DEFAULT_FILENAME = 'metatable_catalog.mat'
     end
     
-    
     methods % Constructor
         
         function obj = MetaTableCatalog(filePath)
@@ -42,7 +41,7 @@ classdef MetaTableCatalog < uim.handle
         end
                 
         function delete(obj)
-           % Todo: Check for unsaved changes. 
+           % Todo: Check for unsaved changes.
         end
     end
 
@@ -180,7 +179,6 @@ classdef MetaTableCatalog < uim.handle
                 fprintf('Entry with name %s does not exist in the metatable catalog\n', entryName)
             end
 
-
             obj.save()
             
         end
@@ -277,7 +275,7 @@ classdef MetaTableCatalog < uim.handle
         end
         
         function tf = hasDefaultOfType(obj, className)
-        %HASDEFAULTOFTYPE Check if a default MetaTable of given class exists.    
+        %HASDEFAULTOFTYPE Check if a default MetaTable of given class exists.
             isClassMatch = strcmp(className, obj.Table.MetaTableClass);
             isDefault = obj.Table.IsDefault;
             
@@ -306,7 +304,7 @@ classdef MetaTableCatalog < uim.handle
             
             if ~exist(metaTableDir, 'dir');  mkdir(metaTableDir);    end
             
-            % Get path string from project settings 
+            % Get path string from project settings
             pathString = fullfile(metaTableDir, nansen.metadata.MetaTableCatalog.DEFAULT_FILENAME);
             
 % %             % Alternatively:
@@ -316,7 +314,7 @@ classdef MetaTableCatalog < uim.handle
         end
         
         function MT = quickload(filePath)
-        %QUICKLOAD Static method for loading catalog without constructing class    
+        %QUICKLOAD Static method for loading catalog without constructing class
 
             if ~nargin || isempty(filePath)
                 filePath = nansen.metadata.MetaTableCatalog.getFilePath();
@@ -454,8 +452,6 @@ classdef MetaTableCatalog < uim.handle
                 warning(['Multiple cases of this MetaTable is present ', ...
                     'in the MetaTableCatalog'])
             end
-
         end
-            
     end
 end

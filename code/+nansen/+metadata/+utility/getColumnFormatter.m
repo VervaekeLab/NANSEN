@@ -2,16 +2,16 @@ function [formatterFcnHandle, varNames] = getColumnFormatter(varNames, tableClas
 %getColumnFormatter Get function handle for table column formatter/renderer
 %
 %   formatterFcnHandle = getColumnFormatter() return function
-%   handles for all available column formatters/renderers. 
+%   handles for all available column formatters/renderers.
 %
 %   formatterFcnHandle = getColumnFormatter(varNames) return function
-%   handles for all column formatters that match the given list of variable 
+%   handles for all column formatters that match the given list of variable
 %   names (varNames).
 %
-%   formatterFcnHandle = getColumnFormatter(varNames, tableClass) 
+%   formatterFcnHandle = getColumnFormatter(varNames, tableClass)
 %   looks in the specified scope.
 %
-%   A column formatter is any class that inherits from the 
+%   A column formatter is any class that inherits from the
 %   nansen.metadata.abstract.TableVariable class
     
 % Todo. Turn this into an enumeration class similar to

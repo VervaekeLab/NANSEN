@@ -21,7 +21,7 @@ function computerName = getComputerName(doHash)
         currentUsername = strtrim(currentUsername);
         if strcmp(currentUsername, 'matlab') || strcmp(currentUsername, 'mluser')
             % Special case for matlab online
-            computerName = 'matlab_online'; 
+            computerName = 'matlab_online';
         else
             [status, computerName] = system('cat /etc/machine-id');
             if status ~= 0

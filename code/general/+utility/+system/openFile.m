@@ -4,7 +4,7 @@ function openFile(pathName, mode)
 %   openFile(pathName) opens the file with the given path name using the
 %       operating system's default way of opening files of given type.
 %
-%   openFile(pathName, mode) opens file using a specified mode (optional). 
+%   openFile(pathName, mode) opens file using a specified mode (optional).
 %       Mode is either 'default' or 'text'. The text option is not
 %       supported on windows.
     

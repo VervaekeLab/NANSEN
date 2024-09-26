@@ -4,7 +4,7 @@ classdef CatalogWithBackup < handle
 %   Todo: implement on datalocationmodel, variablemodel etc.
 
     properties (Abstract, SetAccess = protected)
-        Data         % Subclass should implement 
+        Data         % Subclass should implement
     end
     
     properties (Dependent)
@@ -36,7 +36,5 @@ classdef CatalogWithBackup < handle
         function clearBackupData(obj)
             obj.DataOriginal = [];
         end
-
     end
-
 end

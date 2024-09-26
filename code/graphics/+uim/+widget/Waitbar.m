@@ -1,6 +1,5 @@
 classdef Waitbar < uim.mixin.assignProperties
     
-    
     properties (Dependent)
         Position (1,4) double
     end
@@ -28,7 +27,6 @@ classdef Waitbar < uim.mixin.assignProperties
         ParentSizeChangedListener
     end
     
-    
     methods % Structors
         
         function obj = Waitbar(hParent, varargin)
@@ -53,9 +51,7 @@ classdef Waitbar < uim.mixin.assignProperties
             delete(obj.hBarCompleted)
             delete(obj.ParentSizeChangedListener)
         end
-
     end
-    
     
     methods (Access = public)
 
@@ -90,7 +86,6 @@ classdef Waitbar < uim.mixin.assignProperties
             obj.Visible = newValue;
             obj.onVisibleChanged()
         end
-        
     end
     
     methods (Access = private) % Create and update widget components
@@ -114,7 +109,6 @@ classdef Waitbar < uim.mixin.assignProperties
                 obj.hBarRemaining.XData = Xb;
                 drawnow limitrate
             end
-            
         end
         
         function [X, Y] = getBarCoordinates(obj, barName)
@@ -131,14 +125,12 @@ classdef Waitbar < uim.mixin.assignProperties
                 case 'completed'
                     X = x0 + [0; length*obj.Status];
                     Y = y0 - obj.BarWidthRemaining/2 .* [1; 1];
-            end            
+            end
 
             [X, Y] = uim.utility.px2du(obj.hAxes, [X, Y]);
 
         end
-        
     end
-    
     
     methods (Access = private) % Property set callbacks
         
@@ -171,5 +163,4 @@ classdef Waitbar < uim.mixin.assignProperties
             obj.drawWaitbar()
         end
     end
-
 end

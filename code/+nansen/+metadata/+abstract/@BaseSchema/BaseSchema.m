@@ -6,7 +6,7 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
 % Using a class makes it possible to use validation.
 % Convert to/from struct
 % Convert to/from table
-% 
+%
 % A MetaTable is a table of metadata objects which must derive from this
 % BaseSchema class.
 %
@@ -18,7 +18,6 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
 
 %   Todo
 %       [ ] Add methods for interacting with a metatable?
-
 
     properties (Abstract, Constant, Hidden)
         ANCESTOR
@@ -37,7 +36,6 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
         IsConstructed = false
     end
     
-    
     events
         PropertyChanged
     end
@@ -49,7 +47,6 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
                 obj = obj.constructFromTable(varargin{1});
                 [obj.IsConstructed] = deal(true);
             end
-            
         end
     end
     
@@ -68,7 +65,7 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
             numObjects = size(metaTable,1);
             % Use notebook field to initialize a vector of objects
             obj(numObjects).Notebook = struct.empty;
-            % Assign object properties from meta table   
+            % Assign object properties from meta table
             obj.fromTable(metaTable)
             
         end
@@ -97,8 +94,6 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
                     
                 end
             end
-            
-            
         end
         
         function S = toStruct(obj)
@@ -129,7 +124,6 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
             obj.fromStruct(S);
             
         end
-        
     end
     
     methods
@@ -162,10 +156,8 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
             if isa(newValue, 'struct'); newValue = {newValue}; end
             
             evtData = uiw.event.EventData('Property', propertyName, ...
-                'NewValue', newValue); 
+                'NewValue', newValue);
             
         end
-        
     end
-    
 end

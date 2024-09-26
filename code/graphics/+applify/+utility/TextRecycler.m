@@ -1,7 +1,7 @@
 classdef TextRecycler < applify.utility.abstract.GObjectRecycler
 % A class for text recycling.
 %
-%   This class is useful in apps where the number of plotted text objects 
+%   This class is useful in apps where the number of plotted text objects
 %   are large and where the plotted text need to be updated fast.
 %
 %   See also applify.utility.abstract.GObjectRecycler
@@ -12,7 +12,7 @@ classdef TextRecycler < applify.utility.abstract.GObjectRecycler
         Color = 0.5 * ones(1,3)
     end
     
-    methods 
+    methods
         
         function h = getTextHandles(obj, n)
         %getTextHandles Get a specified number of text objects
@@ -21,13 +21,12 @@ classdef TextRecycler < applify.utility.abstract.GObjectRecycler
 
             h = obj.getGobjects(n);
         end
-        
     end
 
     methods (Access = protected)
     
         function h = createNewHandles(obj, n)
-        %createNewHandles Create new line objects    
+        %createNewHandles Create new line objects
             [xInit, yInit] = deal( zeros(n, 1) );
             textProperties = obj.getPropertiesAsNameValuePairs();
 
@@ -38,7 +37,6 @@ classdef TextRecycler < applify.utility.abstract.GObjectRecycler
         %resetHandleData Reset the x- and y-data of line handles
             set(h, 'Position', [nan, nan])
         end
-
     end
 
     methods (Static)
@@ -46,9 +44,7 @@ classdef TextRecycler < applify.utility.abstract.GObjectRecycler
             performanceTest()
         end
     end
-
 end
-
 
 function performanceTest()
 

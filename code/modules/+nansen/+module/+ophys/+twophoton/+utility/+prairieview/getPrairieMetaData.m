@@ -1,9 +1,9 @@
 function [ metadata ] = getPrairieMetaData( tSeriesPath, metadata )
 %getPrairieMetaData Load fields from a prairie view XML file into a matlab struct.
-%   M = getPrairieMetaData(tSeriesPATH) returns a struct with metadata (M) from a 
+%   M = getPrairieMetaData(tSeriesPATH) returns a struct with metadata (M) from a
 %   recording specified by tSeriesPATH, where tSeriesPATH is the path to a tSeries Folder.
 %
-%   M = getPrairieMetaData(PATH, M) updates a metadata (M) file by concatenating info 
+%   M = getPrairieMetaData(PATH, M) updates a metadata (M) file by concatenating info
 %   to some of the output fields (nBlocks, nFrames, times) for each block/cycle of a session.
 %
 %   The idea of this function is to get metadata either from one recording
@@ -37,7 +37,6 @@ function [ metadata ] = getPrairieMetaData( tSeriesPath, metadata )
 %       see also loadPrairieViewStack
 
 % Todo : how to find planes
-    
 
 % Init metadata
 if nargin < 2
@@ -167,8 +166,5 @@ for s = 1:nSequences
         end
         metadata.times{end+1} = times; % update frametimes
     end
-    
 end
-
 end
-

@@ -11,7 +11,7 @@ classdef LineRecycler < applify.utility.abstract.GObjectRecycler
         Color = 0.5 * ones(1,3)
     end
     
-    methods 
+    methods
         
         function h = getLines(obj, n)
         %getLines Get a specified number of line objects
@@ -20,13 +20,12 @@ classdef LineRecycler < applify.utility.abstract.GObjectRecycler
 
             h = obj.getGobjects(n);
         end
-        
     end
 
     methods (Access = protected)
     
         function h = createNewHandles(obj, n)
-        %createNewHandles Create new line objects    
+        %createNewHandles Create new line objects
             [xInit, yInit] = deal( nan(2, n) );
             lineProperties = obj.getPropertiesAsNameValuePairs();
 
@@ -37,7 +36,6 @@ classdef LineRecycler < applify.utility.abstract.GObjectRecycler
         %resetHandleData Reset the x- and y-data of line handles
             set(h, 'XData', nan, 'YData', nan)
         end
-
     end
 
     methods (Static)
@@ -45,9 +43,7 @@ classdef LineRecycler < applify.utility.abstract.GObjectRecycler
             performanceTest()
         end
     end
-
 end
-
 
 function performanceTest()
 

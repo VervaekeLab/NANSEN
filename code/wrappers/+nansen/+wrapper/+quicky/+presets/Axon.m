@@ -16,7 +16,5 @@ classdef Axon < nansen.wrapper.quicky.Options
             S.Detection.PrctileForBinarization = 95; % Axonal data is typically more sparse..
             S.Detection.UseShapeDetection = false;
         end
-        
     end
-    
 end

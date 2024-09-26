@@ -7,12 +7,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %
 %       h = structeditor(S) creates an app for editing struct S and assigns
 %       the app object to h.
-%   
+%
 %       Types of variables that are supported:
 %           chars  -> text edit control
 %           numbers -> numeric edit control
 %           logicals -> tickbox
-%   
+%
 %       The control generated for a field can be customized using a field
 %       that has the same name but with an underscore appended.
 %
@@ -23,7 +23,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %               Example:
 %                   S.fruitChoices = 'apple'
 %                   S.fruitChoices_ = {'apple', 'mango', 'pear'}
-%               ... will generate a dropdown menu where the value is apple, 
+%               ... will generate a dropdown menu where the value is apple,
 %               and the choices are apple, mango and pear.
 %
 %           - Custom function: Adding a customization with a function
@@ -31,28 +31,27 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %             pushing the button will invoke a routine for updating the
 %             field value. The function handle must refer to a function
 %             which takes one input, the struct S
-%               Example: 
+%               Example:
 %                   S.value = 5
 %                   S.value_ = @uiUpdateValue
 %
 %       Other configurations (undocumented):
 %           rangeslider
 %           button
-%       
+%
 %           A cell array of numbers will be rendered within one inputbox,
 %           and values should be added as a space separated list of numbers
 %           A numeric array with 2 or 3 elements will be rendered using 2
 %           or 3 input boxes. For further elements, the behavior is the
 %           same as for cell array. This is very ad hoc and a better way
 %           is desirable.
-% 
+%
 %   PARAMETERS: (todo, clean up public properties and add documentation)
 %       Title
 %       Prompt
 %       LabelPosition
 %       TabMode
 %       Callback
-
 
 %   Todo list:
 %
@@ -61,10 +60,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %           validation function to test that the entered value is valid.
 %       [ ] Implement transient fields
 %           Q: 1) How are these updated? Is there any way of making that
-%           simple, or not? True/false, enable/disable... 
+%           simple, or not? True/false, enable/disable...
 %              2) Make data models?
 %      *[x] Make a struct with the same fields as the input struct
-%           containing the controls. Will be much easier to find things 
+%           containing the controls. Will be much easier to find things
 %           back and update things when needed.
 %       [ ] Fix onMouseMotion bug (if closing a docked structeditor??)
 %       [ ] Use toolbar_ for tabbuttons.
@@ -76,7 +75,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       [ ] Create context menu for preset managing
 %       [x] Create functionality for tabbuttons in header (added dropdown)
 %       [ ] Replace eval with subsref and subsassign for nested structs.
-%       [ ] Implement methods for creating controls, and for updating 
+%       [ ] Implement methods for creating controls, and for updating
 %           control values. I.e split up and generalize the newInputField
 %           method.
 %       [x] Add input parser.
@@ -89,7 +88,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       [ ] Make sure long titles does not extend to save and cancel buttons.
 %       [ ] Browse button is asymmetric
 %       [ ] Tickbox update can be very slow when pressing it to tick it. Try it
-%           in fovmanager for example. Think this was fixed at some point 
+%           in fovmanager for example. Think this was fixed at some point
 %       [ ] uicontrolSchemer might not be deleted. The objectBeingdestroyed
 %           listener is not saved anywhere, so its deleted
 
@@ -136,8 +135,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         currentOptionsName = '' % Name of currently selected options set.
     end
     
-    properties % Callback properties. Need to clean 
-        Callback     
+    properties % Callback properties. Need to clean
+        Callback
         TestFunc % Why is there a second one????
         
         ValidationFcn % todo
@@ -166,7 +165,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         isTabCreated = false
         currentPanel = 1
          
-        TabButtonGroup      
+        TabButtonGroup
         
         headerTitle
         
@@ -203,7 +202,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         % Move to options manager ui class.
         OptionsManagerControls
         OptionsSelectionDropdown
-    end 
+    end
     
     properties (Access = protected, Dependent, Hidden = true )
         showFooter
@@ -228,7 +227,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function obj = App(varargin)
             
-            % Split off parent handle from args (if given) and call 
+            % Split off parent handle from args (if given) and call
             % superclass constructor for ModularApp
             [h, varargin] = applify.ModularApp.splitArgs(varargin{:});
             obj@applify.ModularApp(h);
@@ -239,11 +238,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
             cleanupObj = onCleanup(@obj.onConstructorExit);
             
-            obj.Panel.Units = 'normalized'; 
+            obj.Panel.Units = 'normalized';
             % Todo: Fix this. Why does panel get pixel units from superclass
 
-            % Validate first entry of remaining varargin. Should be a 
-            % struct or a cell array of structs. 
+            % Validate first entry of remaining varargin. Should be a
+            % struct or a cell array of structs.
             [S, varargin] = structeditor.validateStruct(varargin{:});
             % Above function fails if S is invalid. varargin has S removed
             
@@ -281,7 +280,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
 
             % Find handles of all uicontrols.
-            hUic = findobj(obj.header.hPanel, 'type', 'uicontrol'); 
+            hUic = findobj(obj.header.hPanel, 'type', 'uicontrol');
             
             % Make them look good.
             if ~isempty(hUic)
@@ -301,7 +300,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             applify.AppWindow.switchJavaWarnings('on')
             
             obj.pleaseWaitTxt.Parent = obj.main.constructionCurtain;
-            obj.pleaseWaitTxt.Position(3) = obj.pleaseWaitTxt.Extent(3); 
+            obj.pleaseWaitTxt.Position(3) = obj.pleaseWaitTxt.Extent(3);
             obj.pleaseWaitTxt.Position(1) = 0.5 - obj.pleaseWaitTxt.Position(3)/2;
 
             delete(obj.main.tmpPanel)
@@ -334,7 +333,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 fprintf('Window self destructed because something went wrong\n')
             end
         end
-        
     end
     
     methods % Set/get
@@ -371,7 +369,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.IsModal = value;
             obj.onModalChanged()
         end
-        
     end
     
     methods
@@ -401,7 +398,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 if obj.showSidePanel && ~contains(obj.TabMode, 'popup') % make space for panel with tab buttons.
                     obj.Figure.Position(3) = obj.Figure.Position(3) + 100;
                 end
-                
             end
             
             if ~isempty(obj.ReferencePosition)
@@ -419,7 +415,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if ~obj.showSidePanel || contains(obj.TabMode, 'popup')
                 obj.Margins(1) = 0;
             end
-            
         end
         
         function pos = initializeFigurePosition(obj)
@@ -434,7 +429,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 width = 470;
                 height = 470;
             end
-            
         
             screenSize = get(0, 'ScreenSize');
             figLocation = [100, screenSize(4) - 100 - height];
@@ -459,19 +453,18 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         end
         
-        
 % %         function setDefaultFigureCallbacks(obj, hFig)
 % %             if nargin < 2 || isempty(hFig)
 % %                 hFig = obj.Figure;
 % %             end
-% %             
+% %
 % %             hFig.WindowKeyPressFcn = @obj.onKeyPressed;
 % %             hFig.WindowKeyReleaseFcn = @obj.onKeyReleased;
 % %         end
         
         function updateHeaderTitle(obj, pageNum)
             
-            if nargin < 2   
+            if nargin < 2
                 pageNum = obj.currentPanel;
             end
             
@@ -488,7 +481,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 headerMessage = '';
             end
             
-            
             % Override automatic messages if prompt is given.
             if ~isempty(obj.Prompt)
                 headerMessage = obj.Prompt;
@@ -502,10 +494,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %                 if obj.headerSubtitle.Extent(1) < 1 ??
 %                     obj.headerSubtitle.Position(1) = 1;
 %                 else
-%                     
+%
 %                 end
             end
-
         end
         
         function adjustFigureSizeToComponents(obj)
@@ -513,13 +504,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Only adjust size if figure is standalone
             if ~strcmp(obj.mode, 'standalone'); return; end
             
-            
             if obj.virtualHeight(obj.currentPanel) < obj.visibleHeight
                 h = obj.virtualHeight(obj.currentPanel);
                 obj.Figure.Position(4) = h + sum(obj.Margins([2,4])) + 20;
                 uim.utility.centerFigureOnScreen(obj.Figure)
             end
-            
         end
         
         function adjustFigureWidthToComponents(obj)
@@ -548,14 +537,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         %resizePanel Callback for resizing panels.
         %
         %   Header/footer and sidebar panels should have fixed sizes in
-        %   pixels vertically and horizontally respectively. 
+        %   pixels vertically and horizontally respectively.
         %
-        %   Note: All calculations are done in pixels..   
+        %   Note: All calculations are done in pixels..
         
             % Get size of the main panel.
             panelPixelSize = getpixelposition(obj.Panel);
             panelWidth = panelPixelSize(3);
-            panelHeight = panelPixelSize(4);            
+            panelHeight = panelPixelSize(4);
             
             obj.pleaseWaitTxt.Position = obj.pleaseWaitTxt.Extent;
             obj.pleaseWaitTxt.Units = 'pixels';
@@ -570,7 +559,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.visibleWidth = panelWidth - sum( obj.Margins([1,3]) );
             
             % Calculate positions for each subpanel
-            headerPos = [0, panelHeight-obj.Margins(4), panelWidth, obj.Margins(4)+2];            
+            headerPos = [0, panelHeight-obj.Margins(4), panelWidth, obj.Margins(4)+2];
             footerPos = [0, 0, panelWidth, obj.Margins(2)];
             scrollPanelPos = [panelWidth-obj.Margins(3), obj.Margins(2)+1, obj.Margins(3), obj.visibleHeight-1];
             mainPos = [obj.Margins(1), obj.Margins(2), obj.visibleWidth, obj.visibleHeight];
@@ -625,28 +614,25 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 newPosition(4) = obj.visibleHeight;
             end
             
-            
 % %             % Panel width should be same as virtual width.
 % %             if ~isnan(obj.virtualWidth(pageNum))
 % %                 newPosition(3) = obj.virtualWidth(pageNum);
 % %             else
 % %                 newPosition(3) = obj.visibleWidth;
 % %             end
-            
 
             setpixelposition(obj.main.hPanel(pageNum), newPosition);
 
-            if isfield(obj.main, 'hAxes')  
+            if isfield(obj.main, 'hAxes')
                 obj.main.hAxes(pageNum).Position(3) = newPosition(3);
                 obj.main.hAxes(pageNum).Position(4) = newPosition(4);
                 set(obj.main.hAxes(pageNum), 'XLim', [0,newPosition(3)], 'YLim', [0, newPosition(4)]);
                 obj.moveElementsToTop()
             end
-            
         end
         
         function onCallbackSet(obj)
-        %onCallbackSet Need to make on callback for each page...    
+        %onCallbackSet Need to make on callback for each page...
             if obj.isConstructed && ~isempty(obj.Callback)
                 
                 if ~iscell(obj.Callback) || numel(obj.Callback) ~= obj.numTabs
@@ -677,7 +663,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function onConstructed(obj)
-        % Overrides superclass method because turning figure visibility on 
+        % Overrides superclass method because turning figure visibility on
         % also requires to delete a panel...
         
             obj.setDefaultFigureCallbacks()
@@ -686,7 +672,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if strcmp(obj.mode, 'standalone')
                 obj.showFigure();
             end
-            
         end
         
         function onThemeChanged(obj)
@@ -706,11 +691,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 bgColor = min( [1,1,1 ; obj.Theme.FigureBgColor+0.01] );
                 set(obj.uiPanel.Tab, 'BackgroundColor', bgColor)
             end
-            
-            
-            
         end
-        
     end
     
     methods (Access = private) % Gui initialization
@@ -735,11 +716,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
             warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
 
-        end 
+        end
 
         function createPanels(obj)
         %createPanels Create the gui panels
-            
             
             % Create a panel for controls for each of structs to be edited.
             for i = 1:obj.numTabs
@@ -767,11 +747,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.uiPanel.Tab = uipanel(obj.Panel);
                 obj.uiPanel.Tab.Units = 'pixels';
             end
-            
 
             % Create header (and footer) panel last to keep them on top!
             obj.header.hPanel = uipanel(obj.Panel);
-
             
             if obj.showFooter
                 obj.footer.hPanel = uipanel(obj.Panel);
@@ -784,7 +762,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             set( obj.main.hPanel(1), 'Visible', 'on' )
             
-            
             % Create a temporary panel to cover up uicontrols while they
             % are rendered and the style is updated.
             obj.main.tmpPanel = uipanel(obj.Panel);
@@ -794,7 +771,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if obj.Debug
                 obj.main.tmpPanel.Visible='off';
             end
-            
             
             obj.pleaseWaitTxt = uicontrol(obj.main.tmpPanel, 'style', 'text');
             obj.pleaseWaitTxt.String = 'Please Wait...';
@@ -813,27 +789,24 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Customize panel appearance
             set(allPanels, 'BackgroundColor', obj.Theme.FigureBgColor)
             set(allPanels, 'BorderType',  'none')
-            
 
             obj.main.disablePanel.BackgroundColor = 'w';
             
 % % %             %[output, jPanel, ~, ~, ~] = evalc( findjobj(obj.main.disablePanel) );
 % % %             jPanel = findjobj(obj.main.disablePanel);
-% % %             
+% % %
 % % %             jColor = java.awt.Color(1,1,1,0.3);
 % % %             jPanel.setBackground(jColor)
 % % %             h1 = jPanel.getComponent(0);
 % % %             set(h1, 'Opaque', false);
 % % %             h2 = h1.getComponent(0);
 % % %             set(h2, 'Opaque', false);
-% % %             
+% % %
 % % %             h0 = jPanel.getParent();
 % % %             set(h0, 'Opaque', false);
-            
 
             obj.main.disablePanel.Visible = 'off';
             %get(jPanel, 'Opaque')
-            
             
             % Set up/configure individual panels.
             obj.createHeaderComponents()
@@ -990,7 +963,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hButton1.Callback = @(s,e) obj.saveOptionsSet();
             hButton1.Enable = 'off';
             
-            
             hButton2 = uicontrol(obj.footer.hPanel, 'style', 'pushbutton');
             hButton2.String = 'Make Default';
             hButton2.Position = [X(3), 12, W(3), 22];
@@ -1028,7 +1000,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function createFinishButtons(obj)
         %createFinishButtons Create save and cancel buttons
-        
                 
 % % %             hToolbar = uim.widget.toolbar_(obj.header.hPanel, ...
 % % %                 'Location', 'east', 'VerticalAlignment', 'middle', ...
@@ -1037,24 +1008,23 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % % %                 'Size', [inf, 24], ...
 % % %                 'NewButtonSize', [16,16], 'Padding', [0,0,0,0], ...
 % % %                 'Spacing', 0);
-% % %             
+% % %
 % % %             buttonConfig = {'FontSize', 15, 'FontName', obj.FontName, ...
 % % %                 'Padding', [2,2,2,2], 'CornerRadius', 2, ...
 % % %                 'Mode', 'pushbutton', 'Style', uim.style.buttonSymbol, ...
 % % %                 'IconSize', [16,16], 'IconTextSpacing', 7};
-% % %             
+% % %
 % % %             btnIcon = {obj.ICONS.save2, obj.ICONS.cancel2};
 % % %             btnName={'Save', 'Cancel'};
 % % %             for i = 1:2
 % % %                 hToolbar.addButton('Icon', btnIcon{i}, 'Tooltip', btnName{i}, ...
 % % %                     'Callback', @(s, e, action) obj.quit(btnName{i}), buttonConfig{:})
 % % %             end
-% % %             
+% % %
 % % %             % Update location after buttons are created..
 % % %             hToolbar.Location = 'east';
-% % % 
+% % %
 % % %             return
-        
         
             xPos = [0.84, 0.94];
             yPos = 0.5;
@@ -1081,7 +1051,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 %edgeX = edgeX + offset(i);
                 
                 % Convert edge coordinates to data units (Transpose because
-                % input to px2du is nPoints x 2 and output from createBox is 
+                % input to px2du is nPoints x 2 and output from createBox is
                 % row-vectors.
                 edgeCoords = uim.utility.px2du(obj.header.hAxes, [edgeX', edgeY']);
                 edgeCoords = edgeCoords - min(edgeCoords);
@@ -1181,7 +1151,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             obj.TabButtonGroup.Group = hToolbar;
             
-            
             % Adjust margins/sidebar to fit with tabbuttons
             if strcmp(obj.TabMode, 'sidebar') && strcmp(obj.mode, 'standalone')
                 deltaWidth = width - obj.Margins(1);
@@ -1202,7 +1171,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.uiPanel.Tab.Visible = 'off';
                 hToolbar.Location = 'northwest';
             end
-            
         end
         
         function createControlPanelAxes(obj)
@@ -1262,7 +1230,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             else
                 obj.moveElementsToTop()
             end
-
         end
         
         function onModalChanged(obj)
@@ -1313,7 +1280,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.dataOrig = S;
             obj.dataEdit = S;
             
-            
             % Count number of structs in input.
             if isa(S, 'cell') && numel(S) > 1
                 obj.numTabs = numel(S);
@@ -1359,7 +1325,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.virtualHeight = nan(1, obj.numTabs);
             obj.virtualWidth = nan(1, obj.numTabs);
         end
-        
     end
     
     methods (Access = {?applify.ModularApp, ?applify.DashBoard} ) % Mouse/keyboard callbacks
@@ -1382,7 +1347,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         obj.quit('Save')
                 end
             end
-            
         end
         
         function onMouseMotion(obj, src, event)
@@ -1425,7 +1389,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     obj.Figure.Pointer = 'hand';
                 end
             end
-            
         end
         
         function onMouseScrolled(obj, src, event)
@@ -1435,9 +1398,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     obj.hScroller.moveScrollbar(src, event)
                 end
             end
-            
         end
-        
     end
     
     methods (Access = protected)
@@ -1449,9 +1410,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             else
                 obj.uiPanel.Tab.Visible = 'off';
             end
-            
         end
-        
     end
     
     methods % Gui update
@@ -1473,13 +1432,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 rowSpacing = obj.RowSpacing;
             end
             
-            
             supportedClasses = [obj.NUMERIC_TYPES, {'logical', 'cell', 'char', 'struct', 'categorical'}];
             
             % Set some size preferences:
             contentPanel = obj.main.hAxes(panelNum);
 
-            totHeight = contentPanel.Position(4); 
+            totHeight = contentPanel.Position(4);
             
             % Initialize the yPosition for adding new components.
             y = obj.RowSpacing + 10;
@@ -1488,7 +1446,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             fieldNames = fieldnames(S);
             
             % Go through each property and make an inputfield for it. Each
-            % editfield has a Tag which is the same as the propertyname. 
+            % editfield has a Tag which is the same as the propertyname.
             % This is how to refer to them in other functions of the gui.
             for p = numel(fieldNames):-1:1
             
@@ -1496,7 +1454,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 
                 % Check if current field is a configuration field
                 if obj.isConfigField(currentProperty, fieldNames)
-                    continue; 
+                    continue;
                 end
                 
                 % Check if current field has a configuration field
@@ -1507,7 +1465,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     config = S.(fieldNames{configInd});
                 end
 
-                tip = ''; 
+                tip = '';
                 if ~isempty(obj.DataTips)
                     if isfield(obj.DataTips, currentProperty)
                         tip = obj.DataTips.(currentProperty);
@@ -1525,7 +1483,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 propertyClass = class(S.(currentProperty));
             
                 if ~contains(propertyClass, supportedClasses)
-                    warning('Skipped field ''%s'' because the datatype ''%s'' is not supported', currentProperty, propertyClass) 
+                    warning('Skipped field ''%s'' because the datatype ''%s'' is not supported', currentProperty, propertyClass)
                     continue
                 end
                 
@@ -1575,7 +1533,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         hRect.FaceAlpha = 0;
                         hRect.EdgeColor = obj.Theme.FigureFgColor*0.5;
                         y = y + obj.RowHeight;
-
 
                     otherwise
                         val = eval(strcat('S', '.', currentProperty));
@@ -1644,7 +1601,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % % %             % Alternative version:
 % % %             fieldIdx = strcmp(currentFieldName, allFieldNames);
 % % %             configIdx = strcmp([currentFieldName,'_'], allFieldNames);
-% % % 
+% % %
 % % %             if ~isempty(fieldIdx) && ~isempty(configIdx)
 % % %                 ind = configIdx;
 % % %             end
@@ -1683,7 +1640,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             ycorr = 0;
             xcorr = 0;
             hcorr = 0;
-            
             
             % Create input field for editing of propertyvalues
 
@@ -1749,7 +1705,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             
                             inputbox.String = strArray;
                         end
-                        
 
                     otherwise
                         % skip for now
@@ -1791,7 +1746,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             ycorr = -3;
                             % padding is 3pix asymmetric... i think
                             % because of the way other uicontrols are positioned.
-% %                             
+% %
 % %                         case 'rangeslider'
 % %                             inputbox = uim.widget.rangeslider(guiAxes, ...
 % %                                 'Units', 'pixel', config.args{:}, 'Low', val(1), 'High', val(2), ...
@@ -1897,16 +1852,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 delete(textbox)
             end
             
-            
             % Add control to a struct of controls using same fieldnames as
             % for the data structs: % Todo: Add name for multipages...
             structSubs = obj.getSubfieldSubs(name);
             obj.hControls = subsasgn(obj.hControls, structSubs, inputbox);
             
-            
             % If config is a char, then we should create a button next to
             % the input field.
-            if ~isempty(config) && isa(config, 'char') && ~strcmp(config, 'transient')        
+            if ~isempty(config) && isa(config, 'char') && ~strcmp(config, 'transient')
                 
                 %inputbox.Position(3) = inputbox.Position(3);
                 
@@ -1999,7 +1952,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 xPos = sum(linkedComponent.Position([1,3]))+2;
                 hButton.Position = [xPos, y, sz, sz]; %Slightly smaller..
             end
-            
         end
         
         function pos = subdividePosition(obj, pos, numSubdivision)
@@ -2016,7 +1968,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             pos(:,3) = l;
             
         end
-
         
         function setControlValue(obj, hControl, value)
             
@@ -2029,7 +1980,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     end
                 end
             end
-            
             
             if isa(hControl, 'matlab.ui.control.UIControl')
 
@@ -2088,12 +2038,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     otherwise
                         % skip for now
                 end
-            
                 
             elseif isa(hControl, 'uim.widget.slidebar') % todo.
                 hControl.Value = value;
             end
-            
         end
 
         function styleControls(obj, panelNum)
@@ -2112,14 +2060,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % %             % Find handles of all uicontrols.
 % %             fieldNamesPage = fieldnames(obj.dataOrig{panelNum});
 % %             fieldNamesControls = fieldnames(obj.hControls);
-% %             
+% %
 % %             keep = ismember(fieldNamesControls, fieldNamesPage);
             
-            hUic = findobj(hPanel, 'type', 'uicontrol'); 
+            hUic = findobj(hPanel, 'type', 'uicontrol');
             
 % %             hUic = struct2cell( obj.hControls );
 % %             hUic = hUic(keep);
-% %             
+% %
 % %             isUic = cellfun(@(c) isa(c, 'matlab.ui.control.UIControl'), hUic);
 % %             hUic = [hUic{isUic}];
             
@@ -2148,11 +2096,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function scrollToTop(obj)
-        %scrollToTop Scroll panel to the top. 
+        %scrollToTop Scroll panel to the top.
             
             % (Mis)Use the scroll callback to move the elements so that the first is on
             % the top of the panel. This is a fix for starting the positioning
-            % of elements from the bottom, potentially leaving the first 
+            % of elements from the bottom, potentially leaving the first
             % (topmost) elements outside of the panel.
             
             i = obj.currentPanel;
@@ -2166,7 +2114,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function moveElementsToTop(obj)
-        %moveElementsToTop Move elements of a panel to the top.   
+        %moveElementsToTop Move elements of a panel to the top.
             i = obj.currentPanel;
             
             if isnan(obj.virtualHeight(i)); return; end
@@ -2198,7 +2146,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             for i = 1:numel(uic)
                 uic(i).Position(2) = uic(i).Position(2) + difference;
             end
-            
         end
         
         function moveElementsToRight(obj)
@@ -2208,7 +2155,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         %   in order to correct for posision offsets if components are
         %   wider than page
             
-        %   Todo: Generalize the update of position property for custom 
+        %   Todo: Generalize the update of position property for custom
         %   axes components
         
             i = obj.currentPanel;
@@ -2216,7 +2163,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             if isnan(obj.virtualWidth(i)); return; end
             
             if obj.virtualWidth(i) < obj.visibleWidth
-                return % 
+                return %
             end
             
             difference = obj.visibleWidth - obj.virtualWidth(i);
@@ -2288,7 +2235,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
             name = src(1).Tag;
             
-            
             switch src(1).Style
                 case 'edit'
                     val = src.String;
@@ -2355,7 +2301,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         val = sprintf('{ %s }', val );
                     end
 
-
                 case 'char'
                     val = ['''' val ''''];
 
@@ -2367,7 +2312,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Using eval function here because input from controls are in
             % char/string format.
             
-            
             %newVal = eval(val);
             
             try
@@ -2378,7 +2322,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 
             catch ME
                 obj.setControlValue(src, oldValue)
-                msgbox('Invalid value'); 
+                msgbox('Invalid value');
                 disp( getReport(ME) )
                 return
                 %error('Invalid value')
@@ -2410,7 +2354,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.dataEdit{ind} = builtin('subsasgn', obj.dataEdit{ind}, subs, newValue);
                 %eval(['obj.dataEdit{obj.currentPanel}.', name, ' = ', val , ';'])
 
-                obj.dataEdit{ind}.(name) = newValue; 
+                obj.dataEdit{ind}.(name) = newValue;
                 
                 if ~isempty(obj.Callback) && ~isempty( obj.Callback{obj.currentPanel} )
                     obj.Callback{obj.currentPanel}(name, newValue)
@@ -2431,7 +2375,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 
                 % Todo: Enable save button
             end
-
         end
         
         function onDropdownItemEditRequested(obj, dropdown, dropdownConfig)
@@ -2529,7 +2472,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     end
                     
                 case 'uisetcolor' % Use uisetcolor dialog to pick a color.
-                    origRGB = obj.dataEdit{iPanel}.(propertyName);                    
+                    origRGB = obj.dataEdit{iPanel}.(propertyName);
                     newRGB = uisetcolor(origRGB);
                                         
                     if isequal(newRGB, 0)
@@ -2588,9 +2531,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     obj.editCallback_propertyValueChange(inputfield)
                 end
             end
-
         end
-        
         
 % % % % Methods for options sets (Todo: make into separate class)
 
@@ -2617,7 +2558,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             obj.setButtonEnableState('Make Default')
             obj.setButtonEnableState('Save Options')
-            
             
             newOpts = obj.OptionsManager.getOptions(newName);
             
@@ -2729,7 +2669,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function makeOptionsSetDefault(obj, hDropdown)
-        %makeOptionsSetDefault Make current preset the default  
+        %makeOptionsSetDefault Make current preset the default
             name = obj.getCurrentOptionsSetSelection(hDropdown);
             obj.OptionsManager.setDefault(name);
             
@@ -2740,7 +2680,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
         
         function refreshOptionsDropdown(obj, hDropdown)
-        %refreshOptionsDropdown Refresh items in dropdown menu 
+        %refreshOptionsDropdown Refresh items in dropdown menu
                    
             if nargin < 2
                 hDropdown = obj.OptionsSelectionDropdown;
@@ -2771,7 +2711,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function setButtonEnableState(obj, buttonName)
         %setButtonEnableState Set enable state based on current selection
-        
         
             hDropdown = obj.OptionsSelectionDropdown;
             if isempty(hDropdown); return; end % Control not created yet.
@@ -2838,13 +2777,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.setButtonEnableState('Save Options')
         end
         
-        
 % % % % Method for updating all the parameter values of an options set.
         
         function replaceEditedStruct(obj, newOpts)
-            % Todo: Rename     
+            % Todo: Rename
             
-            % If original data was a struct of structs, need to convert 
+            % If original data was a struct of structs, need to convert
             % input to cell before continuing
             if obj.ConvertOutputToStruct
                 newOpts = struct2cell(newOpts);
@@ -2854,7 +2792,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             numPages = numel(obj.dataEdit);
             
-            getOldValue = @(fieldname) strjoin({'obj.dataEdit{i}', fieldname}, '.');  
+            getOldValue = @(fieldname) strjoin({'obj.dataEdit{i}', fieldname}, '.');
             getNewValue = @(fieldname) strjoin({'newOpts{i}', fieldname}, '.');
             
             % Todo: Find better way?
@@ -2882,13 +2820,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 
                 obj.currentPanel = i;
                 
-                
                 for j = 1:numel(names)
                     %hControl = findobj(guiFig, 'Tag', names{j}, 'Type', 'uicontrol');
                     
                     s = struct('type', {'.'}, 'subs', strsplit(names{j}, '.'));
                     hControl = subsref(obj.hControls, s);
-                    
                     
                     % TODO: Use old value if new value is not present. Ie
                     % if original options have been updated at some point
@@ -2933,7 +2869,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 if ~isequal(src, obj.TabButtonGroup.Buttons(iBtn))
                     obj.TabButtonGroup.Buttons(iBtn).Value = 0;
                 end
-                   
             end
 
             % Make sure current button is on (and change page if it was turned on)
@@ -2943,7 +2878,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             else
                 % If click turns button off, turn it back on!
                 src.Value = true;
-            end 
+            end
             
             if obj.showSidePanel && contains(obj.TabMode, 'popup')
                 obj.sidePanelToggleButton.Value = 0;
@@ -3033,7 +2968,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function tf = isPageDisabled(obj, panelNum)
             tf = strcmp( obj.main.hPanel(panelNum).Enable, 'off' );
         end
-
         
 % % % % Functions for moving window (if figure is undecorated)
 
@@ -3066,7 +3000,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 newPos = initFigPos + shift.*[1,-1];
                 obj.hJFrame.setLocation(java.awt.Point(newPos(1), newPos(2)));
             end
-            
         end
         
         function stopMoveWindow(obj, ~, ~)
@@ -3074,10 +3007,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.Figure.WindowButtonUpFcn = obj.figureCallbackStore.WindowButtonUpFcn;
         end
         
-        
 % % % % Other callbacks
 
-        function scrollValueChange(obj, scroller, ~)        
+        function scrollValueChange(obj, scroller, ~)
         % Callback for value change on scroller belonging to panel. Scrolls up or down.
 
             panelNum = obj.currentPanel;
@@ -3115,7 +3047,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         end
         
-        function waitfor(obj)                               
+        function waitfor(obj)
             uiwait(obj.Figure)
         end
         
@@ -3151,11 +3083,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.notify('AppDestroyed', event.EventData)
 
         end
-        
     end
 
     methods (Static)
-        
         
         function subs = getSubfieldSubs(subfieldName)
             subfields = strsplit(subfieldName, '.');
@@ -3169,42 +3099,35 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             pathStr = fullfile(rootDir, 'resources', 'icons');
 
         end
-        
-        
     end
-
-    
 end
 
-
-
-
 % % % % OLDER CODE:
-% % 
+% %
 % % function parseNvPairs(obj, varargin)
 % %     if any(contains(varargin(1:2:end), 'Callback'))
 % %         ind = find(contains(varargin(1:2:end), 'Callback'));
 % %         obj.Callback = varargin{ind*2};
 % %     end
-% % 
+% %
 % %     if any(contains(varargin(1:2:end), 'Testfunc'))
 % %         ind = find(contains(varargin(1:2:end), 'Testfunc'));
 % %         obj.TestFunc = varargin{ind*2};
 % %     end
-% % 
+% %
 % %     if any(contains(varargin(1:2:end), 'Name'))
 % %         ind = find(contains(varargin(1:2:end), 'Name'));
 % %         obj.Name = varargin{ind*2};
 % %     end
-% % 
+% %
 % %     if any(contains(varargin(1:2:end), 'OptionsManager'))
 % %         ind = find(contains(varargin(1:2:end), 'OptionsManager'));
 % %         obj.OptionsManager = varargin{ind*2};
 % %         obj.showFooter = true;
 % %     end
-% % 
+% %
 % %     if any(contains(varargin(1:2:end), 'CurrentOptionsSet'))
 % %         ind = find(contains(varargin(1:2:end), 'CurrentOptionsSet'));
 % %         obj.CurrentOptionsSet = varargin{ind*2};
 % %     end
-% % end 
+% % end

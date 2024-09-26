@@ -23,5 +23,4 @@ classdef Subject < nansen.metadata.abstract.BaseSchema
     properties (Access = private, Constant)
         %Description = ''
     end
-    
 end

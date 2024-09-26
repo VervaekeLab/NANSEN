@@ -11,14 +11,14 @@ classdef ProjectManager < handle
 %       PM - ProjectManager
 
 % Todo:
-%   [-] Implement as subclass of StorableCatalog, 
+%   [-] Implement as subclass of StorableCatalog,
 %   [+] or make a ProjectCatalog as a property of the projectmanager.
 %   [ ] or make a HasCatalog superclass...
 %   [ ] Have methods that are called from the UI class return messages,
 %       and only call the fprintf on those messages whenever those methods
 %       are called without outputs. something like (status, tf] = method()
 %       This way the UI can catch info, warning, errors.
-%   [ ] Move methods from projectmanager to project 
+%   [ ] Move methods from projectmanager to project
 %   [ ] Add method for renaming project.
 %   [ ] Add standard preferences
 %   [x] Add option for saving as json
@@ -41,7 +41,7 @@ classdef ProjectManager < handle
         ProjectNames
     end
 
-    properties (SetAccess = private) 
+    properties (SetAccess = private)
         CurrentProject char
     end
 
@@ -79,7 +79,6 @@ classdef ProjectManager < handle
             
             obj = instance;
         end
-
     end
     
     methods (Access = private) % Constructor
@@ -91,7 +90,6 @@ classdef ProjectManager < handle
 
             obj.ProjectCache = containers.Map();
         end
-        
     end
     
     methods (Static)
@@ -100,7 +98,6 @@ classdef ProjectManager < handle
         %getEmptyProjectStruct Return a struct with fields for new project
             pStruct = struct('Name', {}, 'ShortName', {}, 'Description', {}, 'Path', {});
         end
-
     end
     
     methods % Set/get methods
@@ -117,7 +114,6 @@ classdef ProjectManager < handle
         function projectNames = get.ProjectNames(obj)
             projectNames = string( {obj.Catalog.Name} );
         end
-        
     end
     
     methods
@@ -135,7 +131,7 @@ classdef ProjectManager < handle
         %createProject Method for creating a new project entry
         
             if nargin < 5 || isempty(setAsCurrentProject)
-                setAsCurrentProject = true; 
+                setAsCurrentProject = true;
             end
 
             % Add project to project manager.
@@ -176,7 +172,7 @@ classdef ProjectManager < handle
 
             projectName = ''; %#ok<NASGU>
 
-            try 
+            try
                 S = nansen.config.project.Project.readConfigFile(projectDirectory);
                 projectInfo = S.Properties;
             catch
@@ -205,16 +201,16 @@ classdef ProjectManager < handle
         %updateProjectDirectory Change the directory of an existing project.
         %
         %   Inputs:
-        %       obj                 : The ProjectManager object that this method 
+        %       obj                 : The ProjectManager object that this method
         %                             is a part of.
         %
-        %       projectName         : A string that specifies the name of the 
+        %       projectName         : A string that specifies the name of the
         %                             project whose directory needs to be changed.
         %
-        %       newProjectDirectory : A string that specifies the path to the 
+        %       newProjectDirectory : A string that specifies the path to the
         %                             new directory for the project.
         %
-        %   Example usage: 
+        %   Example usage:
         %       updateProjectDirectory(obj, 'myProject', 'C:\Users\Documents\myNewProject');
         %
         %   Note: Use this method if the project directory has been moved already.
@@ -261,10 +257,10 @@ classdef ProjectManager < handle
         %moveProject Move the project to a new directory / file system location
         %
         %   Inputs:
-        %       obj                 : The ProjectManager object that this method 
+        %       obj                 : The ProjectManager object that this method
         %                             is a part of.
         %
-        %       projectName         : A string that specifies the name of the 
+        %       projectName         : A string that specifies the name of the
         %                             project to move.
         %
         %       newProjectDirectory : A string that specifies the path where the
@@ -300,13 +296,13 @@ classdef ProjectManager < handle
         %   Input:
         %       obj      : An instance of this class.
         %
-        %       varargin : A variable-length input argument list that can 
-        %                  contain either a structure representing project 
-        %                  information or a list of name-value pairs representing 
+        %       varargin : A variable-length input argument list that can
+        %                  contain either a structure representing project
+        %                  information or a list of name-value pairs representing
         %                  project information.
         %
-        %   Example usage: 
-        %       pm = nansen.ProjectManager(); 
+        %   Example usage:
+        %       pm = nansen.ProjectManager();
         %       projectInfo = struct('Name', 'Project 1', 'Description', 'This is a test project', 'Path', 'C:\Users\Documents\myNewProject');
         %       pm.addProject(projectInfo);
 
@@ -339,17 +335,17 @@ classdef ProjectManager < handle
         %removeProject Remove project from project manager.
         %
         %   Inputs:
-        %       obj                 : The ProjectManager object that this method 
+        %       obj                 : The ProjectManager object that this method
         %                             is a part of.
         %
-        %       projectName         : A string that specifies the name of the 
+        %       projectName         : A string that specifies the name of the
         %                             project whose directory needs to be changed.
         %
-        %       deleteProjectFolder : (Optional) Logical flag for whether to 
-        %                             delete the project directory from the file 
+        %       deleteProjectFolder : (Optional) Logical flag for whether to
+        %                             delete the project directory from the file
         %                             system (Default is false)
         %
-        %   Example usage: 
+        %   Example usage:
         %       removeProject(obj, 'myProject');
 
             if nargin < 3
@@ -413,7 +409,7 @@ classdef ProjectManager < handle
         end
        
         function s = getProject(obj, name)
-        %getProject Get project entry as struct given its name 
+        %getProject Get project entry as struct given its name
 
         % Todo: rename getProjectStruct or just remove and always return
         % object?
@@ -491,7 +487,7 @@ classdef ProjectManager < handle
 
             obj.CurrentProject = newProjectName;
             if ~isempty(newProjectName)
-                obj.addProjectToSearchPath( projectEntry.Path ) 
+                obj.addProjectToSearchPath( projectEntry.Path )
             end
 
             % Todo: remove
@@ -515,7 +511,7 @@ classdef ProjectManager < handle
         end
         
         function tf = uiSelectProject(obj, projectNames)
-        %uiSelectProject Open selection dialog for selecting current projects    
+        %uiSelectProject Open selection dialog for selecting current projects
             if nargin < 2
                 projectNames = {obj.Catalog.Name};
             end
@@ -585,7 +581,6 @@ classdef ProjectManager < handle
 
             end
         end
-
     end
     
     methods (Access = {?nansen.App, ?nansen.internal.user.NansenUserSession})
@@ -652,7 +647,6 @@ classdef ProjectManager < handle
                 S(i).FigureNames = figNames;
             end
         end
-        
     end
 
     methods (Access = private)
@@ -669,7 +663,7 @@ classdef ProjectManager < handle
 
     methods (Sealed, Hidden) % Overridden display methods
 
-        function display(obj, varName) %#ok<DISPLAY> 
+        function display(obj, varName) %#ok<DISPLAY>
             fprintf(newline)
             disp(obj)
             fprintf('  Use project = %s(rowNumber) to retrieve a Project from the catalog', varName)
@@ -701,7 +695,6 @@ classdef ProjectManager < handle
                 %fprintf('  The current project is <strong>%s</strong>\n\n', obj.CurrentProject)
             end
         end
-
     end
 
     methods (Sealed, Hidden) % Overridden indexing method
@@ -741,7 +734,6 @@ classdef ProjectManager < handle
                 n = builtin('numArgumentsFromSubscript', obj, s, indexingContext);
             end
         end
-
     end
 
     methods (Static, Access = private)
@@ -822,7 +814,7 @@ classdef ProjectManager < handle
         %getProjectCatalogPath Get path for catalog with given name
         %
         %   pathStr = getProjectCatalogPath(catalogName) creates a path for
-        %   a catalog (storable catalog) under the current project. 
+        %   a catalog (storable catalog) under the current project.
         %
         %   pathStr = getProjectCatalogPath(catalogName, subfolder)
         %   optionally specifies a subfolder within the project root
@@ -855,7 +847,7 @@ classdef ProjectManager < handle
         %   descriptor for which file or folder to get the pathStr for. Use
         %   this function for standardizing the filepath for different
         %   files and folders belonging to a project.
-        %  
+        %
         %   Supported keywords:
         %
         %       MetaTableCatalog
@@ -888,7 +880,7 @@ classdef ProjectManager < handle
                     fileName = 'datalocation_settings.mat';
                 case 'PipelineAssignmentModel'
                     saveDir = fullfile(projectRootDir, 'configurations');
-                    fileName = 'pipeline_settings.mat';  
+                    fileName = 'pipeline_settings.mat';
                 case {'figures', 'MultiPartFigures'}
                     saveDir = fullfile(projectRootDir, 'multipart_figures');
                 otherwise
@@ -904,14 +896,12 @@ classdef ProjectManager < handle
             else
                 pathStr = saveDir;
             end
-            
         end
       
         function pathStr = getFilePath(keyword)
             pathStr = nansen.config.project.ProjectManager.getProjectSubPath(keyword);
         end
     end
-    
 
     methods (Access = ?nansen.internal.user.NansenUserSession)
         % Note: These methods will be removed in a future version (todo).
@@ -945,7 +935,6 @@ classdef ProjectManager < handle
             formattedMessage = strcat('\fontsize{16}', msg);
             opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex');
 
-
             uiwait( msgbox(formattedMessage, title, 'help', opts) )
 
             msg = sprintf( ...
@@ -974,23 +963,20 @@ classdef ProjectManager < handle
 
             % Todo: Reorder catalog to original order?
         end
-
     end
 end
-
-
 
 % Change log
 %
 % 2023-03-05
-% 
+%
 %   [x] Added documentation to public methods
 %   [x] Improved object display
 %   [x] Overrode subsref for better project retrieval 
 %   [x] Implement as singleton
-%   [x] Rename internal paths if an already existing project is added. 
-%       Need to rename metatable etc...? Tested this. Was partly implemented 
-%       from before. 
+%   [x] Rename internal paths if an already existing project is added.
+%       Need to rename metatable etc...? Tested this. Was partly implemented
+%       from before.
 % 2023-09-18
 %   [x] Create a project object cache in order to have singleton-like projects?
 %

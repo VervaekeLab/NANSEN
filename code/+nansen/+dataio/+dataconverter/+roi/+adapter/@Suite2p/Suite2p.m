@@ -24,14 +24,12 @@ classdef Suite2p < nansen.dataio.dataconverter.roi.RoiAdapter
             [roiArray, classification, stats, images] = nansen.wrapper.suite2p.convertRois(data);
             roiData = struct(roiArray,classification,stats,images);
         end
-
     end
-
 
     methods (Access = private)
 
         function S = collectSuite2pVariables(obj, data)
-        %collectSuite2pVariables Collect complimentary variables from suite2p    
+        %collectSuite2pVariables Collect complimentary variables from suite2p
             
         % Suite2p exports roidata to multiple files. Try to collect it
         % here using the default output names of suite2p. If files are not
@@ -102,7 +100,5 @@ classdef Suite2p < nansen.dataio.dataconverter.roi.RoiAdapter
             message = sprintf('Filename %s is not reckognized as a suite2p file', filename);
             assert(ismember(filename, validNames), message)
         end
-
     end
-
 end

@@ -14,7 +14,7 @@ function data = circularsmooth(data, N, method)
     end
 
     % Add circular padding
-    data = cat(1, data(end-N+1:end), data, data(1:N)); 
+    data = cat(1, data(end-N+1:end), data, data(1:N));
 
     data = smoothdata(data, 1, method, N);
     
@@ -25,5 +25,4 @@ function data = circularsmooth(data, N, method)
     if isTransposed
         data = data';
     end
-
 end

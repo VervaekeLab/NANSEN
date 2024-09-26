@@ -3,8 +3,7 @@ function value = getnvparametervalue(cellOfNvPairs, name)
 %
 %   value = getnvparametervalue(name)
 
-
-% If varargin was directly passed from another function's inputs to this 
+% If varargin was directly passed from another function's inputs to this
 % function's input, the cell array must be unpacked.
 if numel(cellOfNvPairs) == 1 && isa(cellOfNvPairs{1}, 'cell')
     cellOfNvPairs = cellOfNvPairs{1};
@@ -21,5 +20,4 @@ elseif numel(isMatched) == 1
 else
     error('Multiple matches found for parameter %s', name)
 end
-
 end

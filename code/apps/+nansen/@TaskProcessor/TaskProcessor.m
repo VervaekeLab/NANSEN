@@ -7,19 +7,18 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 %       obj = TaskProcessor(filepath) initializes the task processor
 %           and opens the task list specified by filepath.
 %
-%       obj = TaskProcessor(filepath, name, value) initializes the task 
-%           processor using optional name value pairs to specify 
+%       obj = TaskProcessor(filepath, name, value) initializes the task
+%           processor using optional name value pairs to specify
 %           configuration parameters.
 %
 %   Parameters:
-%       TimerPeriod         : Time in seconds between each time the processor updates. Default = 10   
+%       TimerPeriod         : Time in seconds between each time the processor updates. Default = 10
 %       RunTasksWhenQueued  : Whether to initialize/run tasks when they are added to queue. Default = false
-%       RunTasksOnStartup   : Whether to initialize/run tasks when tasks are loaded from file. Default = false 
+%       RunTasksOnStartup   : Whether to initialize/run tasks when tasks are loaded from file. Default = false
 
-
-% Todo: 
+% Todo:
 %   [ ] Separate between recently finished tasks and the complete log
-%   [ ] Dont accept job that already exists when using submitJob. 
+%   [ ] Dont accept job that already exists when using submitJob.
 %        - compare at sessionID, taskName and optionsName.
 %   [ ] Need to save jobs list on a project basis
 %   [ ] Need to send session info back to the metatable when a job
@@ -36,7 +35,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 %
 %   [ ] Convert session object to struct when placing in history, and get a
 %       new session object if putting back to queue
-
 
 % Note: If changes are made on session class, it will not work to load task
 %       lists that contains sessions!
@@ -73,7 +71,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     properties (Dependent, Access = private)
         ActivePool % Parallel pool object
     end
-    
     
     events
         TaskAdded
@@ -117,7 +114,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
             obj.saveTaskLists()
         end
-        
     end
     
     methods % Set/get methods
@@ -135,10 +131,9 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         function numTasks = get.NumArchivedTasks(obj)
             numTasks = numel(obj.TaskHistory);
         end
-        
     end
     
-    methods % Public 
+    methods % Public
         
         function openTaskList(obj, filepath)
 
@@ -200,7 +195,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         
             % Not necessary to ask user if processor is idle.
             if strcmp(obj.Status, 'idle')
-                tf = true; 
+                tf = true;
                 return
             end
             
@@ -224,7 +219,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         end
         
         function updateSessionObjectListeners(obj, hReferenceApp)
-        %updateSessionObjectListeners 
+        %updateSessionObjectListeners
         
             metaObjects = {};
             if numel(obj.TaskQueue) == 0; return; end
@@ -266,12 +261,12 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         % Inputs:
         %           obj - Table object
         %           fcnHandle - Function handle to run for this task
-        %           numOut - Number of output argument from task function 
+        %           numOut - Number of output argument from task function
         %           args - List of arguments for task function.
         %
         % Outputs:
         %           none
-        %    
+        %
         
             % Todo: Remove numOut, because It should always be 0?
             % Todo: Dont accept job that already exists. compare at
@@ -298,7 +293,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             if obj.RunTasksWhenQueued
                 obj.setTaskStatus('Initialize', obj.NumQueuedTasks)
             end
-            
         end
 
         function tf = isTaskOnQueue(obj, taskStruct)
@@ -334,7 +328,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         
         function rearrangeQueuedTasks(obj, taskIdx, mode)
             
-            % Todo... 
+            % Todo...
             % This might be messy, if we need to take the task status into
             % account. I.e pending tasks should take precedence over queued
             % (and paused) tasks...
@@ -348,7 +342,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 case 'History'
                     obj.TaskHistory(taskIdx).comments = newComment;
             end
-            
         end
     end
 
@@ -391,12 +384,11 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                     warning('Could not load the task list. This might be due to the file being corrupt. The file is backed up, and the task list is reset. If you see this warning several times, please report!')
                 end
             end
-            
         end
         
         function saveTaskLists(obj, filePath)
         % saveTaskLists Save lists of tasks to file
-        %------------------------------------------------------------------  
+        %------------------------------------------------------------------
             
             % Get filepath
             if nargin < 2
@@ -459,7 +451,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 obj.Timer.Period = obj.TimerPeriod;
                 start(obj.Timer)
             end
-            
         end
         
         function taskItem = updateTaskWhenFinished(obj, taskItem)
@@ -485,7 +476,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             else
                 taskItem.status = 'Completed';
             end
-
         end
         
         function sortTasksByState(obj)
@@ -512,7 +502,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 evtData = uiw.event.EventData('IndexOrder', oldTaskOrder);
                 obj.notify('TaskOrderChanged', evtData)
             end
-            
         end
     end
     
@@ -572,7 +561,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                     % Assign the job to the cluster
                     obj.Status = 'busy';
                     p = gcp();
-                    F = parfeval(p, @task.method, 0, task.args{:});                    
+                    F = parfeval(p, @task.method, 0, task.args{:});
                     obj.runningTask = F;
                     
                     obj.TaskQueue(1).status = 'Running';
@@ -614,7 +603,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         %
         %    obj.finishTask(mode) finishes task according to specified mode
         %    mode can be '' (default) or 'cancel'
-    
         
         % Question: Is is possible that the user stops a task when this
         % function is running, and the task is put back on the queue and
@@ -643,7 +631,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             
             % Start new task
             if obj.isRunning && ~strcmpi(mode, 'cancel')
-                obj.startTask() 
+                obj.startTask()
             end
             
         end % /function finishTask
@@ -665,7 +653,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         end
         
         function addCommandWindowTaskToHistory(obj, taskItem)
-        %addCommandWindowTaskToHistory Add task item (from command window) 
+        %addCommandWindowTaskToHistory Add task item (from command window)
             
             % Todo: Streamline a bit more, and combine with similar parts
             % from updateTaskWhenFinished.
@@ -711,7 +699,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             end
             
             [obj.TaskQueue(taskIdx).status] = deal(newState);
-
             
             newState = {obj.TaskQueue(taskIdx).status};
             if isrow(newState); newState = transpose(newState); end
@@ -739,7 +726,6 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             obj.notify('TaskRemoved', eventData)
             
         end
-        
     end
     
     methods (Static)
@@ -757,8 +743,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             newTask.args = args;
             newTask.timeCreated = datestr(now, 'yyyy.mm.dd HH:MM:SS');
             newTask.timeStarted = '';
-            newTask.elapsedTime = ''; 
-            newTask.timeFinished = ''; 
+            newTask.elapsedTime = '';
+            newTask.timeFinished = '';
             newTask.parameters = optsName;
             newTask.comments = comments;
             newTask.Diary = '';
@@ -775,7 +761,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % Create a cleanup object to make sure file is deleted later.
             cleanUpObj = onCleanup(@() delete(logfile));
             
-            % Start logging diary to temporary file: 
+            % Start logging diary to temporary file:
             diary(logfile)
                 
         end

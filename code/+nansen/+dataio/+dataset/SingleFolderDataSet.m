@@ -1,12 +1,12 @@
 classdef SingleFolderDataSet < nansen.dataio.DataSet
-% Class for creating a dataset in a folder on the file system. 
-%   A DataSet is a list of data variables that are mapped to a single file 
-%   or to multiple files. For the SingleFolderDataSet, all data variables 
-%   are by default assigned to an individual folder (with subfolders) on 
+% Class for creating a dataset in a folder on the file system.
+%   A DataSet is a list of data variables that are mapped to a single file
+%   or to multiple files. For the SingleFolderDataSet, all data variables
+%   are by default assigned to an individual folder (with subfolders) on
 %   the file system.
-%   
-%   
-%   
+%
+%
+%
 %   See also nansen.dataio.DataSet
     
 %   Note: This class is created to work in the same way as a session
@@ -18,7 +18,6 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
 %   An alternative is to have one DataSet class but implement different
 %   variations of DataLocations and VariableLists. The DataLocations and
 %   Variable lists should be designed with the Strategy pattern in mind.
-
 
     properties (SetAccess = private)
         FolderPath = '' % The initial directory for saving data
@@ -40,12 +39,11 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
         %
         %   obj = SingleFolderDataSet(initialPath) create a dataset in the
         %   given path. If initialPath is the path to a folder, the
-        %   dataset is created in that folder, while if initialPath is a 
+        %   dataset is created in that folder, while if initialPath is a
         %   file, the dataset is created in the folder containing the file.
         %
         %   obj = SingleFolderDataSet(initialPath, Name, Value) creates a
         %   dataset where name, value pairs specifies custom options.
-
 
             if ~nargin; return; end
 
@@ -66,7 +64,6 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
             obj.FolderPath = initialPath;
             obj.assignPVPairs(varargin{:})
         end
-
     end
 
     methods % Set/get
@@ -79,7 +76,6 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
             varNames = {obj.VariableList.VariableName};
         end
     end
-
 
     methods % Public methods
         
@@ -125,7 +121,7 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
 
         function data = loadData(obj, varName, varargin)
             
-            % Check if variable is part of dataset data exists 
+            % Check if variable is part of dataset data exists
             if obj.existVariableItem(varName)
                 variableItem = obj.getVariableItem(varName);
                 if ~isempty(variableItem.Data)
@@ -147,7 +143,6 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
             else
                 error('File not found')
             end
-            
         end
 
         function saveData(obj, varName, data, varargin)
@@ -190,7 +185,6 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
             else
                 obj.VariableList(end+1) = variableItem;
             end
-
         end
 
         function insertVariableItem(obj, variableItem)
@@ -214,19 +208,15 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
             idx = findVariableItem(obj, varName);
             obj.VariableList(idx) = [];
         end
-        
     end
-
     
     methods (Access = protected)
-
 
     end
 
     methods (Access = private)
         
         function existVariable(obj, varName)
-
 
         end
         
@@ -264,13 +254,12 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
                 S = obj.VariableList(idx);
             end
         end
-        
     end
     
     methods (Access = private)
         
         function msg = getErrorMessage(~, errorID)
-        %getErrorMessage Get class specific error message given error id   
+        %getErrorMessage Get class specific error message given error id
             switch errorID
 
                 case 'Nansen:DataSet:InvalidInitialPath'
@@ -282,7 +271,5 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
                            'vector pointing to an existing file or folder'];
             end
         end
-        
     end
-
 end

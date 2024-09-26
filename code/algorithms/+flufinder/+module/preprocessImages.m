@@ -1,13 +1,13 @@
 function imArray = preprocessImages(imArray, varargin)
-%preprocessImages Combine all preprocessing steps in one function 
+%preprocessImages Combine all preprocessing steps in one function
 %
 %   imArray = preprocessImages(imArray, name, value, ...)
 %
 %   Parameters:
-%       
+%
 %       SmoothingSigma      : Sigma (std) for gaussian filter to use for
 %                             making a smoothed stack for bg subtraction.
-%   
+%
 %       PrctileForBaseline  : Percentile values to use for creating a
 %                             static image for for bg subtraction.
 

@@ -9,5 +9,4 @@ classdef RoiConverter < handle
          convert()
        
     end
-   
 end

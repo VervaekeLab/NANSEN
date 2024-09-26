@@ -3,11 +3,10 @@ function [P, V] = getDefaults()
 % DESCRIPTION:
 %   Change these parameters to change the behavior of the NoRMCorre method
 
-
-% - - - - - - - - Specify parameters and default values - - - - - - - - 
+% - - - - - - - - Specify parameters and default values - - - - - - - -
 
 % Names                         Values (default)        Description
-P                               = struct();             
+P                               = struct();
 
 P.Configuration.numRows         = 4;                    % Size of non-overlapping portion of each patch in the grid (y-direction)
 P.Configuration.numCols         = 4;                    % Size of non-overlapping portion of each patch in the grid (x-direction)
@@ -29,7 +28,6 @@ P.Correction.phaseFlag          = false;                % Flag for using phase c
 P.Misc.Verbose                  = false;                % Flag for displaying progress
 P.Misc.UseParallell             = true;                 % Use parallel processing for patches of each frame
 
-
 % - - - - - - Specify customization flags (uicontrols) - - - - - - - -
 
 P.Configuration.numRows_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 16, 'nTicks', 15, 'TooltipPrecision', 0}});
@@ -37,17 +35,14 @@ P.Configuration.numCols_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 1
 
 P.Correction.shiftsMethod_ = {'FFT','cubic','linear'};
 P.Correction.boundary_ = {'NaN','copy','zero','template'};
-
     
-    
-% - - - - Specify validation/assertion test for each parameter - - - - 
+% - - - - Specify validation/assertion test for each parameter - - - -
 
 V                               = struct();
 V.Configuration.numRows         = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0 && round(x)==x, ...
                                     'Value must be a scalar, non-negative, integer number' );
 V.Configuration.numRows         = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0 && round(x)==x, ...
                                     'Value must be a scalar, non-negative, integer number' );
-
                                 
 % - - - - - Adapt output to how many outputs are requested - - - - - -
 
@@ -57,5 +52,4 @@ if nargout == 0
 elseif nargout == 1
     clear V
 end
-
 end

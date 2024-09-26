@@ -58,10 +58,8 @@ function [roiArrayOut, summary] = improveRoiMasks(roiArrayIn, roiImageArray, roi
         
         % todo: compute stats.
         
-        
 %         statOut(i).RoiContrast = s.dff; % Salienct
 %         statOut(i).RoiBrightness = s.val;
-        
         
     end
     

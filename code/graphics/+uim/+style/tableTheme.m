@@ -16,5 +16,4 @@ classdef tableTheme < handle
         SortArrowForeground
         SortOrderForeground
     end
-
 end

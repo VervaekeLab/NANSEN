@@ -8,10 +8,10 @@ function roiArrayDiff = interpolateRoiPositions(roiArray1, roiArray2)
 %   present in roiArray1 are shifted to new interpolated positions and
 %   returned in a new roi array (roiArrayDiff)
 
-% Notes: 
+% Notes:
 %   2023-09-22 : Updated to support multi channel rois (represented as cell
 %   arrays of roi arrays). Interpolation should take all rois into
-%   consideration, but the output rois need to be a cell array of rois with one 
+%   consideration, but the output rois need to be a cell array of rois with one
 %   cell per channel.
 
     % Create vectors of x and y positions of each roi.
@@ -66,9 +66,8 @@ function roiArrayDiff = interpolateRoiPositions(roiArray1, roiArray2)
     end
 end
 
-
 function [Fx, Fy] = getRoiPositionInterpolant(roiArrayA, roiArrayB)
-%getRoiPositionInterpolant Get scattered interpolants for interpolating roi positions    
+%getRoiPositionInterpolant Get scattered interpolants for interpolating roi positions
 %
 %   Use positions of all intersecting rois (intersection is based on uuids)
 %   to create a scattered interpolant that can be used for estimating

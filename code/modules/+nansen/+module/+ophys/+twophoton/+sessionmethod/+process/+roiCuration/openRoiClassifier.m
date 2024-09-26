@@ -2,21 +2,19 @@ function varargout = openRoiClassifier(sessionObject, varargin)
 %OPENROICLASSIFIER Open roi classifier on a session
 %   Detailed explanation goes here
 
-
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Create a struct of default parameters (if applicable) and specify one or 
-% more attributes (see nansen.session.SessionMethod.setAttributes) for 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
+% Create a struct of default parameters (if applicable) and specify one or
+% more attributes (see nansen.session.SessionMethod.setAttributes) for
 % details.
     
     % Get struct of parameters from local function
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'serial', 'unqueueable'};   
-
+    ATTRIBUTES = {'serial', 'unqueueable'};
     
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
     
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
@@ -29,10 +27,8 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, 1, varargin);
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Implementation of the method : Add your code here:    
-    
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
+% Implementation of the method : Add your code here:
 
     sessionData = nansen.session.SessionData( sessionObject );
     sessionData.updateDataVariables()
@@ -44,14 +40,12 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     else
         return
     end
-    
 
     if ~isa(roiData, 'roimanager.roiGroup')
         roiGroup = getRoiGroup(sessionObject, roiData, varName{1});
     else
         roiGroup = roiData;
     end
-
 
     % Todo: Need to adapt to multichannel roigroups. The best would be to
     % transform roigroup into a 1d thing. See composite roi group.
@@ -72,12 +66,10 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     
         % Todo: uiwait and then retrieve results and save when closing?
         
-        
     catch ME
         throw(ME)
     end
 end
-
 
 function S = getDefaultParameters()
     
@@ -86,7 +78,6 @@ function S = getDefaultParameters()
     S.RoiSelectedCallbackFunction = '';
 
 end
-
 
 function roiGroup = getRoiGroup(sessionObject, roiArray, roiVariableName)
 

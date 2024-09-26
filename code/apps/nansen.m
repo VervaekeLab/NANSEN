@@ -31,5 +31,4 @@ function hApp = nansen(userName, varargin)
     if nargout == 0
         clear hApp
     end
-
 end

@@ -28,7 +28,6 @@ function pathStr = localpath(pathKeyword, projectName)
             return
         end
     end
-
     
     if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')% Should it be called current?
         
@@ -134,9 +133,7 @@ function pathStr = localpath(pathKeyword, projectName)
             else
                 error('No localpath found for "%s"', pathKeyword)
             end
-            
     end
-    
     
     % Make folder if it does not exist
     if ischar( folderPath )
@@ -153,4 +150,3 @@ function pathStr = localpath(pathKeyword, projectName)
     nansenPreferences.localPath(pathKeyword) = pathStr;
 
 end
-

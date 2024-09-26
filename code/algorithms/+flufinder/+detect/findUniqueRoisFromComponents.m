@@ -3,7 +3,7 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
 %
 %   roisOut = findUniqueRoisFromComponents(imageSize, S, varargin)
 %
-%   imageSize   : Size of image data (height x width) 
+%   imageSize   : Size of image data (height x width)
 %   S           : All detected connected components from an image stack
 %                 (S is a struct array of stats)
 %
@@ -13,11 +13,9 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
 %
 %   See also flufinder.detect.getBwComponentStats
 
-
 % Todo: make two versions, depending on how many components are found. One
 % optimized for 100ks of components and one optimized for 1-10ks of
 % components
-    
 
     global fprintf % Use global fprintf if available
     if isempty(fprintf); fprintf = str2func('fprintf'); end
@@ -36,7 +34,7 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
 
     warning('off', 'stats:linkage:NonMonotonicTree')
     
-    imageSize = imageSize(1:2); % In case imageSize is size of stack   
+    imageSize = imageSize(1:2); % In case imageSize is size of stack
 
     % Assign output
     roisOut = RoI.empty(0,1);
@@ -45,7 +43,6 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
     if params.FilterByArea % Note: Pretty ad hoc method..
         S = flufinder.detect.refineComponentsByArea(S);
     end
-
     
     % Compute two vectors to quickly identify overlapping components later
     allPixelIndices = cat(1, S.PixelIdxList); % 1D vector with pixel indices for all components
@@ -61,8 +58,7 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
     % Boolean for all remaining components that wasn't taken care of yet
     remaining = true(numel(S), 1);
     
-    
-    % Create a "sum projection" image of all components. 
+    % Create a "sum projection" image of all components.
     uniquePixelList = unique(allPixelIndices);
       
     componentImage = zeros(imageSize);
@@ -82,11 +78,10 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
     if params.Debug
         allIndividualComponents = zeros([imageSize, 0]);
     end
-    
 
     while ~finished
         
-        % Find peak in the summed component image. This will be the most 
+        % Find peak in the summed component image. This will be the most
         % active roi among candidates
         [~, peakInd] = max(componentImage(:));
 
@@ -107,7 +102,7 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
         % is to find all centroids that are less than 3 pixels away from the
         % median centroid position. In rare cases, where there might be two
         % or more clusters of centroids and the median centroid position
-        % falls between these, use linkage to find and pick the biggest 
+        % falls between these, use linkage to find and pick the biggest
         % cluster
         keep = find(  all( abs( cat(1, S(containsPeak).Centroid ) - center ) < 3, 2) );
         if ~isempty(keep)
@@ -124,7 +119,6 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
 
             containsPeak = containsPeak(keepB);
         end
-        
         
         if numel(containsPeak) < params.NumObservationsRequired
             finished = true;
@@ -159,7 +153,6 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
             params.RoiType, params.RoiDiameter);
         
         mask(yInd, xInd) = maskSmall;
-
         
         % Add a test here:
         % Test if mask cover completely (e.g 0.9) another mask, but still
@@ -172,11 +165,9 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
         % Create roi
         newRoi = RoI('Mask', mask, imageSize);
         
-        
         % Update component image by removing the last identified component.
         componentImage = componentImage - currentComponentImage;
         componentImage(mask) = 0;
-        
         
         mask(yInd, xInd) = 0;
         
@@ -185,13 +176,11 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
             newRoi(iB) = [];
         end
 
-
         % Add roi
         if ~isempty(newRoi)
             nRois = nRois+1;
             roisOut(nRois) = newRoi;
         end
-        
 
         % Add current segment numbers to the ignore list.
         remaining(containsPeak) = false;
@@ -200,7 +189,7 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
         if sum(componentImage) <= 0; finished = true; end
         
         if numel(roisOut) >= params.MaxNumRois
-             finished = true; 
+             finished = true;
         end
         
         if mod(numel(roisOut), 10)==0

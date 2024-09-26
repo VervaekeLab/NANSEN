@@ -8,4 +8,3 @@ function options = getDefaultOptions()
     superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
     options = nansen.mixin.HasOptions.combineOptions(options, superOptions{:});
 end
-

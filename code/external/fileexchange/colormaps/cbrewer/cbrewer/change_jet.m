@@ -1,12 +1,12 @@
 % This script help produce a new 'jet'-like colormap based on other RGB reference colors
 
 % ------- I WAS ASKED ---------------
-% "is there a chance that you could add a diverging map going from blue to green to red as in jet, 
+% "is there a chance that you could add a diverging map going from blue to green to red as in jet,
 % but using the red and blue from your RdBu map and the third darkest green from your RdYlGn map?""
 %
 % ANSWER:
 %   You should construct the new colormap based on the existing RGB values of 'jet'
-%   but projecting these RGB values on your new RGB basis. 
+%   but projecting these RGB values on your new RGB basis.
 % -----------------------------------
 
 % load colormaps
@@ -61,4 +61,3 @@ for iname=1:length(cnames)
    set(gcf, 'color', [1 1 1])
    ylim([0.1 1.05.*max(Y)]);
  end % iname
-

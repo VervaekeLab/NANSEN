@@ -1,4 +1,4 @@
-% Interface for reading and writing image frame data from a matlab array, 
+% Interface for reading and writing image frame data from a matlab array,
 % or tiff, binary or video files.
 %
 %   * Use for matlab array or virtual data (memorymap of data in file)
@@ -15,13 +15,13 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %   in a standardized manner from a multidimensional data array. The data
 %   can be a matlab array, or a VirtualData object.
 %
-%   A VirtualData object is a memory mapped representation of an image 
-%   stack saved in a file, and some implementations include Binary, Tiff 
+%   A VirtualData object is a memory mapped representation of an image
+%   stack saved in a file, and some implementations include Binary, Tiff
 %   and video files. See VirtualData and existing subclasses for examples.
 %
 %   Data from an ImageStack is returned according to the default
 %   dimensional order, YXCZT, corresponding to image height, image width,
-%   channel/color, depth/planes (3D) and time respectively. If the length 
+%   channel/color, depth/planes (3D) and time respectively. If the length
 %   of any of these dimensions is 1 data is squeezed along that dimension.
 %
 %   The dimensional order of the output as well as the input can be
@@ -29,8 +29,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %   representations from above.
 %
 %   Furthermore, the apparent size of the ImageStack data can be
-%   temporarily adjusted by setting the CurrentChannel and/or the 
-%   CurrentPlane properties to a subset within the range of the 
+%   temporarily adjusted by setting the CurrentChannel and/or the
+%   CurrentPlane properties to a subset within the range of the
 %   NumChannels and NumPlanes properties
 %
 %   The ImageStack also provides methods for reading chunks of frames,
@@ -49,11 +49,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %     imageStack = ImageStack(virtualData) returns an ImageStack object
 %         based on the image data represented by the virtualData object.
 %
-%   DETAILED EXAMPLES (Use cases):    
-%       
+%   DETAILED EXAMPLES (Use cases):
+%
 
-
-% - - - - - - - - QUESTIONS - - - - - - - - - - - 
+% - - - - - - - - QUESTIONS - - - - - - - - - - -
 %
 %   1) Should output from getFrameSet be squeezed or not?
 %
@@ -61,9 +60,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %      input on construction.., i.e tied to imagestack or not??
 %
 %   3) How to set intensity limits without loading data on creation..
-
-
-
 
 % - - - - - - - - - TODO - - - - - - - - - - - -
 %   [ ] getFrameSet does not match description. Still not sure how to do
@@ -82,13 +78,13 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %   [ ] Rename DimensionOrder and make it obvious what it refers to and how
 %       its different from DataDimensionOrder.
 %   [ ] Make method to return data size according to the
-%       DefaultDimensionOrder 
+%       DefaultDimensionOrder
 %   [ ] More work on dimension selection for frame chunks.
 %   [ ] Make ProjectionCache class and add as property...
 %   [ ] Set method for name
 %   [ ] Fix projecton cache and retrieval for multichannel images
 %
-%   [ ] Properties: FrameSize and NumFrames. Useful, Keep? 
+%   [ ] Properties: FrameSize and NumFrames. Useful, Keep?
 %
 %   [ ] Is chunklength implemented?
 %
@@ -97,7 +93,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %   [ ] Update insert image to work with imagestack data.
 %
 
-% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - -
 
     properties (Constant, Hidden) % Default values for dimension order
         DEFAULT_DIMENSION_ORDER = 'YXCZT'
@@ -127,9 +123,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         MetaData
     end
     
-    properties 
+    properties
         FileName char = ''      % Filename (absolute path for file) if data is a virtual array
-        UserData struct         % Userdata 
+        UserData struct         % Userdata
 
         DataXLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
         DataYLim (1,2) double    % When these are set, any call to the getFrameSet will return the portion of the image within these limits
@@ -159,7 +155,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         DataTypeIntensityLimits     % Min and max values of datatype i.e [0,255] for uin8 data
     end
     
-    properties (Access = private) % Should it be public? 
+    properties (Access = private) % Should it be public?
         Projections
     end
     
@@ -182,36 +178,35 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         isDirty struct % Temp flag for whether projection cache was updated... Should be moved to a projection cache class
         DeleteDataOnDestruction = true;
     end
-    
 
-% - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - -
 
     methods % Structors
         
         function obj = ImageStack(datareference, varargin)
         %ImageStack Constructor of ImageStack objects
         %
-        %   imageStack = ImageStack(data) returns an ImageStack object 
-        %       based on the data variable. The data variable must be an 
+        %   imageStack = ImageStack(data) returns an ImageStack object
+        %       based on the data variable. The data variable must be an
         %       array with 2-5 dimensions.
         %
-        %   imageStack = ImageStack(virtualData) returns an ImageStack 
-        %       object based on the image data represented by the 
-        %       virtualData object.   
+        %   imageStack = ImageStack(virtualData) returns an ImageStack
+        %       object based on the image data represented by the
+        %       virtualData object.
         %
         %   imageStack = ImageStack(..., Name, Value) creates the
         %       ImageStack object and specifies values of properties on
         %       construction.
         %
-        %   PARAMETERS (See property descriptions for details): 
-        %       Name, CurrentChannel, CurrentPlane, ColorModel, 
+        %   PARAMETERS (See property descriptions for details):
+        %       Name, CurrentChannel, CurrentPlane, ColorModel,
         %       DataDimensionOrder, CustomColorModel, DynamicCacheEnabled,
         %       ChunkLength
         %
         
             if ~nargin; return; end
             
-            % This method creates the appropriate subclass of 
+            % This method creates the appropriate subclass of
             % ImageStackData and the returned object is assigned to the
             % Data property. See also onDataSet
             obj.Data = obj.initializeData(datareference, varargin{:});
@@ -229,7 +224,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if isempty(obj.ColorModel)
                 obj.autoAssignColorModel()
             end
-            
         end
         
         function delete(obj)
@@ -245,7 +239,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             % fprintf('Deleted ImageStack.\n') % For testing
         end
-
     end
 
     methods % User methods
@@ -257,8 +250,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %
         %   imArray = imageStack.getFrameSet(indN) gets the frames
         %   specified by the vector, indN, where indN specified the frame
-        %   indices along the last dimension of the ImageStack Data. 
-        %   
+        %   indices along the last dimension of the ImageStack Data.
+        %
         %   imArray = imageStack.getFrameSet(indN, indN-1) gets frames as
         %   subset where indN and indN-1 are indices to get along the last
         %   two dimensions of the Data.
@@ -272,7 +265,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %   of CurrentChannel and CurrentPlane. I.e: If CurrentChannel is
         %   set to 1, and the data contains 3 channels, only data from the
         %   first channel is retrieved, even if more channelIndices are
-        %   specific in inputs. To override this behavior, index the Data 
+        %   specific in inputs. To override this behavior, index the Data
         %   property instead.
         %
         %   Note: If the length of any of the frame dimensions (channel /
@@ -283,7 +276,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %       data = imageStack.getFrameSet(1:10) will return an array of
         %       size h x w x numChannels x 10
         %
-        %       data = imageStack.getFrameSet(1:10, 1:2) will return an 
+        %       data = imageStack.getFrameSet(1:10, 1:2) will return an
         %       array of size h x w x 2 x 10
         %
         %       However: If CurrentChannel is set to 1, the data will be of
@@ -293,11 +286,11 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %       data = imageStack.getFrameSet(1:10) will return an array of
         %       size h x w x numChannels x numPlanes x 10
         %
-        %       data = imageStack.getFrameSet(1:10, 1:3) will return an 
+        %       data = imageStack.getFrameSet(1:10, 1:3) will return an
         %       array of size h x w x numChannels x 3 x 10
         %
         %     3) imageStack is XYZCT.
-        %       data = imageStack.getFrameSet(1:10, 1:3) will return an 
+        %       data = imageStack.getFrameSet(1:10, 1:3) will return an
         %       array of size h x w x numPlanes x 3 x 10
         
             % TODO: Generalize so that X and y can be on any dimension, not
@@ -313,7 +306,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
             doCropImage = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(1:2)));
-            % Note: Do crop subsrefing only if necessary. 
+            % Note: Do crop subsrefing only if necessary.
             
             if contains(obj.Data.StackDimensionArrangement, 'T')
                 selectFrameSubset = ~all(cellfun(@(c) strcmp(c, ':'), indexingSubs(3:end-1)));
@@ -403,7 +396,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function dataSize = getFrameSetSize(obj, frameInd, mode, varargin)
-        %getFrameSetSize Get size of frame set for a given number of frames    
+        %getFrameSetSize Get size of frame set for a given number of frames
             
             if nargin < 3 || isempty(mode); mode = 'standard'; end
             
@@ -503,7 +496,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             elseif all( newImageSize < currentImageSize )
                 newImage = stack.reshape.imcropcenter(newImage, currentImageSize);
             else
-                % Expand along longest dimension and crop along shortest. 
+                % Expand along longest dimension and crop along shortest.
                 % Todo: Test this
                 expandSize = max([newImageSize; currentImageSize]);
                 cropSize = min([newImageSize; currentImageSize]);
@@ -517,14 +510,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             isSizeEqual = isequal( size(newImage, 1, 2), currentImageSize);
             assert(isSizeEqual, 'Image dimensions do not match')
             
-            
             % Todo: Adapt according to dimensions....
             obj.Data.insertImageData(newImage, insertInd)
-            
 
             % Todo: are all "dependent" properties updated?
             
-            % Todo: 
+            % Todo:
             % Make sure classes are compatible
             % Make sure it works for 4dimensional arrays as well.
             % MAke implementation for inserting stacks.
@@ -564,7 +555,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     frameTimes = frameTimes + obj.MetaData.StartTime;
                 end
             end
-
         end
         
         function framePosition = getFramePosition(obj, frameIndex)
@@ -624,7 +614,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
             
     % % %         colorArraySum = sum(colorArray, 1);
-    % % %                
+    % % %
     % % %         % Weight colors, so as not to saturate them...
     % % %         if any(colorArraySum(:) > 1)
     % % %             colorArray = colorArray ./ max(colorArraySum(:));
@@ -637,7 +627,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % color channel of newFrame
             subs = repmat({':'}, 1, ndims(image));
             newShape = ones(1, ndims(image));
-            newShape(3) = 3; 
+            newShape(3) = 3;
             
             for i = 1:numel(channelIndices)
                 chNum = channelIndices(i);
@@ -663,7 +653,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if nargout == 1
                 clear filePath
             end
-            
         end
         
         function downsampledStack = downsampleT(obj, n, method, varargin)
@@ -676,19 +665,18 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %   downsampling using the specified method. Default is 'mean', i.e
         %   the stack is binned by n frames at a time, and the result is
         %   the mean of each bin.
-        %    
+        %
         %   downsampledStack = obj.downsampleT(n, method, name, value, ...)
         %   performs the downsampling according to specified name-value
         %   parameters.
         %
         %   Downsample stack through binning frames and calculating a
         %   projection for frames within each bin. n is the binsize and
-        %   method specifies what projection to compute. Method can be 
+        %   method specifies what projection to compute. Method can be
         %   'mean', 'max', 'min'
         %
         %   Output can be a virtual or a direct imageStack. Output data
         %   type will be the same as input, but can be specified...
-       
         
             % TODO: validate that imagestack contains a T dimension..
             % TODO: only works for 3d stacks..
@@ -716,7 +704,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % Calculate number of downsampled frames
             numFramesFinal = floor( obj.NumTimepoints / n );
             
-            % Get (or set) block size for downsampling. 
+            % Get (or set) block size for downsampling.
             % Todo: get automatically based on memory function
             if obj.ChunkLength == inf
                 chunkLength = 2000;
@@ -744,7 +732,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if ~nargout
                 clear downsampledStack
             end
-            
         end
         
         function projectionImage = getFullProjection(obj, projectionName)
@@ -756,7 +743,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
                 projectionImage = obj.Projections.(projectionName);
                 projectionImage = obj.getProjectionSubSelection(projectionImage);
-                return 
+                return
             end
             
             global fprintf % Use hijacked fprintf if available
@@ -799,7 +786,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 mode = 'standard';
             end
             
-            
             % Set dimension to calculate projection image over.
             
             if nargin < 4 || isempty(dim)
@@ -823,8 +809,8 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % find max along 4th dimensions..
 
             if isempty(dim)
-                dim = ndims(tmpStack) + 1; % (If not T dimension is present, i.e XYC or XYZ. Todo: IS this correct in all cases 
-            elseif dim == 3 && numel(obj.CurrentChannel) > 1 
+                dim = ndims(tmpStack) + 1; % (If not T dimension is present, i.e XYC or XYZ. Todo: IS this correct in all cases
+            elseif dim == 3 && numel(obj.CurrentChannel) > 1
                 dim = 4;
             end
 
@@ -860,11 +846,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if strcmp(mode, 'standard')
                 projectionImage = obj.getProjectionSubSelection(projectionImage);
             end
-            
         end
         
         function setProjectionCacheDirty(obj)
-        %setProjectionCacheDirty Set flags for all projections to dirty. 
+        %setProjectionCacheDirty Set flags for all projections to dirty.
         % Todo: move to another class
             fieldNames = fieldnames(obj.isDirty);
             for i = 1:numel(fieldNames)
@@ -876,7 +861,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
         end
         
-    % - Methods for getting frame chunks 
+    % - Methods for getting frame chunks
             
         function frameInd = getMovingWindowFrameIndices(obj, frameNum, windowLength, dim)
         %getMovingWindowFrameIndices Get frame indices for binned set of frames
@@ -907,23 +892,22 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 halfWidth = floor( windowLength/2 );
                 frameInd = frameNum + (-halfWidth:halfWidth);
             end
-            
         end
         
         function N = chooseChunkLength(obj, dataType, pctMemoryLoad, dim)
         %chooseChunkLength Find good number of frames for batch-processing
         %
-        %   N = imageStack.chooseChunkLength() returns the number of frames (N) 
+        %   N = imageStack.chooseChunkLength() returns the number of frames (N)
         %   for an ImageStack object that would use 1/8 of the available
         %   system memory.
         %
         %   N = hImageStack.chooseChunkLength(dataType) returns the number of
-        %   frames that will use 1/8 of the system memory for imagedata 
-        %   which is recast to another type. dataType can be any of the 
-        %   numeric classes of matlab (uint8, int8, uint16, etc, single, 
+        %   frames that will use 1/8 of the system memory for imagedata
+        %   which is recast to another type. dataType can be any of the
+        %   numeric classes of matlab (uint8, int8, uint16, etc, single,
         %   double).
         %
-        %   N = hImageStack.chooseChunkLength(dataType, pctMemoryLoad) 
+        %   N = hImageStack.chooseChunkLength(dataType, pctMemoryLoad)
         %   adjusts number of frames to only use a given percentage of the
         %   available memory.
         %
@@ -1004,7 +988,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             % If there will be more than one chunk... Adjust so that last
             % chunkSize so that last chunk is not smaller than 1/3rd of
-            % the chunk size... 
+            % the chunk size...
             % Todo: make sure options of various methods are updated before
             % saving if chunklength is adjusted.
 % % %             if numFramesDim > numFramesPerChunk
@@ -1026,7 +1010,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 else
                     IND = IND(chunkInd); % Return as cell array
                 end
-                
             end
             
             if nargout == 1
@@ -1035,7 +1018,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
         
         function numFramesPerChunk = autoAdjustChunkLength(obj, numFramesPerChunk, numFramesDim)
-        %autoAdjustChunkLength Adjust chunklength to avoid short last chunk    
+        %autoAdjustChunkLength Adjust chunklength to avoid short last chunk
            
             fractionalSize = 1/3;
             
@@ -1045,7 +1028,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 numChunks = floor(numFramesDim / numFramesPerChunk);
                 numFramesPerChunk = numFramesPerChunk + ceil(numFramesLastChunk/numChunks);
             end
-            
         end
         
         function [imArray, IND] = getFrameChunk(obj, chunkNumber)
@@ -1105,7 +1087,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 data = obj.getFrameSet('all');
                 tf = all( isnan( data(:) ) );
             end
-        
         end
 
         function tf = isvirtual(obj)
@@ -1159,7 +1140,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             %= 'RGB' % Mono, rgb, custom
             msg = 'ColorModel must be ''BW'', ''Grayscale'', ''RGB'' or ''Custom''';
             assert(any(strcmp({'BW', 'Grayscale', 'RGB', 'Custom'}, newValue)), msg)
-            obj.ColorModel = newValue; 
+            obj.ColorModel = newValue;
         end
         
         function set.DimensionOrder(obj, newValue)
@@ -1229,7 +1210,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             else
                 warning('ChunkLength is already set and can not be set again')
             end
-            
         end
         
         function set.DynamicCacheEnabled(obj, newValue)
@@ -1250,7 +1230,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if obj.IsVirtual
                 tf = obj.Data.HasStaticCache;
             end
-
         end
         
         function numChunks = get.NumChunks(obj)
@@ -1293,7 +1272,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function stackDuration = get.StackDuration(obj)
             stackDuration = obj.NumTimepoints * seconds(obj.getTimeStep);
-            stackDuration.Format = 'hh:mm:ss'; 
+            stackDuration.Format = 'hh:mm:ss';
         end
     end
 
@@ -1334,14 +1313,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         case 'Z'
                             indZ = varargin{i};
                     end
-            
                 end
                 
                 % Todo: Add checks to ensure indices stays within valid
                 % range
                 
             end
-            
         end
         
         function subs = getDataIndexingStructure(obj, frameInd, varargin)
@@ -1350,14 +1327,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %   Returns a cell array of subs for retrieving data given a list
         %   of frameInd. frameInd is a list of frames to retrieve, where
         %   the frames are taken from the last dimension of data (assuming
-        %   the last dimension is time (T) or depth (Z). 
+        %   the last dimension is time (T) or depth (Z).
         %
         %   Subs for the image X- and Y- dimensions based on the values of
         %   the properties DataXLim and DataYLim, while subs for channels
-        %   are set based on the CurrentChannel property. If the stack is 
-        %   5D, containing both time and depth, the planes will be selected 
+        %   are set based on the CurrentChannel property. If the stack is
+        %   5D, containing both time and depth, the planes will be selected
         %   according to the CurrentPlane property.
-        % 
+        %
         %   Note, if frameInd is equal to 'all', the subs of the last
         %   dimension will be equivalent to ':'
             
@@ -1399,7 +1376,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         else
                             subs{i} = frameInd;
                         end
-
                         
                         % Make sure requested frame indices are in range.
                         if isnumeric(subs{i})
@@ -1427,7 +1403,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         end
                 end
             end
-            
             
 %             % Special case for 2d images.a
 %             if numDims == 2 && frameInd == 1
@@ -1468,7 +1443,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                                 subs{i} = frameInd;
                             end
                         else
-                        	subs{i} = 1:obj.getDimensionLength(thisDim); 
+                        	subs{i} = 1:obj.getDimensionLength(thisDim);
                         end
                     case 'T'
                         if isempty(frameInd) || (ischar(frameInd) && strcmp(frameInd, 'all'))
@@ -1480,7 +1455,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                         subs{i} = ':';
                 end
             end
-            
         end
         
     % - Methods for getting subsets of data
@@ -1503,7 +1477,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             indexingSubsTmp(dimT) = {':'};
             imArray = imArray(indexingSubsTmp{:});
         end
-    
         
     % - Methods for assigning property values based on data
         
@@ -1539,7 +1512,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             % Todo: Set CustomColorModel, i.e color for each channel
             
-            
             if islogical(obj.Data)
                 obj.ColorModel = 'BW';
             end
@@ -1559,7 +1531,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if isempty(resetProjectionCacheInterval); resetProjectionCacheInterval = 10; end
             
             % Todo: selective reset, ie some projections are heavier and
-            % should be reset less often. 
+            % should be reset less often.
             
             counter = counter + 1;
             if mod(counter, resetProjectionCacheInterval) == 0
@@ -1568,7 +1540,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 if resetProjectionCacheInterval < 50
                     resetProjectionCacheInterval = resetProjectionCacheInterval + 10;
                 end
-
             end
             % Todo: Set projection images to dirty. Only do this every once
             % in a while...
@@ -1586,7 +1557,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             else
                 dimLength = size(obj.Data, ind);
             end
-
         end
         
         function assertEnoughMemoryForFrameRequest(obj, indexingSubs)
@@ -1608,7 +1578,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             nRequestedBytes = obj.getImageDataByteSize(...
                 requestedArraySize, obj.DataType);
-
                 
             if nRequestedBytes > nAvailMemoryBytes
                 arraySizeChar = strjoin(arrayfun(@(x) num2str(x), requestedArraySize, 'uni', 0), 'x');
@@ -1648,7 +1617,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     delete(obj.CacheChangedListener)
                     obj.CacheChangedListener = [];
                 end
-
             end
             
             if ~obj.IsVirtual
@@ -1668,21 +1636,21 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             % IS there any reason to keep this method??
             
 % %             stackSize = size(obj.Data);
-% %             
+% %
 % %             % Assign property value for each of the dimension lengths
 % %             for i = 1:numel(obj.DEFAULT_DIMENSION_ORDER)
-% %                 
+% %
 % %                 thisDim = obj.DEFAULT_DIMENSION_ORDER(i);
 % %                 ind = strfind(obj.Data.StackDimensionArrangement, thisDim);
-% %                 
+% %
 % %                 if isempty(ind)
 % %                     dimLength = 1;
 % %                 else
 % %                     dimLength = stackSize(ind);
 % %                 end
-% %                 
+% %
 % %                 switch thisDim
-% %                     
+% %
 % %                     case 'Y'
 % %                         obj.ImageHeight = dimLength;
 % %                     case 'X'
@@ -1694,7 +1662,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 % %                     case 'T'
 % %                         obj.NumTimepoints = dimLength;
 % %                 end
-% %                 
+% %
 % %             end
         end
         
@@ -1712,9 +1680,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 otherwise
                     warning('Value of DynamicCacheChanged is not valid')
             end
-            
         end
-        
     end
     
     methods (Static)
@@ -1726,7 +1692,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         % ImageStack object. If the variable is numeric and has 3 or more
         % dimension, it is returned as an ImageStack.
             
-            % If image data is numeric, place it in an ImageStack object.                
+            % If image data is numeric, place it in an ImageStack object.
             if isa(imageData, 'numeric')
                 message = 'Image data must have at least 2 dimensions';
                 assert( ndims(imageData) >= 2, message ) %#ok<ISMAT>
@@ -1742,11 +1708,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 errorId = 'NANSEN:Stack:InvalidImageStack';
                 throw(nansen.stack.getException(errorId))
             end
-            
         end
         
         function tf = isStackComplete(fileRef, numChunks)
-        %isStackComplete Check if image stack is complete 
+        %isStackComplete Check if image stack is complete
         %
         %   Note, check that a random subset of frames are not just zeros.
         
@@ -1789,7 +1754,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function limits = getDataTypeIntensityLimits(dataType)
             
-            switch dataType                    
+            switch dataType
                 case 'uint8'
                     limits = [0, 2^8-1];
                 case 'uint16'
@@ -1807,13 +1772,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                 case {'single', 'double', 'logical'}
                     limits = [0, 1];
             end
-            
         end
-        
     end
     
     methods (Static) %Methods in separate files
         data = initializeData(datareference, varargin)
     end
-    
 end

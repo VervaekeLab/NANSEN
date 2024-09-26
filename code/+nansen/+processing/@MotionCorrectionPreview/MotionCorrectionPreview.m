@@ -1,12 +1,12 @@
 classdef MotionCorrectionPreview < handle
-%MotionCorrectionPreview Contains methods that are common for motion 
+%MotionCorrectionPreview Contains methods that are common for motion
 % correction imviewer plugins
 
 % Todo: Should this inherit from imviewer.ImviewerPlugin and have
-% nansen.plugin.imviewer.FlowRegistration and 
+% nansen.plugin.imviewer.FlowRegistration and
 % nansen.plugin.imviewer.NoRMCorre as subclasses?
 
-    properties (Abstract) 
+    properties (Abstract)
         settings
         ImviewerObj
     end
@@ -22,7 +22,7 @@ classdef MotionCorrectionPreview < handle
     methods (Access = protected)
         
         function onSettingsChanged(obj, name, value)
-        %onSettingsChanged Update value in settings if value changes.    
+        %onSettingsChanged Update value in settings if value changes.
             
             % Deal with specific fields
             switch name
@@ -35,7 +35,7 @@ classdef MotionCorrectionPreview < handle
                 case 'OutputFormat'
                     oldFilename = obj.settings.Export.FileName;
                     newFilename = obj.buildFilenameWithExtension(oldFilename);
-                    obj.settings.Export.FileName = newFilename; 
+                    obj.settings.Export.FileName = newFilename;
             end
 
             defaultFields = fieldnames(obj.DefaultOptions);
@@ -87,7 +87,6 @@ classdef MotionCorrectionPreview < handle
             
             dataSet.addVariable('TwoPhotonSeries_Original', ...
                 'Data', obj.ImviewerObj.ImageStack)
-            
 
             dataSet.addVariable('TwoPhotonSeries_Corrected', ...
                 'FilePath', obj.settings.Export.FileName, ...
@@ -104,7 +103,6 @@ classdef MotionCorrectionPreview < handle
             saveFolder = '';
             namePostfix = strcat(lower(obj.Name), '_preview');
             namePostfix = strrep(namePostfix, ' ', '_');
-            
             
             datePrefix = datestr(now, 'yyyymmdd_HH_MM_SS');
             folderName = strcat(datePrefix, '_', namePostfix);
@@ -135,7 +133,7 @@ classdef MotionCorrectionPreview < handle
             imArray = [];
                         
             % Get frame interval from settings
-            firstFrame = obj.settings.Preview.firstFrame;            
+            firstFrame = obj.settings.Preview.firstFrame;
             lastFrame = (firstFrame-1) + obj.settings.Preview.numFrames;
             
             % Make sure we dont grab more than is available.
@@ -165,7 +163,7 @@ classdef MotionCorrectionPreview < handle
             end
 
 % %             if mod( size(imArray,1), 2 ) ~= 0
-% %                 
+% %
 % %             end
 
             if ~strcmp( obj.settings.Preprocessing.BidirectionalCorrection, 'None')
@@ -182,14 +180,13 @@ classdef MotionCorrectionPreview < handle
                 end
             end
         end
-
     end
     
     methods (Static)
         function saveProjections(Y, M, getSavepath)
-        %saveProjections(M, getSavepath)    
+        %saveProjections(M, getSavepath)
         %
-        %   saveProjections(M, getSavepath) 
+        %   saveProjections(M, getSavepath)
         %       M: corrected images
         %       getSavepath : function handle to create absolute filepath.
         
@@ -209,8 +206,6 @@ classdef MotionCorrectionPreview < handle
             imwrite(imAvg, getSavepath('avg_projection_raw.tif'))
             imwrite(imMax, getSavepath('max_projection_raw.tif'))
             
-            
         end
     end
-    
 end

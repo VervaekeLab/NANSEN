@@ -76,7 +76,6 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                     '<FONT color="%s" size="-2"><b>%s</Font>', ...
                     '</HTML>'], hexColorDark.(mode), str1, hexColorLight.(mode), str2);
             end
-            
         end
         
         function progressTooltipString = getCellTooltipString(obj)
@@ -88,7 +87,7 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
 % %             elseif isa(metaVar, 'table') %TODO: Test
 % %                 progressStruct = metaVar.Progress;
 % %             else
-% %                 
+% %
 % %             end
 
             pipelineStruct = obj.Value;
@@ -105,7 +104,7 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                     return
                 end
                 
-                % Create a struct for the struct array...   
+                % Create a struct for the struct array...
                 progressStruct = obj.taskList2TaskStatus(obj.Value.TaskList);   %#ok<NASGU>
                 
                 % Format struct into a multiline string:
@@ -123,7 +122,7 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                 % This is hanging around from previous implementation.
                 % structStr = [sprintf('<b>%s:</b> <br />', metaVar.sessionID{1}), structStr];
                 
-                % Align all lines to the right, i.e justify at the : sign 
+                % Align all lines to the right, i.e justify at the : sign
                 % since all struct values are same length (0 or 1).
                 
                 % Create header title:
@@ -134,7 +133,6 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                 progressTooltipString = str;
                 
             end
-            
         end
              
         function onCellDoubleClick(obj, metaObj, varargin)
@@ -142,7 +140,6 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
             if ~isempty(obj.Value)
                 obj.openPipelineViewerUI(metaObj, varargin{:});
             end
-            
         end
     end
     
@@ -156,7 +153,6 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
             hApp.openPipeline(obj.Value, metaObj);
             
         end
-        
     end
     
     methods (Static)
@@ -190,13 +186,10 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                 taskStatus.(fcnName) = status;
                 
             end
-            
-            
         end
         
         function [colorLight, colorDark] = getProgressBarColors()
-        %getProgressBarColors Get colors for colorbar        
-            
+        %getProgressBarColors Get colors for colorbar
         
             % Try to get colors from to UIManager, otherwise use hardcoded.
             % Todo: Should not be hardcoded...
@@ -212,7 +205,7 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
 % %             if isequal(rgb, [7, 76, 241])
 % %                 colorDark = '2F76B5'; % 'FFC000'; %(yellow) - '70AD47' %(green);
 % %                 colorLight = 'DFEBF7'; % 'FFF3CC'; %(yellow) - 'C5E0B3' %(green);
-% % 
+% %
 % %             else % Hardcode all of them??? Details matter ffs!
 
                 hsv = rgb2hsv(rgb./255);
@@ -221,21 +214,18 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                 % valid color...
                 hsvA = hsv;% .* [1, 1, min([1.1, 1/hsv(3)]) ];
                 hsvB = hsv .* [1, 0.5, min([1.4, 1/hsv(3)]) ];
-
                 
                 % Some alternatives. Keep for posterity...
 %                     hsvA = hsv .* [1, 0.9, 0.9];% .* [1, 1, min([1.1, 1/hsv(3)]) ];
 %                     hsvB = hsv .* [1, 0.5, min([1.4, 1/hsv(3)]) ];
-% 
+%
 %                 hsv(2) = hsv(2)/2;
 %                 hsv(3) = min([hsv(3)*1.4, 1]);
                 
                 rgbC = ones(1,3) .* 0.75;
                 rgbD = ones(1,3) .* 0.75;
 
-
                 [colorDark, colorLight] = deal(struct);
-            
     
                 colorDark.Standard = uim.utility.rgb2hex( hsv2rgb(hsvA) );
                 colorLight.Standard = uim.utility.rgb2hex( hsv2rgb(hsvB) );
@@ -246,7 +236,5 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
 % %             end
             
         end
-        
     end
-    
 end

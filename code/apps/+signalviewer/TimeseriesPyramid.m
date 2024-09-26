@@ -1,8 +1,8 @@
 classdef TimeseriesPyramid < handle
 %TimeseriesPyramid Pyramidal multilevel downsampled timeseries data
 %
-%   This class is used for dynamically adjusting the number of data points 
-%   that are plotted  based on the screen resolution and the x-axis limits 
+%   This class is used for dynamically adjusting the number of data points
+%   that are plotted  based on the screen resolution and the x-axis limits
 %   in the signalviewer app.
 
 %   Note: Only supports timetable input.
@@ -43,7 +43,6 @@ classdef TimeseriesPyramid < handle
         ScreenResolution    % Screen resolution
     end
     
-    
     methods % Constructor
         
         function obj = TimeseriesPyramid(timeTableObj, dpPerPixel)
@@ -61,7 +60,6 @@ classdef TimeseriesPyramid < handle
             obj.calculateDataLevels( timeTableObj )
 
         end
-        
     end
     
     methods
@@ -103,7 +101,6 @@ classdef TimeseriesPyramid < handle
             [~, level] = min(abs(obj.DownsamplingFactors - dsFactor));
             
         end
-        
     end
     
     methods (Access = protected)
@@ -121,7 +118,7 @@ classdef TimeseriesPyramid < handle
                 
                 yData = data.(thisVar);
                 
-                if obj.DoBaselineSubtraction 
+                if obj.DoBaselineSubtraction
                     baseline = prctile(yData, baselinePrctile, 1);
                     yData = yData - baseline;
                 end
@@ -136,7 +133,6 @@ classdef TimeseriesPyramid < handle
                 
             end
         end
-        
     end
     
     methods (Access = private)
@@ -185,10 +181,9 @@ classdef TimeseriesPyramid < handle
                 obj.calculateDataLevels( obj.TData{1} )
             end
         end
-        
     end
     
-    methods 
+    methods
         function set.DataPointPerPixel(obj, newValue)
             obj.DataPointPerPixel = newValue;
             obj.onDataPointPerPixelChanged()
@@ -201,8 +196,8 @@ classdef TimeseriesPyramid < handle
         %useDownsampling Determine if downsampling should be used
         %
         %   tf = useDownsampling(numSamples, dpPerPixel) returns 1 (true)
-        %   if downsampling should be used for data with given number of 
-        %   samples (numSamples) for the specified number of datapoints 
+        %   if downsampling should be used for data with given number of
+        %   samples (numSamples) for the specified number of datapoints
         %   per pixel (dpPerPixel). Otherwise returns false.
             
             screenSize = get(0, 'ScreenSize');
@@ -233,30 +228,26 @@ classdef TimeseriesPyramid < handle
                     finished = true;
                 end
             end
-            
         end
-        
     end
-    
 end
-
 
 % % %         function calculateDataLevels2(obj, timeTableObj)
 % % %             % Old version, always downsample from original. Slower, but
 % % %             % does not look different
 % % %             sampleRateOrig = timeTableObj.Properties.SampleRate;
-% % % 
+% % %
 % % %             numLevels = numel(dsFactors);
 % % %             [xData2, TData2] = deal( cell(1, numLevels) );
 % % %             tic
 % % %             for i = 1:numLevels
-% % %                 
+% % %
 % % %                 sampleRateTemp = sampleRateOrig ./ dsFactors(i);
 % % %                 TData2{i} = retime(timeTable, 'regular', 'linear', ...
 % % %                     'SampleRate', sampleRateTemp);
 % % %                 xData2{i} = linspace(1, numSamplesMax, size(TData2{i}, 1));
-% % %                 
+% % %
 % % %             end
 % % %             toc
-% % %         
+% % %
 % % %         end

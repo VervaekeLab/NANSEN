@@ -4,7 +4,6 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     % Inherited properties
     %
     % SelectedRois    % List of rois (rows) that are selected in the table
-
     
     properties (Constant) % Inherited from applify.HasTheme via ModularApp
         DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
@@ -94,7 +93,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         
         function delete(obj)
             
-            if strcmp(obj.mode, 'standalone') 
+            if strcmp(obj.mode, 'standalone')
                 if isvalid(obj.Figure)
                     % Save figure position to preferences
                     obj.setPreference('Position', obj.Figure.Position);
@@ -115,9 +114,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             delete(obj.UITable)
         end
-
     end
-
     
     methods
         
@@ -163,7 +160,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
 
             % Unselect current roi to prevent "flickering" when
             % classifying roi (if sorting is enabled, rows might
-            % move around when classification is changed): 
+            % move around when classification is changed):
             obj.RoiGroup.changeRoiSelection(currentRoiInd, []);
 
             classifyRois@roimanager.roiDisplay(obj, classificationIdx, currentRoiInd);
@@ -174,7 +171,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         end
         
         function updateRoiLabels(obj)
-        %updateRoiLabels Update the roi ID labels in first table column    
+        %updateRoiLabels Update the roi ID labels in first table column
             roiLabels = obj.RoiGroup.getRoiLabels(1:obj.RoiGroup.roiCount);
             obj.roiTable(:, 1) = roiLabels';
             obj.UITable.refreshTable(obj.roiTable)
@@ -192,7 +189,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function set.SelectionMode(obj, newMode)
             if ~isempty(obj.UITable.HTable)
                 obj.UITable.HTable.SelectionMode = newMode;
-            end            
+            end
         end
         
         function mode = get.SelectionMode(obj)
@@ -208,14 +205,13 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 'Value must be a function handle')
             obj.KeyPressFcn = newValue;
         end
-        
     end
     
-    methods (Access = private) 
+    methods (Access = private)
         
         function onMousePressedInFigure(obj, src, evt)
             % Hide filter if mouse is pressed anywhere in figure.
-            if ~isempty(obj.UITable.ColumnFilter)  
+            if ~isempty(obj.UITable.ColumnFilter)
                 obj.UITable.ColumnFilter.hideFilters();
             end
         end
@@ -293,12 +289,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                     return
                     
                 case 'a'
-                    % Don't want to pass this on. Command+a (on mac) raises 
-                    % a key event with eventdata where modifier is empty, 
-                    % so can not prevent autodetection tool from being 
+                    % Don't want to pass this on. Command+a (on mac) raises
+                    % a key event with eventdata where modifier is empty,
+                    % so can not prevent autodetection tool from being
                     % activated.
                     % 2024-01-26 : Could not reproduce the above statement,
-                    % not sure what was meant by that. Keep these comment 
+                    % not sure what was meant by that. Keep these comment
                     % in case a bug with the "a" key reappears.
                     if ~isempty(evt.Modifier)
                         return
@@ -345,7 +341,6 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
                 if ~isempty(roiStats)
                     S = utility.struct.mergestruct(S, roiStats);
                 end
-
             end
             
             roiTable = struct2table(S, 'AsArray', true);
@@ -361,13 +356,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             else
                 [~, iA, iC] = intersect(obj.roiTable.Properties.VariableNames, ...
                     tableRowData.Properties.VariableNames, 'stable');
-                obj.roiTable(rowIdx, iA) = tableRowData;                
+                obj.roiTable(rowIdx, iA) = tableRowData;
             end
             
             obj.UITable.updateTableRow(rowIdx, tableRowData)
     
         end
-        
     end
     
     methods (Access = protected) % Inherited from applify.ModularApp
@@ -389,10 +383,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             else
                 obj.UITable.HTable.Position(4) = parentPosition(4)-20;
             end
-            
-            
         end
-        
     end
     
     methods (Access = protected) % Inherited from roimanager.roiDisplay
@@ -422,7 +413,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             oldTable = obj.roiTable;
 
-            % fprintf('Index event listener callback 1: %d\n', evtData.roiIndices) % debug 
+            % fprintf('Index event listener callback 1: %d\n', evtData.roiIndices) % debug
 
             % Take action for this EventType
             switch lower(evtData.eventType)
@@ -464,10 +455,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             obj.updateVisibleRois(evtData.roiIndices, evtData.eventType)
             %obj.UITable.updateVisibleRows(obj.VisibleRois)
-
             
             % Update the values of the roi ids / roi labels
-            if obj.RoiGroup.roiCount ~= 0 
+            if obj.RoiGroup.roiCount ~= 0
 
                 if contains(lower(evtData.eventType), {'modify', 'reshape'})
                     roiInd = evtData.roiIndices;
@@ -492,7 +482,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function onRoiSelectionChanged(obj, evtData)
         %onRoiSelectionChanged "RoiSelectionChanged" event callback
         %
-        %   Update the table selection when roi selection changed.    
+        %   Update the table selection when roi selection changed.
         %   Use getSelectedEntries and setSelectedEntries because it
         %   takes sorting order into consideration.
             
@@ -505,7 +495,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             end
             newRowSelection = evtData.NewIndices;
             
-            % Only set new selection if its different than current 
+            % Only set new selection if its different than current
             % selection to prevent an infinite loop. Feel like this will
             % come back and bite me hard...
             if ~isequal( sort(currentRowSelection), sort(newRowSelection) )
@@ -521,7 +511,6 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             else
                 obj.SelectedRois = newRowSelection;
             end
-            
         end
         
         function onVisibleRoisChanged(obj, evtData)
@@ -556,9 +545,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             elseif numel(evtData.roiIndices) == 0
                 return
             end
-            
         end
-        
     end
     
     methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
@@ -572,10 +559,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             % Todo implement...
             obj.onKeyReleasedInTable(src, evt)
         end
-        
     end
     
-    methods (Access = protected) 
+    methods (Access = protected)
         
         function onThemeChanged(obj) % Override superclass implementation
             
@@ -585,7 +571,5 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.UITable.HTable.BackgroundColor = S.HeaderBgColor;
             obj.UITable.HTable.Theme = S.TableTheme;
         end
-        
     end
-
 end

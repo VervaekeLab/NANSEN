@@ -7,13 +7,12 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
 %   INPUTS:
 %       matchedList : Struct array of matched folders. Each element in the
 %           struct array is a set of matched folders, and each field of the
-%           struct refers to a named location for a folder. Each value is 
+%           struct refers to a named location for a folder. Each value is
 %           a character vector representing the absolute path to the folder
-%       unmatchedList : Cell array of session folders. The cell array has 
-%           one cell per field in the struct, and  each cell contains a 
+%       unmatchedList : Cell array of session folders. The cell array has
+%           one cell per field in the struct, and  each cell contains a
 %           list of unmatched folders. Each value is a character vector
 %           representing the absolute path to the folder
-
 
 %   Todo:
 %       [ ] Make some labels and decorations
@@ -31,7 +30,7 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
         UnmatchedSessionFolderList
     end
     
-    properties 
+    properties
         MatchedSessionFolderNameList
         UnmatchedSessionFolderNameList
     end
@@ -72,7 +71,6 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
 
             obj.initializeLayout()
         end
-        
     end
     
     methods
@@ -181,7 +179,7 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
                 menuItem = uimenu(cMenu, 'Text', 'Add Selected Folder to Matched Selection');
                 menuItem.Callback = @(s,e,idx)obj.onAddItemToSetMenuItemClicked(i);
                 menuItem = uimenu(cMenu, 'Text', 'Match Selected Folders');
-                menuItem.Callback = @(s,e)obj.onMatchSelectedItems();                
+                menuItem.Callback = @(s,e)obj.onMatchSelectedItems();
                 obj.UIListbox(i).ContextMenu = cMenu;
             end
         end
@@ -258,7 +256,6 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
                 obj.UIListbox(i).Value = 1;
             end
         end
-
     end
     
     methods (Access = private)
@@ -351,7 +348,7 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
         
         function onUnmatchSessionMenuItemClicked(obj, src, evt)
             
-            % Get row number... 
+            % Get row number...
             rowIdx = obj.UITable.SelectedRows;
             
             % Unmatch...
@@ -387,9 +384,9 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
                 if ~isempty(obj.TableContextMenu)
                     position = obj.UITable.getTableContextMenuPosition(evt.Position);
                     % Set position and make menu visible.
-                    obj.TableContextMenu.Position = position; 
+                    obj.TableContextMenu.Position = position;
                     obj.TableContextMenu.Visible = 'on';
-                end 
+                end
             end
         end
         
@@ -415,5 +412,4 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
             [~, folderName] = fileparts(pathStr);
         end
     end
-    
 end

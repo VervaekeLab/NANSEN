@@ -42,9 +42,7 @@ classdef FolderType
                     obj.Description = ...
                         "A folder containing any other type of elements.";
 
-
             end
-    
         end
     end
 end

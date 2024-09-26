@@ -5,8 +5,8 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         % Organize submodules from this class.
         %   I.e pointerManagers should be created and customized here,
         %   and also notify about events that are relevant for other
-        %   modules. 
-        %   Specific: 
+        %   modules.
+        %   Specific:
         %    1. should a polydraw finish operation happen here
         %       or in the polydraw tool?
         %    2. Should toggling of pointer tools go through here. Need to
@@ -23,7 +23,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         %   [ ] ActiveChannel property
         %       [ ] Add option for selecting active channel.
 
-
 %     % Multichannel rois todos:
 %         [ ] Load rois (all channels/planes)
 %         [ ] Save rois (all channels/planes)
@@ -33,8 +32,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
 
 %       addRois method could be modified to loop through channels and
 %       planes?
-
-
     
     %   Signals are computed twice. Signal array and getRoiStats
     %   Signal extraction takes twice the amount time.
@@ -54,7 +51,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
     end
     
     properties
-        roiFilePath             % RM 
+        roiFilePath             % RM
         DataSet % DataSet?
         %Todo: Should be dependent based on filepath set in file io mixin
     end
@@ -74,7 +71,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         % name property?
 
         % Visible roigroups: When a roigroup is set to visible, the rois
-        % are added to the roimap.... The RoiMap (roiDisplay) will reflect 
+        % are added to the roimap.... The RoiMap (roiDisplay) will reflect
         % whatever rois are added to it. However, if multiple roigroups
         % (i.e different named roigroups) are added, there should be one
         % display per group?
@@ -83,12 +80,12 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
     end
     
     properties (Dependent)
-        CurrentRoiGroup % RoiGroup object of current channel+plane from current selection in list 
+        CurrentRoiGroup % RoiGroup object of current channel+plane from current selection in list
     end
 
     properties (SetAccess = protected)
-        % Active channel. The value of this property determines which rois 
-        % are displayed in the viewer. Also, if multiple channels are set, 
+        % Active channel. The value of this property determines which rois
+        % are displayed in the viewer. Also, if multiple channels are set,
         % adding and removing rois is not possible
         ActiveChannel = 1
 
@@ -128,7 +125,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
 
         SignalViewerDeletedListener % Dashboard, RM ?
     end
-
     
     methods % Structors
         
@@ -137,19 +133,19 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             obj@imviewer.ImviewerPlugin(varargin{:})
 
 % %             [nvPairs, varargin] = utility.getnvpairs(varargin);
-% %             
+% %
 % %             % Note: hImviewer will be empty if varargin is empty.
 % %             hImviewer = imviewer.plugin.RoiManager.validateApp(varargin{:});
-% %             
+% %
 % %             % Pass potential imviewer handle to superclass constructor.
 % %             obj@applify.mixin.AppPlugin(hImviewer, [], nvPairs{:});
-% % 
+% %
 % %             % Plugin already existed, and obj was reassigned in superclass
 % %             if obj.IsActivated
 % %                 if ~nargout; clear obj; end
 % %                 return
 % %             end
-% % 
+% %
 % %             % if imviewer was empty, we return here
 % %             if ~isempty(hImviewer)
 % %                 obj.activatePlugin(hImviewer)
@@ -165,7 +161,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             %
             % Check is roiGroup has unsaved changes, and save those
         end
-        
     end
 
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} ) % Callbacks
@@ -179,13 +174,11 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                     
                 case 'i'
                     obj.roiDisplay.improveRois();
-
                     
                 otherwise
                     wasCaptured = false;
             end
         end
-        
     end
     
     methods % Set/get
@@ -202,7 +195,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
 
         function set.ActiveRoiGroup(obj, newValue)
             if isa(obj.ActiveRoiGroup, 'roimanager.CompositeRoiGroup')
-                delete(obj.ActiveRoiGroup) % Delete old before setting new 
+                delete(obj.ActiveRoiGroup) % Delete old before setting new
             end
             obj.ActiveRoiGroup = newValue;
             obj.updateRoiDisplay()
@@ -296,7 +289,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             
             % Todo: Loop through channels and planes.
             % Todo: Assert that loaded rois have same dimensions (channels,
-            % planes) as current. 
+            % planes) as current.
             
             % Todo: Current group / Current channel / Current plane...
             currentRoiGroup = obj.RoiGroup;
@@ -365,7 +358,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         end
         
         function saveRois(obj, initPath)
-        %saveRois Save rois with confirmation message in app.    
+        %saveRois Save rois with confirmation message in app.
             if nargin < 2; initPath = ''; end
 
 % %             obj.DataSet.saveType('RoiGroup', obj.RoiGroup, 'Subfolder', ...
@@ -374,7 +367,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             wasSaved = saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath);
             
             if wasSaved
-                saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);            
+                saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);
                 obj.PrimaryApp.displayMessage(saveMsg, [], 2)
             else
                 saveMsg = sprintf('Could not save rois');
@@ -384,7 +377,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         
         function addRois(obj, roiArray)
             
-            % Currently only used for initialization. 
+            % Currently only used for initialization.
             % Todo: Should update name and make it more intuitive...
 
             if iscell(roiArray)
@@ -398,21 +391,19 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             else
                 obj.RoiGroup.addRois(roiArray)
             end
-
         
-            % % Old version were we assume only one group is added and it 
+            % % Old version were we assume only one group is added and it
             % should be appended to the current roi group. This method is
             % currently (2023-02-11) used many places, but its behavior
-            % should change and be more of an initialization method where we 
+            % should change and be more of an initialization method where we
             % can provide roiarrays and add the to roigroups as above, and
             % then get proper documententation in place
-
 
 % % %             if isa(obj.ActiveRoiGroup, 'roimanager.CompositeRoiGroup')
 % % %                 delete(obj.ActiveRoiGroup)
 % % %                 obj.roiDisplay.RoiGroup = roimanager.roiGroup.empty;
 % % %             end
-% % % 
+% % %
 % % %             currentRoiGroup = obj.getCurrentRoiGroup();
 % % %             currentRoiGroup.addRois(roiArray, [], 'append')
             %obj.updateActiveRoiGroup()
@@ -448,7 +439,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             % Add group to settings controls...
             numGroups = numel(obj.secondaryGroups) + 1;
             
-            
             % Todo. What if this panel was not opened yet?!?!?
             if ~isprop(obj, 'AppModules') || isempty( obj.AppModules(4) )
                 return
@@ -457,12 +447,12 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             % Todo: Simplify?
             if isfield(obj.AppModules(4).hControls, 'setCurrentRoiGroup')
                 obj.AppModules(4).hControls.setCurrentRoiGroup.String{end+1} = sprintf('Group %d', numGroups);
-                obj.AppModules(4).hControls.showRoiGroups.String{end+1} = sprintf('Show Group %d', numGroups);            
+                obj.AppModules(4).hControls.showRoiGroups.String{end+1} = sprintf('Show Group %d', numGroups);
             end
         end
                 
         function mode = uiGetModeForAddingRois(obj)
-        %uiGetModeForAddingRois Ask user for how to add rois    
+        %uiGetModeForAddingRois Ask user for how to add rois
         
             message = 'Should new rois replace current rois?';
             title = 'Options for Loading New Rois';
@@ -478,7 +468,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             obj.roiDisplay.improveRois()
         end
         
-% % % % 
+% % % %
 
         function Y = prepareImagedata(obj, opts)
         
@@ -509,7 +499,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             Y = obj.PrimaryApp.loadImageFrames(frameInd, loadOpts);
             
             % Create moving average video.
-            if opts.downsamplingFactor > 1 
+            if opts.downsamplingFactor > 1
                 fprintf('Downsampling image data\n')
                 dsFactor = opts.downsamplingFactor;
                 Y = stack.process.framebin.mean(Y, dsFactor); % Adapt this to virtual stack
@@ -539,12 +529,10 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             fprintf = @(varargin) obj.PrimaryApp.updateMessage(varargin{:});
 
             obj.PrimaryApp.uiwidgets.msgBox.activateGlobalWaitbar()
-
             
             % Prepare data
             Y = obj.prepareImagedata(obj.settings.Autosegmentation);
             if ~isa(Y,'single'); Y = single(Y);  end    % convert to single
-
             
             % Call autosegmentation method with options...
            
@@ -552,7 +540,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             methodOptions = obj.settings.Autosegmentation.options;
 
             fprintf('Initializing roi autosegmentation using %s', methodName)
-
             
             if isempty(methodOptions)
                 methodOptions = obj.getAutosegmentDefaultOptions(methodName);
@@ -575,7 +562,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                     tic; [foundRois, im, stat] = extract.run(Y, opts); toc
                     
                 case 'cnmf'
-
                     
             end
             
@@ -612,7 +598,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                     newGroup = obj.createNewRoiGroup();
                     newGroup.addRois(foundRois)
                     
-                    
                 case 'Add rois to new window'
 
             end
@@ -643,7 +628,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                    error('Not implemented')
 
             end
-            
         end
 
         function foundRois = runInternalAutosegmentation(obj, Y, options)
@@ -706,7 +690,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 return
             end
             
-            
             % % Import functions for extracting/processing signals
             import nansen.twophoton.roisignals.extractF
             import nansen.twophoton.roisignals.computeDff
@@ -743,12 +726,11 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             
             % % Extract signals
             signalArray = extractF(imageStack, roiArray, obj.signalOptions);
-
             
             % % Create save path
             [initPath, fileName] = obj.getInitPath();
             savePath = utility.path.validatePathString(options.savePath, initPath);
-            if ~exist(savePath, 'dir'); mkdir(savePath); end 
+            if ~exist(savePath, 'dir'); mkdir(savePath); end
             
             if contains(fileName, 'rois')
                 fileName = strrep(fileName, 'rois', 'roisignals');
@@ -757,12 +739,10 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             end
             savePath = fullfile(savePath, fileName);
             
-            
             % % Save signals
             roiMeanF = squeeze(signalArray(:,1,:));
             save(savePath, 'roiMeanF')
             % Todo: save options
-
             
             if options.saveNeuropilSignals
                 neurpilMeanF = squeeze(signalArray(:,2:end,:));
@@ -800,14 +780,14 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             
             obj.signalOptions = tools.editStruct(obj.signalOptions);
         
-        end %? 
+        end %?
         
         function editDeconvolutionSettings(obj)
             if isempty(obj.deconvolutionOptions)
                 obj.deconvolutionOptions = nansen.twophoton.roisignals.getDeconvolutionParameters();
             end
             obj.deconvolutionOptions = tools.editStruct(obj.deconvolutionOptions);
-        end %? 
+        end %?
         
         function openSignalViewer(obj, hPanel, roiGroup)
             
@@ -825,7 +805,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             end
             
             mItem = findobj(obj.hMenu, '-regexp', 'Text', 'Signal Viewer');
-
             
             if isempty(obj.SignalViewer)
                 
@@ -904,7 +883,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 else
                     obj.SignalViewer.hideVirtualDataDisclaimer()
                 end
-                
             end
             
             % Reset the static image of the fov...
@@ -976,7 +954,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 delete(obj.ImageStackChangedListener)
             end
         end
-        
     end
 
     methods (Access = protected)
@@ -1002,7 +979,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             end
             
             obj.initializeRoiGroup()
-            obj.initializeRoiDisplay()            
+            obj.initializeRoiDisplay()
             obj.initializePointerTools()
             obj.addButtonsToToolbar % Do this after creating pointertools.
             
@@ -1037,7 +1014,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         
         function changeCurrentRoiGroup(obj, newGroupName)
             
-            newGroupNumberStr = strrep(newGroupName, 'Group ', ''); 
+            newGroupNumberStr = strrep(newGroupName, 'Group ', '');
             newGroupNumber = round( str2double(newGroupNumberStr) );
             if newGroupNumber == 1
                 newMap = obj.roiDisplay;
@@ -1047,7 +1024,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 newGroup = obj.secondaryGroups(newGroupNumber-1);
             end
             
-            % Todo! Should change roimap for all roi pointertools 
+            % Todo! Should change roimap for all roi pointertools
             obj.PointerManager.pointers.selectObject.RoiDisplay = newMap;
            
             obj.roiSignalArray.RoiGroup = newGroup;
@@ -1060,12 +1037,11 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             numMaps = numel(allMaps);
             
             isVisible = false(1, numMaps);
-
             
             if strcmp(newValue, 'Show All')
                 isVisible(:) = true;
             else
-                numberStr = strrep(newValue, 'Show Group ', ''); 
+                numberStr = strrep(newValue, 'Show Group ', '');
                 newNumber = round( str2double(numberStr) );
                 isVisible(newNumber) = true;
             end
@@ -1084,7 +1060,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             obj.updateActiveRoiGroup()
             
             % Todo:
-            % Tell roiMap (roiEdior) about the active channel 
+            % Tell roiMap (roiEdior) about the active channel
             obj.roiDisplay.ActiveChannel = obj.ActiveChannel;
             if ~isempty(obj.roiSignalArray)
                 obj.roiSignalArray.ActiveChannel = obj.ActiveChannel;
@@ -1114,9 +1090,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                     obj.roiSignalArray.ImageStack.CurrentPlane = obj.ImviewerObj.currentPlane;
                 end
             end
-
         end
-    
         
 % % % % Context menu item callbacks (Roi map visibility states)
         
@@ -1167,7 +1141,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             end
         end
         
-        
 % % % % Methods for manipulating what is shown in the viewer.
         
         % TODO: Make sure settings value corresponds. Not needed now,
@@ -1187,8 +1160,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         function switchMaskRoiInteriorState(obj, value)
             obj.roiDisplay.MaskRoiInterior = value;
             obj.updateContextMenu('Roi Interior')
-        end        
-        
+        end
     end
     
     methods (Access = protected) % RoiGroupFileIoAppMixin methods
@@ -1209,7 +1181,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 end
             end
         end
-
     end
     
     methods (Access = private) % Initialization
@@ -1253,16 +1224,13 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             % Find the handle to the pointerManager
             
             pointerRoot = strjoin({'roimanager', 'pointerTool'}, '.');
-
             
             hViewer = obj.PrimaryApp;
             hAxes = obj.PrimaryApp.Axes;
             hMap = obj.roiDisplay;
             
-            
             isMatch = contains({hViewer.plugins.pluginName}, 'pointerManager');
             obj.PointerManager = hViewer.plugins(isMatch).pluginHandle;
-            
             
             pointerNames = {'selectObject', 'polyDraw', 'circleSelect', 'autoDetect', 'freehandDraw'};
             
@@ -1292,7 +1260,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             hToolbar.addButton('Icon', obj.ICONS.magicWand, 'Type', 'togglebutton', 'Tag', 'autoDetect', 'Tooltip', 'Autodetect (a)')
             hToolbar.addButton('Icon', obj.ICONS.circle, 'Type', 'togglebutton',  'Tag', 'circleSelect', 'Tooltip', 'Circular (o)')
             hToolbar.addButton('Icon', obj.ICONS.circleGrow2, 'Type', 'pushbutton', 'Tag', 'growCircle', 'Tooltip', 'Grow circle (g)')
-            hToolbar.addButton('Icon', obj.ICONS.circleShrink2, 'Type', 'pushbutton', 'Tag', 'shrinkCircle', 'Tooltip', 'Shrink circle (h)')   
+            hToolbar.addButton('Icon', obj.ICONS.circleShrink2, 'Type', 'pushbutton', 'Tag', 'shrinkCircle', 'Tooltip', 'Shrink circle (h)')
             hToolbar.Visible = 'off';
             
             % Add callbacks to button pushes and listener for tool toggle
@@ -1322,7 +1290,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             hToolbar.Visible = 'off';
             
             %hToolbar.onVisibleChanged()
-            % Call this explicitly, 
+            % Call this explicitly,
             % in case toolbar visibility was already off. Todo, find
             % different solution. E.g., toolbar/widget could have dirty
             % property...
@@ -1425,7 +1393,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             
             set(mItem, 'Text', newMenuTextLabel)
         end
-    
     end
 
     methods (Access = private)
@@ -1439,10 +1406,10 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         end
 
         function updateActiveRoiGroup(obj)
-        %updateActiveRoiGroup Update active roi group based on current channel and plane selection    
+        %updateActiveRoiGroup Update active roi group based on current channel and plane selection
             
             if ~isempty( obj.ActiveRoiGroup )
-                obj.ActiveRoiGroup.changeRoiSelection(nan, []) 
+                obj.ActiveRoiGroup.changeRoiSelection(nan, [])
             end
 
             currentPlane = obj.ImviewerObj.currentPlane;
@@ -1535,9 +1502,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         function pathStr = getIconPath()
             % Get system dependent absolute path for icons.
             pathStr = roimanager.localpath('toolbar_icons');
-        end                
-    
+        end
     end
-
 end
-

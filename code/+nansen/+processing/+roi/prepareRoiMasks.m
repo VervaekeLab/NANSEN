@@ -4,29 +4,27 @@ function sOut = prepareRoiMasks(roiArray, varargin)
 %   masks = prepareRoiMasks(roiArray) will prepare the roi masks using
 %           default options.
 %
-%   masks = prepareRoiMasks(roiArray, paramStruct) will prepare the roi 
+%   masks = prepareRoiMasks(roiArray, paramStruct) will prepare the roi
 %           masks using parameters given in a struct of parameters.
 %
-%   masks = prepareRoiMasks(roiArray, name, value) will prepare the roi 
+%   masks = prepareRoiMasks(roiArray, name, value) will prepare the roi
 %           masks using parameters given as name, value pairs.
 %
 %   PARAMETERS:
 
-    % Todo: 
-    %  [x] Output is a struct array of: 
-    %      - 3d array of masks where each plane (3rd dim) is a subregion. 
+    % Todo:
+    %  [x] Output is a struct array of:
+    %      - 3d array of masks where each plane (3rd dim) is a subregion.
     %        Main roi is always on 1st plane
     %      - Spatial footprint, i.e sum of all rois.
     %      - Bounding box.
-    % OR 
+    % OR
     %  [x] Cell array of sparse roi masks per subregion of roi
     %  [ ] - More explicit about available methods...
     %  [x] Function for creating sparse roi array
     
-    
     %import roimanager.signalExtraction.prepareMasks
     import nansen.processing.roi.createMasks
-
     
     % Get default parameters and assertion functions.
     [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
@@ -39,7 +37,6 @@ function sOut = prepareRoiMasks(roiArray, varargin)
         sOut = roiArray; return
     end
     
-    
     % Convert roiArray to struct array of masks for better performance
     % during signal extraction...
     if isa(roiArray, 'RoI') || (isa(roiArray, 'struct') && isfield(roiArray, 'mask'))
@@ -50,7 +47,6 @@ function sOut = prepareRoiMasks(roiArray, varargin)
     else
         error('Unsupported input format of roiArray')
     end
-    
     
     % Configure the output for better performance during signal extraction
     % (especially relevant when extracting in blocks)
@@ -81,15 +77,12 @@ function sOut = prepareRoiMasks(roiArray, varargin)
             sOut(jRoi).xInd = minX:maxX;
             sOut(jRoi).yInd = minY:maxY;
         end
-        
     end
-
 end
-
 
 function M = createWeightedSparseMatrix(A)
 %createWeightedSparseMatrix Create sparse matrix for signal extraction
-%        
+%
 %   M = getWeightedSparseMatrix(A) returns the 3D logical array as a sparse
 %   matrix where each pixel value is weighted by the number of pixels in a
 %   mask.
@@ -97,7 +90,7 @@ function M = createWeightedSparseMatrix(A)
 %   INPUT:
 %       A : Array of size imageHeight x imageWidth x numRois
 %
-%   OUTPUT : 
+%   OUTPUT :
 %       M : Matrix of size numRois x numPixelsPerImage
 
         % Reshape to make array 2D, collapsing each image to a vector
@@ -106,4 +99,3 @@ function M = createWeightedSparseMatrix(A)
         M = sparse(M);
 
 end
-

@@ -73,10 +73,10 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         end
 
         % % function set.DataLocationModel(obj, newModel)
-        % % 
+        % %
         % %     obj.DataLocationModel = newModel;
         % %     %obj.updateDataLocationDropdownItems();
-        % % 
+        % %
         % % end
     end
 
@@ -127,7 +127,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
 
         function togglePresetVariableVisibility(obj)
             % Todo: Make method so that this can be toggled
-            % programmatically. 
+            % programmatically.
             % See: onShowVariablesToggleButtonValueChanged
         end
     end
@@ -140,7 +140,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
                  'Filename expression', 'File type', 'File adapter'};
             obj.ColumnHeaderHelpFcn = @nansen.app.setup.getHelpMessage;
             obj.ColumnWidths = [12, 200, 115, 175, 70, 125];
-            obj.RowSpacing = 20;   
+            obj.RowSpacing = 20;
             obj.ColumnSpacing = 18;
         end
         
@@ -198,7 +198,6 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
                 hRow.StarButton.ImageSource = nansen.internal.getIconPathName('star_off.png');
                 hRow.StarButton.Tooltip = 'Add to favorites';
             end
-
             
          % % Create DataLocation Dropdown
             i = 3;
@@ -286,7 +285,6 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             
                 if isempty(rowData.FileAdapter)
 
-
                     hRow.FileAdapterSelect.Value = 'Default';
                 else
                     hRow.FileAdapterSelect.Items{end+1} = rowData.FileAdapter;
@@ -300,7 +298,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         end
         
         function createToolbarComponents(obj, hPanel)
-        %createToolbarComponents Create "toolbar" components above table.    
+        %createToolbarComponents Create "toolbar" components above table.
             if nargin < 2; hPanel = obj.Parent.Parent; end
                         
             obj.createAddNewDataVariableButton(hPanel)
@@ -333,8 +331,8 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         function onDataLocationAdded(obj, ~, evt)
         %onDataLocationAdded Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationAdded event on 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationAdded event on
         %   the DataLocationModel object
         
             obj.updateDataLocationDropdownItems()
@@ -343,15 +341,15 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         function onDataLocationRemoved(obj, ~, evt)
         %onDataLocationRemoved Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationRemoved event on 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationRemoved event on
         %   the DataLocationModel object
             
             obj.updateDataLocationDropdownItems()
         end
                 
         function onDataLocationNameChanged(obj, src, evt)
-        %onDataLocationNameChanged Callback for VariableModel event    
+        %onDataLocationNameChanged Callback for VariableModel event
             for i = 1:numel(obj.Data)
                 obj.Data(i).DataLocation = obj.VariableModel.Data(i).DataLocation;
                 hRow = obj.RowControls(i);
@@ -443,7 +441,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             % Reset the file adapter selection if filetype is not supported
             if any(strcmp(fileAdapterList(isMatch).SupportedFileTypes, fileType))
                 % pass
-            else 
+            else
                 hFig = ancestor(obj.Parent, 'figure');
                 allowedFileTypes = strcat('.', fileAdapterList(isMatch).SupportedFileTypes);
                 supportedFileTypes = strjoin(allowedFileTypes, ', ');
@@ -520,7 +518,6 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.VariableRemovedListener = listener(obj.VariableModel, ...
                 'VariableRemoved', @obj.onVariableRemoved);
         end
-
     end
     
     methods (Access = private) % Methods for creating toolbar components
@@ -575,7 +572,6 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             end
             obj.ButtonGroup.SelectionChangedFcn = @obj.onShowVariablesToggleButtonValueChanged;
         end
-    
     end
 
     methods (Access = private) % Methods for updating components
@@ -685,7 +681,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         end
         
         function updateFileTypeDropdownItems(obj, rowNumber)
-        %updateFileTypeDropdownItems Update items of file type dropdown  
+        %updateFileTypeDropdownItems Update items of file type dropdown
         
             hRow = obj.RowControls(rowNumber);
             
@@ -717,7 +713,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         end
         
         function addNewVariableItem(obj, variableItem)
-        % addNewVariableItem - Add new variable item.          
+        % addNewVariableItem - Add new variable item.
 
             if ~isfield(variableItem, 'Uuid')
                 variableItem.Uuid = nansen.util.getuuid();

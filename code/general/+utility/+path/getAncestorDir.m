@@ -1,12 +1,12 @@
 function pathStr = getAncestorDir(pathStr, numFoldersUp)
-%UTILITY.PATH.GETANCESTORDIR Get path to ancestor directory 
+%UTILITY.PATH.GETANCESTORDIR Get path to ancestor directory
 %
 %   pathStr = getAncestorDir(pathStr) return the path to the parent folder
-%   of the given pathStr. If pathStr points to a file, the returned folder is 
+%   of the given pathStr. If pathStr points to a file, the returned folder is
 %   the parent folder of the folder containing the file.
 %
-%   pathStr = getAncestorDir(pathStr, N) return the path to a directory N 
-%   nodes up in the folder hierarchy.  
+%   pathStr = getAncestorDir(pathStr, N) return the path to a directory N
+%   nodes up in the folder hierarchy.
 
     if nargin < 2
         numFoldersUp = 1;

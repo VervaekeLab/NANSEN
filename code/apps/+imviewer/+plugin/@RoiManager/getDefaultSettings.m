@@ -16,7 +16,6 @@ function S = getDefaultSettings()
     
 end
 
-
 function S = getExperimentSettings()
 
     S = struct();
@@ -42,6 +41,5 @@ function S = getSelectionSettings()
     S.SelectNextRoiOnClassify = false;
     S.NextRoiSelectionMode = 'Next in list';
     S.NextRoiSelectionMode_ = {'None', 'Next in list', 'Next in list with same classification', 'Closest distance', 'Closest distance with same classification'};
-
     
 end

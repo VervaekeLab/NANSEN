@@ -22,13 +22,11 @@ function [S, D] = convertParamsToStructArray(filepath)
         'Description', {}, ...
         'ValidationMsg', {}, ...
         'ValidationFcn', {});
-
     
     % % Get names, default values and descriptions:
     fSub = getFileSectionStr(f, 1); % Get first subsection (local function)
 
     varBeginInd = strfind(fSub, 'P.'); % All parameter names should be succeeded by this expression
-    
 
     for i = 1:numel(varBeginInd)
         
@@ -58,8 +56,7 @@ function [S, D] = convertParamsToStructArray(filepath)
     
     % % Get validation function and message
     fSub = getFileSectionStr(f, 2); % Get second subsection (local function)
-    varBeginInd = strfind(fSub, 'V.'); % All parameter names should be succeeded by this expression    
-    
+    varBeginInd = strfind(fSub, 'V.'); % All parameter names should be succeeded by this expression
     
     for i = 1:numel(varBeginInd)
         
@@ -94,7 +91,6 @@ function [S, D] = convertParamsToStructArray(filepath)
     if nargout == 2
         D = getDescription(f);
     end
-    
 end
 
 function strOut = cleanValidationMessageStr(strIn)
@@ -142,11 +138,10 @@ function D = getDescription(f)
     
 end
 
-
 % % function strOut = cleanValidationFunctionString(strIn)
-% % 
+% %
 % %     strIn = fliplr(strIn);
 % %     strIn = regexprep(strIn, ',', '', 'once');
 % %     strOut = fliplr ( strIn );
-% % 
+% %
 % % end

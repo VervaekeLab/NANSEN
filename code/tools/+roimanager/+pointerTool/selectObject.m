@@ -8,7 +8,7 @@ classdef selectObject < uim.interface.abstractPointer & ...
     
     properties
         anchorPoint = [nan, nan]        	% defined in clib.hasDraggableRectangle
-        previousPoint = [nan, nan] 
+        previousPoint = [nan, nan]
         isButtonDown = false
     end
     
@@ -23,10 +23,9 @@ classdef selectObject < uim.interface.abstractPointer & ...
             obj.hAxes = hAxes;
             obj.hFigure = ancestor(hAxes, 'figure');
             
-            if nargin >= 2  
+            if nargin >= 2
                 obj.RoiDisplay = hRoiDisplay;
             end
-            
         end
 
         function setPointerSymbol(obj)
@@ -61,7 +60,7 @@ classdef selectObject < uim.interface.abstractPointer & ...
         end
         
         function onButtonDown(obj, src, event)
-        %onButtonDown Callback for handling button down events in a roiMap.  
+        %onButtonDown Callback for handling button down events in a roiMap.
                     
             obj.isButtonDown = true;
             obj.isActive = true;
@@ -72,7 +71,6 @@ classdef selectObject < uim.interface.abstractPointer & ...
             
             %hFig = ancestor(obj.hAxes, 'figure');
             %obj.RoiDisplay.selectRois(roiInd, hFig.SelectionType, true)
-            
             
             currentPoint = obj.hAxes.CurrentPoint(1, 1:2);
             obj.anchorPoint = currentPoint;
@@ -95,8 +93,6 @@ classdef selectObject < uim.interface.abstractPointer & ...
                         obj.isActive = false;
                     end
             end
-
-            
         end
         
         function onButtonMotion(obj, ~, ~)
@@ -136,7 +132,7 @@ classdef selectObject < uim.interface.abstractPointer & ...
                 
             else
                 
-                switch obj.activeMode 
+                switch obj.activeMode
                     case 'moveObjects'
                         
                         if any(obj.objectDisplacement ~= 0)
@@ -160,7 +156,5 @@ classdef selectObject < uim.interface.abstractPointer & ...
             obj.setPointerSymbol()
             obj.previousPoint = [nan, nan];
         end
-        
     end
-    
 end

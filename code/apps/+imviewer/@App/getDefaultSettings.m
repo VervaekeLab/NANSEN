@@ -3,10 +3,7 @@ function S = getDefaultSettings()
 % NB: This will not be updated in a class until matlab is restarted or the
 % class is cleared and reinitialized.
 
-
 S = struct();
-
-
 
 %S.showMovingAvg = false;        % Show moving average of images...
 %S.binningSize   = 9;            % Binning size for moving average
@@ -29,12 +26,10 @@ S.ImageDisplay.VolumeDisplayMode = 'Single Plane';
 S.ImageDisplay.VolumeDisplayMode_ = {'Single Plane', 'Plane Projection', 'Plane Montage'};
 %S.ImageDisplayVolumeMontageSize = [1, 1];
 
-
 % S.ImageStack.DataDimensionOrder = '';
 % S.ImageStack.PixelSize = [1, 1];
 % S.ImageStack.PixelUnits = ["um", "um"];
 % S.ImageStack.SampleRate = 1;
-
 
 % Options for loading virtual stacks..
 S.VirtualData.useDynamicCache  = true;         % Number of frames to keep in memory when working with virtual stacks.
@@ -45,13 +40,11 @@ S.VirtualData.target           = 'Add To Memory';
 S.VirtualData.target_          = {'Add To Memory', 'Replace Stack', 'New Window'};
 S.VirtualData.preprocessData   = true;
 
-
 % Options for app mouse/keyboard interactions
 S.Interaction.zoomFactor    = 0.25;         % Not currently used, should be part of pointerInterface/zoomingtools
 S.Interaction.panFactor     = 0.25;         % Not currently used, should be part of pointerInterface/pantool
 S.Interaction.scrollFactor  = 1;            % Scroll sensitivity for frame scrolling or zoom scrolling
 S.Interaction.scrollFactor_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 100}});
-                     
 
 % Options for app layout
 S.AppLayout.showHeader              = true;

@@ -50,16 +50,16 @@ classdef DataLocationModel < utility.data.StorableCatalog
     methods (Static)
         
 %         function S = getEmptyObject()
-%             
+%
 %             import nansen.config.dloc.DataLocationModel
-%             
+%
 %             S = struct;
-%             
+%
 %             S.Name = '';
 %             S.RootPath = {'', ''};
 %             S.ExamplePath = '';
 %             S.DataSubfolders = {};
-% 
+%
 %             S.SubfolderStructure = DataLocationModel.getDefaultSubfolderStructure();
 %             S.MetaDataDef = DataLocationModel.getDefaultMetadataStructure();
 %         end
@@ -85,14 +85,13 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 'Type', '', ...
                 'Expression', '', ...
                 'IgnoreList', {{}} );
-            % Todo: Add ShortName, i.e sub / ses (ref BIDS) 
+            % Todo: Add ShortName, i.e sub / ses (ref BIDS)
         end
-        
     end
     
-    methods % Constructor 
+    methods % Constructor
         function obj = DataLocationModel(varargin)
-            % Superclass constructor. Loads given (or default) archive 
+            % Superclass constructor. Loads given (or default) archive
             obj@utility.data.StorableCatalog(varargin{:})
             
             obj.tempDevFix()
@@ -225,7 +224,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             obj.Preferences.DefaultDataLocation = dataLocationUuid;
             
         end
-        
     end
     
     methods % Defined in separate files
@@ -235,15 +233,15 @@ classdef DataLocationModel < utility.data.StorableCatalog
     methods % Modify save/load to include local settings...
         
 % %         function load(obj)
-% %             
+% %
 % %             load@utility.data.StorableCatalog(obj)
-% %             
+% %
 % %         end
-% %         
+% %
 % %         function save(obj)
-% %             
+% %
 % %         end
-% %         
+% %
         
     end
     
@@ -252,14 +250,13 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function validateRootPath(obj, dataLocIdx)
         %validateRootPath Check if root path exists
         
-            % Todo: Loop through all entries in cell array (if many are present) 
+            % Todo: Loop through all entries in cell array (if many are present)
 
             thisDataLoc = obj.Data(dataLocIdx);
             if ~isfolder(thisDataLoc.RootPath(1).Value)
                 thisName = obj.Data(dataLocIdx).Name;
                 error('Root path for DataLocation "%s" does not exist', thisName)
             end
-            
         end
         
         function createRootPath(obj, dataLocIdx, rootIdx)
@@ -282,7 +279,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 error('Not implemented for unix, please create github issue')
             end
         end
-
     end
     
     methods % Methods for updating substructs of data location
@@ -296,7 +292,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             oldStruct = obj.Data(dataLocIdx).MetaDataDef;
             obj.Data(dataLocIdx).MetaDataDef = newStruct;
             
-            % Trigger ModelChanged event 
+            % Trigger ModelChanged event
             evtData = uiw.event.EventData('DataLocationIndex', dataLocIdx, ...
                 'SubField', 'MetadataDefiniton', 'OldData', oldStruct, ...
                 'NewData', newStruct); %#ok<NASGU>
@@ -308,7 +304,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function updateSubfolderStructure(obj, newStruct, idx)
         %updateSubfolderStructure Update the SubfolderStructure struct
         %
-        %   Just replaces the struct in the SubfolderStructure property 
+        %   Just replaces the struct in the SubfolderStructure property
         %   with the input struct S.
         
             if nargin < 3
@@ -331,20 +327,20 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     fullfile(obj.Data(idx).RootPath(1).Value, subFolderNames{:});
             end
             
-% %             % Trigger ModelChanged event 
+% %             % Trigger ModelChanged event
 % %             evtData = uiw.event.EventData('DataLocationIndex', idx, ...
 % %                 'SubField', 'SubfolderStructure', 'OldData', oldStruct, ...
 % %                 'NewData', newStruct);
-% %             
+% %
 % %             obj.notify('DataLocationModified', evtData)
         end
         
         function dataLocationStructArray = validateDataLocationPaths(obj, dataLocationStructArray)
         %validateSubfolders Validate subfolders of data locations
         %
-        %   This method is used to 
+        %   This method is used to
         %       1) Update the root path from the model, i.e, if the root
-        %          path in the model changes, need to update the rootpath 
+        %          path in the model changes, need to update the rootpath
         %          for all items
         %       2) Ensure the file separator of subfolders is matched to
         %          the operating system
@@ -366,7 +362,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             for i = 1:numDatalocations
                        
                 dlUuid = dataLocationStructArray(1,i).Uuid;
-                dlInfo = obj.getItem(dlUuid); 
+                dlInfo = obj.getItem(dlUuid);
 
                 for j = 1:numItems
 
@@ -398,7 +394,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     elseif isunix && contains(iSubfolder, '\')              % convert file separator from unix style to windows
                         iSubfolder = strrep(iSubfolder, '\', filesep);
                     elseif ispc && contains(iSubfolder, '/')                % convert file separator from windows style to unix
-                        iSubfolder = strrep(iSubfolder, '/', filesep);  
+                        iSubfolder = strrep(iSubfolder, '/', filesep);
                     end
                     dataLocationStructArray(j,i).Subfolders = iSubfolder;
                 end
@@ -427,7 +423,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             newDataLocation = obj.insertItem(newDataLocation);
             
-            % Trigger DataLocationAdded event 
+            % Trigger DataLocationAdded event
             evtData = uiw.event.EventData(...
                 'NewValue', newDataLocation);
             obj.notify('DataLocationAdded', evtData)
@@ -446,7 +442,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % Todo: Unset default data location if this was the default
             % data location
             
-            % Trigger ModelChanged event 
+            % Trigger ModelChanged event
             evtData = uiw.event.EventData(...
                 'DataLocationIndex', idx, ...
                 'DataLocationName', dataLocationName);
@@ -472,7 +468,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % members:
             if strcmp(field, 'Type') && ischar(value)
                 value = nansen.config.dloc.DataLocationType(value);
-                % Todo: Make sure default datalocation is still allowed type: 
+                % Todo: Make sure default datalocation is still allowed type:
             end
             
             oldValue = obj.Data(idx).(field);
@@ -483,7 +479,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 dataLocationName = value;
             end
 
-            % Trigger DataLocationModified event 
+            % Trigger DataLocationModified event
             evtData = uiw.event.EventData(...
                 'DataLocationName', dataLocationName, ...
                 'DataField', field, ...
@@ -509,7 +505,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             dataLocation = obj.getItem(dataLocationName);
             pathStr = dataLocation.ExamplePath;
         end
-       
     end
     
     methods % Methods for getting data descriptions from filepaths
@@ -518,7 +513,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         % getSubjectID - Extract subject ID from a path string
             
             if nargin < 3 || isempty(dataLocationIndex)
-                dataLocationIndex = 1; 
+                dataLocationIndex = 1;
             end
 
             S = obj.getMetavariableStruct('Subject ID', dataLocationIndex);
@@ -529,7 +524,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         % getSessionID - Extract session ID from a path string
             
             if nargin < 3 || isempty(dataLocationIndex)
-                dataLocationIndex = 1; 
+                dataLocationIndex = 1;
             end
 
             S = obj.getMetavariableStruct('Session ID', dataLocationIndex);
@@ -540,7 +535,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         % getTime - Extract experiment time from a path string
 
             if nargin < 3 || isempty(dataLocationIndex)
-                dataLocationIndex = 1; 
+                dataLocationIndex = 1;
             end
 
             S = obj.getMetavariableStruct('Experiment Time', dataLocationIndex);
@@ -564,7 +559,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         % getDate - Extract experiment date from a path string
 
             if nargin < 3 || isempty(dataLocationIndex)
-                dataLocationIndex = 1; 
+                dataLocationIndex = 1;
             end
             
             S = obj.getMetavariableStruct('Experiment Date', dataLocationIndex);
@@ -577,7 +572,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 value = substring;
             end
         end
-        
     end
     
     methods % Utility methods
@@ -635,7 +629,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             obj.Data = data;
             obj.save()
         end
-        
     end
     
     methods (Access = protected)
@@ -691,7 +684,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             % Abort if instructions are not present.
             if isempty(strPattern) || isempty(folderLevel)
-                return;    
+                return;
             end
             
             % Get the index of the folder containing the substring,
@@ -770,7 +763,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         
         function S = importLocalRootPaths(obj, S)
             
-            % Load local settings for datalocation model root paths and 
+            % Load local settings for datalocation model root paths and
             % replace those that are in the struct S with the local ones.
             
             % Keep the originals stored in the RootPathListOriginal
@@ -814,7 +807,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 filePath = obj.getLocalRootPathSettingsFile();
                 save(filePath, '-struct', 'S_')
 
-                % 2) Restore originals 
+                % 2) Restore originals
                 reference = obj.RootPathListOriginal; % struct array
                 S.Data = obj.updateRootPathFromReference(S.Data, reference);
             end
@@ -824,7 +817,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %updateRootPathFromReference Update rootpath struct from reference
         %
         %   Reference can refer to the local settings for root paths or the
-        %   original ones. 
+        %   original ones.
         %
         %   This method updates the rootpath struct based on the reference.
         %   If mode is mirror, the struct is copied, otherwise, the
@@ -852,7 +845,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                         keyIdx = find(strcmp( {iTarget.RootPath.Key}, thisKey ));
                         
                         if isempty(keyIdx)
-                            continue; 
+                            continue;
                         else
                             iTarget.RootPath(keyIdx).Value = iSource.RootPath(jKey).Value;
                             
@@ -876,7 +869,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
         
         function S = updateRootPathFromDiskName(obj, S)
-        %updateRootPathFromDiskName Ensure path matches diskname for root 
+        %updateRootPathFromDiskName Ensure path matches diskname for root
         %
         %   On windows, drive mounts for external drives are dynamic, and a
         %   drive might be mounted with different letter from time to time.
@@ -966,7 +959,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             if strcmp(obj.DefaultDataLocation, oldName)
                 obj.DefaultDataLocation = newName;
             end
-            
         end
     end
  
@@ -982,7 +974,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             diskLetter = string(regexp(rootPath, '.*:', 'match'));
             try
                 matchedIdx = find( obj.VolumeInfo.DeviceID == diskLetter );
-            catch 
+            catch
                 matchedIdx = [];
             end
             if ~isempty(matchedIdx)
@@ -1001,7 +993,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 diskName = '';
             end
         end
-        
     end
    
     methods %(Access = ?nansen.config.project.Project)
@@ -1009,7 +1000,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function onProjectRenamed(obj, oldName, newName)
         % onProjectRenamed - Rename configs that depend on project name
         
-        % Note: Function names for extracting data identifiers 
+        % Note: Function names for extracting data identifiers
         % (subjectId, sessionId, experimentData & experimentTime) depend on
         % the project name
         
@@ -1026,7 +1017,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
             obj.save()
         end
-        
     end
 
     methods (Static)
@@ -1049,7 +1039,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             for i = 1:numel(platformNameList)
                 if ~isempty(regexp(pathStr, strPattern{i}, 'match'))
-                    platformName = platformNameList{i}; 
+                    platformName = platformNameList{i};
                     return
                 end
             end
@@ -1076,7 +1066,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                    
                 case 'pc2pc'
                     oldStr = pathStr(1:2);
-                    newStr = char(mount); 
+                    newStr = char(mount);
            end
            
            pathStr = char( strrep(pathStr, oldStr, newStr) );
@@ -1145,7 +1135,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
     methods (Static)
         
         function S = updateRootPathDataType(S) % TEMP: Todo: remove
-        %updateRootPathDataType 
+        %updateRootPathDataType
             
             % Todo: Should we make struct array instead, with key value
             % fields and use universal unique ids????
@@ -1185,7 +1175,5 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 end
             end
         end
-        
     end
-
 end

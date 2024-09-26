@@ -7,7 +7,6 @@ numChars = numel(str);
 % todo:
 % what if there are variable numbers?
 
-
 for i = numChars:-1:1
 
     searchStr = repmat('#', 1, i);

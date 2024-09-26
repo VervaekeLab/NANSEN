@@ -25,5 +25,4 @@ function h = uiEditPipeline(pipelineName)
     if ~nargout
         clear h
     end
-    
 end

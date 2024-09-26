@@ -143,7 +143,7 @@ classdef UiCreateNote < matlab.apps.AppBase
             if isempty( app.noteStruct.Title )
                 uialert(app.UIFigure, 'Please enter title', 'Information Missing', 'Icon', 'error')
                 success = false;
-            end 
+            end
             
             if isempty( app.noteStruct.Text )
                 
@@ -154,13 +154,11 @@ classdef UiCreateNote < matlab.apps.AppBase
                     otherwise
                         success = false;
                 end
-                
             end
             
             success = true;
             
         end
-        
     end
 
     methods (Access = protected)
@@ -176,7 +174,6 @@ classdef UiCreateNote < matlab.apps.AppBase
         function onCancelButtonPushed(app, src, evt)
             app.delete()
         end
-        
     end
     
     methods (Static)
@@ -187,6 +184,5 @@ classdef UiCreateNote < matlab.apps.AppBase
             noteTemplate.Type_ = nansen.notes.Note.VALID_NOTE_TYPES;
             noteTemplate.Author = '';
         end
-         
     end
 end

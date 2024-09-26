@@ -1,7 +1,7 @@
 function installDependencies(options)
 % installDependencies - Install dependencies for the Nansen Toolbox
 %
-%   Note: Currently installs the FEX submission dependencies. 
+%   Note: Currently installs the FEX submission dependencies.
 
 %   Todo: Consolidate with AddonManager.
 

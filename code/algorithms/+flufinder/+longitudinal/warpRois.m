@@ -1,8 +1,8 @@
 function shiftedRoiArray = warpRois(roiArray, fovShifts)
 %warpRois Change roi positions based on shifts from image registration.
 %   shiftedRoiArray = warpRois(roiArray, sessionFovShifts)
-%       
-%   fovShifts is a struct which is created by alignFovs. 
+%
+%   fovShifts is a struct which is created by alignFovs.
 %   NB: This function should be called once for each of the elements in
 %   fovShifts if fovShifts is a struct array.
 %
@@ -63,9 +63,7 @@ for i = 1:nRois
     shiftedRoiArray(i) = roi.move(roiShift);
 end
 
-
 isEmpty = arrayfun(@(roi) isempty(roi.boundary), shiftedRoiArray);
 shiftedRoiArray(isEmpty) = [];
     
 end
-

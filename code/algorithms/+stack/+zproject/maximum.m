@@ -1,4 +1,4 @@
-function imOut = maximum(imArray, dim)    
+function imOut = maximum(imArray, dim)
 
     if nargin < 2; dim = 3; end
 
@@ -7,5 +7,4 @@ function imOut = maximum(imArray, dim)
     else
         imOut = imArray;
     end
-    
 end

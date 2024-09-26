@@ -7,7 +7,6 @@ function listOut = multiLineListbox(listIn, varargin)
     
     params = utility.parsenvpairs(params, 1, varargin{:});
 
-
     if nargin < 1
         listIn = {};
     end
@@ -59,14 +58,13 @@ function listOut = multiLineListbox(listIn, varargin)
     x = MARGINS(1);
     y = H - MARGINS(4) - editSize(2);
     
-    
   % % Create components
     
     hEdit = uicontrol(hPanel, 'Style', 'edit');
     hEdit.Position = [x, y, editSize];
     hEdit.HorizontalAlignment = 'left';
 
-    y = MARGINS(2); 
+    y = MARGINS(2);
     listboxSize = [editSize(1), componentHeight - editSize(2) - SPACING(2)];
 
     hLBox = uicontrol(hPanel, 'Style', 'listbox');
@@ -100,7 +98,6 @@ function listOut = multiLineListbox(listIn, varargin)
         hButtons(i).Callback = @(s,e,h1,h2,h3) onButtonPressed(s,hEdit,hLBox,hButtons);
     end
 
-
     buttonSize = [100, 18];
 
     x = f.Position(3)/2 + [-1,1]*SPACING(1)/2 + [-1, 0]*buttonSize(1);
@@ -115,17 +112,13 @@ function listOut = multiLineListbox(listIn, varargin)
         hButtons(count+i).Callback = @quit;
     end
 
-
     h = applify.uicontrolSchemer([hButtons, hEdit, hLBox]);
-
 
     jLBox = findjobj(hLBox);
     javacolor = @javax.swing.plaf.ColorUIResource;
     jColor = javacolor(bgColor(1), bgColor(2), bgColor(3));
     newBorder = javax.swing.BorderFactory.createLineBorder(jColor, 0);
     jLBox.setBorder(newBorder)
-
-    
     
     hLBox.ForegroundColor = params.Theme.FigureFgColor;
     hEdit.ForegroundColor = params.Theme.FigureFgColor;
@@ -153,15 +146,11 @@ function listOut = multiLineListbox(listIn, varargin)
 
 end
 
-
-
 function onButtonPressed(src, hEdit, hLBox, hButtons)
-    
     
     if isempty(hLBox.String) && ismember(src.String, {'Edit', 'Remove', 'Move Up', 'Move Down'})
         return
     end
-
 
     switch src.String
         case 'Add'
@@ -214,7 +203,6 @@ function onButtonPressed(src, hEdit, hLBox, hButtons)
             end
     end
 end
-
 
 function quit(src, ~)
     f = ancestor(src, 'figure');

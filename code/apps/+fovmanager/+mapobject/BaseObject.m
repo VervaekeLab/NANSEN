@@ -1,5 +1,4 @@
 classdef (Abstract) BaseObject < handle
-
     
     % Todo: Make a generalized constructor/ or make methods that will be
     % part of the subclass constructors.
@@ -16,38 +15,32 @@ classdef (Abstract) BaseObject < handle
         
     end
     
-    
     % Properties that should not be saved when object is saved.
     properties (Transient = true)
         guiHandle
         isMovable = false
     end
     
-    
     properties (Abstract, Transient, Dependent)
        boundaryWidth
        boundaryColor
     end
     
-    
     methods (Abstract)
         createContextMenu(obj, fmHandle)
     end
-    
 
     methods
-
         
 % % % % Functions for deletion
         
         function requestdelete(obj, ~, ~)
-           answer = questdlg('Are you sure? There is no way back...'); 
+           answer = questdlg('Are you sure? There is no way back...');
            switch answer
                case 'Yes'
                    delete(obj)
            end
         end
-        
         
         function delete(obj)
             if ~isempty(obj.guiHandle) && isvalid(obj.guiHandle)
@@ -69,11 +62,10 @@ classdef (Abstract) BaseObject < handle
             % Todo: Figure out if this is necessary...
         end
         
-        
 % % % % Default methods for getting display information.
 
         function displayName = getDisplayName(obj, keyword)
-        %getDisplayName Get a displayname to tag handles with...  
+        %getDisplayName Get a displayname to tag handles with...
             
             % Todo: Make this easier... Should not rely on displaynames in
             % different places. Totally random....
@@ -85,21 +77,17 @@ classdef (Abstract) BaseObject < handle
                     displayName = utility.string.varname2label(class(obj));
                     displayName = strrep(displayName, 'fovmanager.mapobject.', '');
             end
-            
         end
-        
         
         function infoText = getInfoText(obj) %#ok<MANU>
             infoText = '';
         end
-        
         
         function pos = getInfoPosition(obj)
             rad = range(obj.edge) / 2;
             pos(1) = obj.center(1);
             pos(2) = obj.center(2)+rad(2)+range(obj.guiHandle.Parent.Parent.YLim)*0.07;
         end
-        
         
 % % % % Functions for converting to/from struct
 
@@ -112,7 +100,6 @@ classdef (Abstract) BaseObject < handle
 
         end
         
-        
         function S = toStruct(obj)
             
             propertyList = obj.getNonTransientProperties();
@@ -124,10 +111,9 @@ classdef (Abstract) BaseObject < handle
             for i = 1:numel(obj)
                 for j = 1:numel(propertyList)
                     S(i).(propertyList{j}) = obj(i).(propertyList{j});
-                end                
+                end
             end
         end
-        
         
         function fromStruct(obj, S)
 
@@ -138,9 +124,7 @@ classdef (Abstract) BaseObject < handle
             for i = 1:numel(propertyList)
                 obj.(propertyList{i}) = S.(propertyList{i});
             end
-            
         end
-        
         
 % % % % Function for turning on/off the isMovable property
 
@@ -154,7 +138,6 @@ classdef (Abstract) BaseObject < handle
                     src.Text = 'Lock Position';
             end
         end
-
         
 % % % % Functions for moving or reshaping the object
 
@@ -188,7 +171,6 @@ classdef (Abstract) BaseObject < handle
 
         end
         
-        
         function rotate(obj, theta)
             
             if ~obj.isMovable; return; end
@@ -202,7 +184,6 @@ classdef (Abstract) BaseObject < handle
             
         end
         
-        
         function fliplr(obj)
             
             if ~obj.isMovable; return; end
@@ -214,7 +195,6 @@ classdef (Abstract) BaseObject < handle
             
         end
         
-        
         function flipud(obj)
             
             if ~obj.isMovable; return; end
@@ -225,7 +205,6 @@ classdef (Abstract) BaseObject < handle
             obj.updateImage()
             
         end
-        
         
         function displayObject(obj, hParent, varargin)
             
@@ -251,9 +230,7 @@ classdef (Abstract) BaseObject < handle
             if ~isempty(obj.image)
                 obj.updateImage() % This method can be overwritten in subclass
             end
-            
         end
-        
         
         function toggleShowHideImage(obj, src, ~)
             
@@ -268,9 +245,7 @@ classdef (Abstract) BaseObject < handle
                     hIm.Visible = 'off';
                     src.Text = sprintf('Show %s', imageTag);
             end
-            
         end
-        
         
         function showInfo(obj)
             hTxt = findobj(obj.guiHandle, 'Tag', 'Info Text');
@@ -285,7 +260,6 @@ classdef (Abstract) BaseObject < handle
             end
         end
         
-        
         function updateInfo(obj)
             hTxt = findobj(obj.guiHandle, 'Tag', 'Info Text');
             infoText = obj.getInfoText();
@@ -294,12 +268,10 @@ classdef (Abstract) BaseObject < handle
             end
         end
 
-
         function hideInfo(obj)
             hTxt = findobj(obj.guiHandle, 'Tag', 'Info Text');
             hTxt.Visible = 'off';
         end
-        
         
         function addImage(obj)
             
@@ -307,7 +279,6 @@ classdef (Abstract) BaseObject < handle
             if isempty(loadedImage); return; end
             
             obj.image = loadedImage;
-            
             
             if numel(obj.guiHandle.Children) > 0 % If initialized...?
                 obj.updateImage()
@@ -319,7 +290,6 @@ classdef (Abstract) BaseObject < handle
                 textLabel = 'Image';
             end
             
-            
             mh = findobj(obj.guiHandle.UIContextMenu, 'Text', sprintf('Add %s...', textLabel));
             
             if ~isempty(mh)
@@ -330,8 +300,6 @@ classdef (Abstract) BaseObject < handle
             mh.Enable = 'on';
             
         end
-
-        
         
 % % % % Functions for changing FOV position
 
@@ -345,7 +313,7 @@ classdef (Abstract) BaseObject < handle
             isMovableState = obj.isMovable;
             obj.isMovable = true;
             
-            % Calculate new position and shift of FoV 
+            % Calculate new position and shift of FoV
             oldCenter = obj.center;
             objectSize = newPos(3:4);
             newCenter = newPos(1:2) + objectSize/2;
@@ -364,7 +332,6 @@ classdef (Abstract) BaseObject < handle
             % Update edge coordinates.
             obj.edge = [ [-1;-1;1;1] * objectSize(1)/2,  ...
                          [1;-1;-1;1] * objectSize(2)/2 ] + obj.center;
-
             
 % %             h = findobj(obj.guiHandle, 'Tag', 'Fov Outline');
 % %             xCoords = obj.edge(:, 1); yCoords = obj.edge(:, 2);
@@ -380,7 +347,6 @@ classdef (Abstract) BaseObject < handle
 
         end
         
-        
         function setImageAlpha(obj, ~, alphaValue)
             
             if isempty(obj.image)
@@ -394,7 +360,6 @@ classdef (Abstract) BaseObject < handle
                     alphaValue = 0.01;
                 end
                 
-                
                 hIm = findobj(obj.guiHandle, '-regexp', 'Tag', 'Image');
 
                 alphaData = hIm.AlphaData;
@@ -402,21 +367,14 @@ classdef (Abstract) BaseObject < handle
                 
                 hIm.AlphaData = alphaData;
             end
-            
         end
-              
-        
-        
     end
     
-    
     methods (Access = protected)
-        
         
         function [xCoords, yCoords] = getBoundaryCoords(obj)
             xCoords = obj.edge(:, 1); yCoords = obj.edge(:, 2);
         end
-        
         
 % % % % Plot Functions
 
@@ -440,9 +398,7 @@ classdef (Abstract) BaseObject < handle
             if obj.orientation.theta ~= 0
                 obj.rotateBoundary()
             end
-
         end
-        
         
         function hIm = updateImage(obj)
             
@@ -475,7 +431,7 @@ classdef (Abstract) BaseObject < handle
             
             xCoords = obj.edge(:, 1); yCoords = obj.edge(:, 2);
             
-            if strcmp( obj.shape, 'circle' )                
+            if strcmp( obj.shape, 'circle' )
                 % Define center coordinates and radius
                 x = imSize(2)/2;
                 y = imSize(1)/2;
@@ -485,7 +441,6 @@ classdef (Abstract) BaseObject < handle
                 mask = (xx.^2 + yy.^2) > radius^2;
                 alphaData(mask) = 0;
             end
-            
             
             xLims = [min(xCoords), max(xCoords)];
             yLims = [min(yCoords), max(yCoords)];
@@ -522,7 +477,6 @@ classdef (Abstract) BaseObject < handle
 
             end
             
-            
             if isempty(hIm)
                 hIm = image(obj.guiHandle, displayIm, 'XData', xLims, 'YData', yLims); %#ok<CPROP>
                 %hIm.Parent = obj.guiHandle;
@@ -532,17 +486,14 @@ classdef (Abstract) BaseObject < handle
                 hIm.HitTest = 'off';
                 uistack(hIm, 'down') % Edge should stay on top for visibility
                 
-                
                 mTmp = findobj(obj.guiHandle.UIContextMenu, 'Text', sprintf('Show %s', imageName));
                 mTmp2 = findobj(obj.guiHandle.UIContextMenu, 'Text', 'Set Image Transparency');
-                
                 
                 if ~isempty(mTmp)
                     mTmp.Enable = 'on';
                     mTmp2.Enable = 'on';
                     mTmp.Text = sprintf('Hide %s', imageName);
                 end
-                
                 
             else
                 hIm.CData = displayIm;
@@ -554,7 +505,6 @@ classdef (Abstract) BaseObject < handle
                 hIm.Visible = 'on';
             end
             
-            
             % Replace context menu text
             mh = findobj(obj.guiHandle.UIContextMenu, 'Text', sprintf('Add %s...', imageName));
             if ~isempty(mh)
@@ -564,10 +514,7 @@ classdef (Abstract) BaseObject < handle
             if ~nargout
                 clear hIm
             end
-            
-            
         end
-        
         
         function plotCenterPoint(obj)
             
@@ -578,7 +525,6 @@ classdef (Abstract) BaseObject < handle
         
             uistack(xh, 'top')
         end
-        
         
         function rotateBoundary(obj)
             
@@ -602,7 +548,6 @@ classdef (Abstract) BaseObject < handle
             
         end
         
-        
         function plotInfo(obj)
             rad = range(obj.edge) / 2;
             
@@ -615,19 +560,12 @@ classdef (Abstract) BaseObject < handle
             hTxt.HitTest = 'off';
             hTxt.PickableParts = 'none';
             
-            
             % Todo: consider a way to get this always on top. I.e should
             % not be part of the fov object, but just an object in
             % fovmanager. Why did I even do it like this...?
         end
- 
-        
     end
-
-    
 end
-
-
 
 % Potentially faster update when moving multiple objects, i.e window with fovs
 % but should clean up code...
@@ -638,11 +576,11 @@ end
 % % % %     classes{j} = class(obj.guiHandle.Children(j));
 % % % % end
 % % % % skip = strcmp(classes, 'matlab.graphics.primitive.Group');
-% % % % 
+% % % %
 % % % % tmpH = obj.guiHandle.Children(~skip);
 % % % % classes = classes(~skip);
-% % % % 
-% % % % 
+% % % %
+% % % %
 % % % % isText = strcmp(classes, 'matlab.graphics.primitive.Text');
 % % % % if sum(isText) == 1
 % % % %     tmpH(isText).Position(1:2) = tmpH(isText).Position(1:2) + shift;
@@ -651,7 +589,7 @@ end
 % % % %     newPos = cellfun(@(pos) pos + [shift, 0], oldPos, 'uni', 0);
 % % % %     set(tmpH(isText), 'Position', newPos);
 % % % % end
-% % % % 
+% % % %
 % % % % if sum(~isText)==1
 % % % %     tmpH(~isText).XData = tmpH(~isText).XData + shift(1);
 % % % %     tmpH(~isText).YData = tmpH(~isText).YData + shift(2);

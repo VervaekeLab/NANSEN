@@ -11,6 +11,4 @@ classdef SizeChangedData < event.EventData
            obj.NewSize = newSize;
        end
    end
-   
 end
-

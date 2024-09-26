@@ -41,7 +41,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
         Tree = uiw.widget.FileTree.empty(0,1) %Tree on which this node is attached (read-only)
     end
     
-    
     %% Internal properties
     
     properties (SetAccess=protected, GetAccess=protected)
@@ -53,8 +52,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
             GetAccess={?uiw.widget.FileTree, ?uiw.widget.FileTreeNode})
         JNode %Java object for tree node
     end
-    
-    
     
     %% Constructor / Destructor
     methods
@@ -86,7 +83,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
             
         end % constructor
         
-        
         function delete(obj)
             obj.IsBeingDeleted = true;
             delete(obj.Children(isvalid(obj.Children)))
@@ -99,7 +95,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
         end % destructor
         
     end %methods - constructor/destructor
-    
     
     %% Public Methods
     methods
@@ -151,7 +146,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
             end
         end %function
         
-        
         function collapse(obj)
             % collapse - Collapse a TreeNode within a tree
             %
@@ -173,7 +167,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
             end
         end %function collapse()
         
-        
         function expand(obj)
             % expand - Expands a TreeNode within a tree
             %
@@ -194,7 +187,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
                 end
             end
         end %function expand()
-        
         
         function tf = isAncestor(nObj1,nObj2)
             % isAncestor - checks if another node is an ancestor
@@ -224,7 +216,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
             
         end %function isAncestor()
         
-        
         function tf = isDescendant(nObj1,nObj2)
             % isDescendant - checks if another node is a descendant
             %
@@ -244,7 +235,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
             tf = isAncestor(nObj2,nObj1);
             
         end %function isDescendant()
-        
         
         function setIcon(obj,icon)
             % setIcon - Set icon of TreeNode
@@ -279,7 +269,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
             
         end %function setIcon()
         
-        
         function s = getJavaObjects(obj)
             % getJavaObjects - Returns underlying java objects
             %
@@ -302,8 +291,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
         
     end %public methods
     
-    
-    
     %% Special Access Methods
     methods (Access={?uiw.widget.FileTree, ?uiw.widget.FileTreeNode})
         
@@ -322,7 +309,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
                     obj.Parent.Children(ChildIdx) = [];
                     obj.Tree.removeNode(obj, obj.Parent);
                 end
-                
                 
             elseif isempty(newParent) %New parent is empty
                 
@@ -384,8 +370,6 @@ classdef FileTreeNode < uiw.mixin.AssignPVPairs & matlab.mixin.Heterogeneous
         end %function updateParent()
         
     end %special access methods
-    
-    
     
     %% Get/Set methods
     methods

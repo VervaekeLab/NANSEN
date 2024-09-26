@@ -26,6 +26,6 @@ function funcHandles = getCustomTableVariableFcn(varNames, projectName, tableTyp
     end
         
     if iscell(funcHandles) && numel(funcHandles) == 1
-        funcHandles = funcHandles{1}; 
+        funcHandles = funcHandles{1};
     end
 end

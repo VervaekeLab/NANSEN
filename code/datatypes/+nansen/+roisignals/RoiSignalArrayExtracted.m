@@ -34,16 +34,13 @@ classdef RoiSignalArrayExtracted < nansen.roisignals.RoiSignalArray
                     case 'RoiSignals_Deconvolved'
                         obj.Data.deconvolved(I, J) = data;
                     case 'RoiSignals_Denoised'
-                        obj.Data.denoised(I, J) = data;                
+                        obj.Data.denoised(I, J) = data;
                 end
             end
-            
         end
         
         function tf = isVirtual(obj)
             tf = false;
         end
     end
-    
-    
 end

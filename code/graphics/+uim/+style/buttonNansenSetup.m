@@ -27,6 +27,4 @@ classdef buttonNansenSetup < uim.style.buttonScheme
             'BorderColor', 'k', ...
             'BorderWidth', 0.5 )
     end
-    
-    
 end

@@ -1,16 +1,16 @@
 function varargout = migrateRoisToFovs(sessionObject, varargin)
 %migrateRoisToFovs Summary of this function goes here
-%   
+%
 %   This is a multisession method to use for migrating a roi array from one
-%   FoV to other matching FOVs. 
+%   FoV to other matching FOVs.
 %
 %   Requirements:
-%   - - - - - - - 
+%   - - - - - - -
 %   The method requires a FOV image ("FovAverageProjection") to be present
 %   for all sessions and a roi array to be present for the reference session.
 %
 %   What will happen?
-%   - - - - - - - - - 
+%   - - - - - - - - -
 %   1) An average FOV image is loaded for each session and aligned
 %      using an image registration method (flowreg or normcorre).
 %   2) The roi array from the reference session will be copied to all other
@@ -21,21 +21,19 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
 %      synchronize those changes across all sessions. See
 %      Roi Registration -> Edit Rois
 
-
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Create a struct of default parameters (if applicable) and specify one or 
-% more attributes (see nansen.session.SessionMethod.setAttributes) for 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
+% Create a struct of default parameters (if applicable) and specify one or
+% more attributes (see nansen.session.SessionMethod.setAttributes) for
 % details.
     
     % Get struct of parameters from local function
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'batch', 'unqueueable'};   
-
+    ATTRIBUTES = {'batch', 'unqueueable'};
     
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
     
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
@@ -48,9 +46,8 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, [], varargin);
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
-% Implementation of the method : Add your code here:    
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
+% Implementation of the method : Add your code here:
     
     % Count number of sessions
     numSessions = numel(sessionObject);
@@ -63,7 +60,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     % Reorder sessions to place the reference session first in the list.
     idx = find(strcmp(refSessionID, sessionIDs));
     newOrder = unique( [idx, 1:numSessions], "stable" );
-    sessionObject = sessionObject(newOrder); 
+    sessionObject = sessionObject(newOrder);
     sessionIDs = sessionIDs(newOrder);
 
     % Check channels and planes. Throw error for multiplane recordings.
@@ -109,7 +106,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
 % % %     % available
 % % %     fovSize = cellfun(@(im) size(im), fovImages, 'uni', 0);
 % % %     fovSize = min( cat(1, fovSize{:}) );
-% % %     
+% % %
 % % %     fovImageArray = zeros( [fovSize, numSessions] );
 % % %     for i = 1:numSessions
 % % %         fovImageArray(:, :, i) = stack.reshape.imcropcenter(fovImages{i}, fovSize);
@@ -245,11 +242,9 @@ end
 
 function initializeMultiSessionRois()
 
-
 end
 
 function saveMultiSessionRois()
-    
 
 end
 

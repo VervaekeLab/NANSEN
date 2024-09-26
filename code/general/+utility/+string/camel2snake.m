@@ -5,9 +5,9 @@ function snakeCaseStr = camel2snake(camelCaseStr)
 
     capitalLetterStrIdx = regexp(camelCaseStr, '[A-Z, 1-9]');
 
-    % Work from tail to head, since we are inserting underscores and 
+    % Work from tail to head, since we are inserting underscores and
     % changing the length of the string
-    for i = fliplr(capitalLetterStrIdx) 
+    for i = fliplr(capitalLetterStrIdx)
         if i ~= 1
             camelCaseStr = insertBefore(camelCaseStr, i , '_');
         end
@@ -16,5 +16,3 @@ function snakeCaseStr = camel2snake(camelCaseStr)
     snakeCaseStr = lower(camelCaseStr);
 
 end
-
-            

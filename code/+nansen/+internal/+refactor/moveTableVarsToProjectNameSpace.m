@@ -26,7 +26,6 @@ function moveTableVarsToProjectNameSpace(projectFolderPath)
         fprintf('Failed to move tablevariables to project namespace for project "%s"\n', projectName)
         disp(getReport(ME, 'extended'))
     end
-    
 end
 
 % Update folder where table vars are located in nansen.localpath

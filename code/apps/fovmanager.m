@@ -14,5 +14,4 @@ function hApp = fovmanager(varargin)
     if ~nargout
         clear hApp
     end
-
 end

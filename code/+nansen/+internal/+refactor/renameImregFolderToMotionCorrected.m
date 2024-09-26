@@ -3,7 +3,6 @@ function renameImregFolderToMotionCorrected()
     % Get project catalog
     projectManager = nansen.ProjectManager;
     
-    
     % Loop through projects and rename folders.
     for iProject = [4, 1:projectManager.NumProjects]
         
@@ -13,7 +12,6 @@ function renameImregFolderToMotionCorrected()
         dlModel = project.DataLocationModel;
         % Loop through all sessions and move files from old folder to new
         % folder
-        
         
         % Loop through variable model and rename all subfolders.
         varModel = project.VariableModel;
@@ -56,8 +54,6 @@ function renameImregFolderToMotionCorrected()
                 targetDirPathStr = strrep(sourceDirPathStr, 'image_registration_', 'motion_corrected_');
                 movefile(sourceDirPathStr, targetDirPathStr)
             end
-            
         end
-
     end
 end

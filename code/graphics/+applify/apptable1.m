@@ -1,18 +1,18 @@
 classdef apptable1 < applify.UiControlTable
 % A row based table for placing in an app using uifigure
-%   
-%   Work in progress. Adapting the apptable to version using uim-controls    
+%
+%   Work in progress. Adapting the apptable to version using uim-controls
 %
 % Note1: Position only supported in pixels.
 %
-%   
+%
 % One question I have. Should I implement it as a superclass with abstract
-% properties so that any implementation needs to go through a subclass or 
+% properties so that any implementation needs to go through a subclass or
 % should I make it possible to instantiate directly? For now,
 % subclassing...
 
 %
-%   Todo:   
+%   Todo:
 %       [x] Create method createTableRowComponents (which will be a subclass method)
 %       [ ] Implement row checkbox as a true/false selection option
 %       [ ] Come up with a nice way to add/remove columns. Ie dropbox
@@ -27,21 +27,18 @@ classdef apptable1 < applify.UiControlTable
         ICONS = uim.style.iconSet(applify.apptable1.getIconPath)
     end
 
-
     properties % Table info/data
         ContainerAxes
         HeaderAxes
         TableAxes    % Axes object to plot labels, images and other components into.
     end
-
     
     methods % Structors
         
         function obj = apptable1(varargin)
-        %apptable Constructor                
+        %apptable Constructor
             
             obj@applify.UiControlTable(varargin{:})
-                        
 
         end
         
@@ -49,7 +46,6 @@ classdef apptable1 < applify.UiControlTable
             
         end
     end
-
     
     methods (Access = protected) % Configuration and construction
         
@@ -60,7 +56,6 @@ classdef apptable1 < applify.UiControlTable
         function createTableRowComponents(obj) % defined in applify.UiControlTable
         
         end
-        
         
         function createLayoutContainers(obj)
         %createLayoutContainers Create container objects based on layout
@@ -81,7 +76,7 @@ classdef apptable1 < applify.UiControlTable
         end
 
         function createTempAxes(obj)
-        % Temporary axes for getting length of strings to fit component 
+        % Temporary axes for getting length of strings to fit component
         % width to text length..... Wtf matlab, this should not be necessary.
         
             obj.TempAxes = uiaxes(obj.Parent);
@@ -105,7 +100,7 @@ classdef apptable1 < applify.UiControlTable
             obj.ColumnHeaderBorder.LineWidth = 1;
             obj.ColumnHeaderBorder.Color = obj.TableBorderColor;
             
-            yOff = 5; % Correction factor in pixels to keep labels closer 
+            yOff = 5; % Correction factor in pixels to keep labels closer
                       % to horizontal border below
                       
             % Todo(?): Create panel for header
@@ -115,13 +110,12 @@ classdef apptable1 < applify.UiControlTable
                     continue
                 end
                 
-                % Add position(1) to correct for xOffset (column header is 
-                % created directly in parent, but table components are 
+                % Add position(1) to correct for xOffset (column header is
+                % created directly in parent, but table components are
                 % created in table panel)
-                xi = obj.ColumnLocations(i) + obj.Position(1); 
+                xi = obj.ColumnLocations(i) + obj.Position(1);
                 w = obj.ColumnWidths(i);
                 y = obj.ColumnHeaderPosition(2) + 4;
-                
                 
                 obj.ColumnHeaderLabels{i} = text(obj.HeaderAxes, xi, y+1, '');
                 obj.ColumnHeaderLabels{i}.FontName = obj.FontName;
@@ -146,14 +140,12 @@ classdef apptable1 < applify.UiControlTable
                         'SizeMode', 'manual', 'Position', btnPosition, ...
                         'Icon', obj.ICONS.help4, 'Size', btnPosition(3:4), ...
                         'Style', uim.style.helpButton};
-                    
                                         
                     obj.ColumnLabelHelpButton{i} = uim.control.Button_(obj.Parent, btnOptions{:});
                     obj.ColumnLabelHelpButton{i}.Callback = @obj.onHelpButtonClicked;
                     %obj.ColumnLabelHelpButton{i}.Tag = obj.ColumnNames{i};
                     %obj.centerComponent(obj.ColumnLabelHelpButton{i}, y-yOff)
                 end
-                
             end
             
             % Add horizontal border below header.
@@ -193,13 +185,12 @@ classdef apptable1 < applify.UiControlTable
         end
 
 %         function createTableRow(obj, rowNum)
-%             
+%
 %             % y = obj.RowLocations(rowNum);
-% 
+%
 %         end
 
     end
-    
     
     methods (Static)
         function pathStr = getIconPath()
@@ -207,5 +198,4 @@ classdef apptable1 < applify.UiControlTable
             pathStr = fullfile(rootPath, '_graphics', 'icons');
         end
     end
-    
 end

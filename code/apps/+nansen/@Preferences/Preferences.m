@@ -24,4 +24,3 @@ classdef Preferences < uiw.model.Preferences
         end
     end
 end
-

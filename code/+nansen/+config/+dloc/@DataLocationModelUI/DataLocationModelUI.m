@@ -1,14 +1,13 @@
 classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLocationModel
-% Class interface for editing data locations in a uifigure  
+% Class interface for editing data locations in a uifigure
     
-% Todo: Simplify component creation. 
+% Todo: Simplify component creation.
 %     [] Get cell locations as array with one entry for each column of a row.
 %     [] Do the centering when getting the cell locations.
 
 %     [] Set fontsize/bg color and other properties in batch.
 
-%     [] get a default struct 
-    
+%     [] get a default struct
     
     properties (SetAccess = private)
         IsDirty = false % keep this....?
@@ -30,7 +29,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         ButtonSizeSmall = [22, 22]
         ButtonSizeLarge = [70, 22]
     end
-    
     
     methods
         function obj = DataLocationModelUI(dataLocationModel, varargin)
@@ -85,7 +83,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             
             obj.TableComponentCellArray{rowNum, i} = hRow.RemoveImage;
             
-        % % Create first column: Edit field for data location name 
+        % % Create first column: Edit field for data location name
             i = i+1;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
             
@@ -102,7 +100,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             hRow.DataLocationName.ValueChangedFcn = ...
                 @obj.onDataLocationNameChanged;
             
-        % % Create second column: Edit field for data location type 
+        % % Create second column: Edit field for data location type
             i = i+1;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
             
@@ -113,14 +111,13 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             hRow.DataLocationType.Editable = false;
             
             [~, hRow.DataLocationType.Items] = enumeration('nansen.config.dloc.DataLocationType');
-            hRow.DataLocationType.Value = char(rowData.Type);  
+            hRow.DataLocationType.Value = char(rowData.Type);
             
             obj.centerComponent(hRow.DataLocationType, y)
             obj.TableComponentCellArray{rowNum, i} = hRow.DataLocationType;
 
             hRow.DataLocationType.ValueChangedFcn = ...
                 @obj.onDataLocationTypeChanged;
-            
             
         % % Create third column: Edit component for data location rootpath
             i = i+1;
@@ -141,7 +138,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             % Set value of the component for datalocation root path:
             obj.setRootPathEditComponentValue(hRow, rowData)
             
-            
             % Create buttons accompanying the rootpath edit component.
             [h, hComponents] = obj.createRootPathButtons();
             
@@ -150,18 +146,16 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
 
             obj.centerComponent(h, y)
             obj.TableComponentCellArray{rowNum, i} = h;
-
             
             % Add components to the struct of row components.
             uicontrolNames = fieldnames(hComponents);
             for i = 1:numel(uicontrolNames)
                 hRow.(uicontrolNames{i}) = hComponents.(uicontrolNames{i});
             end
-
         end
         
         function createToolbarComponents(obj, hPanel)
-        %createToolbarComponents Create "toolbar" components above table.    
+        %createToolbarComponents Create "toolbar" components above table.
             if nargin < 2; hPanel = obj.Parent.Parent; end
                         
             obj.createAddNewDataLocationButton(hPanel)
@@ -197,7 +191,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                     h = uidropdown(obj.TablePanel);
                     h.Editable = 'on';
             end
-            
         end
         
         function [h, hStruct] = createRootPathButtons(obj)
@@ -211,7 +204,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         %
         %   see also createRootPathBrowseButton createRootPathButtonGroup
         
-        
             switch obj.RootPathComponentType
                 
                 case 'uieditfield'
@@ -222,7 +214,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                     hStruct = obj.createRootPathButtonGroup();
                     h = hStruct.UIButtonGroup_RootDir;
             end
-            
         end
         
         function h = createRootPathBrowseButton(obj)
@@ -247,7 +238,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         %       Browse Button : Open a browser dialog to set the path
         %       Add Button    : Add a new root directory to the list
         %       Remove Button : Remove a new root directory from the list
-        
         
             GROUP_SIZE = obj.ButtonSizeLarge;
             BUTTON_SIZE = obj.ButtonSizeSmall;
@@ -292,7 +282,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 %h.(buttonNames{i}).BackgroundColor = buttonBgColor;
                 h.(buttonNames{i}).Position = [X(i) 1 BUTTON_SIZE];
             end
-            
         end
         
         function createAddNewDataLocationButton(obj, hPanel)
@@ -346,7 +335,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.SelectDataLocationHelpButton.Position = [Xl(3) Y+1 Wl(3) 20];
             obj.SelectDataLocationHelpButton.Tag = 'Default Data Location';
         end
-        
     end
     
     methods % Public methods
@@ -367,7 +355,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             else
                 tf = true;
             end
-
         end
         
         function isMissing = isTypeMissing(obj)
@@ -383,11 +370,10 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             if nargout == 2
                 rowNum = find(isMissingRow);
             end
-
         end
         
         function isCompleted = isRowCompleted(obj, rowControlName)
-        %isTableCompleted Check if data is entered to all required fields    
+        %isTableCompleted Check if data is entered to all required fields
                         
             isCompleted = true(1, obj.NumRows); % null hypothesis
             
@@ -396,17 +382,15 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                     isCompleted(i) = false;
                 end
             end
-            
         end
 
         function markClean(obj)
             obj.IsDirty = false;
         end
         
-        
         function setActive(obj)
         %setActive Execute actions needed for ui activation
-        % Use if UI is part of an app with tabs, and the tab is selected        
+        % Use if UI is part of an app with tabs, and the tab is selected
         end
         
         function setInactive(obj)
@@ -436,9 +420,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                     end
                 end
             end
-            
         end
-        
     end
 
     methods (Access = private) % Callbacks for uicomponent interactions
@@ -457,11 +439,10 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 uialert(hFig, ME.message, 'Aborted')
                 src.Value = evt.PreviousValue;
             end
-            
         end
         
         function onDataLocationNameChanged(obj, src, event)
-        %onDataLocationNameChanged Callback for change in editfield    
+        %onDataLocationNameChanged Callback for change in editfield
             
             newName = src.Value;
             
@@ -475,7 +456,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 return
             end
             
-            
             % Make sure name does not already exist
             if strcmpi(newName, event.PreviousValue)
                 % Accept if current name is modified, i.e small letters
@@ -488,7 +468,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 src.Value = event.PreviousValue;
                 return
             end
-
             
             i = obj.getComponentRowNumber(src);
             
@@ -507,7 +486,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
 
             % Update the data location model.
             dataLocationItem = obj.DataLocationModel.getItem(rowIdx);
-            
                         
             % Make sure we are not removing the default data location.
             if strcmp(dataLocationItem.Name, obj.DataLocationModel.DefaultDataLocation)
@@ -691,7 +669,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             end
                         
             % This is only a ui change, so this should not be updated in
-            % the model. 
+            % the model.
         end
         
         function onRemoveRootDirButtonPushed(obj, src, ~)
@@ -779,7 +757,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             
             obj.IsDirty = true;
         end
-        
     end
         
     methods (Access = private) % Methods to update component values when model has changed.
@@ -790,7 +767,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             defaultName = obj.DataLocationModel.DefaultDataLocation;
             
             if isempty(defaultName)
-                obj.SelectDataLocationDropDown.Items = ['None', ...  
+                obj.SelectDataLocationDropDown.Items = ['None', ...
                     obj.SelectDataLocationDropDown.Items ];
                 obj.SelectDataLocationDropDown.Value = 'None';
                 return;
@@ -809,7 +786,6 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             if ~strcmp(currentName, newName)
                 obj.RowControls(rowIdx).DataLocationName.Value = newName;
             end
-            
         end
         
         function updateDataLocationRoot(obj, rowIdx, newRootPath)
@@ -863,9 +839,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 hEditComponent.Value = rootPathItems{rootPathIdx(1)};
                 hEditComponent.Tooltip = rootPathItems{rootPathIdx(1)};
             end
-
         end
-        
     end
     
     methods (Access = private) % Methods for getting values from uicomponents
@@ -883,9 +857,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 case 'Secondary'
                     idx = 2;
             end
-            
         end
-        
     end
     
     methods (Access = protected) % Implement callbacks from HasDataLocationModel
@@ -893,9 +865,9 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         function onDataLocationAdded(obj, ~, evt)
         %onDataLocationAdded Add new data location to UI
         %
-        %   This method is handed down from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationAdded event on 
-        %   the DataLocationModel object. 
+        %   This method is handed down from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationAdded event on
+        %   the DataLocationModel object.
         %
         %   Create a new row to match a new DataLocation item
 
@@ -931,9 +903,9 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
         function onDataLocationModified(obj, src, evt, varargin)
         %onDataLocationModified Modify data location in UI
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationModified event 
-        %   on the DataLocationModel 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationModified event
+        %   on the DataLocationModel
         
             [~, rowIdx] = obj.DataLocationModel.containsItem(evt.DataLocationName);
         
@@ -945,17 +917,13 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
 
                 case 'Type'
                     
-                    
                 case 'RootPath'
                     obj.updateDataLocationRoot(rowIdx, evt.NewValue)
                     
                 otherwise
                 
-                
             end
-        
         end
-        
     end
     
     methods (Access = protected) % Override superclass methods (UIControlTable)
@@ -976,7 +944,5 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.SelectDataLocationDropDownLabel.Visible = 'off';
             obj.SelectDataLocationDropDown.Visible = 'off';
         end
-        
     end
-    
 end

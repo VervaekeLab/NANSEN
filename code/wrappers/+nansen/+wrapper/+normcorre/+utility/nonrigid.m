@@ -1,19 +1,18 @@
 function [M, ref, ncShifts, ncOpts] = nonrigid(Y, ref, optsFlag)
 %nonrigid Wrapper for running nonrigid NoRMCorre with default settings.
-%   M = nonrigid(Y, ref) returns motion corrected images M, given 
+%   M = nonrigid(Y, ref) returns motion corrected images M, given
 %   uncorrected images Y. ref is optional and will be calculated if it is
 %   not provided.
 %
 %   [M, ref, ncShifts, ncOpts] = nonrigid(Y, ref) also returns reference,
 %   shifts and options used for motion correction.
 
-
 if nargin < 2; ref = []; end
 if nargin < 3; optsFlag = 'standard'; end
 
 warning('off', 'MATLAB:mir_warning_maybe_uninitialized_temporary')
 
-if ~isa(Y, 'single') ||  ~isa(Y, 'double') 
+if ~isa(Y, 'single') ||  ~isa(Y, 'double')
     Y = single(Y);
     ref = single(ref);
 end
@@ -36,7 +35,7 @@ switch optsFlag
                    'max_shift', 40, 'max_dev', 15, 'us_fac', 50, ...
                    'correct_bidir', 0, 'upd_template', false, ...
                    'boundary', 0, 'print_msg', 0, 'iter', 1, ...
-                   'shifts_method', 'fft');               
+                   'shifts_method', 'fft');
                
     case 'smallgrid'
         ncOpts = NoRMCorreSetParms('d1', sz1, 'd2', sz2,...
@@ -132,7 +131,6 @@ switch optsFlag
                    'boundary', 'copy', 'print_msg', 1, 'iter', 1, ...
                    'shifts_method', 'fft');
 end
-
                
 if size(Y, 3) == 1
     [M, ncShifts, ref] = normcorre(Y, ncOpts, ref);

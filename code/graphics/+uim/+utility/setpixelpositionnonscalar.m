@@ -16,7 +16,7 @@ function setpixelpositionnonscalar(h,position,recursive)
 %       % Set pixel position on the uicontrol
 %       pause(1);
 %       setpixelposition(h1, pos1 + [10 10 20 20]);
-%       
+%
 %   See also GETPIXELPOSITION, UICONTROL, UIPANEL
 
 % Copyright 1984-2006 The MathWorks, Inc.
@@ -24,7 +24,7 @@ function setpixelpositionnonscalar(h,position,recursive)
 % Modified by Eivind Hennestad to allow handle to be an array of objects.
 
 % Verify that setpixelposition is given between 2 and 3 arguments
-narginchk(2,3) 
+narginchk(2,3)
 
 % Verify that "h" is a handle
 if ~ishghandle(h)
@@ -52,7 +52,7 @@ if recursive
     if ~ishghandle(parent,'figure')
         parentpos = getpixelposition(parent, true);
         position(:,1) = position(:,1) - parentpos(1);
-        position(:,2) = position(:,2) - parentpos(2);        
+        position(:,2) = position(:,2) - parentpos(2);
     end
 end
 
@@ -70,5 +70,4 @@ set(h,{'Units'},old_u);
 if wasError
     rethrow(ex);
 end
-
 end

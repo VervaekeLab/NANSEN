@@ -2,7 +2,7 @@ function [YReg, shifts] = compensateSequence(C, CRef, Y, YRef, options, weight)
 %compensateSequence Wrapper for compensate_sequence
 
 % Todo: Do I need these from inputs??
-% %             CRef = mean(C, 4); 
+% %             CRef = mean(C, 4);
 % %             YRef = mean(Y, 4);
 
     [YReg, shifts] = compensate_sequence( ...

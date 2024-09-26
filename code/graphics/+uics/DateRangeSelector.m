@@ -1,7 +1,6 @@
 classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
 %DateRangeSelector Simple wrapper for a DateChooserPanel widget
 
-
     properties
         Callback
         Parent
@@ -51,7 +50,6 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
             applify.AppWindow.switchJavaWarnings('on')
 
         end
-
     end
     
     methods
@@ -86,23 +84,21 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
             if ~isempty(obj.hContainer)
                 visible = obj.hContainer.Visible;
             else
-                visible = 'off'; 
+                visible = 'off';
             end
-            
         end
         
         function set.Callback(obj, newValue)
             obj.Callback = newValue;
             obj.onCallbackPropertySet()
         end
-        
     end
     
     methods (Access = private)
         
         function onCallbackPropertySet(obj)
             hModel = handle(obj.hDatePanel.getSelectionModel, 'CallbackProperties');
-            set(hModel, 'ValueChangedCallback', obj.Callback); 
+            set(hModel, 'ValueChangedCallback', obj.Callback);
         end
         
         function onPositionChanged(obj)
@@ -116,7 +112,5 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
                 obj.hContainer.Visible = obj.Visible;
             end
         end
-        
     end
-    
 end

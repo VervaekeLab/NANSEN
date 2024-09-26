@@ -25,7 +25,7 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
         %pLevels = [0.05, 0.005];
     end
     
-    properties (Access = private)  
+    properties (Access = private)
         ImageStats
         SaturationValue
     end
@@ -41,7 +41,6 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
         end
     end
     
-    
     methods % Structor
         
         function obj = PixelStatCalculator(varargin)
@@ -53,7 +52,6 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
                 clear obj
             end
         end
-        
     end
     
     methods (Access = protected)
@@ -67,7 +65,6 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             dataIntensityLimits = obj.SourceStack.DataTypeIntensityLimits;
             obj.SaturationValue = dataIntensityLimits(2);
         end
-
     end
     
     methods (Access = protected) % Implement methods from ImageStackProcessor
@@ -96,7 +93,7 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
         end
 
         function tf = checkIfPartIsFinished(obj, partNumber)
-        %checkIfPartIsFinished Check if specified part is completed        
+        %checkIfPartIsFinished Check if specified part is completed
 
             tf = false;return
             
@@ -117,10 +114,9 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
         function saveMergedResults(obj)
             % Not implemented, see saveImageStats
         end
-
     end
     
-    methods (Access = private) 
+    methods (Access = private)
 
         function S = initializeImageStats(obj, mode)
         %initializeImageStats Create new or load existing struct.
@@ -129,7 +125,7 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
         %   stats.
         %
         %   S = initializeImageStats(obj, mode) initializes image stats
-        %   using specified mode. mode can be 'initialize' (default) or 
+        %   using specified mode. mode can be 'initialize' (default) or
         %   'reset'
         
             if nargin < 2
@@ -142,7 +138,7 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             
             if isfile(filePath) && ~strcmp(mode, 'reset')
                 S = obj.loadData('ImageStats');
-                if ~isa(S, 'cell') % Stats were saved before multichannel/multiplance 
+                if ~isa(S, 'cell') % Stats were saved before multichannel/multiplance
                     S = {S};
                 end
             else
@@ -184,7 +180,7 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             
             obj.ImageStats = S;
             
-            if ~nargout 
+            if ~nargout
                 clear S
             end
         end
@@ -215,7 +211,7 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
 
             % Collect different stats.
             prctValues = prctile(Y_, pLevels)';
-            if iscolumn(prctValues); prctValues = prctValues'; end % If size(Y, 3)==1. 
+            if iscolumn(prctValues); prctValues = prctValues'; end % If size(Y, 3)==1.
             
             obj.ImageStats{i,j}.prctileL1(IND) = prctValues(:, 1);
             obj.ImageStats{i,j}.prctileL2(IND) = prctValues(:, 2);
@@ -233,7 +229,7 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             YDs_ = reshape(YDs, [], size(YDs, 3));
             % Collect different stats.
             prctValuesDs = prctile(YDs_, pLevels)';
-            if iscolumn(prctValuesDs); prctValuesDs = prctValuesDs'; end % If size(Y, 3)==1. 
+            if iscolumn(prctValuesDs); prctValuesDs = prctValuesDs'; end % If size(Y, 3)==1.
             
             prctValuesUs = repmat(prctValuesDs, 1,1,5);
             prctValuesUs = permute(prctValuesUs, [3,1,2]);
@@ -248,7 +244,7 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
         end
         
         function saveImageStats(obj)
-        %saveImageStats Save statistical values of image data  
+        %saveImageStats Save statistical values of image data
         %
         %   saveImageStats(obj, Y)
         
@@ -256,7 +252,5 @@ classdef PixelStatCalculator < nansen.stack.ImageStackProcessor
             S = obj.ImageStats;
             obj.saveData('ImageStats', S)
         end
-
     end
-    
 end

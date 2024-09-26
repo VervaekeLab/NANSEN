@@ -1,17 +1,16 @@
 function varargout = twoPhotonMotionCorrected(sessionObj, varargin)
 %twoPhotonMotionCorrected Open 2-photon corrected recording in imviewer
 %
-%   twoPhotonMotionCorrected(sessionObj) opens the motion-corrected 
+%   twoPhotonMotionCorrected(sessionObj) opens the motion-corrected
 %       two-photon recording for the given session using default options.
 %
-%   twoPhotonMotionCorrected(sessionObj, Name, Value) opens the recording 
+%   twoPhotonMotionCorrected(sessionObj, Name, Value) opens the recording
 %       using the options given as name, value pairs.
 %
-%   fcnAttributes = twoPhotonMotionCorrected() returns a struct of 
+%   fcnAttributes = twoPhotonMotionCorrected() returns a struct of
 %       attributes for the function.
 
-
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Please create a struct of default parameters (if applicable) and specify
 % one or more attributes (see nansen.session.SessionMethod.setAttributes)
 % for details.
@@ -20,9 +19,8 @@ function varargout = twoPhotonMotionCorrected(sessionObj, varargin)
     params = getDefaultParameters();
     ATTRIBUTES = {'serial', 'unqueueable'};
     
-    
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
 
     % % % Initialization block for a session method function.
     fcnAttributes = nansen.session.SessionMethod.setAttributes(params, ATTRIBUTES{:});
@@ -34,8 +32,7 @@ function varargout = twoPhotonMotionCorrected(sessionObj, varargin)
     % % % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, [], varargin);
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the method : Add you code here:
         
     filePath = sessionObj.getDataFilePath('TwoPhotonSeries_Corrected');
@@ -52,9 +49,7 @@ function varargout = twoPhotonMotionCorrected(sessionObj, varargin)
     else
         imviewer(filePath)
     end
-
 end
-
 
 function S = getDefaultParameters()
     S = struct();

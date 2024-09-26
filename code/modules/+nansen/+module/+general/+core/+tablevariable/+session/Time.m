@@ -38,10 +38,9 @@ classdef Time < nansen.metadata.abstract.TableVariable & nansen.metadata.abstrac
         end
         
 %         function value = getValue(obj)
-%             
+%
 %         end
     end
-    
 end
 
 % % %     % Slower to get formatted character vectors from loop.

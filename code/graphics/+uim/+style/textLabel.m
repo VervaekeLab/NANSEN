@@ -31,6 +31,4 @@ classdef textLabel < uim.style.buttonScheme
             'BorderWidth', 0.5, ...
             'FontWeight', 'normal')
     end
-    
-    
 end

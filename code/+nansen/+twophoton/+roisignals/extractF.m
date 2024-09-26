@@ -6,18 +6,18 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
 %   roiArray must be a nansen.RoiArray object and imageData can be a
 %   numeric array of three or more dimensions or a nansen.ImageStack
 %   object.
-%   
+%
 %   signals = extractF(imageStack, roiArray, params) extracts signals
-%   using options specified in params. Params gan be given as a 
+%   using options specified in params. Params gan be given as a
 %   struct or as a cell array of name-value pairs.
 %
 %   Parameters:
-%       
+%
 %   roiInd : integer vector in range [1, numRois]
 %       List of roi indices (use for extraction of signals from a subset
 %       of rois). Default : extract signals from all rois.
 %   imageMask : logical matrix (imageHeight x imageWidth)
-%       Use for excluding regions of image. Include pixels that are true 
+%       Use for excluding regions of image. Include pixels that are true
 %       and exclude pixels that are false. Default : include all pixels
 %   excludeRoiOverlaps : logical scalar
 %       Exclude pixels where rois are overlapping. Default = true
@@ -50,8 +50,6 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
     %
     %   [ ] Support for multiple planes.
 
-
-
     % Get default parameters and assertion functions.
     
     [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
@@ -72,7 +70,7 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
         error('Unknown data type for roiData input')
     end
     
-    % Validate the input image data. If ImageStack, all is good, if 
+    % Validate the input image data. If ImageStack, all is good, if
     % numeric, an ImageStack object is returned, otherwise throws error.
     imageStack = nansen.stack.ImageStack.validate(imageData);
     
@@ -92,7 +90,6 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
         return
     end
 
-
     % Update some fields in parameters if they are not set.
     params = updateParameters(params, imageStack, roiArray); % Local function
     
@@ -101,7 +98,6 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
     
     % Prepare array of RoIs for efficient signal extraction:
     roiData = nansen.processing.roi.prepareRoiMasks(roiArray, params);
-   
     
     % Allocate array for collecting extracted signals
     numSubRegions = params.numNeuropilSlices .* params.createNeuropilMask + 1; % Add 1 for the main roi
@@ -131,12 +127,11 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
         fprintf('Image stack is split in %d parts for signal extraction\n', numParts)
     end
     
-    
     % Loop through blocks and extract signals.
     for iPart = 1:numParts
                
         tInitLoad = tic;
-        iIND = IND{iPart}; 
+        iIND = IND{iPart};
         imData = imageStack.getFrameSet( iIND );
         elapsedTimeLoad = elapsedTimeLoad + toc(tInitLoad);
         
@@ -154,13 +149,10 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
         fprintf('Signal extraction completed in %.2f seconds\n', ...
             elapsedTimeLoad + elapsedTimeExtract)
     end
-
 end
 
-
-
 function validateInputDimensions(imageStack, roiArray)
-%validateInputDimensions Check that ImageStack and roiArray has matching 
+%validateInputDimensions Check that ImageStack and roiArray has matching
 % dimensions.
 
     msg = 'Dimensions of ImageStack and RoiArray are not matching';
@@ -172,7 +164,6 @@ function validateInputDimensions(imageStack, roiArray)
 
 end
 
-
 function params = updateParameters(params, imageStack, roiArray)
 %updateParameters Update parameters that depend on data dimensions
 %
@@ -181,7 +172,7 @@ function params = updateParameters(params, imageStack, roiArray)
 %   Set extractionFcn and roiMaskFormat if they are not set. (Depends on number of rois)
 
     % Create the imageMask if it is empty
-    if isempty(params.imageMask) 
+    if isempty(params.imageMask)
         imageSize = [imageStack.ImageHeight, imageStack.ImageWidth];
         params.imageMask = true(imageSize);
     end
@@ -217,7 +208,7 @@ function params = updateParameters(params, imageStack, roiArray)
             msg = ['Roi mask format was changed to ''struct'' because ', ...
                 'the selected extraction function is "serialExtract".'];
             warning(msg);
-        end 
+        end
         
     elseif isequal(params.extractFcn, @nansen.twophoton.roisignals.extract.batchExtract)
         if ~strcmp(params.roiMaskFormat, 'sparse')
@@ -227,7 +218,6 @@ function params = updateParameters(params, imageStack, roiArray)
             warning(msg);
         end
     end
-
 end
 
 function signalArray = extractFromMultipleChannels(imageStack, roiData, varargin)
@@ -250,4 +240,3 @@ function signalArray = extractFromMultipleChannels(imageStack, roiData, varargin
     signalArray = cat(ndims(signalArray)+1, signalArray{:});
     imageStack.CurrentChannel = currentChannels;
 end
-

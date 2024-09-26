@@ -6,7 +6,6 @@ function [ patchObj ] = patchEvents( ax, eventMask, color, yLim, xLim, xCoords )
 %
 %   patchObj = patchEvents( ax, eventMask, color, yLim )
 
-
 % Set default color to red.
 if nargin < 3 || isempty(color)
     color = 'r';
@@ -79,6 +78,4 @@ end
 if nargout
     patchObj = p;
 end
-
 end
-

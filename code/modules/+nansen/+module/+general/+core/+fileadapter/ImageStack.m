@@ -6,4 +6,3 @@ classdef ImageStack < nansen.dataio.fileadapter.imagestack.ImageStack
 
     % See also: nansen.dataio.fileadapter.imagestack.ImageStack
 end
-

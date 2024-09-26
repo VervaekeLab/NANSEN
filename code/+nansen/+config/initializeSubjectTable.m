@@ -40,7 +40,6 @@ function initializeSubjectTable(metatableCatalog, subjectSchema)
         throwAsCaller(ME)
         % Todo: have some error handling here.
 % %                 title = 'Could not save metadata table';
-% %                 uialert(app.NansenSetupUIFigure, ME.message, title) 
+% %                 uialert(app.NansenSetupUIFigure, ME.message, title)
     end
-    
 end

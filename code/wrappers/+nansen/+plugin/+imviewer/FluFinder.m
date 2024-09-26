@@ -6,7 +6,6 @@ classdef FluFinder < imviewer.ImviewerPlugin
 %
 %       flufinderPlugin = FluFinder(imviewerObj, optionsManagerObj)
 
-
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false    % Ignore settings file
         DEFAULT_SETTINGS = []           % This class uses an optionsmanager
@@ -57,7 +56,6 @@ classdef FluFinder < imviewer.ImviewerPlugin
             delete(obj.hCellTemplates)
             delete(obj.gobjectTransporter)
         end
-        
     end
     
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} )
@@ -93,7 +91,6 @@ classdef FluFinder < imviewer.ImviewerPlugin
             obj.PrimaryApp.displayMessage(message, [], msgTime)
 
         end
-        
     end
     
     methods (Access = protected)
@@ -117,7 +114,7 @@ classdef FluFinder < imviewer.ImviewerPlugin
             switch name
                 case 'RoiDiameter'
                     obj.settings.General.RoiDiameter = value;
-                    obj.plotCellTemplates(value/2)   
+                    obj.plotCellTemplates(value/2)
                     
                 case 'Show'
                     obj.settings.Preview.Show = value;
@@ -147,15 +144,11 @@ classdef FluFinder < imviewer.ImviewerPlugin
                     if strcmp(obj.settings.Preview.Show, 'Preprocessed')
                         obj.updateImviewerDisplay()
                     end
-                    
-                    
             end
-
         end
-                        
     end
     
-    methods (Static) % Inherited... 
+    methods (Static) % Inherited...
         function getPluginIcon()
             
         end
@@ -183,13 +176,11 @@ classdef FluFinder < imviewer.ImviewerPlugin
                 case 'Static Background'
                     image = obj.getBackgroundImage();
                     obj.showImageInImviewer(image, 'Static Background')
-                
 
                 otherwise
                     imArray = [];
                     
             end
-
         end
         
         function imArray = getPreprocessedImageArray(obj, imArray)
@@ -301,10 +292,8 @@ classdef FluFinder < imviewer.ImviewerPlugin
                 obj.gobjectTransporter = applify.gobjectTransporter(obj.Axes);
             end
             
-            
             % Assign the Ancestor App of the roigroup to the app calling
             % for its creation.
-            
             
             if ~isempty(obj.hCellTemplates) % Update radius
                 x0 = arrayfun(@(h) mean(h.XData), obj.hCellTemplates);
@@ -332,9 +321,7 @@ classdef FluFinder < imviewer.ImviewerPlugin
                     h.ButtonDownFcn = @(s,e) obj.gobjectTransporter.startDrag(h,e);
                     obj.hCellTemplates(i) = h;
                 end
-
             end
-            
         end
         
         function imArray = getImageArray(obj)
@@ -350,6 +337,5 @@ classdef FluFinder < imviewer.ImviewerPlugin
             import nansen.wrapper.abstract.OptionsAdapter
             opts = OptionsAdapter.ungroupOptions(obj.settings);
         end
-        
      end
 end

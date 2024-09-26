@@ -53,11 +53,8 @@ methods % Structors
                 close(obj.tiffInfo(i))
             end
         end
-
     end
-    
 end
-
 
 methods (Access = protected) % Implementation of abstract methods
         
@@ -119,7 +116,7 @@ methods (Access = protected) % Implementation of abstract methods
     
     function getFileInfo(obj)
         
-        % Todo: If metadata is assigned, skip 
+        % Todo: If metadata is assigned, skip
         
         if isempty( obj.tiffInfo )
             obj.tiffInfo = Tiff(obj.FilePath);
@@ -139,7 +136,7 @@ methods (Access = protected) % Implementation of abstract methods
         
         % This should already have happened in assignDataSize
         if ~isempty(obj.hTiffStack)
-           return 
+           return
         end
         
         if obj.UseTiffStack % Use Dylan Muirs TIFFStack class.
@@ -247,7 +244,6 @@ methods (Access = protected) % Implementation of abstract methods
                 error('Tiff file is not supported')
         end
     end
-    
 end
 
 methods % Implementation of VirtualArray abstract methods
@@ -333,9 +329,7 @@ methods % Implementation of VirtualArray abstract methods
     function writeFrames(obj, frameIndex, data)
         error('Not implemented yet')
     end
-    
 end
-
 
 methods (Access = protected) % Todo: Scan image and subclass
     
@@ -343,7 +337,7 @@ methods (Access = protected) % Todo: Scan image and subclass
         
         import nansen.module.ophys.twophoton.utility.scanimage.getScanParameters
 
-        % Todo: 
+        % Todo:
         %       Read info about channel colors...
         %import nansen.stack.utility.findNumTiffDirectories
 
@@ -464,7 +458,7 @@ methods (Access = protected) % Todo: Scan image and subclass
     end
     
     function countNumFrames(obj)
-    %countNumFrames 
+    %countNumFrames
             
         import nansen.stack.utility.findNumTiffDirectories
 
@@ -477,7 +471,7 @@ methods (Access = protected) % Todo: Scan image and subclass
         obj.createMemoryMap()
         
         % Use the TIFFStack object and trial/error to get the correct
-        % framecount. 
+        % framecount.
         frame_low = 1;
         frame_high = obj.NumTimepoints_;
         frame_current = frame_high;
@@ -504,7 +498,6 @@ methods (Access = protected) % Todo: Scan image and subclass
         end
     end
 end
-
 
 methods (Static)
         
@@ -534,7 +527,7 @@ methods (Static)
                     warning('on', 'imageio:tiffmexutils:libtiffWarning')
 
                     % Check if the tiff 'Software' tag contains SI
-                    try 
+                    try
                         softwareName = imInfo.getTag('Software');
                         if strcmp(softwareName(1:2), 'SI')
                             isValid = true;
@@ -547,7 +540,7 @@ methods (Static)
                     % Not valid
                 end
             
-            otherwise 
+            otherwise
                 % Not valid (not aware of any other file formats)
         end
     end
@@ -600,5 +593,4 @@ methods (Static)
         end
     end
 end
-
 end

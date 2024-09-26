@@ -7,7 +7,7 @@ function results = getFlowregMetrics(imArray, refIdx)
     if nargin < 2; refIdx = 1; end
 
     if ndims(imArray)==4 % Combine channels if multichannel
-        imArray = squeeze(mean(imArray, 3)); 
+        imArray = squeeze(mean(imArray, 3));
     end
    
     [h, w, numFrames] = size(imArray);

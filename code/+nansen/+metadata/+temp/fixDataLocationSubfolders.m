@@ -33,5 +33,5 @@ function metaTable = fixDataLocationSubfolders(metaTable)
     %dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
     metaTable.replaceDataColumn('DataLocation', dataLocationStructArray );
     %metaTable.entries.DataLocation = dataLocationStructs;
-    metaTable.markClean() 
+    metaTable.markClean()
 end

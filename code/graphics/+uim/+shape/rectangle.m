@@ -1,13 +1,13 @@
 function varargout = rectangle(boxSize, cornerRadius, numCornerSegmentPoints)
 %uim.shape.rectangle Create edgecoordinates for outline of a rectangle
-% 
-%   [edgeCoordinates] = uim.shape.rectangle(boxSize) creates 
-%   edgeCoordinates for a box of size boxSize ([width, height]). This function 
+%
+%   [edgeCoordinates] = uim.shape.rectangle(boxSize) creates
+%   edgeCoordinates for a box of size boxSize ([width, height]). This function
 %   creates edgeCoordinates for each unit length of width and height.
-%   edgeCoordinates is a nx2 vector of x and y coordinates where 
+%   edgeCoordinates is a nx2 vector of x and y coordinates where
 %   n = 2 x (height+1) + 2 x (width+1)
 %
-%   [xCoords, yCoords] = uim.shape.rectangle(boxSize) returns xCoords and 
+%   [xCoords, yCoords] = uim.shape.rectangle(boxSize) returns xCoords and
 %   yCoords are separate vectors.
 %
 %   [xCoords, yCoords] = createBox(boxSize, cornerRadius) creates the
@@ -47,7 +47,6 @@ function varargout = rectangle(boxSize, cornerRadius, numCornerSegmentPoints)
         theta = linspace(thetaOffset, 360-thetaOffset, numPoints);
         theta = theta + 90; % 1str segment should be upper left
         theta = deg2rad(theta);
-
 
         rho = ones(size(theta)) .* cornerRadius;
 

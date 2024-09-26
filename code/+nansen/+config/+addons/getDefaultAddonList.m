@@ -12,7 +12,6 @@ function S = getDefaultAddonList()
 % downloaded...
 % Use git instead of downloading zipped versions of repositories...
 
-
     i = 1;
     S(i).Name = 'Widgets Toolbox';
     S(i).Description = 'Additional app building components';
@@ -89,7 +88,6 @@ function S = getDefaultAddonList()
     S(i).HasSetupFile = false;
     S(i).SetupFileName = '';
     S(i).FunctionName = 'build_ops3';
-
     
     i = i + 1;
     S(i).Name = 'EXTRACT';
@@ -198,4 +196,3 @@ end
 % %     S(i).HasSetupFile = false;
 % %     S(i).SetupFileName = '';
 % %     S(i).FunctionName = 'dabest.m';
-

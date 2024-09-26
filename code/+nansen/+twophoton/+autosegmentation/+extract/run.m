@@ -12,12 +12,10 @@ function [foundRois, im, stat] = run(M, config)
     
     imSize = size(M);
     numRois = size(S,2);
-
     
     S = reshape(S, [imSize(1:2), numRois]);
     
     roiArray = RoI.empty;
-    
     
     for i = 1:numRois
         CC = bwconncomp(S(:, :, i)>0.1);
@@ -42,7 +40,7 @@ function [foundRois, im, stat] = run(M, config)
         stat(i).PeakF = max(T(i,:));
         
         [xx0, yy0] = deal(-12:12);
-        xx = xx0 + round(stats.Centroid(1)); 
+        xx = xx0 + round(stats.Centroid(1));
         yy = yy0 + round(stats.Centroid(2));
         
         keepX = xx > 0 & xx < imSize(2);
@@ -56,6 +54,5 @@ function [foundRois, im, stat] = run(M, config)
     roiIm = arrayfun(@(i) roiImSmall(:, :, i), 1:numRois, 'uni', 0);
     
     im = struct('extractSpatialWeight', roiIm);
-    
     
 end

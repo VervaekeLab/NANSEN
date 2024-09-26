@@ -6,20 +6,14 @@ function frameNumbers = zStackPlaneFinder(hImviewer)
 %   framenumbers, starting in the upper left corner, moving
 %   counterclockwise to the upper right corner.
 
-
-
-
 % Set color of box to plot in corners
 color = ones(1,3) .* 0.5;
 
 % Set size of boxes to plot in corners
 boxSize = [25, 25];
 
-
-
 % Get size of image
 [nRows, nCols, ~] = size(hImviewer.image);
-
 
 % Get initial position of each of the boxes that goes to the corners
 cornersX = [1, 1, nCols-boxSize(1), nCols-boxSize(1)];
@@ -51,7 +45,6 @@ frameNumbers = arrayfun(@(hc) hc.UserData.FrameNum, hCorners);
 delete(hCorners)
 
 end
-
 
 % Callback for buttonpress in cornerboxes.
 function cornerPressed(src, ~, hImviewer)

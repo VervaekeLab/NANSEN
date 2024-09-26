@@ -1,5 +1,5 @@
 function [sessionArray, wasCanceled] = uiresolveDuplicateSessions(sessionArray, hFigure)
-%uiresolveDuplicateSessions User interface to resolve duplicate sessions.    
+%uiresolveDuplicateSessions User interface to resolve duplicate sessions.
     
     wasCanceled = true; % Initialize output state
 
@@ -11,7 +11,6 @@ function [sessionArray, wasCanceled] = uiresolveDuplicateSessions(sessionArray, 
     duplicateSessionIDs = uniqueSessionIDs(occurrence>1);
      
     isDuplicate = contains(allSessionIDs, duplicateSessionIDs);
-
     
     % Prepare prompt and options for user dialog
     question = ['Some sessions with identical session IDs were detected. ', ...
@@ -47,5 +46,4 @@ function [sessionArray, wasCanceled] = uiresolveDuplicateSessions(sessionArray, 
             wasCanceled = true;
 
     end
-    
 end

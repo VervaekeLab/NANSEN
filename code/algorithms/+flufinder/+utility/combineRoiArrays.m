@@ -1,7 +1,7 @@
 function roiArray = combineRoiArrays(roiArrayA, roiArrayB, varargin)
 %combineRoiArrays Combine two roi arrays while merging overlapping rois
 %
-%   DESCRIPTION: 
+%   DESCRIPTION:
 %   Merge rois that overlap more than a specific percentage.
 %   The current behavior does not merge, only removes one of the
 %   overlapping rois. A future version should implement actual merging.
@@ -16,15 +16,15 @@ function roiArray = combineRoiArrays(roiArrayA, roiArrayB, varargin)
 %                            specifies a threshold for merging of rois.
 %                            Rois whos area overlap by more than the
 %                            given value will be merged. Default is 75.
-%             
-%   
+%
+%
 %   MergeMethod            : Character vector that specifies a method for
 %                            merging rois. (Not implemented yet).
 
     import flufinder.utility.findOverlappingRois
 
     params = struct;
-    params.PercentOverlapForMerge = 75;    
+    params.PercentOverlapForMerge = 75;
     params.MergeMethod      = 'remove';
 
     params = utility.parsenvpairs(params, [], varargin);

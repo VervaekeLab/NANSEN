@@ -3,13 +3,11 @@ classdef InjectionSpot < fovmanager.mapobject.BaseObject
 %     injectionVolume in nanoliters
 %     r = nthroot(injectionVolume * 1e6 * 3/(4*pi), 3); r in um.
 
-
 properties (Constant, Transient)
     virusGDocId = '1te_CKmnTH1naKTsiM0BYB0ivZ7mzZkFBiFj6EELgiqI'
 end
 
-
-properties 
+properties
     name    % name of virus.
     color   % color of virus. will show on map and be saved in inventory
     
@@ -20,12 +18,10 @@ properties
     
 end
 
-
 properties (Transient)
    boundaryWidth = 1;
    boundaryColor = 'none';
 end
-
 
 methods
     
@@ -36,7 +32,6 @@ methods
             fmHandle = varargin{1};
             varargin = varargin(2:end);
         end
-
         
         if isa(varargin{1}, 'struct')
             obj.fromStruct(varargin{1})
@@ -71,14 +66,11 @@ methods
         
         [x, y] = obj.getBoundaryCoordinates();
         obj.edge = [x, y];
-        
 
         if exist('fmHandle', 'var')
             obj.displayObject(fmHandle)
         end
-
     end
-    
     
     function fromStruct(obj, S)
 
@@ -94,9 +86,7 @@ methods
             end
             obj.(fields{i}) = S.(fields{i});
         end
-
     end
-    
     
     function displayName = getDisplayName(obj, keyword) %#ok<MANU>
         
@@ -110,7 +100,6 @@ methods
                 displayName = 'Injection';
         end
     end
-    
     
 % % Context menu on the gui object in fov manager
 
@@ -148,7 +137,6 @@ methods
         obj.guiHandle.UIContextMenu = m;
 
     end
-        
      
     function requestPropertyChange(obj, ~, ~, propertyName)
         
@@ -165,10 +153,7 @@ methods
                 obj.spread = str2double(answer{1});
                 obj.plotBoundary()
         end
-        
-        
     end
-    
     
 % % Plot methods
     
@@ -188,7 +173,6 @@ methods
         
     end
 
-
     function changeColor(obj, ~, ~, color)
         
         obj.color = lower(color(1));
@@ -197,7 +181,6 @@ methods
         set(hTmp, 'FaceColor', obj.color)
         
     end
-    
     
     function infoText = getInfoText(obj)
         
@@ -214,7 +197,6 @@ methods
         if ~isempty(obj.depth)
             infoText = sprintf('%sDepth: %sum', infoText, obj.depth);
         end
-        
 
         if ~isempty(infoText) && isequal(double(infoText(end)), 10) % 10 is the newline character
             infoText = infoText(1:end-1);
@@ -223,24 +205,19 @@ methods
 %         hTxt.String = infoText;
         
     end
-    
 
     function fliplr(obj)
         % not implemented
     end
     
-    
     function flipud(obj)
         % not implemented
     end
     
-    
     function rotate(obj)
         % not implemented
     end
-    
 end
-
 
 methods (Access = protected)
           
@@ -253,13 +230,12 @@ methods (Access = protected)
         h1 = findobj(obj.guiHandle, 'Tag', 'Injection Outline');
         
         if isempty(h1)
-            h1 = plot(obj.guiHandle, x+obj.center(1), y+obj.center(2), 'k'); 
+            h1 = plot(obj.guiHandle, x+obj.center(1), y+obj.center(2), 'k');
             h1.Color = 'none';
             h1.Tag = 'Injection Outline';
         else
             set(h1, 'XData', x+obj.center(1), 'YData', y+obj.center(2))
         end
-
         
         % Following requires row vectors where center is subtracted...
         x = transpose(x - obj.center(1));
@@ -277,7 +253,7 @@ methods (Access = protected)
         h2 = findobj(obj.guiHandle, 'Tag', 'Injection Spot');
         
         if isempty(h2)
-            h2 = patch(obj.guiHandle, x, y, obj.color); 
+            h2 = patch(obj.guiHandle, x, y, obj.color);
             h2.FaceVertexAlphaData = alpha';
             h2.FaceAlpha = 'interp';
             h2.EdgeColor = 'none';
@@ -289,14 +265,10 @@ methods (Access = protected)
         else
             set(h2, 'XData', x, 'YData', y)
         end
-        
     end
-    
 end
-    
 
 methods (Static)
-    
     
     function virusNames = retrieveVirusNames()
     
@@ -311,7 +283,7 @@ methods (Static)
             end
         end
         
-        % Assume structure of document does not change too much, and find 
+        % Assume structure of document does not change too much, and find
         % column and first row element of the virus names.
         [firstRow, col] = find(strcmp(result, 'Virus'));
         virusNames = result(firstRow+1:end, col);
@@ -320,7 +292,6 @@ methods (Static)
         virusNames = unique(virusNames);
         
     end
-    
     
     function answers = requestVirusInfo()
         % What a big mess for so little ......
@@ -368,9 +339,5 @@ methods (Static)
         drawnow; % Update the view to remove the closed figure (g1031998)
 
     end
-    
-
 end
-
-        
 end

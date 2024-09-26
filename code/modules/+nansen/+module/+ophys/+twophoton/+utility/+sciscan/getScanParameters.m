@@ -10,10 +10,9 @@ function parameterStruct = getScanParameters(dataFolderPath, parameterList)
 %
 %   parameterStruct contains the names and value of each parameter. The
 %   name is modified from the name of the ini variable name in the
-%   following way: 
+%   following way:
 %       1) . are removed
 %       2) All letters are lower case
-
 
 import nansen.module.ophys.twophoton.utility.sciscan.readinivar
 
@@ -31,5 +30,4 @@ for i = 1:numel(parameterList)
     matlabname = strrep(matlabname, '.', '');
     parameterStruct.(matlabname) = readinivar(inistring, varname);
 end
-
 end

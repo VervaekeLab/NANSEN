@@ -4,12 +4,12 @@ classdef CompositeRoiGroup < roimanager.roiGroup
 %   This class is a "quick response" to the need for having multiple
 %   "active" roi groups in an app, and being able to mix and match which
 %   groups are active at any given time.
-%   
-%   From the outside, this class should appear and behave like a single 
+%
+%   From the outside, this class should appear and behave like a single
 %   roi group, but internally, each individual roi group keeps it's
 %   identity. Methods are modified so that they loop over individual roi
 %   groups and invokes that groups corresponding method. The main
-%   difference being that the undo/redo functionality has to be managed by 
+%   difference being that the undo/redo functionality has to be managed by
 %   this class and the undo/redo is executed on static methods
 %
 %   This is important for a couple of reasons:
@@ -48,8 +48,8 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             if obj.roiCount > 0
                 % Update roi array property based on all individual roi groups.
                 obj.roiImages = getappdata(obj.roiArray, 'roiImages');
-                obj.roiStats = getappdata(obj.roiArray, 'roiStats');       
-                obj.roiClassification = getappdata(obj.roiArray, 'roiClassification'); 
+                obj.roiStats = getappdata(obj.roiArray, 'roiStats');
+                obj.roiClassification = getappdata(obj.roiArray, 'roiClassification');
             end
 
             obj.ParentApp = obj.RoiGroupArray(1).ParentApp;
@@ -60,7 +60,6 @@ classdef CompositeRoiGroup < roimanager.roiGroup
                     'roisChanged', @(s, e, idx) obj.individualRoiGroupModified(e,i));
             end
         end
-        
     end
 
     methods (Access = public)
@@ -95,12 +94,12 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             
             roiDataPerGroup = cell(numAffectedRoiGroups, 4);
                        
-            % Update roi array before the update of individual roi groups 
+            % Update roi array before the update of individual roi groups
             % (poor design, should be addressed).
             obj.roiArray(roiInd) = modifiedRois;
             obj.roiImages = getappdata(obj.roiArray, 'roiImages');
-            obj.roiStats = getappdata(obj.roiArray, 'roiStats');       
-            obj.roiClassification = getappdata(obj.roiArray, 'roiClassification');   
+            obj.roiStats = getappdata(obj.roiArray, 'roiStats');
+            obj.roiClassification = getappdata(obj.roiArray, 'roiClassification');
 
             count = 0;
             for i = affectedRoiGroupIdx
@@ -124,7 +123,7 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             
             % Create struct array for uiundo
             roiDataPerGroup = cell2struct(roiDataPerGroup, ...
-                {'roiGroup', 'oldRois', 'newRois', 'roiInd'}, 2);    
+                {'roiGroup', 'oldRois', 'newRois', 'roiInd'}, 2);
 
             % Register with undo manager...
             if ~isUndoRedo && obj.isUiUndoSupported()
@@ -140,9 +139,9 @@ classdef CompositeRoiGroup < roimanager.roiGroup
 
             affectedRoiGroupIdx = unique( tempRoiGroupIdx );
 
-            roiClassification = getappdata(obj.roiArray, 'roiClassification');   
+            roiClassification = getappdata(obj.roiArray, 'roiClassification');
             roiClassification(roiInd) = newClass;
-            setappdata(obj.roiArray, 'roiClassification', roiClassification);  
+            setappdata(obj.roiArray, 'roiClassification', roiClassification);
             
             for i = affectedRoiGroupIdx
 
@@ -159,7 +158,6 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             obj.roiClassification(roiInd) = newClass;
             obj.notify('classificationChanged', evtData)
         end
-
     end
     
     methods (Access = private)
@@ -182,7 +180,6 @@ classdef CompositeRoiGroup < roimanager.roiGroup
                 eventData.roiArray, roiInd, eventData.eventType);
             obj.notify('roisChanged', eventData)
         end
-
     end
 
     methods (Access = private)
@@ -194,23 +191,23 @@ classdef CompositeRoiGroup < roimanager.roiGroup
         %   vectors of rois.
         %
         %   RoiGroupIndex : For each roi, which group does it belong to
-        %   RoiIndexInGroup : For each roi, which index does it have in its 
+        %   RoiIndexInGroup : For each roi, which index does it have in its
         %   group
  
             % - Count number of rois per roigroup
             numRois = arrayfun(@(rg) rg.roiCount, obj.RoiGroupArray);
-% %             
+% %
 % %             if sum(numRois) == 0; return; end
-% % 
+% %
 % %             % Todo: Look at roigroup file io
 % %             transitionIdx = cumsum([1, numRois(1:end-1)]);
-% % 
+% %
 % %             indexVectorInit = zeros(1, sum( numRois ));
 % %             indexVectorInit(transitionIdx) = 1;
 % %             if numel(indexVectorInit) > numRois
 % %                 indexVectorInit = indexVectorInit(1:numRois);
 % %             end
-% % 
+% %
             roiArrays = arrayfun(@(c) c.roiArray, obj.RoiGroupArray, 'UniformOutput', false);
             obj.RoiGroupIndex = utility.cell.getCellIndices(roiArrays);
 
@@ -222,7 +219,7 @@ classdef CompositeRoiGroup < roimanager.roiGroup
             
             hFigure = obj.ParentApp.Figure;
 
-            %inputs: cell array (or struct array) for each roigroup, 
+            %inputs: cell array (or struct array) for each roigroup,
             % containing  modifiedRois, originalRois, roiInd
 
             % build command for undo/redo...
@@ -243,7 +240,6 @@ classdef CompositeRoiGroup < roimanager.roiGroup
 
             uiundo(hFigure, 'function', cmd);
         end
-
     end
 
     methods (Static)
@@ -252,7 +248,7 @@ classdef CompositeRoiGroup < roimanager.roiGroup
 
             for i = 1:numel(groupArgsAsArray)
                 iStruct = groupArgsAsArray(i);
-                thisGroup = iStruct.roiGroup; %#ok<NASGU> 
+                thisGroup = iStruct.roiGroup; %#ok<NASGU>
 
                 func = str2func( sprintf(functionName) );
                 func(thisGroup, iStruct.rois, iStruct.roiInd, true)
@@ -263,7 +259,7 @@ classdef CompositeRoiGroup < roimanager.roiGroup
         function executeRedo(functionName, groupArgsAsArray)
             for i = 1:numel(groupArgsAsArray)
                 iStruct = groupArgsAsArray(i);
-                thisGroup = iStruct.roiGroup; %#ok<NASGU> 
+                thisGroup = iStruct.roiGroup; %#ok<NASGU>
 
                 func = str2func( sprintf(functionName) );
                 func(thisGroup, iStruct.rois, iStruct.roiInd, true)
@@ -274,6 +270,5 @@ classdef CompositeRoiGroup < roimanager.roiGroup
         function applyUndoToAllGroups()
             % TODO: Combine methods above
         end
-
     end
 end

@@ -13,14 +13,12 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
 %               |-  matlab.mixin.Heterogeneous
 %               |-  uiw.mixin.AssignPVPairs
 
-
 %   TODO:
 %       [v] Subclass from imviewer plugin class.
 %       [ ] migrate plugin to new instance if results open in new window
 %       [v] Implement options based on OptionsManager & normcorre options.
 %       [ ] Should it have a DataIoModel property? Then its easy to plug in
 %           whatever model (i.e) a session model and save data consistently.
-    
     
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false    % Ignore settings file
@@ -46,8 +44,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         frameChangeListener
     end
     
-    
-    methods % Structors 
+    methods % Structors
         
         function obj = NoRMCorre(varargin)
         %NoRMCorre Create an instance of the NoRMCorre plugin for imviewer
@@ -77,11 +74,10 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         
         function loadSettings(~) % override to do nothing
             % This class does not have to load settings
-        end 
+        end
         function saveSettings(~) % override to do nothing
             % This class does not have to save settings
         end
-        
     end
     
     methods (Access = protected) % Plugin derived methods
@@ -106,13 +102,12 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
             obj.settings = obj.OptionsManager.getOptions;
         end
-        
     end
     
     methods % Methods for running normcorre motion correction
         
         function sEditor = openSettingsEditor(obj)
-        %openSettingsEditor Open editor for method options.    
+        %openSettingsEditor Open editor for method options.
                         
             % Update folder- and filename in settings.
             [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
@@ -165,11 +160,10 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             imClass = class(Y);
             stackSize = size(Y);
             
-            
             import nansen.wrapper.normcorre.*
             ncOptions = Options.convert(obj.settings, stackSize);
             
-            if ~isa(Y, 'single') || ~isa(Y, 'double') 
+            if ~isa(Y, 'single') || ~isa(Y, 'double')
                 Y = single(Y);
             end
         
@@ -193,7 +187,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
          	% Show results from test aligning:
             if obj.settings.Preview.showResults
                 h = imviewer(M);
-                h.stackname = sprintf('%s - %s', obj.ImviewerObj.stackname, 'NoRMCorre Test Correction');                
+                h.stackname = sprintf('%s - %s', obj.ImviewerObj.stackname, 'NoRMCorre Test Correction');
             end
             
          	% Save results from test aligning:
@@ -204,7 +198,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
                 save(getSavepath('nc_shifts.mat'), 'ncShifts')
                 save(getSavepath('nc_opts.mat'), 'ncOptions')
                 
-                obj.saveProjections(Y, M, getSavepath)           
+                obj.saveProjections(Y, M, getSavepath)
             end
         end
         
@@ -217,7 +211,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack,...
                 obj.settings, 'DataIoModel', dataSet)
         end
-
     end
     
     methods (Access = protected)
@@ -250,13 +243,12 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
                     obj.runAlign()
             end
         end
-        
     end
     
     methods (Access = private) % Methods for plotting on imviewer
         
         function plotGrid(obj)
-            % todo: use function from imviewer.plot 
+            % todo: use function from imviewer.plot
             xLim = [1,obj.ImviewerObj.imWidth];
             yLim = [1,obj.ImviewerObj.imHeight];
             
@@ -273,7 +265,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             yDataVert = [repmat(yLim(1), 1, numCols-1); repmat(yLim(2), 1, numCols-1)];
             xDataHorz = [repmat(xLim(1), 1, numRows-1); repmat(xLim(2), 1, numRows-1)];
             yDataHorz = cat(1, yPoints, yPoints);
-
             
             if ~isempty(obj.hGridLines)
                 delete(obj.hGridLines)
@@ -284,7 +275,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             obj.hGridLines = h;
             set(obj.hGridLines, 'Color', ones(1,3)*0.5);
             set(obj.hGridLines, 'HitTest', 'off', 'Tag', 'NorRMCorre Gridlines');
-            
             
             xDataVert = cat(1, xDataVert, xDataVert);
             xDataVert(1:2, :) = xDataVert(1:2, :) - obj.settings.Configuration.patchOverlap(2)/2;
@@ -350,7 +340,5 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
         function updateResults(obj)
             % Todo
         end
-
     end
-    
 end

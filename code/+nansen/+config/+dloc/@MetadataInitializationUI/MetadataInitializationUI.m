@@ -8,7 +8,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 % detecting session information, but for simplicity the first data location
 % is used.
 
-% Todo: Simplify component creation. 
+% Todo: Simplify component creation.
 %    [ ] Get cell locations as array with one entry for each column of a row.
 %    [ ] Do the centering when getting the cell locations.
 %    [ ] Set fontsize/bg color and other properties in batch.
@@ -17,7 +17,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %
 %    [ ] Fix error that will occur if several subfolders are
 %        given the same subfolder type?
-
 
     properties
         IsDirty = false;
@@ -40,7 +39,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         AdvancedOptionsButton
     end
     
-    
     methods % Structors
         function obj = MetadataInitializationUI(dataLocationModel, varargin)
         %FolderOrganizationUI Construct a FolderOrganizationUI instance
@@ -58,7 +56,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             % set.
             obj.IsDirty = false;
         end
-        
     end
     
     methods (Access = protected) % Methods for creation
@@ -69,7 +66,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 'Selection Mode', 'Input', 'Result'};
             obj.ColumnHeaderHelpFcn = @nansen.app.setup.getHelpMessage;
             obj.ColumnWidths = [110, 120, 125, 100, 100];
-            obj.RowSpacing = 20;   
+            obj.RowSpacing = 20;
             obj.ColumnSpacing = 25;
         end
         
@@ -110,7 +107,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             i = 3;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
 
-            % Insert dialog button 
+            % Insert dialog button
             hRow.SelectSubstringButton = uibutton(obj.TablePanel);
             hRow.SelectSubstringButton.Position = [xi, y, wi, h];
             hRow.SelectSubstringButton.Text = 'Select Substring...';
@@ -194,7 +191,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
        
         function createToolbarComponents(obj, hPanel)
-        %createToolbarComponents Create "toolbar" components above table.    
+        %createToolbarComponents Create "toolbar" components above table.
             if nargin < 2; hPanel = obj.Parent.Parent; end
            
             obj.createAdvancedOptionsButton(hPanel)
@@ -204,7 +201,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function toolbarComponents = getToolbarComponents(obj)
             toolbarComponents = obj.AdvancedOptionsButton;
         end
-        
     end
     
     methods (Access = private) %Callbacks for userinteraction with controls
@@ -243,7 +239,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hRow = obj.RowControls(rowNumber);
             folderName = hRow.FolderNameSelector.Value;
            
-            % Create a dialog where the user can select a substring from 
+            % Create a dialog where the user can select a substring from
             % the foldername
             hFig = ancestor(src, 'figure');
             IND = uim.dialog.createStringSelectorDialog(folderName, hFig.Position);
@@ -254,7 +250,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 figure(hFig) % Bring uifigure back to focus
                 return
             % ...Or update data and controls
-            else 
+            else
                 hRow.StrfindInputEditbox.Value = obj.simplifyInd(IND);
 
                 % If the variable is date or time, try to convert to
@@ -270,7 +266,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                         try
                             datetimeValue = datetime(substring, 'InputFormat', dtInFormat);
                             datetimeValue.Format = dtOutFormat;
-                            hRow.StrfindResultEditbox.Value = char(datetimeValue);  
+                            hRow.StrfindResultEditbox.Value = char(datetimeValue);
                             obj.StringFormat{rowNumber} = dtInFormat;
                         catch ME
                             uialert(hFig, ME.message, sprintf('%s Format Error', shortName))
@@ -322,7 +318,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                         case 'Experiment Date'
                             value = obj.DataLocationModel.getDate(examplePath, obj.DataLocationIndex);
                     end
-                catch 
+                catch
                     value = '';
                 end
                 substring = char(value);
@@ -393,7 +389,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
 
         function onButtonGroupStrfindModeButtonDown(obj, src, evt)
-        % onButtonGroupStrfindModeButtonDown - Selection changed callback   
+        % onButtonGroupStrfindModeButtonDown - Selection changed callback
                    
             rowNumber = obj.getComponentRowNumber(src);
             obj.setFunctionButtonVisibility(rowNumber)
@@ -435,7 +431,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                     substring = feval(obj.FunctionName{rowNumber}, pathStr, dataLocationName);
             end
         end
-
     end
     
     methods % Methods for updating
@@ -461,7 +456,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
         
         function updateDataLocationModel(obj)
-        %updateDataLocationModel Update DLModel with changes from UI    
+        %updateDataLocationModel Update DLModel with changes from UI
             S = obj.getMetaDataDefinitionStruct();
             dataLocationIdx = obj.DataLocationIndex;
             obj.DataLocationModel.updateMetaDataDefinitions(S, dataLocationIdx)
@@ -604,9 +599,9 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                         itemIdx = find(isMatched);
                     end
                 case {'Time', 'Experiment Time'}
-                    itemIdx = 0; 
+                    itemIdx = 0;
                 otherwise
-                    itemIdx = 0; 
+                    itemIdx = 0;
             end
         end
         
@@ -682,9 +677,9 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 
                 case 'ind'
 %                     strInd = strrep(strInd, '-', ':');
-%                     
+%
 %                     strInd = sprintf('[%s]', strInd);
-%                     
+%
 %                     strPattern = eval(strInd);
                                         
                 case 'expr'
@@ -715,7 +710,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                     'one in the list to use for metadata detection' ] )
             end
         end
-        
     end
 
     methods % Show/hide advanced options.
@@ -753,7 +747,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
 
         function createAdvancedOptionsButton(obj, hPanel)
-        %createAdvancedOptionsButton Create button to toggle advanced options                
+        %createAdvancedOptionsButton Create button to toggle advanced options
             
             buttonSize = [160, 22];
             
@@ -780,7 +774,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 case 'Hide Advanced Options...'
                     obj.hideAdvancedOptions()
                     obj.AdvancedOptionsButton.Text = 'Show Advanced Options...';
-            end 
+            end
         end
         
         function showAdvancedOptions(obj)
@@ -861,7 +855,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         
         function setFunctionButtonVisibility(obj, rowNumber)
             
-            hRow = obj.RowControls(rowNumber);    
+            hRow = obj.RowControls(rowNumber);
             
             showButtons = strcmp(hRow.ButtonGroupStrfindMode.SelectedObject.Text, 'func') ...
                             && obj.IsAdvancedView;
@@ -887,8 +881,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function onDataLocationModified(obj, ~, evt)
         %onDataLocationModified Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationModified event 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationModified event
         %   on the DataLocationModel object
             
             switch evt.DataField
@@ -923,8 +917,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function onDataLocationAdded(obj, ~, evt)
         %onDataLocationAdded Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationAdded event on 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationAdded event on
         %   the DataLocationModel object
         
             obj.updateDataLocationSelector()
@@ -933,14 +927,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function onDataLocationRemoved(obj, ~, evt)
         %onDataLocationRemoved Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationRemoved event on 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationRemoved event on
         %   the DataLocationModel object
             
             obj.updateDataLocationSelector()
         end
     end
-        
     
     methods (Static, Access = private)
         
@@ -1031,7 +1024,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 'The indices for selecting a substring does not match the length of the foldername');
         end
     end
-    
 end
 
 function functionName = createFunctionName(identifierName)

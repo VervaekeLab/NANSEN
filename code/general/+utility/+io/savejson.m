@@ -14,6 +14,5 @@ function savejson(jsonFilePath, S)
     jsonStr = strrep(jsonStr, '"x_description":', '"_description":');
     jsonStr = strrep(jsonStr, '"x_version":', '"_version":');
 
-
     utility.filewrite(jsonFilePath, jsonStr)
 end

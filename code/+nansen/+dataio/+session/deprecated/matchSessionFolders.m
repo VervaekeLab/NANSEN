@@ -8,7 +8,7 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
 %
 %       FOLDERLIST = matchSessionFolders(DATALOCATIONMODEL, FOLDERLIST)
 %       returns a struct array (FOLDERLIST) containing one field for each
-%       data location and nSession number of rows. The input FOLDERLIST is 
+%       data location and nSession number of rows. The input FOLDERLIST is
 %       a struct with one field for each datalocation where the value for
 %       each field is a cell array of sessionfolder paths.
 %
@@ -57,7 +57,7 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
             elseif sum(isMatch) == 1
                 matchIdx = find(isMatch);
                 matchedPathStr = jSessionFolderList{isMatch};
-            else 
+            else
                 warning('Multiple session folders matched for session %s. Selected first one', refrenceSessionID)
                 matchIdx = find(isMatch, 1, 'first');
                 matchedPathStr = jSessionFolderList{matchIdx};
@@ -88,7 +88,7 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
     end
     
     isPathEmpty = cellfun(@isempty, sessionFolderListCell{1});
-    sessionFolderListCell{1}(isPathEmpty) = []; 
+    sessionFolderListCell{1}(isPathEmpty) = [];
     unmatchedSessionFolderList = sessionFolderListCell;
     
     if all( cellfun(@isempty, unmatchedSessionFolderList) )
@@ -100,8 +100,4 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
     elseif nargout == 2
         clear unmatchedSessionFolderList
     end
-        
 end
-
-
-

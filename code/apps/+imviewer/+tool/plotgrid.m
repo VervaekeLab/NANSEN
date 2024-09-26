@@ -2,7 +2,6 @@ function h = plotgrid(ax, n)
 
 if nargin < 2; n = 10; end
 
-
 xLim = ax.XLim;
 yLim = ax.YLim;
 

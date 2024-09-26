@@ -1,15 +1,15 @@
 classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDialogBox
 %signalviewer.App is a plotter for timeseries data
 %
-%   The signalviewer app is useful for plotting long timeseries data 
-%   because  panning and zooming along the x-axis is done using 
+%   The signalviewer app is useful for plotting long timeseries data
+%   because  panning and zooming along the x-axis is done using
 %   mousescrolling and keyboard shortcuts.
 %
 %   How to use:
-%       1) Plot a vector: 
+%       1) Plot a vector:
 %               signalviewer.App(Y)
 %
-%       2) Plot a set of vectors: 
+%       2) Plot a set of vectors:
 %               signalviewer.App({A, B, C})
 %
 %       3) Plot vectors and give them names (for Legend, or getHandle method):
@@ -26,7 +26,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 %    *  To zoom in/out:
 %           Press x/shift+x             - Zoom in/out on x axis
 %           Press y/shift+y             - Zoom in/out on y axis
-%          
+%
 %           Press shift+scroll          - Zoom in/out on x axis
 %           Press y+scroll              - Zoom in/out on y axis
 %
@@ -37,9 +37,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 %
 %       To be continued.
 
-
-
-    % Todo: 
+    % Todo:
     %   [ ] Fix x limits when time vector is supplied. Right now it only
     %       works when time is the default integer vector...
     %
@@ -51,8 +49,8 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
     %       sampleNumber or sampleTime... That way, its easier to link an
     %       imviewer and a signalplot if data are sampled at different fps.
     %
-    %   [ ] TimeSeries can be multidimensional. Need to have methods take 
-    %       care of both multidimensional time series array and multiple time series arrays. 
+    %   [ ] TimeSeries can be multidimensional. Need to have methods take
+    %       care of both multidimensional time series array and multiple time series arrays.
     %
     %   [ ] Implement a image raster map plot type. Use some features from
     %       imviewer (to set color limits for example).
@@ -60,7 +58,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
     %           subclass for rastermap plots..?
     %       [ ] Constrain extreme ylimits in zoom and pan mode...
     %       [ ] Add sorting methods for cells/traces of rastermap...
-    %       
+    %
     %
     %   [ ] Update pointermanager/pointertool xlims if numSamples change
     %
@@ -71,8 +69,8 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
     %       Q: how is this done in imviewer??
     %   [ ] Axes for event vectors... Place on bottom... 
     %   [ ] Resolve how to link axes when limits change. Just use linkprop
-    %       function? 
-    %   
+    %       function?
+    %
     %
     %   [ ] Can I configure some of the axes properties to improve
     %       performance?
@@ -83,15 +81,14 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
     %
     %   methods:
     %       change sample
-    %       change timepoint      
+    %       change timepoint
     %   properties:
     %       currentSampleNo / currentFrameNo
     %       currentTime
     %       numSamples
     %       timeLimits
-    
 
-% - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - -
 
     properties (Constant, Hidden)
         ICONS = uim.style.iconSet(signalviewer.App.getIconPath)
@@ -141,14 +138,14 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
     properties (Access = protected)
         ax
         
-        % Todo: 
+        % Todo:
         EventAxes
         PlotAxes
         InteractionAxes
         
         PointerManager
         
-        %ContextMenu 
+        %ContextMenu
         hContextMenu
         
         hScrollPanelX
@@ -176,7 +173,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
     end
     
     properties (Access = protected)
-        IsActive = true     % Flag indicating if gui is active or not. 
+        IsActive = true     % Flag indicating if gui is active or not.
     end
     
     properties (Access = private)
@@ -195,8 +192,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         AxisDragReleaseListener event.listener
     end
     
-    
-% - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - -
     
     methods % Structors
         
@@ -223,7 +219,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             % todo: parse for time series array, or remove first varargin
             %return
-            tsArray = varargin{1}; varargin(1)=[]; 
+            tsArray = varargin{1}; varargin(1)=[];
             if nargin < 1 || isempty(tsArray)
                 return
             end
@@ -232,11 +228,9 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if isa(tsArray, 'nansen.roisignals.RoiSignalArray')
                 return
             end
-            
                         
             % Hold here!
             hold(obj.ax, 'on')
-            
             
             obj.parseTimeSeriesArray(tsArray, varargin{:}, nvPairs{:});
 
@@ -267,7 +261,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             % Initialize the pointer interface.
             pif = uim.interface.pointerManager(obj.Figure, obj.ax, {'zoomIn', 'zoomOut', 'pan'});
             %pif.pointers.pan.buttonMotionCallback = @obj.moveImage;
-            obj.PointerManager = pif;        
+            obj.PointerManager = pif;
             obj.PointerManager.pointers.pan.constrainY = false;
             pif.initializePointers(obj.InteractionAxes, @signalviewer.pointerTool.eventAnnotator)
             
@@ -281,11 +275,9 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if ~nargout
                 clear obj
             end
-            
         end
         
         function quitApp(obj, ~, ~)
-            
             
             if isvalid(obj)
                 delete(obj)
@@ -309,11 +301,9 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 case 'docked'
                     if isvalid(obj.Panel)
                         delete(obj.Panel)
-                    end 
+                    end
             end
-
         end
-        
     end
     
     methods %Public methods
@@ -344,8 +334,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             % Plot time series arrays
             h = obj.plotTimeSeries(timeseriesArray);
-            
-            
             
             if nargout==0
                 clear h
@@ -387,8 +375,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 obj.Panel.Visible = 'on';
                 obj.IsActive = true;
             end
-            
-            
         end
         
         function hide(obj)
@@ -405,7 +391,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             obj.IsActive = false;
             
         end
-        
     end
     
     methods %Set/get methods
@@ -465,13 +450,11 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         function ax = get.Axes(obj)
             ax = obj.getAxes();
         end
-        
     end
 
-    methods (Access = protected) % App initialization and updating 
+    methods (Access = protected) % App initialization and updating
             
         function parseInputs(obj, varargin)
-            
             
         end
         
@@ -482,7 +465,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         function customizeFigure(obj)
             
             if strcmp(obj.mode, 'standalone')
-                figurePos = obj.initializeFigurePosition();         
+                figurePos = obj.initializeFigurePosition();
                 obj.Figure.Position = figurePos;
                 obj.Panel.Position(3:4) = figurePos(3:4); %Todo: Set this automatically through callbacks
                 obj.Panel.Units = 'normalized';
@@ -495,14 +478,13 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                         
             obj.setFigureName()
             
-        end            
+        end
             
         function createAxes(obj)
             
             panelPos = getpixelposition(obj.Panel);
             axesSize = panelPos(3:4) - [sum(obj.Margins([1,3])), sum(obj.Margins([2,4]))];
             axPosition = [obj.Margins(1:2), axesSize];
-            
             
             % Create event axes second. This must be just above main axes
             obj.EventAxes = axes('Parent', obj.Panel, 'Units', 'pixel');
@@ -518,7 +500,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
 %             obj.ax.Position(2) = obj.ax.Position(2) + 0.03;
 %             obj.ax.Position(4) = obj.ax.Position(4) - 0.03;
-            
 
             obj.ax.UIContextMenu = uicontextmenu(obj.Figure);
             obj.ax.Color = 'none';
@@ -529,32 +510,29 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             hold(obj.ax, 'on')
             
-
-            
             % Link properties of eventaxes and signalaxes.
             props = {'XLim', 'Position'};
             obj.AxesLinkObject = linkprop( [obj.ax, obj.EventAxes], props);
-            
 
 %             switch 2
 %                 case 1
             % Turn of all axes automodes...
 % % %             obj.ax.ALimMode = 'manual';
 % % %             obj.ax.CLimMode = 'manual';
-% % %             
+% % %
 % % %             obj.ax.DataAspectRatioMode = 'auto';
 % % %             obj.ax.PlotBoxAspectRatioMode = 'auto';
-% % %             
+% % %
 % % %             obj.ax.TickDirMode = 'manual';
-% % %             
+% % %
 % % %             obj.ax.XLimMode = 'manual';
 % % %             obj.ax.XTickLabelMode = 'auto';
 % % %             obj.ax.XTickMode = 'auto';
-% % %             
+% % %
 % % %             obj.ax.YLimMode = 'manual';
 % % %             obj.ax.YTickLabelMode = 'manual';
 % % %             obj.ax.YTickMode = 'manual';
-% % %             
+% % %
 % % %             obj.ax.ZColorMode = 'manual';
 % % %             obj.ax.ZLimMode = 'manual';
 % % %             obj.ax.ZTickLabelMode = 'manual';
@@ -562,7 +540,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
 % %                 case 2
             obj.ax.BusyAction = 'cancel'; % todo..
-% %             
+% %
 % %             obj.ax.Interactions = [];
 % %             obj.ax.Toolbar = [];
 % %             end
@@ -601,7 +579,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             xLoc = obj.Figure.Position(3) - 15;
             obj.hScrollPanelY = uipanel('Parent', obj.Panel, 'Units', 'pixel', 'Position', ...
                 [xLoc, obj.Margins(2), 10, panelHeight]);
-            
             
             obj.hScrollPanelX.BorderType = 'none';
             obj.hScrollPanelY.BorderType = 'none';
@@ -663,7 +640,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 h = uimenu(mItem, 'Label', names{i}, 'Checked', 'on');
                 h.Callback = @obj.onSignalsToShowChanged;
             end
-
         end
         
         function [axis, location] = isPointOnAxis(obj, xy)
@@ -675,7 +651,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         %   INPUTS:
         %       xy : vector (optional) of point coordinates in pixels,
         %         relative to figure's reference point (lower left corner).
-        %         If no value is given, the value of the figure's 
+        %         If no value is given, the value of the figure's
         %         CurrentPoint property is used.
         %
         %   OUTPUT
@@ -684,7 +660,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         
         %   Note: this function needs more work to be generalized
         %       Use axes inner and outerposition to get axis positions?
-
 
             % Initialize output variables.
             axis = '';
@@ -740,7 +715,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if nargout == 1
                 clear location
             end
-            
         end
        
         function tsInd = isPointInEventVector(obj, pointX )
@@ -765,7 +739,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     tsInd = i;
                 end
             end
-            
         end
 
         function S = gatherEventData(obj, ind, xPoint)
@@ -815,7 +788,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             obj.hlineTsArray(tsIdx) = hPatch;
             
         end
-        
     end
     
     methods (Access = protected) % Time series initialization and updating
@@ -856,12 +828,10 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             end
             
             obj.updateContextMenuSignalsToShow( varNames )
-
             
             if ~nargout
                 clear tsArray
             end
-            
         end
         
         function tsArray = createTimeseriesArray(obj, data, varargin)
@@ -877,14 +847,13 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 tsArray = cellfun(@(v) timeseries(v), data);
             elseif isa(data, 'timeseries')
                 tsArray = data;
-            elseif isrow(data) 
+            elseif isrow(data)
                 tsArray = timeseries(data');
             elseif iscolumn(data)
                 tsArray = timeseries(data);
             else
                 tsArray = timeseries(data);
             end
-            
             
             if contains(varargin(1:2:end), 'Name')
                 match = find( contains(varargin(1:2:end), 'Name') );
@@ -896,7 +865,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     tsArray(i).Name = names{i};
                 end
             end
-            
         end
         
         function addTimeSeriesArray(obj, tsArray, varargin)
@@ -907,18 +875,15 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             obj.nSamples = tsArray(1).Length;
             
         end
-        
-
-        
 
 % %         function data = subsref(obj, S)
-% %             
+% %
 % %             switch S(1).type
-% % 
+% %
 % %                 % Use builtin if a property is requested.
 % %                 case '.'
 % %                     if isempty(obj.tsNames) || ~any( contains(obj.tsNames, S(1).subs) )
-% %                         
+% %
 % %                         if any(strcmp(S(1).subs, {'interactiveFrameChangeRequest'}))
 % %                             builtin('subsref', obj, S)
 % %                         else
@@ -927,12 +892,12 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 % %                             catch
 % %                                 builtin('subsref', obj, S)
 % %                             end
-% %                             
+% %
 % %                             % alternative:
 % %                             %data = cell(1,4);
 % %                             %[data{:}] = builtin('subsref', obj, S)
 % %                         end
-% %                         
+% %
 % %                         return
 % %                     else
 % %                         ind = find(contains(obj.tsNames, S(1).subs));
@@ -943,21 +908,21 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 % %                         else
 % %                             data = builtin('subsref', obj, S);
 % %                         end
-% % 
+% %
 % %                     end
 % %                 otherwise
 % %                     data = builtin('subsref', obj, S);
 % %             end
-% %             
-% %             
+% %
+% %
 % %         end
-% %         
-% %         
+% %
+% %
 % %         function obj = subsasgn(obj, S, B)
-% %             
-% % 
+% %
+% %
 % %             switch S(1).type
-% % 
+% %
 % %                 % Use builtin if a property is requested.
 % %                 case '.'
 % %                     if ~any( contains(obj.tsNames, S(1).subs) )
@@ -965,23 +930,23 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 % %                         return
 % %                     else
 % %                         ind = find(contains(obj.tsNames, S(1).subs));
-% %                         
+% %
 % %                         if strcmp(S(2).type, '()')
 % %                             obj.tsArray(ind).Data(S(2).subs{1}) = B;
 % %                             obj.hlineTsArray(ind).YData(S(2).subs{1}) = B;
 % %                         else
 % %                             obj = builtin('subsasgn', obj, S, B);
 % %                         end
-% % 
+% %
 % %                     end
 % %                 otherwise
 % %                     obj = builtin('subsasgn', obj, S, B);
 % %             end
-% % 
-% %             
+% %
+% %
 % %         end
-% %         
-% %     
+% %
+% %
     end
 
     methods (Access = public) % Data access and update
@@ -1004,7 +969,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if nargin >= 3
                 h = h(1:number);
             end
-            
         end
         
         function ts = getTimeSeries(obj, name)
@@ -1035,9 +999,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 isUpdated = oldXData ~= newXData;
                 hLine.XData(isUpdated) = newXData(isUpdated);
             end
-
         end
-        
 
         function tf = onSignalsToShowChanged(obj, src, evt)
             
@@ -1154,9 +1116,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 
                 if i == 1; hold(obj.ax, 'on'); end
                 
-                
                 set(hNew, 'HitTest', 'off', 'PickableParts', 'none')
-                
                 
                 h{i} = hNew;
 
@@ -1191,7 +1151,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if nargout == 0
                 clear h
             end
-            
         end
         
         function h = plotTimeTable(obj, timetableObj)
@@ -1231,7 +1190,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 thisTimeseries = timetableObj(:, i);
                 dataValues = thisTimeseries.Variables;
                 
-                
                 numSeries = size(dataValues, 2);
                 
                 if numSeries > 1
@@ -1244,7 +1202,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     baseColor = colors(colorInd,:);
                     baseColorHsv = rgb2hsv(baseColor);
                     
-                    colorMapHsv = repmat(baseColorHsv, numSeries, 1); 
+                    colorMapHsv = repmat(baseColorHsv, numSeries, 1);
                     colorMapHsv(:, 3) = linspace(0.5, 1, numSeries);
                     colorMap = flipud( hsv2rgb(colorMapHsv) );
                     
@@ -1265,8 +1223,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 set(hNew, 'HitTest', 'off', 'PickableParts', 'none')
 
             end
-            
-
             
             switch obj.ActiveYAxis
                 case 'left'
@@ -1323,7 +1279,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 % % % %             for i = 2:numSeries
 % % % %                 set( obj.hLineArray.dff(i), 'XData', nan, 'YData', nan);
 % % % %             end
-            
 
                 % Update plot (v1)
                 xData = repmat({sampleIdx}, numSeries, 1);
@@ -1341,7 +1296,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 
                 %obj.TimeseriesPyramid.CurrentLevel
             end
-            
         end
         
         function addTimeseries(obj, timeseriesData, varargin)
@@ -1376,11 +1330,9 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         
         function updateTimeSeries(tsArray)
             
-            
         end
         
         function updatePlot()
-            
   
         end
         
@@ -1401,7 +1353,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     cmaps = cellfun(@(cs) cbrewer('seq', cs, 15, 'spline'), colorSelection, 'uni', 0);
                     plotColor = cell(1, nLines);
                     
-                    
                     c = 1;
                     for iShade = shades
                         for jColorInd = 1:numel(colorSelection)
@@ -1411,13 +1362,11 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     end
                     plotColor = plotColor(1:nLines);
                     
-                    
                 case 'viridis'
             
                     colorMap = viridis(nLines);
                     plotColor = arrayfun(@(i) colorMap(i,:), 1:nLines, 'uni', 0);
             end
-
         
             set(obj.hlineTsArray(isLines)', {'Color'}, plotColor')
             
@@ -1429,7 +1378,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
         
         function interactiveFrameChangeRequest(obj, source, event, action)
 
-            if strcmp(obj.Panel.Visible, 'off') 
+            if strcmp(obj.Panel.Visible, 'off')
                 return
             end
             
@@ -1443,7 +1392,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 % %                         return
 % %                     end
                     
-                    newValue = event.IntersectionPoint(1); 
+                    newValue = event.IntersectionPoint(1);
                     if isnan(newValue); return; end
                     i = round( newValue -  obj.currentFrameNo );
                     
@@ -1533,7 +1482,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if ~obj.isConstructed; return; end
         
             if nargin < 2; flag = 'update_x'; end
-        
             
             frameNo = obj.currentFrameNo;
             if isempty(obj.hlineCurrentFrame) || ~all(isgraphics(obj.hlineCurrentFrame))
@@ -1555,7 +1503,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 set(obj.hlineCurrentFrame, {'XData'}, xData', {'YData'}, yData')
             end
         end
-        
 
 % % % %  Methods for changing x axis limits
 %       Todo: Move to pointermanager.
@@ -1565,7 +1512,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if nargin < 3 || isempty(speed); speed = 10; end
             if nargin < 4; axis = 'x'; end
             % Todo: figure out how to set scroll sensitivity.
-            
             
             % Get current mouse position
             mp_a = get(obj.ax, 'CurrentPoint');
@@ -1637,7 +1583,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             if newLimits(2) > absLimits(2)
                 newLimits(2) = absLimits(2);
-            end   
+            end
             
             obj.ax.YLim = newLimits;
             %obj.updateFrameMarker('update_y')
@@ -1672,20 +1618,20 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             % Current frame should remain in the image, preferably in the
             % center. So I will check if the new limits have to be shifted.
             
-%             % Find maximum shift allowed... 
+%             % Find maximum shift allowed...
 %             maxShiftLeft = absLimits(1) - newLimits(1);
 %             maxShiftRight = absLimits(2) - newLimits(2);
-%             
+%
 %             % Find shift to put current frame in center
 %             shift = obj.currentFrameNo - round(mean(newLimits));
-%             
+%
 %             % Don' allow values for shift outside max limits.
 %             if shift < maxShiftLeft
 %                 shift = maxShiftLeft;
 %             elseif shift > maxShiftRight
 %                 shift = maxShiftRight;
 %             end
-%             
+%
 %             % Shift the new limits
 %             newLimits = newLimits + shift;
             
@@ -1752,7 +1698,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             changeLimits = true;
 
             % Don't pan if current frame passed midway of current limits.
-            if direction == 1 
+            if direction == 1
                 if obj.currentFrameNo < round(diff(tmpLimits)/2 + tmpLimits(1))
                     changeLimits = false;
                 end
@@ -1761,7 +1707,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     changeLimits = false;
                 end
             else
-               return 
+               return
             end
             
             % Adjust limits if they will exceed range
@@ -1815,7 +1761,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if diff(newLimits) < 100; return; end
             
             if obj.nSamples == 1 % Special case (i.e no data is loaded)
-                newLimits = [0, 1]; 
+                newLimits = [0, 1];
             end
             
             % Set new limits
@@ -1899,7 +1845,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             deltaY = currentPoint(2) - obj.PreviousMousePoint(2);
             deltaY = deltaY / obj.ax.Position(4);
             
-            
             yLimRange = range(obj.ax.YLim);
             yLimDiff = yLimRange .* deltaY;
 
@@ -1933,7 +1878,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             newXLim = [obj.ax.XLim(1)-xLimDiff, obj.ax.XLim(2)+xLimDiff];
             obj.setNewXLims(newXLim)
         end
-        
     end
     
     methods (Access = public)
@@ -1966,9 +1910,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if appFrameNum ~= obj.currentFrameNo
                 obj.currentFrameNo = appFrameNum;
             end
-            
         end
-
     end
     
     methods (Access = protected)
@@ -2020,21 +1962,20 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             if ~isempty(obj.signalLegend) && isvalid(obj.signalLegend)
                 obj.signalLegend.Position(2) = sum(obj.ax.Position([2,4]))+5;
             end
-
         end
        
 % %         function setDefaultFigureCallbacks(obj, hFig)
-% %         
+% %
 % %             if nargin < 2 || isempty(hFig)
 % %                 hFig = obj.Figure;
 % %             end
 % %             if strcmp(obj.mode, 'docked'); return; end
-% %             
+% %
 % %             % Todo: Need to adapt to standalone vs docked
 % %             hFig.WindowScrollWheelFcn = @obj.onMouseScrolled;
 % %             hFig.WindowKeyPressFcn = @obj.onKeyPressed;
 % %             hFig.WindowKeyReleaseFcn = @obj.onKeyReleased;
-% % 
+% %
 % %         end
         
         function onThemeChanged(obj)
@@ -2065,7 +2006,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
     methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         function onMouseScrolled(obj, src, event)
-        %onMouseScrolled Handle scroll input to gui figure.  
+        %onMouseScrolled Handle scroll input to gui figure.
         
         % Use the scrollHistory to avoid "glitchy" scrolling. For small
         % movements on a mousepad, scroll values can come in as 0, 1, 1,
@@ -2093,7 +2034,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 %                     scrollFactor
 %                     fprintf('%d    - ', event.VerticalScrollCount)
 
-                    if event.VerticalScrollCount > 0 && sum(obj.scrollHistory) > 0 
+                    if event.VerticalScrollCount > 0 && sum(obj.scrollHistory) > 0
                         obj.plotZoom('in', scrollFactor, dir);
                     elseif event.VerticalScrollCount < 0  && sum(obj.scrollHistory) < 0
                          obj.plotZoom('out', scrollFactor, dir );
@@ -2101,9 +2042,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     
                 case 'zoom_both'
                     
-                    
             end
-            
         end
         
         function onKeyPressed(obj, ~, event)
@@ -2153,12 +2092,9 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                         obj.plotZoom('out', obj.settings.ScrollFactorZoomY, 'y');
                     end
                     
-                    
-                    
                 case 'r'
                     obj.setNewXLims;
                     obj.setNewYLims;
-
                     
             end
         end
@@ -2167,11 +2103,10 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             switch event.Key
                case 'shift'
-                    obj.scrollMode = 'normal'; 
+                    obj.scrollMode = 'normal';
                case 'y'
-                    obj.scrollMode = 'normal'; 
+                    obj.scrollMode = 'normal';
             end
-            
         end
         
         function onMousePressed(obj, src, event)
@@ -2226,7 +2161,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     end
                 end
             end
-                        
         end
         
         function onMouseMotion(obj, ~, event)
@@ -2260,7 +2194,6 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 
                 obj.PreviousMousePoint = currentPoint;
             end
-            
         end
         
         function onMouseReleased(obj, src, event)
@@ -2291,8 +2224,8 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             % INPUTS:
             %   viewerNames : list (cell array) of app names to look for
             %   hFigure : figure handle of figure to ignore (optional)
-            %   
-            %   
+            %
+            %
             % Supported names: {'StackViewer', 'Signal Viewer', 'Roi Classifier'}
 
             if nargin < 1
@@ -2329,7 +2262,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
 
                 figNames = {openFigures(figInd).Name};
     %             figNumbers = [openFigures(figInd).Number];
-    %             figNumbers = arrayfun(@(n) sprintf('%d:', n), figNumbers, 'uni', 0); 
+    %             figNumbers = arrayfun(@(n) sprintf('%d:', n), figNumbers, 'uni', 0);
     %             figNames = strcat(figNumbers ,figNames);
 
                 % Open a listbox selection to figure
@@ -2347,7 +2280,5 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             hApp = getappdata(openFigures(figInd), 'ViewerObject');
 
         end
-
     end
-
 end

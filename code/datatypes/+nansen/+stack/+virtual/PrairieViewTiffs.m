@@ -4,11 +4,9 @@ classdef PrairieViewTiffs < nansen.stack.data.VirtualArray
 %
 %
 
-
     % Todo:
     % [ ] Implement folder initialization.  
     % [ ] assignFilePath: resolve if there are files from multiple planes
-
     
 properties (Constant, Hidden)
     FilenameExpression = 'Cycle\d{5}_Ch\d{1}_\d{6}'
@@ -44,9 +42,8 @@ properties (Access = private, Hidden) % File Info
     numFramesPerFile = 1
     frameIndexInfo
 
-    ImageInfo       % Should be for all images, but right now it stores info for first image... 
+    ImageInfo       % Should be for all images, but right now it stores info for first image...
 end
-
 
 methods % Structors
     
@@ -60,7 +57,6 @@ methods % Structors
     function delete(obj)
         
     end
-    
 end
 
 methods (Access = protected) % Implementation of abstract methods
@@ -85,8 +81,6 @@ methods (Access = protected) % Implementation of abstract methods
         if isrow(obj.FilePathList)
             obj.FilePathList = obj.FilePathList';
         end
-        
-        
     end
     
     function getFileInfo(obj)
@@ -145,7 +139,7 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function createFrameIndexMap(obj)
-    %createFrameIndexMap Create a mapping from frame number to file part    
+    %createFrameIndexMap Create a mapping from frame number to file part
         
         obj.frameIndexInfo = struct('frameNum', [], 'fileNum', [], 'frameInFile', []);
 
@@ -176,7 +170,6 @@ methods (Access = protected) % Implementation of abstract methods
         
         numFrames = numel(obj.FilePathList);
         stackSize(5) = numFrames / stackSize(3) / stackSize(4);
-
         
         % Following is identical to TiffMultiPart (todo: make this into separate method, i.e autoresolveDataDimensionArrangement)
         
@@ -211,11 +204,9 @@ methods (Access = protected) % Implementation of abstract methods
         bitsPerSample = obj.ImageInfo.BitDepth;
         obj.DataType = sprintf('uint%d', bitsPerSample);
     end
-    
 end
 
 methods % Implementation of abstract methods for reading/writing data
-    
     
     function getFrame(obj, frameInd, subs)
         obj.getFrameSet(frameInd, subs)
@@ -279,50 +270,46 @@ methods % Implementation of abstract methods for reading/writing data
 % %             warning('off', 'imageio:tiffmexutils:libtiffWarning')
 % %             obj.tiffObj(fileNum).setDirectory(frameInFile);
 % %             warning('on', 'imageio:tiffmexutils:libtiffWarning')
-% %             
+% %
 % %             data(insertSub{:}) = obj.tiffObj(fileNum).read();
             
             filepath = obj.FilePathList{fileNum};
             data(insertSub{:}) = imread(filepath);
-
             
             if useWaitbar
                 if mod(i, updateRate) == 0
                     waitbar(i/dataSize(end), 'Loading image frames')
                 end
             end
-
         end
-        
     end
     
-    
 % %     function data = readFrames(obj, frameInd)
-% %         
+% %
 % %         % Note: Assume that frames are the last dimension of data...
-% %         
+% %
 % %         % Todo: This is the same for all. Should generalize
-% %         
+% %
 % %         % Todo: simplify. Do not need subs, only need stacksize...
-% %         
+% %
 % %         % Todo: Add error handling if requested image is not right
 % %         % dimension
-% % 
-% %         
+% %
+% %
 % %         % Determine size of requested data
 % %         newDataSize = obj.DataSize;
 % %         newDataSize(end) = numel(frameInd);
-% % 
+% %
 % %         nDim = numel(obj.DataSize);
-% % 
+% %
 % %         % Preallocate data
 % %         data = zeros(newDataSize, obj.DataType);
-% % 
+% %
 % %         % Loop through frames and load into data.
 % %         for i = 1:numel( frameInd )
-% % 
+% %
 % %             frameNum = frameInd(i);
-% % 
+% %
 % %             if nDim == 4
 % %                 data(:,:,:,i) = imread(obj.FilePathList{frameNum});
 % %             elseif nDim == 3
@@ -330,21 +317,20 @@ methods % Implementation of abstract methods for reading/writing data
 % %             else
 % %                 error('Virtual data from images must be 3D or 4D')
 % %             end
-% % 
+% %
 % %         end
-% % 
+% %
 % %     end
-% %     
+% %
     function writeFrames(obj, data, frameInd)
         
         % Todo: combine with getFrameSet???
         % Todo: Test thoroughly
 
         % Todo: Make assertion that data has the same size as the stack
-        % (width and height, numchannels) 
+        % (width and height, numchannels)
         
         nDim = numel(obj.DataSize);
-
                 
         % Loop through frames and write data.
         for i = 1:numel( frameInd )
@@ -360,11 +346,8 @@ methods % Implementation of abstract methods for reading/writing data
             else
                 error('Virtual data from images must be 3D or 4D')
             end
-
         end
-        
     end
-
 end
 
 methods (Access = protected)
@@ -392,10 +375,9 @@ methods (Access = protected)
             tokens = cellfun(@(c) str2double(c), struct2cell(tokens));
             tokens = transpose(tokens); % each row is one file
 
-
             % channel is first, part numbers are second.
             % Sort according to channels:
-            % [~, ix] = sortrows(tokens, [1,2]); 
+            % [~, ix] = sortrows(tokens, [1,2]);
 
             numChannels = numel( unique(channelIdx) );
             obj.ChannelMode = 'multipart';
@@ -409,13 +391,12 @@ methods (Access = protected)
                 numPartsPerChannel, numChannels);
         else
             numChannels = 1;
-        end       
+        end
     end
     
     function numPlanes = detectNumberOfPlanes(obj)
         numPlanes = 1;
     end
-    
 end
 
 methods (Static)
@@ -423,7 +404,5 @@ methods (Static)
     function initializeFile(filePath, arraySize, arrayClass)
         error('Not implemented yet')
     end
-    
 end
-
 end

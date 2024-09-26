@@ -34,7 +34,7 @@ function Video(imageStackObj)
     
     if any(frameInd < 1)
         error('Nansen:ImageStack:FrameSetOutOfBounds', ...
-            'Frame indices must be positive integers')        
+            'Frame indices must be positive integers')
     elseif any(frameInd > imageStackObj.NumTimepoints)
         error('Nansen:ImageStack:FrameSetOutOfBounds', ...
             'Frame indices exceeds the number of timepoints in stack (%s)', ...
@@ -48,4 +48,3 @@ function Video(imageStackObj)
     nansen.stack.utility.stack2movie(options.Filename, imageData, options.FrameRate)
     
 end
-

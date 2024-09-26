@@ -5,23 +5,22 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 % libraries to use. I.e one subclass can be made to work with appdesigner
 % figures, and another could work with traditional figures.
     
-%   Todo: 
+%   Todo:
 %     [v] many (most) subclasses have an advanced options view. Should make
 %         that behavior part of this superclass.
 %
 %     [ ] Toolbar should not be part of the table class...
-%     
+%
 %     [ ] Get cell locations as array with one entry for each column of a
 %         row. (see getCellPosition)
 
 %     [ ] Do the centering when getting the cell locations.
 %     [ ] Set fontsize/bg color and other properties in batch.
 
-
     properties % Table info/data
         ColumnNames cell = {}
         ColumnFormat cell = {}
-        Data 
+        Data
         SelectedRows = []
     end
     
@@ -89,11 +88,10 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         IsConstructed = false
     end
     
-    
     methods (Abstract, Access = protected)
         
         % Method for opening new figure if parent is not assigned
-        openNewFigure(obj) 
+        openNewFigure(obj)
         
         % For subclasses that have default values for some properties
         assignDefaultTablePropertyValues(obj) % Todo: rename
@@ -116,9 +114,9 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
     methods % Structors
         
         function obj = UiControlTable(varargin)
-        %UiControlTable UiControlTable constructor class      
+        %UiControlTable UiControlTable constructor class
         
-        % Todo: 
+        % Todo:
         %   [ ] Accept table and/or struct array as data?
         
           %%% Assign inputs.
@@ -184,11 +182,9 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             obj.deleteRowControls()
             obj.deleteToolbarComponents()
         end
-
     end
     
     methods % Set/get methods
-        
         
         function set.ShowToolbar(obj, newValue)
             assert(islogical(newValue), 'Value must be logical')
@@ -251,7 +247,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         end
         
         function rowData = getRowData(obj, rowNum)
-        %getRowData Get rowdata for given row 
+        %getRowData Get rowdata for given row
         %
         %   Require different indexing methods for structs and tables
         
@@ -263,7 +259,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                 error('Unsupported datatype for table data ("%s")', class(obj.Data))
             end
         end
-        
     end
     
     methods (Access = private) % Configuration and construction
@@ -320,7 +315,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         end
         
         function autoAssignPosition(obj)
-        %autoAssignPosition Assign a default position within parent.    
+        %autoAssignPosition Assign a default position within parent.
             
             if numel(obj.TableMargin) == 1
             	tableMargin = [obj.TableMargin, obj.TableMargin];
@@ -334,7 +329,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         end
         
         function configureLayout(obj)
-        %configureLayout Configure internal layout of table components    
+        %configureLayout Configure internal layout of table components
             
             % Some hardcoded values
             headerTableSpacing = 0;
@@ -427,7 +422,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         end
         
         function X = calculateColumnPositions(obj)
-        %calculateColumnPositions Calculate x-positions of columns    
+        %calculateColumnPositions Calculate x-positions of columns
             
             xSpace = obj.ColumnSpacing;
             
@@ -465,7 +460,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                 end
             end
         end
-        
     end
     
     methods (Access = protected) % Methods accessible from subclasses
@@ -534,13 +528,12 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
                 hRow = obj.createTableRowComponents(rowData, rowNumber);
                 
 % %             Todo: How to do this when some components does not have
-% %             Fontname property 
+% %             Fontname property
 % %
 % %                 %Set common format properties...
 % %                 handleArray = struct2cell(hRow);
 % %                 handleArray = [handleArray{:}];
 % %                 set(handleArray, 'FontName', obj.FontName);
-                
                 
                 if isempty(obj.RowControls)
                     obj.RowControls = hRow;
@@ -644,26 +637,26 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
         end
             
 %         function pathStr = getTableRowBackground(obj, varargin)
-%         %getTableRowBorder Get path to image containing a table row border    
-%             
-%         
+%         %getTableRowBorder Get path to image containing a table row border
+%
+%
 %         % Todo: Implement with keywords for where border should be and for
 %         % background color
 %         %
 %         % Todo: Find a much smarter way to do this!
-%             
+%
 %             imageName = strjoin( [{'TableBackground'}, varargin{:}], '_' );
-%             
+%
 %             % If image already exists, return pathstr
 %             if isfield(obj.ImageGraphicPaths, imageName)
 %                 pathStr = obj.ImageGraphicPaths.(imageName);
 %                 return
 %             end
-%             
+%
 %             % Else: Create and save a temporary image.
 %             h = obj.RowHeight + obj.RowSpacing;
 %             w = obj.TablePanelPosition(3);
-%             
+%
 %             if any(strcmp(varargin(1:2:end), 'Selection'))
 %                 matchedInd = find( strcmp(varargin(1:2:end), 'Selection') );
 %                 matchedValue = varargin{matchedInd*2};
@@ -678,10 +671,10 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 %             else
 %                 bgColor = obj.RowBackgroundColor;
 %             end
-%             
+%
 %             % Create background image.
 %             colorData = ones(h,w,3) .* reshape(bgColor, 1, 1, 3);
-%             
+%
 %             % Add border
 %             if  any(strcmp(varargin(1:2:end), 'BorderType'))
 %                 matchedInd = find( strcmp(varargin(1:2:end), 'BorderType') );
@@ -701,13 +694,13 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 %                         error('Bordertype is not implemented :(')
 %                 end
 %             end
-%             
+%
 %             pathStr = [tempname, '.png'];
 %             imwrite(colorData, pathStr, 'png', 'Transparency', [1,1,1]);
 %             obj.ImageGraphicPaths.(imageName) = pathStr;
-%  
+%
 %         end
-%             
+%
     end
     
     methods (Access = protected) % Callbacks
@@ -804,7 +797,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             
             if ~isempty(obj.RowControls)
                 tempStruct(2) = obj.RowControls(1);
-                obj.RowControls(end+1) = tempStruct(1); 
+                obj.RowControls(end+1) = tempStruct(1);
                 obj.RowControls = obj.RowControls(newInd);
             end
             
@@ -833,7 +826,6 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             end
             obj.RowControls(rowNumber) = [];
             
-            
             % Return here if there are no rows left in table
             if obj.NumRows == 0
                 %obj.RowLocations = [];
@@ -861,7 +853,5 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
 %                 obj.addRow(i, newData(i));
 %             end
         end
-        
     end
-
 end

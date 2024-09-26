@@ -3,7 +3,6 @@ function fileAdapter = getTimeseriesFileAdapter(filePath)
 %   Detailed explanation goes here
     
     [~, ~, fileExtension] = fileparts(filePath);
-
     
     switch fileExtension
         case {'mat', '.mat'}
@@ -17,4 +16,3 @@ function fileAdapter = getTimeseriesFileAdapter(filePath)
     fileAdapter.Filename = filePath;
 
 end
-

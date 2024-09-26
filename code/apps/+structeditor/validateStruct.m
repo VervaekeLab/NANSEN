@@ -10,12 +10,10 @@ function [S, varargin] = validateStruct(varargin)
     
     isValidStruct = @(s) isstruct(s) || all(cellfun(@(c) isstruct(c), s));
     
-    
     if isValidStruct(varargin{1})
         S = varargin{1};
         varargin = varargin(2:end);
     else
         error('Invalid struct argument, please see help for structeditor.App')
     end
-
 end

@@ -1,5 +1,4 @@
 classdef ImviewerPlugin < imviewer.ImviewerPlugin
-        
     
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false        % Ignore settings file
@@ -7,7 +6,7 @@ classdef ImviewerPlugin < imviewer.ImviewerPlugin
     end
     
     properties (Constant)
-       Name = 'EXTRACT' 
+       Name = 'EXTRACT'
     end
     
     properties
@@ -16,7 +15,6 @@ classdef ImviewerPlugin < imviewer.ImviewerPlugin
         gobjectTransporter
         %settings
     end
-        
     
     methods
         function delete(obj)
@@ -25,7 +23,6 @@ classdef ImviewerPlugin < imviewer.ImviewerPlugin
             delete(obj.gobjectTransporter)
         end
     end
-    
     
     methods
         function tf = onKeyPress(src, evt) % todo: rename to onKeyPressed
@@ -40,10 +37,8 @@ classdef ImviewerPlugin < imviewer.ImviewerPlugin
         function onPluginActivated(obj)
             
         end
-        
                 
         function onSettingsChanged(obj, name, value)
-            
             
             switch name
                 case {'num_partitions_x', 'num_partitions_y'}
@@ -80,19 +75,15 @@ classdef ImviewerPlugin < imviewer.ImviewerPlugin
                     if strcmp(value, 'raw')
                         obj.showTip('Please check EXTRACT''s FAQ before using this options')
                     end
-                    
             end
-            
         end
-        
     end
     
-    methods (Static) % Inherited... 
+    methods (Static) % Inherited...
         function getPluginIcon()
             
         end
     end
-    
     
     methods
         
@@ -151,10 +142,8 @@ classdef ImviewerPlugin < imviewer.ImviewerPlugin
                 obj.gobjectTransporter = applify.gobjectTransporter(obj.Axes);
             end
             
-            
             % Assign the Ancestor App of the roigroup to the app calling
             % for its creation.
-            
             
             if ~isempty(obj.hCellTemplates) % Update radius
                 x0 = arrayfun(@(h) mean(h.XData), obj.hCellTemplates);
@@ -182,9 +171,7 @@ classdef ImviewerPlugin < imviewer.ImviewerPlugin
                     h.ButtonDownFcn = @(s,e) obj.gobjectTransporter.startDrag(h,e);
                     obj.hCellTemplates(i) = h;
                 end
-
             end
-            
         end
         
         function checkGridSize(obj)
@@ -202,8 +189,5 @@ classdef ImviewerPlugin < imviewer.ImviewerPlugin
                 obj.PrimaryApp.clearMessage()
             end
         end
-        
-        
      end
-        
 end

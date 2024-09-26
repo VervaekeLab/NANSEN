@@ -11,6 +11,4 @@ classdef TabSelectionChangedEvent < event.EventData
            obj.NewValue = newValue;
        end
    end
-   
 end
-

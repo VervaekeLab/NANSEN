@@ -1,7 +1,5 @@
 function roiStat = calculateRoiStats(roiArray, roiImageData, dff, ringKernel, diskKernel)
 
-
-
 boxSize = size(roiImageData(1).enhancedAverage);
 maxSize = roiArray(1).imagesize;
 
@@ -10,11 +8,9 @@ centerCoords = round(cat(1, roiArray.center));
 indX = (1:boxSize(2)) - ceil(boxSize(2)/2);
 indY = (1:boxSize(1)) - ceil(boxSize(1)/2);
 
-
 nRois = numel(roiArray);
 
 roiStat = struct.empty;
-
 
 for i = 1:nRois
     % Image coordinates for a square box centered on the roi
@@ -45,6 +41,4 @@ for i = 1:nRois
     roiStat(i).temporalPeakDff = max(dff(:, i));
     
 end
-
-
 end

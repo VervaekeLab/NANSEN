@@ -1,6 +1,5 @@
 function reset()
-%Reset Reset all settings of this software package. 
-
+%Reset Reset all settings of this software package.
 
     %% Ask user to confirm.
     msg = sprintf(['\nThis will reset all settings for this package, and ', ...
@@ -13,7 +12,6 @@ function reset()
         return
     end
     
-    
     %% Remove Preferences
     preferenceGroups = {'nansen_App', 'Nansen'};
     
@@ -22,7 +20,6 @@ function reset()
             rmpref(preferenceGroups{i})
         end
     end
-    
     
     %% Remove folders with userdata
     nansenRootPath = nansen.rootpath();
@@ -66,16 +63,12 @@ function reset()
             disp(ME.message)
         end
     end
-    
 
-    %% Show a confirmation message 
+    %% Show a confirmation message
     disp('All settings and user data was removed')
     
 end
 
-
 function moveDirToBackup
-
-
 
 end

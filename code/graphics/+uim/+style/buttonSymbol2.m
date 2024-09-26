@@ -28,6 +28,4 @@ classdef buttonSymbol2 < uim.style.buttonScheme
             'BorderWidth', 0.5)
         
     end
-    
-    
 end

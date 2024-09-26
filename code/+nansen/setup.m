@@ -10,7 +10,7 @@ if str2double(versionAsNumber) >= 960
 else
     error('Setup requires MATLAB release 2019a or later')
     %setup.App
-end 
+end
 
 % Todo
 % if ~verLessThan('matlab','9.6') && ~isMATLABReleaseOlderThan("R2019a")

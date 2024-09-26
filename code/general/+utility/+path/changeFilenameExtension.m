@@ -9,4 +9,3 @@ function newFilename = changeFilenameExtension(filename, newExtension)
 
     newFilename = strrep(filename, oldExtension, newExtension);
 end
-

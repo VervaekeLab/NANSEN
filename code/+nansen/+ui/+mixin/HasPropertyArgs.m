@@ -17,4 +17,3 @@ classdef HasPropertyArgs < handle
         end
     end
 end
-

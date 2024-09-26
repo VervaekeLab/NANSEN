@@ -21,18 +21,15 @@ function varargout = px2du(ax, pixelCoords, recursive)
     %axLim = reshape(axis(ax), 2, 2);
     axRange = diff(axLim);
     
-    
     if recursive
         dataUnits = (pixelCoords-axPos(1:2)) ./ axPos(3:4) .* axRange + axLim(1, 1:2);
     else
         dataUnits = pixelCoords ./ axPos(3:4) .* axRange + axLim(1, 1:2);
     end
     
-    
     if nargout == 1
         varargout = {dataUnits};
     else
         varargout = {dataUnits(:,1), dataUnits(:,2)};
     end
-    
 end

@@ -85,7 +85,7 @@ function obj = instance(userName, mode, skipProjectCheck)
     end
 
     if resetUserSessionInstance
-        delete(userSessionObject)        
+        delete(userSessionObject)
         userSessionObject = [];
         rootUserData.SingletonInstances.NansenUserSession = [];
         set(0, 'UserData', rootUserData)
@@ -98,7 +98,7 @@ function obj = instance(userName, mode, skipProjectCheck)
         rootUserData.SingletonInstances.NansenUserSession = userSessionObject;
         set(0, 'UserData', rootUserData)
         
-        % Check if user's data need to be updated due to changes in the 
+        % Check if user's data need to be updated due to changes in the
         % code base. Important that this is done after the singleton is created.
         userSessionObject.runPostConstructionUpdateActions()
     end

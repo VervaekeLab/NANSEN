@@ -1,6 +1,6 @@
 function [roiArray, classification, stats, images] = convertRois(S)
 
-    % Get roidata from a structure containing unknown set of fields. 
+    % Get roidata from a structure containing unknown set of fields.
     
     % Initialize output
     roiArray = RoI.empty; %#ok<NASGU>
@@ -16,7 +16,6 @@ function [roiArray, classification, stats, images] = convertRois(S)
     refVariableNames = {'roi_arr', 'RoiArray', 'roiArray'};
     
     isMatch = contains(dataVariableNames, refVariableNames);
-    
     
     if isempty(isMatch) || ~any(isMatch)
         error('Nansen:RoiGroupLoad:DataNotFound', ...
@@ -37,11 +36,10 @@ function [roiArray, classification, stats, images] = convertRois(S)
         roiArray = roimanager.utilities.struct2roiarray(roi_arr_struct);
     end
     
-    
-    % Load complimentary variables (most of this is probably redundant by 
-    % now, but roiClassification, roiImages and roiStats was not well 
+    % Load complimentary variables (most of this is probably redundant by
+    % now, but roiClassification, roiImages and roiStats was not well
     % incorporated before)
-    % - - - - - - - - - - - - - - - - 
+    % - - - - - - - - - - - - - - - -
     
     numRois = numel(roiArray);
     

@@ -1,4 +1,4 @@
-function imOut = minimum(imArray, dim)    
+function imOut = minimum(imArray, dim)
     
     if nargin < 2; dim = 3; end
 
@@ -7,5 +7,4 @@ function imOut = minimum(imArray, dim)
     else
         imOut = imArray;
     end
-    
 end

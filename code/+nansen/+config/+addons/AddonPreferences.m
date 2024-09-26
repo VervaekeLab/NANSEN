@@ -22,5 +22,4 @@ classdef AddonPreferences < nansen.external.fex.utility.Preferences
             singletonObj = Preferences.getSingleton(thisClassName);
         end
     end
-    
 end

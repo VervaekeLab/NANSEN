@@ -4,7 +4,7 @@ function packageName = pathstr2packagename(pathStr)
 %       packageName = pathstr2packagename(pathStr)
 %
 %   EXAMPLE:
-% 
+%
 %    pathStr =
 %       '/Users/eivinhen/PhD/Programmering/MATLAB/VervaekeLab_Github/NANSEN/code/+nansen/+session/+methods/+data/+open'
 %
@@ -12,7 +12,6 @@ function packageName = pathstr2packagename(pathStr)
 %
 %    packageName =
 %       'nansen.session.methods.data.open'
-
 
     assert(isfolder(pathStr), 'Path must point to a folder.')
        

@@ -17,7 +17,4 @@ function [roiArray, cnmfResults] = finishAutoSegmentation(cnmfData)
     
     clearvars cnmfData
 
-    
-     
-
 end

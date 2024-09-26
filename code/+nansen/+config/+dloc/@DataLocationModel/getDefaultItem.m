@@ -38,7 +38,6 @@ function [S, P] = getDefaultItem()
     S(i).SubfolderStructure(1).Type = 'Subject';
     S(i).SubfolderStructure(2).Type = 'Session';
     
-    
     P.DefaultDataLocation = 'Processed';
     
 end

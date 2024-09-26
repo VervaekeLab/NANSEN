@@ -7,5 +7,5 @@ classdef Description < nansen.metadata.abstract.TableVariable
     properties (Constant)
         IS_EDITABLE = true
         DEFAULT_VALUE = {'N/A'}
-    end    
+    end
 end

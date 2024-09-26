@@ -4,11 +4,11 @@ function memoryBytes = getAvailableMemory()
         memory_string = strsplit(strtrim(txt), newline);
         memory_avail_gb = (eval(memory_string{end})/1024^3);
         memoryBytes = memory_avail_gb*1e9;
-    elseif ispc  
+    elseif ispc
         m = memory();
         memoryBytes = m.MemAvailableAllArrays;
     elseif isunix % better way?
-        [~,txt] = system('free -m'); 
+        [~,txt] = system('free -m');
         txtItems = strsplit(txt, ' ');
         memory_avail_mb = txtItems{8};
         memoryBytes = str2double(memory_avail_mb)*1e6;

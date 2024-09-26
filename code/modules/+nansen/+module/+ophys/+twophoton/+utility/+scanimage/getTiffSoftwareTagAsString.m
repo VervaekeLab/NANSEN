@@ -3,8 +3,7 @@ function infoString = getTiffSoftwareTagAsString(fileRef)
 %
 %   infoString = getTiffSoftwareTagAsString(fileRef) returns the software
 %   tag as a string for a tiff file given a fileRef. The fileRef can be a
-%   file path to a tiff file or a Tiff object. 
-
+%   file path to a tiff file or a Tiff object.
 
     if isa(fileRef, 'char') && isfile(fileRef)
         [~, ~, ext] = fileparts(fileRef);

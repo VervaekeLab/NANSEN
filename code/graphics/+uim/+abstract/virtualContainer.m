@@ -1,5 +1,5 @@
 classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
-%virtualContainer Create a virtual container for placing within an 
+%virtualContainer Create a virtual container for placing within an
 % uicomponent canvas. This class provides basic positioning and style methods.
 
 % Should rename. This is not virtual anymore...
@@ -8,12 +8,11 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
 %       [ ] Remove Children property, and add that to a container subclass.
 %       [ ] Inherit structadapter
 %       [ ] Implement abstract method getComponentDefaults
-%       [ ] Simplify positioning. 
+%       [ ] Simplify positioning.
 %       [ ] Add anchoring position mode.
-% 
+%
 
-
-% % % % % % % Parent Container  % % % % % % % % % % % %    
+% % % % % % % Parent Container  % % % % % % % % % % % %
 %                                                     %
 %    Margin Area                                      %
 %                                                     %
@@ -28,12 +27,11 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
 %    x------------------x-------------------x         %
 %                                                     %
 %                                                     %
-% % % % % % % % % % % % % % % % % % % % % % % % % % % %   
+% % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
 %  x = Anchor points ( Horizontal/Vertical Alignment )
 
-
-    % Todo: 
+    % Todo:
     %   Add a sizeChangedFcn prop? Like matlab containers have?
     %   Add/implement units property?
     %
@@ -43,11 +41,9 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
     % updateLocation. onSizeChanged should be called after the position is
     % set...
     
-    
     properties (Constant)
         
     end
-    
     
     properties (Transient) %Todo, this should not be transient. Actually, why not...
         Canvas = [] % Rename to virtualParent?
@@ -67,7 +63,6 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
     properties (Dependent)
         Position (1,4) double = [1,1,10,10]                      % Dependent?
     end
-    
     
     properties % Position properties
         
@@ -129,7 +124,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
         % todo :modify this so it works for button, and other controls that
         % might be parented in another virtualContainer...
 % %         function obj = virtualContainer(hParent)
-% %             
+% %
 % %             if isa(hParent, 'uim.abstract.virtualContainer')
 % %                 obj.Parent = hParent.getGraphicsContainer()
 % %             end
@@ -137,16 +132,15 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
 % %             el = listener(hParent, 'SizeChanged', ...
 % %                 @obj.onParentContainerSizeChanged);
 % %             obj.ParentContainerSizeChangedListener = el;
-% %             
+% %
 % %             %Todo: add listener. If uicc is deleted, delete this class as
-% %             % well. 
-% % 
+% %             % well.
+% %
 % %             obj.Parent = hParent;
 % %             obj.Canvas = hParent;
 % %             obj.hAxes = obj.Canvas.Axes;
-% %             
+% %
 % %         end
-        
         
         function delete(obj)
             
@@ -157,9 +151,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             if ~isempty(obj.hBorder)
                 delete(obj.hBorder)
             end
-            
         end
-        
     end
     
     methods (Access = protected) % Creation
@@ -194,27 +186,26 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
         end
         
         function createBorder(obj) % Subclasses can override
-        %createBorder Plot the container border    
+        %createBorder Plot the container border
  
         end
-        
     end
     
-    methods % Set/Get 
+    methods % Set/Get
 
 % %         function set.IsConstructed(obj, newValue)
-% %             
+% %
 % %             assert(islogical(newValue))
 % %             obj.IsConstructed = newValue;
-% %             
+% %
 % %             if obj.IsConstructed
-% %             
+% %
 % %                 % Call updateSize to trigger size update (call before location)
 % %                 obj.updateSize('auto')
-% % 
+% %
 % %                 % Call updateLocation to trigger location update
-% %                 obj.updateLocation('auto') 
-% %                 
+% %                 obj.updateLocation('auto')
+% %
 % %             end
 % %         end
 
@@ -256,7 +247,6 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             % elseif isLocationChanged
             %   obj.onLocationChanged
             % end
-            
             
             % Update size first
             if isSizeChanged
@@ -333,7 +323,6 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
                 obj.Visible = newValue;
                 obj.onVisibleChanged(newValue)
             end
-            
         end
     end
     
@@ -353,7 +342,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
         end
         
         function updateSize(obj, mode)
-        %updateSize Handler of conditions that adjust container size  
+        %updateSize Handler of conditions that adjust container size
         %
         %   Calculate new size based on size of parent container and
         %   internal properties (margins) that determine the size.
@@ -397,7 +386,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
         end
         
         function updateLocation(obj, mode)
-        %updateLocation Handler of conditions that change container location 
+        %updateLocation Handler of conditions that change container location
                     
             if ~obj.IsConstructed; return; end
             
@@ -411,9 +400,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
                 case 'manual'
                     % Location should stay the same.
             end
-                        
         end
-        
         
         function onStyleChanged(obj)
             if obj.IsConstructed
@@ -436,7 +423,6 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
                 obj.updateBackgroundSize()
 %             end
         end
-        
     end
     
     methods (Access = private) % Internal Updates
@@ -454,14 +440,13 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             else
                 locationPoint = [1,1];
             end
-
             
             newLocation = locationPoint;
             
             if contains(obj.Location, 'west')
                 newLocation(1) = locationPoint(1) + obj.Margin(1);
             elseif contains(obj.Location, 'east')
-                newLocation(1) = locationPoint(1) - obj.Size(1) - obj.Margin(3);                
+                newLocation(1) = locationPoint(1) - obj.Size(1) - obj.Margin(3);
             end
 
             if contains(obj.Location, 'south')
@@ -538,7 +523,6 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             end
             %drawnow limitrate
         end
-        
     end
     
     methods (Access = protected)
@@ -558,7 +542,6 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             evtData = uim.event.LocationChangedData(oldPosition(1:2), newPosition(1:2));
             obj.notify('LocationChanged', evtData)
         end
-        
     end
     
     methods % Callbacks for listeners on parent container
@@ -574,15 +557,12 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             if mod(i, 2000)==0
                 fprintf('\n\n %%%%%% \n FINISH \n\n %%%%%%\n')
             end
-            
         end
-        
         
         function onParentContainerLocationChanged(obj, src, evt)
             shift = evt.NewLocation - evt.oldLocation;
             obj.Position_(1:2) = obj.Position_(1:2) + shift;
         end
-        
     end
     
     methods % Wrappers for placing matlab components
@@ -610,7 +590,6 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             hContainer = obj.getGraphicsContainer();
             h = axes(hContainer, varargin{:});
         end
-    
     end
     
     methods (Static)
@@ -619,7 +598,6 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             % todo: merge with getLocationPoint method. Should this be a
             % methods of this class or virtual container or hust a
             % utilities function?
-            
             
             locationPoint = [1,1]; % Southwest
             
@@ -652,11 +630,11 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
         
         function varargout = createBoxCoordinates(boxSize, cornerRadius)
         %utilities.createBoxCoordinates Create edgecoordinates for a box
-        % 
-        %   [edgeCoordinates] = utilities.createBoxCoordinates(boxSize) creates 
-        %   edgeCoordinates for a box of size boxSize ([width, height]). This function 
+        %
+        %   [edgeCoordinates] = utilities.createBoxCoordinates(boxSize) creates
+        %   edgeCoordinates for a box of size boxSize ([width, height]). This function
         %   creates edgeCoordinates for each unit length of width and height.
-        %   edgeCoordinates is a nx2 vector of x and y coordinates where 
+        %   edgeCoordinates is a nx2 vector of x and y coordinates where
         %   n = 2 x (height+1) + 2 x (width+1)
         %
         %   [xCoords, yCoords] = createBox(boxSize) returns xCoords and yCoords are
@@ -668,7 +646,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
         %
         %   Name, Value parameters:
         %       nPointsCurvature   : number of corner points to make curved.
-        %   
+        %
         %
         % Coordinates starts in the upper left corner and traverses the box ccw
         %
@@ -693,11 +671,10 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
         
         return
         
-        
-        % More intuitive code, but not symmetric 
+        % More intuitive code, but not symmetric
         % % % [xx, yy] = meshgrid(0:pixelSize(1), 0:pixelSize(2));
         % % % k = boundary(xx(:), yy(:));
-        % % % 
+        % % %
         % % % boxX = flipud( xx(k) );
         % % % boxY = flipud( yy(k) );
 
@@ -718,7 +695,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
                           0:boxSize(2), ...
                           ones(1, boxSize(1)+1) * boxSize(2) );
         end
-        if ~cornerRadius==0      
+        if ~cornerRadius==0
             boxXs = utility.circularsmooth(boxX, round( cornerRadius*2) );
             boxYs = utility.circularsmooth(boxY, round( cornerRadius*2) );
         else
@@ -741,13 +718,6 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
         elseif nargout == 2
             varargout = {boxXs, boxYs};
         end
-        
-        
         end
-
-
     end
-        
-    
-    
 end

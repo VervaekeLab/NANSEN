@@ -18,8 +18,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %
 %     * <strong>FlowregShifts</strong> : Cell array with frameshifts with shifts for each frame
 
-
-
 %   TODO:
 %       [ ] Print command line output
 %       [ ] Implement multiple channel correction
@@ -27,10 +25,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
 %       [ ] Is there time to be saved on calculating shift metrics on
 %           downsampled shift data. Will metrics be quanitatively similar or
-%           not. 
+%           not.
 
 %       [ ] Move shifts to results property of ImageStackProcessor
-
 
     properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Motion Correction (FlowRegistration)'
@@ -56,8 +53,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         CurrentShifts
     end
     
-    
-    methods % Constructor 
+    methods % Constructor
         
         function obj = Processor(varargin)
         %nansen.wrapper.flowreg.Processor Construct flowreg processor
@@ -78,9 +74,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 obj.runMethod()
                 clear obj
             end
-            
         end
-        
     end
     
     methods (Access = protected) % Implementation of abstract, public methods
@@ -176,10 +170,8 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             S = obj.CorrectionStats{i, j};
             
-            
             W = cat(4, obj.CurrentShifts{:});
-            displacement = sqrt( W(:,:,1,:).^2 + W(:,:,2,:).^2 ); 
-            
+            displacement = sqrt( W(:,:,1,:).^2 + W(:,:,2,:).^2 );
 
             meanDisplacement = squeeze(mean(mean(displacement, 1), 2));
             maxDisplacement = squeeze(max(max(displacement, [], 1), [], 2));
@@ -223,7 +215,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             end
 
             % Raw images, reshaped to H x W x nCh x nSamples
-            Y = obj.reshapeImageArray(imArray); 
+            Y = obj.reshapeImageArray(imArray);
             
             % Channel weightings
             weight_2d = getFlowregChannelWeights(Y, options);
@@ -241,10 +233,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             template = squeeze(template);
             
-            if ~options.verbose 
+            if ~options.verbose
                 disp('Finished pre-registration of the reference frames...');
             end
-            
         end
         
         function template = updateTemplate(~, C1, w)
@@ -256,8 +247,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 template(:, :, 2) = mean(...
                     compensate_sequence_uv( double(C1(:, :, 2, end-100:end)), ...
                     mean(double(C1(:, :, 2, :)), 4), w(:, :, :, end-100:end)), 4);
-            end   
-            
+            end
         end
         
         function initializeParameters(obj, imArray)
@@ -265,10 +255,10 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             import nansen.wrapper.flowreg.utility.*
 
             options = obj.ToolboxOptions;
-            initTemplate = obj.CurrentRefImage; 
+            initTemplate = obj.CurrentRefImage;
             
             % Raw images, reshaped to H x W x nCh x nSamples
-            Y = obj.reshapeImageArray(imArray); 
+            Y = obj.reshapeImageArray(imArray);
 
             % Channel weightings
             weight = getFlowregChannelWeights(Y, options);
@@ -292,8 +282,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             obj.CorrectionParams{obj.CurrentPlane} = params;
             
         end
-        
-        
     end
     
     methods (Access = protected) % Run the motion correction / image registration
@@ -320,7 +308,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % What is the difference between cref and cref raw???
             
             % Raw images, reshaped to H x W x nCh x nSamples
-            Y = obj.reshapeImageArray(Y);       
+            Y = obj.reshapeImageArray(Y);
 
             % Channel weightings
             weight = getFlowregChannelWeights(Y, options);
@@ -342,13 +330,11 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 templateOut = template;
             end
             
-            
             obj.CurrentRefImage = templateOut;
             
             % Write reference image to file.
             templateOut = cast(templateOut, obj.SourceStack.DataType);
             obj.DerivedStacks.ReferenceStack.writeFrameSet(templateOut, obj.CurrentPart)
-            
             
             % todo: adapt this for cases where parts are not aligned in
             % sequence (if realigning only a subset of parts)
@@ -362,7 +348,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             obj.CorrectionParams{obj.CurrentPlane} = params;
             
             M = squeeze(M);
-            
             
             % Convert shifts to cell array and add to shiftarray.
             shifts = arrayfun(@(i) shifts(:, :, :, i), 1:size(shifts,4), 'uni', 0);
@@ -379,7 +364,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % c_ref, c_ref_raw, w_init, weight
             
         end
-
     end
     
     methods (Static)
@@ -399,12 +383,11 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             for k = 1:numel(shifts)
                 shifts{k}(:, :, 1, :) = shifts{k}(:, :, 1, :) + offset(1);
                 shifts{k}(:, :, 2, :) = shifts{k}(:, :, 2, :) + offset(2);
-            end  
+            end
         end
-        
     end
     
-    methods (Static) 
+    methods (Static)
         function options = getDefaultOptions()
             import nansen.wrapper.abstract.ToolboxWrapper
             className = mfilename('class');
@@ -423,5 +406,4 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             end
         end
     end
-
 end

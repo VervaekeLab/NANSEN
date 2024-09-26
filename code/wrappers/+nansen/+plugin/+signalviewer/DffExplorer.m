@@ -1,6 +1,5 @@
 classdef DffExplorer < applify.mixin.AppPlugin % signalviewer plugin
     
-    
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false    % Ignore settings file
         DEFAULT_SETTINGS = []           % This class uses an optionsmanager
@@ -34,7 +33,6 @@ classdef DffExplorer < applify.mixin.AppPlugin % signalviewer plugin
         function delete(obj)
             
         end
-        
     end
     
     methods (Access = protected) % Plugin derived methods
@@ -45,7 +43,6 @@ classdef DffExplorer < applify.mixin.AppPlugin % signalviewer plugin
             %m = obj.PrimaryApp.hContextMenu;
             %m = findobj(obj.PrimaryApp.Figure, 'Tag', 'App Context Menu');
             return
-            
             
             % Todo: Check if menu is already added...
             
@@ -59,8 +56,7 @@ classdef DffExplorer < applify.mixin.AppPlugin % signalviewer plugin
             functionName = 'ophys.twophoton.process.signalExtraction.computeDff';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
             obj.settings = obj.OptionsManager.getOptions;
-        end 
-            
+        end
     end
     
     methods (Access = protected)
@@ -75,7 +71,5 @@ classdef DffExplorer < applify.mixin.AppPlugin % signalviewer plugin
             %obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace', {'dff'}, true);
             
         end
-        
     end
-    
 end

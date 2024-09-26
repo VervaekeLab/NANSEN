@@ -1,5 +1,5 @@
 classdef DataLocationType < handle
-%DataLocationType Enumeration of data location types for nansen package  
+%DataLocationType Enumeration of data location types for nansen package
     
     enumeration
         RECORDED('recorded')
@@ -11,11 +11,10 @@ classdef DataLocationType < handle
     properties (SetAccess=immutable)
         Name = ''
         Alias = ''
-        Description char 
+        Description char
         Permission char
         AllowAsDefault logical
     end
-    
     
     methods
         

@@ -13,21 +13,21 @@
 %   hScalebar = scalebar(hParent, __) creates the scalebar in the specified
 %   parent. hParent must be a valid Axes.
 %
-%   hScalebar = scalebar(__, Name, Value, ...)  sets scalebar properties 
+%   hScalebar = scalebar(__, Name, Value, ...)  sets scalebar properties
 %   using one or more name-value pair arguments.
 %
 %
 %   Options (Name-value pairs)
-%       ConversionFactor : Conversion factor (if data units are different 
-%           than scalebar units). For example: If scalebar units is in mm 
-%           and 150 pixels of an image corresponds to 1 mm, 
+%       ConversionFactor : Conversion factor (if data units are different
+%           than scalebar units). For example: If scalebar units is in mm
+%           and 150 pixels of an image corresponds to 1 mm,
 %           ConversionFactor should be 150. (pix/mm)
-%       Location      : northwest, southeast, southwestoutside etc 
+%       Location      : northwest, southeast, southwestoutside etc
 %       Color         : Color of scalebar line and text
 %       LineWidth     : Width of scalebar line
 %       Margin        : Pixel units of offset from corner of axes.
-%       + FontSize, FontWeight, FontName etc. 
-%       
+%       + FontSize, FontWeight, FontName etc.
+%
 %       type open scalebar in matlabs command window to see all public
 %       properties of the scalebar.
 %
@@ -35,19 +35,18 @@
 %   EXAMPLE:
 %     f = figure();
 %     hAx = axes(f);
-% 
+%
 %     imshow('cell.tif', 'Parent', hAx);
-% 
+%
 %     pixPerUm = 5;
 %     scalebarLength = 10  % scalebar will be 10 micrometer long
 %     label = sprintf('%sm', '\mu'); % micrometer
-%     
+%
 %     hScalebar = scalebar(hAx, 'x', scalebarLength, label, 'Location', 'southeast', ...
 %         'ConversionFactor', pixPerUm);
-% 
+%
 %     % Change color of scalebar
 %     hScalebar.Color = 'w';
-
 
 % Todo:
 %   [ ] Position + units property?
@@ -57,7 +56,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
 %SCALEBAR Add scalebar to axes
 
     properties
-        Axis = 'x'            % Axis to place scalebar ('x' or 'y')   
+        Axis = 'x'            % Axis to place scalebar ('x' or 'y')
         ScalebarLength = nan  % Length of scalebar in "physical" units
         UnitLabel = ''        % Unit label, ie 'um'
         
@@ -69,7 +68,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
         AutoAdjustScalebarLength = false;
         AutoScalebarLength = 20; % In percentage of axes size...
         
-        Location = 'southeastoutside'  % northwest, southeast, southwestoutside etc 
+        Location = 'southeastoutside'  % northwest, southeast, southwestoutside etc
         Color = 'k'             % Color specification for line and text
         LineWidth = 1           % Width of scalebar
         
@@ -88,13 +87,13 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
     
     properties (Access = private)
         hAxes               % Handle for the axes
-        hScalebarLine       % Handle for the scalebar's line 
+        hScalebarLine       % Handle for the scalebar's line
         hScalebarText       % Handle for the scalebar's text label
         ContextMenu         % Handle for scalebar's contextmenu
         
         IsConstructed = false
         
-        MarginNorm          % Margins in normalized units   
+        MarginNorm          % Margins in normalized units
         ScalebarLengthDu    % Length of scalebar in data units
         AxesSizePixels      % Size of axes in pixels
     end
@@ -116,11 +115,11 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
         %
         %   hScalebar = scalebar() creates a scalebar in the current axes
         %
-        %   hScalebar = scalebar(axis) creates a scalebar on the specified 
+        %   hScalebar = scalebar(axis) creates a scalebar on the specified
         %   axis. Axis can be 'x' or 'y'. Default is 'x'.
             
             % Check for axes
-            varargin = obj.checkArgs(varargin);            
+            varargin = obj.checkArgs(varargin);
             
             % Set default style properties from preferences
             nvPairs = prefs2props();
@@ -141,13 +140,13 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             % Configure placement
             updateAxesSizePixel(obj)
             assignScalebarLength(obj)
-            calculateMarginDataUnits(obj)    
+            calculateMarginDataUnits(obj)
 
             % Plot scalebar
             obj.plotScalebar()
             obj.plotTextLabel()
             
-            % Create contextmenu 
+            % Create contextmenu
             obj.createContextMenu()
             obj.createListeners()
             
@@ -156,7 +155,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             if ~isHoldOn
                 hold(obj.hAxes, 'off')
             end
-            
         end
         
         function delete(obj)
@@ -230,20 +228,20 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
         end
         
         function set.FontName(obj, newValue)
-            obj.onFontNameChanged(newValue) 
+            obj.onFontNameChanged(newValue)
             % Only set prop value if above does not fail
             obj.FontName = newValue;
         end
         
         function set.FontSize(obj, newValue)
-            obj.onFontSizeChanged(newValue) 
+            obj.onFontSizeChanged(newValue)
             % Only set prop value if above does not fail
             obj.FontSize = newValue;
             obj.updateContextMenu('Font Size')
         end
         
         function set.FontWeight(obj, newValue)
-             obj.onFontWeightChanged(newValue) 
+             obj.onFontWeightChanged(newValue)
             % Only set prop value if above does not fail
             obj.FontWeight = newValue;
         end
@@ -258,7 +256,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             obj.Margin = newValue;
             obj.updatePosition()
         end
-        
     end
     
     methods (Access = private) % Config & creation
@@ -273,7 +270,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                 case 'y'
                     obj.ScalebarLengthDu = [0, n * obj.ConversionFactor];
             end
-            
         end
         
         function [xSign, ySign] = configurePositionDirection(obj)
@@ -290,7 +286,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                         xSign = -1;
                 end
             end
-            
         end
         
         function calculateMarginDataUnits(obj)
@@ -299,7 +294,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             % units are normalized and figure units are pixels....
             obj.updateAxesSizePixel()
             obj.MarginNorm = obj.Margin ./ obj.AxesSizePixels;
-        end 
+        end
         
         function updateAxesSizePixel(obj)
             
@@ -340,7 +335,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             xData = double(xData);
         end
         
-        function yData = calculateYData(obj) 
+        function yData = calculateYData(obj)
             
             yLim = obj.hAxes.YLim;
             yLimRange = max(yLim) - min(yLim);
@@ -376,7 +371,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                 ySign = -ySign;
             end
             
-            
             [~, vert] = getTextAlignment(obj);
             yOffset = obj.TextSpacing + obj.LineWidth/2;
             yOffset = (max(yLim)-min(yLim)) * (yOffset/obj.AxesSizePixels(2)) * ySign;
@@ -389,7 +383,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                 yOffset = -1 * yOffset;
             end
             
-            
             % Calculate text coordinates and set alignment of text.
             switch obj.Axis
                 case 'x'
@@ -401,9 +394,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             if strcmp(obj.hAxes.YDir, 'reverse')
                 %txtPos.y = yLim(2) - (txtPos.y - yLim(1));
             end
-            
-            
-            
         end
         
         function textLabel = getTextLabel(obj) % todo: dependent?
@@ -424,7 +414,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             else
                 textLabel = sprintf('%.3f %s', n, unitLabel);
             end
-
         end
         
         function [horz, vert] = getTextAlignment(obj)
@@ -442,7 +431,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                             'northeastoutside', 'northwest' }))
                         vert = 'top';
                     end
-            end 
+            end
             
             % Todo: X:  north: text under line. South: text over line
             % Todo: y:  west: text right of line. east: text left of line
@@ -496,7 +485,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             if strcmp(obj.Axis, 'y')
                 obj.hScalebarText.Rotation = 90;
             end
-            
         end
         
         function createContextMenu(obj)
@@ -583,7 +571,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                     set(menuSubItem(isMatched), 'Checked', 'on')
                 
             end
-            
         end
         
         function createListeners(obj)
@@ -608,7 +595,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                 delete(obj.LimitsChangedListener)
             end
         end
-        
     end
     
     methods (Access = private) % Internal updating
@@ -627,11 +613,11 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             end
             
             % If axes was not assigned, get the current axes.
-            if isempty(obj.hAxes) 
+            if isempty(obj.hAxes)
                 obj.hAxes = gca;
             end
             
-            % Check if first argument is axis 
+            % Check if first argument is axis
             if numel(args) >= 1 && ischar(args{1}) && ...
                     any( strcmp({'x', 'y'}, args{1}) )
                 obj.Axis = args{1};
@@ -651,7 +637,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                     args(1) = [];
                 end
             end
-            
         end
         
         function assignPVPairs(obj, varargin)
@@ -664,7 +649,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                 else
                     warning('Could not set the parameter "%s" for %s', thisName, class(obj))
                 end
-            end           
+            end
         end
         
         function onColorSet(obj, newValue)
@@ -803,7 +788,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             obj.ScalebarLength = scalebarLengthRu_;
             
         end
-        
     end
     
     methods
@@ -834,7 +818,6 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
                 src.Checked = 'on';
                 obj.autoAdjustScalebarLength()
             end
-            
         end
         
         function setLineWidth(obj, lineWidth)
@@ -849,7 +832,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             c = uisetcolor('Select scalebar color');
             if isequal( c, 0)
                 return % User canceled
-            else 
+            else
                 obj.Color = c;
             end
         end
@@ -859,18 +842,16 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             opts = uisetfont(obj.hScalebarText);
             if isequal( opts, 0)
                 return % User canceled
-            else 
+            else
                 obj.FontWeight = opts.FontWeight;
                 obj.FontSize = opts.FontSize;
                 obj.FontName = opts.FontName;
             end
-            
         end
         
         function setLocation(obj, newLocation)
             obj.Location = newLocation;
         end
-        
     end
     
     methods (Static)
@@ -882,16 +863,14 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             testScalebar()
         end
     end
-
 end
 
 function [nvPairs, varargin] = getnvpairs(varargin)
 %getnvpairs Get name value pairs from a list of input arguments
 %
 %   [nvPairs, varargin] = getnvpairs(varargin)
-
     
-    if numel(varargin)==1 && iscell(varargin{1}) 
+    if numel(varargin)==1 && iscell(varargin{1})
         % Assume varargin is passed on directly and need to be unpacked
         varargin = varargin{1};
     end
@@ -908,9 +887,7 @@ function [nvPairs, varargin] = getnvpairs(varargin)
         else
             break
         end
-        
     end
-        
 end
 
 function props2prefs(obj)
@@ -921,7 +898,6 @@ function props2prefs(obj)
     for i = 1:numel(propNames)
         setpref(groupName, propNames{i}, obj.(propNames{i}))
     end
-    
 end
 
 function nvPairs = prefs2props()
@@ -981,5 +957,4 @@ function testScalebar()
             end
         end
     end
-
 end

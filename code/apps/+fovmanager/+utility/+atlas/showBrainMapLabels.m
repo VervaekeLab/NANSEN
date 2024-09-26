@@ -1,10 +1,8 @@
 function hText = showBrainMapLabels(hAxes, leftOrRight, varargin)
 
-
 % % % Note: LabelDetails is not implemented
 % % param = struct('LabelDetails', 'fine'); % fine or coarse
 % % param = parsenvpairs(param, [], varargin);
-
 
 if nargin < 1
     tmpFig = brainmap.paxinos.open();
@@ -18,7 +16,6 @@ else
     h = findobj(hAxes, 'Type', 'Polygon');
 end
 
-
 xLimOrig = getappdata(hAxes, 'XLimOrig');
 yLimOrig = getappdata(hAxes, 'YLimOrig');
 
@@ -28,17 +25,14 @@ yMin = yLimOrig(1);
 xRange = range( xLimOrig );
 yRange = range( yLimOrig );
 
-
 m = 100; % Magnification?
 regionAreaMax = 40675;
-
 
 hText = gobjects(size(h));
 count = 0;
 
 for i = 1:numel(h)
     if ~isempty(h(i).Tag)
-       
        
         % Find center of mass for placement of text.
         edge = h(i).Shape.Vertices;
@@ -71,7 +65,6 @@ for i = 1:numel(h)
         count = count+1;
         hText(count) = text(hAxes, pos(1), pos(2), h(i).Tag, 'HorizontalAlignment', 'center', 'Color', ones(1,3)*0.2, 'FontSize', 8 + round(6*regionArea./regionAreaMax));
     end
-       
 end
 
 if nargout
@@ -79,6 +72,5 @@ if nargout
 end
 
 %if nargin < 1; close(tmpFig); end
-
 
 end

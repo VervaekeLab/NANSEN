@@ -4,7 +4,7 @@ function hFigure = openAtlas(varargin)
 %   hFigure = fovmanager.view.openAtlas() opens the figure and returns the
 %   figure handle
 
-%   Todo: add saggittal maps. 
+%   Todo: add saggittal maps.
 %   Add lambda and bregma
 %
 
@@ -14,13 +14,11 @@ function hFigure = openAtlas(varargin)
 
     param = struct();
     param.AtlasName = 'paxinos'; % allen is not implemented yet
-
     
     if ~isempty(varargin) && isa(varargin{1}, 'char')
         validatestring(varargin{1}, {'Visible', 'Invisible'}, ...
             'First argument must be either Visible or Invisible');
     end
-
       
     % Version were we are agnostic to package name
     pkgFolderPath = utility.path.getAncestorDir( mfilename('fullpath'), 2);
@@ -29,12 +27,10 @@ function hFigure = openAtlas(varargin)
     % Version were we know package name but local path is centrally hardcoded.
     atlasFolderPath = fovmanager.localpath( 'brain_atlas' );
     
-    
     loadPath = fullfile(atlasFolderPath, param.AtlasName, 'dorsal_map.fig');
     hFigure = openfig(loadPath, varargin{:});
 
     if ~nargout
         clear hFigure
     end
-    
 end

@@ -44,11 +44,7 @@ function assert(keyword)
         exception = MException(errID, msg);
         throwAsCaller(exception)
     end
-
 end
-
-
-
 
 % Local functions...
 function [tf, exception] = assertToolboxInstalled(keyword)
@@ -81,7 +77,4 @@ function [tf, exception] = assertToolboxInstalled(keyword)
         
         exception = MException(errID, msg);
     end
-
 end
-
-

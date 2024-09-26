@@ -4,31 +4,28 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
 %   Abstract class for creation of virtual data adapters for files
 %   containing ImageStack data.
 %
-%   
-%   
+%
+%
 
-
-% Note: 
+% Note:
 %   Since data is stored in one way, and the virtual array allows data to
 %   be represented in a different way, this class is a bit complex. Some
 %   issues that might be developed in a clearer way is the caching of data,
 %   and how it is returned...
-%   
-%   When subsrefing a virtual array (through the superclass, 
+%
+%   When subsrefing a virtual array (through the superclass,
 %   nansen.stack.data.abstract.ImageStackData) the data is added to the
 %   cache in the getData/getDataUsingCache methods of this class, so before
-%   data is permuted and output to the user. 
+%   data is permuted and output to the user.
 %
 %   Therefore, in the methods, getCachedFrames and getStaticCache data is
 %   also permuted before outputting. This is important to be aware if using
 %   these methods or creating new methods for outputting data.
 
-
-% Todo: 
+% Todo:
 %   [ ] Get data should call method readFrames instead of method
 %       readData??? Or need to add both readData and readFrames as abstract
 %       methods.
-
 
     properties (Abstract, Constant, Hidden)
         FILE_PERMISSION char % File access permission ('read' or 'write')
@@ -73,7 +70,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         DynamicCacheChanged
         StaticCacheChanged
     end
-    
     
     methods (Abstract, Access = protected)
         
@@ -120,7 +116,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             obj.parseInputs(nvPairs{:})
             
             % Make sure transient is turned off if existing stack was
-            % opened (In case property was set to true using name-value pairs). 
+            % opened (In case property was set to true using name-value pairs).
             if obj.IsTransient && strcmp(obj.FileAccessMode, 'open')
                 obj.IsTransient = false;
             end
@@ -144,11 +140,10 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             if obj.UseDynamicCache
                 obj.initializeDynamicFrameCache()
             end
-            
         end
         
         function delete(obj)
-        %delete Delete VirtualArray object.        
+        %delete Delete VirtualArray object.
             
             obj.writeMetadata() % Save metadata
 
@@ -157,7 +152,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 delete( obj.FilePath )
             end
         end
-        
     end
     
     methods % Set methods for properties
@@ -187,7 +181,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         function cacheRange = get.StaticCacheRange(obj)
             cacheRange = obj.StaticFrameCache.CacheRange;
         end
-
     end
     
     methods % Methods for reading/writing data; subclasses can override
@@ -197,13 +190,13 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         %
         %   INPTUS
         %       obj  : virtual array object
-        %       subs : subscripts with indices of which elements to read 
+        %       subs : subscripts with indices of which elements to read
         %              for each dimension of the stack. subscripts should
         %              match the data dimension arrangement of the data.
         %              Subscripts are a cell array according to the "()"
         %              subscripts type, or "indexing by position"
         %
-        %   OUTPUT: 
+        %   OUTPUT:
         %       data : data which is read from file. Data should match the
         %              subscripts.
             
@@ -234,13 +227,13 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         %
         %   The default behavior of writeData for the virtual array is to
         %   assume that subclasses implement a writeFrameSet method, where
-        %   data is provided as full frames (i.e. it is not possible to 
+        %   data is provided as full frames (i.e. it is not possible to
         %   write cropped data to the files).
         %
         %   Subclasses where it is possible to write cropped data should
         %   override the writeData method.
             
-        %   Todo: This should also work with deinterleaved data, or if 
+        %   Todo: This should also work with deinterleaved data, or if
         %   writing a subset of channels and/or planes.
         
             % Check that data has a valid frame size (i.e not cropped)
@@ -307,7 +300,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function initializeMetaData(obj, varargin)
-        %initializeMetaData Initialize metadata for imagestack data    
+        %initializeMetaData Initialize metadata for imagestack data
             if strcmp(obj.FILE_PERMISSION, 'write')
                 obj.MetaData = nansen.stack.metadata.StackMetadata(obj.FilePath);
             else
@@ -316,7 +309,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function updateMetadata(obj)
-        %updateMetadata General update of metadata after initialization    
+        %updateMetadata General update of metadata after initialization
             
             % Add the DataSize if MetaData.Size is empty.
             if isempty(obj.MetaData.Size)
@@ -328,7 +321,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             end
             
             % The size of the data will be configured on the obj and the
-            % length of individual dimensions are retrieved from the 
+            % length of individual dimensions are retrieved from the
             % getDimLength method:
             obj.MetaData.SizeX = obj.getDimLength('X');
             obj.MetaData.SizeY = obj.getDimLength('Y');
@@ -350,18 +343,18 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         
         function data = getData(obj, subs)
         %getData Get data corresponding to provided subs.
-        %        
+        %
         %   Implementation of superclass method.
         %
         %   INPTUS
         %       obj  : virtual array object
-        %       subs : subscripts with indices of which elements to read 
+        %       subs : subscripts with indices of which elements to read
         %              for each dimension of the stack. subscripts should
         %              match the data dimension arrangement of the data.
         %              Subscripts are a cell array according to the "()"
         %              subscripts type, or "indexing by position"
         %
-        %   OUTPUT: 
+        %   OUTPUT:
         %       data : indexed data. Data should match the subscripts.
         
             % Are any of these frames found in the cache?
@@ -370,7 +363,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             else
                 data = obj.readData(subs);
             end
-            
         end
         
         function setData(obj, subs, data)
@@ -385,7 +377,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             else
                 obj.writeData(subs, data);
             end
-            
         end
         
         function data = getLinearizedData(obj)
@@ -393,7 +384,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function data = cropData(obj, data, subs)
-        %cropData Crops data along x- and/or y-dimension    
+        %cropData Crops data along x- and/or y-dimension
 
             dimX = obj.getDataDimensionNumber('X');
             dimY = obj.getDataDimensionNumber('Y');
@@ -411,7 +402,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             if ~isColon && doCrop
                 data = data(cropSubs{:});
             end
-            
         end
         
         function subs = frameind2subs(obj, frameInd)
@@ -425,7 +415,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             subs(1:end-1) = {':'};
             subs{end} = frameInd;
         end
-        
     end
     
     methods (Access = protected, Sealed)
@@ -457,7 +446,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             obj.DataSize = dataSize(~isSingleton_);
             obj.DataDimensionArrangement = dataDimensionArrangement(~isSingleton_);
         end
-        
     end
     
     methods (Access = private, Sealed)
@@ -481,7 +469,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             dataType = obj.DataType;
             
             % Return if this is empty. Object is not properly constructed yet.
-            if isempty(dataType); return; end 
+            if isempty(dataType); return; end
                               
             cacheLength = obj.DynamicCacheSize;
   
@@ -514,11 +502,11 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             % without worrying whether previously cached data were not
             % complete along all dimensions...
             
-            % Note3: Data is indexed before return statement, in order to 
+            % Note3: Data is indexed before return statement, in order to
             % match the subscripts of the input.
             
             sampleDim = obj.getFrameIndexingDimension();
-            frameIndices = subs{sampleDim};            
+            frameIndices = subs{sampleDim};
 
             % Get data from static or dynamic cache
             if ~isempty(obj.StaticFrameCache) && obj.UseDynamicCache
@@ -539,7 +527,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 [cachedData, hitInd] = deal([]);
                 missInd = frameIndices;
                 warning('This condition should not occur...')
-            end      
+            end
             
             % Todo: What if data is in different order....
             if isequal(hitInd, frameIndices)
@@ -549,7 +537,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
                 return
             end
             
-            % Get all data (uncropped) for missing frames. Crop after 
+            % Get all data (uncropped) for missing frames. Crop after
             % submitting to cache (if necessary)
             if ~isempty(missInd)
                 tmpSubs = repmat({':'}, 1, ndims(obj));
@@ -597,7 +585,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             if ~all(cellfun(@(sub) iscolon(sub), tmpSubs))
                 data = data(tmpSubs{:}) ;
             end
-            
         end
         
         function cacheSubs = getCacheSubs(obj, subs)
@@ -607,7 +594,6 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             for i = 1:numel(cacheSubs)
                 
             end
-            
         end
     end
     
@@ -684,7 +670,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
         end
         
         function onCacheSizeChanged(obj)
-        %onCacheSizeChanged Callback if cache size changes.    
+        %onCacheSizeChanged Callback if cache size changes.
             if obj.UseDynamicCache && ~isempty(obj.DynamicFrameCache)
                 obj.DynamicFrameCache.CacheLength = obj.DynamicCacheSize;
             end
@@ -699,9 +685,7 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             else
                 obj.disableDynamicFrameCache()
             end
-            
         end
-    
     end
     
     methods (Static)
@@ -710,7 +694,5 @@ classdef VirtualArray < nansen.stack.data.abstract.ImageStackData
             error('No method is defined for creating new files for %s', 'N/A')
             %Todo: get name of caller...
         end
-       
     end
-    
 end

@@ -33,7 +33,6 @@ function S = getThemeColors(themeName)
             S.FigureBgColor =  ones(1,3)*0.94;
             S.FigureFgColor = S.HeaderBgColor;
             
-            
             S.TableTheme = uim.style.tableLight;
             
             S.FigureBackgroundColor = ones(1,3)*0.94;
@@ -58,7 +57,6 @@ function S = getThemeColors(themeName)
             
             S.TableTheme = uim.style.tableLight;
 
-
         case 'green'
             S.HeaderBgColor = [48,76,62]/255;
             S.HeaderMidColor = [74,99,86]/255;
@@ -69,7 +67,6 @@ function S = getThemeColors(themeName)
             S.ControlPanelsBgColor = [1,1,1];
             
             S.TableTheme = uim.style.tableLight;
-
 
         case 'orange'
 
@@ -105,5 +102,4 @@ function S = getThemeColors(themeName)
             S.ToolbarDarkMode = 'on';
             
     end
-    
 end

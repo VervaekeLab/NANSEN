@@ -2,7 +2,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
 %FoV is a class for registering field of view on a brain surface map
 
 % Save roi coordinates in this database? Why not. Match with uids then...
-% Save current session as sessionID, number or duplicate of struct from 
+% Save current session as sessionID, number or duplicate of struct from
 % list of sessions?
 
 % Resolve this...
@@ -10,7 +10,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
 % assigned here....?
 
 % Add displaymessage when adding sessions...
-% Should the add session be a method of the gui??? 
+% Should the add session be a method of the gui???
 % yes and no... Benefit of having it on the Fov is that it automatically
 % ends up in the right fov.... But anyway, the fov has to be selected, and
 % that happens in the gui....
@@ -30,27 +30,24 @@ classdef FoV < fovmanager.mapobject.BaseObject
 
     end
     
-    
     properties (Transient)
        boundaryWidth = 1;
        boundaryColor = 'k';
     end
-    
    
     methods
-        
 
 % % % % Functions for adding fov image
         
-        function obj = FoV(varargin) 
+        function obj = FoV(varargin)
         % Initialize FoV
-        %             
-        %   FoV(fovmanager, centerPosition, size) creates a new FoV in the 
+        %
+        %   FoV(fovmanager, centerPosition, size) creates a new FoV in the
         %   FoV manager.
         %
         %   FoV(fovmanager, S) where S is a struct of FoV properties will
         %   recreate an already existing FoV.
-        %   
+        %
         %   FoV(S) creates a FoV object, but does not do any plotting.
         
             if isa(varargin{1}, 'fovmanager.App')
@@ -69,7 +66,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 validateattributes(varargin{1}, {'numeric'}, {'numel', 2})
                 centerPosition = varargin{1};
                 
-                % Assume 2nd argument is a size 
+                % Assume 2nd argument is a size
                 validateattributes(varargin{2}, {'numeric'}, {'nonzero'})
                 fovSize = varargin{2};
                 if numel(fovSize) == 1
@@ -85,15 +82,13 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 varargin = varargin(3:end);
             end
             
-            
             % Set orientation if given as optional input.
-            if ~isempty(varargin) 
+            if ~isempty(varargin)
                 if contains('orientation', varargin(1:2:end))
                     vInd = find(contains(varargin(1:2:end), 'orientation'));
                     obj.orientation = varargin{(vInd-1)*2+2};
                 end
             end
-            
 
             % % % % Temp during transition where list of session is changed
             % from sessionID to struct
@@ -103,9 +98,8 @@ classdef FoV < fovmanager.mapobject.BaseObject
                     S(i).sessionID = obj.listOfSessions{i};
                 end
                 obj.listOfSessions = S;
-                obj.currentSession = obj.listOfSessions(1).sessionID; 
+                obj.currentSession = obj.listOfSessions(1).sessionID;
             end
-            
             
             % Plot fov edges and show image if present.
             if exist('fmHandle', 'var')
@@ -115,10 +109,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 obj.guiHandle = hggroup(hAx);
                 obj.plotBoundary()
             end
-            
-            
         end
-        
         
         function displayName = getDisplayName(obj, keyword) %#ok<MANU>
             
@@ -131,14 +122,11 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 otherwise
                     displayName = 'Fov';
             end
-            
         end
-        
         
         function infoText = getInfoText(obj)
             
             infoText = '';
-            
             
             if ~isempty(obj.currentSession)
                 infoText = sprintf('Session ID: %s\n', strrep(obj.currentSession, '_', '-'));
@@ -162,16 +150,14 @@ classdef FoV < fovmanager.mapobject.BaseObject
 %             hTxt.String = infoText;
         end
         
-        
         function fromStruct(obj, S)
             fromStruct@fovmanager.mapobject.BaseObject(obj, S)
             
             % Fix some unexpected name changes....
             if isfield(S, 'fovImage')
                 obj.image = S.fovImage;
-            end 
+            end
         end
-        
         
         function set.boundaryColor(obj, color)
             h = findobj(obj.guiHandle, '-regexp', 'Tag', 'Outline');
@@ -179,13 +165,11 @@ classdef FoV < fovmanager.mapobject.BaseObject
             obj.boundaryColor = color;
         end
         
-        
         function set.boundaryWidth(obj, width)
             h = findobj(obj.guiHandle, '-regexp', 'Tag', 'Outline');
             h.LineWidth = width;
             obj.boundaryWidth = width;
         end
-        
         
         function hIm = showImage(obj)
             hIm = obj.updateImage();
@@ -196,7 +180,6 @@ classdef FoV < fovmanager.mapobject.BaseObject
 
         function addSessionObject(obj, sessionObjects)
             % Todo: merge with addSessions Method
-            
             
             if isempty(obj.listOfSessions); obj.listOfSessions = []; end
             
@@ -211,12 +194,10 @@ classdef FoV < fovmanager.mapobject.BaseObject
             [~, indSorted] = sort({obj.listOfSessions.sessionID});
             obj.listOfSessions = obj.listOfSessions(indSorted);
             
-            
             % Update menu...
             obj.updateSessionContextSubmenu()
             
         end
-
 
         function addSession(obj, sessionIDs)
             
@@ -242,7 +223,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 end
                 
                 % Skip session if it is not a valid sessionID
-                if ~isequal(strfindsid(sessionIDs{i}), sessionIDs{i}) 
+                if ~isequal(strfindsid(sessionIDs{i}), sessionIDs{i})
                     warning('Invalid sessionID; %s. Session not added.', sessionIDs{i});
                     continue;
                 end
@@ -266,13 +247,10 @@ classdef FoV < fovmanager.mapobject.BaseObject
             [~, indSorted] = sort({obj.listOfSessions.sessionID});
             obj.listOfSessions = obj.listOfSessions(indSorted);
             
-            
             % Update menu...
             obj.updateSessionContextSubmenu()
             
-            
         end
-        
         
         function removeSession(obj, sessionIDs)
             
@@ -297,7 +275,6 @@ classdef FoV < fovmanager.mapobject.BaseObject
             obj.updateSessionContextSubmenu()
             
         end
-        
 
         function tf = containsSession(obj, sessionID)
             
@@ -311,9 +288,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
             for i = 1:numel(sessionID)
                 tf(i) = contains(sessionID(i), {obj.listOfSessions.sessionID});
             end
-
         end
-        
         
         function changeSession(obj, sessionID)
         
@@ -348,7 +323,6 @@ classdef FoV < fovmanager.mapobject.BaseObject
             
         end
         
-        
         function updateSessionContextSubmenu(obj, menuHandle)
             
             if nargin < 2
@@ -372,14 +346,11 @@ classdef FoV < fovmanager.mapobject.BaseObject
 
             menuHandle.Enable = 'on';
             
-            
             if isempty(obj.listOfSessions)
                 tmpHandle = findobj(obj.guiHandle.UIContextMenu, 'Text', 'Show Rois');
                 set(tmpHandle, 'Enable', 'off')
             end
-            
         end
-        
         
 % % % % Methods for plotting rois
 
@@ -396,9 +367,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
                     hRois.Visible = 'off';
                     src.Text = 'Show Rois';
             end
-            
         end
-            
 
         function mapCoords = getRoiMapCoordinates(obj, sInd, sId)
             
@@ -448,7 +417,6 @@ classdef FoV < fovmanager.mapobject.BaseObject
             
         end
         
-        
         function hRois = plotRois(obj)
             
             mapCoords = obj.getRoiMapCoordinates();
@@ -462,7 +430,6 @@ classdef FoV < fovmanager.mapobject.BaseObject
             hRois.Tag = 'Roi Centers';
 
         end
-        
         
 % % % % Context menu on the gui object in fov manager
 
@@ -479,7 +446,6 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 mitem = uimenu(m, 'Text', 'Add Fov Image...');
             end
             mitem.Callback = @(src, event) obj.addImage();
-
             
             mitem = uimenu(m, 'Text', 'Show Fov Image');
             mitem.Callback = @obj.toggleShowHideImage;
@@ -495,7 +461,6 @@ classdef FoV < fovmanager.mapobject.BaseObject
             mitem = uimenu(m, 'Text', 'Remove Session from FoV');
             mitem.Callback = @(src, event) fmHandle.removeSession;
             
-            
             mitem = uimenu(m, 'Text', 'Set Current Session');
             
             if ~isempty(obj.listOfSessions)
@@ -504,13 +469,11 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 mitem.Enable = 'off';
             end
             
-            
             mitem = uimenu(m, 'Text', 'Show Rois', 'Separator', 'on');
             if isempty(obj.listOfSessions)
                 mitem.Enable = 'off';
             end
             mitem.Callback = @obj.toggleShowHideRois;
-
             
             if obj.isMovable
                 mitem = uimenu(m, 'Text', 'Lock Position', 'Separator', 'on');
@@ -525,11 +488,9 @@ classdef FoV < fovmanager.mapobject.BaseObject
             mitem = uimenu(m, 'Text', 'Delete FoV', 'Separator', 'on');
             mitem.Callback = @obj.requestdelete;
             
-            
             obj.guiHandle.UIContextMenu = m;
             
         end
-        
              
         function move(obj, shift, forceMove, updateInfo)
         %move Move a fov on the map.
@@ -551,10 +512,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 obj.updateInfo()
             end
         end
-        
-        
     end
-    
     
     methods (Access = protected)
     
@@ -574,15 +532,10 @@ classdef FoV < fovmanager.mapobject.BaseObject
                  
                 obj.edge = [xCoords', yCoords'];
             end
-            
-            
         end
-        
     end
         
-        
     methods (Static)
-       
         
         function fovSize = getSize()
             % Get fov size in micrometer based on user input.
@@ -638,11 +591,6 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 % Calculate Fov size
                 fovSize = 1000 / zoomFactor; % in micrometer
             end
-            
         end
-        
-        
     end
- 
-    
 end

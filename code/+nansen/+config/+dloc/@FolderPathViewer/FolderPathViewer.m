@@ -1,9 +1,9 @@
 classdef FolderPathViewer < applify.HasTheme
 %FolderPathViewer Show a list of folderpaths in a table
 %
-% See also nansen.config.dloc.FolderOrganizationUI   
+% See also nansen.config.dloc.FolderOrganizationUI
 
-%   Todo: 
+%   Todo:
 %       [ ] Add a refresh button
 %       [ ] Add togglebutton for table view and list view
 %       [ ] Develop table view. Number, FolderA, FolderB etc, relative path, absolute path
@@ -53,7 +53,6 @@ classdef FolderPathViewer < applify.HasTheme
                 delete(obj.Figure)
             end
         end
-        
     end
     
     methods % Set/get methods
@@ -114,7 +113,6 @@ classdef FolderPathViewer < applify.HasTheme
             obj.UILabelHeader.String = msg;
             obj.UILabelHeader.Position = [10, 10, obj.UIPanelHeader.Position(3:4)-20];
             obj.UILabelHeader.FontSize = 14;
-
             
         end
         
@@ -138,7 +136,7 @@ classdef FolderPathViewer < applify.HasTheme
         end
         
         function placeFigure(obj)
-        %placeFigure Place figure on screen 
+        %placeFigure Place figure on screen
             
             if isempty(obj.ReferenceFigure); return; end
             
@@ -176,13 +174,12 @@ classdef FolderPathViewer < applify.HasTheme
             obj.UILabelHeader.Position = [10, 10, obj.UIPanelHeader.Position(3:4)-20];
 
         end
-        
     end
     
     methods (Access = protected)
         
         function onThemeChanged(obj)
-        %onThemeChanged Callback for value change on Theme property 
+        %onThemeChanged Callback for value change on Theme property
         %
         %   % Set colors for components.
         
@@ -197,7 +194,5 @@ classdef FolderPathViewer < applify.HasTheme
         function onVisibleChanged(obj)
             obj.Figure.Visible = obj.Visible;
         end
-        
     end
-    
 end

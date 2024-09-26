@@ -9,6 +9,4 @@ classdef ToggleEvent < event.EventData
            obj.Value = value;
        end
    end
-   
 end
-

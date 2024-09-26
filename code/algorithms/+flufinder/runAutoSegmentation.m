@@ -23,7 +23,6 @@ function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
     summary = struct;
     summary.MeanImageOriginal = mean(imArray, 3);
     
-    
     % % Preprocess image data
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fprintf('Preprocessing image data...\n')
@@ -31,12 +30,10 @@ function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
     
     summary.MeanImageProcessed = mean(imArray, 3);
     
-    
     % % Binarize image data
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fprintf('Binarizing image data...\n')
     BW = flufinder.module.binarizeImages(imArray, params);
-
     
     % % Detect binary components based on brightness values of pixels
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -44,7 +41,6 @@ function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
     
     S = flufinder.detect.getBwComponentStats(BW, params);
     roiArrayT = flufinder.detect.findUniqueRoisFromComponents(imageSize, S);
-        
     
     % % Improve estimates of rois which were detected based on activity
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -52,17 +48,15 @@ function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
 
 % % %     fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
 % % %     [fMean, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
-% % %     
+% % %
 % % %     % get images:
 % % % %     roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
 % % % %        'ImageType', {'Activity Weighted Mean', 'Local Correlation'});
 % % %     roiImages = computeRoiImages(imArray, roiArrayT, fMean, ...
 % % %         'ImageType', 'Activity Weighted Mean');
-% % % 
-% % %     
+% % %
+% % %
 % % %     roiArrayT = flufinder.module.improveRoiMasks(roiArrayT, roiImages);
-    
-    
     
     % % Detect rois from a shape-based kernel convolution
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -77,8 +71,6 @@ function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
         roiArray = roiArrayT;
     end
     
-    
-    
     %roiArrayS = roimanager.utilities.removeRoisOnBoundary(roiArrayS);
 
     % Remove small rois:
@@ -86,13 +78,10 @@ function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
 % %     keep = areas > 50 & areas < 200;
 % %     roiArray = roiArray(keep);
     
-    
-    
     % % Display elapsed time and number of rois detected.
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     fprintf('Autosegmentation finished. Found %d rois in %d seconds.\n', ...
         numel(roiArray), round(toc(tBegin)) )
-    
     
     if nargout == 1
         clear summary

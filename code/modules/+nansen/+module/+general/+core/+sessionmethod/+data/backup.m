@@ -3,32 +3,31 @@ function varargout = backup(sessionObject, varargin)
 %
 %   backup(sessionObject) backs up data for the selected data location.
 
-% Todo: 
+% Todo:
 %   [ ] Add mirror mode. (I.e delete files in target that are missing )
 %   [ ] List all files in target
 %   [ ] Delete files that are not present in list of files in source
 
 import nansen.session.SessionMethod
 
-% % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % % 
-% Create a struct of default parameters (if applicable) and specify one or 
-% more attributes (see nansen.session.SessionMethod.setAttributes) for 
-% details. You can use the local function "getDefaultParameters" at the 
+% % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % %
+% Create a struct of default parameters (if applicable) and specify one or
+% more attributes (see nansen.session.SessionMethod.setAttributes) for
+% details. You can use the local function "getDefaultParameters" at the
 % bottom of this file to define default parameters.
 
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
     ATTRIBUTES = {'serial', 'queueable'};
     
-    % Get all the data variable alternatives for this function. Add it to 
+    % Get all the data variable alternatives for this function. Add it to
     % the optional 'Alternatives' attribute to autogenerate a menu item for
     % each variable that can be opened as an imagestack object in imviewer.
     datalocationNames = getDataLocationAlternatives();
     ATTRIBUTES = [ATTRIBUTES, {'Alternatives', datalocationNames}];
-    
 
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
    
     % % % Initialization block for a session method function.
 
@@ -42,8 +41,7 @@ import nansen.session.SessionMethod
     % % % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, true, varargin);
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
     
     dataLocationName = params.Alternative;
 
@@ -66,7 +64,7 @@ import nansen.session.SessionMethod
     
     rootDirectorySource = sessionObject.getDataLocationRootDir( dataLocationName );
     
-    filepathListRelative = strrep(filepathList, rootDirectorySource, '');        
+    filepathListRelative = strrep(filepathList, rootDirectorySource, '');
     
     % Loop through all files and copy or skip files depending on backup
     % mode

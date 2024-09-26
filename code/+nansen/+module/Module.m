@@ -12,7 +12,7 @@ classdef Module < handle
 %         - Option sets and customizable options.
 %         - Pipelines
 %
-%   This class is used for accessing and managing the relevant files for a 
+%   This class is used for accessing and managing the relevant files for a
 %   module. There are methods for listing all items of a specific type, and
 %   methods for initializing new items from templates.
 %
@@ -63,7 +63,7 @@ classdef Module < handle
         function obj = Module(pathStr, options)
         % Module - Create a module instance
         %
-        %   Syntax: 
+        %   Syntax:
         %       nansen.module.Module(filePath) creates a module given the
         %       path of a module config file given by filePath.
         %
@@ -135,7 +135,6 @@ classdef Module < handle
             fileList = obj.listFiles(itemType);
             filePaths = utility.dir.abspath(fileList);
         end
-
     end
 
     methods % Get dependent properties
@@ -170,12 +169,11 @@ classdef Module < handle
             itemTable = obj.rehash('DataVariables');
             dataVariableList = itemTable.VariableName;
             dataVariableList = string(dataVariableList)';
-        end      
+        end
 
         function pipelines = get.Pipelines(obj)
             pipelines = "N/A";
         end
-
     end
     
     methods % Set methods for configuration properties
@@ -189,10 +187,9 @@ classdef Module < handle
             obj.Description = newValue;
             obj.onDescriptionSet()
         end
-
     end
 
-    methods (Access = protected) % Callback for property set 
+    methods (Access = protected) % Callback for property set
         function onNameSet(obj)
             % Todo: Update the name in the configuration file
         end
@@ -217,7 +214,7 @@ classdef Module < handle
                     rootPath = fullfile(obj.FolderPath, 'resources', itemType);
                 
                 otherwise % Assume mixin
-                    rootPath = fullfile(obj.FolderPath, '+mixin', ['+', itemType]);    
+                    rootPath = fullfile(obj.FolderPath, '+mixin', ['+', itemType]);
 
             end
         end
@@ -256,7 +253,7 @@ classdef Module < handle
     methods (Access = private)
         
         function itemTable = rehash(obj, itemType, forceRefresh)
-        %rehash Check for changes to modulefiles and perform update if necessary    
+        %rehash Check for changes to modulefiles and perform update if necessary
             if nargin < 3; forceRefresh = false; end
 
             persistent lastTic; if isempty(lastTic); lastTic = containers.Map; end
@@ -328,7 +325,6 @@ classdef Module < handle
                 resultTable = [resultTable; tempTable]; %#ok<AGROW>
             end
         end
-        
     end
 
     methods (Static)
@@ -421,5 +417,4 @@ classdef Module < handle
                 "module_folder_template", "+nansen", "+module", "+category", "+name");
         end
     end
-
 end

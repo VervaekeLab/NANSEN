@@ -8,11 +8,11 @@ polyShape = {hPoly.Shape};
 colors = {hPoly.FaceColor};
 tags = {hPoly.Tag};
 
-% Go through polyshapes and set simplify to false to avoid calling 
+% Go through polyshapes and set simplify to false to avoid calling
 % check and simplify on loading and plotting of polyshapes
 for i = 1:numel(polyShape)
     p1 = polyShape{i};
-    p2 = polyshape(p1.Vertices, 'Simplify', false); 
+    p2 = polyshape(p1.Vertices, 'Simplify', false);
     polyShape{i} = p2;
 end
 
@@ -25,7 +25,6 @@ savePath = fullfile(saveDir, 'dorsal_map_polyshapes.mat');
 
 save(savePath, 'mapRegions', 'mapBoundary')
 return
-
 
 % Create patchdata (This is just for the record)
 [xData, yData] = deal( cell(numShapes, 1) );
@@ -60,8 +59,5 @@ savePath = strrep(savePath, 'polyshapes.mat', 'patchdata.mat');
 % Save regions as patches and boundary as polygon...
 
 save(savePath, 'mapRegions', 'mapBoundary')
-
-
-
 
 end

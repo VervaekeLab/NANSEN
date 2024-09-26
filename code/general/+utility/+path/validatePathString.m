@@ -32,6 +32,6 @@ function newPathStr = validatePathString(pathStr, currentPath)
         end
         
     else
-        newPathStr = fullfile(currentPath, pathStr);   
-    end 
+        newPathStr = fullfile(currentPath, pathStr);
+    end
 end

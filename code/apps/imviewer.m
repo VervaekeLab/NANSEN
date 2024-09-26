@@ -1,16 +1,16 @@
 function hApp = imviewer(varargin)
 %IMVIEWER Open app for viewing and manipulating videos & image stacks
 %
-%   hApp = IMVIEWER() without any inputs opens a browser for locating tiff file or 
-%   avi files. Loads files in virtual mode, reading those frames that are 
-%   requested. 
-%   
-%   IMVIEWER(filepath) opens file specified by path.   
+%   hApp = IMVIEWER() without any inputs opens a browser for locating tiff file or
+%   avi files. Loads files in virtual mode, reading those frames that are
+%   requested.
+%
+%   IMVIEWER(filepath) opens file specified by path.
 %
 %   IMVIEWER(varName) opens imviewer with a variable from the workspace,
 %   i.e an an array containing image data.
 %
-%   IMVIEWER([]) opens an empty imviewer instance where images from files 
+%   IMVIEWER([]) opens an empty imviewer instance where images from files
 %   or from another imviewer instance can be dropped.
 %
 %   For more detailed information:
@@ -25,5 +25,4 @@ function hApp = imviewer(varargin)
     if ~nargout
         clear hApp
     end
-
 end

@@ -12,7 +12,6 @@ classdef roiMap < roimanager.roiDisplay
     %   [ ] Set method for roigroup.
     %   [ ] Outsource all "roi creation" methods to a RoiEditor class
 
-
     % properties inherited from RoiDisplay:
     %   RoiGroup            A roi group containing all roi data
     %   SelectedRois        Indices of selected rois
@@ -46,7 +45,7 @@ classdef roiMap < roimanager.roiDisplay
         ActiveChannel % Active channel corresponds to channel of imagestack that current roi map represents
     end
     
-    properties (Access = public, SetObservable=true) % Preferences 
+    properties (Access = public, SetObservable=true) % Preferences
         EnableLinkedRois matlab.lang.OnOffSwitchState = 'off'
         roiOutlineVisible = true    % Todo: make set method, so that this is updated when value is changed...
         roiLabelVisible = false
@@ -57,14 +56,14 @@ classdef roiMap < roimanager.roiDisplay
     
     properties (Access = private) % Properties related to how to display rois.
         
-        % Should these be constant? 
+        % Should these be constant?
         %   Or should all these be contained in a single property which is
         %   an enumeration class...?
         %   This should be configurable from the app...
-        %   
+        %
         % Should these be catalogs or enums?
 
-        % i.e 
+        % i.e
 
         % RoiClass roimanager.enum.RoiClass 'Neuron' % Vasculature, Astrocyte
 
@@ -98,7 +97,7 @@ classdef roiMap < roimanager.roiDisplay
         roiDisplacement = 0;          % Temporary "keeper" of roi displacement if rois are moved
         roiIndexMap = [];             % An array where the value at each pixel/coordinate is the index of the roi occupying that pixel/coordinate
         
-        unselectedRois                % Keep unselected rois (in case they should be reselected). % Should it be property of this class? 
+        unselectedRois                % Keep unselected rois (in case they should be reselected). % Should it be property of this class?
         
         VisibleClassification = 'All' % Internal preference
         IsVisibleRoi = []             % Private state
@@ -107,11 +106,9 @@ classdef roiMap < roimanager.roiDisplay
         debug = false
     end
     
-    
     events
         mapUpdated % Event that is triggered when the roi map is updated
     end
-    
     
     methods (Access = public) % Constructor
 
@@ -143,13 +140,12 @@ classdef roiMap < roimanager.roiDisplay
             
             if isdeletable(obj.roiTextHandles)
                 delete(obj.roiTextHandles)
-            end            
+            end
 
             if isdeletable(obj.roiLinkHandles)
                 delete(obj.roiLinkHandles)
             end
         end
-        
     end
     
     methods % Public methods inherited from roiDisplay
@@ -166,7 +162,7 @@ classdef roiMap < roimanager.roiDisplay
             
             obj.RoiGroup.addRois(newRoi)
             
-            % Select roi.       
+            % Select roi.
             obj.selectRois(obj.RoiGroup.roiCount, 'normal')
         end
         
@@ -177,7 +173,6 @@ classdef roiMap < roimanager.roiDisplay
            
            obj.RoiGroup.removeRois(IND);
         end
-        
     end
     
     methods (Access = protected) % Callbacks inherited from roiDisplay
@@ -185,7 +180,7 @@ classdef roiMap < roimanager.roiDisplay
         function onRoiGroupChanged(obj, evt)
             % Triggered on existing roiGroup events
             
-            % Todo: also update text label. 
+            % Todo: also update text label.
             % (Maybe text label is not implemented)
             
             % Set visibility of rois @ initialization
@@ -222,7 +217,7 @@ classdef roiMap < roimanager.roiDisplay
 
                     obj.removeRoiPlots(evt.roiIndices)
                     obj.updateRoiIndexMap()
-                    %obj.updateRoiMaskAll(evt.roiIndices, 'remove') 
+                    %obj.updateRoiMaskAll(evt.roiIndices, 'remove')
                     
                 case {'connect', 'relink'}
                     obj.updateLinkPlot(evt.roiIndices, evt.eventType)
@@ -236,7 +231,7 @@ classdef roiMap < roimanager.roiDisplay
             
             % Make sure visible roi indices are updated if rois are added
             % or removed
-            obj.updateVisibleRois(evt.roiIndices, evt.eventType)            
+            obj.updateVisibleRois(evt.roiIndices, evt.eventType)
             
             % Todo: Make a good system for when this should be invoked...
             obj.showClassifiedCells() % Todo: Rename or make a method for this..
@@ -246,7 +241,7 @@ classdef roiMap < roimanager.roiDisplay
         end % function onRoiGroupChanged
         
         function onRoiSelectionChanged(obj, evtData)
-        %onRoiSelectionChanged Takes care of selection of roi. 
+        %onRoiSelectionChanged Takes care of selection of roi.
         %
         %   Show roi as white in image on selection. Reset color on
         %   deselection
@@ -293,13 +288,13 @@ classdef roiMap < roimanager.roiDisplay
                 end
                 
                 obj.updateRoiLineWidth(selectedRoiIdx, newLineWidth)
-                obj.updateRoiColor(selectedRoiIdx, colorCellArray)                
+                obj.updateRoiColor(selectedRoiIdx, colorCellArray)
             end
             
             obj.SelectedRois = newIndices;
 
             % Todo: multiselection triggers table selection which cases
-            % zooming on on selected rois. Kind of annoying... 
+            % zooming on on selected rois. Kind of annoying...
             % Quick solution, only zoom if individual rois are selected
             
             if ~isempty(obj.SelectedRois)
@@ -328,7 +323,7 @@ classdef roiMap < roimanager.roiDisplay
                 
                 set(obj.roiPlotHandles(roiIndices), {'color'}, colorCellArray);
                 if ~isempty(obj.roiTextHandles)
-                    set(obj.roiTextHandles(roiIndices), {'color'}, colorCellArray); 
+                    set(obj.roiTextHandles(roiIndices), {'color'}, colorCellArray);
                 end
             end
         end
@@ -339,7 +334,7 @@ classdef roiMap < roimanager.roiDisplay
             
             numRois = max([obj.RoiGroup.roiCount, numel(obj.roiPlotHandles)]);
             
-            [isVisibleRoi, isValidRoi] = deal( false(1, numRois));            
+            [isVisibleRoi, isValidRoi] = deal( false(1, numRois));
             isVisibleRoi( evtData.NewVisibleInd ) = true;
             
             indHide = ~isVisibleRoi;
@@ -470,7 +465,6 @@ classdef roiMap < roimanager.roiDisplay
             obj.Visible = newValue;
             obj.onVisibleChanged()
         end
-        
     end
 
     methods (Access = private)
@@ -491,13 +485,13 @@ classdef roiMap < roimanager.roiDisplay
         end
         
         function onRoiOutlineVisibleSet(obj)
-        %onRoiOutlineVisibleSet Callback for property set method    
+        %onRoiOutlineVisibleSet Callback for property set method
             if ~obj.IsConstructed; return; end
             if isempty(obj.roiPlotHandles); return; end
         
             % Show outlines/contours
             if obj.roiOutlineVisible
-                isVisibleRoi = false(1, numel(obj.roiPlotHandles));            
+                isVisibleRoi = false(1, numel(obj.roiPlotHandles));
                 isVisibleRoi( obj.VisibleRois ) = true;
                 
                 if numel(isVisibleRoi) > numel(obj.roiPlotHandles)
@@ -506,14 +500,14 @@ classdef roiMap < roimanager.roiDisplay
                 
                 set(obj.roiPlotHandles(isVisibleRoi), 'Visible', 'on')
                 set(obj.roiPlotHandles(~isVisibleRoi), 'Visible', 'off')
-            % Hide outlines/contours            
+            % Hide outlines/contours
             else
                 set(obj.roiPlotHandles, 'Visible', 'off')
             end
         end
         
         function onRoiLabelVisibleSet(obj)
-        %onRoiLabelVisibleSet Callback for property set method    
+        %onRoiLabelVisibleSet Callback for property set method
             if obj.skipPreferenceCallback(); return; end
         
             % Show text labels of rois
@@ -522,19 +516,19 @@ classdef roiMap < roimanager.roiDisplay
                 if isempty(obj.roiTextHandles)
                     obj.plotRoiTextLabels()
                 end
-                isVisibleRoi = false(1, numel(obj.roiTextHandles));            
+                isVisibleRoi = false(1, numel(obj.roiTextHandles));
                 isVisibleRoi( obj.VisibleRois ) = true;
                 set(obj.roiTextHandles(isVisibleRoi), 'Visible', 'on')
                 set(obj.roiTextHandles(~isVisibleRoi), 'Visible', 'off')
                 
-            % Hide text labels of rois          
+            % Hide text labels of rois
             else
                 set(obj.roiTextHandles, 'Visible', 'off')
             end
         end
         
         function onMaskRoiInteriorSet(obj)
-        %onMaskRoiInteriorSet Callback for property set method    
+        %onMaskRoiInteriorSet Callback for property set method
             if  obj.skipPreferenceCallback(); return; end
 
             if obj.MaskRoiInterior % mask roi interior
@@ -579,7 +573,7 @@ classdef roiMap < roimanager.roiDisplay
         
 % % % % Methods for plotting rois and modifying the plots
         
-        % Todo: Plot roi spatial weights.. 
+        % Todo: Plot roi spatial weights..
         % See imviewer.plot.plotWeightedRois
         
         function plotRoi(obj, roiArray, ind, mode)
@@ -590,7 +584,7 @@ classdef roiMap < roimanager.roiDisplay
         %   add rois in the graphics handles and mode is either append or
         %   insert.
         
-        %   Options for mode: 
+        %   Options for mode:
         %       append (default) : Append rois to the end
         %       insert           : Insert rois at index locations specified
         %                          by ind
@@ -619,7 +613,7 @@ classdef roiMap < roimanager.roiDisplay
             % Plot lines indicating linked rois. % Todo: This can be
             % reimplemented if necessary.
             if false %obj.EnableLinkedRois
-                hLink = obj.updateLinkPlot(ind); %#ok<UNRCH> 
+                hLink = obj.updateLinkPlot(ind); %#ok<UNRCH>
                 obj.roiLinkHandles = obj.combineHandles(...
                     obj.roiLinkHandles, hLink, mode, ind);
             end
@@ -633,7 +627,7 @@ classdef roiMap < roimanager.roiDisplay
             % Collect boundaries for all rois in a cell array
             for roiNo = 1:nRois
                 boundary = roiArray(roiNo).boundary{1};
-                roiBoundaryCellArray{1, roiNo} = boundary(:,2); 
+                roiBoundaryCellArray{1, roiNo} = boundary(:,2);
                 roiBoundaryCellArray{2, roiNo} = boundary(:,1);
             end
 
@@ -807,7 +801,7 @@ classdef roiMap < roimanager.roiDisplay
         
             % Delete the image handle and reset property
             if ~isempty( obj.hStaticFovImage )
-                delete( obj.hStaticFovImage ); 
+                delete( obj.hStaticFovImage );
                 obj.hStaticFovImage = [];
             end
             
@@ -821,13 +815,13 @@ classdef roiMap < roimanager.roiDisplay
             xData = {obj.roiPlotHandles(obj.SelectedRois).XData};
             yData = {obj.roiPlotHandles(obj.SelectedRois).YData};
             
-            % Calculate and update position 
+            % Calculate and update position
             xData = cellfun(@(x) x+shift(1), xData, 'uni', 0);
             yData = cellfun(@(y) y+shift(2), yData, 'uni', 0);
             set(obj.roiPlotHandles(obj.SelectedRois), {'XData'}, xData', {'YData'}, yData')
 
-            % Shift text labels to new position, but only perform shift if 
-            % they are visible. If not, they will be shifted when actual 
+            % Shift text labels to new position, but only perform shift if
+            % they are visible. If not, they will be shifted when actual
             % rois are moved.
             if obj.roiLabelVisible && ~isempty(obj.roiTextHandles)
                 textpos = {obj.roiTextHandles(obj.SelectedRois).Position};
@@ -927,13 +921,12 @@ classdef roiMap < roimanager.roiDisplay
             end
         end
         
-        
 % % % % Methods for modifying rois (should be separate class)
         function moveRoi(obj, shift)
         % Update RoI positions based on shift.
             
-            % If rois have been dragged, some rois have been put in an 
-            % unselectedRois list. These should be put back into the 
+            % If rois have been dragged, some rois have been put in an
+            % unselectedRois list. These should be put back into the
             % selectedRois list now.
             if ~isempty(obj.unselectedRois)
                 obj.SelectedRois = sort(horzcat(obj.SelectedRois, obj.unselectedRois));
@@ -1027,7 +1020,7 @@ classdef roiMap < roimanager.roiDisplay
             catch ME
                 switch ME.identifier
                     case 'MATLAB:index:expected_one_output_from_expression'
-                    % Might be that roi boundary is not 
+                    % Might be that roi boundary is not
                         obj.displayApp.displayMessage('Can not create roi. Make sure boundary is not intersecting itself.')
                         return
                     otherwise
@@ -1078,7 +1071,7 @@ classdef roiMap < roimanager.roiDisplay
             % Todo: This is not a roimap method. Move to roi editor.
             %   Or even make a separate class/function package?
 
-            % Autodetection method: 
+            % Autodetection method:
             %   Threshold current frame
             %   Threshold enhanced maximum projection
             %   Edgedetection current frame
@@ -1089,7 +1082,6 @@ classdef roiMap < roimanager.roiDisplay
                 obj.displayApp.displayMessage('Can not autodetect rois from multiple channels simultaneously. Please set the active channel to an individual channel')
                 return
             end
-
 
             if nargin < 6; doReplace = false; end
             if nargin < 5; autodetectMethod = 'threshold'; end
@@ -1102,7 +1094,6 @@ classdef roiMap < roimanager.roiDisplay
             if numel(r) > 1; rExtended = r(2); end
             r = r(1);
             
-            
             % Get image data from imviewer app.
             imSize = [obj.displayApp.imHeight, obj.displayApp.imWidth];
             
@@ -1110,7 +1101,6 @@ classdef roiMap < roimanager.roiDisplay
             
             xInd = S(1):L(1);
             yInd = S(2):L(2);
-
             
             imChunk = obj.displayApp.ImageStack.getFrameSet('cache', '', ...
                 'X', xInd, 'Y', yInd, 'C', obj.ActiveChannel);
@@ -1129,7 +1119,7 @@ classdef roiMap < roimanager.roiDisplay
             %imChunk = roimanager.imtools.getPixelChunk(imData, S, L);
             
             % Get x- and y-coordinate for the image subset.
-            x_ = x - S(1)+1; 
+            x_ = x - S(1)+1;
             y_ = y - S(2)+1;
             
             % Get signal from pixel chunk
@@ -1142,7 +1132,6 @@ classdef roiMap < roimanager.roiDisplay
             
             imChunk_ = double(reshape(imChunk, [], nFrames));
             signal = mask_ * imChunk_;
-
             
             % Get samples where activity is highest
             IND = nansen.twophoton.roisignals.analyze.findActiveSamplePoints(signal);
@@ -1154,7 +1143,7 @@ classdef roiMap < roimanager.roiDisplay
             switch autodetectionMode
                 case 1
 
-                    IM = mean(imChunk(:, :, IND), 3);                                
+                    IM = mean(imChunk(:, :, IND), 3);
 
                     [roiMaskSmall, s] = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
                     roiMask = false(imSize);
@@ -1185,7 +1174,7 @@ classdef roiMap < roimanager.roiDisplay
                 
                 case 5
                     % Todo: Use current image?
-                    % IM = mean(imChunk(:, :, IND), 3); 
+                    % IM = mean(imChunk(:, :, IND), 3);
                     IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
 
                     roiMaskSmall = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
@@ -1222,12 +1211,12 @@ classdef roiMap < roimanager.roiDisplay
             
             % add/reshape&replace roi
             
-            % select roi            
+            % select roi
         end
         
         function newRoi = autodetectRoi2(obj, x, y, r, autodetectionMode, doReplace)
               
-            % work in progress: 
+            % work in progress:
             %   use more external functions
             %   works close to edges
             %   ~10% slower
@@ -1235,7 +1224,6 @@ classdef roiMap < roimanager.roiDisplay
             % use more external functions
             
             if nargin < 6; doReplace = false; end
-            
 
             if numel(obj.ActiveChannel) > 1
                 newRoi = RoI.empty;
@@ -1254,7 +1242,6 @@ classdef roiMap < roimanager.roiDisplay
                     end
                     return
             end
-            
 
             pad = 5; % Todo:= Retrieve from settings/preferences
             
@@ -1284,7 +1271,7 @@ classdef roiMap < roimanager.roiDisplay
             end
 
             % Get x- and y-coordinate for the image subset.
-            x_ = x - S(1)+1; 
+            x_ = x - S(1)+1;
             y_ = y - S(2)+1;
             tmpRoiSmall = RoI('Circle', [x_, y_, r], imSizeSmall);
             
@@ -1371,7 +1358,6 @@ classdef roiMap < roimanager.roiDisplay
                 else
                     patchCoords{end+1} = boundary{k};
                 end
-                    
             end
             
             if nargin < 4
@@ -1419,7 +1405,7 @@ classdef roiMap < roimanager.roiDisplay
             
             switch lower(action)
                 case {'add', 'reshape', 'append', 'modify'}
-                    for i = roiInd                        
+                    for i = roiInd
                         [localMask, globalSubs] = obj.RoiGroup.roiArray(i).getLocalMask();
                         [Y, X] = ind2sub(obj.RoiGroup.FovImageSize, globalSubs);
                         obj.roiMaskAll(Y(:,1),X(1,:),i) = localMask;
@@ -1446,7 +1432,7 @@ classdef roiMap < roimanager.roiDisplay
 % % %                 obj.roiIndexMap = zeros(size(obj.RoiGroup.roiArray(1).mask));
 % % %                 %obj.roiIndexMap(:) = 0;
 % % %             end
-% % %             
+% % %
 % % %             tic
 % % %             obj.roiIndexMap = zeros(size(obj.RoiGroup.roiArray(1).mask));
 % % %             toc
@@ -1462,7 +1448,6 @@ classdef roiMap < roimanager.roiDisplay
                 obj.roiIndexMap = [];
                 return
             end
-
             
             % Todo: Make this smarter
             
@@ -1596,10 +1581,9 @@ classdef roiMap < roimanager.roiDisplay
             end
         end
         
-        
 % % % % Methods for interaction with roi map
         
-        function tf = isPointValid(obj, x, y)    
+        function tf = isPointValid(obj, x, y)
             tf = true;
         end
 
@@ -1670,7 +1654,7 @@ classdef roiMap < roimanager.roiDisplay
             set(obj.roiPlotHandles(roiIdx), {'color'}, colorCellArray);
             
             if ~isempty(obj.roiTextHandles)
-                set(obj.roiTextHandles(roiIdx), {'color'}, colorCellArray); 
+                set(obj.roiTextHandles(roiIdx), {'color'}, colorCellArray);
             end
         end
         
@@ -1715,7 +1699,7 @@ classdef roiMap < roimanager.roiDisplay
                     
                     %if any(obj.SelectedRois == roiIndices)
                     if any( ismember(obj.SelectedRois, roiIndices))
-                        if ~isempty(deselectedRois) 
+                        if ~isempty(deselectedRois)
                             if isMousePress
                                 obj.unselectedRois = deselectedRois;
                             else
@@ -1773,7 +1757,7 @@ classdef roiMap < roimanager.roiDisplay
                 if ~isempty(obj.unselectedRois)
                     roiIndices = obj.unselectedRois;
                 else
-                    return; 
+                    return;
                 end
             end
             oldIndices = obj.SelectedRois;
@@ -1858,7 +1842,7 @@ classdef roiMap < roimanager.roiDisplay
         % % % % Color settings
         
         function colorCellArray = getRoiColorArray(obj, roiArray)
-        %getRoiColorArray Get cell array with color for each roi in array          
+        %getRoiColorArray Get cell array with color for each roi in array
             
             numRois = numel(roiArray);
             colorCellArray = cell(numRois, 1); % Column vector
@@ -1906,7 +1890,7 @@ classdef roiMap < roimanager.roiDisplay
                             color = [0.920, 0.339, 0.378];
                         case 3
                             color = [0.176, 0.374, 0.908];
-                        otherwise 
+                        otherwise
                             color = obj.defaultColor;
                     end
 
@@ -1950,7 +1934,6 @@ classdef roiMap < roimanager.roiDisplay
                 end
             end
         end
-        
     end
 
     methods (Access = private) % debugging
@@ -1959,7 +1942,7 @@ classdef roiMap < roimanager.roiDisplay
             
             persistent f ax hIm
             if isempty(f) || ~isvalid(f)
-                f = figure('Position', [300,300,300,300], 'MenuBar', 'none'); 
+                f = figure('Position', [300,300,300,300], 'MenuBar', 'none');
                 ax = axes(f, 'Position',[0,0,1,1]);
             else
                 cla(ax)
@@ -1972,7 +1955,7 @@ classdef roiMap < roimanager.roiDisplay
             
             persistent f ax hIm
             if isempty(f) || ~isvalid(f)
-                f = figure('Position', [300,300,500,500], 'MenuBar', 'none'); 
+                f = figure('Position', [300,300,500,500], 'MenuBar', 'none');
                 ax = axes(f, 'Position',[0,0,1,1]);
             else
                 cla(ax)
@@ -1983,9 +1966,8 @@ classdef roiMap < roimanager.roiDisplay
             hIm.AlphaData = 1-roiMask.*0.5;
             
             ax.XLim = [S(1),L(1)];
-            ax.YLim = [S(2),L(2)]; 
+            ax.YLim = [S(2),L(2)];
         end
-
     end
 
     methods (Static)
@@ -2004,7 +1986,5 @@ classdef roiMap < roimanager.roiDisplay
                     hOriginal = utility.insertIntoArray(hOriginal, hNew', ind);
             end
         end
-
     end
-    
 end

@@ -30,10 +30,7 @@ classdef Quicky < nansen.session.SessionMethod & nansen.wrapper.quicky.Processor
             if ~nargout
                 obj.runMethod()
                 clear obj
-            end 
-            
+            end
         end
-        
     end
-
 end

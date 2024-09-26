@@ -3,8 +3,7 @@ classdef FrameMarker < uim.mixin.assignProperties
     % Todo
     % [ ] Create Interactive frame marker
     % [ ] Property to control axis , i.e x or y
-    % [ ] 
-
+    % [ ]
 
     properties
         Value = 1
@@ -62,7 +61,6 @@ classdef FrameMarker < uim.mixin.assignProperties
             obj.updateFrameMarker()
         end
     end
-    
 
     methods (Access = private)
 
@@ -133,8 +131,7 @@ classdef FrameMarker < uim.mixin.assignProperties
         end
     end
 
-
-    methods 
+    methods
 
         function onMouseEnterSlider(obj, h, varargin)
         %onMouseEntered Callback for mouse entering button

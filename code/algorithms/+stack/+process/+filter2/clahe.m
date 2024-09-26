@@ -1,6 +1,4 @@
 function varargout = clahe(imageIn, varargin)
-    
-
 
     param = struct();
     param.NumTiles = [32, 32];
@@ -11,17 +9,14 @@ function varargout = clahe(imageIn, varargin)
     param.Distribution = 'rayleigh';
     param.Distribution_ = {'uniform', 'rayleigh', 'exponential'};
     
-    
     if nargin == 0
         varargout = {param}; return
     end
     
-    param = utility.parsenvpairs(param, [], varargin);    
-
+    param = utility.parsenvpairs(param, [], varargin);
     
     imclass = class(imageIn);
     imageIn = double(imageIn);
-
     
     minVal = min(imageIn(:));
     maxVal = max(imageIn(:));
@@ -48,21 +43,19 @@ function varargout = clahe(imageIn, varargin)
 
     varargout = {im};
 
-
 end
-
 
 % Old implementation. Todo: Does above work well for single,double etc?
 
 % % % switch obj.imClass
 % % %     case  {'uint8', 'uint16'}
-% % % 
+% % %
 % % %         meanProjection = mean(imdata, 3);
 % % %         origRange = range(meanProjection(:));
-% % % 
+% % %
 % % %         normalize = @(im) (im-min(im(:))) ./ range(im(:));
 % % %         meanProjection = normalize(meanProjection);
-% % % 
+% % %
 % % %         % Do imadjust to make surefull bitdepth is used...
 % % %         switch obj.imClass
 % % %             case 'uint8'
@@ -70,37 +63,34 @@ end
 % % %             case 'uint16'
 % % %                 meanProjection = uint16(meanProjection.*(2^16-1));
 % % %         end
-% % % 
+% % %
 % % %         im = imadjust(meanProjection);
-% % % 
+% % %
 % % %         obj.imObj.CData = adapthisteq(im, ...
 % % %                 'NumTiles', [32, 32], ...
 % % %                 'ClipLimit', 0.015, ...
 % % %                 'Distribution', 'rayleigh');
-% % % 
+% % %
 % % %         im = normalize( single(im) ) .* origRange;
 % % %         im = cast(im, obj.imClass);
-% % % 
+% % %
 % % %         obj.imObj.CData = im;
-% % % 
+% % %
 % % %     case {'double', 'single'}
-% % % 
+% % %
 % % %         tmpim = mean(imdata, 3);
 % % %         minVal = min(tmpim(:));
 % % %         maxVal = max(tmpim(:));
 % % %         tmpim = (tmpim-minVal) ./ (maxVal-minVal);
-% % % 
+% % %
 % % %         result = adapthisteq(tmpim, ...
 % % %                 'NumTiles', [32, 32], ...
 % % %                 'ClipLimit', 0.015, ...
 % % %                 'Distribution', 'rayleigh', ...
 % % %                 'Range', 'original');
-% % % 
+% % %
 % % %         obj.imObj.CData = result .* (maxVal-minVal) + minVal;
-% % % 
+% % %
 % % %     otherwise
 % % %         obj.imObj.CData = [];
 % % % end
-
-
-

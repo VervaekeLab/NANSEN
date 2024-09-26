@@ -2,18 +2,18 @@ classdef RoiSignalArray < handle
 %RoiSignalArray
 %
 %   Implementation of signal array with multiple channels and signal
-%   variations. 
+%   variations.
 %
-%   Purpose: 
+%   Purpose:
 %       - Framework for organizing signals for multiple channels and
 %         variations.
-%       - Handle class: Share between multiple classes 
+%       - Handle class: Share between multiple classes
 %
 %   EXAMPLES:
 %
 %   Alternative 1: Signal array
-%          
-%   Alternative 2: Roi array and image stack... 
+%
+%   Alternative 2: Roi array and image stack...
 %
 %   Alternative 2:
 %       RoiSignalArray(filePath) opens a signal array instance based on
@@ -23,10 +23,9 @@ classdef RoiSignalArray < handle
 %       RoiSignalArray(roiGroup, imageStack) opens a signal array instance
 %       based on an instance of a roigroup and an imagestack
 
-
     % Todo:
     %   [ ] Improve performance when removing rois, should not rearrange
-    %       data, only indices for accessing data. 
+    %       data, only indices for accessing data.
     %   [ ] Generalize so that signalArray can be loaded from file
     %   [ ] Come up with better names for signals
     %   [ ] What parameters should be included?
@@ -35,23 +34,22 @@ classdef RoiSignalArray < handle
     %   [ ] Outsource signal parameters to special classes?
     %   [ ] CurrentChannel, Current plane...
     %
-    % Note: 
+    % Note:
     %   * Multiple planes should either be implemented as multiple
     %     instances of this class, or, all rois across multiple planes should
     %     be contcatenated into one list in this class. Leaning towards the
     %     first option...
     %
-    % Questions: 
+    % Questions:
     %
-    %   - Should this class be listening for changes on a roigroup?  
-    %     This is the job of the roi signal viewer, no? Are there any 
+    %   - Should this class be listening for changes on a roigroup?
+    %     This is the job of the roi signal viewer, no? Are there any
     %     circumstances where a roi signal array need to "live update" based on
     %     a roi group unless signals are to be shown in the signalviewer??
     %
     %   - Why do I need this??
     %
     %   - Make 2 classes? One for loaded signals, and one for "live" signals
-    
     
     properties (Constant)
         % Todo: Make enum for this. Include full names, short names. Add a
@@ -107,17 +105,15 @@ classdef RoiSignalArray < handle
     properties (Constant, Access = protected)
         STEPSIZE = 100; % NAME??? How many rois to expand array by
     end
-    
 
     events
         RoiSignalsChanged % Triggered when one or more signals are changed
     end
     
-    
     methods % Constructor
         
         function obj = RoiSignalArray(imageStack, roiGroup)
-        % 
+        %
         %   Todo: Generalize so that signalArray can be loaded from file
         
             if ~nargin
@@ -128,7 +124,6 @@ classdef RoiSignalArray < handle
             obj.RoiGroup = roiGroup;
             obj.ImageStack = imageStack;
         end
-        
     end
     
     methods % Set/get
@@ -178,7 +173,6 @@ classdef RoiSignalArray < handle
                 numChannels = obj.ImageStack.NumChannels;
             end
         end
-                
     end
     
     methods (Access = protected)
@@ -218,7 +212,6 @@ classdef RoiSignalArray < handle
                 for j = 1:numel(paramNames)
                     obj.Parameters(i).(paramNames{j}) = nan(1, nRois);
                 end
-
             end
         end
         
@@ -239,7 +232,6 @@ classdef RoiSignalArray < handle
             if nargin < 5 || isempty(editFields); editFields = 'all'; end
             
             if obj.isVirtual; return; end
-
             
             % Get field names to modify
             fields = obj.SIGNAL_NAMES;
@@ -263,7 +255,7 @@ classdef RoiSignalArray < handle
                 numExpand = 0;
                 nCol = size(obj.Data(iCh).(fields{1}), 2);
                 
-                switch action 
+                switch action
                     case {'append', 'insert'}
                         if nCol < obj.NumRois(iCh)
                             numMissingCols = obj.NumRois(iCh) - nCol;
@@ -306,13 +298,13 @@ classdef RoiSignalArray < handle
                                 remappedInd = setdiff(remappedInd, roiInd);
                                 newInd = 1:numel(remappedInd);
                                 
-                                % Remove 
+                                % Remove
                                 obj.Data(iCh).(thisField)(:, newInd) = ...
                                     obj.Data(iCh).(thisField)(:, remappedInd);
                                 obj.Data(iCh).(thisField)(:, roiInd) = nan;
                             end
                     end
-                end 
+                end
             end
             
             % TODO: Make sure this is correct and working.
@@ -362,10 +354,9 @@ classdef RoiSignalArray < handle
                 roiInd = [];
             end
         end
-        
     end
     
-    methods 
+    methods
         
         function tf = isVirtual(obj)
         %isVirtual - Todo: Description
@@ -390,11 +381,11 @@ classdef RoiSignalArray < handle
         %
             
             if nargin < 6 || isempty(forceUpdate)
-                forceUpdate = false; 
+                forceUpdate = false;
             end
             
             if nargin < 5 || isempty(channelNum)
-                channelNum = obj.ActiveChannel; 
+                channelNum = obj.ActiveChannel;
             end
             
             if nargin < 4
@@ -443,7 +434,6 @@ classdef RoiSignalArray < handle
             
             obj.modifySignalArray(roiInd, 'reset', channelNum, signalNames)
         end
-        
     end
     
     methods (Access = private) % Listener callback methods
@@ -476,7 +466,6 @@ classdef RoiSignalArray < handle
             el = addlistener(obj.RoiGroup, 'roisChanged', @obj.onRoisChanged);
             obj.RoisChangedListener = el;
             
-            
             obj.Data = [];
             if ~obj.isVirtual && any(obj.NumRois > 0)
                 obj.initializeSignalArray()
@@ -484,9 +473,9 @@ classdef RoiSignalArray < handle
         end
 
         function onRoisChanged(obj, src, evtData)
-        %onRoisChanged Callback for changes on roi group 
+        %onRoisChanged Callback for changes on roi group
             
-            % Todo: 
+            % Todo:
             %   [ ] add handling of parameters struct
             
             if obj.isVirtual; return; end
@@ -520,7 +509,6 @@ classdef RoiSignalArray < handle
                     end
             end
         end
-
     end
     
     methods (Access = private) % Fetch signals : Todo: Use calculators
@@ -578,7 +566,6 @@ classdef RoiSignalArray < handle
                         obj.Data(chNo).(signalTypes{i})(:, roiInd) = signalData;
                 
                 end
-                
             end
             
             if triggerEvent
@@ -596,7 +583,7 @@ classdef RoiSignalArray < handle
         %
 %[signal] = extractSignal(obj, roiInd, signalName)
 
-            % Todo: 
+            % Todo:
             %   [ ] Need roi numbers, channel numbers, sample numbers (?) and
             %       signal name
             %
@@ -674,20 +661,17 @@ classdef RoiSignalArray < handle
         %
         %
         end
-        
     end
     
     methods (Static, Access = 'private') % Misc
         % Todo : specify type in property block
         
         function validatePropertyValue(propertyName, newValue, validClass)
-        %validatePropertyValue Used by set methods to validate data type                 
+        %validatePropertyValue Used by set methods to validate data type
             msg = sprintf('%s must be an instance of %s', propertyName, ...
                 validClass);
             
             assert(isa(newValue, validClass), msg)
         end
-        
     end
-    
 end

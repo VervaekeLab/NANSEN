@@ -12,7 +12,5 @@ classdef Soma_Virus < nansen.wrapper.quicky.Options
             S.Detection.UseShapeDetection       = false;
             S.Detection.MorphologicalShape      = 'disk';
         end
-        
     end
-    
 end

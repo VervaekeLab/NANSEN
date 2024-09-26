@@ -5,7 +5,7 @@ function addpath()
 %   because some functions in Nansen should take precedence over other
 %   functions from toolboxes..
 
-%   Note (Todo): This should be solved in a different way, or users need 
+%   Note (Todo): This should be solved in a different way, or users need
 %   to be informed of this behavior...
     
     currentpath = path;

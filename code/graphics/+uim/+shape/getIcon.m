@@ -32,5 +32,4 @@ function varargout = getIcon(iconName, outputFormat)
             
             varargout = {S};
     end
-    
 end

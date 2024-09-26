@@ -6,7 +6,6 @@ function [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData, varargin)
 %   Combine all roi spatial weights into a colorcoded image where each roi
 %   is given a unique color representation.
 
-
     % Default parameters
     params = struct();
     params.colorMap = 'viridis';
@@ -48,5 +47,4 @@ function [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData, varargin)
     if nargout == 1
         clear alphaMatrix
     end
-
 end

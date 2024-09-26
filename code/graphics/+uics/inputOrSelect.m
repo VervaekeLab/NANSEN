@@ -38,7 +38,6 @@ function selectedValue = inputOrSelect(listIn, varargin)
     
     %uicc = uim.UIComponentCanvas(hPanel);
     
-    
   % % Configure layout of components
     buttonSize = [80, 18];
     
@@ -81,7 +80,7 @@ function selectedValue = inputOrSelect(listIn, varargin)
     listboxSize = [editSize(1), listboxHeight];
     %listboxSize = [editSize(1), componentHeight - editSize(2) - SPACING(2)];
     
-    y = MARGINS(2); 
+    y = MARGINS(2);
     hLBox = uicontrol(hPanel, 'Style', 'listbox');
     hLBox.Position = [x, y, listboxSize];
     %hLBox.BackgroundColor = bgColor;
@@ -89,7 +88,6 @@ function selectedValue = inputOrSelect(listIn, varargin)
     hLBox.Max = 1;
     hLBox.String = [{'Use text input'}, listIn];
     hLBox.Value = 1;
-
 
     x = x + editSize(1) + SPACING(1);
     y = H - MARGINS(4) - buttonSize(2);
@@ -100,7 +98,6 @@ function selectedValue = inputOrSelect(listIn, varargin)
     % Create finish buttons
     buttonWidth = (f.Position(3) - sum(MARGINS([1,3])) - SPACING(1)) / 2;
     buttonSize = [buttonWidth, 18];
-
 
     x = f.Position(3)/2 + [-1,1]*SPACING(1)/2 + [-1, 0]*buttonSize(1);
     y = MARGINS(4);

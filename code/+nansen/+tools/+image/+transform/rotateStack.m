@@ -6,10 +6,10 @@ function [ imStack ] = rotateStack( imStack, angles, crop, printmsg, method)
 %   eg. images are rotated and cropped to yield same size as input.
 %
 %   [ IMSTACK ] = rotateStack( IMSTACK, ANGLES, CROP) rotates images
-%   without cropping them if CROP is true. Output images are larger than 
+%   without cropping them if CROP is true. Output images are larger than
 %   inputs.
 %
-%   [ IMSTACK ] = rotateStack( IMSTACK, ANGLES, CROP, PRINTMSG) rotates 
+%   [ IMSTACK ] = rotateStack( IMSTACK, ANGLES, CROP, PRINTMSG) rotates
 %   images and writes progress to the commandline if PRINTMSG is true.
 
 %   Written by Eivind Hennestad | Vervaeke Lab
@@ -41,8 +41,7 @@ if ~crop
         otherwise
             newStack = zeros(new_size(1), new_size(2), nFrames, 'like', imStack);
     end
-end    
-
+end
 
 % Loop through images and rotate
 for n = 1:nFrames
@@ -65,20 +64,17 @@ for n = 1:nFrames
         refreshdisp(str, prevstr, n);
         prevstr=str;
     end
-    
 end
 
 if ~crop
     imStack = newStack;
 else
     imStack = imStack(:, :, 1:nFrames);
-end  
+end
 
 if printmsg
     fprintf(char(8*ones(1,length(prevstr))));
     fprintf('Rotated all images.');
     fprintf('\n');
 end
-
 end
-

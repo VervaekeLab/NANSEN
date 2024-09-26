@@ -2,7 +2,7 @@ function selectedItem = uiSelectString(listOfItems, selectionMode, itemName)
     
     arguments
         listOfItems
-        selectionMode {mustBeMember(selectionMode, {'single', 'multiple'})} = 'single' 
+        selectionMode {mustBeMember(selectionMode, {'single', 'multiple'})} = 'single'
         itemName = 'item'
     end
 

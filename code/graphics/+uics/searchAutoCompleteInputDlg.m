@@ -1,6 +1,5 @@
 classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
     
-    
 % Credit: https://undocumentedmatlab.com/articles/auto-completion-widget
     
     properties
@@ -54,7 +53,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         Units_ = 'pixels'
     end
     
-    
     methods
         
         function obj = searchAutoCompleteInputDlg(varargin)
@@ -100,16 +98,14 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             % Todo: Delete these components.
 %             jSearchField
 %             jComboBox
-%         
+%
 %             hContainerComboBox
 %             hContainerSearchField
             
-            
         end
-
     end
 
-    methods 
+    methods
         function reset(obj)
             obj.Value = '';
         end
@@ -124,7 +120,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             if obj.HideOnFocusLost && strcmp(newValue, 'on')
                 % Todo: Find out how to give this component focus..
             end
-            
         end
         function visible = get.Visible(obj)
             visible = obj.hContainerComboBox.Visible;
@@ -169,7 +164,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             end
         end
         
-        
         function set.Items(obj, newValue)
             obj.Items_ = newValue;
             obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.Items_))
@@ -193,7 +187,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             end
         end
         
-        
         function set.String(obj, newValue)
             obj.Value = newValue;
         	%obj.jSearchField.setText(newValue);
@@ -209,24 +202,22 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             obj.onPromptTextSet()
         end
         
-        
         function answer = getAnswer(obj)
             answer = char(obj.jSearchField.getText());
         end
-        
     end
     
     methods (Access = private) % Component creation
 
         function createDropDownSelector(obj)
                        
-            % Note: MJComboBox is better than JComboBox: the popup panel 
+            % Note: MJComboBox is better than JComboBox: the popup panel
             % has more width than the base control if needed
-            obj.jComboBox = com.mathworks.mwswing.MJComboBox(obj.Items_); 
+            obj.jComboBox = com.mathworks.mwswing.MJComboBox(obj.Items_);
             obj.jComboBox.setEditable(true);
            
             % Set color (unfortunately, this only affects editable combos)
-            obj.jComboBox.setBackground(java.awt.Color.white); 
+            obj.jComboBox.setBackground(java.awt.Color.white);
            
             [jhComboBox, hContainer1] = javacomponent(obj.jComboBox, [], obj.Parent);
            
@@ -243,7 +234,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             if isempty(obj.PromptText)
                 promtText = 'Search for item';
             end
-            
             
             % Create a SearchTextField control on top of the combo-box
             searchField = com.mathworks.widgets.SearchTextField(obj.PromptText);
@@ -271,7 +261,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
 %             jSize = java.awt.Dimension(9999, 30);
 %             jInputField.getComponent(0).setMaximumSize(jSize);
 %             jInputField.getComponent(0).setPreferredSize(jSize);
-%             
+%
             if exist('hjCancelButton', 'var')
                 % Set callback for mousepress on cancel button
                 set(hjCancelButton, 'MousePressedCallback', {@obj.updateSearch, 'cancelButton'});
@@ -285,7 +275,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             % Set callback for mousepress or keypress on search input field
             set(obj.jSearchField, 'KeyPressedCallback', {@obj.updateSearch, 'searchField'});
             set(obj.jSearchField, 'MousePressedCallback', {@obj.updateSearch, 'searchField'});
-            
             
             if obj.HideOnFocusLost
                 set(obj.jSearchField, 'FocusLostCallback', @(h,e) obj.hide);  % hide the popup when another component is selected
@@ -301,7 +290,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             catch
                 bgColor = obj.Parent.Color;
             end
-            javacolor = @javax.swing.plaf.ColorUIResource; 
+            javacolor = @javax.swing.plaf.ColorUIResource;
             
             %set(jControl, 'Focusable', 1)
             set(jControl, 'Opaque', 0)
@@ -312,7 +301,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         function hide(obj)
             obj.Visible = 'off';
         end
-        
     end
     
     methods (Access = private)
@@ -379,7 +367,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                 % of selections and show the dropdown (popup)
                 case 'searchButton'
                     obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.Items_));
-                    obj.jComboBox.showPopup;  
+                    obj.jComboBox.showPopup;
                     set(obj.jSearchField, 'ScrollOffset', 1)
                     obj.SelectedItems = obj.Items_;
                     if ~isempty(obj.Callback)
@@ -396,7 +384,6 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
                         obj.Callback(obj, event)
                     end
             end
-            
             
             % If there is textinput, catch the text on the search field and
             % use it to search in the current dropdown list. If some
@@ -458,9 +445,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             if ~isempty(obj.Callback)
                 obj.Callback(obj, event)
             end
-            
         end
-        
     end
     
     methods (Static)
@@ -473,8 +458,5 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             hFigure.NumberTitle = 'off';
             
         end
-        
     end
-    
-    
 end

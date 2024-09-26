@@ -1,11 +1,11 @@
 function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName, varargin)
 %listSessionFolders Lists session folders in a data location.
-%   
+%
 %   Syntax:
-%       sessionFolders = listSessionFolders(dataLocationModel) returns a 
+%       sessionFolders = listSessionFolders(dataLocationModel) returns a
 %           struct with session folders for all available data locations
 %
-%       sessionFolders = listSessionFolders(dataLocationModel, dataLocationName) 
+%       sessionFolders = listSessionFolders(dataLocationModel, dataLocationName)
 %           returns a struct with session folders for data locations
 %           specified by the dataLocationName
 %
@@ -17,12 +17,12 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
 %           Locations. The default value is 'all' for which all available
 %           data locations are used.
 %
-%   Outputs: 
+%   Outputs:
 %       sessionFolders (struct) : A struct where each field is the name of
 %       a Data Location and each value is a cell array of folderpaths
 %       of session folders of the respective Data Location
 
-    % Todo: 
+    % Todo:
     %   [ ] Add as method in data location model.
     %   [ ] Check if folder(s) specified by rootPath exist before calling listSubDir?
     

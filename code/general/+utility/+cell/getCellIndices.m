@@ -34,7 +34,7 @@ for i = 1:numel(cellArray)
     thisCell = cellArrayFlat{i};
     
     % Assign the cell index to each element in the cell
-    cellIndices = [cellIndices, ones(1, length(thisCell)) * i]; %#ok<AGROW> 
+    cellIndices = [cellIndices, ones(1, length(thisCell)) * i]; %#ok<AGROW>
 end
 
 if nargout == 1

@@ -1,38 +1,32 @@
 classdef CranialWindow < fovmanager.mapobject.BaseObject
     
-    
     properties (Constant = true, Transient = true)
         defaultShapes = {'Trapezoidal 3x5mm', 'Round 2.5mm', 'Custom Trapezoid'}
     end
-    
     
     properties
         brainSurfaceAlphaMap
         fovArray = fovmanager.mapobject.FoV.empty
     end
     
-    
     properties (Transient)
         boundaryWidth = 2;
         boundaryColor = 'k';
     end
     
-    
-    methods 
+    methods
         
-        
-        function obj = CranialWindow(varargin) 
+        function obj = CranialWindow(varargin)
         % Initialize Cranial Window
-        %             
-        %   CranialWindow(fovmanager, centerPosition, size) creates a new 
+        %
+        %   CranialWindow(fovmanager, centerPosition, size) creates a new
         %   cranial window position in the FoV manager.
         %
-        %   CranialWindow(fovmanager, S) where S is a struct of cranial 
+        %   CranialWindow(fovmanager, S) where S is a struct of cranial
         %   window properties will recreate an already existing window.
-        %   
-        %   CranialWindow(S) creates a CranialWindow object, but does not 
+        %
+        %   CranialWindow(S) creates a CranialWindow object, but does not
         %   do any plotting.
-        
         
             if isa(varargin{1}, 'fovmanager.App')
                 fmHandle = varargin{1};
@@ -60,7 +54,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 
             end
             
-            
             % Plot window boundary and show image if present.
             if exist('fmHandle', 'var')
                 obj.displayObject(fmHandle)
@@ -69,10 +62,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 obj.guiHandle = hggroup(hAx);
                 obj.plotBoundary()
             end
-            
-            
         end
-        
         
         function propList = getNonTransientProperties(obj)
         %getNonTransientProperties Get properties that are not transient
@@ -91,7 +81,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
         
         end
         
-        
         function S = toStruct(obj)
             S = toStruct@fovmanager.mapobject.BaseObject(obj);
             
@@ -99,7 +88,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 S(i).fovArray = obj(i).fovArray.toStruct();
             end
         end
-
         
         function fromStruct(obj, S)
             fromStruct@fovmanager.mapobject.BaseObject(obj, S)
@@ -112,11 +100,10 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             % Fix some unexpected name changes....
             if isfield(S, 'brainSurfaceAlpha')
                 obj.brainSurfaceAlphaMap = S.brainSurfaceAlpha;
-            end 
+            end
         end
         
-        
-        function displayName = getDisplayName(obj, keyword) 
+        function displayName = getDisplayName(obj, keyword)
             
             if nargin < 2 || isempty(keyword)
                 keyword = '';
@@ -132,7 +119,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                     displayName = 'Window';
             end
         end
-        
         
         function showImage(obj)
             obj.updateImage()
@@ -151,7 +137,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
 %                     windowCoords(:, end+1) = windowCoords(:, 1);
                     
                 case {'Round 2.5mm'}
-                    theta = linspace(0, 2*pi, 100); 
+                    theta = linspace(0, 2*pi, 100);
                     rho = ones(size(theta))*2.5/2;
                     [x, y] = pol2cart(theta, rho);
                     
@@ -161,9 +147,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             
             obj.edge = windowCoords + obj.center;
             
-            
         end
-        
         
         function addImage(obj)
             
@@ -179,7 +163,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 imOrig = imresize(imOrig, newSize);
             end
             
-            % Open image in imviewer 
+            % Open image in imviewer
             hImviewer = imviewer(imOrig);
             hImviewer.ImageDragAndDropEnabled = false;
             
@@ -190,7 +174,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             % Get window coordinates in the image from user
             coords = obj.interactiveWindowPlacement(hImviewer);
             if isempty(coords); return; end
-            
             
             % Rotate image if it was rotated while fitting the window.
             theta = hImviewer.imTheta;
@@ -227,7 +210,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                     rcc = [min(coords), range(coords)];
                     
                     % Shift coordinates to upper right corner (1,1)
-                    coords = coords - rcc(1:2) + [1,1]; 
+                    coords = coords - rcc(1:2) + [1,1];
                     
                     % Find center and height of window in pixels
                     height = rcc(4); width = rcc(3);
@@ -244,7 +227,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                     rcc = [min(coords), range(coords)];
 
                     % Shift coordinates to upper right corner (1,1)
-                    coords = coords - rcc(1:2) + [1,1]; 
+                    coords = coords - rcc(1:2) + [1,1];
                     
                     % Find center and height of window in pixels
                     height = rcc(4); width = rcc(3);
@@ -262,7 +245,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
 
             end
             
-            
             % Crop image and get alphamap.
             imCropped = imcrop(imOrig, rcc);
             alphaData = poly2mask(winCoordsPx(:,1), winCoordsPx(:,2), rcc(4)+1, rcc(3)+1);
@@ -274,7 +256,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             % Add image and imhandle to fov database
             obj.image = flipud(imCropped);
             obj.brainSurfaceAlphaMap = flipud(alphaData);
-            
             
             % Todo: Should put the following to the updateImage method
             
@@ -290,7 +271,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             xCoords = (winCoordsPx(:,1)-winCenter(1)) ./ pixPerMm(2) + xoffset;
             yCoords = (winCoordsPx(:,2)-winCenter(2)) ./ pixPerMm(1).*-1 + yoffset;
             
-            % Show image in main plot            
+            % Show image in main plot
             hIm = findobj(obj.guiHandle, 'Tag', 'Brain Surface Image');
             hEdge = findobj(obj.guiHandle, 'Tag', 'Window Outline');
             
@@ -330,19 +311,16 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
 % % %             corrFactorY = mean(yData - [min(yCoords), max(yCoords)]);
 % % %             xCoords = xCoords + corrFactorX;
 % % %             yCoords = yCoords + corrFactorY;
-            
 
             % Update window outline according to new coordinates.
             obj.edge = [xCoords, yCoords];
             set( hEdge, 'XData', xCoords, 'YData', yCoords )
-
             
             mh = findobj(obj.guiHandle.UIContextMenu, 'Text', 'Add Brain Surface Image...');
             if ~isempty(mh)
                 mh.Text = 'Replace Brain Surface Image...';
             end
         end
-        
         
         function coords = interactiveWindowPlacement(obj, hImviewer)
         %interactiveWindowPlacement UI to indicate window position in image.
@@ -405,7 +383,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             while true
                 uiwait(hFigure) % Will resume on keypress
                 
-                if ~ishghandle(hFigure) 
+                if ~ishghandle(hFigure)
                     break
                 elseif strcmp(hFigure.UserData.lastKey, 'return')
                     coords = round(hImroi.getPosition);
@@ -421,7 +399,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             delete(hImroi);
             
         end
-
         
         function constrainedPos = trapezoidalConstraintFcn(~, newPos, hTrapezoid, siz, imSize)
             
@@ -437,7 +414,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             %   /           \   |
             %  2-------------3  |
             %         b
-            
             
             % Note: this function only works for trapezoids where b=h.
             % Small changes are needed for general cases. Also, it only
@@ -476,7 +452,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             elseif any(newPos(:, 2) > imSize(1))
                 deltaY = maxAllowedShiftsY(2);
             end
-            
             
             % Calculate newposition of constrained Trapezoid
             if numel(ci) == 1 % One corner is moved
@@ -521,7 +496,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                     maxAllowedResize = [-origB+10, min( [maxAllowedShiftsX(2), -maxAllowedShiftsY(1)]) ];
                 end
                 
-                
                 % Limit resize
                 if delta < maxAllowedResize(1)
                     delta = maxAllowedResize(1);
@@ -559,14 +533,13 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 xCenter = newBBox(1,1) + abs(diff(newBBox([1,4], 1)))/2;
                 
                 % Set the x-position of either the upper or lower corners.
-                if lockedCorner == 1 || lockedCorner == 4    
+                if lockedCorner == 1 || lockedCorner == 4
                     constrainedPos(2,1) = xCenter - newB/2;
                     constrainedPos(3,1) = xCenter + newB/2;
                 else
                     constrainedPos(1,1) = xCenter - newA/2;
                     constrainedPos(4,1) = xCenter + newA/2;
                 end
-                
                 
             elseif numel(ci) > 1 % The whole trapezoid is moved
                 constrainedPos = origPos + [deltaX, deltaY];
@@ -576,9 +549,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
 
         end
         
-        
 % % % % Context menu on the gui object in fov manager
-
         
         function createContextMenu(obj, fmHandle)
 
@@ -612,7 +583,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 mitem.Enable = 'on';
             end
             
-            
             mitem = uimenu(m, 'Text', 'Add Injection', 'Separator', 'on');
             mitem.Callback = @(src, event) fmHandle.addInjections;
             
@@ -636,7 +606,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             obj.guiHandle.UIContextMenu = m;
             
         end
-        
 
         function setImageAlpha(obj, ~, alphaValue)
             
@@ -644,7 +613,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 
 %                 hEdge = findobj(obj.guiHandle, 'Tag', 'Window Outline');
 %                 hEdge.FaceAlpha = alphaValue;
-%                 
+%
             else
             
                 hIm = findobj(obj.guiHandle, 'Tag', 'Brain Surface Image');
@@ -656,9 +625,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
 
                 hIm.AlphaData = alphaData;
             end
-            
         end
-        
         
         function setWindowAlpha(obj, alphaValue)
             h = findobj(obj.guiHandle, 'type', 'patch');
@@ -674,7 +641,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             if ~obj.isMovable && ~forceMove; return; end
             
             % Move window itself using the superclass move method
-            move@fovmanager.mapobject.BaseObject(obj, shift, forceMove) 
+            move@fovmanager.mapobject.BaseObject(obj, shift, forceMove)
             
             % Move fovs
             for i = 1:numel(obj.fovArray)
@@ -684,9 +651,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 fovH.move(shift, true, false) % Add flag for to force move & to not update fov info
 %                 fovH.isMovable = fovIsMovable;
             end
-            
         end
-        
         
         function rotate(obj, theta)
             
@@ -697,7 +662,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             % Rotate edges and image.
             obj.rotateBoundary()
             obj.updateImage()
-                        
             
             thetaShiftRad = deg2rad(-theta); % Change sign because the rotation angle is in image rotation coordinates, not in polar
             
@@ -718,9 +682,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 fovH.rotate(theta)
                 fovH.isMovable = fovIsMovable;
             end
-            
         end
-        
         
         function fliplr(obj)
             
@@ -740,7 +702,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             
             % Update displayed image
             obj.updateImage()
-            
 
             % Move fovs. NB Won't work if fov image is rotated to an angle
             % different from steps of 90
@@ -762,10 +723,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 
                 fovH.isMovable = fovIsMovable;
             end
-            
-            
         end
-        
         
         function flipud(obj)
             
@@ -783,10 +741,8 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 obj.orientation.isMirroredY = ~obj.orientation.isMirroredY;
             end
             
-            
             % Update displayed image
             obj.updateImage()
-            
 
             % Move fovs
             for i = 1:numel(obj.fovArray)
@@ -807,12 +763,8 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 
                 fovH.isMovable = fovIsMovable;
             end
-            
         end
-
-        
     end
-    
     
     methods (Access = protected)
         
@@ -859,7 +811,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                     alphaData = imresize(alphaData, [imSize(1), imSize(2)*imAr]);
                 end
                 
-                
                 % Specify corners coords, start upper left and go ccw
                 imCornersX = [-0.5, -0.5, 0.5, 0.5] .* xExtent;
                 imCornersY = [-0.5, 0.5, 0.5, -0.5] .* yExtent;
@@ -879,8 +830,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
 
             end
             
-            
-            
             if isempty(hIm)
                 hIm = image(displayIm, 'XData', xLims, 'YData', yLims);
                 hIm.AlphaData = alphaData;
@@ -889,7 +838,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 hIm.PickableParts = 'none';
                 hIm.HitTest = 'off';
                 uistack(hIm, 'down') % Edge should stay on top for visibility
-                
                 
                 mTmp = findobj(obj.guiHandle.UIContextMenu, 'Text', 'Show Brain Surface Image');
                 mTmp2 = findobj(obj.guiHandle.UIContextMenu, 'Text', 'Set Image Transparency');
@@ -911,15 +859,10 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 
                 hIm.AlphaData = alphaData;
             end
-            
-            
         end
-        
     end
     
-    
     methods (Static)
-        
         
         function windowShape = requestShape()
             
@@ -939,9 +882,5 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             windowShape = availableWindows{selectionInd};
         
         end
-
-        
     end
-    
-    
 end

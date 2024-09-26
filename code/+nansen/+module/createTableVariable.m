@@ -5,7 +5,7 @@ function createTableVariable(app, metadataClass)
 %   from the table or which is retrieved from a function.
 
 %  Q: This belongs to MetaTableViewer, but was more convenient to
-%  add it here for now. 
+%  add it here for now.
 
 % Todo: Use class instead of functions / add class as a third
 % choice. Can make more configurations using a class, i.e class can

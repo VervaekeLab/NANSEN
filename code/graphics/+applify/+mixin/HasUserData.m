@@ -41,9 +41,9 @@ classdef HasUserData < handle
     end
 
     properties (Dependent, Hidden)
-        % IsDirty - A flag indicating whether the data has been modified 
+        % IsDirty - A flag indicating whether the data has been modified
         % from its original state.
-        IsDirty 
+        IsDirty
     end
 
     properties (Access = private)
@@ -56,7 +56,7 @@ classdef HasUserData < handle
         DataChanged
     end
 
-    methods 
+    methods
         function obj = HasUserData(data)
             arguments
                 data = [];
@@ -84,7 +84,7 @@ classdef HasUserData < handle
         end
     end
 
-    methods 
+    methods
         function resetData(obj)
         % resetData - Reset the data to its original state.
             obj.Data = obj.OriginalData;

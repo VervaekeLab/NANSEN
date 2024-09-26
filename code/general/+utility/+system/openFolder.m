@@ -2,7 +2,6 @@ function openFolder(folderPath)
 %openFolder Open a folder using the system's (OS) default method
 %
 %   openFolder(folderPath)
-
     
     if ismac
         if isfile(folderPath)
@@ -23,6 +22,4 @@ function openFolder(folderPath)
     elseif ispc
         winopen(folderPath);
     end
-
-    
 end

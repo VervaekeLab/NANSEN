@@ -7,5 +7,5 @@ classdef DateOfBirth < nansen.metadata.abstract.TableVariable
     properties (Constant)
         IS_EDITABLE = true
         DEFAULT_VALUE = datetime.empty
-    end    
+    end
 end

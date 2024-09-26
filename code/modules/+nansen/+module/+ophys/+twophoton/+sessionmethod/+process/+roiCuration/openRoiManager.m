@@ -2,8 +2,7 @@ function varargout = openRoiManager(sessionObj, varargin)
 %openRoimanager Open roimanager for corrected two-photon images
 %
 
-
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Please create a struct of default parameters (if applicable) and specify
 % one or more attributes (see nansen.session.SessionMethod.setAttributes)
 % for details.
@@ -12,9 +11,8 @@ function varargout = openRoiManager(sessionObj, varargin)
     params = getDefaultParameters();
     ATTRIBUTES = {'serial', 'unqueueable'};
     
-    
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
 
     % % % Initialization block for a session method function.
     fcnAttributes = nansen.session.SessionMethod.setAttributes(params, ATTRIBUTES{:});
@@ -26,12 +24,10 @@ function varargout = openRoiManager(sessionObj, varargin)
     % % % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, [], varargin);
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the method : Add you code here:
         
     %sessionObj.validateVariable('TwoPhotonSeries_Corrected')
-
 
 % %     filepath = fullfile(nansen.toolboxdir, 'resources', 'images', 'nansen_roiman.png');
 % %     [jFrame, jLabel, C] = nansen.ui.showSplashScreen(filepath, 'RoiManager'); %#ok<ASGLU>
@@ -75,7 +71,6 @@ function varargout = openRoiManager(sessionObj, varargin)
         return
     end
 end
-
 
 function S = getDefaultParameters()
 

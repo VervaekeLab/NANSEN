@@ -17,5 +17,4 @@ function defaultValue = getDefaultValueAsChar(dataType)
         otherwise
             defaultValue = '{''N/A''}';
     end
-            
 end

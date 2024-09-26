@@ -1,6 +1,5 @@
 classdef TimeSeries < nansen.dataio.FileAdapter
-%TimeSeries File adapter for a file that can be opened as an timeseries   
-    
+%TimeSeries File adapter for a file that can be opened as an timeseries
 
     properties (Constant)
         DataType = 'timeseries'
@@ -9,7 +8,6 @@ classdef TimeSeries < nansen.dataio.FileAdapter
     properties (Constant, Hidden, Access = protected)
         SUPPORTED_FILE_TYPES = {'mat'}
     end
-    
     
     methods (Access = protected)
         
@@ -46,10 +44,7 @@ classdef TimeSeries < nansen.dataio.FileAdapter
             else
                 save(obj.Filename, '-struct', 'S')
             end
-            
-            
         end
-
     end
     
     methods
@@ -61,11 +56,9 @@ classdef TimeSeries < nansen.dataio.FileAdapter
         function view(obj)
             signalviewer.App(ts);
         end
-        
     end
     
-    methods 
+    methods
 
     end
-    
 end

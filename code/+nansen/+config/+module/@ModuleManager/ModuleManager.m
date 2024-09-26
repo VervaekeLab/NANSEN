@@ -1,7 +1,7 @@
 classdef ModuleManager < handle
 %ModuleManager A manager for managing a modules to include in a project
 %
-%   A simple class for listing available modules in nansen. More functionality 
+%   A simple class for listing available modules in nansen. More functionality
 %   might be needed later.
 
     properties (SetAccess = protected)
@@ -22,7 +22,6 @@ classdef ModuleManager < handle
         %ModuleManager Construct an instance of this class
             obj.getModuleList()
         end
-        
     end
     
     methods
@@ -32,7 +31,7 @@ classdef ModuleManager < handle
         %
         %   Syntax:
         %       moduleTable = obj.listModules() list all modules
-        %   
+        %
         %       moduleTable = obj.listModules(flag) list modules according
         %       to a flag. Flag can be 'all', 'required', 'optional'
 
@@ -58,7 +57,6 @@ classdef ModuleManager < handle
                 end
             end
         end
-        
     end
 
     methods (Access = protected)
@@ -113,5 +111,4 @@ classdef ModuleManager < handle
             obj.IsDirty = false;
         end
     end
-
 end

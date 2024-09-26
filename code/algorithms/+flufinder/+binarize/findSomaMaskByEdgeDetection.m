@@ -3,7 +3,7 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
 %
 %   INPUTS:
 %       im          : thumbnail (cropped) image of a neuronal cell body
-%       center      : center coordinates of the thumbnail image in the 
+%       center      : center coordinates of the thumbnail image in the
 %                     original fov image
 %       origImSize  : size of original fov image
 %
@@ -13,30 +13,30 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
 %       us
 %
 %   DESCRIPTION:
-%       
+%
 %       This methods takes a single image (2D) or a stack of images (3D)
 %       as inputs and finds a mask for a soma (cell body). The mask is
 %       found by edge detection in the following way:
-%           
-%           1) The image is reshaped from a cartesian image to a polar 
-%           image, i.e the first dimension of the new image is the radius 
-%           from the center of the image, and the second dimension is the 
+%
+%           1) The image is reshaped from a cartesian image to a polar
+%           image, i.e the first dimension of the new image is the radius
+%           from the center of the image, and the second dimension is the
 %           angle for a radial line originating from the image center.
 %           2) The gradient is computed along the radial dimension and the
-%           peak gradient for each angle is selected as a boundary 
+%           peak gradient for each angle is selected as a boundary
 %           candidate.
 %           3) The gradient is smoothed and outliers are removed
 %
 %       An optional parameter is to start by detecting the nucleus
 %       boundary and use the result for localizing the cell body boundary.
 %       Many times the nucleus boundary might be easier to reliably detect
-%       and it can serve as a constraint on the outer boundary, i.e we can 
+%       and it can serve as a constraint on the outer boundary, i.e we can
 %       narrow the search for the outer boundary down to a thin region
 %       outside of the inner (nucleus) boundary. If the gradient of a
 %       nucleus boundary is insignificant (i.e a cell is overfilled, or the
-%       cell is sectioned close to the top or bottom) the search for the 
+%       cell is sectioned close to the top or bottom) the search for the
 %       outer boundary follows the standard procedure.
-%       
+%
 %
 %
 
@@ -81,13 +81,12 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
 
     % Create the gradient image for edge detection.
     grad = diff(double(unrolled));
-        
 
     % Allocate array for roi masks and initialize struct for stats
     mask = zeros([imSizeSmall(1:2), numImages], 'logical');
     
     if nargout == 2
-        returnStats = true; 
+        returnStats = true;
         stat = initializeStats();
     else
         returnStats = false;
@@ -97,7 +96,6 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
         
         tmpUnrolled = unrolled(:, :, i);
         tmpGradient = grad(:, :, i);
-    
         
         if params.DetectNucleusBoundary
             % Start by detecting the boundary of the nucleus, i.e a
@@ -136,7 +134,6 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
         lb = 1; ub = size(grad,1);
         outerBoundarySmooth( outerBoundarySmooth<lb ) = lb;
         outerBoundarySmooth( outerBoundarySmooth>ub ) = ub;
-        
                 
         if showPlot
             showDetectedEdges(grad(:,:,i), tmpUnrolled, innerBoundary, ...
@@ -157,8 +154,6 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
         
         % Create mask
         mask(:, :, i) = poly2mask(X, Y, imSizeSmall(1), imSizeSmall(2));
-
-    
         
         if returnStats
             %Todo: finn ut hvorfor allen bildene ble lagt ved her
@@ -171,9 +166,7 @@ function [mask, stat] = findSomaMaskByEdgeDetection(im, varargin)
             end
             stat(i).outerStrength = outerBoundaryStats.EdgeValue;
         end
-    
     end
-
     
 % % %     figure; plot(VAL)
 % % %     hold on
@@ -199,15 +192,13 @@ function [edgeCoords, stat] = findEdge(grad, polarity)
 
     [edgeVal, edgeCoords] = peakfun(grad);
 
-
     medianCoord = median(edgeCoords);
-    stdCoord = std(edgeCoords);    
-
+    stdCoord = std(edgeCoords);
 
     if showPlot
         persistent f ax hIm
         if isempty(f) || ~isvalid(f)
-            f = figure('Position', [300,300,300,300]); 
+            f = figure('Position', [300,300,300,300]);
             ax = axes('Position', [0,0,1,1]);
         end
         imagesc(ax, grad); hold on
@@ -261,7 +252,6 @@ function [edgeCoords, stat] = findEdge(grad, polarity)
                 edgeCoords(tmpInd) = newCoord;
                 edgeVal(tmpInd) = grad(round(edgeCoords(tmpInd)), tmpInd);
             end
-            
         end
 
         % Prevent looping into fields of eternity.
@@ -272,7 +262,7 @@ function [edgeCoords, stat] = findEdge(grad, polarity)
         
         % Update mean and std values.
         medianCoord = median(edgeCoords);
-        stdCoord = std(edgeCoords);    
+        stdCoord = std(edgeCoords);
     
     end
     
@@ -285,7 +275,6 @@ end
 function gradientImageOut = updateGradientImage(gradientImage, boundary)
 %updateGradientImage Create a cropped gradient image, cropping at inner
 %boundary and keeping a thin region outside the boundary
-
 
     lowerRadius = floor(min(boundary));
     newIm = nan(size(gradientImage) - [lowerRadius, 0]);
@@ -306,9 +295,8 @@ function gradientImageOut = updateGradientImage(gradientImage, boundary)
     % mean of the internal radius:
     
     %upSampleFactor = 4;
-    %offset = round( mean(boundary) ./ upSampleFactor .* 0.75);            
+    %offset = round( mean(boundary) ./ upSampleFactor .* 0.75);
     %h = min([size(newIm,1), offset*upSampleFactor ]);% why 3??????? parameterize
-    
     
     upperRadius = ceil( mean(boundary) .* 1.2 );
     %upperRadius % todo: adapt....
@@ -316,7 +304,6 @@ function gradientImageOut = updateGradientImage(gradientImage, boundary)
     
     gradientImageOut = newIm(1:h, :);
 end
-
 
 function tf = isSignificantBoundary(innerBoundaryStats)
     tf = innerBoundaryStats.EdgeValue2 > 1.5; % Ad hoc cutoff value...
@@ -345,7 +332,6 @@ function stat = getStats(im, tmpUnrolled, innerBoundarySmooth, ...
     imCenter = fliplr( imSizeUs(1:2)./2 );
     x = imCenter(1); y = imCenter(2);
 
-
     [X, Y] = pol2cart(deg2rad(theta), outerBoundarySmooth);
     stat.outerEdge = [x+X', y-Y'];
 
@@ -356,7 +342,6 @@ function stat = getStats(im, tmpUnrolled, innerBoundarySmooth, ...
 
     maskNucl = poly2mask(x+X-0.25, y-Y-0.25,  imSizeUs(1),  imSizeUs(2));
 
-
     stat.nucleusValue = median(mean(im(maskNucl)));
     stat.donutValue = median(mean(im(maskSoma &~ maskNucl)));
     stat.surroundValue = median(mean(im(~maskSoma)));
@@ -365,7 +350,6 @@ function stat = getStats(im, tmpUnrolled, innerBoundarySmooth, ...
     stat.outerStrength = 0;
 
     centerLine = mean([innerBoundarySmooth', outerBoundarySmooth'], 2); % For stats
-
 
     indCenter = sub2ind(size(tmpUnrolled), round(centerLine), (1:size(tmpUnrolled,2))');
     try
@@ -389,7 +373,6 @@ function stat = getStats(im, tmpUnrolled, innerBoundarySmooth, ...
         isRidge = tmpUnrolled(indCenter) > tmpUnrolled(indInner) & tmpUnrolled(indCenter) > tmpUnrolled(indOuter);
         stat.ridgeFraction = mean(isRidge);
     end
-
 end
 
 function showDetectedEdges(grad, tmpUnrolled, edgeCoordsInn, ...
@@ -414,4 +397,3 @@ function showDetectedEdges(grad, tmpUnrolled, edgeCoordsInn, ...
 %     plot(1:size(unrolled,2), innerBnd1, 'r')
 
 end
-

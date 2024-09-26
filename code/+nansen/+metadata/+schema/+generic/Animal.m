@@ -1,6 +1,5 @@
 classdef Animal < meta.base.MetaObject
     
-    
     % Set metaObject abstract properties
     properties (Constant, Hidden)
         ANCESTOR = ''
@@ -15,13 +14,10 @@ classdef Animal < meta.base.MetaObject
         strain          char % /or enum
     end
     
-    
     methods
 
         function str = tooltipString(obj)
             % hm...
         end
-        
     end
-    
 end

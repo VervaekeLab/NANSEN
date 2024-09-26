@@ -1,8 +1,6 @@
 classdef PipelineViewerApp < uiw.abstract.AppWindow
     
-    
     % Todo: Allow many sessions!
-    
     
     properties (Constant, Access=protected) % Inherited from uiw.abstract.AppWindow
         AppName char = 'Pipeline Viewer'
@@ -18,7 +16,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
     end
     
     properties (Dependent)
-        SelectionMode 
+        SelectionMode
     end
     
     properties (SetAccess = protected)
@@ -40,7 +38,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
         
     end
     
-    
     methods
         
         function app = PipelineViewerApp(pipelineStruct, sessionObj, varargin)
@@ -57,11 +54,8 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
             if nargin >= 2
                 app.MetaObject = sessionObj;
             end
-            
         end
-        
     end
-    
     
     methods % Set/get
         
@@ -83,7 +77,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
         end
     end
     
-    
     methods % Public methods
         
         function openPipeline(app, progressStruct, metaObject)
@@ -94,7 +87,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
         end
         
         function assignPipeline(app, progressStruct)
-        %assignNotebook Assign notebook in various forms.    
+        %assignNotebook Assign notebook in various forms.
             
             if isa(progressStruct, 'nansen.pipeline.Pipeline') % Todo...
                 app.PipelineStruct = progressStruct.toStruct; % Make sense?
@@ -118,9 +111,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 case {'close', 'delete'}
                     app.Figure.CloseRequestFcn = @(s,e) app.delete();
             end
-                    
         end
-        
     end
     
     methods (Access = protected)
@@ -132,7 +123,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
         function onTaskTableDataSet(app)
             
             isInitialization = isempty(app.UITable.DataTable);
-            
                         
             if isInitialization
                 app.UITable.ColumnFormat = {'logical', 'char', 'char', 'logical', 'date'};
@@ -140,7 +130,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 app.UITable.ColumnPreferredWidth = [70, 100, 100, 70, 100];
                 app.UITable.ColumnMaxWidth = [100, 1000, 1000, 100, 120];
             end
-
             
             app.UITable.DataTable = app.TaskTableData;
             
@@ -149,14 +138,13 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
             % Update the column formatting properties
             %colFormatData = {};
             %app.UITable.ColumnFormatData = colFormatData;
-
             
         end
         
         function onTableCellEdited(app, src, evt)
         %onTableCellEdited Callback for table cell edits..
         
-            rowNumber = evt.Indices(1); 
+            rowNumber = evt.Indices(1);
             colNumber = evt.Indices(2);
         
             switch colNumber
@@ -176,7 +164,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
             
             app.MetaObject.Progress = app.PipelineStruct;
         end
- 
     end
     
     methods (Access = private) % Component creation and updates
@@ -212,11 +199,9 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
 %                 app.UITable.ColumnPreferredWidth = colWidth;
             end
             
-            
             %app.UITable.ColumnWidth = [40, 100, 100, 100];
 
         end
-        
     end
     
     methods (Access = protected) % Component and user invoked callbacks
@@ -226,7 +211,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
             switch evt.Key
 
             end
-            
         end
         
         function onPipelineSet(app)
@@ -249,7 +233,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 rowNum = evt.Cell(1);
                 if rowNum == 0; return; end
                 
-                
                 thisTask = app.PipelineStruct.TaskList(rowNum);
                 
                 if thisTask.IsManual
@@ -263,7 +246,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 %disp('right clicked')
                 %app.onMouseRightClickedInTable(src, evt)
             end
-            
         end
         
         function hideApp(app)
@@ -287,7 +269,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 errordlg(sprintf('%s \n%s', message, ME.message))
                 throw(ME)
             end
-            
         end
         
         function initQueuableTask(app, taskStructure, rowNum)
@@ -311,7 +292,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 sessionObj = app.getSessionObject(rowNum);
                 taskId = sessionObj.sessionID;
                 
-                % Prepare input args for function (session object and 
+                % Prepare input args for function (session object and
                 % options)
                 
                 methodArgs = {sessionObj, opts};
@@ -320,9 +301,6 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
                 app.BatchProcessor.submitJob(taskId,...
                                 fcnHandle, 0, methodArgs, optsName )
             end
-
         end
-
     end
-    
 end

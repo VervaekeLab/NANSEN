@@ -1,6 +1,6 @@
 function reorganizeProjectFolder(projectFolderPath, projectManager)
 % reorganizeProjectFolder - Reorganize a project folder based on
-% refactoring/upgrading the project folder template  
+% refactoring/upgrading the project folder template
 
 %   Steps:
 %
@@ -24,7 +24,7 @@ function reorganizeProjectFolder(projectFolderPath, projectManager)
         name = S.ProjectConfiguration.Name;
         description = S.ProjectConfiguration.Description;
     
-        % If project is current, 
+        % If project is current,
         wasCurrent = false;
         if strcmp(projectManager.CurrentProject, name)
             wasCurrent = true;
@@ -100,14 +100,13 @@ function backupFolderPath = backupProjectFolder(projectFolderPath)
     if ~isfolder(backupFolderPath); mkdir(backupFolderPath); end
 
     % Make backup:
-    try 
+    try
         copyfile(projectFolderPath, backupFolderPath);
         rmdir(projectFolderPath, 's')
     catch
         [~, projectName] = fileparts(projectFolderPath);
         error('Something went wrong during backup of project "%s".', projectName)
     end
-
 end
 
 function S = loadOldConfigurations(projectFolderPath)

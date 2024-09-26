@@ -1,5 +1,4 @@
 classdef (ConstructOnLoad) ValueChanged < event.EventData
-   
     
     properties
         Name
@@ -8,7 +7,6 @@ classdef (ConstructOnLoad) ValueChanged < event.EventData
         UIControls
         PageNumber
     end
-    
     
     methods
         
@@ -20,7 +18,5 @@ classdef (ConstructOnLoad) ValueChanged < event.EventData
             data.UIControls = UIControls;
             data.PageNumber = pageNumber;
         end
-        
     end
-    
 end

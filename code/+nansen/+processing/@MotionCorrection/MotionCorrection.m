@@ -2,7 +2,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 %nansen.processing.MotionCorrection Run motion correction on ImageStacks
 %
 %   This class is an abstract class that provides a framework for running
-%   motion correction on ImageStack objects. It inherits the following 
+%   motion correction on ImageStack objects. It inherits the following
 %   classes:
 %
 %   - nansen.processing.DataMethod : Provides data I/O model and options functionality
@@ -34,33 +34,30 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 %           - offsetY : Rigid frame offset in y (numFrames x 1)
 %           - rmsMovement : root mean square movement for frames (numFrames x 1)
 %
-%     * <strong>MotionCorrectionReferenceImage</strong> : A stack of reference images 
+%     * <strong>MotionCorrectionReferenceImage</strong> : A stack of reference images
 %     (templates) for motion correction. One reference per chunk
-%       
+%
 %     * <strong>MotionCorrectionTemplates8bit</strong> : Same as above cast to 8bit
 %
 %     * <strong>AverageProjectionsCorrected</strong> : Image stack with average
 %     projections. Each average projection is from one chunk of the stack
 %
 %     * <strong>AverageProjectionsCorrected8bit</strong> : Same as above, cast to 8bit
-%     
+%
 %     * <strong>MaximumProjectionsCorrected</strong> : Image stack with maximum
 %     projections. Each maximum projection is from one chunk of the stack
 %
 %     * <strong>MaximumProjectionsCorrected8bit</strong> : Same as above, cast to 8bit
 
-
 %   QUESTIONS:
 %       b) How to resolve initializing this method with a different set of
 %          options than before?
-%       
+%
 %       - Should conversion of projection stacks and saving of fov images
 %         be part of this class or should they be different methods?
 
-
-
-    % Todo: 
-    %   [ ] Save general options for motion correction... 
+    % Todo:
+    %   [ ] Save general options for motion correction...
     %
     %   [v] Multichannel support
     %
@@ -74,7 +71,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     %   [ ] Save shifts in standardized output as well as method outputs...
     %
     %   POSTPROCESSING
-    %   
+    %
     %   [ ] Use min max when recasting a galvo scan. Less noise, so the
     %       upper percentile value saturates a lot of signal...
     %
@@ -82,7 +79,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     %       they are not available...
     %   [ ] Save projection images for raw stacks.
     %   [ ] Save other metrics to assess registration quality
-
     
     properties (Abstract, Constant)
         ImviewerPluginName
@@ -109,7 +105,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         
         CurrentRefImage     % Current reference image
     end
-    
     
     methods (Abstract, Access = protected) % Abstract methods that subclasses must implement
         
@@ -142,12 +137,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 obj.TargetStackName = 'TwoPhotonSeries_Corrected';
             end
         end
-        
     end
     
-    methods 
+    methods
         function recastOutput = get.RecastOutput(obj)
-        %RecastOutput Determine if output needs to be recast.    
+        %RecastOutput Determine if output needs to be recast.
             dataTypeIn = obj.SourceStack.DataType;
             dataTypeOut = obj.Options.Export.OutputDataType;
             if strcmp(obj.Options.Export.OutputDataType, 'same')
@@ -161,7 +155,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
     methods (Access = protected) % Override ImageStackProcessor methods
         
         function runPreInitialization(obj)
-        %onPreInitialization Method that runs before the initialization step    
+        %onPreInitialization Method that runs before the initialization step
             
             % Determine how many steps are required for the method
             runPreInitialization@nansen.stack.ImageStackProcessor(obj)
@@ -171,7 +165,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 % Need to compute pixel statistics for source stack..
                 obj.addStep('pixelstats', 'Compute pixel statistics', 'beginning')
             end
-            
         end
         
         function onInitialization(obj)
@@ -184,14 +177,13 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                     obj.Options.Preprocessing.NumFlybacklines ~= 0
                 stackSize(1) = stackSize(1) - obj.Options.Preprocessing.NumFlybacklines;
             end
-
             
             % Get options (preconfigs) for the normcorre registration
             % Todo: Different toolboxes might require different inputs.
             obj.ToolboxOptions = obj.getToolboxSpecificOptions(stackSize);
            
             % Todo: Validate options. I.e, if processor is run again, some
-            % of the options should be the same... 
+            % of the options should be the same...
        
             processor = nansen.stack.processor.PixelStatCalculator(...
                           obj.SourceStack, 'DataIoModel', obj.DataIoModel);
@@ -247,7 +239,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 obj.StackIterator.next()
                 obj.CurrentChannel = obj.StackIterator.CurrentChannel;
                 obj.CurrentPlane = obj.StackIterator.CurrentPlane;
-            
 
                 iC = 1;
                 iZ = obj.CurrentPlane;
@@ -262,7 +253,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 imArray = obj.DerivedStacks.ReferenceStack.getFrameSet(1:obj.NumParts);
                 imArray = stack.makeuint8(imArray);
                 obj.saveTiffStack('MotionCorrectionTemplates8bit', imArray)
-
             
                 % Save average and maximum projections as 8-bit stacks.
                 if obj.Options.Export.saveAverageProjection
@@ -309,7 +299,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Skip for now, in this class results have a special
             % implementation (see save shifts)
         end
-
     end
         
     methods (Access = protected) % Pre- and processing methods for imagedata
@@ -342,7 +331,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 Y = Y(ind{:});
             end
 
-
             % Todo: Should this be here or baked into the
             % getRawStack / getframes method of rawstack?
             
@@ -371,15 +359,13 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 ref = obj.DerivedStacks.ReferenceStack.getFrameSet( obj.CurrentPart - 1);
                 obj.CurrentRefImage = single(ref);
             end
-
         end
 
         function M = postprocessImageData(obj, Y, ~, ~)
             
-            % Todo: 
+            % Todo:
             %   Make 2 submethods: correct drift, and adjust brightness
             %   Make sure multiple channels are handled properly
-            
             
             iIndices = obj.CurrentFrameIndices;
             iPart = obj.CurrentPart;
@@ -395,7 +381,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 
                 % Todo:
                 updateReference = false;
-                if updateReference                    
+                if updateReference
                     obj.CurrentRefImage = imtranslate( obj.CurrentRefImage, [drift(1), drift(2)] );
                     % Write reference image to file.
                     templateOut = cast(obj.CurrentRefImage, obj.SourceStack.DataType);
@@ -423,7 +409,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             if adjustOutputBrightness
                 minValue = obj.getCurrentPixelBaseline();
-                maxValue = obj.getCurrentPixelUpperBound();                
+                maxValue = obj.getCurrentPixelUpperBound();
                 
                 switch dataTypeOut
                     case 'uint8'
@@ -440,11 +426,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             % Save projections of corrected images
             obj.addImageToCorrectedProjectionStacks(Y)
 
-            % Important: Do this last, because shifts are used to check if 
+            % Important: Do this last, because shifts are used to check if
             % current part is corrected or not.
             obj.saveShifts()
         end
-        
     end
 
     methods (Access = protected)
@@ -501,15 +486,13 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                 obj.saveData(optionsVarname, opts, ...
                     'Subfolder', 'motion_corrected')
             end
-            
         end
-                 
     end
     
     methods (Access = private)
         
         function upperValue = getCurrentPixelUpperBound(obj)
-        %getCurrentPixelUpperBound Get upper bound for pixel values of current channel/plane 
+        %getCurrentPixelUpperBound Get upper bound for pixel values of current channel/plane
         %
         %   OUTPUT:
         %       upperValue : If CurrentChannel is scalar, upperValue
@@ -537,7 +520,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             else
                 error('This is an invalid value. Please report')
             end
-            
             
             if numel(iC) > 1 % Multiple channels
                 currentStats = cat(1, obj.ImageStats{iC, iZ});
@@ -567,10 +549,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         end
 
         function baselineValue = getCurrentPixelBaseline(obj)
-        %getCurrentPixelBaseline Get pixel baseline for current channel/plane  
+        %getCurrentPixelBaseline Get pixel baseline for current channel/plane
         %
         % The baseline is calculated by taking the 5th percentile of
-        % the 2nd lower percentile value across all frames for the 
+        % the 2nd lower percentile value across all frames for the
         % current channel and plane.
         %
         %   See also nansen.stack.processor.PixelStatCalculator
@@ -618,18 +600,17 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         function Y = subtractPixelBaseline(obj, Y)
             baselineValue = obj.getCurrentPixelBaseline();
             baselineValue = cast(baselineValue, 'like', Y);
-            Y = Y - baselineValue;            
+            Y = Y - baselineValue;
         end
         
         function Y = addPixelBaseline(obj, Y)
             baselineValue = obj.getCurrentPixelBaseline();
             baselineValue = cast(baselineValue, 'like', Y);
-            Y = Y + baselineValue;               
+            Y = Y + baselineValue;
         end
         
-        
         function openProjectionStacks(obj, stackSize, dataTypeIn)
-        %openProjectionStacks Open projection stacks for various images    
+        %openProjectionStacks Open projection stacks for various images
             
             % Create image stack for saving reference (template) images
             refFolderName = fullfile(obj.DATA_SUBFOLDER, 'reference_images');
@@ -689,12 +670,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
                     varName = 'MaximumProjectionsOriginal8bit';
                     obj.DerivedStacks.MaxProjOrig8bit = obj.openTiffStack(varName, refArray, folderName);
                     varName = 'FovMaximumProjectionOrig';
-                    obj.DerivedStacks.MaxFovImageOrig = obj.openTiffStack(varName, fovArray, 'fov_images', false);    
+                    obj.DerivedStacks.MaxFovImageOrig = obj.openTiffStack(varName, fovArray, 'fov_images', false);
                     varName = 'FovMaximumProjectionCorr';
                     obj.DerivedStacks.MaxFovImageCorr = obj.openTiffStack(varName, fovArray, 'fov_images', false);
                 end
             end
-            
         end
         
         function addImageToRawProjectionStacks(obj, Y)
@@ -837,11 +817,11 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             newFilepath = strrep(filepath, '.tif', '_rgb.tif');
 
-            nansen.stack.utility.mat2tiffstack( rgbArray, newFilepath, true ) % true to save as rgb.            
+            nansen.stack.utility.mat2tiffstack( rgbArray, newFilepath, true ) % true to save as rgb.
         end
         
         function validateStackSize(~, stackSize)
-        %validateStackSize Check if stack has correct size for motion corr    
+        %validateStackSize Check if stack has correct size for motion corr
             
             % todo: channels (and planes)...
             if numel(stackSize) > 3
@@ -851,7 +831,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             else
                 error('Can not motion correct stack with less than 3 dimensions...')
             end
-            
         end
         
         function rawStack = openRawTwoPhotonStack(obj)
@@ -872,8 +851,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
             % Todo:
             % 1: Save fov image per channel and plane
-            % 2: 
-            
+            % 2:
             
             imArray = obj.DerivedStacks.AvgProjectionStackCorr.getFrameSet(1:obj.NumParts);
             
@@ -900,7 +878,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             nansen.stack.utility.mat2tiffstack( imageArray, filePath )
 
         end
-        
         
         % Todo: this should be done using load data method of iomodel
         % and an imagestack file adapter.
@@ -939,7 +916,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         %initializeCorrectionStats Initialize struct to store stats
         
         %   Save rigid shifts (x and y)
-        %   Save rms movement of frames    
+        %   Save rms movement of frames
 
             % Check if imreg stats already exist for this session
             filePath = obj.getDataFilePath('MotionCorrectionStats', '-w',...
@@ -978,7 +955,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             else
                 error('Image stats was not found')
             end
-
         end
 
         function [M, shifts] = correctDrift(obj, M)
@@ -1009,7 +985,6 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             M = imtranslate(M, [dx,dy] );
             shifts = [dx, dy];
         end
-        
     end
     
     methods (Static) % Method in external file (Get default options)
@@ -1017,5 +992,4 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
         S = getDefaultOptions()
 
     end
-
 end

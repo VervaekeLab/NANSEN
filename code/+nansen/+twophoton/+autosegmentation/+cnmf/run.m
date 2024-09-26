@@ -32,7 +32,7 @@ function [roiArray, cnmfResults] = run(Y, roiDiameter)
     options.time_thresh = 0.3;
     [rval_space,rval_time,ind_space,ind_time] = classify_comp_corr(Y,Am,Cm,b,f,options);
 
-    keep = ind_time & ind_space; 
+    keep = ind_time & ind_space;
     throw = ~keep;
 
     % % refine estimates excluding rejected components

@@ -9,7 +9,7 @@ function [S, wasAborted] = uigetFileAdapterAttributes(varargin)
 %       SupportedFileTypes : Cell array of file extensions for files which this
 %           file adapter can be used with
 %       DataType : Expected output data type
-%       AccessMode : Whether file adapter supports read only (R) or read and write (RW) 
+%       AccessMode : Whether file adapter supports read only (R) or read and write (RW)
 
     S = struct();
     S.Name = '';
@@ -37,10 +37,10 @@ end
 
 % Todo:
 %   [ ] Output a struct with 3 fields: Name, Attributes, Configuration:
-% 
+%
 %     S = struct();
 %     S.Name = S_.Name;
-% 
+%
 %     S.Attributes = struct();
 %     S.Attributes.SupportedFileTypes = strsplit(S_.SupportedFileTypes, ',');
 %     S.Attributes.DataType = S_.DataType;
@@ -51,5 +51,3 @@ end
 %     elseif strcmp(S_.AccessMode, 'Read/Write')
 %         S.Configuration.AccessMode = 'RW';
 %     end
-
-

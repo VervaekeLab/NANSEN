@@ -3,11 +3,11 @@ classdef NoteViewerApp < handle
 %
 %   app = NoteViewerApp(notes) open the app for a notes argument. Notes can
 %   be an array of note objects, a struct array of notes or a NoteBook.
-%   
+%
 %   See also nansen.notes.Note nansen.notes.NoteBook
 
 %   Note: App was created in appdesigner, but exported to m-file for easier
-%   updating and for working with git. 
+%   updating and for working with git.
 %
 
 %   TODO:
@@ -15,7 +15,7 @@ classdef NoteViewerApp < handle
 %   [ ] Implement add, edit, remove notes
 %   [ ] Events for the above actions.
 %   [ ] Indicate type of notes in list??
-%   [ ] Indicate what type of note is being displayed? 
+%   [ ] Indicate what type of note is being displayed?
 %   [ ] Import/export options for notes.
 %
 %   Less important
@@ -25,9 +25,7 @@ classdef NoteViewerApp < handle
 %   [ ] some overlap with ConfigurationApp. should they have a shared
 %       superclass?
 
-
-
-    properties 
+    properties
         Owner
     end
     
@@ -40,7 +38,7 @@ classdef NoteViewerApp < handle
     end
     
     properties (Dependent, SetAccess = private)
-        Valid 
+        Valid
     end
 
     properties (Access = private)
@@ -142,7 +140,6 @@ classdef NoteViewerApp < handle
             % Delete UIFigure when app is deleted
             delete(app.UIFigure)
         end
-        
     end
     
     % Callbacks that handle component events
@@ -158,7 +155,6 @@ classdef NoteViewerApp < handle
                 case 'Tree'
                     app.TabGroup.SelectedTab = app.TreeTab;
             end
-            
         end
 
         % Button pushed function: SortButton
@@ -191,7 +187,6 @@ classdef NoteViewerApp < handle
                     app.SortButton.Icon = 'Locked.png';
                     app.SortButton.Tag = 'Locked';
             end
-            
         end
         
         function onDeleteNoteButtonPushed(app, ~, ~)
@@ -235,7 +230,6 @@ classdef NoteViewerApp < handle
             app.TabButtonGroup.SelectedObject = app.TabButtonGroup.Children(1);
             % Todo: Update tree items
         end
-        
     end
 
     % Component initialization
@@ -374,8 +368,6 @@ classdef NoteViewerApp < handle
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
         end
-        
-
 
         function assignCallbacks(app)
             
@@ -403,7 +395,7 @@ classdef NoteViewerApp < handle
         function createTooltips(app)
         %createTooltips Create tooltips for components
         %
-        % These are in separate method because older versions of matlab 
+        % These are in separate method because older versions of matlab
         % did not support tooltips for uifigure components.
         
             app.TreeButton.Tooltip = {'Show Group'};
@@ -428,7 +420,7 @@ classdef NoteViewerApp < handle
             % Set position of header panel
             app.HeaderPanel.AutoResizeChildren = 'off';
             app.HeaderPanel.Position(2) = figurePosition(4) - app.HeaderHeight;
-            app.HeaderPanel.Position(3) = figurePosition(3) + 100; 
+            app.HeaderPanel.Position(3) = figurePosition(3) + 100;
             
             % Set heights for tabgroup and note panel
             app.TabGroup.Position(4) = figurePosition(4);
@@ -455,7 +447,7 @@ classdef NoteViewerApp < handle
         end
         
         function updateTagSelectionList(app)
-        %updateTagSelectionList Update items in tag selection dropdown    
+        %updateTagSelectionList Update items in tag selection dropdown
             items = ['Show All', app.Notebook.getAllTags() ];
             if ischar(items); items = {items}; end
             app.SelectTagDropDown.Items = items;
@@ -463,13 +455,13 @@ classdef NoteViewerApp < handle
         end
         
         function updateTypeSelectionList(app)
-        %updateTypeSelectionList Update items in type selection dropdown    
+        %updateTypeSelectionList Update items in type selection dropdown
             items = ['Show All', nansen.notes.Note.VALID_NOTE_TYPES];
             app.SelectTypeDropDown.Items = items;
         end
         
         function updateListItems(app)
-        %updateListItems Update items in list.        
+        %updateListItems Update items in list.
             
             dateStrArray = app.Notebook.getFormattedDate('[yyyy.MM.dd]');
             titleStrArray = app.Notebook.getTitleArray();
@@ -516,7 +508,6 @@ classdef NoteViewerApp < handle
             if isequal(app.TabButtonGroup.SelectedObject, app.ListButton)
                 app.showNote(sortIdx(1))
             end
-            
         end
         
         function updateTreeItems(app)
@@ -551,15 +542,13 @@ classdef NoteViewerApp < handle
                     subnode = uitreenode(node);
                     subnode.Text = noteTitles{jNote};
                 end
-                
             end
-
         end
         
         function updateTreeOrder(app)
         %updateTreeOrder Update order of tree nodes (i.e when sorting).
         %
-        %   Note: This is a quick solution. Could be improved upon if 
+        %   Note: This is a quick solution. Could be improved upon if
         %   anyone finds it necessary.
             nodeIdx = 1:numel(app.Tree.Children);
             app.Tree.Children = app.Tree.Children(fliplr(nodeIdx));
@@ -617,7 +606,6 @@ classdef NoteViewerApp < handle
         function hideApp(app)
             app.UIFigure.Visible = 'off';
         end
-        
     end
     
     methods % Get states from component values
@@ -644,7 +632,6 @@ classdef NoteViewerApp < handle
                 selectedTag = [];
             end
         end
-
     end
     
     methods % Public methods
@@ -655,7 +642,7 @@ classdef NoteViewerApp < handle
         end
         
         function assignNotebook(app, notes)
-        %assignNotebook Assign notebook in various forms.    
+        %assignNotebook Assign notebook in various forms.
             
             if isa(notes, 'nansen.notes.Note')
                 app.Notebook = nansen.notes.NoteBook( notes );
@@ -671,7 +658,7 @@ classdef NoteViewerApp < handle
         end
         
         function transferOwnership(app, ownerApp)
-        %transferOwnership Transfer ownership of app to another app   
+        %transferOwnership Transfer ownership of app to another app
             
         % App (figure) deletion is now controlled by another app. If figure
         % window is closed, the figure is not deleted, just made invisible
@@ -689,7 +676,6 @@ classdef NoteViewerApp < handle
                 case {'close', 'delete'}
                     app.UIFigure.CloseRequestFcn = @(s,e) app.delete();
             end
-                    
         end
         
 %         function tf = isvalid(app)

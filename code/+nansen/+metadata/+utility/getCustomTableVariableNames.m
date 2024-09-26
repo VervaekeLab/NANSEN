@@ -10,7 +10,7 @@ function varNames = getCustomTableVariableNames(tableClassName)
     fcnTargetPath = fullfile(rootPathTarget, ['+', lower(tableClassName)]);
     
     % Add parent folder of package to path if it is not already there.
-    currentPath = path; 
+    currentPath = path;
     metaTableRootPath = fileparts(fileparts(rootPathTarget));
     if ~contains(currentPath, metaTableRootPath)
         addpath(metaTableRootPath)

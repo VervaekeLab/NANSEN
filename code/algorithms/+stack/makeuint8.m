@@ -1,5 +1,5 @@
 function imArray = makeuint8(imArray, bLims, tolerance, cropAmount)
-% Very similar to imadjustn, but scales between 1 and 255. 
+% Very similar to imadjustn, but scales between 1 and 255.
 %
 %   imArray = makeuint8(imArray, bLims)
 %       bLims should be a 1x2 vector for 3D arrays and a 1x2xn for 4D arrays
@@ -10,7 +10,6 @@ function imArray = makeuint8(imArray, bLims, tolerance, cropAmount)
 %   imArray = makeuint8(__, nvPairs)
 
 % Todo: Adjust brightness individually per dimension
-
 
 if ~isa(imArray, 'single') || ~isa(imArray, 'double')
     imArray = single(imArray);
@@ -23,7 +22,6 @@ end
 if nargin < 3 || isempty(bLims)
     tolerance = 0.0005;
 end
-
 
 if nargin < 2 || isempty(bLims)
     

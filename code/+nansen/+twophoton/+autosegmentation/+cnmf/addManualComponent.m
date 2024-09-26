@@ -14,7 +14,7 @@ function [A, C, centerOut] = addManualComponent(Y, A, C, center, roiRad, options
 
     [~,T] = size(C);
 
-    % Select a square box of x and y pixels around center with radius r. 
+    % Select a square box of x and y pixels around center with radius r.
     % Make sure they are within the image, by shifting the box if
     % necessary.
 
@@ -40,7 +40,7 @@ function [A, C, centerOut] = addManualComponent(Y, A, C, center, roiRad, options
     coor = sub2ind([options.d1,options.d2],INT_x(:),INT_y(:));
             
     % Crop image based on rectangle
-    Ypatch = reshape(Y(int_x,int_y,:),(2*roiRad+1)^2,T);  % make it nPix x nFrames                       
+    Ypatch = reshape(Y(int_x,int_y,:),(2*roiRad+1)^2,T);  % make it nPix x nFrames
     Y_res = Ypatch - A(coor,:)*C; % Subtract activity from other rois in the square???
     Y_res = bsxfun(@minus, Y_res, median(Y_res,2)); % same as Y_res-median(Y_res,2)
             
@@ -54,4 +54,3 @@ function [A, C, centerOut] = addManualComponent(Y, A, C, center, roiRad, options
     centerOut = com(A(:,end),options.d1,options.d2);
 
 end
-

@@ -6,7 +6,6 @@ classdef Options < nansen.wrapper.OptionsAdapter
         Description = 'Options for EXTRACT'
     end
     
-    
     methods (Static) % Functions defined in files.
         
         S = getDefaultOptions()
@@ -24,7 +23,7 @@ classdef Options < nansen.wrapper.OptionsAdapter
             
             % Most config fields are just placed in substructs, but some
             % fields where renamed before placing in a substruct called
-            % CellFind. 
+            % CellFind.
             
             if nargin < 1
                 S = nansen.twophoton.autosegmentation.extract.Options.getOptions();
@@ -55,12 +54,6 @@ classdef Options < nansen.wrapper.OptionsAdapter
                     SOut.(configNames{j}) = S.(fieldsTopLevel{i}).(configNames{j});
                 end
             end
-
         end
-        
     end
-    
-    
-    
-    
 end
