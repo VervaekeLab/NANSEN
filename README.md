@@ -1,7 +1,7 @@
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/VervaekeLab/NANSEN/assets/17237719/2a891edd-8f80-4253-a699-ab37f9cd6b42">
     <source media="(prefers-color-scheme: light)" srcset="https://github.com/VervaekeLab/NANSEN/assets/17237719/2a891edd-8f80-4253-a699-ab37f9cd6b42">
-    <img alt="Neuro Analysis Software Ensemble" src="https://github.com/VervaekeLab/NANSEN/assets/17237719/2a891edd-8f80-4253-a699-ab37f9cd6b42" title="Neuro Analysis Software Ensemble" align="right" height="70">
+    <img alt="Neuro Analysis Software Ensemble" src="https://github.com/VervaekeLab/NANSEN/assets/17237719/2a891edd-8f80-4253-a699-ab37f9cd6b42" title="Neuro Analysis Software Ensemble" align="right" height="70" width="70px">
 </picture>
 
 # NANSEN - Neuro ANalysis Software ENsemble
@@ -27,6 +27,9 @@ A collection of apps and modules for processing, analysis and visualization of t
 
 ## Disclaimer
 The NANSEN toolbox is still under development, so don't be surprised if you find occasional bugs here and there! If you manage to break something, please report under the issues section! Also, suggestions for improvements and general feedback are very welcome!
+
+## Requirements
+MATLAB Release 2020b or later
 
 ## Installation
  1) Clone the repository and add all subfolders to MATLAB's search path. 
