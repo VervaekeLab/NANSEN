@@ -387,9 +387,9 @@ methods
 
     function roiBabies = split(obj, nPieces)
         tmpmask = obj.mask;
-        newRoiMasks = signalExtraction.fissa.splitneuropilmask(tmpmask, tmpmask, nPieces);
+        newRoiMasks = nansen.processing.roi.fissa.splitneuropilmask(tmpmask, tmpmask, nPieces);
         nBabies = size(newRoiMasks, 3);
-        
+
         roiBabies(nBabies, 1) = RoI;
         for i = 1:nBabies
             roiBabies(i) = RoI('Mask', newRoiMasks(:,:,i), size(tmpmask));

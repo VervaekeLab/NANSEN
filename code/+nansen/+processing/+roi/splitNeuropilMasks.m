@@ -20,7 +20,7 @@ function npMasksSplit = splitNeuropilMasks(npMasks, roiMasks, numSlices)
 
 %   See also nansen.adapter.fissa.splitneuropilmask
 
-    import nansen.adapter.fissa.splitneuropilmask
+    import nansen.processing.roi.fissa.splitneuropilmask
    
     if nargin < 3 || isempty(numSlices)
         numSlices = 4;
