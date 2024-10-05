@@ -42,6 +42,8 @@ function pathStr = localpath(pathKeyword, projectName)
         projectRootDir = nansen.config.project.ProjectManager.getProjectPath(projectName);
     end
 
+    projectRootDir = char(projectRootDir);
+
     % Determine path folder (and filename if relevant) based input keyword
     switch pathKeyword
         
