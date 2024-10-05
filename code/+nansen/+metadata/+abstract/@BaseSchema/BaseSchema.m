@@ -83,7 +83,11 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
 % %                     for i = 1:numObjects
 % %                         obj(i).(propertyNames{jProp}) = S(i).(propertyNames{jProp});
 % %                     end
-                    [obj.(propertyNames{jProp})] = S.(propertyNames{jProp});
+                    try
+                        [obj.(propertyNames{jProp})] = S.(propertyNames{jProp});
+                    catch ME
+                        warning('Could not set property %s', propertyNames{jProp})
+                    end
                 else
                     P = obj.addprop(propertyNames{jProp});
                     for i = 1:numObjects
