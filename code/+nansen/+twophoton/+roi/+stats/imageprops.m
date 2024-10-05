@@ -1,14 +1,14 @@
 function stats = imageprops(roiImageArray, roiArray, varargin)
 %imageprops Measure properties of roi images
 %
-%   stats = imageprops(dff) Returns struct array with different 
+%   stats = imageprops(dff) Returns struct array with different
 %   (statistical) measurements from a set of roi images.
 %
 %   INPUT:
 %       dff : matrix of dff (numSamples x numRois)
-%   
+%
 %   OUTPUT: stats is a struct containing the following fields:
-%       RoiSalience      : Does roi stand out against background? 
+%       RoiSalience      : Does roi stand out against background?
 %       RoiEdgyness      : Sum of gradient along roi boundary.
 %       MeanImageSimilarity : How similar is the roi activity weighted
 %                             image to the average image of all rois (number between 0 and 1 where 1 is most similar)
@@ -28,7 +28,6 @@ function stats = imageprops(roiImageArray, roiArray, varargin)
     get = @(name) any( strcmp(params.Properties, name) ); %getfcn
     
     [imageHeight, imageWidth, numRois] = size(roiImageArray);
-    
     
     % Initialize output
     stats = struct;
@@ -57,7 +56,4 @@ function stats = imageprops(roiImageArray, roiArray, varargin)
         similarity = nansen.twophoton.roi.stats.templateSimilarity(IM);
         stats.CorrelationSimilarity = similarity;
     end
-    
-
 end
-

@@ -5,8 +5,6 @@
 % email: tannoudji@hotmail.com
 % Date: 14.10.2011
 
-
-
 load('colorbrewer.mat')
 
 ctypes={'div', 'seq', 'qual'};

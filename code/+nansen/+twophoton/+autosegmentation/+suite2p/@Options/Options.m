@@ -6,7 +6,6 @@ classdef Options < nansen.wrapper.OptionsAdapter
         Description = 'Options for suite2p'
     end
     
-    
     methods (Static) % Functions defined in files.
         
         S = getDefaultOptions()
@@ -30,10 +29,5 @@ classdef Options < nansen.wrapper.OptionsAdapter
             S = nansen.wrapper.OptionsAdapter.rename(S, nameMap);
             
         end
-        
     end
-    
-    
-    
-    
 end

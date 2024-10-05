@@ -2,7 +2,6 @@ classdef DraggableThumbnail < handle
     
     % Create an image thumbnail that can be dragged around the screen.
     
-    
     properties
         hFigure
         hJFrame
@@ -14,10 +13,7 @@ classdef DraggableThumbnail < handle
         buttonDown=false
     end
     
-    
-    
     methods
-        
         
         function obj = DraggableThumbnail(hFig, im, initPos, cMap)
             warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
@@ -30,7 +26,6 @@ classdef DraggableThumbnail < handle
             
             x = hFig.Position(1) + hFig.Position(3)/2;
             y = hFig.Position(2) + hFig.Position(4)/2;
-            
             
             jFrame = get(hFig, 'JavaFrame');
             jClient = jFrame.fHG2Client;
@@ -50,7 +45,6 @@ classdef DraggableThumbnail < handle
             
             obj.hJFrame = undecorateFig(obj.hFigure);
             
-            
             obj.hJFrame.setSize(java.awt.Dimension(sz(1), sz(2)));
 
             obj.hAxes.Position = [0, 0, 1, 1];
@@ -69,7 +63,6 @@ classdef DraggableThumbnail < handle
             
             obj.initPos = initPos;
             obj.initPosJava = [x,y];
-
             
             %obj.startMoveWindow
             warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
@@ -90,7 +83,6 @@ classdef DraggableThumbnail < handle
                     delete(obj)
             end
         end
-        
 
         function startMoveWindow(obj, ~, ~)
             %startMovePos = get(obj.hFigure, 'CurrentPoint');
@@ -115,7 +107,6 @@ classdef DraggableThumbnail < handle
 %             obj.hFigure.WindowButtonUpFcn = @obj.stopMoveWindow;
         end
         
-        
         function moveWindow(obj, ~, ~)
                             
             %mousePoint = get(obj.hFigure, 'CurrentPoint');
@@ -130,9 +121,7 @@ classdef DraggableThumbnail < handle
                 newPos = obj.initPosJava + shift.*[1,-1];
                 obj.hJFrame.setLocation(java.awt.Point(newPos(1), newPos(2)));
             end
-            
         end
-        
         
         function stopMoveWindow(obj, ~, ~)
             obj.buttonDown = false;
@@ -145,9 +134,5 @@ classdef DraggableThumbnail < handle
             delete(el2)
             delete(obj)
         end
-        
-        
     end
-        
-    
 end

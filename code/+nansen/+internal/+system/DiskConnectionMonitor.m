@@ -35,7 +35,6 @@ classdef DiskConnectionMonitor < handle
                 delete(obj.Timer)
             end
         end
-
     end
 
     methods
@@ -46,7 +45,6 @@ classdef DiskConnectionMonitor < handle
         function resume(obj)
             start(obj.Timer)
         end
-        
     end
 
     methods % Set/get
@@ -65,7 +63,6 @@ classdef DiskConnectionMonitor < handle
         function period = get.TimerUpdateInterval(obj)
             period = obj.TimerUpdateInterval_;
         end
-
     end
 
     methods (Access = private)
@@ -107,7 +104,6 @@ classdef DiskConnectionMonitor < handle
             end
         end
 
-
         function checkDiskPc(obj)
             %volumeList = system.
             volumeInfoTable = nansen.external.fex.sysutil.listPhysicalDrives();
@@ -123,7 +119,7 @@ classdef DiskConnectionMonitor < handle
 
         function checkDiskMac(obj)
             volumeListDir = dir('/Volumes');
-            keep = not( strncmp({volumeListDir.name}, '.', 1) ); 
+            keep = not( strncmp({volumeListDir.name}, '.', 1) );
             volumeListDir = volumeListDir(keep);
             
             %fprintf('%s\n', strjoin( {volumeListDir.name}, ', '))
@@ -152,7 +148,5 @@ classdef DiskConnectionMonitor < handle
                 error('Unknown platform')
             end
         end
-
     end
-
 end

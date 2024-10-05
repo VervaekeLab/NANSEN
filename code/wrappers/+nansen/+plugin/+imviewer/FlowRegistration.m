@@ -29,7 +29,6 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         frameChangeListener
     end
     
-    
     methods % Structors
         
         function obj = FlowRegistration(varargin)
@@ -47,13 +46,12 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         function delete(obj)
             % pass
         end
-        
     end
     
     methods
         
         function sEditor = openSettingsEditor(obj)
-        %openSettingsEditor Open editor for method options.    
+        %openSettingsEditor Open editor for method options.
                         
             % Update folder- and filename in settings.
             [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
@@ -105,7 +103,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             import nansen.wrapper.flowreg.*
             options = Options.convert(obj.settings);
             
-            if ~isa(Y, 'single') || ~isa(Y, 'double') 
+            if ~isa(Y, 'single') || ~isa(Y, 'double')
                 Y = single(Y);
             end
 
@@ -124,13 +122,13 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             M = squeeze(M);
             obj.ImviewerObj.clearMessage;
             
-            % Show results from test aliging:
+            % Show results from test aligning:
             if obj.settings.Preview.showResults
                 h = imviewer(M);
-                h.stackname = sprintf('%s - %s', obj.ImviewerObj.stackname, 'Flowreg Test Correction');                
+                h.stackname = sprintf('%s - %s', obj.ImviewerObj.stackname, 'Flowreg Test Correction');
             end
                 
-         	% Save results from test aliging:
+         	% Save results from test aligning:
             if obj.settings.Preview.saveResults
                 getSavepath = @(name) fullfile(saveFolder, ...
                     sprintf('%s_%s', datePrefix, name ) );
@@ -138,7 +136,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
                 save(getSavepath('flowreg_shifts.mat'), 'shifts')
                 save(getSavepath('flowreg_opts.mat'), 'options')
                 
-                obj.saveProjections(Y, M, getSavepath)           
+                obj.saveProjections(Y, M, getSavepath)
             end
         end
         
@@ -150,7 +148,6 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             nansen.wrapper.flowreg.Processor(obj.ImviewerObj.ImageStack, ...
                 obj.settings, 'DataIoModel', dataSet)
         end
-
     end
 
     methods (Access = protected) % Plugin derived methods
@@ -171,7 +168,6 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
 
             obj.settings = obj.OptionsManager.getOptions;
         end
-
     end
     
     methods (Access = private)
@@ -179,14 +175,14 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         function initializeGaussianFilter(obj)
             obj.ImviewerObj.imageDisplayMode.filter = 'gauss3d';
             obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.settings.General.sigmaX);
-            obj.ImviewerObj.updateImage();        
+            obj.ImviewerObj.updateImage();
             obj.ImviewerObj.updateImageDisplay();
         end
         
         function resetGaussianFilter(obj)
             obj.ImviewerObj.imageDisplayMode.filter = 'none';
             obj.ImviewerObj.imageDisplayMode.filterParam = [];
-            obj.ImviewerObj.updateImage();        
+            obj.ImviewerObj.updateImage();
             obj.ImviewerObj.updateImageDisplay();
         end
 
@@ -205,7 +201,6 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         function updateResults(obj)
             % Todo
         end
-        
     end
     
     methods % Flowreg wrappers (copied from session method)
@@ -219,7 +214,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             end
 
             % Raw images, reshaped to H x W x nCh x nSamples
-            Y = obj.reshapeImageArray(imArray); 
+            Y = obj.reshapeImageArray(imArray);
             
             % Channel weightings
             weight_2d = obj.getFlowregChannelWeights(Y, options);
@@ -237,7 +232,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             
             template = squeeze(template);
             
-            if ~options.verbose 
+            if ~options.verbose
                 disp('Finished pre-registration of the reference frames...');
             end
         end
@@ -245,7 +240,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         function params = initializeParameters(obj, imArray, initTemplate, options)
             
             % Raw images, reshaped to H x W x nCh x nSamples
-            Y = obj.reshapeImageArray(imArray); 
+            Y = obj.reshapeImageArray(imArray);
 
             % Channel weightings
             weight = obj.getFlowregChannelWeights(Y, options);
@@ -272,7 +267,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             % What is the difference between cref and cref raw???
               
             % Raw images, reshaped to H x W x nCh x nSamples
-            Y = obj.reshapeImageArray(Y);       
+            Y = obj.reshapeImageArray(Y);
 
             % Channel weightings
             weight = obj.getFlowregChannelWeights(Y, options);
@@ -286,7 +281,6 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
             
             M = compensate_sequence_uv( Y, templateIn, shifts );
         end
-        
     end
     
     methods (Access = protected)
@@ -314,13 +308,13 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
                     
                     obj.settings.Model.sigma = [obj.settings.General.sigmaY, obj.settings.General.sigmaX, obj.settings.General.sigmaZ];
                     obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.settings.Model.sigma);
-                    obj.ImviewerObj.updateImage();        
+                    obj.ImviewerObj.updateImage();
                     obj.ImviewerObj.updateImageDisplay();
                 
                 case 'sigmaZ'
                     obj.settings.sigma = [obj.settings.General.sigmaX, obj.settings.General.sigmaY, obj.settings.General.sigmaZ];
                     obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.settings.Model.sigma);
-                    obj.ImviewerObj.updateImage();        
+                    obj.ImviewerObj.updateImage();
                     obj.ImviewerObj.updateImageDisplay();
                     
                 case 'FileName'
@@ -328,7 +322,6 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
                     %obj.settings_.Export.FileName = value;
             end
         end
-
     end
 
     methods (Static)
@@ -358,7 +351,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
         %getFilteredImageArray Get 3D gaussian filtered grayscale images
         %
         %   Applies a 3D gaussian filter on the image array and converts
-        %   the output to a grayscale image array. 
+        %   the output to a grayscale image array.
 
             defaultNvPairs = struct(...
                 'sigmaOffset', [0,0,0], ...
@@ -387,14 +380,13 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
                     C1 = mat2gray(Y);
                 end
             end
-            
         end
         
         function [YReg, shifts] = compensateSequence(C, CRef, Y, YRef, options, weight)
         %compensateSequence Wrapper for compensate_sequence
         
         % Todo: Do I need these from inputs??
-% %             CRef = mean(C, 4); 
+% %             CRef = mean(C, 4);
 % %             YRef = mean(Y, 4);
             
             [YReg, shifts] = compensate_sequence( ...
@@ -427,7 +419,5 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
                     'a_data', options.a_data, ...
                     varargin{:});
         end
-        
     end
-
 end

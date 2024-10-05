@@ -1,4 +1,4 @@
-% Class for indexing data from a video file in the same manner that data 
+% Class for indexing data from a video file in the same manner that data
 % is indexed from matlab arrays.
 
 % Why is this so slow????
@@ -31,7 +31,6 @@ classdef Video < nansen.stack.data.VirtualArray
                 delete(obj.VideoReaderObj)
             end
         end
-        
     end
     
     methods (Access = protected) % Implementation of abstract methods
@@ -107,14 +106,12 @@ classdef Video < nansen.stack.data.VirtualArray
                 obj.DataSize = [obj.DataSize, numTimepoints];
                 obj.DataDimensionArrangement(end+1) = 'T';
             end
-
         end
 
         function assignDataType(obj)
             tmpIm = readFrame(obj.VideoReaderObj);
             obj.DataType = class(tmpIm);
         end
-
     end
     
     methods % Implementation of methods for reading data
@@ -152,7 +149,6 @@ classdef Video < nansen.stack.data.VirtualArray
                     error('Unexpected data size')
                 end
             end
-            
         end
         
         function writeFrames(obj, data, frameInd)
@@ -161,9 +157,7 @@ classdef Video < nansen.stack.data.VirtualArray
         
         function frameData = getFrame(obj, iFrame)
             obj.VideoReaderObj.currentTime = (iFrame-1) .* (1/obj.FrameRate);
-            frameData = readFrame(obj.VideoReaderObj);    
+            frameData = readFrame(obj.VideoReaderObj);
         end
-        
     end
-    
 end

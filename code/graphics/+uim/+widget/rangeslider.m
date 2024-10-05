@@ -21,7 +21,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         TrackWidth = 2              % Width of the slider track
         TrackColor = ones(1,3)*0.75;
         KnobSize = 15
-        KnobMarkerStyle = 'round'   % Only round available shoud implement line/bar
+        KnobMarkerStyle = 'round'   % Only round available should implement line/bar
                
         % Todo: move to uim.style definition....
         KnobEdgeColorInactive = ones(1,3)*0.7;
@@ -62,7 +62,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         WindowButtonUpListener
         WindowMouseMotionListener
     end
-    
     
     methods % Structors
         
@@ -110,7 +109,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             delete(obj.hSliderKnob)
             delete(obj.hText)
         end
-        
     end
     
     methods (Access = private) % Component construction
@@ -167,7 +165,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                     x = min(xCoords);
                     y = mean(yCoords) - obj.KnobSize;
                     hAlign = 'left';
-                    vAlign = 'top';                    
+                    vAlign = 'top';
             end
 
             obj.hLabel.Position(1:2) = [x, y];
@@ -263,7 +261,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 obj.hText.Position(1:2) = [xCoords, yCoords];
             end
         end
-        
     end
     
     methods (Access = protected)
@@ -277,7 +274,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 set(obj.hBackground, 'XData', X, 'YData', Y)
             end
         end
-        
     end
     
     methods (Access = private) % Internal updating
@@ -289,7 +285,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             switch lower(whichKnob)
                 case 'low'
                     xRelativePosition = (obj.Low - obj.Min) ./ xRangeSlider;
-                case 'high' 
+                case 'high'
                     xRelativePosition = (obj.High - obj.Min) ./ xRangeSlider;
             end
             
@@ -303,7 +299,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
 
             sliderSize = obj.KnobSize;
             theta = linspace(0, 2*pi, 200);
-
             
             rho = ones(size(theta)) .* 0.5 .* sliderSize;
             [xCoords, yCoords] = pol2cart(theta, rho);
@@ -313,7 +308,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             switch lower(whichKnob)
                 case 'low'
                     xRelativePosition = (obj.Low - obj.Min) ./ xRange;
-                case 'high' 
+                case 'high'
                     xRelativePosition = (obj.High - obj.Min) ./ xRange;
             end
             
@@ -331,7 +326,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             
             yCoords = ones(2,1) .* obj.Position(2) + obj.Position(4) / 2;
         end
-        
         
         function [xCoords, yCoords] = getTickCoordinates(obj)
             
@@ -366,7 +360,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             yCoords = repmat([y1;y2;nan], 1, numTicks);
         end
         
-        
         function updateValuetipString(obj, whichKnob)
             [xCoords, ~] = obj.getTextCoordinates(whichKnob);
             obj.hText.Position(1) = xCoords;
@@ -395,10 +388,9 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             iptSetPointerBehavior(h, pointerBehavior);
             iptPointerManager(ancestor(h, 'figure'));
         end
-        
     end
     
-    methods % Slider Interaction Callbaks
+    methods % Slider Interaction Callbacks
 
         function onSliderKnobPressed(obj, src, ~)
             
@@ -468,7 +460,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                     end
                     
                     obj.onValueChanging(newValue, whichValue)
-                    obj.updateValuetipString(whichValue)  
+                    obj.updateValuetipString(whichValue)
             end
 
             % make sure the callback is executed if source is the track
@@ -598,7 +590,6 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
                 hSource.FaceColor = ones(1,3) * 0.8;
             end
         end
-        
     end
     
     methods % Set/get methods
@@ -667,13 +658,11 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
         end
         
 % %         function set.NumTicks(obj, newValue)
-% %             
+% %
 % %         end
         
         function stepSize = get.StepSize(obj)
             stepSize = (obj.Max-obj.Min) / obj.NumTicks;
         end
-        
     end
-
 end

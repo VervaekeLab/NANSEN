@@ -1,5 +1,5 @@
 function kernel = makeRingKernel(im, varargin)
-%makeRingKernel Make a ring kernel with values scaled according to image 
+%makeRingKernel Make a ring kernel with values scaled according to image
 %
 %   kernel = makeRingKernel(im)
 %
@@ -9,7 +9,7 @@ function kernel = makeRingKernel(im, varargin)
 
     def = struct();
     def.InnerRadius = 3;
-    def.OuterRadius = 5; 
+    def.OuterRadius = 5;
     def.Sigma       = 1;
     
     opt = utility.parsenvpairs(def, [], varargin);
@@ -32,7 +32,7 @@ function kernel = makeRingKernel(im, varargin)
     m2 = stack.reshape.imexpand(se2.Neighborhood, size(se1.Neighborhood));
     m3 = stack.reshape.imexpand(se3.Neighborhood, size(se1.Neighborhood));
 
-    m1 = m1 & ~m3; 
+    m1 = m1 & ~m3;
     m3 = m3 & ~m2;
 
     m1 = single(m1); m2 = single(m2); m3 = single(m3);

@@ -47,7 +47,6 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
     hIm.XData = [1, imSize(2)];
     hIm.YData = [1, imSize(1)];
     
-    
     set(hIm, 'PickableParts', 'none', 'HitTest', 'off')
 
     return
@@ -94,7 +93,6 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
             hIm.XData = [1, imSize(2)];
             hIm.YData = [1, imSize(1)];
             
-            
         case 'multi_layer'
 
             for i = 1:size(roiImageArray, 3)
@@ -108,7 +106,7 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
                 yData = (bbox(2) - 0.5) + (1:(bbox(4)));
 
                 imData = repmat(thisRoiImage(yData, xData), 1, 1, 3);
-                color = rand([1,3]).*0.5 + 0.5; 
+                color = rand([1,3]).*0.5 + 0.5;
                 color = reshape(color, 1, 1, 3);
 
                 imData = imData .* color;
@@ -123,10 +121,8 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
                 hIm.YData = yData;
 
             end
-            
     end
     
     set(hIm, 'PickableParts', 'none', 'HitTest', 'off')
-    
 
 end

@@ -13,5 +13,4 @@ function addUiwidgetsJarToJavaClassPath()
     if ~any( contains(spath, jarFilePath) )
         utility.system.addFilepathToDynamicJavapath(jarFilePath)
     end
-
 end

@@ -2,7 +2,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
 
     % Note: This is developed for two photon image stacks.
     %
-    % 
+    %
     % Todo:
     %   [ ] Generalize
     %   [ ] Consider the use of append when adding data. What if the method
@@ -18,8 +18,6 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
     %   [V] Create ImagingPlane
     %   [V] Create OpticalChannel
     %   [V] One nwb dataset per plane and channel
-
-
 
     properties (Constant) % Attributes inherited from nansen.DataMethod
         MethodName = 'NWB ImageStack Exporter'
@@ -47,7 +45,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
         Dependency = 'NWB'
     end
 
-    properties (Access = private)       
+    properties (Access = private)
         PathName % Path name for NWB file
         NWBObject % Object representing NWB file
         Device
@@ -83,7 +81,6 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
             S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
         end
-
     end
 
     methods % Constructor
@@ -102,8 +99,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
         end
     end
 
-
-    methods (Access = protected) % Overide ImageStackProcessor methods
+    methods (Access = protected) % Override ImageStackProcessor methods
 
         function onInitialization(obj)
         %onInitialization Custom code to run on initialization.
@@ -143,7 +139,6 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             obj.DataPipeObject{obj.CurrentPlane, obj.CurrentChannel}.append(Y); % append the loaded data
             results = struct.empty;
         end
-
     end
 
     methods (Access = private)
@@ -262,7 +257,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
         function addTwoPhotonSeriesToNwb(obj, name, twoPhotonSeries)
             
             if strcmp(obj.SemanticDataType, 'Acquired')
-            % Add the two photon series to the acquisiton group.
+            % Add the two photon series to the acquisition group.
                 name = sprintf('original_%s', name);
                 obj.NWBObject.acquisition.set(name, twoPhotonSeries);
 

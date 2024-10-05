@@ -4,8 +4,8 @@ function [projectionStack, colorcodedImage] = colorCodeFov(imageStack, ...
 %
 %   [P, C] = colorCodeFov(imageStack, binningVector) returns a binned
 %   projection stack (P) and a colorcoded image (C) of an imageStack object
-%   based on a binning vector. binningVector is a vector which specify how 
-%   to bin the data before colorcoding it. It should be synchronized with 
+%   based on a binning vector. binningVector is a vector which specify how
+%   to bin the data before colorcoding it. It should be synchronized with
 %   the image data, but it is ok if its some samples too long or too short.
 %
 %   The binning vector could for example be the binned position on the
@@ -14,7 +14,7 @@ function [projectionStack, colorcodedImage] = colorCodeFov(imageStack, ...
 %
 %   The function accepts two optional inputs, colorMap and temporalMask:
 %   [P, C] = colorCodeFov(imPointer, binningVector, colorMap, temporalMask)
-%   Here the colorMap should be the same length as the number of unique 
+%   Here the colorMap should be the same length as the number of unique
 %   bins in the binning vector. The default colormap is hsv (the colors of
 %   the rainbow.
 %   The temporalMask is a logical and can be used to ignore certain parts
@@ -62,7 +62,6 @@ elseif nOutputs == 1 && ~isa(temporalMask, 'cell')
     temporalMask = {temporalMask};
 end
 
-
 if  ~exist('colorMap', 'var') || isempty(colorMap)
     colorMap = cell(nOutputs, 1);
     for a = 1:nOutputs
@@ -73,7 +72,6 @@ elseif nOutputs == 1 && ~isa(colorMap, 'cell')
     colorMap = {colorMap};
 end
 
-
 % Assert that number of cells are the same for last three inputs
 % Assert that number of colors match number of bins in binningVector
 
@@ -82,7 +80,6 @@ imW = imageStack.ImageWidth;
 
 batchSize = imageStack.chooseChunkLength();
 [IND, numParts] = imageStack.getChunkedFrameIndices(batchSize);
-
 
 % Preallocate outputs...
 projectionStack = cell(nOutputs, 1);
@@ -93,7 +90,6 @@ for c = 1:nOutputs
     projectionStack{c} = zeros([imH, imW, nBins], 'single');
     colorcodedImage{c} = zeros([imH, imW, 3], 'single');
 end
-
 
 % Start working on images. Because image files are typically very large,
 % run this in a loop and work on substack of the whole image series.
@@ -150,5 +146,4 @@ if nOutputs == 1
     projectionStack = projectionStack{1};
     colorcodedImage = colorcodedImage{1};
 end
-
 end

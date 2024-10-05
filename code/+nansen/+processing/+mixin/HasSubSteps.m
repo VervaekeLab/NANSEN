@@ -6,14 +6,14 @@ classdef HasSubSteps < handle
     % implement a dialog interface...
     
     properties
-        % Flag for whether the method with substeps is itself a subprocess 
+        % Flag for whether the method with substeps is itself a subprocess
         % (in which case, message display is skipped).
-        IsSubProcess (1,1) logical = false 
+        IsSubProcess (1,1) logical = false
     end
     
     properties (Access = private)
         % List with information of substeps. Used for progress display
-        StepList nansen.processing.util.DataMethodSubStep 
+        StepList nansen.processing.util.DataMethodSubStep
     end
     
     properties (Dependent)
@@ -33,13 +33,13 @@ classdef HasSubSteps < handle
     methods (Access = protected)
         
         function addStep(obj, id, description, listPosition)
-        %addStep Add step to step list    
+        %addStep Add step to step list
             import nansen.processing.util.DataMethodSubStep
             
             if nargin < 4; listPosition = 'end'; end
             listPosition = validatestring(listPosition, {'beginning', 'end'});
             
-            if obj.hasStep(id) 
+            if obj.hasStep(id)
                 warning('Step with id "%s" already exists in the step list', id)
             else
                 newSubStep = DataMethodSubStep(id, description);
@@ -62,7 +62,7 @@ classdef HasSubSteps < handle
         end
         
         function displayProcessingSteps(obj)
-        %displayProcessingSteps Display the processing steps for process    
+        %displayProcessingSteps Display the processing steps for process
                         
             obj.printTask('Processing will happen in %d steps:', obj.NumSteps);
             
@@ -74,7 +74,7 @@ classdef HasSubSteps < handle
         end
         
         function displayStartStep(obj, stepId)
-        %displayStartStep Display message when specified step is started   
+        %displayStartStep Display message when specified step is started
             
             idx = obj.findStep(stepId);
 
@@ -83,14 +83,12 @@ classdef HasSubSteps < handle
         end
         
         function displayFinishStep(obj, stepId)
-        %displayFinishStep Display message when specified step is finished    
+        %displayFinishStep Display message when specified step is finished
             
             idx = obj.findStep(stepId);
             
             obj.printTask('Finished step %d/%d: %s.\n', idx, obj.NumSteps, ...
                 obj.StepList(idx).Description)
         end
-        
     end
-    
 end

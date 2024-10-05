@@ -9,5 +9,4 @@ for i = 1:numel(stat)
    roiArray(i) = RoI('Mask', mask, imsize);
     
 end
-
 end

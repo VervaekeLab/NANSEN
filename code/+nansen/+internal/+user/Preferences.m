@@ -27,13 +27,12 @@ classdef Preferences < nansen.config.abstract.Preferences
             preferenceFilename = Preferences.buildFilePath(preferenceDirectory);
             obj@nansen.config.abstract.Preferences(preferenceFilename)
         end
-        
     end
 
     methods (Static, Access = public)
         
         function filePath = buildFilePath(preferenceDirectory)
-            % - Setup preference directory 
+            % - Setup preference directory
             if ~isfolder(preferenceDirectory); mkdir(preferenceDirectory); end
 
             filename = nansen.internal.user.Preferences.createFilename();
@@ -47,7 +46,5 @@ classdef Preferences < nansen.config.abstract.Preferences
             prefGroupName = matlab.lang.makeValidName(prefGroupName);
             filename = fullfile(sprintf('%s_Preferences.mat', prefGroupName));
         end
-        
     end
-    
 end

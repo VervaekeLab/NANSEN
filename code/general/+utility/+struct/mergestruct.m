@@ -26,4 +26,3 @@ function mergedStruct = mergestruct(varargin)
         end
     end
 end
-

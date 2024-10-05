@@ -6,7 +6,7 @@ classdef Project < nansen.module.Module
     % This object should reflect the content of a project folder and have
     % methods for interacting with data in the project folder.
     
-    % Todo : 
+    % Todo :
     %   [ ] Clean up object display
     %   [ ] Define preferences explicitly somehow.
     %   [ ] Should there be a project preference whether to save task lists
@@ -47,7 +47,7 @@ classdef Project < nansen.module.Module
     end
     
     properties (Access = private)
-        MetaTableCatalog_   % internal store if catalog is already loaded. However, this would not be up to date it the catalog is changed. Think it is better that this is just a dependent property... 
+        MetaTableCatalog_   % internal store if catalog is already loaded. However, this would not be up to date it the catalog is changed. Think it is better that this is just a dependent property...
         DataLocationModelSingleton
         VariableModelSingleton
     end
@@ -61,8 +61,8 @@ classdef Project < nansen.module.Module
     end
 
     properties (Constant, Access = private)
-        % QTodo: Should this be retreived from a constant or from module 
-        % manager/preferences? 
+        % QTodo: Should this be retrieved from a constant or from module
+        % manager/preferences?
         RequiredModuleName = nansen.common.constant.BaseModuleName;
     end
     
@@ -197,13 +197,12 @@ classdef Project < nansen.module.Module
                 relFilePath = cat(1, relFilePath, relFilePath_);
             end
 
-            % Only keep unique files based on relative paths. Occurence is
+            % Only keep unique files based on relative paths. Occurrence is
             % set to 'first', so that project files have highest priority,
             % then optional modules and last base modules.
             [~, IND] = unique(relFilePath, 'first');
             fileList = fileList(IND); % utility.dir.abspath(fileList);
         end
-    
     end
     
     methods % TODO: implement a dataiomodel on project
@@ -274,7 +273,6 @@ classdef Project < nansen.module.Module
             obj.initializeProjectReadme()
             obj.Preferences.DataModule = {};
         end
-    
     end
     
     methods % Set/get
@@ -327,13 +325,12 @@ classdef Project < nansen.module.Module
             end
             variableModel = obj.VariableModelSingleton;
         end
-        
     end
     
     methods (Access = private)
         
         function initializeProjectReadme(obj)
-        % initializeProjectReadme - Initialize project's readme file   
+        % initializeProjectReadme - Initialize project's readme file
             readmeFilePath = fullfile(obj.FolderPath, 'README.md');
 
             fileStr = fileread(readmeFilePath);
@@ -344,7 +341,7 @@ classdef Project < nansen.module.Module
 
         function initializeConfigurations(obj)
             
-            % Initialize a datalocation catalog         
+            % Initialize a datalocation catalog
             modelFilePath = obj.getCatalogPath('DataLocationModel');
             nansen.config.initializeDataLocationModel(modelFilePath)
             
@@ -376,7 +373,7 @@ classdef Project < nansen.module.Module
                
                 moduleNames = unique(moduleNames, 'stable'); % Just in case...
                 
-                for i = 1:numel(moduleNames)                
+                for i = 1:numel(moduleNames)
                     module = nansen.module.Module.fromName(moduleNames{i});
                     obj.IncludedModules(i) = module;
                 end
@@ -407,7 +404,7 @@ classdef Project < nansen.module.Module
                     % removedModule = obj.IncludedModules(removeIdx(i));
                     obj.IncludedModules(removeIdx(i)) = [];
                     
-                    % Remove variables (Not needed?): 
+                    % Remove variables (Not needed?):
                     %variableList = removedModule.DataVariables;
                     %obj.VariableModel.removeDataVariableSet(variableList)
                 end
@@ -437,7 +434,7 @@ classdef Project < nansen.module.Module
         end
 
         function filePathStr = getCatalogPath(obj, catalogName)
-        %getCatalogPath Get absolute path for catalog as character vector 
+        %getCatalogPath Get absolute path for catalog as character vector
         
             switch catalogName
                 
@@ -455,7 +452,7 @@ classdef Project < nansen.module.Module
                     
                 case 'VariableModel'
                     foldername = obj.CONFIG_FOLDER_NAME;
-                    filename = 'filepath_settings.mat';                    
+                    filename = 'filepath_settings.mat';
             end
             
             folderPathStr = fullfile(obj.FolderPath, foldername);
@@ -476,7 +473,6 @@ classdef Project < nansen.module.Module
             folderPath = fullfile(localProjectPath, obj.Name);
             if ~isfolder(folderPath); mkdir(folderPath); end
         end
-        
     end
     
     methods (Static)
@@ -508,7 +504,6 @@ classdef Project < nansen.module.Module
                 ME = ME.addCause(MECause);
                 throw(ME)
             end
-            
         end
     end
 
@@ -525,7 +520,6 @@ classdef Project < nansen.module.Module
                     filePath = Project.getProjectFolderPathStatic(projectFolderPath, 'Metadata Tables');
 
             end
-            
         end
 
         function folderPath = getProjectFolderPathStatic(projectDirectory, folderKey)
@@ -577,14 +571,14 @@ classdef Project < nansen.module.Module
     methods (Static, Access = {?nansen.config.project.ProjectManager, ?nansen.config.project.Project})
 
         function initializeProjectDirectory(projectInfo)
-        % initializeProjectDirectory - Initialize a project  directory    
+        % initializeProjectDirectory - Initialize a project  directory
             
             projectDirectoryPath = char( projectInfo.Path );
             projectName = char( projectInfo.Name );
 
             % Make folder for saving project related configs and metadata
-            if ~isfolder(projectDirectoryPath)  
-                mkdir(projectDirectoryPath);   
+            if ~isfolder(projectDirectoryPath)
+                mkdir(projectDirectoryPath);
             end
 
             % Copy project template to new folder
@@ -600,7 +594,7 @@ classdef Project < nansen.module.Module
         end
 
         function updateProjectConfiguration(projectDirectory, projectInfo)
-        % updateProjectConfiguration - Update project configuration file   
+        % updateProjectConfiguration - Update project configuration file
             configFileName = nansen.config.project.Project.PROJECT_CONFIG_FILENAME;
             configFilePath = fullfile(projectDirectory, configFileName);
             

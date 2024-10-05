@@ -1,6 +1,6 @@
 classdef CatalogViewerApp < applify.AppWindow
-%CatalogViewerApp An app for viewing instances of the StorableCatalog    
-%    
+%CatalogViewerApp An app for viewing instances of the StorableCatalog
+%
 %   hApp = utility.data.CatalogViewerApp(catalog) opens an app to view the
 %   provided catalog object
 %
@@ -8,18 +8,17 @@ classdef CatalogViewerApp < applify.AppWindow
     % Created from PipelineBuilderUI. Should create a general table from
     % these two apps...
     
-    % Todo: 
+    % Todo:
     %   [ ] Create functionality for inspecting cells that are structs, i.e
     %       open a new catalog, or a structeditor when doubleclicking cells.
     %   [ ] Button or tab for preferences. Save fig size and column widths
     %       to a "hidden" field in preferences?
     
-    
     properties (Constant)
         AppName = 'Catalog Viewer'
     end
     
-    properties 
+    properties
         Catalog  % A catalog instance
     end
     
@@ -27,7 +26,6 @@ classdef CatalogViewerApp < applify.AppWindow
         UITable
         TableContextMenu
     end
-    
     
     methods % Constructor
         
@@ -48,9 +46,7 @@ classdef CatalogViewerApp < applify.AppWindow
             if ~nargout
                 clear obj
             end
-            
         end
-        
     end
     
     methods (Access = protected) % Override methods from applify.AppWindow
@@ -74,7 +70,6 @@ classdef CatalogViewerApp < applify.AppWindow
             obj.Figure.Name = sprintf('%s (%s)', ...
                 obj.AppName, class(obj.Catalog));
         end
-        
     end
     
     methods (Access = private) % Create app components
@@ -131,7 +126,6 @@ classdef CatalogViewerApp < applify.AppWindow
             obj.TableContextMenu.Visible = 'on';
             
         end
-        
     end
 
     methods (Access = protected) % Interactive callbacks
@@ -141,12 +135,11 @@ classdef CatalogViewerApp < applify.AppWindow
             if evt.Button == 3 || strcmp(evt.SelectionType, 'alt')
                 obj.onMouseRightClickedInTable(src, evt)
             end
-            
         end
         
         function onMouseRightClickedInTable(obj, src, evt)
             
-            % Get row where mouse press ocurred.
+            % Get row where mouse press occurred.
             row = evt.Cell(1);
 
             % Select row where mouse is pressed if it is not already
@@ -161,7 +154,6 @@ classdef CatalogViewerApp < applify.AppWindow
             if ~isempty(obj.TableContextMenu)
                 obj.openTableContextMenu(figurePoint(1), figurePoint(2));
             end
-            
         end
         
         function onRemoveTaskMenuItemClicked(obj, src, evt)
@@ -175,7 +167,5 @@ classdef CatalogViewerApp < applify.AppWindow
 
             end
         end
-    
     end
-    
 end

@@ -31,7 +31,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
 
     end
     
-    
     properties (Access = private) % Widget states and internals
         IsConstructed = false
         isMouseOnButton = false
@@ -43,7 +42,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
         WindowMouseReleaseListener
         FrameChangedListener
     end
-    
     
     methods % Structor
         
@@ -66,7 +64,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
             delete(obj.hPlaneSwitcherToggleButton)
             delete(obj.hPlaneSwitcherSlidebar)
         end
-
     end
     
     methods % Set/Get
@@ -115,7 +112,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
             obj.CurrentPlane = newValue;
             obj.onCurrentPlaneChanged()
         end
-        
     end
     
     methods (Access = protected) % Widget creation & updates
@@ -128,7 +124,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
                 obj.createAxes()
                 obj.isAxesInternal = true;
             end
-            
         end
         
         function createAxes(obj, hParent)
@@ -165,8 +160,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
             else
                 obj.hPlaneSwitcherToggleButton.Position(1:2) = [X,Y];
             end
-
-            
         end
         
         function drawPlaneSwitcherSlidebar(obj)
@@ -189,7 +182,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
     end
     
     methods (Access = private) % User interaction callbacks
-    
         
         function onPlaneSliderValueChanged(obj, src, evt)
             
@@ -229,7 +221,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
             if obj.Visible
             else
             end
-            
         end
 
         function onLocationChanged(obj)
@@ -244,7 +235,7 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
             if obj.isAxesInternal
                 obj.hAxes.Position(3:4) = obj.Position_(3:4);
             
-                axWidth = obj.hAxes.Position(3); 
+                axWidth = obj.hAxes.Position(3);
                 axHeight = obj.hAxes.Position(4);
 
                 newYLim = [-1, 1] .* (axHeight/2);
@@ -259,8 +250,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
             else
                 % Do nothing...
             end
-            
-            
         end
         
         function onNumPlanesChanged(obj)
@@ -275,7 +264,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
                 obj.hPlaneSwitcherSlidebar.Value = obj.CurrentPlane;
             end
         end
-        
     end
     
     methods (Access = private)
@@ -318,7 +306,6 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
             if ~obj.isMouseButtonPressed
                 obj.hFigure.Pointer = 'arrow';
             end
-            
         end
         
         function changeButtonAppearance(obj)
@@ -330,12 +317,8 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
                 offColor = obj.ForegroundColor;
                 obj.hPlaneSwitcherToggleButton.Color = offColor;
             end
-            
         end
- 
     end
-    
-    
     
     % onNumPlanesChanged
     

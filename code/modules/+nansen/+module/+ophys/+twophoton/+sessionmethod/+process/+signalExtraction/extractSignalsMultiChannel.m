@@ -18,10 +18,9 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
         VARIABLE_PREFIX	= 'RoiSignals'      % defined in nansen.processing.DataMethod
     end
 
-    properties 
+    properties
         RequiredVariables = {'TwoPhotonSeries_Corrected', 'RoiArray'}
     end
-    
     
     methods (Static)
         function S = getDefaultOptions()
@@ -40,7 +39,6 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
                 clear obj
             end
         end
-        
     end
     
     methods
@@ -64,7 +62,6 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
             % Reset channels
             imageStack.CurrentChannel = currentChannels;
         end
-        
     end
 
     methods
@@ -72,5 +69,4 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
             fprintf(varargin{:})
         end
     end
-
 end

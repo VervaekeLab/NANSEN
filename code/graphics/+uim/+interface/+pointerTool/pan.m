@@ -4,7 +4,6 @@ classdef pan < uim.interface.abstractPointer
         exitMode = 'previous';
     end
     
-    
     properties
         xLimOrig
         yLimOrig
@@ -16,7 +15,6 @@ classdef pan < uim.interface.abstractPointer
         isButtonDown (1,1) logical = false
     end
     
-    
     methods
             
         function obj = pan(hAxes)
@@ -26,23 +24,20 @@ classdef pan < uim.interface.abstractPointer
             
             obj.hFigure = ancestor(hAxes, 'figure');
         end
-        
 
         function setPointerSymbol(obj)
             setptr(obj.hFigure, 'hand');
         end
-
         
         function onButtonDown(obj, ~, evt)
             
-            if evt.Button == 3; return; end 
+            if evt.Button == 3; return; end
             
             obj.isButtonDown = true;
             obj.isActive = true;
             
             obj.previousPoint = obj.hFigure.CurrentPoint;
         end
-        
         
         function onButtonMotion(obj, ~, ~)
             
@@ -71,13 +66,10 @@ classdef pan < uim.interface.abstractPointer
             end
         end
         
-        
         function onButtonUp(obj, src, evt)
             obj.isButtonDown = false;
             obj.isActive = false;
         end
-        
-        
         
         function moveAxes(obj, shift)
         % Move image in ax according to shift
@@ -85,7 +77,7 @@ classdef pan < uim.interface.abstractPointer
             % Get ax position in figure coordinates
             axPos = getpixelposition(obj.hAxes);
         
-            if strcmp(obj.hAxes.YDir, 'reverse') 
+            if strcmp(obj.hAxes.YDir, 'reverse')
                 shift(2) = -1 * shift(2);
             end
             
@@ -114,8 +106,5 @@ classdef pan < uim.interface.abstractPointer
 %                 plotZoomRegion(obj, obj.hAxes.XLim, ylim)
             end
         end
-
-        
     end
-    
 end

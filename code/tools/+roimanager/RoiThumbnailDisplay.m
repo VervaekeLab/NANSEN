@@ -10,7 +10,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
 %   unavailable from a roi object, a new image will be created using the
 %   imagestack.
 
-    % Todo: 
+    % Todo:
     %  [ ] get image: get from roi appdata or set to roi appdata.
     
     properties (Constant)
@@ -46,14 +46,14 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
     properties (Access = private) % Handles to graphical objects
         hAxes           % Handle for axes to show image in
         hText           % Handle for text which displays message
-        hRoiImage       % Handle for image 
+        hRoiImage       % Handle for image
         hRoiOutline     % Handle for line to show roi outline
         hContextMenu    % Handle for image contextmenu
         hImageSelector  % Handle for image selector widget
         hCountourToggleButton % Button for toggling visibility of contour
         
         ContextMenuTree % Struct containing contextmenu items.
-    end 
+    end
     
     properties (Access = private) % Internal options
         CurrentImage % Holds image data of current image
@@ -69,7 +69,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
         %
         %   displayObj = RoiThumbnailDisplay(hParent, roiGroup) creates a
         %   thumbnail display object in the container specified by hParent.
-        %   
+        %
             obj@applify.ModularApp(hParent);
             obj@roimanager.roiDisplay(roiGroup)
             
@@ -97,7 +97,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
     methods (Access = private)
         
         function createImageDisplayAxes(obj)
-        %createImageDisplayAxes Create axes for image display    
+        %createImageDisplayAxes Create axes for image display
         
             if isa(obj.Panel, 'matlab.graphics.axis.Axes')
                 obj.hAxes = obj.Panel;
@@ -108,7 +108,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
                 obj.hAxes.Position = [0.05, 0.05, 0.9, 0.9];
             end
             
-            obj.hAxes.XTick = []; 
+            obj.hAxes.XTick = [];
             obj.hAxes.YTick = [];
             obj.hAxes.Tag = 'Roi Thumbnail Display';
             obj.hAxes.Color = obj.Panel.BackgroundColor;
@@ -168,10 +168,10 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             % Todo...
             
 % % %             mItem = uimenu(h, 'Text', 'Set Colormap', 'Enable', 'off');
-% % %             
+% % %
 % % %             mItem = uimenu(h, 'Text', 'Set Image');
 % % %             obj.ContextMenuTree.SetImage = mItem;
-% % %             
+% % %
 % % %             for i = 1:numel(obj.IMAGE_TYPES)
 % % %                 hMenuSubItem = uimenu(mItem, 'Text', obj.IMAGE_TYPES{i});
 % % %                 hMenuSubItem.Callback = @obj.onSetImageMenuItemClicked;
@@ -258,11 +258,11 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
         end
         
         function createImageDisplay(obj, imageData)
-        %createImageDisplay Create the image display 
+        %createImageDisplay Create the image display
             
             if isempty(obj.hText)
                 % Create first for it to be below image in the uistack
-                obj.createImageTextbox() 
+                obj.createImageTextbox()
             end
             
             obj.hRoiImage = imshow(imageData, [0, 255], ...
@@ -274,8 +274,8 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             
             % set(obj.hRoiImage, 'ButtonDownFcn', @obj.mousePress)
             
-            if ~ishold(obj.hAxes)  
-                hold(obj.hAxes, 'on') 
+            if ~ishold(obj.hAxes)
+                hold(obj.hAxes, 'on')
             end
 
             % obj.createImageMenu() % Todo?
@@ -290,7 +290,6 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             if isempty(roiThumbnailImage); return; end
             
             obj.CurrentImage = roiThumbnailImage;
-            
             
             if isempty(obj.hRoiImage) % First time. Create image object
                 obj.createImageDisplay(roiThumbnailImage)
@@ -307,13 +306,13 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
                 hPointer = obj.PointerManager.pointers.autoDetect;
                 hPointer.xLimOrig = obj.hAxes.XLim;
                 hPointer.yLimOrig = obj.hAxes.YLim;
-            end   
+            end
                        
             % Update color limits to get the optimal brightness range
             clims = [min(roiThumbnailImage(:)), max(roiThumbnailImage(:))];
 
             % Make sure upper clim is larger than lower
-            if clims(2) <= clims(1) 
+            if clims(2) <= clims(1)
                 clims(2) = clims(1) + 1;
             end
             set(obj.hAxes, 'CLim', clims );
@@ -329,7 +328,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
         end
         
         function updateRoiContour(obj, roiObj)
-        %updateRoiContour Update the contour of a roi in the image display    
+        %updateRoiContour Update the contour of a roi in the image display
             
             usFactor = obj.SpatialUpsampling;
             imageSize = size(obj.CurrentImage) ./ usFactor;
@@ -338,9 +337,8 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             roiBoundary = fliplr(roiObj.boundary{1}); % yx -> xy
             %roiBoundary = (roiBoundary - ul + [1,1]) * usFactor;
             roiBoundary = (roiBoundary - ul + [1,1]) * usFactor - [0.5, 0.5];
-            % Todo: Whats the correct pixel offset? Does it depend on
+            % Todo: What's the correct pixel offset? Does it depend on
             % magnification factor?
-
             
             if isempty(obj.hRoiOutline)
                 obj.hRoiOutline = plot(obj.hAxes, roiBoundary(:,1), roiBoundary(:,2), ...
@@ -360,11 +358,10 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
                 obj.hRoiOutline.Visible = 'off';
                 obj.hCountourToggleButton.Tooltip = 'Show Contour';
             end
-            
         end
         
         function im = getImage(obj, roiObj)
-        %getImage Get roi thumbnail image based on current settings  
+        %getImage Get roi thumbnail image based on current settings
                         
             imageVarName = strrep(obj.CurrentImageToShow, ' ', '');
             roiImageData = getappdata(roiObj, 'roiImages');
@@ -383,7 +380,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
 
             if isempty(im)
                 obj.updateImageText('Image not available')
-                return; 
+                return;
             end
             
             % Perform spatial resampling of image
@@ -467,9 +464,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             if nargout == 2
                 imageIdx = newIdx;
             end
-            
         end
-        
     end
     
     methods (Access = protected) % Inherited from applify.ModularApp
@@ -503,7 +498,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
         function updateEstimatedRoi(obj)
             if ~isempty(obj.PointerManager)
                 if isa( obj.PointerManager.currentPointerTool, ...
-                        'roimanager.pointerTool.autoDetect' ) 
+                        'roimanager.pointerTool.autoDetect' )
                     obj.PointerManager.currentPointerTool.updateRoi()
                 end
             end
@@ -537,9 +532,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
                 obj.RoiGroup.modifyRois(newRoi, i)
                 clear newRoi
             end
-            
         end
-        
     end
     
     methods (Access = protected) % Inherited from roimanager.roiDisplay
@@ -569,7 +562,6 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
                 otherwise
                     % Do nothing...
             end
-            
         end
         
         function onRoiSelectionChanged(obj, evtData)
@@ -588,13 +580,11 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
                 obj.VisibleRois = roiIdx;
                 obj.updateEstimatedRoi()
             end
-            
         end
         
         function onRoiClassificationChanged(obj, evtData)
             % Do nothing
         end
-        
     end
     
     methods (Access = private)
@@ -624,7 +614,6 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
         function tf = hittest(obj, src, evt)
             tf = ~isempty(obj.VisibleRois);
         end
-        
     end
     
     methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
@@ -650,7 +639,5 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
                     obj.hImageSelector.changePage(imageIdx)
             end
         end
-        
     end
-    
 end

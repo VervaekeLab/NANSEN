@@ -1,7 +1,7 @@
 classdef OptionsManager < handle
 %nansen.manage.OptionsManager Class for managing toolbox options.
-% 
-%   This class provides an interface for storing and retrieving preset 
+%
+%   This class provides an interface for storing and retrieving preset
 %   options for algorithms and methods that are part of the nansen package.
 %
 %   This class can be used in combination with any function or class
@@ -13,52 +13,51 @@ classdef OptionsManager < handle
 %   calling "nansen.localpath('custom_options')". See nansen.localpath for
 %   instructions on how to change this path.
 %
-%   USAGE: 
+%   USAGE:
 %       optManager = nansen.manage.OptionsManager(fcnName, defOptions)
 %          creates an options manager object for the function with the
-%          specified function name (fcnName) and set of default options 
+%          specified function name (fcnName) and set of default options
 %          (defOptions).
 %
 %       optsA = optManager.getOptions('my_options_1')
 %       optsB = optManager.getOptions('my_options_2')
 %
-%       optsC = optsB; 
+%       optsC = optsB;
 %       optsC.someParameter = newValue;
 %
 %       optManager.setOptions(optsC, 'my_options_3')
 %
 %   INPUTS:
-%       fcnName (char) : Name of function (if the function is part of a 
+%       fcnName (char) : Name of function (if the function is part of a
 %           package, the full package name must be included).
 %       defOpts (struct) : A struct containing options. Fieldnames specify
 %           the options/parameter names. The struct can have two levels,
 %           i.e each field of the struct could be a substruct (this is
 %           useful for a big set of options, to divide them into
 %           categories; see structEditor.App for more info).
-%           
+%
 %   EXAMPLES:
 %       1) The simplest use case is to create an options manager for any
 %          existing function or class. Note: The first time the options
 %          manager is created, a set of options must also be given. On
 %          subsequent use, if options are not given, they are selected from
 %          the stored options file.
-%   
+%
 %       2) A function can be created to have default options. Any function
 %          that returns a struct of options when called with no inputs is
 %          considered a method which has default options in the context of
-%          the options manager (See ... for example). 
+%          the options manager (See ... for example).
 %
 %       3) Any subclass that implements the nansen.mixin.HasOptions class
 %          also has a set of default options which are detected by the
-%          options manager. 
+%          options manager.
 %
 %   PROPERTIES:
 %       The options manager object contains the following properties
-%       
-%       FunctionName: Name of function for the current options manager instance 
+%
+%       FunctionName: Name of function for the current options manager instance
 %       Options : The set of options which are currently selected
 %       OptionsName : The name of the currently selected name of options
-
 
 %     A PRESET option is a set of options that are predefined for a
 %     function or method. The preset options can be defined in different
@@ -80,11 +79,9 @@ classdef OptionsManager < handle
 %     of options manager is created. If an options set is edited, it will
 %     be selected and remain selected until another options set is selected
 %     or a new OptionsManager instance is recreated.
-    
-
         
     % TODO:
-    %   
+    %
     %   [ ] Create an OptionsSet class. This class should look like the
     %   struct returned by getEmptyOptionsSet, and have functionality for
     %   more streamlined interfacing with options sets.
@@ -92,7 +89,7 @@ classdef OptionsManager < handle
     %   [ ] method to validate options against preset options... I.e if new
     %   parameters are added to a preset, these should be migrated to all
     %   available options sets.
-    %   
+    %
     %   [ ] Make sure correct option set is selected from the list (when
     %       editing options sets)
     %
@@ -112,7 +109,6 @@ classdef OptionsManager < handle
     %       ignore parameters tagged with transient....
     %
     %   [v] Save options sets for project tasks to the project folder?
-    
     
 % %     properties (Access = private)
 % %         % Todo: Create a class for retrieving presets.
@@ -149,7 +145,7 @@ classdef OptionsManager < handle
         PresetOptionNames       % Names of available preset options (created by developer)
         CustomOptionNames       % Names of available custom options (created by user)
         EditedOptionNames       % Names of available edited options (edited by user)
-    end 
+    end
     
     properties (Access = private, Hidden)
         HasPresets = false         % Boolean flag, does preset options exist for this function/method?
@@ -166,29 +162,27 @@ classdef OptionsManager < handle
         OptionsChanged % Is this needed / will I have use for this????
     end
     
-    
     methods % Constructor
         
         function obj = OptionsManager(fcnName, opts, optsName)
         %OptionsManager Constructor of options manager
         %
         %   h = OptionsManager(functionName) creates a options manager
-        %     instance for a function specified by functionName. 
+        %     instance for a function specified by functionName.
         %
-        %   h = OptionsManager(functionName, opts) creates a options 
-        %     manager instance and assigns a set of options. 
-        %        
-        %   h = OptionsManager(functionName, opts, optsName) creates an 
-        %     options manager with a set of options with a custom name. 
+        %   h = OptionsManager(functionName, opts) creates a options
+        %     manager instance and assigns a set of options.
+        %
+        %   h = OptionsManager(functionName, opts, optsName) creates an
+        %     options manager with a set of options with a custom name.
         
         %   First, the constructor checks if an options file exists for a
         %   function of the given name. If yes, it collects info about
-        %   which option presets are available. 
+        %   which option presets are available.
         %
         %   If no options file exists, the constructor checks if the given
         %   function exists, and then checks if default options exist for
         %   the function.
-        
 
             % Return a blank instance if no input arguments are given.
             if ~nargin
@@ -235,7 +229,6 @@ classdef OptionsManager < handle
                     error('Not implemented yet')
             end
             
-            
             if ~isempty(obj.OptionsName)
                 obj.validateProvidedOptions()
             end
@@ -244,7 +237,6 @@ classdef OptionsManager < handle
                 obj.assignDefaultOptions()
             end
         end
-        
     end
     
     methods (Static)
@@ -320,9 +312,7 @@ classdef OptionsManager < handle
 % %                     uiwait(h)
                 end
             end
-            
         end
-
     end
     
     methods (Access = public)
@@ -356,7 +346,6 @@ classdef OptionsManager < handle
             elseif nargout == 1
                 clear optionsName
             end
-            
         end
         
         function setOptions(obj, optionsName, options)
@@ -372,7 +361,6 @@ classdef OptionsManager < handle
                 error('not implemented yet')
             end
         end
-        
     end
     
     methods (Access = public)
@@ -408,7 +396,6 @@ classdef OptionsManager < handle
             if ~nargout
                 clear wasAborted
             end
-            
         end
         
         function hOptionsEditor = openOptionsEditor(obj, optionsName, optsStruct)
@@ -422,7 +409,7 @@ classdef OptionsManager < handle
                 optsStruct = obj.getOptions(optionsName);
             end
             
-            methodName = strsplit( obj.FunctionName, '.'); 
+            methodName = strsplit( obj.FunctionName, '.');
             methodName = methodName{end};
         
             titleStr = obj.getEditorTitle(methodName);
@@ -487,7 +474,6 @@ classdef OptionsManager < handle
             elseif nargout == 0
                 clear optsStruct optsName wasAborted
             end
-            
         end
 
         function givenName = saveCustomOptions(obj, opts, name)
@@ -534,7 +520,6 @@ classdef OptionsManager < handle
             if ~nargout
                 clear givenName
             end
-            
         end
         
         function S = getDefaultOptions(obj)
@@ -547,7 +532,6 @@ classdef OptionsManager < handle
                 obj.OptionsName = defaultName;
                 clear S
             end
-            
         end
         
         function name = getReferenceOptionsName(obj, referenceType)
@@ -574,7 +558,6 @@ classdef OptionsManager < handle
             else % This error should never occur...
                 error('Options file does not exist for this function')
             end
-            
         end
         
         % Todo: Remove. Todo: Is it faster to use whos, or just load?
@@ -592,18 +575,17 @@ classdef OptionsManager < handle
                 
 % %                 S =  whos( '-file', filePath );
 % %                 names = {S.name};
-% %                 
+% %
 % %                 if contains('DefaultOptionsName', names)
-% %                 
+% %
 % %                     S = load(filePath, 'DefaultOptions');
 % %                     name = S.DefaultOptions;
 % %                 end
 
-            else 
+            else
                 % This should not happen
                 error('This is an unexpected error')
             end
-            
         end
         
         function setDefault(obj, optionsName)
@@ -615,7 +597,6 @@ classdef OptionsManager < handle
             else
                 save(obj.FilePath, 'DefaultOptionsName')
             end
-            
         end
         
         function names = getAllOptionNames(obj)
@@ -624,11 +605,11 @@ classdef OptionsManager < handle
       % % Methods for dealing with modified options.
         
         function appendModifiedOptions(obj, opts, name)
-        %appendModifiedOptions Save modified options for later use          
+        %appendModifiedOptions Save modified options for later use
         %
-        %   % Transient options... 
+        %   % Transient options...
         
-            ind = find( strcmp(obj.EditedOptionNames, name) );  
+            ind = find( strcmp(obj.EditedOptionNames, name) );
             optsEntry = obj.createOptionsStructForSaving(opts, name, '');
             
             if isempty(ind)
@@ -638,12 +619,11 @@ classdef OptionsManager < handle
                 % Replace existing opts.
                 obj.ModdedOptions_(ind) = optsEntry;
             end
-
         end
         
         function removeModifiedOptions(obj, name)
             
-            ind = find( strcmp(obj.EditedOptionNames, name) );  
+            ind = find( strcmp(obj.EditedOptionNames, name) );
             
             if ~isempty(ind)
                 obj.ModdedOptions_(ind) = [];
@@ -658,7 +638,7 @@ classdef OptionsManager < handle
         end
         
         function resetModifiedOptions(obj)
-        %resetModifiedOptions Reset the modified options struct array    
+        %resetModifiedOptions Reset the modified options struct array
             obj.ModdedOptions_ = obj.getEmptyOptionsSet();
         end
         
@@ -669,10 +649,10 @@ classdef OptionsManager < handle
             name = obj.unformatDefaultName(name);
             
             loadedOptionsNames = {S.OptionsEntries.Name};
-            idx = find( strcmp(loadedOptionsNames, name) );  
+            idx = find( strcmp(loadedOptionsNames, name) );
 
             if isempty(idx)
-                error('No options set found mathing the name "%s"', name)
+                error('No options set found matching the name "%s"', name)
             end
             
             assertMsg = 'The options to remove must be a custom options set';
@@ -689,18 +669,18 @@ classdef OptionsManager < handle
         %
         %   hOptionsManager.updatePresets() will update the saved preset
         %   based on the most recent preset definitions.
-        %   
-        %   Note: The preset option sets that are provided by this class 
-        %   will be those that are originally saved the first time an 
-        %   object of this class was created. If the preset definitions 
-        %   change (developers changed the source code) the presets will 
-        %   not be automatically updated in the options manager. This must 
-        %   be manually done by the user (you) using this method. 
-        %   Be aware that updating the presets mean that running 
-        %   functions/methods with those updated presets may produce 
+        %
+        %   Note: The preset option sets that are provided by this class
+        %   will be those that are originally saved the first time an
+        %   object of this class was created. If the preset definitions
+        %   change (developers changed the source code) the presets will
+        %   not be automatically updated in the options manager. This must
+        %   be manually done by the user (you) using this method.
+        %   Be aware that updating the presets mean that running
+        %   functions/methods with those updated presets may produce
         %   different end results, than running the same function methods
         %   with original functions/methods. So if earlier data is analysed
-        %   with older preset definintion and current data is analysed with
+        %   with older preset definition and current data is analysed with
         %   newer preset definitions, results might not be consistent.
         
             error('This method is not implemented yet.')
@@ -740,7 +720,6 @@ classdef OptionsManager < handle
             AVAILABLE_TYPES = {'Function', 'Function', 'Class', 'Toolbox'}; % SessionTask
             functionType = AVAILABLE_TYPES{obj.FunctionTypeIdx};
         end
-        
     end
     
     methods (Access = private)
@@ -775,7 +754,7 @@ classdef OptionsManager < handle
             % Are options already assigned and do they match with any of
             % the preset or custom options?
             
-            isMatched = strcmp(obj.PresetOptionNames, obj.OptionsName);            
+            isMatched = strcmp(obj.PresetOptionNames, obj.OptionsName);
             if any(isMatched)
                 isOptionsValid = isequal( obj.Options, obj.PresetOptions_(isMatched).Options );
                 assertMsg = sprintf(['A preset option with the name ', ...
@@ -784,7 +763,7 @@ classdef OptionsManager < handle
                 assert(isOptionsValid, assertMsg)
             end
             
-            isMatched = strcmp(obj.CustomOptionNames, obj.OptionsName);            
+            isMatched = strcmp(obj.CustomOptionNames, obj.OptionsName);
             if any(isMatched)
                 isOptionsValid = isequal( obj.Options, obj.CustomOptions_(isMatched).Options );
                 assertMsg = sprintf(['A custom options set with the name ', ...
@@ -792,12 +771,11 @@ classdef OptionsManager < handle
                     obj.OptionsName);
                 assert(isOptionsValid, assertMsg)
             end
-            
         end
         
         function updatedOpts = updateOptionsFromReference(obj, newOpts, refOpts)
             
-            % Note: 
+            % Note:
             %   Adds fields if they are not present already. This is
             %   relevant if more options were added to a method
             %
@@ -806,7 +784,6 @@ classdef OptionsManager < handle
             %   derived from a preset options set.
             %
             %   Todo: Remove fields that have become obsolete.
-
 
             isAllSubstruct = all( structfun(@(s) isstruct(s), refOpts) );
             
@@ -824,14 +801,12 @@ classdef OptionsManager < handle
                             newOpts.(thisField), refOpts.(thisField) );
                     else
                         updatedOpts.(thisField) = refOpts.(thisField);
-                    end 
+                    end
                 end
 
             else
                 updatedOpts = obj.addMissingFieldsFromReference(newOpts, refOpts);
             end
-            
-            
         end
         
         function s = addMissingFieldsFromReference(~, s, sRef)
@@ -853,11 +828,10 @@ classdef OptionsManager < handle
         
         % Todo:
 % %         function s = removeDeprecatedFields(obj, s, sRef)
-% %             
-% %             
-% %             
+% %
+% %
+% %
 % %         end
-        
         
         function updateOptionsFromDefault(obj)
                         
@@ -866,14 +840,13 @@ classdef OptionsManager < handle
                     obj.CustomOptions_(i), obj.PresetOptions_(1) );
 
             end
-            
         end
         
         % % Methods related to preset options. % Create PresetOptionFinder
         % class?
         
         function names = findPresetOptions(obj)
-        %findPresetOptions Find preset options for the current object 
+        %findPresetOptions Find preset options for the current object
         %
         %   Find preset options for a function and assign them to the
         %   private property containing preset options. Check whether the
@@ -913,7 +886,6 @@ classdef OptionsManager < handle
             if nargout
                 names = {optionsEntry.Name};
             end
-            
         end
          
         function optionsEntry = findPresetsFromFunction(obj)
@@ -947,8 +919,8 @@ classdef OptionsManager < handle
         function optionsEntry = findPresetsFromOptionsMixinClass(obj)
         %findPresetsFromOptionsMixinClass Find preset options from a class
         %
-        % A mixin class with options (inheriting from HasOptions) has a  
-        % getDefaultOptions method which returns a struct of options. Get 
+        % A mixin class with options (inheriting from HasOptions) has a
+        % getDefaultOptions method which returns a struct of options. Get
         % the struct, and give it the name Default.
         
             fcnName = strcat(obj.FunctionName, '.getDefaultOptions');
@@ -973,7 +945,7 @@ classdef OptionsManager < handle
             if contains('nansen.mixin.HasOptions', superClassNames)
                 mc = meta.class.fromName(obj.FunctionName);
                 
-                if ~isempty(mc.PropertyList) 
+                if ~isempty(mc.PropertyList)
                     
                     matchedIdx = strcmp({mc.PropertyList.Name}, 'OptionsManager');
                     if any(matchedIdx)
@@ -1013,7 +985,6 @@ classdef OptionsManager < handle
                 optionsEntry(i) = obj.createOptionsStructForSaving(...
                         optsStruct, optsName, '');
             end
-            
         end
         
         function tf = hasPresetPackage(obj)
@@ -1029,7 +1000,7 @@ classdef OptionsManager < handle
                 return
             elseif numel(s) > 1
                 warning('Multiple instances of function "%s" was found on the path.', obj.FunctionName)
-                % Note: If this happens when running a job on a parallell
+                % Note: If this happens when running a job on a parallel
                 % pool of workers, it might be necessary to reset the
                 % pool(?) by deleting it from Matlab's Job Monitor...
                 % (Restarting matlab did not fix it for me)
@@ -1046,7 +1017,6 @@ classdef OptionsManager < handle
         %
         % Use this function if a folder called +presets co-exists with the
         % function of the current OptionsManager instance
-        
             
             % Find the full path to where the function/package is located
             folderNames =  strsplit(obj.FunctionName, '.');
@@ -1083,15 +1053,13 @@ classdef OptionsManager < handle
             else
                 error('No preset package was found')
             end
-            
         end
 
         function S = getPresetOptions(obj, optionsName)
-        %getPresetOptions Get preset option set matching given name 
+        %getPresetOptions Get preset option set matching given name
             isMatch = strcmp(obj.PresetOptionNames, optionsName);
             S = obj.PresetOptions_(isMatch).Options;
         end
-        
     end
     
     methods (Access = private) % Methods for listing option set names
@@ -1114,7 +1082,6 @@ classdef OptionsManager < handle
             else
                 names = {};
             end
-            
         end
         
         function names = listEditedNames(obj)
@@ -1124,7 +1091,6 @@ classdef OptionsManager < handle
             else
                 names = {};
             end
-            
         end
         
         function names = listDisplayableOptionsNames(obj)
@@ -1140,13 +1106,11 @@ classdef OptionsManager < handle
             % Format preset names
             names(isPreset) = obj.formatPresetNames(names(isPreset));
             
-            % Format prefered name.
+            % Format preferred name.
             names(isPreferred) = obj.formatDefaultName(names(isPreferred));
             
         end
-
     end
-    
     
     methods (Access = private) % Methods for file interaction
         
@@ -1175,7 +1139,6 @@ classdef OptionsManager < handle
             else
                 folderName = obj.FunctionName;
             end
-            
         end
         
         function filePath = createFilePath(obj)
@@ -1208,7 +1171,6 @@ classdef OptionsManager < handle
         %   current optionsmanager instance. If an options set was not
         %   provided on creation, we check if a definition of options exist
         %   in the function/class/toolbox definition.
-       
         
             % Save options to file
             if ~isempty(obj.PresetOptions_)
@@ -1259,7 +1221,7 @@ classdef OptionsManager < handle
 
                     if ~isequal(iLoadedOpts, iReferenceOpts)
                         iLoadedOpts = obj.updateOptionsFromReference(iLoadedOpts, iReferenceOpts);
-                        fprintf('Updated options for %s to match to changes in preset options\n', obj.FunctionName)    
+                        fprintf('Updated options for %s to match to changes in preset options\n', obj.FunctionName)
                         loadedPresetOptions(matchIdx).Options = iLoadedOpts;
                         obj.saveOptions(loadedPresetOptions(matchIdx), true)
                         wasPresetOptionsUpdated = true;
@@ -1280,7 +1242,6 @@ classdef OptionsManager < handle
                 else
                     obj.saveOptions(obj.PresetOptions_(i))
                 end
-                
             end
             
             % Get custom options from file.
@@ -1297,10 +1258,8 @@ classdef OptionsManager < handle
                     end
                 end
 
-
                 obj.CustomOptions_ = loadedCustomOptions;
             end
-            
             
             % Save provided options or match them against loaded...
             if ~isempty(obj.Options)
@@ -1364,7 +1323,7 @@ classdef OptionsManager < handle
                 elseif any(isMatch) && ~doReplace
                     errMsg = sprintf('Option preset with name "%s" already exists, aborted.', newOptionsSet.Name);
                     errordlg(errMsg)
-                    error(errMsg) %#ok<SPERR> 
+                    error(errMsg) %#ok<SPERR>
                 else
                     S.OptionsEntries(end+1) = newOptionsSet;
                 end
@@ -1374,7 +1333,6 @@ classdef OptionsManager < handle
                 S.OptionsEntries = newOptionsSet;
                 save(savePath, '-struct', 'S')
             end
-
         end
         
         function savePresetOptions(obj, opts, name, descr)
@@ -1383,12 +1341,12 @@ classdef OptionsManager < handle
             if obj.isPreset(name)
                 errordlg('This name is already in use')
                 return
-            end 
+            end
             
             if obj.isCustom(name)
                 errordlg('This name is already used for a custom options set')
                 return
-            end 
+            end
             
             newOpts = obj.createOptionsStructForSaving(opts, name, descr);
             newOpts.Type = 'Preset';
@@ -1417,14 +1375,12 @@ classdef OptionsManager < handle
                     
                     if ~any(isCustom)
                         obj.CustomOptions_ = obj.getEmptyOptionsSet();
-                    else                    
+                    else
                         obj.CustomOptions_ = S.OptionsEntries(isCustom);
                     end
                 end
             end
-            
         end
-        
     end
     
     methods (Static, Access = private)
@@ -1446,7 +1402,7 @@ classdef OptionsManager < handle
             end
             
             if isempty(methodName)
-                methodName = strsplit( functionName, '.'); 
+                methodName = strsplit( functionName, '.');
                 methodName = methodName{end};
             end
             
@@ -1500,7 +1456,7 @@ classdef OptionsManager < handle
         end
         
         function S = getEmptyOptionsSet()
-        %getEmptyOptionsSet Get an empty struct for an options set.  
+        %getEmptyOptionsSet Get an empty struct for an options set.
         %
         %   The resulting struct contains the same fields as a struct
         %   returned by createOptionsStructForSaving. This should probably
@@ -1511,7 +1467,7 @@ classdef OptionsManager < handle
         end
         
         function fcnType = getFunctionType(functionName)
-        %getFunctionType Determine function type for the given functionname   
+        %getFunctionType Determine function type for the given functionname
         %
         % A function in the Nansen Toolbox can be written according to
         % specific templates, and each template has a certain way to define
@@ -1524,8 +1480,8 @@ classdef OptionsManager < handle
         %       1 : Function that returns options and session task attributes
         %       2 : Function which returns a struct of options when called
         %           with no inputs.
-        %       3 : Class inheriting the HasOptions mixin class.  
-        %       4 : External toolbox / package wrapper    
+        %       3 : Class inheriting the HasOptions mixin class.
+        %       4 : External toolbox / package wrapper
                     
         % Sorry, This is a mess..
         
@@ -1566,18 +1522,13 @@ classdef OptionsManager < handle
                         otherwise
                             return
                     end
-                    
                 end
-                
             end
         
             if fcnType == 0
                 errorMsg = sprintf('The provided function "%s" does not exist on path', functionName);
                 error(errorMsg)
             end
-
         end
-
     end
-
 end

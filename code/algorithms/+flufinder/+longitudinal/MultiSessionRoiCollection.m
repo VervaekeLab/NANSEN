@@ -4,8 +4,8 @@ classdef MultiSessionRoiCollection < handle
 %   The purpose of this class is to store RoIs for each session of a set of
 %   longitudinal sessions and provide methods for keeping rois synched
 %   across sessions. If a RoI array from one session is updated, the user
-%   can use the updateEntry method in order to update the rois for this session 
-%   and then use synchEntries to update roi arrays from all other sessions to 
+%   can use the updateEntry method in order to update the rois for this session
+%   and then use synchEntries to update roi arrays from all other sessions to
 %   reflect the changes to that specific roi array. I.e if five new rois were
 %   added, now these rois will be added across all sessions. The class will
 %   use the existing rois of each session to interpolate the position in
@@ -15,9 +15,8 @@ classdef MultiSessionRoiCollection < handle
 %       - updateEntry
 %       - synchEntries
 
-
 % NOTE: The RoIArray property can be either an array of RoIs or a cell
-% array or arrays of RoIs. The latter is the case if sessions hav multiple
+% array or arrays of RoIs. The latter is the case if sessions have multiple
 % imaging channels. This could be expanded to also work for longitudinal
 % multi-plane recordings, but it requires a modified approach to aligning
 % each FoV, as FoVs for planes needs to be aligned separately. The class
@@ -35,7 +34,7 @@ classdef MultiSessionRoiCollection < handle
 % How do updateEntries, updateRoisFromReference and synchEntries differ? Can
 % some parts of the methods be combined (not urgent)?
 
-% + updateRoisFromReference : 
+% + updateRoisFromReference :
 %       - Duplicate and reposition rois that are present on reference roi
 %         array and copy to the "target" session
 %       - Check if unique rois from reference session are overlapping with
@@ -49,8 +48,7 @@ classdef MultiSessionRoiCollection < handle
 %         new rois inheriting uuids from reference if possible....
 %
 % + synchEntries
-%       - Update all objects from a source. 
-
+%       - Update all objects from a source.
 
 %   Proposed properties
 %       SynchMode = 'Only Add', 'Mirror'
@@ -76,7 +74,7 @@ classdef MultiSessionRoiCollection < handle
     methods % Constructor
         
         function obj = MultiSessionRoiCollection(sessionID, fovImage, roiArray, isReference)
-        %MultiSessionRoiCollection Create instance of MultiSessionRoiCollection    
+        %MultiSessionRoiCollection Create instance of MultiSessionRoiCollection
             if nargin == 0; return; end
             if nargin < 4 || isempty(isReference); isReference = false; end
             
@@ -88,7 +86,6 @@ classdef MultiSessionRoiCollection < handle
                 obj.ImageChannel = imageChannel;
             end
         end
-        
     end
 
     methods (Access = public)
@@ -102,9 +99,9 @@ classdef MultiSessionRoiCollection < handle
         %   method must be reassigned to A for the adding to take place.
         %
         %   When a roi array is added, it is compared with other roi
-        %   arrays from other sessions (the reference). If any rois are not 
-        %   present, they are added to the current roi array from the 
-        %   reference. If overlapping rois are found, rois of the current roi 
+        %   arrays from other sessions (the reference). If any rois are not
+        %   present, they are added to the current roi array from the
+        %   reference. If overlapping rois are found, rois of the current roi
         %   array inherit the roi uid from the reference sessions.
             
             import flufinder.longitudinal.MultiSessionRoiCollection
@@ -192,7 +189,7 @@ classdef MultiSessionRoiCollection < handle
         %   from specified session to all other entries in the multisession
         %   roi collection. synchMode can be 'mirror' or 'add only'.
         %
-        %   synchMode: 
+        %   synchMode:
         %       'mirror'    :
         %       'add only'  :
 
@@ -210,7 +207,7 @@ classdef MultiSessionRoiCollection < handle
                 
                 targetRois = obj.getRoiArray(obj(i).SessionID);
                
-                % Find rois which are present in source rois and not in target 
+                % Find rois which are present in source rois and not in target
                 % rois and calculate their positions relative to target rois.
                 newRois = roimanager.utilities.interpolateRoiPositions(sourceRois, targetRois);
                 
@@ -259,7 +256,6 @@ classdef MultiSessionRoiCollection < handle
                         'RoIArray', {obj.RoIArray}, ...
                         'IsReference', [obj.IsReference]);
         end
-        
     end
 
     methods (Access = private) % Internal methods (updating rois)
@@ -316,7 +312,7 @@ classdef MultiSessionRoiCollection < handle
             newRois = newRois.removeTag('missing');
             newRois = newRois.addTag('imported');
 
-            % Check if any of the unique rois from the reference session 
+            % Check if any of the unique rois from the reference session
             % are overlapping with any rois from the current session. If
             % yes, rois in the current session should inherit unique
             % ids. All other rois are added to current session.
@@ -342,7 +338,7 @@ classdef MultiSessionRoiCollection < handle
         function roiArray = duplicateRoisFromReference(obj, fovImage, varargin)
         %duplicateRoisFromReference Duplicate and reposition rois
         %
-        %   This methods duplicates the roi array from the reference session 
+        %   This methods duplicates the roi array from the reference session
         %   and repositions them based on pixel shifts that are obtained by
         %   aligning a FoV image with the reference FoV image.
             
@@ -378,7 +374,6 @@ classdef MultiSessionRoiCollection < handle
             fovImageArray = cat(3, referenceFovImage, fovImage);
             fovPixelOffsets = flufinder.longitudinal.alignFovs(fovImageArray);
         end
-
     end
 
     methods (Access = private) % Internal methods (utility)
@@ -426,7 +421,6 @@ classdef MultiSessionRoiCollection < handle
                 error('This operation is currently only supported for single channel rois. Please create issue if this functionality is needed.')
             end
         end
-
     end
 
     methods (Static)
@@ -446,7 +440,6 @@ classdef MultiSessionRoiCollection < handle
                 end
             end
         end
-
     end
 
     methods (Static, Access = private) % Condider moving to roimanager.utilities
@@ -481,7 +474,5 @@ classdef MultiSessionRoiCollection < handle
             isnanCenter = cellfun(@(b) any(isnan(b)), {roiArray.center});
             roiArray(isnanCenter | isEmptyBoundary) = [];
         end
-
     end
-
 end

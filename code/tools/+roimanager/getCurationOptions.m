@@ -4,9 +4,9 @@ function S = getCurationOptions()
     
 % % %     S.selectVariable = 'Area';
 % % %     S.selectVariable_ = {'Area', 'PeakT'};
-% % %     
+% % %
 % % %     S.cutoffValues = [0, 1];
-% % %     
+% % %
 % % %     S.cutoffValuesRef = struct('Area', [50, 200], 'PeakT', [1,20]);
 % % %     S.cutoffValuesRef_ = 'internal';
 

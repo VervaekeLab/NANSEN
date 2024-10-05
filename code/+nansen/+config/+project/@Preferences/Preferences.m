@@ -10,5 +10,4 @@ classdef Preferences < handle
             
         end
     end
-
 end

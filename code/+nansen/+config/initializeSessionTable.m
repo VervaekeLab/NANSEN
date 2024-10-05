@@ -6,7 +6,6 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
 
-
     uiWaitbar.Message = 'Locating session folders...';
     
     % % Use the folder structure to detect session folders.
@@ -66,7 +65,6 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
     end
     
     uiWaitbar.Message = 'Creating session table...';
-
     
     % Initialize a MetaTable using the given session schema and the
     % detected session folders.
@@ -88,7 +86,7 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
         throwAsCaller(ME)
         % Todo: have some error handling here.
 % %                 title = 'Could not save metadata table';
-% %                 uialert(app.NansenSetupUIFigure, ME.message, title) 
+% %                 uialert(app.NansenSetupUIFigure, ME.message, title)
     end
     
     uiWaitbar.Message = 'Implementing project specifications...';

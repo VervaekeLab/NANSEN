@@ -10,11 +10,10 @@ classdef FileAdapter % superclass
         Data
     end
 
-    methods 
+    methods
         open(obj)
         view(obj)
         load(obj)
         save(obj)
     end
-
 end

@@ -2,18 +2,18 @@ classdef App < applify.ModularApp & applify.mixin.UserSettings & applify.AppWith
     
 % Interactive figure inspired by imageJ for displaying images and stacks
 %
-%   imviewer without any inputs opens a browser for locating tiff file or 
-%   avi files. Loads files in virtual mode, reading those frames that are 
-%   requested. 
-%   
-%   imviewer(filepath) opens file specified by path.   
+%   imviewer without any inputs opens a browser for locating tiff file or
+%   avi files. Loads files in virtual mode, reading those frames that are
+%   requested.
+%
+%   imviewer(filepath) opens file specified by path.
 %
 %   imviewer(varName) opens imviewer with a variable from the workspace,
 %   i.e an an array containing image data.
 %
 %   imviewer([]) opens an empty imviewer instance where images from another
 %   imviewer or files can be dropped.
-%   
+%
 %   Useful keyboard shortcuts
 %       p : play video
 %       > : play 2x faster
@@ -25,11 +25,10 @@ classdef App < applify.ModularApp & applify.mixin.UserSettings & applify.AppWith
 %       arrows (up and down) : make window bigger or smaller
 
 % Features of this app that can be generalized...?
-%   
+%
 %   App with user settings
 %   App with light/dark theme?
 %   App with (user selected) theme?
-
 
 % Can I create multiple menu items in one go?
     
@@ -67,9 +66,8 @@ classdef App < applify.ModularApp & applify.mixin.UserSettings & applify.AppWith
 %   [ ] Create annotation axes, for plotting things... But hide image
 %       axes from properties
 %   [ ] Add method to brightness slider (range slider) to set the range
-%       The range is dependent, but makes sure there is no error if lower 
+%       The range is dependent, but makes sure there is no error if lower
 %       limit is larger then old upper limit and vice versa...
-
 
 properties (Constant, Hidden = true) % Move to appwindow superclass
     DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
@@ -87,7 +85,7 @@ end
 
 properties (Transient = true, Dependent = true)
     %Figure
-    Axes 
+    Axes
 end
 
 properties (SetAccess = private, SetObservable) % Image data properties
@@ -121,7 +119,7 @@ properties (Dependent)
 end
 
 properties (Access = public) % Components
-    LinkedApps % Todo: Make superclass for timeseries viewer. Property: currentSampleNum & Methods for synching samplenumber...
+    LinkedApps % Todo: Make superclass for timeseries viewer. Property: currentSampleNum & Methods for syncing samplenumber...
 
     uiwidgets = struct() % Todo: Inherit from modular app?
     plugins = struct('pluginName', {}, 'pluginHandle', {}); % Todo: migrate to AppWithPlugin superclass
@@ -140,13 +138,13 @@ properties (Access = private) % Private components (todo: clean up)
     zoomOutline
     tmpHandles
     
-    % Widgets / interfaces / 
+    % Widgets / interfaces /
     brightnessSlider
 
     dndObj
     hDropbox
     hDropbox2
-    hThumbnail 
+    hThumbnail
 
     Annotation
 
@@ -155,7 +153,7 @@ properties (Access = private) % Private components (todo: clean up)
 end
 
 properties (Access = public, Hidden)
-    ImageProcessingFcn = [] 
+    ImageProcessingFcn = []
 end
 
 properties (Access = public, Hidden) % Todo: clean up: These should be dependent and correspond with imagestack properties
@@ -196,7 +194,7 @@ properties (Access = private, Hidden = true) % Internal states/settings
     showHeader = true;
     showFooter = true;
     
-    % Under construction... % make struct? 
+    % Under construction... % make struct?
     % modifier = struct('shift', false, 'alt', false, 'control', false)
     DeleteImageStackOnQuit
     DownsampleDisplayedImage = true
@@ -219,8 +217,6 @@ properties (Access = private, Hidden = true) % Internal states/settings
     limitsListener
     FigureLocationChangedListener
 end
-
-
 
 methods % Structors
          
@@ -247,8 +243,8 @@ methods % Structors
         if ~isa(dataref, 'nansen.stack.ImageStack') % && ~isa(dataref, 'imviewer.ImageStack')
             obj.ImageStack = nansen.stack.ImageStack(dataref, nvPairs{:});
             obj.DeleteImageStackOnQuit = true;
-            %if isempty(obj.ImageStack); 
-                %fprintf('Aborted...\n'); clear obj; return; 
+            %if isempty(obj.ImageStack);
+                %fprintf('Aborted...\n'); clear obj; return;
             %end
         else
             obj.ImageStack = dataref;
@@ -258,7 +254,7 @@ methods % Structors
 
         obj.matlabVersionCheck() % Todo: This should not be a method of imviewer...
 
-        % Run this after imageArray is parsed. Basically, varargins can 
+        % Run this after imageArray is parsed. Basically, varargins can
         % overwrite values set in parseimage array. Todo: Change this later.
         % parseImageArray should be part of imageStack class, so that
         % function will change dramatically later...
@@ -299,7 +295,6 @@ methods % Structors
         if nargout == 0
             clear obj
         end
-        
     end
     
     function delete(obj) % Destructor
@@ -361,7 +356,6 @@ methods % Structors
         
         % Todo: Test: Do i need to delete plugins here?
     end
-   
 end
 
 methods (Access = protected)
@@ -377,46 +371,46 @@ methods (Access = protected)
     end
 
 %     function setDefaultFigureCallbacks(obj, hFig)
-%         
+%
 %         if nargin < 2 || isempty(hFig)
 %             hFig = obj.Figure;
 %         end
-%         
+%
 %         if strcmp(obj.mode, 'standalone')
 %             % Need to set these instead of listeners to prevent each
 %             % keypress to go back to the matlab command line
-%             
+%
 %             hFig.WindowKeyPressFcn = @obj.keyPress;
 %             hFig.WindowKeyReleaseFcn = @obj.keyRelease;
-%             
+%
 %         elseif strcmp(obj.mode, 'docked')
 %             % Use listeners so that this module does not occupy the
 %             % WindowKeyPressFcn & WindowKeyReleaseFcn properties.
-%             
+%
 %             obj.FigureInteractionListeners.WindowButtonDown = addlistener(...
 %                 hFig, 'KeyPress', @obj.keyPress);
-% 
+%
 %             obj.FigureInteractionListeners.WindowButtonDown = addlistener(...
 %                 hFig, 'KeyRelease', @obj.keyRelease);
 %         end
-%         
+%
 % %         hFig.WindowScrollWheelFcn = @obj.mouseScrollCallbackHandler;
 % %         hFig.WindowButtonDownFcn = @obj.mousePressed;
 % %         hFig.WindowButtonMotionFcn = @obj.mouseOver;
 % %         hFig.WindowButtonUpFcn = @obj.mouseRelease;
-% 
+%
 %         obj.FigureInteractionListeners.WindowScrollWheel = addlistener(...
 %             hFig, 'WindowScrollWheel', @obj.mouseScrollCallbackHandler);
-%                     
+%
 %         obj.FigureInteractionListeners.WindowButtonDown = addlistener(...
 %             hFig, 'WindowMousePress', @obj.mousePressed);
-%             
+%
 %         obj.FigureInteractionListeners.WindowMouseMotion = addlistener(...
 %             hFig, 'WindowMouseMotion', @obj.mouseOver);
-%         
+%
 %         obj.FigureInteractionListeners.WindowButtonReleased = addlistener(...
 %             hFig, 'WindowMouseRelease', @obj.mouseRelease);
-%         
+%
 %     end
 
 end % Overrides ModularApp methods
@@ -455,7 +449,6 @@ methods % App initialization & creation
         if ~isempty(options.imageBrightnessLimits)
             obj.settings.ImageDisplay.imageBrightnessLimits = options.imageBrightnessLimits;
         end
-        
     end
  
 % % Functions for creating the gui
@@ -519,26 +512,22 @@ methods % App initialization & creation
         pif = uim.interface.pointerManager(obj.Figure, obj.uiaxes.imdisplay, {'zoomIn', 'zoomOut', 'pan'});
         pif.pointers.pan.buttonMotionCallback = @obj.moveImage;
         obj.plugins(end+1).pluginName = 'pointerManager';
-        obj.plugins(end).pluginHandle = pif;        
+        obj.plugins(end).pluginHandle = pif;
         
         % A bit random to do this here, but for now it only influences the
         % pointerManager zoom tools
         obj.configureSpatialDownsampling()
-
         
         % Create UIComponentCanvas for drawing uicontrols and widgets on
         uicc = uim.UIComponentCanvas(obj.Panel);
         setappdata(obj.Figure, 'UIComponentCanvas', uicc);
         
-        
         %obj.createBrightnessSlider()
-
         
         % Create toolbars
         %obj.addAppToolbar()
         %obj.addImageToolbar()
         %obj.createThumbnailViewerToggleButton()
-
 
         % obj.addTaskbar()
 % %         obj.openThumbnailSelector()
@@ -556,7 +545,6 @@ methods % App initialization & creation
         drawnow
         obj.setFigureWindowBackgroundColor() %BG of java window. Set
         
-        
         if strcmp(obj.mode, 'standalone')
             try
                 obj.addLandingPage()
@@ -571,7 +559,6 @@ methods % App initialization & creation
         
     end
     
-    
     function postStartup(obj, hTimer)
         obj.openThumbnailSelector()
         obj.addTaskbar()
@@ -579,9 +566,8 @@ methods % App initialization & creation
         if nargin >=2 && ~isempty(hTimer) && isvalid(hTimer)
             stop(hTimer)
             delete(hTimer)
-        end        
+        end
     end
-    
     
     function axesSize = initializeAxesSize(obj)
         
@@ -601,11 +587,10 @@ methods % App initialization & creation
         
         axesSize = round(axesSize);
     end
-    
    
 % % Methods for resizing..
 
-    function newAxesSize = updateAxesSize(obj, resizeMode, preserveAr)     
+    function newAxesSize = updateAxesSize(obj, resizeMode, preserveAr)
     %updateAxesSize Calculate axes size for given resize mode
     
         if nargin < 2 || isempty(preserveAr)
@@ -639,14 +624,13 @@ methods % App initialization & creation
         screenSize = obj.getCurrentMonitorSize(obj.Figure);
         maxAxesSize = screenSize(3:4);
 
-        if obj.showFooter 
+        if obj.showFooter
             maxAxesSize(2) = maxAxesSize(2) - obj.positionInfo.Margin(2);
         end
         
         if obj.showHeader
             maxAxesSize(2) = maxAxesSize(2) - obj.positionInfo.Margin(2);
         end
-        
         
         % Make sure axes size is not too large to fit on screen
         if any(newAxesSize > maxAxesSize)
@@ -655,7 +639,6 @@ methods % App initialization & creation
         
         % Specify minimum figure size
         minAxesSize = [100, 100];
-
         
         % Make sure axes size is not smaller than the minimum size
         if any(newAxesSize > maxAxesSize)
@@ -668,7 +651,7 @@ methods % App initialization & creation
     end
     
     function newAxSize = getAxesSize(obj, panelSize, preserveAspectRatio, mode)
-    %getAxesSize Get axes size within panel 
+    %getAxesSize Get axes size within panel
         
         if nargin < 4
             mode = 'auto';
@@ -728,7 +711,6 @@ methods % App initialization & creation
         
     end
     
-    
 % % Methods for creating / configuring figure..
 
     function createFigure(obj, figurePosition)
@@ -744,7 +726,6 @@ methods % App initialization & creation
         
         %obj.Figure.Resize = 'off';
         obj.Figure.CloseRequestFcn = @obj.quitImviewer;
-       
         
         obj.Panel = uipanel(hFig);
         obj.Panel.BackgroundColor = obj.Figure.Color;
@@ -752,7 +733,7 @@ methods % App initialization & creation
         obj.Panel.Position = [0,0,1,1];
         obj.Panel.Units = 'pixel';
         
-        % obj.setFigureWindowBackgroundColor() %BG of java window. Set because 
+        % obj.setFigureWindowBackgroundColor() %BG of java window. Set because
         % resizing is glitcy, and even if figure background is dark, the
         % glitches rshow a white background.
 
@@ -812,7 +793,6 @@ methods % App initialization & creation
             axArgs = {'Parent', obj.Panel, 'Toolbar', []};
         end
         
-        
         % Create axes for displaying images
         obj.uiaxes.imdisplay = axes(axArgs{:});
         
@@ -838,7 +818,6 @@ methods % App initialization & creation
         obj.uiaxes.imdisplay.UIContextMenu = uicontextmenu(obj.Figure);
         obj.createImageMenu(obj.uiaxes.imdisplay.UIContextMenu);
         
-        
         figSize = getpixelposition(obj.Figure);
         figSize = figSize(3:4);
 
@@ -847,14 +826,13 @@ methods % App initialization & creation
         
         obj.uiaxes.textdisplay.Units = 'pixel';
         obj.uiaxes.textdisplay.Position = [0, figSize(2) - pixelMargins(2), ...
-                                  figSize(1), pixelMargins(2)-pixelMargins(1)+4]; 
-        obj.uiaxes.textdisplay.YAxis.Visible = 'off'; 
-        obj.uiaxes.textdisplay.XTick = []; 
+                                  figSize(1), pixelMargins(2)-pixelMargins(1)+4];
+        obj.uiaxes.textdisplay.YAxis.Visible = 'off';
+        obj.uiaxes.textdisplay.XTick = [];
         obj.uiaxes.textdisplay.YTick = [];
         obj.uiaxes.textdisplay.HandleVisibility = 'off';
         obj.uiaxes.textdisplay.Tag = 'Text Display';
         %obj.uiaxes.textdisplay.Visible = 'off';
-
         
         obj.infoField = text(0.01, 0.45, '', 'Parent', obj.uiaxes.textdisplay);%, 'FontName', 'Thonburi'
         obj.infoField.FontSize = 13;
@@ -911,7 +889,6 @@ methods % App initialization & creation
             'HorizontalAlignment', 'left');
         hButton.Callback = @(s,e)obj.showThumbnailViewer(s);
         
-        
     end
     
     function addLandingPage(obj)
@@ -928,15 +905,13 @@ methods % App initialization & creation
     
         % todo: Add a browse button..
 
-
         uicc = getappdata(obj.Figure, 'UIComponentCanvas');
-% % 
+% %
 % %         axesXLim = uicc.Axes.XLim;
 % %         axesYLim = uicc.Axes.YLim;
         
         axesXLim = [1,512];
         axesYLim = [1,512];
-        
         
 % %         hBox = uim.decorator.box(uicc, 'Size', [250, 60], 'SizeMode', 'manual', ...
 % %             'Location', 'center', 'HorizontalAlignment', 'center', ...
@@ -944,7 +919,6 @@ methods % App initialization & creation
 % %         hBox.BorderWidth = 1;
 % %         hBox.BorderColor = 'w';
 % %         hBox.CornerRadius = 10;
-        
         
         rectSize = [250, 60]; cornerRadius = 10;
         [X, Y] = uim.shape.rectangle( rectSize, cornerRadius );
@@ -968,13 +942,12 @@ methods % App initialization & creation
         
         obj.hDropbox = [h, h2];
         
-        
 % %         hButton = uim.control.Button_(obj.Panel, 'Text', 'Load Images...', ...
 % %             'Size', [100, 25], 'SizeMode', 'manual', ...
 % %             'Location', 'center', 'HorizontalAlignment', 'center', ...
 % %             'VerticalAlignment', 'middle', 'Margin', [0,-75,0,0], ...
 % %             'HorizontalTextAlignment', 'center');
-% %         
+% %
 % %         obj.hDropbox2 = hButton;
     end
 
@@ -1033,7 +1006,7 @@ methods % App initialization & creation
                         for n = 1%:numel(evt.Data)
                             obj.ImageStack = nansen.stack.ImageStack(evt.Data{1});
                         end
-                end      
+                end
                 
             case 'string'
                 
@@ -1048,10 +1021,8 @@ methods % App initialization & creation
         % Need a method for this, if there is not...
         obj.setSliderLimits( obj.ImageStack.DataIntensityLimits )
         
-        
         obj.setTempProperties()
         obj.setFigureName()
-
         
         [figurePosition, ~] = initializeFigurePosition(obj);
         deltaPos = figurePosition(3:4) - obj.Figure.Position(3:4);
@@ -1059,17 +1030,15 @@ methods % App initialization & creation
         obj.updateImage()
         obj.updateImageDisplay()
         
-        
         obj.clearMessage()
         
     end
     
     function createImageMenu(obj, m)
-    %createImageMenu Create a context menu for the image axes.   
-
+    %createImageMenu Create a context menu for the image axes.
     
         % % % Menu section with items for image colormap and illustrations.
-        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -   
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         
         mitem = uimenu(m, 'Label', 'Set Colormap');
         colormapNames = obj.settings.ImageDisplay.colorMap_;
@@ -1084,10 +1053,9 @@ methods % App initialization & creation
 
         mSubItem = uimenu(m, 'Text', 'Edit Stack Properties', 'Separator', 'on');
         mSubItem.Callback = @(s,e)obj.uiEditStackMetadata;
-
         
         % % % Menu section with items for image processing
-        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -   
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         
         mitem = uimenu(m, 'Label', 'Calculate Projection', 'Separator', 'on');
         projectionPackage = {'stack', 'zproject'};
@@ -1114,10 +1082,9 @@ methods % App initialization & creation
         
         mitem = uimenu(m, 'Label', 'Downsample Stack...');
         mitem.Callback = @(s, e) obj.createDownsampledStack();
-
         
         % % % Menu section with items for plugins.
-        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if strcmp(obj.mode, 'standalone')
             % Todo: Create as separate contextmenu on plugin button...
             mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');
@@ -1127,21 +1094,19 @@ methods % App initialization & creation
             tmpItem = uimenu(mitem, 'Label', 'FlowReg', 'Enable', 'on');
             tmpItem.Callback = @(s,e) imviewer.plugin.FlowRegistration(obj, 'Modal', false);
 
-            mitem = uimenu(m, 'Label', 'Open Roimanager');   
+            mitem = uimenu(m, 'Label', 'Open Roimanager');
             mitem.Callback = @(s, e, h) imviewer.plugin.RoiManager(obj);
         end
-
         
         % % % Menu section with items for linking/unlinking with viewers.
-        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         mitem = uimenu(m, 'Label', 'Link to Another Viewer...', 'Separator', 'on');
         mitem.Callback = @(s, e) obj.manualLinkProp;
 
         mitem = uimenu(m, 'Label', 'Unlink from Viewer', 'Enable', 'off');
         
-        
         % % % Menu section with items loading/saving images.
-        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
         mitem = uimenu(m, 'Label', 'Load Images...', 'Separator', 'on');
         mitem.Callback = @(s, e, bool) obj.onLoadImageDataPressed(true);
@@ -1162,7 +1127,6 @@ methods % App initialization & creation
         mSubItem.Callback = @obj.exportImage; % Todo: make this one
         
     end
-    
     
 % % Create widgets
 
@@ -1204,7 +1168,6 @@ methods % App initialization & creation
     
             % Do this after setting limits and low/high.
             obj.brightnessSlider(i).Callback = @(s,e,idx)obj.onSliderChanged(s,e,i);
-    
             
             % Create toolbar
             hToolbar = uim.widget.toolbar(uicc, 'Location', 'northeast', ...
@@ -1216,7 +1179,7 @@ methods % App initialization & creation
             hToolbar.SizeMode = 'manual';
             % Add buttons
             hToolbar.addButton('Icon', obj.ICONS.auto, 'Type', 'pushbutton', 'Tag', 'auto', 'Tooltip', 'Auto', 'ButtonDownFcn', @(s,e,idx)obj.onAutoAdjustLimitsPressed(s,e,i))
-            %hToolbar.addButton('Icon', obj.ICONS.hist, 'Type', 'pushbutton', 'Tag', 'hist', 'Tooltip', 'Show Histogram', 'ButtonDownFcn', @(s,e) obj.openBrightnessHistogram)        
+            %hToolbar.addButton('Icon', obj.ICONS.hist, 'Type', 'pushbutton', 'Tag', 'hist', 'Tooltip', 'Show Histogram', 'ButtonDownFcn', @(s,e) obj.openBrightnessHistogram)
             obj.uiwidgets.BrightnessToolbar(i) = hToolbar;
 
             %obj.changeBrightness([obj.brightnessSlider.Low, obj.brightnessSlider.High])
@@ -1247,7 +1210,7 @@ methods % App initialization & creation
         
         % Only proceed if this widget is not initialized/present.
         if ~isfield(obj.uiwidgets, 'thumbnailSelector') || ...
-                ~isvalid(obj.uiwidgets.thumbnailSelector.Figure) 
+                ~isvalid(obj.uiwidgets.thumbnailSelector.Figure)
             %try
                 
             imageDragAndDropState = obj.ImageDragAndDropEnabled;
@@ -1258,7 +1221,6 @@ methods % App initialization & creation
             if showMessage
                 obj.displayMessage('Creating thumbnails')
             end
-
             
             % Default projections
             labels = {'None', 'Average', 'Maximum'};
@@ -1284,7 +1246,6 @@ methods % App initialization & creation
             %imdata = im2uint8(imdata);
 
             avgProjection = images{2};
-            
             
             widgetFunc = @imviewer.widget.ThumbnailSelector;
             %obj.uiwidgets.thumbnailSelector = widgetFunc( obj.Figure, imdata, labels, callbacks);
@@ -1342,10 +1303,8 @@ methods % App initialization & creation
 
             obj.uiwidgets.thumbnailSelector.addThumbnailGroup('Filter', imdata, labels, callbacks)
             
-            
             % Apply colormap
             obj.changeColormap()
-            
             
             % Make changes to the axes of the thumbnail viewer
             tmpAx = obj.uiwidgets.thumbnailSelector.Axes;
@@ -1368,7 +1327,6 @@ methods % App initialization & creation
             tmpAx.Position(2) = imAxPos(2) + (imAxPos(4)-tmpAx.Position(4))/2;
             
             obj.uiwidgets.thumbnailSelector.createScrollBar()
-            
             
             toolbarPosition = [tmpAx.Position(1)-5, tmpAx.Position(2)-32, ...
                            tmpAx.Position(3), 30 ];
@@ -1397,8 +1355,6 @@ methods % App initialization & creation
                     obj.uiwidgets.thumbnailSelector.Visible = 'on';
             end
         end
-        
-
     end
 
     function createThumbnailSelectorToolbar(obj, toolbarPosition)
@@ -1416,7 +1372,7 @@ methods % App initialization & creation
         hToolbar = uim.widget.toolbar_(obj.Panel, toolbarConfig{:});
         %hToolbar = uim.widget.toolbar(uicc, 'Position', toolbarPosition, 'Margin', [0,0,0,0],'ComponentAlignment', 'center', 'BackgroundAlpha', 0.5);
         hToolbar.Position = toolbarPosition;
-        hToolbar.BackgroundMode = 'wrap';      
+        hToolbar.BackgroundMode = 'wrap';
         hToolbar.SizeMode = 'manual';
 
         hBtn(1) = hToolbar.addButton('Icon', obj.ICONS.pin3, 'Padding', [5,5,5,5], 'Mode', 'togglebutton', 'Tag', 'pinThumbnails', 'Tooltip', 'Pin Thumbnail', 'MechanicalAction', 'Switch when pressed', 'Callback', @obj.togglePinThumbnailSelector, 'IconAlignment', 'center');
@@ -1434,8 +1390,6 @@ methods % App initialization & creation
 
         hToolbar.Visible = 'off';
         obj.uiwidgets.thumbNailToggler = hToolbar;
-
-
 
     end
     
@@ -1508,7 +1462,6 @@ methods % App initialization & creation
             obj.displayMessage('Initializing Task Bar')
         end
         
-        
         uicc = getappdata(obj.Figure, 'UIComponentCanvas');
         
         % Create the taskbar
@@ -1519,7 +1472,6 @@ methods % App initialization & creation
        
         obj.uiwidgets.Taskbar = hTaskbar;
         obj.uiwidgets.Taskbar.Visible = 'off';
-        
         
         % Add button for the RoiClassifier plugin.
         hBtn = hTaskbar.addButton('Type', 'pushbutton', ...
@@ -1536,14 +1488,12 @@ methods % App initialization & creation
         hUicMenu = hBtn.getContextMenuHandle();
         hBtn.ButtonDownFcn = @(s, e, h, hMenu) imviewer.plugin.RoiManager(obj, hUicMenu);
         
-        
         % What is this again???
         uicc.arrangeTooltipHandle()
         
         if showMessage
             obj.clearMessage()
         end
-        
     end
     
     function addAppToolbar(obj)
@@ -1567,13 +1517,11 @@ methods % App initialization & creation
 % %             'Padding', [0,0,1,0], 'Style', uim.style.buttonSymbol, ...
 % %             'ButtonDownFcn', @obj.toggleHelp, 'Tooltip', 'Show Tips', ...
 % %             'Type', 'togglebutton');
-        
 
         hAppbar.addButton('Icon', obj.ICONS.import, ...
             'Padding', [0,0,1,0], 'Style', uim.style.buttonSymbol, ...
             'Type', 'pushbutton', 'Tooltip', 'Load Frames', ...
             'ButtonDownFcn', @(s,e,bool)obj.onLoadImageDataPressed(false) );
-        
             
         hAppbar.addButton('Icon', obj.ICONS.plugins, ...
             'Padding', [0,0,1,0], 'Style', uim.style.buttonSymbol, ...
@@ -1598,15 +1546,14 @@ methods % App initialization & creation
             'FontSize', 15, 'Padding', [0,1,0,0], 'Tooltip', 'Help', ...
             'Style', uim.style.buttonSymbol, 'ButtonDownFcn', @obj.showHelp);
         
-        
         obj.uiwidgets.Appbar = hAppbar;
 
     end
     
     function setImagePointerBehavior(obj)
         %NB: >Setting this on the figure object. Should be on the image
-        %object, but due to the pointerManager' way of handling mouse
-        %events, image ans axes' hittest is off, so this would have noe
+        %object, but due to the pointerManager's way of handling mouse
+        %events, image and axes' hittest is off, so this would have no
         %effect
         pointerBehavior.enterFcn    = @obj.onMouseEnteredImage;
         pointerBehavior.exitFcn     = @obj.onMouseExitedImage;
@@ -1615,7 +1562,6 @@ methods % App initialization & creation
         iptPointerManager(obj.Figure);
         iptSetPointerBehavior(obj.Figure, pointerBehavior);
     end
-    
 end
 
 methods % Set/Get
@@ -1662,7 +1608,6 @@ methods % Set/Get
             drawnow
             obj.Figure.Position = pos;
         end
-        
     end
     
     function value = get.Visible(obj)
@@ -1729,7 +1674,6 @@ methods % Set/Get
                 channelColors = [];
                 
         end
-        
     end
         
     function set.LinkedApps(obj, newValue)
@@ -1748,7 +1692,6 @@ methods % Set/Get
     function numPlanes =  get.NumPlanes(obj)
         numPlanes = obj.ImageStack.NumPlanes;
     end
-
 end
 
 methods % App update
@@ -1773,7 +1716,6 @@ methods % App update
         
         obj.Axes.UIContextMenu.Parent = hFig;
         
-        
         % TEMP SHIT!
         % Get handle for pointerManager interface
         isMatch = contains({obj.plugins.pluginName}, 'pointerManager');
@@ -1787,7 +1729,6 @@ methods % App update
         
         obj.uiaxes.imdisplay.UIContextMenu = uicontextmenu(obj.Figure);
         obj.createImageMenu(obj.uiaxes.imdisplay.UIContextMenu);
-
         
         obj.uiaxes.imdisplay.ButtonDownFcn = [];
         pifHandle = uim.interface.pointerManager(obj.Figure, obj.uiaxes.imdisplay, {'zoomIn', 'zoomOut', 'pan'});
@@ -1832,7 +1773,6 @@ methods % App update
                                 obj.textStrings.CursorPoint);
         end
         
-        
         if obj.ImageStack.NumPlanes > 1
             infoStr = sprintf('%s | %s', obj.textStrings.CurrentPlane, infoStr);
         end
@@ -1851,7 +1791,7 @@ methods % App update
     end
     
     function updateImage(obj)
-    %UPDATEIMAGE get updated image for display    
+    %UPDATEIMAGE get updated image for display
     %
     %   this functions prepares a new image for the display when the image
     %   should be updated. This could either be because of changing frames
@@ -1860,7 +1800,6 @@ methods % App update
     % Rename? : UpdateDisplayedImageFrame
     
         %TODO: Implement rgb colors and multiple channels.
-        
         
         if isa(obj.ImageStack, 'nansen.stack.HighResolutionImage')
             obj.updateImageSpatialDownsample()
@@ -1890,7 +1829,6 @@ methods % App update
             % Todo: use getFrame function from imageStack?
             obj.image = obj.ImageStack.getFrameSet(frameNo);
             
-            
 % %             if ndims(obj.ImageStack.imageData) == 4
 % %                 obj.image = obj.ImageStack.imageData(:, :, :, frameNo);
 % %             elseif obj.isRgb && size(obj.ImageStack.imageData, 3) == 3          % Todo: Generalize and make this more robust...
@@ -1912,7 +1850,6 @@ methods % App update
                 obj.image = filterFcn(obj.image);
             end
         end
-        
         
         if ~isempty(obj.ImageProcessingFcn)
             obj.image = obj.ImageProcessingFcn(obj.image);
@@ -1954,7 +1891,7 @@ methods % App update
             otherwise
                 hFcn = str2func(sprintf('stack.process.filter2.%s', filterName));
         end
-    end   
+    end
     
     function imageOut = setChColors(obj, image)
     % Creates an rgb frame based on channel color settings
@@ -1983,7 +1920,7 @@ methods % App update
         end
         
 % % %         colorArraySum = sum(colorArray, 1);
-% % %                
+% % %
 % % %         % Weight colors, so as not to saturate them...
 % % %         if any(colorArraySum(:) > 1)
 % % %             colorArray = colorArray ./ max(colorArraySum(:));
@@ -2001,7 +1938,7 @@ methods % App update
 
             thisChannelImage = single( repmat(image(:, :, i), 1, 1, 3) );
             
-            % Make sure this also works for signed integer types or floating 
+            % Make sure this also works for signed integer types or floating
             % types with negative values
             if any(thisChannelImage(:) < 0)
                 minValue = min(thisChannelImage(:));
@@ -2056,7 +1993,6 @@ methods % App update
             im = imrotate(im, obj.imTheta, 'bicubic', 'crop');
         end
         
-        
         % Determine how multiple planes should be displayed.
         
         if obj.ImageStack.NumPlanes > 1 && numel(obj.ImageStack.CurrentPlane) > 1
@@ -2093,10 +2029,9 @@ methods % App update
         if isempty(im)
             im = zeros(obj.imHeight, obj.imWidth);
         end
-
         
         % Create or update the image object
-        if isempty(obj.imObj) 
+        if isempty(obj.imObj)
             hold(obj.uiaxes.imdisplay, 'on')
 
             obj.uiaxes.imdisplay.YDir = 'reverse';
@@ -2133,14 +2068,13 @@ methods % App update
             if ~all(obj.ImageStack.DataYLim == 0)
                 obj.imObj.YData = obj.ImageStack.DataYLim;
             end
-            
         end
         
         % Todo: Only do this when display mode changes.
         if strcmp( obj.settings.ImageDisplay.VolumeDisplayMode, 'Plane Montage')
             % Update image display x- & y-limits to keep axes tight..
             obj.uiaxes.imdisplay.XLim = [0, size(im, 2)] + 0.5;
-            obj.uiaxes.imdisplay.YLim = [0, size(im, 1)] + 0.5;            
+            obj.uiaxes.imdisplay.YLim = [0, size(im, 1)] + 0.5;
             obj.imObj.XData = [1, size(im, 2)];
             obj.imObj.YData = [1, size(im, 1)];
         else
@@ -2159,14 +2093,12 @@ methods % App update
             obj.imObj.YData = yLim;
         end
         
-        
         % Set transparency if image contains nans
         if all(isnan(obj.imObj.CData(:)))
             obj.imObj.AlphaData = 0;
         else
             obj.imObj.AlphaData = 1;
         end
-        
         
         % Update brightness range if autoadjust is on
         if obj.autoAdjustLimits
@@ -2182,12 +2114,10 @@ methods % App update
             end
         end
         
-        
         % Update viewer
         if strcmp(obj.Figure.Visible, 'on')
             drawnow limitrate
         end
-        
     end
     
     function updateAxesLimits(obj)
@@ -2196,7 +2126,7 @@ methods % App update
         if strcmp( obj.settings.ImageDisplay.VolumeDisplayMode, 'Plane Montage')
             % Update image display x- & y-limits to keep axes tight..
             obj.uiaxes.imdisplay.XLim = [0, size(im, 2)] + 0.5;
-            obj.uiaxes.imdisplay.YLim = [0, size(im, 1)] + 0.5;            
+            obj.uiaxes.imdisplay.YLim = [0, size(im, 1)] + 0.5;
             obj.imObj.XData = [1, size(im, 2)];
             obj.imObj.YData = [1, size(im, 1)];
         else
@@ -2263,7 +2193,6 @@ methods % App update
         else
             obj.displayMessage(message)
         end
-
     end
     
     function displayMessage(obj, message, target, msgDuration)
@@ -2285,7 +2214,6 @@ methods % App update
                 obj.textStrings.Status = message;
                 updateInfoText(obj)
         end
-        
     end
     
     function clearMessage(obj)
@@ -2294,7 +2222,6 @@ methods % App update
             obj.textStrings.Status = '';
             updateInfoText(obj)
         end
-        
     end
     
     function hPlugin = openPlugin(obj, pluginName, pluginOptions, varargin)
@@ -2302,9 +2229,8 @@ methods % App update
     %
     
     %   Todo: Work more on this. Seems like some of this should be moved to
-    %   the AppWithPlugin superclass...Also, shouldnt plugin be added to
+    %   the AppWithPlugin superclass...Also, shouldn't plugin be added to
     %   the plugin property here?
-    
     
         if nargin < 3 || isempty(pluginOptions)
             pluginOptions = struct.empty;
@@ -2325,7 +2251,6 @@ methods % App update
             clear(hPlugin)
         end
     end
-    
 end
 
 methods % Event/widget callbacks
@@ -2410,15 +2335,13 @@ methods % Event/widget callbacks
                 obj.brightnessSlider(iCh).Low = max([newLimits(1), obj.brightnessSlider(iCh).Min]);
                 obj.brightnessSlider(iCh).High = min([newLimits(2), obj.brightnessSlider(iCh).Max]);
             end
-
         end
-        
         
 %         % If a "blank" stack is opened, need to readjust limits.
 %         if all(obj.settings.ImageDisplay.imageBrightnessLimits == 0)
 %             obj.settings.ImageDisplay.imageBrightnessLimits = [0,1];
 %         end
-%         
+%
 %         if obj.settings.ImageDisplay.imageBrightnessLimits(1) == 1
 %             obj.settings.ImageDisplay.imageBrightnessLimits(1) = 0;
 %         end
@@ -2446,7 +2369,6 @@ methods % Event/widget callbacks
         src = struct('String', num2str(frameNumber));
         obj.changeFrame(src, [], 'jumptoframe')
     end
-    
     
     % Methods for changing the current frame selection. Todo: make internal (protected)...
     
@@ -2478,7 +2400,7 @@ methods % Event/widget callbacks
                 i = round(i);
             case 'keypress'
                 i = source.Value;
-            case {'jumptoframe', 'playvideo'}                
+            case {'jumptoframe', 'playvideo'}
                 newFrame = source.String;
                 if isa(newFrame, 'char'); newFrame = str2double(newFrame); end
                 i = newFrame -  obj.currentFrameNo;
@@ -2490,9 +2412,8 @@ methods % Event/widget callbacks
             case 'prev'
                 i = -1;
             otherwise
-                i = 0;   
+                i = 0;
         end
-
         
         if ~strcmpi(obj.imageDisplayMode.projection, 'none')
             obj.imageDisplayMode.projection = 'none';
@@ -2500,7 +2421,7 @@ methods % Event/widget callbacks
         
         restartVideoPlayer = false;
         if obj.isPlaying && ~strcmp(action, 'playvideo')
-            obj.isPlaying = false; 
+            obj.isPlaying = false;
             restartVideoPlayer = true;
         end
 
@@ -2515,7 +2436,7 @@ methods % Event/widget callbacks
         
         updateLinkedApps = true;
 
-        % Cant update the currentFrame of other viewers too frequently,
+        % Can't update the currentFrame of other viewers too frequently,
         % because updating gets very sluggish. Super weird. How to improve?
         if strcmp(action, 'mousescroll') || obj.isPlaying
             if ~(mod(counter, 1)==0)
@@ -2534,7 +2455,6 @@ methods % Event/widget callbacks
         if restartVideoPlayer
             obj.playVideo()
         end
-        
         
     end %rename to sample/time
     
@@ -2562,7 +2482,6 @@ methods % Event/widget callbacks
                 updateImageDisplay(obj);
             end
         end
-
     end
     
     function onNumFramesChanged(obj)
@@ -2623,7 +2542,6 @@ methods % Event/widget callbacks
 
             uiundo(obj.Figure, 'function', cmd);
         end
-        
     end
     
     function set.currentChannel(obj, newValue)
@@ -2642,7 +2560,6 @@ methods % Event/widget callbacks
             obj.updateImage()
             obj.updateImageDisplay()
         end
-        
     end
     
     function changePlane(obj, planeNum, mode) %#ok<INUSD>
@@ -2675,8 +2592,6 @@ methods % Event/widget callbacks
         obj.nFrames = newValue;
         obj.onNumFramesChanged()
     end
-        
-    
     
     function onDisplayLimitsChanged(obj)
         
@@ -2689,9 +2604,7 @@ methods % Event/widget callbacks
             obj.updateImage()
             obj.updateImageDisplay()
         end
-        
     end
-    
     
    % Methods for interactive update of displayed image based on display mode...
    
@@ -2714,7 +2627,6 @@ methods % Event/widget callbacks
                 obj.imageDisplayMode.filterParam = [];
         end
         
-        
         % If shift click, should open parameters for function.
         if strcmp(obj.Figure.SelectionType, 'extend') && strcmp(type, 'filter')
             
@@ -2723,7 +2635,6 @@ methods % Event/widget callbacks
                 obj.previewImage(name);
                 return
             end
-            
         end
         
         obj.updateImage()
@@ -2755,7 +2666,7 @@ methods % Event/widget callbacks
         %Todo: rename and work more on this
 
         obj.imageDisplayMode.filterParam = param;
-        obj.updateImage();        
+        obj.updateImage();
         obj.updateImageDisplay();
         
     end
@@ -2823,12 +2734,12 @@ methods % Event/widget callbacks
         if nargin >= 2 && isa(src, 'matlab.ui.container.Menu')
             obj.settings.ImageDisplay.colorMap = src.Label;
             % This will trigger onSettingsChanged which will trigger this
-            % function again. Return now to prevent getting caught in 
+            % function again. Return now to prevent getting caught in
             % an infinite loop.
             return
         end
         
-        numColors = 256; 
+        numColors = 256;
 
         selectedColorMap = obj.settings.ImageDisplay.colorMap;
         
@@ -2840,7 +2751,7 @@ methods % Event/widget callbacks
                 cmapFunc = str2func( lower(selectedColorMap) );
                 cmap = cmapFunc(numColors);
             
-            % Matplotlib colormaps    
+            % Matplotlib colormaps
             case {'Viridis', 'Inferno', 'Magma', 'Plasma'}
                 cmapFunc = str2func( lower(selectedColorMap) );
                 cmap = cmapFunc(numColors);
@@ -2852,7 +2763,7 @@ methods % Event/widget callbacks
                 cmap = flipud(cbrewer('seq', selectedColorMap, numColors, 'spline'));
             case {'GnBu', 'Greens', 'YlOrRd', 'BuPu'}
                 cmap = cbrewer('seq', selectedColorMap, numColors, 'spline');
-            case 'PuOr' 
+            case 'PuOr'
                 cmap = flipud(cbrewer('div', selectedColorMap, numColors, 'spline'));
                 
             % cmocean colormaps
@@ -2872,12 +2783,10 @@ methods % Event/widget callbacks
 
         colormap(obj.uiaxes.imdisplay, cmap)
         
-        
         if obj.ImageStack.NumChannels > 1
             msg = 'Color maps does not have any effect on multi channel images';
             obj.displayMessage(msg, [], 2)
         end
-        
         
         if isfield(obj.uiwidgets, 'thumbnailSelector')
             colormap(obj.uiwidgets.thumbnailSelector.Axes, cmap)
@@ -2886,7 +2795,6 @@ methods % Event/widget callbacks
         if ~isempty( obj.hSettingsEditor )
              obj.hSettingsEditor.replaceEditedStruct(obj.settings)
         end
-                
     end
     
     function changeChannelColor(obj, src, evtData)
@@ -2923,7 +2831,6 @@ methods % Event/widget callbacks
         if ischar(h.Color) && strcmp(h.Color, 'k')
             h.Color = [0.5,0.5,0.5];
         end
-        
     end
 end
 
@@ -2947,7 +2854,6 @@ methods % Handle user actions
         if isfield(obj.uiwidgets, 'thumbnailSelector')
             obj.uiwidgets.thumbnailSelector.addThumbnailToGroup(args{:})
         end
-        
     end
     
     function createDownsampledStack(obj)
@@ -2976,7 +2882,7 @@ methods % Handle user actions
         
         if wasCanceled; return; end
         
-        if ~params.OpenOutputInNewWindow        
+        if ~params.OpenOutputInNewWindow
             obj.displayMessage('Not implemented yet')
             return
         end
@@ -3015,7 +2921,6 @@ methods % Handle user actions
 
             obj.ImageStack = nansen.stack.ImageStack(newImage, 'isVirtual', false);
             
-            
             [figurePosition, ~] = initializeFigurePosition(obj);
             deltaPos = figurePosition(3:4) - obj.Figure.Position(3:4);
             obj.resizeWindow([], [], 'manual', deltaPos)
@@ -3029,9 +2934,6 @@ methods % Handle user actions
             obj.updateImageDisplay()
             obj.updateInfoText()
         end
-        
-       
-
     end
     
     function resetFprintfToBuiltin(obj)
@@ -3079,7 +2981,6 @@ methods % Handle user actions
         warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
         
     end
-    
 end
 
 methods % Misc, most can be outsourced
@@ -3119,7 +3020,7 @@ methods % Misc, most can be outsourced
     % Callback for play button. Plays calcium images as video
         
     %   Todo: If playback speed ischanging, should adjust current position.
-    %   % As it is now, theres a big jump...
+    %   % As it is now, there's a big jump...
     
         obj.isPlaying = true;
         
@@ -3203,7 +3104,7 @@ methods % Misc, most can be outsourced
         prop = 'currentFrameNo';
     end
     
-    if nargin < 4 
+    if nargin < 4
         showIndicator = false;
     end
     
@@ -3212,7 +3113,6 @@ methods % Misc, most can be outsourced
     end
     
     assert(strcmp(prop, 'currentFrameNo'), 'Currently only supports linking currentFrameNo property')
-
         
     if isempty(obj.LinkedApps)
         obj.LinkedApps = externalGuiHandle;
@@ -3252,21 +3152,21 @@ methods % Misc, most can be outsourced
     end
     
 % %         assert(numel(externalGuiHandle) == 1, 'Currently only supports one handle at a time.')
-% %         
+% %
 % %         if ~isa(externalGuiHandle, 'cell') && numel(externalGuiHandle) == 1
 % %             externalGuiHandle = {externalGuiHandle};
 % %         end
-% %         
+% %
 % %         %Todo: Make sure a cell array of guis is a row vector...
-% %     
+% %
 % %         guiList = cat(2, {obj}, externalGuiHandle);
-% %         
+% %
 % %         eL = event.listener.empty;
-% %         
+% %
 % %         for i = 1:numel(guiList)
 % %             eL(i) = addlistener(guiList{i}, prop, 'PostSet', @(s,e,h) obj.linkedPropertyChange(e, guiList));
 % %         end
-% %         
+% %
 % %         addlistener(externalGuiHandle{1}, 'ObjectBeingDestroyed', @(src,evt) delete(eL));
     end
     
@@ -3331,9 +3231,7 @@ methods % Misc, most can be outsourced
         
         % UIWidgets 'thumbnailSelector', 'Toolbar'
         
-        
         assert(isa(uiwidgetName, 'char'))
-        
         
         if ~isfield(obj.uiwidgets, uiwidgetName)
             return
@@ -3390,16 +3288,16 @@ methods % Misc, most can be outsourced
     function onAutoAdjustLimitsPressed(obj, src, ~, chNum)
         
         [~, iA, ~] = intersect(obj.currentChannel, chNum, 'stable');
-        if isempty(iA); 
+        if isempty(iA);
             obj.displayMessage('Can not adjust brightness when channel is not shown.', [], 2)
-            return; 
+            return;
         end
 
         if isempty(obj.brightnessSlider)
             obj.createBrightnessSlider()
         end
 
-        %chNum = obj.currentChannel(chNum);  
+        %chNum = obj.currentChannel(chNum);
 %         if src.Value
             %obj.autoAdjustLimits = true;
             tmpImage = obj.image(:,:,iA);
@@ -3445,7 +3343,7 @@ methods % Misc, most can be outsourced
                 obj.brightnessSlider(i).Visible = 'off';
             else
                 obj.uiwidgets.BrightnessToolbar(i).Visible = 'on';
-                obj.brightnessSlider(i).Visible = 'on';            
+                obj.brightnessSlider(i).Visible = 'on';
             end
         end
     end
@@ -3476,7 +3374,6 @@ methods % Misc, most can be outsourced
             catch ME
                 rethrow(ME)
             end
-            
         end
         
         isVisible = strcmp(obj.uiwidgets.thumbnailSelector.Visible, 'on');
@@ -3488,7 +3385,6 @@ methods % Misc, most can be outsourced
         end
                 
         return
-        
         
         tmpAx = obj.uiwidgets.thumbnailSelector.Axes;
         tmpTb = obj.uiwidgets.thumbNailToggler;
@@ -3507,7 +3403,7 @@ methods % Misc, most can be outsourced
         
 %         % Slide into view
 %         h = obj.uiwidgets.thumbnailSelector;
-%         
+%
 %         for i = 1:nIter+1
 %             %tmpAx.Position(1) = tmpAx.Position(1) + deltaX;
 %             h.Position(1) = h.Position(1) + deltaX;
@@ -3586,7 +3482,7 @@ methods % Misc, most can be outsourced
 % % Zooming functions (Todo: Outsource this to zooming and panning tools...)
 
     function imageZoom(obj, direction, speed)
-        % Zoom in image    
+        % Zoom in image
         
         % TODO: Not working if image/axes aspect ratio is different from 1???
         
@@ -3604,7 +3500,6 @@ methods % Misc, most can be outsourced
 
         currentFig = gcf;
         mp_f = get(currentFig, 'CurrentPoint');
-        
         
         mp_a = get(obj.uiaxes.imdisplay, 'CurrentPoint');
         mp_a = mp_a(1, 1:2);
@@ -3638,7 +3533,6 @@ methods % Misc, most can be outsourced
             % Correction of 0.25 was found to give precise zooming in and
             % out of a point... Is it the 0.5 offset in image coordinates
             % divided by 2?
-            
             
             shiftX = (axPos(3)-mp_f(1)+0.25) / axPos(3)               * diff(xLimNew) - (xLim(1) + diff(xLim)/2 + diff(xLimNew)/2 - mp_a(1)) ;
             shiftY = (axPos(4)-abs(axPos(4)-mp_f(2)-0.25)) / axPos(4) * diff(yLimNew) - (yLim(1) + diff(yLim)/2 + diff(yLimNew)/2 - mp_a(2)) ;
@@ -3722,7 +3616,7 @@ methods % Misc, most can be outsourced
     
     function plotZoomRegion(obj, xLimNew, yLimNew)
         
-        % Todo: 
+        % Todo:
         %   [ ] Work more on placement (offset) of rectangles. Right now,
         %       for very high resolution images with high AR they are close
         %       to edge...
@@ -3769,7 +3663,6 @@ methods % Misc, most can be outsourced
         offsetInPixels = max([minOffset, offsetInPixels]);
         offsetInPixels = min([maxOffset, offsetInPixels]);
         
-        
         % Calculate resize factor to scale rectangular coordinates into
         % data units.
         resizeFactorFactor = min([obj.imWidth, obj.imHeight]) ./ ...
@@ -3811,7 +3704,6 @@ methods % Misc, most can be outsourced
             set(obj.zoomOutline(2), 'XData', xData2, 'YData', yData2)
         end
         
-        
         % Hide box when image is zoomed out (with small wiggleroom)
         isZoomedOut =  sum( abs(xLimNew - ([0, obj.imWidth]+0.5)) ) < 1 && ...
                          sum( abs(yLimNew - ([0, obj.imHeight]+0.5)) ) < 1;
@@ -3840,7 +3732,6 @@ methods % Misc, most can be outsourced
         % Todo: Is there anything that can be optimized here???
         % D do we need source or eventdata for anything?
         
-        
         % Thanks to Jan @ https://www.mathworks.com/...
         % matlabcentral/answers/570829-slow-sizechangedfcn-or-resizefcn
 %         persistent blockCalls  % Reject calling this function again until it is finished
@@ -3850,7 +3741,6 @@ methods % Misc, most can be outsourced
         % Hackety hack because toolbar icons are very slow to update when
         % they are visible...
         obj.hideToolbars()
-        
         
         interruptibleState = obj.Figure.Interruptible;
         busyActionState = obj.Figure.BusyAction;
@@ -3910,7 +3800,7 @@ methods % Misc, most can be outsourced
         end
         
         % Todo: Should I test any or all here. I had used any before, but
-        % changed it because that did not work for when draggin an image
+        % changed it because that did not work for when dragging an image
         % stack of different size into the window. (if new stack only had different size in 1 dim)
         if all(abs(newFigurePosition(3:4) - oldFigurePosition(3:4)) < 2)
             return
@@ -3941,7 +3831,7 @@ methods % Misc, most can be outsourced
 
     function resizePanelContents(obj, hPanel, preserveAspectRatio, mode)
         
-        if nargin < 2 
+        if nargin < 2
             hPanel = obj.Panel;
         end
         
@@ -3991,7 +3881,7 @@ methods % Misc, most can be outsourced
                 %disp('Adjusted figure size')
                 deltaSize = optimalFigureSize - obj.Figure.Position(3:4);
                 newLocation = round( obj.Figure.Position(1:2) - deltaSize/2 );
-                obj.Figure.Position = [newLocation, optimalFigureSize];            
+                obj.Figure.Position = [newLocation, optimalFigureSize];
                 %obj.Panel.Position(3:4) = optimalFigureSize;
                 setpixelposition(obj.Panel, [1,1,optimalFigureSize])
                 obj.resizePanelContents(obj.Panel, false)
@@ -4026,7 +3916,6 @@ methods % Misc, most can be outsourced
                 obj.uiwidgets.thumbnailSelector.Visible = 'on';
                 obj.uiwidgets.thumbNailToggler.Visible = 'on';
             end
-                       
         end
         
         if isfield(obj.uiwidgets, 'msgBox')
@@ -4063,7 +3952,7 @@ methods % Misc, most can be outsourced
         
         if nargin < 2; useDialog = false; end
         
-        if ~obj.ImageStack.IsVirtual  
+        if ~obj.ImageStack.IsVirtual
             obj.displayMessage('Image data is already in memory', [], 1.5)
             return
         end
@@ -4148,7 +4037,7 @@ methods % Misc, most can be outsourced
         end
 
         % How many times to update waitbar:
-        numPartsToLoad = min([obj.ImageStack.NumTimepoints, 50]); 
+        numPartsToLoad = min([obj.ImageStack.NumTimepoints, 50]);
         
         % Activate waitbar...
         obj.uiwidgets.msgBox.activateGlobalWaitbar();
@@ -4194,7 +4083,7 @@ methods % Misc, most can be outsourced
     %   image data (imData) to the current imviewer instance or a new one
     %
     %   INPUTS:
-    %       obj      : An instance of this imviewer class 
+    %       obj      : An instance of this imviewer class
     %       imData   : An array of image data.
     %       mode     : Mode for adding image data. Options:
     %           'Add To Memory' : Adds image data to memory of current
@@ -4223,18 +4112,18 @@ methods % Misc, most can be outsourced
 
             case 'New Window'
                 newStack = nansen.stack.ImageStack(imData); % Todo
-                newStack.FileName = obj.ImageStack.FileName; 
+                newStack.FileName = obj.ImageStack.FileName;
                 imviewer(newStack)
 
             case 'Replace Stack'
-                filePath = obj.ImageStack.FileName; 
+                filePath = obj.ImageStack.FileName;
                 obj.replaceStack(imviewer.ImageStack(imData), false)
-                obj.ImageStack.FileName = filePath; 
+                obj.ImageStack.FileName = filePath;
         end
     end
 
     function frame = savePlot(obj, savePath)
-    %savePlot Save the current plot in the imviewer axes    
+    %savePlot Save the current plot in the imviewer axes
         frame = frame2im(getframe(obj.Axes));
         imwrite(frame, savePath, 'PNG' );
         if ~nargout
@@ -4352,7 +4241,7 @@ methods % Misc, most can be outsourced
             y = y + nLines*0.03;
 
             makeBold = contains(messages{i}, '\b');
-            messages{i} = strrep(messages{i}, '\b', ''); 
+            messages{i} = strrep(messages{i}, '\b', '');
 
             if contains(messages{i}, ':')
                 msgSplit = strsplit(messages{i}, ':');
@@ -4391,7 +4280,7 @@ methods % Misc, most can be outsourced
         warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
         
         % Close help window if it loses focus
-        jframe = getjframe(helpfig); 
+        jframe = getjframe(helpfig);
         set(jframe, 'WindowDeactivatedCallback', @(s, e) delete(helpfig))
         
         warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
@@ -4459,13 +4348,13 @@ methods % Misc, most can be outsourced
                 xData = radius * cos(th) + center(1);
                 yData = radius * sin(th) + center(2);
                 
-%                 l1.XData = xData; l1.YData = yData; 
+%                 l1.XData = xData; l1.YData = yData;
 %                 l2.XData = xData; l2.YData = yData;
 
                 set([l1, l2], 'XData', xData, 'YData', yData)
                 set(p, 'XData', center(1), 'YData', center(2))
             else
-                l1.XData = nan; l1.YData = nan; 
+                l1.XData = nan; l1.YData = nan;
                 l2.XData = nan; l2.YData = nan;
                 set(p, 'XData', nan, 'YData', nan)
             end
@@ -4482,7 +4371,7 @@ methods % Misc, most can be outsourced
     function plotOverlay(obj, key)
     
         switch key
-            case '1' % Plot a circle with on center of image with diameter equal to the shortest side 
+            case '1' % Plot a circle with on center of image with diameter equal to the shortest side
                 h = findobj(obj.uiaxes.imdisplay, 'Tag', 'CenterCross');
                 if isempty(h)
                     xdata = [1, obj.imHeight, nan, obj.imHeight/2, obj.imHeight/2];
@@ -4515,7 +4404,6 @@ methods % Misc, most can be outsourced
                 end
         end
     end
-    
     
 % % Interactive Selection Tools
 
@@ -4603,7 +4491,6 @@ methods % Misc, most can be outsourced
         pos = cell2mat(pos);
         cellfun(@(imp) delete(imp), impoints, 'uni', false);
         
-        
         obj.tmpHandles.twoPointLine = hline;
         
         if nargout == 2
@@ -4667,12 +4554,11 @@ methods % Misc, most can be outsourced
 
         xNew = point(1,1);
         yNew = point(1,2);
-
         
-        if isempty(obj.tmpHandles.freehandLine) 
+        if isempty(obj.tmpHandles.freehandLine)
             xData = xNew;
             yData = yNew;
-        else 
+        else
             xData = horzcat(obj.tmpHandles.freehandLine.XData, xNew);
             yData = horzcat(obj.tmpHandles.freehandLine.YData, yNew);
         end
@@ -4684,13 +4570,13 @@ methods % Misc, most can be outsourced
             yData(win) = smoothdata(yData(win));
         end
 
-        if isempty(obj.tmpHandles.freehandLine) 
+        if isempty(obj.tmpHandles.freehandLine)
             obj.tmpHandles.freehandLine = plot(obj.uiaxes.imdisplay, xData, yData, '-');
             obj.tmpHandles.freehandLine.LineWidth = 2;
             obj.tmpHandles.freehandLine.Color = 'c';
             obj.tmpHandles.freehandLine.HitTest = 'off';
             obj.tmpHandles.freehandLine.PickableParts = 'None';
-        else 
+        else
             set(obj.tmpHandles.freehandLine, 'XData', xData)
             set(obj.tmpHandles.freehandLine, 'YData', yData)
         end
@@ -4702,11 +4588,10 @@ methods % Misc, most can be outsourced
 %         yData = horzcat(obj.tmpHandles.freehandLine.YData, nan);
 %         set(obj.tmpHandles.freehandLine, 'XData', xData)
 %         set(obj.tmpHandles.freehandLine, 'YData', yData)
-%         
+%
         obj.Figure.WindowButtonMotionFcn = @obj.mouseOver;
         obj.Figure.WindowButtonUpFcn = @obj.mouseRelease;
     end
-
 end
 
 methods (Access = private) % Housekeeping and internal
@@ -4718,11 +4603,11 @@ methods (Access = private) % Housekeeping and internal
             % addToolbarExplorationButtons(obj.Figure)
             % hAxes.Toolbar.Visible = 'off';
             disableDefaultInteractivity(hAxes)
-        end 
+        end
     end
     
     function stackOpts = getStackInitializationOptions(obj)
-    %getStackInitializationOptions Get default options for stack initialization  
+    %getStackInitializationOptions Get default options for stack initialization
         stackOpts = struct();
         stackOpts.PreprocessOnLoad = obj.settings.VirtualData.preprocessData;
         stackOpts.UseDynamicCache = obj.settings.VirtualData.useDynamicCache;
@@ -4735,7 +4620,7 @@ methods (Access = private) % Housekeeping and internal
         
         switch obj.settings.ImageDisplay.VolumeDisplayMode
             
-            case 'Plane Projection' 
+            case 'Plane Projection'
                 imageOut = squeeze(mean(imageIn, dimZ)) ;
                 imageOut = cast(imageOut, obj.ImageStack.DataType);
 
@@ -4754,7 +4639,7 @@ methods (Access = private) % Housekeeping and internal
                         tmpIm = imageOut(:,:,i);
                         tmpIm([obj.ZMontageTileIndices{tileNum}]) = imageIn(:, :, i, :);
                         imageOut(:, :, i) = tmpIm;
-                    end 
+                    end
                 end
             otherwise
                 imageOut = imageIn;
@@ -4773,7 +4658,7 @@ methods (Access = private) % Housekeeping and internal
 
         pixelPadding = 10;
         pixelWidth = nCols .* imageSize(2);
-        pixelWidth = pixelWidth + pixelPadding .* (nCols-1);          
+        pixelWidth = pixelWidth + pixelPadding .* (nCols-1);
         pixelHeight = nRows .* imageSize(1);
         pixelHeight = pixelHeight + pixelPadding .* (nRows-1);
 
@@ -4805,7 +4690,6 @@ methods (Access = private) % Housekeeping and internal
         
         obj.updateAxesLimits()
     end
-    
 end
 
 methods (Access = protected) % Event callbacks
@@ -4846,7 +4730,7 @@ methods (Access = protected) % Event callbacks
                 end
 
             case 'useDynamicCache'
-                if obj.ImageStack.IsVirtual 
+                if obj.ImageStack.IsVirtual
                     obj.ImageStack.Data.UseDynamicCache = value;
                 end
 
@@ -4885,7 +4769,6 @@ methods (Access = protected) % Event callbacks
                 obj.updateImage()
                 obj.updateImageDisplay()
                 
-                
             case 'showMovingAvg' % Todo: remove...
                 obj.settings.showMovingAvg = value;
                 if obj.settings.showMovingAvg
@@ -4923,7 +4806,7 @@ methods (Access = protected) % Event callbacks
         S = obj.Theme;
         onThemeChanged@applify.ModularApp(obj)
 % %         obj.setFigureWindowBackgroundColor(S.FigureBgColor)
-% %         
+% %
 % %         obj.Figure.Color = S.FigureBgColor;
 % %         obj.Panel.BackgroundColor = S.FigureBgColor;
         
@@ -4932,7 +4815,6 @@ methods (Access = protected) % Event callbacks
         obj.infoField.Color = S.HeaderFgColor;
         obj.uiaxes.textdisplay.Color = S.HeaderBgColor;
         obj.uiwidgets.Appbar.BackgroundColor = S.HeaderBgColor;
-        
         
         obj.uiwidgets.playback.BackgroundColor = S.HeaderBgColor;
     end
@@ -4971,7 +4853,6 @@ methods (Access = protected) % Event callbacks
     %   is on top of a widget. widgetname can be the name of a single
     %   widget or a cell array of widgetNames. If more than one widget is
     %   given, tf is a row vector.
-    
 
         xy = obj.Figure.CurrentPoint;
 
@@ -4994,7 +4875,6 @@ methods (Access = protected) % Event callbacks
             tf(i) = ~any(any(diff([widgetLim(1:2); xy; widgetLim(3:4)]) < 0));
         end
     end
-    
 end
 
 methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
@@ -5004,7 +4884,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         if strcmp(obj.Figure.SelectionType, 'normal')
             obj.mouseDown = true;
         end
-        h = hittest(); 
+        h = hittest();
         if ~isequal(h, obj.Axes)
             obj.ImageDragAndDropEnabled = false;
         end
@@ -5117,7 +4997,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         mousePoint = obj.Figure.CurrentPoint;
         x = mousePoint(1); y = mousePoint(2);
         
-        %figSize = obj.Figure.Position(3:4); 
+        %figSize = obj.Figure.Position(3:4);
         %figLoc = [1,1];
         
         panelPos = getpixelposition(obj.Panel, true);
@@ -5144,7 +5024,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 isTouch = isTop(1) & ~isOutside;
                 isUntouch = ~any(isTop);
             elseif contains(obj.uiwidgets.Toolbar.Location, 'south')
-                isTouch = isBottom(1) & ~isOutside;   
+                isTouch = isBottom(1) & ~isOutside;
                 isUntouch = ~any(isBottom);
             else
                 isTouch = false;
@@ -5194,7 +5074,6 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 end
             end
         end
-        
     end
     
     function onMouseScrolled(obj, src, evt)
@@ -5209,7 +5088,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         if ~obj.isMouseInApp && ~forceKey; return; end
 
         % Todo: This only holds the pointermanager. Should make it into an
-        % interface.., not a plugin. 
+        % interface.., not a plugin.
         if ~isempty(obj.plugins)
             for i = 1:numel(obj.plugins)
                 try
@@ -5217,13 +5096,13 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                     if wasCaptured; return; end
                 catch ME
                     fprintf( [ME.message, '\n'] )
-                    % something went wrong, but thats fine?
+                    % something went wrong, but that's fine?
                 end
             end
         end
         
         % Note: This should eventually take over for the if block above,
-        % pointermanager is currently saved in the 'plugins' property, and 
+        % pointermanager is currently saved in the 'plugins' property, and
         % this method works on 'Plugins' property. Todo: consolidate
         wasCaptured = obj.sendKeyEventToPlugins([], event);
         if wasCaptured; return; end
@@ -5357,7 +5236,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 if contains('command', event.Modifier) && contains('shift', event.Modifier) ...
                         || contains('control', event.Modifier) && contains('shift', event.Modifier)
                     uiundo(obj.Figure, 'execRedo')
-                elseif contains('command', event.Modifier) || contains('control', event.Modifier) 
+                elseif contains('command', event.Modifier) || contains('control', event.Modifier)
                     uiundo(obj.Figure, 'execUndo')
                 elseif event.Character == 'z'
                     obj.imageZoom('in');
@@ -5478,7 +5357,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                     theta = -1*theta;
                 end
                     
-                obj.imTheta = obj.imTheta + theta;    
+                obj.imTheta = obj.imTheta + theta;
                 obj.updateImageDisplay();
                 
             case 'g'
@@ -5508,7 +5387,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                     if wasCaptured; return; end
                 catch ME
                     fprintf( [ME.message, '\n'] )
-                    % something went wrong, but thats fine?
+                    % something went wrong, but that's fine?
                 end
             end
         end
@@ -5517,7 +5396,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             case 'shift'
                 obj.Figure.SelectionType = 'normal';
                 % obj.Figure.Interruptible = 'on'; Not sure why this is here
-            case {'alt', '⌥'} 
+            case {'alt', '⌥'}
                 obj.isAltDown = false;
         end
     end
@@ -5551,7 +5430,7 @@ methods (Access = protected)
                 
                 scrollFactor = abs(event.VerticalScrollCount )/10.*obj.settings.Interaction.scrollFactor;
                 
-                if event.VerticalScrollCount > 0 && sum(obj.scrollHistory) > 0 
+                if event.VerticalScrollCount > 0 && sum(obj.scrollHistory) > 0
                     imageZoom(obj, 'in', scrollFactor);
                 elseif event.VerticalScrollCount < 0  && sum(obj.scrollHistory) < 0
                     imageZoom(obj, 'out', scrollFactor);
@@ -5564,7 +5443,7 @@ methods (Access = protected)
     %
     %   pixelValueStr = getPixelValueAtCoordsAsString(obj, coords) returns
     %   pixelValueStr, a formatted string with the pixel value at the point
-    %   of the given coordinates. 
+    %   of the given coordinates.
     
     %   todo: Show value for each color channel..
 
@@ -5574,7 +5453,6 @@ methods (Access = protected)
         if isempty(obj.imObj.CData); return; end
             
         x = coords(1); y = coords(2);
-        
         
         if ~all( obj.ImageStack.DataXLim == 0 )
             x = x - obj.ImageStack.DataXLim(1) + 1;
@@ -5721,12 +5599,11 @@ methods (Access = protected)
         obj.Figure.Position = newFigurePos;
         
         newPanelPos = obj.Figure.InnerPosition + [10, 10, -20, -20];
-
         
         obj.Panel.Position = newPanelPos;
         obj.Panel.Units = 'normalized';
         obj.Panel.BorderType = 'etchedin';
-        obj.Panel.HighlightColor = [0.1569    0.1569    0.1569]; 
+        obj.Panel.HighlightColor = [0.1569    0.1569    0.1569];
         
         obj.uiaxes.imdisplay.Position = [1,1,newPanelPos(3:4)-2];
         
@@ -5786,7 +5663,6 @@ methods (Access = protected)
                 appbarButtons(isMatch).Icon = obj.ICONS.maximize;
         end
     end
-    
 end
 
 methods (Access = private) % Methods that runs when properties are set
@@ -5856,13 +5732,11 @@ methods (Access = private) % Methods that runs when properties are set
         obj.currentPlane = obj.ImageStack.CurrentPlane;
         obj.currentChannel = obj.ImageStack.CurrentChannel;
 
-
         % Initialize text for textdisplay
         obj.textStrings.Resolution = sprintf('%dx%d pixels', obj.imHeight, obj.imWidth);
         obj.textStrings.CurrentPlane = sprintf('z=%d/%d', obj.currentPlane, obj.ImageStack.NumPlanes);
 
         obj.stackname = obj.ImageStack.Name;
-
         
         % Set brightness limits. Will trigger callback to set slider Low
         % and High value.
@@ -5871,7 +5745,7 @@ methods (Access = private) % Methods that runs when properties are set
         newLimits = obj.ImageStack.getDataIntensityLimits();
         obj.updateBrightnessInSettings(newLimits)
         
-        if obj.ImageStack.IsVirtual  
+        if obj.ImageStack.IsVirtual
             obj.currentChannel = obj.ImageStack.CurrentChannel;
         end
     end
@@ -5885,7 +5759,6 @@ methods (Access = private) % Methods that runs when properties are set
         
         obj.settings.ImageStack = S.ImageStack;
     end
-    
 end
 
 methods (Static)
@@ -5951,7 +5824,7 @@ methods (Static)
         h.Units = oldUnits;
 
         ar = pixelPosition(3) / pixelPosition(4);
-    end 
+    end
     
     function ar = getAspectRatio(size)
         ar = size(1) / size(2);
@@ -5977,8 +5850,8 @@ methods (Static)
         % INPUTS:
         %   viewerNames : list (cell array) of app names to look for
         %   hFigure : figure handle of figure to ignore (optional)
-        %   
-        %   
+        %
+        %
         % Supported names: {'StackViewer', 'Signal Viewer', 'Roi Classifier'}
         
         if nargin < 1
@@ -6005,10 +5878,9 @@ methods (Static)
         end
       
         if ~tf
-            msgbox('There are no open viewers to connect to', 'Aborting'); 
+            msgbox('There are no open viewers to connect to', 'Aborting');
             return
         end
-    
         
         figInd = find(isMatch);
 
@@ -6017,7 +5889,7 @@ methods (Static)
 
             figNames = {openFigures(figInd).Name};
 %             figNumbers = [openFigures(figInd).Number];
-%             figNumbers = arrayfun(@(n) sprintf('%d:', n), figNumbers, 'uni', 0); 
+%             figNumbers = arrayfun(@(n) sprintf('%d:', n), figNumbers, 'uni', 0);
 %             figNames = strcat(figNumbers ,figNames);
 
             % Open a listbox selection to figure
@@ -6052,7 +5924,5 @@ methods (Static)
         % Todo...
         
     end
-    
 end
-
 end

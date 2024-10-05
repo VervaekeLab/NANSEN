@@ -48,7 +48,6 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
                 obj.createUIModules(1)
             end
         end
-        
     end
 
     methods % Public
@@ -57,7 +56,7 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
         %promptSaveChanges Prompt user if UI changes should be saved.
         
             % Initialize output (assume user is not going to abort)
-            doCancel = false;   
+            doCancel = false;
             
             % Check if changes were made to the model.
             newModel = obj.UIModule{1}.getUpdatedTableData();
@@ -89,7 +88,6 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
                 end
             end
         end
-
     end
     
     methods (Access = protected)
@@ -145,14 +143,13 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
             panelSize = obj.Figure.Position(3:4) - [40, 60];
             obj.ControlPanels.Position = [20, 20, panelSize];
         end
-        
     end
 
     methods (Access = private)
 
         function createControlPanels(obj)
             obj.ControlPanels = obj.createControlPanel( obj.Figure );
-        end 
+        end
         
         function createUIModules(obj, ~)
             
@@ -170,7 +167,5 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
 
             obj.LoadingPanel.Visible = 'off';
         end
-
     end
-    
 end

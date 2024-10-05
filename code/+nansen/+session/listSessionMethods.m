@@ -20,7 +20,6 @@ function sessionMethodPathList = listSessionMethods(integrationNames)
     sesMethodRootPathList = [sesMethodRootPathList; {projectMethodsPath}];
     
     %ignoreList = {'+abstract', '+template'};
-
     
     % Find all folders
     finished = false;
@@ -37,8 +36,6 @@ function sessionMethodPathList = listSessionMethods(integrationNames)
             sesMethodRootPathList = absPath;
         end
     end
-     
-    
     
     % Find all matlab functions in the session methods folders.
     L = [];
@@ -51,7 +48,6 @@ function sessionMethodPathList = listSessionMethods(integrationNames)
         else
             L = cat(1, L, L_);
         end
-        
     end
     
     sessionMethodPathList = fullfile({L.folder}, {L.name});
@@ -61,8 +57,6 @@ function sessionMethodPathList = listSessionMethods(integrationNames)
     
 end
 
-
 function tf = validateIntegration(integrationFolder)
-
 
 end

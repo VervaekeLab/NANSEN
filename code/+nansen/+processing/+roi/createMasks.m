@@ -13,22 +13,19 @@ function cellOfMasks = createMasks(roiArray, varargin)
 %
 %   Eivind Hennestad | Vervaeke Lab | Sept 2018
 
-
 %   TODO
 %     [ ] fix implementation for only getting subset of rois
 %     [ ] function for fissa style mask dilation
 
-
     import nansen.processing.roi.removeSpatialOverlaps
     import nansen.processing.roi.estimateNeuropilMasks
     import nansen.processing.roi.splitNeuropilMasks
-
     
     % Get default parameters and assertion functions.
     [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
     
     % Parse potential parameters from input arguments
-    params = utility.parsenvpairs(P, V, varargin{:});    
+    params = utility.parsenvpairs(P, V, varargin{:});
 
     % Special case when one roi is selected
     if numel(params.roiInd) == 1
@@ -37,7 +34,6 @@ function cellOfMasks = createMasks(roiArray, varargin)
     else
         roiIndGet = 1:numel(roiArray);
     end
-    
 
     roiMaskArrayOrig = cat(3, roiArray(roiIndGet).mask);
     
@@ -51,7 +47,7 @@ function cellOfMasks = createMasks(roiArray, varargin)
     cellOfMasks = {roiMaskArray};
     
     if ~params.createNeuropilMask
-        return 
+        return
     end
     
     neuropilMaskArray = estimateNeuropilMasks(roiMaskArrayOrig, params);
@@ -64,7 +60,5 @@ function cellOfMasks = createMasks(roiArray, varargin)
     end
     
     cellOfMasks = [cellOfMasks, neuropilMasks];
-
     
 end
-

@@ -15,7 +15,7 @@ function npMasksSplit = splitNeuropilMasks(npMasks, roiMasks, numSlices)
 %       numSlices : Number of slices to split each mask into. Default is 4
 %
 %   OUTPUTS:
-%       npMasksSplit: A (nx1) cell array where each cell contains a 2D/3D 
+%       npMasksSplit: A (nx1) cell array where each cell contains a 2D/3D
 %           boolean array of masks corresponding to one of the n slices
 
 %   See also nansen.adapter.fissa.splitneuropilmask
@@ -41,6 +41,5 @@ function npMasksSplit = splitNeuropilMasks(npMasks, roiMasks, numSlices)
     
 end
 
-
 % Questions:
-%     Whats the best way to arrange output? Cell or 4D array?
+%     What's the best way to arrange output? Cell or 4D array?

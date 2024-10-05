@@ -2,18 +2,15 @@ classdef toolbarSeparator < uim.abstract.virtualContainer & uim.mixin.assignProp
 
     % todo: is this a virtualContainer....???
     
-    
     properties
         Color = ones(1,3) * 0.5
         LineWidth = 1
         Height = 0.8 % Fraction of toolbar height (0,1)
     end
     
-    
     properties (Access = protected, Transient)
         hSeparator
     end
-    
 
     methods
         function obj = toolbarSeparator(varargin)
@@ -60,14 +57,13 @@ classdef toolbarSeparator < uim.abstract.virtualContainer & uim.mixin.assignProp
             y1 = yMean - (obj.Position(4)*obj.Height)/2;
             y2 = yMean + (obj.Position(4)*obj.Height)/2;
             
-%             y1 = obj.Position(2); 
+%             y1 = obj.Position(2);
 %             y2 = sum(obj.Position([2,4]));
             
             X = [x1, x2];
             Y = [y1, y2];
         end
     end
-    
     
     methods
         function relocate(obj, ~)
@@ -85,7 +81,6 @@ classdef toolbarSeparator < uim.abstract.virtualContainer & uim.mixin.assignProp
         end
     end
     
-    
     methods
         function updateLocation(obj, ~)
             if obj.IsConstructed
@@ -102,6 +97,4 @@ classdef toolbarSeparator < uim.abstract.virtualContainer & uim.mixin.assignProp
             end
         end
     end
-    
-
 end

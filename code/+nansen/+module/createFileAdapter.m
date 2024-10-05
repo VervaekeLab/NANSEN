@@ -9,7 +9,7 @@ function createFileAdapter(targetPath, fileAdapterAttributes)
 %       SupportedFileTypes : Cell array of file extensions for files which this
 %           file adapter can be used with
 %       DataType : Expected output data type
-%       AccessMode : Whether file adapter supports read only (R) or read and write (RW) 
+%       AccessMode : Whether file adapter supports read only (R) or read and write (RW)
 %
 %   Input Arguments:
 %       targetPath : Pathname of folder to save file adapter in.
@@ -99,13 +99,13 @@ function strValue = getStringRepresentation(value)
     elseif isa(value, 'cell')
         value = cellfun(@(v) getStringRepresentation(v), value, 'uni', 0);
         strValue = cellArrayToTextString(value);
-    else 
+    else
         error('Value of type %s is not supported', class(value));
     end
 end
 
 function textStr = cellArrayToTextString(cellArray)
-%cellArrayToTextString Create a text string representing the cell array                
+%cellArrayToTextString Create a text string representing the cell array
     cellOfPaddedStrings = cellfun(@(c) c, cellArray, 'UniformOutput', false);
     textStr = sprintf('{%s}', strjoin(cellOfPaddedStrings, ', '));
 end

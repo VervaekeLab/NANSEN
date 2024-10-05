@@ -7,10 +7,10 @@ function [roiMask, stats] = findSomaMaskByThresholding(im, varargin)
 %
 %   roiMask = findSomaMaskByThresholding(im, varargin)
 %
-%   INPUTS: 
+%   INPUTS:
 %       im : thumbnail (cropped) image of a neuronal soma
-%      
-%   OPTIONS : 
+%
+%   OPTIONS :
 %       InnerDiameter : Expected diameter of nucleus
 %       OuterDiameter : Expected diameter of cell body
     
@@ -53,7 +53,7 @@ function [roiMask, stats] = findSomaMaskByThresholding(im, varargin)
         mediCytosolValue = nanmedian(cytosolValues);
         mediSurroundValue = nanmedian(surroundValues(1:round(end*0.6)));
         T = mediSurroundValue + (mediCytosolValue - mediSurroundValue) / 2;
-    else 
+    else
         high_val = nanmedian(somaValues);
         low_val = nanmedian(surroundValues);
         
@@ -79,7 +79,6 @@ function [roiMask, stats] = findSomaMaskByThresholding(im, varargin)
     if nargout == 2
         stats = createStats(im, roiMask);
     end
-    
 end
 
 function stats = createStats(im, roiMask)
@@ -98,7 +97,7 @@ function plotResults(imOrig, im, mask)
 
     persistent f ax1 ax2
     if isempty(f) || ~isvalid(f)
-        f = figure('Position', [300,300,600,300], 'MenuBar', 'none'); 
+        f = figure('Position', [300,300,600,300], 'MenuBar', 'none');
         ax1 = axes(f, 'Position',[0,0,0.5,1]);
         ax2 = axes(f, 'Position',[0.5,0,0.5,1]);
 

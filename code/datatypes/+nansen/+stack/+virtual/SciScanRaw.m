@@ -10,19 +10,17 @@ properties (Access = private, Hidden)
     MemMap                   % A matlab memorymap for the binary raw file
 end
 
-
 methods (Static)
     
     function nvPairs = getDefaultPreprocessingParams()
         nvPairs = {'NumFlybackLines', 8, 'StretchCorrectionMethod', 'imwarp'};
     end
-    
 end
     
 methods % Structors
     
     function obj = SciScanRaw(filePath, varargin)
-    %SciScanRaw Create a virtual data adapter for SciScan raw file  
+    %SciScanRaw Create a virtual data adapter for SciScan raw file
         % Open folder browser if there are no inputs.
         if nargin < 1; filePath = uigetdir; end
                 
@@ -35,7 +33,6 @@ methods % Structors
             obj.MemMap = [];
         end
     end
-    
 end
 
 methods % Implementation of VirtualArray abstract methods
@@ -71,7 +68,6 @@ methods % Implementation of VirtualArray abstract methods
     function writeFrames(obj, frameIndex, data) %#ok<INUSD>
         error('Writing to a raw image data file is not supported')
     end
-    
 end
 
 methods (Access = protected) % Implementation of abstract methods
@@ -85,7 +81,6 @@ methods (Access = protected) % Implementation of abstract methods
         if isa(filePath, 'cell')
             filePath = filePath{1};
         end
-    
         
         if contains(filePath, '.raw')
             [folderPath, fileName, ext] = fileparts(filePath);
@@ -99,7 +94,7 @@ methods (Access = protected) % Implementation of abstract methods
             folderPath = filePath;
             listing = dir(fullfile(folderPath, '*.raw'));
             fileName = listing(1).name;
-            if isempty(fileName) 
+            if isempty(fileName)
                 error('Did not find raw file in the specified folder')
             end
             
@@ -130,7 +125,7 @@ methods (Access = protected) % Implementation of abstract methods
         obj.MetaData.PhysicalSizeY = S.umPerPxY;
         obj.MetaData.PhysicalSizeYUnit = 'micrometer';
         obj.MetaData.PhysicalSizeX = S.umPerPxX;
-        obj.MetaData.PhysicalSizeXUnit = 'micrometer';  
+        obj.MetaData.PhysicalSizeXUnit = 'micrometer';
         
         obj.MetaData.Class = S.dataType;
         
@@ -183,10 +178,9 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function assignDataType(obj)
-    %assignDataType Assign data type of acquired image data.    
+    %assignDataType Assign data type of acquired image data.
         obj.DataType = obj.MetaData.Class;
     end
-    
 end
 
 methods
@@ -210,7 +204,6 @@ methods
                
         obj.updateDataSize()
     end
-    
 end
 
 methods (Access = protected)
@@ -257,17 +250,17 @@ methods % Subclass specific methods
         metadata.nChannels = obj.readinivar(inistring,'no.of.channels');
         
         if metadata.nChannels > 1
-            dataDimensionArrangement(end+1) = 'C'; 
+            dataDimensionArrangement(end+1) = 'C';
         end
         
         try
             metadata.nFrames = obj.readinivar(inistring, 'no.of.frames.acquired');
         catch
-            %metadata.nFrames = obj.readinivar(inistring, 'frame.count');  % <-- Not always correct 
+            %metadata.nFrames = obj.readinivar(inistring, 'frame.count');  % <-- Not always correct
             metadata.nFrames = obj.getFrameCount(metadata);
         end
         
-        % Get info about whether recording is a volume (piezo, multi-plane) 
+        % Get info about whether recording is a volume (piezo, multi-plane)
         % scan or a zstack
         metadata.experimentType = obj.readinivar(inistring, 'experiment.type');
         metadata.isPiezoActive = obj.readinivar(inistring, 'piezo.active');
@@ -285,7 +278,7 @@ methods % Subclass specific methods
             dataDimensionArrangement = [dataDimensionArrangement, 'ZT'];
 
             % Todo: Get z-spacing
-        else 
+        else
             metadata.zSpacing = 0;
             metadata.numFramesPerPlane = metadata.nFrames;
             metadata.nPlanes = 1;
@@ -306,7 +299,6 @@ methods % Subclass specific methods
         % Get temporal (physical) parameters for recording
         metadata.fps = obj.readinivar(inistring,'frames.p.sec');
         metadata.dt = 1/metadata.fps;
-        
         
         % Get channel information % Todo...
         metadata.channelNumbers = [];
@@ -349,10 +341,7 @@ methods % Subclass specific methods
 % % %             colors = {'Green', 'Red', 'N/A', 'N/A'};
 % % %         end
         
-        
-        
     end
-    
 end
 
 methods (Static)
@@ -392,7 +381,6 @@ methods (Static)
                 end
             end
         end
-
     end
     
     function isValid = fileCheck(pathStr)
@@ -445,7 +433,6 @@ methods (Static)
         isValid = contains(inistring, sciscanVars);
 
     end
-    
 end
 
 methods (Hidden) % Temp read performance plot
@@ -463,7 +450,5 @@ methods (Hidden) % Temp read performance plot
             figure; plot(T); i = 1; disp(mean(T))
         end
     end
-    
 end
-
 end

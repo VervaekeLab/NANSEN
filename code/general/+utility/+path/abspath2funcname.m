@@ -17,7 +17,6 @@ function functionName = abspath2funcname(pathStr)
     packageName = utility.path.pathstr2packagename(folderPath);
     functionName = strcat(packageName, '.', functionName);
     
-    
     % Add package-containing folder to path if it is not...
     
     %fcnHandle = str2func(functionName);

@@ -1,18 +1,18 @@
 function imArray = preprocessImages(imArray, varargin)
-%preprocessImages Combine all preprocessing steps in one function 
+%preprocessImages Combine all preprocessing steps in one function
 %
 %   imArray = preprocessImages(imArray, name, value, ...)
 %
 %   Parameters:
-%       
+%
 %       SmoothingSigma      : Sigma (std) for gaussian filter to use for
 %                             making a smoothed stack for bg subtraction.
-%   
+%
 %       PrctileForBaseline  : Percentile values to use for creating a
 %                             static image for for bg subtraction.
 
     params = struct();
-    params.BinningMethod = 'maximum';          % Method for fram binning. Alternatives: 'maximum' (default) or 'average' (not implemented)
+    params.BinningMethod = 'maximum';          % Method for frame binning. Alternatives: 'maximum' (default) or 'average' (not implemented)
     params.BinningSize = 5;
     params.SpatialFilterType = 'gaussian'; % Not implemented
     params.SmoothingSigma = 20; % Todo: Depend on roisize?

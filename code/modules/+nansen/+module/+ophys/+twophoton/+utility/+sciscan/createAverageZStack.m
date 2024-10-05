@@ -23,7 +23,7 @@ function imageArrayAvgZ = createAverageZStack(imageStack, varargin)
     end
     
     nChannelsOut = imageStack.NumChannels;
-    if params.MergeChannels 
+    if params.MergeChannels
         nChannelsOut = 1;
     end
     
@@ -82,7 +82,6 @@ function imageArrayAvgZ = createAverageZStack(imageStack, varargin)
             end
         end
         
-        
         if exist('str', 'var')
             fprintf( char(8*ones(1,length(str))));
         end
@@ -94,13 +93,11 @@ function imageArrayAvgZ = createAverageZStack(imageStack, varargin)
     
     fprintf(newline)
     
-    
     % Todo: implement different normalizations....
 % %     minVal = prctile(imageArrayAvgZ(:), 0.05);
 % %     maxVal = prctile(imageArrayAvgZ(:), 99.95);
 % %     normalizearray = @(A) uint8((A - minVal) ./ (maxVal-minVal) .* 255);
 % %     imageArrayAvgZ = normalizearray(imageArrayAvgZ);
-    
     
     if params.AdjustBrightness
         imageArrayAvgZ = normalizeArray(imageArrayAvgZ);

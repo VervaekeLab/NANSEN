@@ -2,11 +2,11 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 %detectNewSessions Detect new sessions associated with a metatable
 %
 %   newSessionArray = detectNewSessions(metaTable, dataLocationName)
-%   look for session folders based on the current datalocation model 
+%   look for session folders based on the current datalocation model
 %   (i.e current project) and make a list of session objects based on
 %   folders. Session objects for all sessions that are not present in the
 %   table is returned.
-%   
+%
 %   INPUTS:
 %       metaTable : a session metatable
 %       dataLocationName : (Optional) Name of datalocation. Default is 'all'

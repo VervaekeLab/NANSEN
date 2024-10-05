@@ -1,6 +1,5 @@
 classdef StatusText < handle & dynamicprops
 
-
 % Dynamic property implementation based on:
 % https://se.mathworks.com/matlabcentral/answers/48831-set-methods-for-dynamic-properties-with-unknown-names#answer_179574
 
@@ -17,7 +16,7 @@ classdef StatusText < handle & dynamicprops
         Data % Struct for holding all the property values
     end
 
-    methods 
+    methods
         function obj = StatusText(propertyNames)
             obj.PropertyNames = propertyNames;
 
@@ -28,7 +27,7 @@ classdef StatusText < handle & dynamicprops
         end
     end
 
-    methods 
+    methods
         function newText = getText(obj)
             
             textSnippets = {};
@@ -41,7 +40,7 @@ classdef StatusText < handle & dynamicprops
                 elseif isstring(thisValue) && thisValue==""
                     continue
                 else
-                    textSnippets{end+1} = char(thisValue); %#ok<AGROW> 
+                    textSnippets{end+1} = char(thisValue); %#ok<AGROW>
                 end
             end
             

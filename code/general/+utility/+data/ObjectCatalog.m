@@ -14,14 +14,12 @@ classdef ObjectCatalog < handle
     properties (Constant, Abstract)
         %OBJECTCLASS % necessary?
     end
-      
     
     properties
         FilePath char
         Preferences
         Data struct % Todo: Rename ?
     end
-    
     
     methods (Abstract)
         h = getEmptyObject(obj)
@@ -33,7 +31,6 @@ classdef ObjectCatalog < handle
         
         pathStr = getDefaultFilePath()
     end
-
     
     methods % Constructor
         
@@ -44,11 +41,8 @@ classdef ObjectCatalog < handle
             if ~isempty(obj.FilePath) && isfile(obj.FilePath)
                 obj.load()
             end
-            
         end
-        
     end
-    
     
     methods
         
@@ -85,7 +79,7 @@ classdef ObjectCatalog < handle
         end
         
         function load(obj)
-        %load Load data from file 
+        %load Load data from file
         
         % Todo: Load Preferences and Data
         
@@ -144,10 +138,9 @@ classdef ObjectCatalog < handle
         end
         
         function setData(obj, dataStruct)
-            obj.Data = dataStruct; 
+            obj.Data = dataStruct;
         end
     end
-    
     
     methods (Access = private)
                 
@@ -167,8 +160,6 @@ classdef ObjectCatalog < handle
             if ~isempty(varargin)
                 varargin = obj.checkArgsForFilePath(varargin);
             end
-            
-
         end
         
         function argList = checkArgsForFilePath(obj, argList)
@@ -189,12 +180,9 @@ classdef ObjectCatalog < handle
                 end
             end
         end
-        
     end
-
     
     methods (Static)
-        
         
         function h = new()
         
@@ -203,7 +191,5 @@ classdef ObjectCatalog < handle
         function open(filePath)
             
         end
-        
     end
-
 end

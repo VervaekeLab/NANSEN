@@ -1,23 +1,21 @@
 function unrolledIm = imunroll(IM)
 
 %
-%                 o                                                            
-%           `Lt1zzQzz11t;                       ZXlllllllllllllllllllllllXZ   
-%         1ox,    N    `=ja~                    Z|           ^           |Z   
-%       \p~       N        tK'                  Z|           z           |Z   
-%      H)     A-> N <-B     `B;                 Z|                       |Z   
-%     4\          N           @`                Z|                       |Z   
-%     @           N           rp                Z|                       |Z   
-%    'Q                        @                Z|<-A                 B->|Z   
-%     @           ^           ;%                Z|                       |Z   
-%     D^          z           Q'                Z|                       |Z   
-%      B^                    R*                 Z|                       |Z   
-%       oP`                +D~                  Z|                       |Z   
-%        -oo*           ,FZ|                    Z|           o           |Z   
-%           ;st1zzlzz11s\`                      ZXlllllllllllllllllllllllXZ   
-%                ooo                                                                 
-                                                                                
-
+%                 o
+%           `Lt1zzQzz11t;                       ZXlllllllllllllllllllllllXZ
+%         1ox,    N    `=ja~                    Z|           ^           |Z
+%       \p~       N        tK'                  Z|           z           |Z
+%      H)     A-> N <-B     `B;                 Z|                       |Z
+%     4\          N           @`                Z|                       |Z
+%     @           N           rp                Z|                       |Z
+%    'Q                        @                Z|<-A                 B->|Z
+%     @           ^           ;%                Z|                       |Z
+%     D^          z           Q'                Z|                       |Z
+%      B^                    R*                 Z|                       |Z
+%       oP`                +D~                  Z|                       |Z
+%        -oo*           ,FZ|                    Z|           o           |Z
+%           ;st1zzlzz11s\`                      ZXlllllllllllllllllllllllXZ
+%                ooo
 
 % Get size of input image array
 [imHeight, imWidth, nFrames] = size(IM);
@@ -76,6 +74,4 @@ for j = 1:rad
     unrolledIm(j, :, :) = imLin;
 
 end
-
-
 end

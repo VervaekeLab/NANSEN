@@ -15,8 +15,7 @@ function result = GetGoogleSpreadsheet(DOCID)
 % DM, Jan 2013
 %
 
-
-loginURL = 'https://www.google.com'; 
+loginURL = 'https://www.google.com';
 csvURL = ['https://docs.google.com/spreadsheet/ccc?key=' DOCID '&output=csv&pref=2'];
 
 %Step 1: go to google.com to collect some cookies
@@ -46,7 +45,6 @@ for ii=1:length(data)
    tmp = textscan(data{ii},'%q','delimiter',',');
    data(ii,1:length(tmp{1})) = tmp{1};
 end
-
 end
 
 function out = readstream(inStream)
@@ -59,6 +57,6 @@ isc = InterruptibleStreamCopier.getInterruptibleStreamCopier();
 isc.copyStream(inStream, byteStream);
 inStream.close();
 byteStream.close();
-out = typecast(byteStream.toByteArray', 'uint8'); 
+out = typecast(byteStream.toByteArray', 'uint8');
 
 end

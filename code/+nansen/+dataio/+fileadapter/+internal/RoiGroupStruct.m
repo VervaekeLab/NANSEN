@@ -7,8 +7,6 @@ classdef RoiGroupStruct < nansen.dataio.FileAdapter
     properties (Constant, Hidden, Access = protected)
         SUPPORTED_FILE_TYPES = {'mat'}
     end
-    
-
 
     methods (Access = protected)
         
@@ -33,6 +31,5 @@ classdef RoiGroupStruct < nansen.dataio.FileAdapter
             fieldValuePairs = [fieldNames'; fieldValues'];
             nonScalarStruct = struct(fieldValuePairs{:});
         end
-
     end
 end

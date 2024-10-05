@@ -1,5 +1,5 @@
 function [interp_cmap]=interpolate_cbrewer(cbrew_init, interp_method, ncolors)
-% 
+%
 % INTERPOLATE_CBREWER - interpolate a colorbrewer map to ncolors levels
 %
 % INPUT:
@@ -10,12 +10,11 @@ function [interp_cmap]=interpolate_cbrewer(cbrew_init, interp_method, ncolors)
 %               'spline'  - spline interpolation
 %               'cubic'   - bicubic interpolation as long as the data is
 %                           uniformly spaced, otherwise the same as 'spline'
-%   - ncolors=desired number of colors 
+%   - ncolors=desired number of colors
 %
 % Author: Charles Robert
 % email: tannoudji@hotmail.com
 % Date: 14.10.2011
-
 
 % just to make sure, in case someone puts in a decimal
 ncolors=round(ncolors);

@@ -29,7 +29,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
     methods % Methods which subclasses can override.
         function propertyNames = getPropertiesToHide(obj)
         %getPropertiesToHide Get a list of properties to hide from display
-        % 
+        %
         %   propertyNames = getPropertiesToHide(obj) return a cell array of
         %   character vectors with name of properties to hide from display
 
@@ -40,7 +40,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
         end
     end
     
-    methods (Static, Hidden) % Get singleton instance 
+    methods (Static, Hidden) % Get singleton instance
 
         function obj = getSingleton(className)
         %getSingleton Get singleton instance of class
@@ -191,7 +191,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
         %getCurrentPreferenceGroup Get current preference group
         %
         %   This method returns a cell array of names of preferences that
-        %   are currently active. Some preference values are dependent on 
+        %   are currently active. Some preference values are dependent on
         %   the values of other preferences, and will sometimes not have an
         %   effect.
         %
@@ -206,7 +206,5 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
 
             propertyNames = setdiff(propertyNames, namesToHide, 'stable');
         end
-    
     end
-
 end

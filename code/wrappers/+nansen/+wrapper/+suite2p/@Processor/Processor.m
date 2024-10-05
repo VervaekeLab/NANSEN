@@ -8,32 +8,30 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %   opened as an ImageStack object.
 %
 %   h = nansen.wrapper.suite2p.Processor(__, options) additionally
-%       specifies the options to use for the processor. 
-% 
+%       specifies the options to use for the processor.
+%
 %   To get the default options:
 %       defOptions = nansen.wrapper.suite2p.Processor.getDefaultOptions()
 %
-%   For additional optional parameters that can be used for configuring the 
+%   For additional optional parameters that can be used for configuring the
 %   processor;
-%   See also nansen.stack.ImageStackProcessor 
+%   See also nansen.stack.ImageStackProcessor
 %
 %
 %   This class creates the following data variables:
 %
 %     * <strong>Suite2pOptions</strong> : Struct with options used.
 %
-%     * <strong>Suite2pResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack. 
+%     * <strong>Suite2pResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack.
 %           Struct contains output from suite2p
 %
-%     * <strong>Suite2pResultsFinal</strong> : Cell array of structs. One struct for each channel and/or 
+%     * <strong>Suite2pResultsFinal</strong> : Cell array of structs. One struct for each channel and/or
 %           plane of ImageStack. Struct contains output from suite2p
 %
 %     * <strong>roiArraySuite2pAuto</strong> : array of RoI objects
 %           resulting from running suite2p autosegmentation
 
-
-
-    properties (Constant, Hidden) 
+    properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_suite2p')
         VARIABLE_PREFIX = 'Suite2p';
     end
@@ -47,9 +45,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     properties (Constant) % From ImageStack Processor...
         ImviewerPluginName = ''
     end
-
     
-    methods % Constructor 
+    methods % Constructor
         
         function obj = Processor(varargin)
         %nansen.wrapper.suite2p.Processor Construct suite2p processor
@@ -74,7 +71,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 clear obj
             end
         end
-
     end
     
     methods (Access = protected) % Implementation of superclass methods
@@ -94,7 +90,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             % Run superclass method first:
             onCompletion@nansen.processing.RoiSegmentation(obj)
         end
-        
     end
     
     methods (Access = protected) % Implementation of RoiSegmentation methods
@@ -172,7 +167,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 end
             end
         end
-
     end
     
     methods (Access = private) % Methods specific to the suite2p Processor
@@ -194,7 +188,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             spatialWeights = obj.convertStatToSpatialWeigths(S.stat);
 
-            % Get spatial weigths as uint8 roi thumbnail images.
+            % Get spatial weights as uint8 roi thumbnail images.
             imArray = nansen.wrapper.extract.util.convertSpatialWeightsToThumbnails(...
                 roiArray, spatialWeights);
 
@@ -246,5 +240,4 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
         end
     end
-
 end

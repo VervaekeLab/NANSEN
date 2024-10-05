@@ -8,7 +8,7 @@ classdef DummyArray
         DataType                        % Data type for the original data array
     end
     
-    properties (SetAccess = private) 
+    properties (SetAccess = private)
         IsInitialized = false
     end
     
@@ -26,4 +26,3 @@ classdef DummyArray
         end
     end
 end
-

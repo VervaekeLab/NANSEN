@@ -41,7 +41,6 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin % signalviewer plugin
         function delete(obj)
             
         end
-        
     end
     
     methods (Access = protected) % Plugin derived methods
@@ -52,7 +51,6 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin % signalviewer plugin
             %m = obj.PrimaryApp.hContextMenu;
             %m = findobj(obj.PrimaryApp.Figure, 'Tag', 'App Context Menu');
             return
-            
             
             % Todo: Check if menu is already added...
             
@@ -66,8 +64,7 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin % signalviewer plugin
             functionName = 'ophys.twophoton.process.deconvolution.Caiman';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
             obj.settings = obj.OptionsManager.getOptions;
-        end 
-            
+        end
     end
     
     methods (Access = protected)
@@ -120,9 +117,6 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin % signalviewer plugin
                 set(obj.hLineDeconvolved, 'XData', xData_, 'YData', dec)
                 set(obj.hLineDenoised, 'XData', xData_, 'YData', den)
             end
-            
         end
-        
     end
-    
 end

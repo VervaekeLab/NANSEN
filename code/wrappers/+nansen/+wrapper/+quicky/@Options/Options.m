@@ -4,7 +4,6 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
         ToolboxName = 'Quicky'
     end
     
-    
     methods (Static) % Functions defined in files.
         
         [P, V] = getDefaults()
@@ -39,10 +38,5 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
             SOut = S;
 
         end
-        
     end
-    
-    
-    
-    
 end

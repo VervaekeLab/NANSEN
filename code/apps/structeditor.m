@@ -14,5 +14,4 @@ function hApp = structeditor(varargin)
     if ~nargout
         clear hApp
     end
-
 end

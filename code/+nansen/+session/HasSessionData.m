@@ -3,15 +3,15 @@ classdef HasSessionData < uim.handle
 %
 %   This class overrides the subsref to initialize the Data upon the first
 %   subsref request. Updating all the variables of the SessionData has some
-%   overhead, so only want this to happen when necessary. 
+%   overhead, so only want this to happen when necessary.
 %
-%   The reason for not adding the subsref directly to a class having a 
-%   Data property is because overriding the subsref method can render the 
+%   The reason for not adding the subsref directly to a class having a
+%   Data property is because overriding the subsref method can render the
 %   original class not to work as intended.
 
 %   I later found out that, of course, the class that inherits this
 %   superclass will also inherit the subsref method, so back to square 1.
-%   
+%
 %   Update: Seems like overriding the numArgumentsFromSubscript method and
 %   calling the builtin from there gives the expected behavior. Needs some
 %   stress testing.
@@ -19,7 +19,7 @@ classdef HasSessionData < uim.handle
 %   Conclusion: Would be nice to solve this in a more elegant way...
 
 %   Note: The "Data" property is transient because it might potentially
-%   contain alot of in-memory cached data which should not be saved. As the
+%   contain a lot of in-memory cached data which should not be saved. As the
 %   transient properties do not follow an object if it is sent to a
 %   separate worker, the Data property is dependent and there is a private
 %   property containing the SessionData object. If the Data object is empty
@@ -57,7 +57,6 @@ classdef HasSessionData < uim.handle
             end
             data = obj.Data_;
         end
-
     end
 
 % %         Todo: Is this even possible without breaking my head. How to
@@ -131,7 +130,6 @@ classdef HasSessionData < uim.handle
             
             n = builtin('numArgumentsFromSubscript', obj, s, indexingContext);
         end
-
     end
 
     methods (Access = private)
@@ -179,6 +177,5 @@ classdef HasSessionData < uim.handle
             numArgouts = n(1);
             
         end
-
     end
 end

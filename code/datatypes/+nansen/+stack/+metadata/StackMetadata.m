@@ -1,5 +1,5 @@
 classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
-%ImageMetadata Class representing metadata for an imagestack   
+%ImageMetadata Class representing metadata for an imagestack
     
     % A stack can be 2D to 5D arrays consisting of data of minimum 2
     % dimension (X,Y) and maximum 5 dimension (X,Y,C,Z,T)
@@ -18,12 +18,12 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
         
         PhysicalSizeX (1,1) double = 1   % Physical width of a pixel. um per pixel
         PhysicalSizeY (1,1) double = 1   % Physical height of a pixel. um per pixel
-        PhysicalSizeZ (1,1) double = 1   % Physical distance between planes. 
+        PhysicalSizeZ (1,1) double = 1   % Physical distance between planes.
         PhysicalSizeXUnit char = 'pixel' % The units of the physical size of a pixel.
         PhysicalSizeYUnit char = 'pixel' % The units of the physical size of a pixel.
         PhysicalSizeZUnit char = 'pixel' % The units of the physical distance between planes.
         
-        TimeIncrement (1,1) double = 1   % Duration between image frames. 
+        TimeIncrement (1,1) double = 1   % Duration between image frames.
         TimeIncrementUnit char = 'N/A'
 
         StartTime datetime
@@ -57,7 +57,6 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
                 obj.readFromFile()
             end
         end
-        
     end
     
     methods % Set/get
@@ -76,7 +75,6 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
             else
                 sampleRate = nan;
             end
-            
         end
         
         function set.SampleRate(obj, newValue)
@@ -133,7 +131,7 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
         function readFromFile(obj)
             if isempty(obj.Filename); return; end
             if ~isfile(obj.Filename); return; end
-            %obj.ini2yaml(obj.Filename) 
+            %obj.ini2yaml(obj.Filename)
             readFromFile@nansen.dataio.metadata.AbstractMetadata(obj)
         end
 
@@ -156,7 +154,6 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
             fwrite(fid, textStr);
             fclose(fid);
             
-            
         end
         
         function updateFromSource(obj, S)
@@ -173,9 +170,7 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
         function uiset(obj, src, evt)
         %uiset Callback for value changed from gui
             
-            
         end
-        
     end
     
     methods (Access = protected)
@@ -222,9 +217,7 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
             propertyNames = properties(obj);
             propertyNames = setdiff(propertyNames, propertiesSkip, 'stable');
         end
-        
     end
-    
 
     methods (Static)
 
@@ -241,7 +234,7 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
             
             textStr = fileread(filename);
             % Correct(?) format of struct with only scalars
-            if strcmp(textStr(1), '{') && strcmp(textStr(end-1), '}') 
+            if strcmp(textStr(1), '{') && strcmp(textStr(end-1), '}')
                 textStr = [strrep( textStr(2:end-2), ', ', newline ), newline];
             end
             
@@ -254,7 +247,5 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
             fwrite(fid, textStr);
             fclose(fid);
         end
-        
     end
-
 end

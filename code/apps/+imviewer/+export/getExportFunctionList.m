@@ -14,4 +14,3 @@ function fcnList = getExportFunctionList()
     fcnList(strcmp(fcnList, currentName)) = [];
     
 end
-

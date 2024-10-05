@@ -1,5 +1,5 @@
 function wasSuccess = createNewSessionMethod(app)
-%createNewSessionMethod Let user interactively create a new session method template    
+%createNewSessionMethod Let user interactively create a new session method template
 
     wasSuccess = false;
     
@@ -9,7 +9,7 @@ function wasSuccess = createNewSessionMethod(app)
 % %     S.BatchMode = 'serial';
 % %     S.BatchMode_ = {'serial', 'batch'};
     S.Input = 'Single session';
-    S.Input_ = {'Single session', 'Multiple sessions'};    
+    S.Input_ = {'Single session', 'Multiple sessions'};
     S.Queueable = true;
     S.Type = 'Function'; % (Template type, i.e use function template or sessionmethod template)
     S.Type_ = {'Function', 'SessionMethod Class'};
@@ -28,7 +28,6 @@ function wasSuccess = createNewSessionMethod(app)
     if wasAborted; return; end
     if isempty(S.MethodName); return; end
     wasSuccess = true;
-
     
     switch S.Type
         case 'Function'
@@ -39,7 +38,6 @@ function wasSuccess = createNewSessionMethod(app)
     
     templateFolderDir = nansen.localpath('session_method_templates');
     fcnSourcePath = fullfile(templateFolderDir, [mFilename, '.m']);
-    
     
     % Modify the template function by adding the variable name
     fcnContentStr = fileread(fcnSourcePath);
@@ -82,7 +80,6 @@ function wasSuccess = createNewSessionMethod(app)
                 replacement = 'IsManual = true';
                 fcnContentStr = strrep(fcnContentStr, expression, replacement);
             end
-            
     end
     
     % Save template
@@ -97,8 +94,7 @@ function wasSuccess = createNewSessionMethod(app)
     subfolderNames = cellfun(@(c) ['+', c], S.MenuLocation, 'uni', 0);
     fcnTargetPath = fullfile(sMethodDir, subfolderNames{:});
     fcnFilename = [ S.MethodName, '.m' ];
-        
-        
+    
     if ~isfolder(fcnTargetPath); mkdir(fcnTargetPath); end
     
     % Create a new m-file and add the function template to the file.

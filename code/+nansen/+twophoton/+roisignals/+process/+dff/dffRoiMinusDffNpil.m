@@ -1,14 +1,14 @@
 function dff = dffRoiMinusDffNpil(signalArray, varargin)
 
 %   INPUTS:
-%       
+%
 %   signalArray : 3D array (numSamples x numSubregions x numRois)
 %   varargin : Options as struct or name-value pairs.
     
 % This method needs refinement, but it seems to give a signal without
-% neuropil decontamination and also it is well detrended. 
+% neuropil decontamination and also it is well detrended.
 
-    % Todo: 
+    % Todo:
     %   [ ] Implement running baseline
     %   [ ] Fix neuropil subtraction
     
@@ -28,7 +28,6 @@ function dff = dffRoiMinusDffNpil(signalArray, varargin)
     elseif numSubregions > 2
         fPil = squeeze( mean(signalArray(:, 2:end, :), 2));
     end
-    
     
     % Calculate delta f over f.
     f0_Roi = prctile(fRoi, params.baseline, 1);

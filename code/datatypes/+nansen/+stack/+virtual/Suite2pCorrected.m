@@ -18,14 +18,13 @@ classdef Suite2pCorrected < nansen.stack.virtual.TiffMultiPart
 
             obj@nansen.stack.virtual.TiffMultiPart(filePath, varargin{:})
         end
-        
     end
     
     methods (Access = protected)
         
         function numChannels = detectNumberOfChannels(obj)
             
-            % Check if there is a channel expression if there are more than 
+            % Check if there is a channel expression if there are more than
             % one file
             if numel(obj.FilePathList) > 1
                 
@@ -95,12 +94,6 @@ classdef Suite2pCorrected < nansen.stack.virtual.TiffMultiPart
                     filepath = fullfile(filenames);
                 end
             end
-
         end
-        
     end
-    
-    
-    
 end
-

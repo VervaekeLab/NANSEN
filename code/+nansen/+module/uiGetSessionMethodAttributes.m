@@ -14,7 +14,7 @@ function S = uiGetSessionMethodAttributes()
 % %     S.BatchMode = 'serial';
 % %     S.BatchMode_ = {'serial', 'batch'};
     S.Input = 'Single session';
-    S.Input_ = {'Single session', 'Multiple sessions'};    
+    S.Input_ = {'Single session', 'Multiple sessions'};
     S.Queueable = true;
     S.Type = 'Function'; % (Template type, i.e use function template or sessionmethod template)
     S.Type_ = {'Function', 'SessionMethod Class'};
@@ -35,7 +35,6 @@ function S = uiGetSessionMethodAttributes()
     wasSuccess = true;
 
 end
-
 
 % Todo:
 %   S.Name

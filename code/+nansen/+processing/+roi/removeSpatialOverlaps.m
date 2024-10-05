@@ -31,5 +31,4 @@ function roiMasksOut = removeSpatialOverlaps(roiMasksIn, roiInd)
         iRoi = roiInd(iIter);
         roiMasksOut(:, :, iIter) = roiMasksIn(:, :, iRoi) & footPrintNoOverlap;
     end
-
 end

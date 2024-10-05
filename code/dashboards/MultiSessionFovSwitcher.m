@@ -12,9 +12,9 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 %       visible channel is changed in roimanager
 %       Plot rois as dots in the FoVs and show updates across all session
 %       thumbnails.
-%   
+%
 
-    % Todo: 
+    % Todo:
     % [ ] Dock in roimanager
     % [ ] migrate rois to all sessions when closing
     % [ ] Consistent naming, i.e multisession or longitudinal?
@@ -37,7 +37,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
     properties (Access = private) % Data properties
         SessionObjects              % Array of session objects
-        SessionObjectStruct         % Some additional data (static) in a struct array 
+        SessionObjectStruct         % Some additional data (static) in a struct array
         MultiSessionRoiCollection   % Instance of a MultiSessionRoiCollection
         ThumbnailImageArray         % Fov images in a numerical array (for easy indexing when updating view)
         ThumbnailLabels             % Cell array of session ids
@@ -60,7 +60,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
     properties (Constant, Hidden = true) % Move to appwindow superclass
         DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
     end
-
 
     methods
 
@@ -87,23 +86,23 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             %obj.RoimanagerApp.addRois(S.RoiArray)
 
             obj.SelectedSession = 1;
-            obj.TiledImageAxes.selectTile([], [], 1); 
+            obj.TiledImageAxes.selectTile([], [], 1);
 
             % Load multi session rois
             obj.loadMultisessionRois()
 
-            % Todo: 
+            % Todo:
             % Check that all sessions are present in multisession
             
             obj.Figure.CloseRequestFcn = @obj.onQuit;
             addlistener(obj.RoimanagerApp, 'ObjectBeingDestroyed', @obj.onQuit);
 
 % %             % Something like this is necessary if implementing live
-% %             % update of rois / image channel in this gui. 
+% %             % update of rois / image channel in this gui.
 % %             % Add listener for when image channel.
 % %             addlistener(obj.RoimanagerApp.ImviewerObj, 'currentChannel', ...
 % %                 'PostSet', @(s, e) obj.onImageChannelChanged);
-% % 
+% %
 % %             % Add listener for when active (roi) channel changes.
 % %             addlistener(obj.RoimanagerApp, 'ActiveChannelChanged', ...
 % %                  @(s, e) obj.onImageChannelChanged);
@@ -139,7 +138,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
                 close(obj.Figure)
             end
         end
-
     end
 
     methods
@@ -147,7 +145,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         function numSessions = get.NumSessions(obj)
             numSessions = numel(obj.SessionObjects);
         end
-
     end
 
     methods (Access = protected)
@@ -162,7 +159,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             onSizeChanged@applify.ModularApp(obj)
             %obj.Panel.Position = [0,0,1,1];
         end
-
     end
 
     methods (Access = private)
@@ -187,7 +183,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             obj.TiledImageAxes.Position(2) = obj.TiledImageAxes.Position(2)+20;
             obj.Panel.Position(3:4) = pixelPosition(3:4)+[20, 40];
             
-            if strcmp( obj.mode, 'standalone' )          
+            if strcmp( obj.mode, 'standalone' )
                 obj.Figure.Position([3,4]) = pixelPosition(3:4)+[20, 40];
                 obj.Figure.Resize = 'off';
             end
@@ -285,7 +281,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             
             % Todo: Combine with update view??
             tileInd = 1:obj.NumVisibleImages;
-
 
             if ndims(obj.ThumbnailImageArray) == 3
                 obj.TiledImageAxes.updateTileImage(obj.ThumbnailImageArray(:, :, tileInd), tileInd)
@@ -434,7 +429,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
             %if ~isvalid(obj.RoimanagerApp); return; end
 
-            % Get roi array from roimanager:            
+            % Get roi array from roimanager:
             roiGroup = obj.RoimanagerApp.RoiGroup;
 
             % Ad hoc case to allow for working with individual channel of
@@ -478,7 +473,5 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             obj.SessionObjects(sessionIdx).saveData('RoiArrayLongitudinal', updatedRois)
             fprintf('Saved rois for session %s\n', sessionID)
         end
-
     end
-
 end

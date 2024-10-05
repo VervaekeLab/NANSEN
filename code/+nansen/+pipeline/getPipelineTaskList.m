@@ -2,12 +2,12 @@ function taskList = getPipelineTaskList(pipelineStruct, mode)
 %GETPIPELINETASKLIST Get list of tasks from a pipeline struct
 %
 %   taskList = getPipelineTaskList(pipelineStruct, mode) returns a task
-%   list from the provided pipelineStruct. mode can be 'Queuable' or 
+%   list from the provided pipelineStruct. mode can be 'Queuable' or
 %   'Manual'. pipelineStruct must be a struct that have a field called
 %   TaskList (TaskList is a structarray of task items).
 %
-%   The task list will be the uncompleted tasks in the list which is of 
-%   the specified type, i.e Manual or Queuable directly following any 
+%   The task list will be the uncompleted tasks in the list which is of
+%   the specified type, i.e Manual or Queuable directly following any
 %   completed tasks.
     
     if isempty(pipelineStruct); taskList = []; return; end
@@ -25,7 +25,7 @@ function taskList = getPipelineTaskList(pipelineStruct, mode)
     idxManual = setdiff(idxManual, idxFinished);
     idxAuto = setdiff(idxAuto, idxFinished);
 
-    % If no tasks of this type exists, assign number of tasks + 1 
+    % If no tasks of this type exists, assign number of tasks + 1
     if isempty(idxManual); idxManual = numel(pipeTaskList)+1; end
     if isempty(idxAuto); idxAuto = numel(pipeTaskList)+1; end
 
@@ -40,4 +40,3 @@ function taskList = getPipelineTaskList(pipelineStruct, mode)
     taskList = pipeTaskList(selectedIdx);
     
 end
-

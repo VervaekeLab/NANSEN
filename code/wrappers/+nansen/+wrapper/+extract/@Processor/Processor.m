@@ -8,35 +8,34 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %   opened as an ImageStack object.
 %
 %   h = nansen.wrapper.extract.Processor(__, options) additionally
-%       specifies the options to use for the processor. 
-% 
+%       specifies the options to use for the processor.
+%
 %   To get the default options:
 %       defOptions = nansen.wrapper.extract.Processor.getDefaultOptions()
 %
-%   For additional optional parameters that can be used for configuring the 
+%   For additional optional parameters that can be used for configuring the
 %   processor;
-%   See also nansen.stack.ImageStackProcessor 
+%   See also nansen.stack.ImageStackProcessor
 %
 %
 %   This class creates the following data variables:
 %
 %     * <strong>ExtractOptions</strong> : Struct with options used.
 %
-%     * <strong>ExtractResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack. 
+%     * <strong>ExtractResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack.
 %           Struct contains output from EXTRACT
 %
-%     * <strong>ExtractResultsFinal</strong> : Cell array of structs. One struct for each channel and/or 
+%     * <strong>ExtractResultsFinal</strong> : Cell array of structs. One struct for each channel and/or
 %           plane of ImageStack. Struct contains output from EXTRACT
 %
 %     * <strong>roiArrayExtractAuto</strong> : array of RoI objects
 %           resulting from running EXTRACT autosegmentation
 
-
 % Todo: Load temp results
 
 % Rename to ExtractorS??
 
-    properties (Constant, Hidden) 
+    properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_extract')
         VARIABLE_PREFIX = 'Extract';
     end
@@ -50,9 +49,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     properties (Constant) % From ImageStack Processor...
         ImviewerPluginName = 'EXTRACT'
     end
-
     
-    methods % Constructor 
+    methods % Constructor
         
         function obj = Processor(varargin)
         %nansen.wrapper.extract.Processor Construct extract processor
@@ -77,7 +75,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 clear obj
             end
         end
-
     end
     
     methods (Access = protected) % Implementation of superclass methods
@@ -129,7 +126,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             %obj.createRoiClassificationData()
         end
-        
     end
     
     methods (Access = protected) % Implementation of RoiSegmentation methods
@@ -206,7 +202,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     S{j}(:, :, idx_match(j, :)) = [];
                 end
                 
-                % Merge rois by finding the average of the masks. 
+                % Merge rois by finding the average of the masks.
                 % Todo: weight by number of parts.
                 SMerged = mean( cat(4, Smerged{:}), 4 );
 
@@ -255,7 +251,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 end
             end
         end
-
     end
     
     methods (Access = private) % Methods specific to the Extract Processor
@@ -290,16 +285,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             
             % Add spatial weights...
             
-           
-            
             % Add area as a statistical value
             [roiStats(:).Area] = deal(roiArray.area);
-            
             
             % Save to roi file...
             filePath = obj.getDataFilePath( obj.RoiArrayVarName );
             S = struct('roiImages', roiImages, 'roiStats', roiStats);
-            save(filePath, '-struct', 'S', '-append') 
+            save(filePath, '-struct', 'S', '-append')
             
             %tic; S = load(filePath); toc
         end
@@ -317,9 +309,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             roiArray = obj.RoiArray{iZ, iC};
             roiImages = obj.RoiImages{iZ, iC};
-            numRois = numel(roiArray);            
+            numRois = numel(roiArray);
 
-            % Get spatial weigths as uin8 roi thumbnail images.
+            % Get spatial weights as uin8 roi thumbnail images.
             imArray = nansen.wrapper.extract.util.convertSpatialWeightsToThumbnails(...
                 roiArray, spatialWeights);
 
@@ -344,7 +336,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
         function adjustNumCellsToFind(obj)
         %adjustNumCellsToFind Adjust number of cells to find if multiple
-        %spatial partitions will be used. 
+        %spatial partitions will be used.
 
             numPartitions = obj.ToolboxOptions.num_partitions_x * ...
                                 obj.ToolboxOptions.num_partitions_y;
@@ -356,7 +348,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 end
             end
         end
-
     end
     
     methods (Static) % Method in external file.
@@ -369,5 +360,4 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
         end
     end
-
 end

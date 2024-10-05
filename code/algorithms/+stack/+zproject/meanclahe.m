@@ -1,6 +1,5 @@
 function im = meanclahe(imArrayIn, dim, imclass)
 
-
     if isempty(imArrayIn); im = []; return; end
 
     if nargin < 3
@@ -20,7 +19,6 @@ function im = meanclahe(imArrayIn, dim, imclass)
                     'ClipLimit', 0.015, ...
                     'Distribution', 'rayleigh', ...
                     'Range', 'original');
-
     
     im = im .* (maxVal-minVal) + minVal;
     im = cast(im, imclass);

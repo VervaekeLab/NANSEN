@@ -1,8 +1,8 @@
 classdef Denoiser < nansen.stack.ImageStackProcessor
 %Denoiser Processor for denoising an ImageStack using DeepInterpolation
 %
-%   This method is developed based on the example in the 
-%   Tiny Ophys Inference Example livescript from the 
+%   This method is developed based on the example in the
+%   Tiny Ophys Inference Example livescript from the
 %   DeepInterpolation-MATLAB (1) GitHub repository. The DeepInterpolation
 %   method is developed by the Allen Institute and the code is available
 %   here: https://github.com/AllenInstitute/deepinterpolation
@@ -51,9 +51,8 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
             
             className = mfilename('class');
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
-            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});            
+            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
         end
-        
     end
     
     methods % Constructor
@@ -67,10 +66,9 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
                 clear obj
             end
         end
-
     end
 
-    methods (Access = protected) % Overide ImageStackProcessor methods
+    methods (Access = protected) % Override ImageStackProcessor methods
         
         function onInitialization(obj)
         %onInitialization Custom code to run on initialization.
@@ -84,7 +82,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
         %   The denoiser interpolates a target frame based on surrounding
         %   frames. Based on the window size of surrounding frames to use,
         %   each chunk/subpart of the imagestack needs to be "padded" with
-        %   some extra frames. 
+        %   some extra frames.
 
             configureImageStackSplitting@nansen.stack.ImageStackProcessor(obj)
 
@@ -119,7 +117,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
         end
 
         function iIndices = getTargetIndices(obj, ~)
-        %getTargetIndices Get downsampled target indices    
+        %getTargetIndices Get downsampled target indices
             iPart = obj.CurrentPart;
             iIndices = obj.TargetFrameIndPerPart{iPart};
         end
@@ -132,7 +130,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
             Y = obj.preprocessImageSubstack(Y);
 
             % Unless this is the first or last part, Y is bigger than what
-            % the output will be. 
+            % the output will be.
 
             absSourceFrameIndices = obj.CurrentFrameIndices;
             absTargetFrameIndices = obj.getTargetIndices();
@@ -149,7 +147,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
             YOut = zeros(chunkSize, 'like', Y);
             
             % Note: iFrame is the frame relative to the output data,
-            % whereas targetFrameIndices are relative to the input data 
+            % whereas targetFrameIndices are relative to the input data
             % (i.e the data with extra "padded" frames).
 
             for iFrame = 1:numel(targetFrameIndices)
@@ -177,13 +175,12 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
             Y = obj.postprocessImageSubstack(YOut);
             results = struct;
         end
-
     end
 
     methods (Access = private)
     
         function configureOutputStack(obj)
-        %createOutputStack Configure and create the output stack. 
+        %createOutputStack Configure and create the output stack.
         %
         %   Note: If stack exists from before, new stack is not created.
         
@@ -192,7 +189,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
             targetName = strcat(sourceName, '_denoised');
             
             % NB: outputs the same data type...
-            targetFilepath = strrep(  obj.SourceStack.FileName, sourceName, targetName ); 
+            targetFilepath = strrep(  obj.SourceStack.FileName, sourceName, targetName );
 
             % Get new size
             stackSize = size( obj.SourceStack.Data );
@@ -271,16 +268,16 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
         function predictionFrameIndices = getPredictionFrameIndices(obj, targetFrameIdx)
         %getPredictionFrameIndices Get indices for prediction of a target
         %
-        %   Based on the number of pre-frames and post-frames as well as 
+        %   Based on the number of pre-frames and post-frames as well as
         %   the frames to omit, this function returns indices for a set of
         %   frames to use for the DeepInterpolation prediction of a target
         %   frame.
-        %   
-        %   Input: 
+        %
+        %   Input:
         %       targetFrameIdx - Integer representing the frame index of
         %       the target frame.
 
-            numPreFrames = obj.Options.DeepInterpolation.PreFrame; 
+            numPreFrames = obj.Options.DeepInterpolation.PreFrame;
             numPostFrames = obj.Options.DeepInterpolation.PostFrame;
             numPrePostOmission = obj.Options.DeepInterpolation.PrePostOmission;
 
@@ -303,7 +300,6 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
                 predictionFrameIndices = [];
             end
         end
-    
     end
 
     methods (Static, Access = public)

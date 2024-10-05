@@ -25,5 +25,4 @@ roiStruct = cell2struct(intermediateCellArray, fieldnames, 2);
 if iscolumn(roiStruct)
     roiStruct = roiStruct';
 end
-
 end

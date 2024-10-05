@@ -1,8 +1,6 @@
 function [P, V] = autosegmentationOptions()
 
-
-
-    % - - - - - - - - Specify parameters and default values - - - - - - - - 
+    % - - - - - - - - Specify parameters and default values - - - - - - - -
     
     % Names                       Values (default)      Description
     P                           = struct();             %
@@ -20,15 +18,13 @@ function [P, V] = autosegmentationOptions()
     P.finalization_             = {'Add rois to current Roi Group', 'Add rois to new Roi Group', 'Add rois to new window'};
     P.run                       = false;
     P.run_                      = struct('type', 'button', 'args', {{'String', 'Run Autosegmentation', 'FontWeight', 'bold', 'ForegroundColor', [0.1840    0.7037    0.4863]}});
-
-    
     
     % - - - - Specify validation/assertion test for each parameter - - - -
     
     V                           = struct();
 %     V.showNeuropilMask          = @(x) assert( islogical(x) && isscalar(x), ...
-%                                     'Value must be a logical scalar' ); 
+%                                     'Value must be a logical scalar' );
 %     V.showLabels                = @(x) assert( islogical(x) && isscalar(x), ...
-%                                     'Value must be a logical scalar' );                            
+%                                     'Value must be a logical scalar' );
                                 
 end

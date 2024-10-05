@@ -25,7 +25,7 @@ classdef AbstractTabPageModule < handle
         %   Input arguments:
         %       parentHandle - Optional: If the first input is a graphical
         %           container it is assigned to the Parent property and all
-        %           components are added to it. 
+        %           components are added to it.
         %       varargin - Optional name value pairs?
             
             obj.parseInputs(varargin)
@@ -38,7 +38,6 @@ classdef AbstractTabPageModule < handle
 
             obj.createListeners()
         end
-
     end
 
     methods (Access = private)
@@ -54,7 +53,6 @@ classdef AbstractTabPageModule < handle
 
             obj.handleOptionalInputs(listOfArgs)
         end
-        
     end
 
     methods (Access = private) % Create components and internal elements.
@@ -97,7 +95,5 @@ classdef AbstractTabPageModule < handle
             % Subclasses may override.
             wasCaptured = false;
         end
-
     end
-
 end

@@ -4,8 +4,7 @@ classdef TSMVoltageSeries < nansen.dataio.FileAdapter
 %   This file adapter provides methods to load the data from a tsm
 %   file to a virtual ImageStack object. This is a read-only file adapter.
 
-
-% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - -
 
     properties (Constant)
         DataType = 'ImageStack'
@@ -16,7 +15,7 @@ classdef TSMVoltageSeries < nansen.dataio.FileAdapter
         SUPPORTED_FILE_TYPES = {'tsm'}
     end
     
-% - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - -
 
     methods (Access = protected)
         
@@ -25,7 +24,6 @@ classdef TSMVoltageSeries < nansen.dataio.FileAdapter
             virtualData = nansen.stack.virtual.TSM(obj.Filename);
             imageStack = nansen.stack.ImageStack(virtualData);
         end
-        
     end
     
     methods
@@ -44,7 +42,5 @@ classdef TSMVoltageSeries < nansen.dataio.FileAdapter
             imageStack = obj.load();
             imviewer(imageStack)
         end
-        
     end
-    
 end

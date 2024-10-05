@@ -1,15 +1,13 @@
 % This abstract control replicates MATLAB's uicontrol component and adds
-% some custom features.  
-
+% some custom features.
 
 classdef (Abstract) AbstractControl < ...
                         nansen.ui.mixin.HasPropertyArgs & ...
-                            nansen.ui.mixin.IsStylable & ... 
+                            nansen.ui.mixin.IsStylable & ...
                                 nansen.ui.mixin.IsArrangeable
 
-
 % Uses matlab.ui.control.UIControl internally
-% Todo: 
+% Todo:
 %  [ ] Customize display
 %  [ ] Consider constant property or abstract method for fields to ignore
 %      for specific subclass control
@@ -85,7 +83,7 @@ classdef (Abstract) AbstractControl < ...
         UIControl
     end
     
-    methods % Constructor 
+    methods % Constructor
         function obj = AbstractControl(options)
             arguments
                 %options.?nansen.ui.control.AbstractControl
@@ -154,7 +152,7 @@ classdef (Abstract) AbstractControl < ...
         % function value = get.Max(obj)
         %     value = obj.UIControl.Max;
         % end
-        % 
+        %
         % function set.Min(obj, value)
         %     obj.UIControl.Min = value;
         % end
@@ -168,7 +166,7 @@ classdef (Abstract) AbstractControl < ...
         % function value = get.SliderStep(obj)
         %     value = obj.UIControl.SliderStep;
         % end
-        % 
+        %
         % function set.ListboxTop(obj, value)
         %     obj.UIControl.ListboxTop = value;
         % end
@@ -352,7 +350,7 @@ classdef (Abstract) AbstractControl < ...
         end
         function value = get.DeleteFcn(obj)
             value = obj.UIControl.DeleteFcn;
-        end    
+        end
         
         function set.Interruptible(obj, value)
             obj.UIControl.Interruptible = value;
@@ -425,7 +423,7 @@ classdef (Abstract) AbstractControl < ...
         end
     end
     
-    methods (Access = protected) % callbacks for property set events 
+    methods (Access = protected) % callbacks for property set events
         function onCallbackSet(obj)
             obj.UIControl.Callback = obj.Callback_;
         end

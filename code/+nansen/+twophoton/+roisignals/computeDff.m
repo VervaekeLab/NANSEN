@@ -10,7 +10,7 @@ function dff = computeDff(signalArray, varargin)
     P.correctionPrctile = 25;
     P.correctionPrctile_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 100, 'nTicks', 101, 'TooltipPrecision', 0}});
 
-    if ~nargin 
+    if ~nargin
         dff = P; return
     end
     
@@ -37,9 +37,7 @@ function dff = computeDff(signalArray, varargin)
         %dff = dff - movmedian(dff, window);
         
     end
-    
 end
-
 
 function choices = getDffMethodChoices()
     
@@ -54,7 +52,7 @@ function choices = getDffMethodChoices()
         fileNames = strrep(fileNames, '.m', '');
     end
     
-    choices = fileNames; 
+    choices = fileNames;
 end
 
 function pathName = getPackagePath(packageName)

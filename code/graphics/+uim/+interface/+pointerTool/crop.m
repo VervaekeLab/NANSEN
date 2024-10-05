@@ -4,7 +4,6 @@ classdef crop < uim.interface.abstractPointer
         exitMode = 'previous';
     end
     
-    
     properties
         plotColor = [32, 32, 32]./255;
         textColor = ones(1,3)*0.8;
@@ -26,7 +25,6 @@ classdef crop < uim.interface.abstractPointer
     events
         CropLimitChanged
     end
-    
 
     methods
         
@@ -80,12 +78,9 @@ classdef crop < uim.interface.abstractPointer
             evtData = uiw.event.EventData('XLim', obj.currentXLim, 'YLim', obj.currentYLim);
             obj.notify('CropLimitChanged', evtData)
         end
-
     end
-    
-    
         
-    methods 
+    methods
         
         function setPointerSymbol(obj)
         end
@@ -96,9 +91,7 @@ classdef crop < uim.interface.abstractPointer
         end
         function onButtonUp(obj, src, event)
         end
-        
     end
-    
     
     methods (Access = private)
         
@@ -175,7 +168,6 @@ classdef crop < uim.interface.abstractPointer
                 h = obj.hCroppedBoundaryPatch;
                 set(h, 'XData', [outerBoxX, innerBoxX], 'YData',  [outerBoxY, innerBoxY] )
             end
-            
         end
     
         function rccInit = getRectangleInitCoordinates(obj)
@@ -233,8 +225,5 @@ classdef crop < uim.interface.abstractPointer
             drawnow
             obj.deactivate()
         end
-        
     end
-    
-    
 end

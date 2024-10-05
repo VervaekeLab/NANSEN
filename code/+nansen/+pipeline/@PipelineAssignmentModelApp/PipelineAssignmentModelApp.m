@@ -1,6 +1,6 @@
 classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
 % PipelineAssignmentModelApp - This app is used to create a configuration
-% for automatically assigning a pipeline to sessions based one ore more
+% for automatically assigning a pipeline to sessions based one or more
 % session table variables.
     
     properties (Constant)
@@ -37,7 +37,6 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
                 end
             end
         end
-        
     end
     
     methods (Access = protected)
@@ -74,9 +73,7 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
 
             delete(obj.Figure)
         end
-        
     end
-    
     
     methods (Access = private)
         
@@ -100,7 +97,7 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
 
         function createControlPanels(obj)
             obj.ControlPanels = obj.createControlPanel( obj.Figure );
-        end 
+        end
         
         function createUIModules(obj)
             
@@ -123,7 +120,5 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
 
             obj.LoadingPanel.Visible = 'off';
         end
-        
     end
-    
 end

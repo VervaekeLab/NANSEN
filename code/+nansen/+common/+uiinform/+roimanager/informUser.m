@@ -4,9 +4,9 @@ function informUser(infoID, mode)
     % Input argument
     %   infoID : An ID for which info message to show
     %
-    %   mode : 'default', 'show', 'reset', 
-    %     - default : show message if user did not previously select to not 
-    %                 show message again 
+    %   mode : 'default', 'show', 'reset',
+    %     - default : show message if user did not previously select to not
+    %                 show message again
     %     - show    : show message independent of user preference
     %     - reset   : reset the user selection of whether to show message
     %                 or not

@@ -4,7 +4,6 @@ classdef AddonManagerApp < nansen.config.abstract.ConfigurationApp
 %   Todo: Program this using traditional gui figure for backwards
 %   compatibility and more responsive figure.
 
-
     properties (Constant)
         AppName = 'Addon Manager'
     end
@@ -27,11 +26,9 @@ classdef AddonManagerApp < nansen.config.abstract.ConfigurationApp
             panelSize = obj.Figure.Position(3:4) - [40, 60];
             cPanel.Position = [20, 20, panelSize];
             
-            
             obj.applyTheme()
 
-            obj.UIModule{1} = AddonManagerUI(cPanel, addonManager); 
-
+            obj.UIModule{1} = AddonManagerUI(cPanel, addonManager);
 
             if ~nargout; clear obj; end
             
@@ -39,8 +36,5 @@ classdef AddonManagerApp < nansen.config.abstract.ConfigurationApp
             % Create tabs
             %obj.isConstructed = true;
         end
-        
     end
-    
-
 end

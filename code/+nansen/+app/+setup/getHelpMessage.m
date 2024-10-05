@@ -1,6 +1,5 @@
 function msg = getHelpMessage(keyword)
 
-
 switch keyword
     
 % % Data location page
@@ -10,7 +9,6 @@ switch keyword
             'This will select the default data location.\n', ...
             '\nThis selection determines where new data is saved by default.', ...
             };
-        
 
     case 'Data location name'
         msg = {...
@@ -48,7 +46,6 @@ switch keyword
             'locations containing processed data. This setting', ...
             'can be used to ensure that raw data is not modified' ...
             };
-        
         
 % % Folder organization page
 
@@ -113,10 +110,8 @@ switch keyword
              'while the regular expression is any regular expression ', ...
              'accepted by the regexp function'};
 
-
     case 'Result'
         msg = 'The resulting text based on selection from previous columns';
-
         
 % % Variable page
 
@@ -159,6 +154,4 @@ end
 
 msg = sprintf(msg);
 
-
 end
-

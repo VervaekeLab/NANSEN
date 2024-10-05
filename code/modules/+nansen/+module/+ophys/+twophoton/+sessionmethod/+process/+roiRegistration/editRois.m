@@ -8,19 +8,18 @@ function varargout = editRois(sessionObject, varargin)
 % Todo: Also support loading of roi classifications.
 %   Specify FOV image variable name in parameters.
 
-% % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % % 
-% Create a struct of default parameters (if applicable) and specify one or 
+% % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % %
+% Create a struct of default parameters (if applicable) and specify one or
 % more attributes (see nansen.session.SessionMethod.setAttributes)
     
     % Get struct of parameters from local function
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'batch', 'unqueueable'};   
-
+    ATTRIBUTES = {'batch', 'unqueueable'};
     
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
     
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
@@ -33,8 +32,7 @@ function varargout = editRois(sessionObject, varargin)
     % Parse name-value pairs from function input and update parameters
     params = utility.parsenvpairs(params, [], varargin);
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
     
     % - Load FOV images for all sessions
 
@@ -76,11 +74,10 @@ function varargout = editRois(sessionObject, varargin)
     
 end
 
-
 function params = getDefaultParameters()
 %getDefaultParameters Get the default parameters for this session method
 %
-%   params = getDefaultParameters() should return a struct, params, which 
+%   params = getDefaultParameters() should return a struct, params, which
 %   contains fields and values for parameters of this session method.
 
     % Add fields to this struct in order to define parameters for this
@@ -99,5 +96,5 @@ function throwError(errorID, sessionID)
                 'exists for all selected sessions.'], sessionID );
     end
 
-    error(errorID, message) %#ok<SPERR> 
+    error(errorID, message) %#ok<SPERR>
 end

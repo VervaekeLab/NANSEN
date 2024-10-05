@@ -49,7 +49,6 @@ classdef FileTree < uiw.abstract.JavaControl
         SelectionBackgroundColor = [.2 .6 1] %Background color of the selection in the tree
     end
     
-    
     %% Internal properties
     properties (SetAccess=protected, GetAccess=protected)
         JModel %Java model for tree (internal)
@@ -64,7 +63,6 @@ classdef FileTree < uiw.abstract.JavaControl
     properties (Hidden)
         KeyPressedCallback %callback for a key pressed event
     end
-    
     
     %% Constructor / Destructor
     methods
@@ -90,7 +88,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end % constructor
         
-        
         function delete(obj)
             obj.IsBeingDeleted = true;
             obj.CallbacksEnabled = false;
@@ -98,7 +95,6 @@ classdef FileTree < uiw.abstract.JavaControl
         end % destructor
         
     end %methods - constructor/destructor
-    
     
     %% Public Methods
     methods
@@ -124,7 +120,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end %function
         
-        
         function expandNode(obj,nObj)
             % expandNode - Expand a TreeNode within the tree
             % -------------------------------------------------------------------------
@@ -147,7 +142,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end %function
         
-        
         function s = getJavaObjects(obj)
             % Return the Java objects of the tree (for debugging only)
             
@@ -162,7 +156,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end %function
         
-        
         function [str,data] = onCopy(obj)
             % Get the currently selected data, useful for implementing Copy
             % in an application.
@@ -171,7 +164,6 @@ classdef FileTree < uiw.abstract.JavaControl
             str = strjoin({obj.SelectedNodes.Name},', ');
             
         end %function
-        
         
         function [str,data] = onCut(obj)
             % Cut the currently selected data from the tree, useful for
@@ -184,8 +176,6 @@ classdef FileTree < uiw.abstract.JavaControl
         end %function
         
     end %methods
-    
-    
     
     %% Protected Methods
     methods (Access=protected)
@@ -265,7 +255,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end
         
-        
         function onStyleChanged(obj,~)
             % Handle updates to style changes
             
@@ -296,7 +285,6 @@ classdef FileTree < uiw.abstract.JavaControl
             end %if obj.IsConstructed
         end %function
         
-        
         function onKeyPressed(obj,jEvent)
             % Triggered when any button is pressed in the keyboard
             
@@ -314,8 +302,6 @@ classdef FileTree < uiw.abstract.JavaControl
         
     end %methods
     
-    
-    
     %% Special Access Methods
     methods (Access={?uiw.widget.FileTree, ?uiw.widget.FileTreeNode})
         
@@ -330,7 +316,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end %function
         
-        
         function nodeChanged(obj,nObj)
             % Triggered on node changes from Java
             
@@ -341,7 +326,6 @@ classdef FileTree < uiw.abstract.JavaControl
             end
             
         end %function
-        
         
         function insertNode(obj,nObj,pObj,idx)
             % Insert a node at the specified location
@@ -380,7 +364,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end %function
         
-        
         function removeNode(obj,nObj,~)
             % Remove the specified node
             
@@ -398,8 +381,6 @@ classdef FileTree < uiw.abstract.JavaControl
         
     end %special access methods
     
-    
-    
     %% Private Methods
     methods (Access=private)
         
@@ -415,7 +396,6 @@ classdef FileTree < uiw.abstract.JavaControl
             end
             
         end %function
-        
         
         function onExpand(obj,e)
             % Triggered when a node is expanded
@@ -434,7 +414,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end %function onExpand
         
-        
         function onCollapse(obj,e)
             % Triggered when a node is collapsed
             
@@ -452,7 +431,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end %function onCollapse
         
-        
         function onMouseEvent(obj,jEvent)
             % Triggered when the mouse is clicked within the pane
             
@@ -461,18 +439,16 @@ classdef FileTree < uiw.abstract.JavaControl
             
             if obj.isvalid() && obj.CallbacksEnabled
                 
-                % Decrease the update rate for mousemotion events for this 
-                % tree because the below code is too heavy for the fast 
+                % Decrease the update rate for mousemotion events for this
+                % tree because the below code is too heavy for the fast
                 % updates on complex trees.
                 counter = counter + 1;
-                if mod(counter, 10) == 0 
+                if mod(counter, 10) == 0
                     counter = 0; % Reset counter
                 else
                     jEventId = get( jEvent, 'ID' );
                     if jEventId == 503; return; end
                 end
-                
-
                 
                 % Get mouse event data
                 mEvent = obj.getMouseEventData(jEvent);
@@ -558,7 +534,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end %function onMouseEvent
         
-        
         function onMouseMotion(obj,jEvent)
             % Triggered when the mouse moves within the pane
             
@@ -570,7 +545,6 @@ classdef FileTree < uiw.abstract.JavaControl
             end %if ~isempty(obj.MouseMotionFcn)
             
         end %function onMouseMotion
-        
         
         function onNodeSelection(obj,e)
             % Triggered when the selection of tree paths (nodes) changes
@@ -585,7 +559,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
             %if obj.isvalid() && ~isempty(obj.SelectionChangeFcn)
             if obj.isvalid() && obj.CallbacksEnabled && ~isempty(obj.SelectionChangeFcn)
-                
                 
                 % Figure out what nodes were added or removed to/from the
                 % selection
@@ -615,7 +588,6 @@ classdef FileTree < uiw.abstract.JavaControl
             
         end %function onNodeSelection
         
-        
         function onNodeEdit(obj,e)
             % Triggered when a node is edited
             
@@ -641,7 +613,6 @@ classdef FileTree < uiw.abstract.JavaControl
             end %if ~isempty(obj.NodeEditedCallback)
             
         end %function onNodeEdit
-        
         
         function onNodeDND(obj,e)
             % Triggered when a node is dragged or dropped on the tree
@@ -770,7 +741,6 @@ classdef FileTree < uiw.abstract.JavaControl
                                     % Do nothing
                             end
                         end
-                        
                     end
                     
                     % Tell Java the drop is complete
@@ -783,9 +753,6 @@ classdef FileTree < uiw.abstract.JavaControl
         end %function onNodeDND
         
     end %methods
-    
-    
-    
     
     %% Get/Set methods
     methods
@@ -802,7 +769,6 @@ classdef FileTree < uiw.abstract.JavaControl
             obj.JControl.setDragEnabled(logical(value));
         end
         
-        
         % Editable
         % function value = get.Editable(obj)
         %     value = get(obj.JControl,'Editable');
@@ -811,7 +777,6 @@ classdef FileTree < uiw.abstract.JavaControl
         %     validateattributes(value,{'numeric','logical'},{'scalar'});
         %     obj.JControl.setEditable(logical(value));
         % end
-        
         
         % RootVisible
         function value = get.RootVisible(obj)
@@ -826,7 +791,6 @@ classdef FileTree < uiw.abstract.JavaControl
             obj.JControl.setRootVisible(value); %show/hide root
             obj.JControl.setShowsRootHandles(~value); %hide/show top level handles
         end
-        
         
         % SelectedNodes
         function value = get.SelectedNodes(obj)
@@ -857,7 +821,6 @@ classdef FileTree < uiw.abstract.JavaControl
             obj.CallbacksEnabled = true;
         end
         
-        
         % SelectionType
         function value = get.SelectionType(obj)
             value = obj.JSelModel.getSelectionMode();
@@ -884,7 +847,6 @@ classdef FileTree < uiw.abstract.JavaControl
             obj.JSelModel.setSelectionMode(mode);
             obj.CallbacksEnabled = true;
         end
-        
         
         % SelectionForegroundColor
         function set.SelectionForegroundColor(obj, value)
@@ -933,7 +895,6 @@ classdef FileTree < uiw.abstract.JavaControl
             obj.TreePaneBackgroundColor = value;
             obj.onStyleChanged(evt);
         end
-        
         
     end %get/set methods
     

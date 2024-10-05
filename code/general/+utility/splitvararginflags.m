@@ -1,4 +1,4 @@
-function [flagsOut, vararginCell] = splitvararginflags(vararginCell, flagsIn)        
+function [flagsOut, vararginCell] = splitvararginflags(vararginCell, flagsIn)
 
     flagsOut = {};
     
@@ -9,7 +9,7 @@ function [flagsOut, vararginCell] = splitvararginflags(vararginCell, flagsIn)
 
         isFlag = cellfun(@(c) hasFlag(c, flagsIn{i}), vararginCell);
         if any(isFlag)
-            flagsOut = [flagsOut, flagsIn{i}]; %#ok<AGROW> 
+            flagsOut = [flagsOut, flagsIn{i}]; %#ok<AGROW>
             vararginCell(isFlag) = [];
         end
     end

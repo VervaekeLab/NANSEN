@@ -7,10 +7,9 @@ function jhUic = findJavaComponents(hUic, hParent)
 %    Inspired by Yair Altmans findjobj, but specialized for the purpose of
 %    finding uicontrols in a specific panel container.
 
-
     %% Find java handle of parent container Credit: findjobj @ Yair Altman
-    try     jContainer = hParent.JavaFrame.getGUIDEView; 
-    catch,  jContainer = []; 
+    try     jContainer = hParent.JavaFrame.getGUIDEView;
+    catch,  jContainer = [];
     end
 
     if isempty(jContainer)
@@ -22,13 +21,11 @@ function jhUic = findJavaComponents(hUic, hParent)
     % Force an EDT redraw before processing, to ensure all uicontrols etc. are rendered
     drawnow;  pause(0.02);
     
-    
-    %% Find handle of 'com.mathworks.hg.peer.FigureComponentContainer' 
+    %% Find handle of 'com.mathworks.hg.peer.FigureComponentContainer'
     % which contains the uicontrols and the underlying java handles
     
     isa(jContainer, 'com.mathworks.hg.peer.ui.UIPanelPeer$UIPanelJPanel');
 %     jContainer.getComponentCount = 1
-    
     
     jContainer1A = jContainer.getComponent(0);
     isa(jContainer1A, 'com.mathworks.hg.peer.HeavyweightLightweightContainerFactory$FigurePanelContainerLight');
@@ -39,7 +36,6 @@ function jhUic = findJavaComponents(hUic, hParent)
     
     numUicHandles = numel(hUic);
     numComponents = jContainer2A.getComponentCount; % Should be equal or higher than numel hUic
-    
     
     %% Match java components with uicontrol handles
     
@@ -67,7 +63,7 @@ function jhUic = findJavaComponents(hUic, hParent)
     count = 40;
     nFound = 0;
     
-    while ~finished && count>0 
+    while ~finished && count>0
         pause(0.005); count = count-1;
         
         for j = numComponents:-1:1 % Start from newest controls...
@@ -96,12 +92,8 @@ function jhUic = findJavaComponents(hUic, hParent)
         end
     end
     
-    
     % Reset tooltip
     for i = 1:numUicHandles
         set(hUic(i), tooltipPropName, tooltips(i).old);
     end
-
-    
 end
-

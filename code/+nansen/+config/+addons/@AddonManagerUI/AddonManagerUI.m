@@ -1,10 +1,10 @@
 classdef AddonManagerUI < applify.apptable
     
-    properties 
+    properties
         AddonManager  % Instance of AddonManager class
     end
     
-    properties (Access = private) % Component appeareance
+    properties (Access = private) % Component appearance
         ToolbarButtons matlab.ui.control.Button
     end
 
@@ -37,7 +37,6 @@ classdef AddonManagerUI < applify.apptable
             % Assign object to AddonManager property.
             obj.AddonManager = hAddonManager;
         end
-        
     end
     
     methods % Set/get
@@ -83,7 +82,7 @@ classdef AddonManagerUI < applify.apptable
         
         function hS = createTableRowComponents(obj, rowData, rowNum)
             
-            % Create shorter variable names for some of the layout props 
+            % Create shorter variable names for some of the layout props
             %m = obj.TableMargin;
             
             rowExtent = obj.RowHeight + obj.RowSpacing;
@@ -113,7 +112,6 @@ classdef AddonManagerUI < applify.apptable
             hS.CheckboxSelector.ValueChangedFcn = @obj.onTableRowSelected;
             obj.centerComponent(hS.CheckboxSelector, y)
             
-            
         % % Create label for toolbox name
             i = 2;
             hS.NameLabel = uilabel(obj.TablePanel);
@@ -128,7 +126,6 @@ classdef AddonManagerUI < applify.apptable
 % %             hNext.NameLabel = uihtml(obj.TablePanel);
 % %             hNext.NameLabel.Position = [xPos(1) y 150 22];
 % %             hNext.NameLabel.HTMLSource = sprintf('<a href="%s" style="font-size: 12px; font-family:helvetica">%s</a>', S.DownloadUrl, S.Name);
-            
 
         % % Create label for showing if toolbox is required or optional
             i = 3;
@@ -138,13 +135,11 @@ classdef AddonManagerUI < applify.apptable
             %hNext.RequiredLabel.VerticalAlignment = 'bottom';
             obj.centerComponent(hS.RequiredLabel, y)
             
-            
             if rowData.IsRequired
                 hS.RequiredLabel.Text = 'Required';
             else
                 hS.RequiredLabel.Text = 'Optional';
             end
-
 
         % % Create image for showing if toolbox is already installed
             i = 4;
@@ -161,14 +156,13 @@ classdef AddonManagerUI < applify.apptable
             else
                 hS.IsInstalledImage.ImageSource = nansen.internal.getIconPathName('crossmark.png');
                 hS.IsInstalledImage.Tooltip = 'Toolbox missing';
-            end            
-
+            end
             
         % % Create button for downloading toolbox
             i = 5;
             hS.InstallButton = uibutton(obj.TablePanel, 'push');
-            hS.InstallButton.BackgroundColor = obj.InstallButtonBackgroundColor; 
-            hS.InstallButton.FontColor = obj.InstallButtonFontColor; 
+            hS.InstallButton.BackgroundColor = obj.InstallButtonBackgroundColor;
+            hS.InstallButton.FontColor = obj.InstallButtonFontColor;
             
             hS.InstallButton.FontName = 'Segoe UI';
             hS.InstallButton.FontWeight = 'bold';
@@ -187,7 +181,7 @@ classdef AddonManagerUI < applify.apptable
                 hS.InstallButton.Tooltip = rowData.FilePath;
             end
             
-        % % Create button for updating toolbox 
+        % % Create button for updating toolbox
             i = 6;
             hS.UpdateButton = uibutton(obj.TablePanel, 'push');
             hS.UpdateButton.FontName = 'Segoe UI';
@@ -200,7 +194,7 @@ classdef AddonManagerUI < applify.apptable
                 hS.UpdateButton.Enable = 'off';
             end
 
-        % % Create button for browsing to locate toolbox 
+        % % Create button for browsing to locate toolbox
             i = 7;
             hS.BrowseButton = uibutton(obj.TablePanel, 'push');
             hS.BrowseButton.FontName = 'Segoe UI';
@@ -218,12 +212,12 @@ classdef AddonManagerUI < applify.apptable
             hS.WebButton.Text = 'Open Website';
             hS.WebButton.ButtonPushedFcn = @(s,e,name,num) obj.onOpenWebsiteButtonPushed(rowData.Name, rowNum);
             obj.centerComponent(hS.WebButton, y)
-            hS.WebButton.Tooltip = 'Open addon website';  
+            hS.WebButton.Tooltip = 'Open addon website';
             
         end
         
         function createToolbarComponents(obj, hPanel)
-        %createToolbarComponents Create "toolbar" components above table.    
+        %createToolbarComponents Create "toolbar" components above table.
             if nargin < 2; hPanel = obj.Parent.Parent; end
 
             import uim.utility.layout.subdividePosition
@@ -263,13 +257,12 @@ classdef AddonManagerUI < applify.apptable
         function toolbarComponents = getToolbarComponents(obj)
             toolbarComponents = obj.ToolbarButtons;
         end
-        
     end
     
     methods (Access = private) % Button callbacks
               
         function onInstallAddonPushed(obj, addonName, iRow)
-        %onInstallAddonPushed Callback for button press on download button    
+        %onInstallAddonPushed Callback for button press on download button
              
             obj.RowControls(iRow).InstallButton.Text = 'Downloading';
             
@@ -315,7 +308,7 @@ classdef AddonManagerUI < applify.apptable
         end
                 
         function onBrowseAddonPushed(obj, addonName, iRow)
-        %onBrowseAddonPushed Callback for button press on browse button    
+        %onBrowseAddonPushed Callback for button press on browse button
             group = 'NansenSetup';
             pref =  'BrowseAddonHelp';
             title = 'Locate Folder';
@@ -350,7 +343,7 @@ classdef AddonManagerUI < applify.apptable
         end
         
         function onUpdateAddonPushed(obj, addonName, ~)
-        %onUpdateAddonPushed Callback for button press on update button 
+        %onUpdateAddonPushed Callback for button press on update button
                    
             % Display a progress dialog while download is ongoing.
             hFig = ancestor(obj.Parent, 'figure');
@@ -396,10 +389,7 @@ classdef AddonManagerUI < applify.apptable
                     web(S.WebUrl, '-browser')
                     return
             end
-            
-
         end
-
     end
     
     methods (Access = private) % Actions
@@ -413,11 +403,10 @@ classdef AddonManagerUI < applify.apptable
                     obj.onInstallAddonPushed(S.Name, i)
                 end
             end
-            
         end
         
         function saveMatlabPath(obj)
-        %saveMatlabPath Save matlab path (presumaby after installing addons) 
+        %saveMatlabPath Save matlab path (presumably after installing addons)
             message = 'This will permanently add the downloaded addons to the MATLAB search path.';
             title = 'Confirm Save';
             
@@ -434,7 +423,6 @@ classdef AddonManagerUI < applify.apptable
             obj.AddonManager.markClean()
             obj.AddonManager.restoreAddToPathOnInitFlags()
         end
-
     end
 
     methods (Access = private) % Style components (Todo, move to superclass)

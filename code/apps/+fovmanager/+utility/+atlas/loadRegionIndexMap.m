@@ -9,7 +9,7 @@ function S = loadRegionIndexMap(atlasName)
     % rootPath = fileparts( mfilename('fullpath') );
     
     rootPath = fovmanager.localpath('brain_atlas');
-    fileName = 'regionIndexMap.mat'; 
+    fileName = 'regionIndexMap.mat';
     loadPath = fullfile(rootPath, atlasName, fileName);
     
     S = load(loadPath);

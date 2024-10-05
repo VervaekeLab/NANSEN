@@ -23,8 +23,7 @@ classdef HasDataLocationModel < handle
                 obj.onDataLocationModelSet()
             else
                 return
-            end 
-
+            end
         end
         
         function delete(obj)
@@ -32,7 +31,7 @@ classdef HasDataLocationModel < handle
         end
     end
     
-    methods 
+    methods
         function set.DataLocationModel(obj, newValue)
             obj.DataLocationModel = newValue;
             obj.deleteListenersIfActive()
@@ -43,7 +42,7 @@ classdef HasDataLocationModel < handle
     methods (Access = protected)
         
         function deleteListenersIfActive(obj)
-        %deleteListenersIfActive Delete listeners on DataLocationModel    
+        %deleteListenersIfActive Delete listeners on DataLocationModel
             
             isActive = @(el) ~isempty(el) && isvalid(el);
             
@@ -78,7 +77,6 @@ classdef HasDataLocationModel < handle
                 'DataLocationRemoved', @obj.onDataLocationRemoved);
             
         end
-        
     end
     
     methods (Access = protected)
@@ -87,8 +85,8 @@ classdef HasDataLocationModel < handle
         function onDataLocationAdded(obj, ~, ~)
         %onDataLocationAdded Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationAdded event on 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationAdded event on
         %   the DataLocationModel object
         
         end
@@ -97,8 +95,8 @@ classdef HasDataLocationModel < handle
         function onDataLocationModified(obj, ~, ~)
         %onDataLocationModified Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationModified event 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationModified event
         %   on the DataLocationModel object
             
         end
@@ -107,12 +105,10 @@ classdef HasDataLocationModel < handle
         function onDataLocationRemoved(obj, ~, ~)
         %onDataLocationRemoved Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationRemoved event on 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationRemoved event on
         %   the DataLocationModel object
             
         end
-        
     end
-
 end

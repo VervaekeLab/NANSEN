@@ -6,7 +6,6 @@ function newFolder = uisetProjectFolder(currentFolder, projectName)
     % uigetdir
     currentFolder = getpref('NansenSetup', 'DefaultProjectPath', currentFolder);
     
-    
     newFolder = uigetdir(currentFolder, 'Select New Project Folder');
             
     % Return if user canceled during uigetdir dialog

@@ -1,9 +1,9 @@
 classdef roiSignalViewer < signalviewer.App
-% Class for interactively plotting and exploring roi signals    
+% Class for interactively plotting and exploring roi signals
 %
 %
 %   EXAMPLES:
-%       
+%
 %   Alternative 1:
 %       roiSignalViewer() opens a signal viewer instance without any data
 %
@@ -16,13 +16,11 @@ classdef roiSignalViewer < signalviewer.App
 %       based on an instance of a RoiSignalArray
 %
 
-
-
 %   Todo:
 %       [X] Bug when selecting rois and plotting signals. Sometimes many
 %           rois are selected when only one roi is selected. Can be reproduced
 %           by placing a drawnow in updateSignalPlot.
-%   
+%
 %       [x] Legend does not work when lines are deleted. Should update it
 %           whenever lines are reset
 %       [ ] Also, use context menu for adding or removing signals from
@@ -36,7 +34,7 @@ classdef roiSignalViewer < signalviewer.App
 %
 %       [ ] HOW DO I ORGANIZE PLOT HANDLES???
 %           - I want to plot signal type by signaltype. That means, for
-%           each signal type i will plot one ore more signals in a go.
+%           each signal type i will plot one or more signals in a go.
 %           - The number of plots for each signal type should always be the
 %           same
 %           -  The number of lines might increase or decrease. Is this
@@ -44,14 +42,14 @@ classdef roiSignalViewer < signalviewer.App
 %           - Need a method for creating many time series arrays in one go.
 %            - Should multiple signals belong to one time series array or
 %            multiple??
-%   
+%
 %       [ ] Should this class inherit the roidisplay??? i guess...
 %       [ ] Implement one color for each signal and color each roi in a
 %           color shade.
 %       [ ] Implement alternative way of displaying deconvolved signals...
 %       [ ] Implement construction based on nSamples x nRois matlab array.
 %       [ ] Implement method for when gui is activated... (made visible)
-%       [ ] Store handles for the roi plots. 
+%       [ ] Store handles for the roi plots.
 %       [ ] Keep handle for each roi? Keep handle for each signal type?
 %       [ ] Use tsArray??? There were some time delays in debug mode, but
 %           otherwise its not a problem.Test with many rois....
@@ -60,13 +58,12 @@ classdef roiSignalViewer < signalviewer.App
 %       [x] Implement buttons for selecting which signals to show
 %       [x] Implement methods for plotting different signal types?
 %       [x] Reset signals but only of given roi indices...
-%       [ ] Is there a clean way to update color of roi in roiMap when 
+%       [ ] Is there a clean way to update color of roi in roiMap when
 %           signals are plotted given some color here?
 %       [x] Implement a 'history plot'. I.e when roi is updated, keep older
 %           versions but fade them
 %       [x] Set options for signal extraction / processing and live update on plot. 
-%       [ ] Organize above point better. 
-
+%       [ ] Organize above point better.
     
 %       Roimanager functionality that can be made into methods
 %       [ ] Switching between left and right y-axis and making sure each
@@ -76,15 +73,13 @@ classdef roiSignalViewer < signalviewer.App
 %       [ ] Prepare colors for lines.
 %       [x] Append and overwrite modes
 
-
-
     properties
         DisplayMode = 'normal' % 'stacked' | 'imagesc' | 'normal'
         SignalsToDisplay = {'roiMeanF'};
         HistoryOn = false;
     end
     
-    properties 
+    properties
         RoiGroup            % RoiGroup object
         RoiSignalArray      % RoiSignalArray object
         DisplayedRoiIndices % List of indices for currently displayed rois
@@ -116,7 +111,6 @@ classdef roiSignalViewer < signalviewer.App
         roiSelectionChangedListener event.listener %Listener to changes on roi selection
     end %properties
     
-    
     methods % Constructor
         
         function obj = roiSignalViewer(varargin)
@@ -128,7 +122,7 @@ classdef roiSignalViewer < signalviewer.App
             
             obj.RoiSignalArray = roiSignalArray;
             
-            % Add listener to listen for event when roi signals are changed 
+            % Add listener to listen for event when roi signals are changed
             obj.roiSignalsChangedListener = addlistener(obj.RoiSignalArray, ...
                 'RoiSignalsChanged', @obj.onRoiSignalsChanged );
             
@@ -143,12 +137,10 @@ classdef roiSignalViewer < signalviewer.App
             delete(obj.hScrollbar);obj.hScrollbar=[];
             delete(obj.hScrollPanel);obj.hScrollPanel=[];
             
-            
             callbackFcn = @obj.onQuickZoomSelectionChanged;
             signalviewer.createQuickZoomLabels(obj.Panel, obj.nSamples, callbackFcn)
             
             %obj.addPlotToolbar()
-
             
             obj.setParameters()
             
@@ -168,7 +160,6 @@ classdef roiSignalViewer < signalviewer.App
             delete(obj.roiSignalsChangedListener)
             delete(obj.roiSelectionChangedListener)
         end
-        
     end
 
     methods % Set/get
@@ -185,7 +176,7 @@ classdef roiSignalViewer < signalviewer.App
             
             validNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
             isValid = all(contains(newValue, validNames));
-            assert(isValid, 'One or more singal names are not valid.')
+            assert(isValid, 'One or more signal names are not valid.')
             
             if ischar(newValue)
                 newValue = {newValue};
@@ -195,7 +186,6 @@ classdef roiSignalViewer < signalviewer.App
             obj.onSignalToDisplaySet()
             
         end
-        
     end
     
     methods (Access = protected)
@@ -226,9 +216,6 @@ classdef roiSignalViewer < signalviewer.App
         
         function createQuickZoomLabels(obj)
             
-            
-            
-            
         end
         
         function addContextMenuItems(obj)
@@ -253,10 +240,7 @@ classdef roiSignalViewer < signalviewer.App
                 else
                     hMenu.Children(i).Checked = 'off';
                 end
-                    
             end
-            
-            
         end
         
         function setParameters(obj)
@@ -273,7 +257,7 @@ classdef roiSignalViewer < signalviewer.App
             optManager = nansen.OptionsManager('roiSignalExtraction', params);
         
             params = tools.editStruct(params, nan, '', 'OptionsManager', ...
-                optManager, 'Callback', @obj.onSignalParamsChanged); 
+                optManager, 'Callback', @obj.onSignalParamsChanged);
             
             obj.Parameters = params;
 
@@ -299,7 +283,6 @@ classdef roiSignalViewer < signalviewer.App
         end
         
         function onSignalParamsChanged(obj, name, value)
-           
             
             switch name
                 case {'pixelComputationMethod', 'excludeRoiOverlaps', ...
@@ -342,11 +325,9 @@ classdef roiSignalViewer < signalviewer.App
                 obj.DisplayedRoiIndices = roiInd;
             end
             
-            
             if ~isempty(obj.signalLegend) && isvalid(obj.signalLegend)
                 obj.showLegend()
             end
-
         end
 
         function onQuickZoomSelectionChanged(obj, src, hBtn, i)
@@ -423,7 +404,6 @@ classdef roiSignalViewer < signalviewer.App
             if ~isempty(obj.signalLegend) && isvalid(obj.signalLegend)
                 obj.signalLegend.Position(2) = sum(obj.ax.Position([2,4]))+5;
             end
-
         end
     end
     
@@ -451,8 +431,6 @@ classdef roiSignalViewer < signalviewer.App
             %updateSignalPlot(obj, obj.selectedRois, 'overwrite');
             %updateSignalPlot(obj, obj.selectedRois, 'append');
             
-            
-            
         end
         
         function onRoiSelectionChanged(obj, src, evtData)
@@ -471,7 +449,6 @@ classdef roiSignalViewer < signalviewer.App
                     obj.updateSignalPlot(evtData.roiIndices, 'append');
 
             end
-
         end
         
         function onRoiSignalsChanged(obj, src, evtData)
@@ -499,11 +476,9 @@ classdef roiSignalViewer < signalviewer.App
                         obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace', ...
                             evtData.signalType);
                     end
-                    
                 end
             end
         end
-
     end
     
     methods
@@ -559,15 +534,12 @@ classdef roiSignalViewer < signalviewer.App
             % make sure only one signal is shown...
             signalName = obj.SignalsToDisplay{1};
             
-            
             % Get new signal.
             signalData = obj.RoiSignalArray.getSignals(roiInd, signalName);
-            
             
             % Add it to time series matrix
             tsArray = obj.createTimeseriesArray(signalData);
             obj.plotTimeSeries(tsArray)
-            
             
             % Plot new line.
             lines = findobj(obj.ax, 'Type', 'Line');
@@ -578,7 +550,6 @@ classdef roiSignalViewer < signalviewer.App
                 lines(end) = [];
                 numLines = numel(lines);
             end
-                
             
             numColors = max([10, numLines]);
             
@@ -625,18 +596,17 @@ classdef roiSignalViewer < signalviewer.App
             if isempty(signalNames); return; end
             
             if strcmp(mode, 'append')
-                roiInd = setdiff(roiInd, obj.DisplayedRoiIndices, 'stable'); 
+                roiInd = setdiff(roiInd, obj.DisplayedRoiIndices, 'stable');
             end
             
             if isempty(roiInd); return; end
             
             if ~ishold(obj.ax)
-               hold(obj.ax, 'on') 
+               hold(obj.ax, 'on')
             end
             
             % Turn on automatic ylim mode so axis adjust according to data.
             set(obj.ax.YAxis, 'LimitsMode', 'auto')
-            
             
             %yyaxis(obj.ax, 'left')
             
@@ -650,13 +620,12 @@ classdef roiSignalViewer < signalviewer.App
                 %obj.ax.YLim = [ min(0, obj.ax.YLim(1)), max(1, obj.ax.YLim(2)) ];
                 
                 % Reset data in line handle
-%                 for i = 1:numel(fields) 
+%                 for i = 1:numel(fields)
 %                     if ~isempty(obj.hlineSignal.(fields{i}))
 %                         set(obj.hlineSignal.(fields{i})(:), 'YData', nan)
 %                     end
 %                 end
             end
-            
             
             % chNo = obj.activeChannel;
             
@@ -709,7 +678,6 @@ classdef roiSignalViewer < signalviewer.App
                 obj.tsArray(isMatched).Data(:, insertIdx) = signalData;
                 
                 obj.onTimeseriesDataUpdated(signalName, insertIdx);
-                
                 
                 % Apply colors.
                 switch signalName
@@ -793,7 +761,6 @@ classdef roiSignalViewer < signalviewer.App
                 
                 set(obj.hLineObjects.(thisSignal)(resetInd), {'YData'}, yData')
                 
-                
                 % Rearrange line objects.
                 rearrangedInd = [keepInd, resetInd];
                 numDisplayed = numel(rearrangedInd);
@@ -804,25 +771,21 @@ classdef roiSignalViewer < signalviewer.App
                 if numel(obj.hLineObjects.(thisSignal)) > numKeep
                     obj.trimLineObjects(thisSignal, numKeep)
                 end
-                
             end
             
             obj.DisplayedRoiIndices = obj.DisplayedRoiIndices(keepInd);
             
-            
-            
 % %             if numKeep == 0
-% %             
+% %
 % %                 % Reset Y limits
 % %                 yyaxis(obj.ax, 'left')
 % %                 obj.ax.YLim = [0,256];
 % %                 yyaxis(obj.ax, 'right')
 % %                 obj.ax.YLim = [0,1];
-% %                 
+% %
 % %             end
             
-            
-        end        
+        end
         
         function initializeTimeSeriesObjects(obj)
             
@@ -831,7 +794,6 @@ classdef roiSignalViewer < signalviewer.App
             STEP = 10;
             
             data = nan(obj.nSamples, STEP);
-
             
             for i = 1:numel(signalNames)
             
@@ -839,7 +801,6 @@ classdef roiSignalViewer < signalviewer.App
                 tsArray.Name = signalNames{i};
                 
                 %obj.tsArray(end+1) = tsArray;
-            
                 
                 % Change to left or right y axis depending on signal
                 switch signalNames{i}
@@ -848,7 +809,6 @@ classdef roiSignalViewer < signalviewer.App
                     otherwise
                         yyaxis(obj.ax, 'left')
                 end
-                
                 
                 h = obj.plot(tsArray);
                 set(h{1}, 'LineStyle', '-', 'Marker', 'none', 'LineWidth', 1)
@@ -869,7 +829,7 @@ classdef roiSignalViewer < signalviewer.App
             
             signalNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
             
-            obj.tsNames = {}; 
+            obj.tsNames = {};
             obj.tsArray = timeseries.empty;
             
             for i = 1:numel(signalNames)
@@ -892,7 +852,7 @@ classdef roiSignalViewer < signalviewer.App
             numTrimmed = ceiln(numTrimmed, STEP);
 
             % Find the current timeseries object
-            tsIND = find( strcmp( signalType, obj.tsNames ) );    
+            tsIND = find( strcmp( signalType, obj.tsNames ) );
             
             numLineObjects = numel(obj.hLineObjects.(signalType));
 
@@ -920,7 +880,7 @@ classdef roiSignalViewer < signalviewer.App
             numExpanded = ceiln(numExpanded, STEP);
                       
             % Find the current timeseries object
-            tsIND = find( strcmp( signalType, obj.tsNames ) );                
+            tsIND = find( strcmp( signalType, obj.tsNames ) );
             
             % Determine how many new series to create
             numExistingSeries = size(obj.tsArray(tsIND).Data, 2);
@@ -934,7 +894,6 @@ classdef roiSignalViewer < signalviewer.App
 
             % Create new line objects
             xData = obj.tsArray(tsIND).Time;
-            
 
             % Change to left or right y axis depending on signal
             switch signalType
@@ -984,7 +943,6 @@ classdef roiSignalViewer < signalviewer.App
             obj.signalLegend.ItemHitFcn = @obj.onLegendItemPressed;
             %obj.signalLegend.ButtonDownFcn = @obj.onButtonPressedInLegend;
             
-            
             %l2 = legend(obj.hlineTsArray, {obj.tsArray.Name}, 'AutoUpdate', 'off');
         end
         
@@ -1026,17 +984,14 @@ classdef roiSignalViewer < signalviewer.App
             if ~isempty(h)
                 h.Visible = 'off';
             end
-            
         end
-        
-        
     end
     
     methods (Access = private)
         
         function toggleDisplayMode(obj, src, mode)
             
-            if src.Checked % Todo: shoud work for older matlabs..
+            if src.Checked % Todo: should work for older matlabs..
                 obj.DisplayMode = 'normal';
             else
                 obj.DisplayMode = 'stacked';
@@ -1062,8 +1017,6 @@ classdef roiSignalViewer < signalviewer.App
                 obj.SignalSelectionDropdown.Visible = 'off';
                 delete(obj.DropdownCloseListener)
             end
-            
-            
         end
         
         function onMousePressedInFigureWithDropdown(obj, hButton)
@@ -1077,7 +1030,6 @@ classdef roiSignalViewer < signalviewer.App
             
             posA = obj.SignalSelectionDropdown.Position;
             posB = getpixelposition(hButton, true);
-            
             
             x = obj.Figure.CurrentPoint(1);
             y = obj.Figure.CurrentPoint(2);
@@ -1094,17 +1046,11 @@ classdef roiSignalViewer < signalviewer.App
 %                 eventData = uim.event.ToggleEvent(0);
 %                 hButton.toggleState([], eventData)
 
-                % Todo: Callbacks hould be called from inside button...
+                % Todo: Callbacks should be called from inside button...
                 hButton.Value = false;
                 obj.toggleSignalSelectionDropdown(hButton)
                 
             end
-            
         end
-        
     end
-    
-    
-    
-    
 end

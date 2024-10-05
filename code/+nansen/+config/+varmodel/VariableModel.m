@@ -5,9 +5,8 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 %   Internal / Public?
 %   Favorites
 
-
-    % Todo: 
-    %   [x] Add subfolders. I.e if session folder should be further organized in subfolders. 
+    % Todo:
+    %   [x] Add subfolders. I.e if session folder should be further organized in subfolders.
     %   [ ] Methods for above...
     %
     %   [ ] Should internal variables be custom or preset? Preset...
@@ -40,7 +39,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         VariableRemoved
     end
     
-    
     methods (Static) % Get empty and default item
         
         function S = getBlankItem()
@@ -54,7 +52,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 'FileType', '', ...             % File type of variable
                 'FileAdapter', '', ...          % File adapter to use for loading and saving variable
                 'DataType', '', ...             % Datatype of variable: Will depend on file adapter
-                'Alias', '', ...                % alias or "nickname" for varibles
+                'Alias', '', ...                % alias or "nickname" for variables
                 'GroupName', '', ...            % Placeholder...
                 'IsCustom', false, ...          % Is variable custom, i.e user made?
                 'IsInternal', false, ...        % Flag for internal variables
@@ -65,7 +63,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         % getDefaultItem -  Get default data variable configuration struct
         %
         %   A default variable configuration will use the default file
-        %   adapter (i.e mat files) and it is Custom by default. 
+        %   adapter (i.e mat files) and it is Custom by default.
             S = nansen.config.varmodel.VariableModel.getBlankItem();
 
             S.VariableName = varName;
@@ -74,19 +72,17 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             S.FileAdapter = 'Default';
             S.IsCustom = true;
         end
-        
-    end 
+    end
         
     methods % Constructor
         
         function obj = VariableModel(varargin)
 
-            % Superclass constructor. Loads given (or default) archive 
+            % Superclass constructor. Loads given (or default) archive
             obj@utility.data.StorableCatalog(varargin{:})
             
             obj.updateDefaultValues() %  This should be temporary, to account for changes made during development
         end
-        
     end
     
     methods % Set/get methods
@@ -98,7 +94,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         function variableNames = get.VariableNames(obj)
             variableNames = obj.ItemNames;
         end
-        
     end
     
     methods
@@ -132,7 +127,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 S.IsCustom = true;
             end
 
-            % Check if subfolder uses different fileseparator than current 
+            % Check if subfolder uses different fileseparator than current
             if contains(S.Subfolder, '/') && ~strcmp('/', filesep)
                 S.Subfolder = strrep(S.Subfolder, '/', filesep);
             end
@@ -270,7 +265,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         end
 
         function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
-        %getFileAdapterFcn Get function handle for creating file adapter                
+        %getFileAdapterFcn Get function handle for creating file adapter
 
             fileAdapterList = nansen.dataio.listFileAdapters();
 
@@ -342,16 +337,16 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         end
 
         function removeDataVariableSet(obj, variableList)
-        % removeDataVariables - Remove a set of data variables  
+        % removeDataVariables - Remove a set of data variables
         %
         %   Inputs:
-        %       variableList - variableList is a string array of names 
+        %       variableList - variableList is a string array of names
         %           of variables to remove
 
-        %   Note: This is most likely not going to be used. User should 
+        %   Note: This is most likely not going to be used. User should
         %   instead remove variables individually.
 
-        %   Todo: 
+        %   Todo:
         %       [ ] backup items that are removed...
 
             for i = 1:numel(variableList)
@@ -429,13 +424,12 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 item.DataLocation = dataLocationModel.DefaultDataLocation;
             end
         end
-        
     end
     
     methods (Access = private)
         
         function S = getVariableInfoFromField(obj, varName, fieldName)
-        %getVariableInfoFromField Get variable info from fieldname of Data    
+        %getVariableInfoFromField Get variable info from fieldname of Data
             S = struct.empty;
             
             names = {obj.Data.(fieldName)};
@@ -451,7 +445,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         end
         
         function tempFixVariableNameInFile(obj)
-        %tempFixVariableNameInFile Rename VariableList to Data...    
+        %tempFixVariableNameInFile Rename VariableList to Data...
             if isfile(obj.FilePath)
                 S = whos('-file', obj.FilePath);
                
@@ -461,7 +455,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                     obj.Preferences = struct();
                     
                     obj.save()
-                end                    
+                end
             end
         end
         
@@ -517,7 +511,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 ['Please specify a file path for a file variable model. ' ...
                 'There is currently no implementation of a default model.'])
         end
-
     end
     
     methods (Static)
@@ -529,7 +522,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                     className = 'nansen.stack.ImageStack';
             end
         end
-        
     end
 
     methods (Static) % Todo: Should be moved to a data variable class

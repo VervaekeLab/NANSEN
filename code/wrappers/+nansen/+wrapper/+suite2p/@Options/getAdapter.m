@@ -14,7 +14,7 @@ S.Neuropil.radius                       = 'outerNeuropil';
 S.Neuropil.minNeuropilPixels            = 'minNeuropilPixels';
 S.Neuropil.neuropilCellRatio            = 'ratioNeuropil';
 
-S.Deconvolution.imagingRate             = 'imageRate';    
+S.Deconvolution.imagingRate             = 'imageRate';
 S.Deconvolution.sensorTimeConstant      = 'sensorTau';
 S.Deconvolution.maxNeuropil             = 'maxNeurop';
 

@@ -1,5 +1,4 @@
 classdef TaskTable < uiw.mixin.AssignPVPairs
-    
    
 % Some java table properties
 %     gridColor
@@ -9,7 +8,6 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
 %     selectionForeground
 %
 %       How to change header appearance
-        
     
     % TODO:
     %  1 Same right click functionality as in info table. E.g. right click
@@ -17,11 +15,8 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
     %    should not deselect..
     %  2 Select the whole row.
     
-    
-% Create a basic java table.....  
+% Create a basic java table.....
 %             obj.Table = javacomponent('javax.swing.JTable', position, hParent);
-
-    
     
     properties
         
@@ -37,13 +32,9 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
         
     end
     
-    
     properties
         selectedRows
     end
-   
-   
-   
    
     methods
         
@@ -54,7 +45,6 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
             obj.create()
             
         end
-       
 
         function addTask(obj, tableRow, insertAt)
             
@@ -68,20 +58,14 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
                         obj.Table.Data(end+1, :) = tableRow{:,:};
                 end
             end
-            
         end
-       
         
         function clearTable(obj)
             obj.Table.Data = {}; % Reset Data.
         end
-        
-        
     end
     
-    
     methods (Access = private)
-        
                 
         function create(obj)
             
@@ -112,7 +96,6 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
             obj.Table.ColumnName = obj.ColumnNames;
             
             numColumns = numel(obj.ColumnNames);
-            
 
             obj.Table.ColumnEditable = obj.ColumnEditable;
             
@@ -122,10 +105,7 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
             obj.Table.FontName = 'Avenir New';
             obj.Table.FontSize = 10;
             
-            
             %obj.Table.CellSelectionCallback = @obj.onCellSelection;
-
-            
             
             % Make some configurations on underlying java object
             jScrollPane = findjobj(obj.Table);
@@ -135,7 +115,6 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
             obj.jTable = handle(obj.jTable, 'CallbackProperties');
             
             set(obj.jTable, 'MousePressedCallback', @obj.tableMousePress);
-
         
             % Specify empty data to draw the table with the numbered column
             obj.Table.Data = cell(2, numColumns);
@@ -145,21 +124,19 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
             width = javaRect.getWidth();
             
             % Set columnwidths
-            obj.Table.ColumnWidth = arrayfun(@(i) round(width/numColumns), 1:numColumns, 'uni', 0 ); 
+            obj.Table.ColumnWidth = arrayfun(@(i) round(width/numColumns), 1:numColumns, 'uni', 0 );
 
             obj.Table.Data = {}; % Reset Data.
         end
         
-        
         function tableMousePress(obj, ~, event)
         %tableMousePress Callback for mousepress in table.
         %
-        %   This function is primarily used for 
+        %   This function is primarily used for
         %       1) Creating an action on doubleclick
-        %       2) Selecting cell on right click    
+        %       2) Selecting cell on right click
 
             if ~exist('obj', 'var') || ~isvalid(obj); return; end
-
 
             % Get the cell which is clicked using the awt.point and
             % rowAtPoint method. NB! Indexing starts at 0 for java objects
@@ -180,7 +157,6 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
                         return
                     end
 
-
                 case {'alt'}
                     % Change selection if new session is selected. Skip if
                     % another column is selected.
@@ -189,14 +165,10 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
     %                         src.changeSelection(i, j, false, false) To select
     %                         different column
                     end
-
             end
-            
         end
-        
-        
 
-         % Cell selection callback: UITableSessionList 
+         % Cell selection callback: UITableSessionList
         function onCellSelection(obj, src, event)
             
             % Is all this necessary for getting row selection??
@@ -208,10 +180,9 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
             
             isRowSelected = find(numColsSelected == numCols);
             
-            
             if all(ismember(ii, isRowSelected))
                 disp('debug')
-                return 
+                return
             end
             
 %             return
@@ -224,7 +195,6 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
                 extend = true;
             end
             
-            
             isNew = ~ismember(ii, isRowSelected);
             
             if isempty(isNew)
@@ -232,7 +202,6 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
             end
             
 %             isNew = true(size(ii));
-
             
             obj.selectedRows(isDeselected) = [];
 
@@ -251,7 +220,7 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
 %                     else
 %                         jjTmp = [numCols, jSelected+1, jSelected-1, 1];
 %                     end
-%                     
+%
 %                     jjTmp = unique(jjTmp);
 
                     if numel(jSelected) == numCols; continue; end
@@ -274,19 +243,12 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
                         extend = true;
                     end
                 end
-                
             end
             
             obj.selectedRows = unique(obj.selectedRows);
-
             
         end
         
-        
     end % /methods (Access = private)
-    
-    
-    
-    
     
 end

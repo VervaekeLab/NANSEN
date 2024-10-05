@@ -1,6 +1,5 @@
 classdef PipelineCatalog < utility.data.StorableCatalog
 %DataLocationModel Interface for detecting path of data/session folders
-    
 
     % TODOS:
     %   [x] Combine code from getSubjectId and getSessionId into separate
@@ -21,7 +20,6 @@ classdef PipelineCatalog < utility.data.StorableCatalog
     properties (Dependent)
         DefaultPipeline
     end
-    
     
     methods (Static)
         
@@ -68,19 +66,17 @@ classdef PipelineCatalog < utility.data.StorableCatalog
         end
     end
     
-    methods % Constructor 
+    methods % Constructor
         function obj = PipelineCatalog(varargin)
            
-            % Superclass constructor. Loads given (or default) archive 
+            % Superclass constructor. Loads given (or default) archive
             obj@utility.data.StorableCatalog(varargin{:})
 
             if ~nargout
                 utility.data.CatalogViewerApp(obj)
                 clear obj
             end
-            
         end
-        
     end
     
     methods % Set/get methods [v]
@@ -109,7 +105,6 @@ classdef PipelineCatalog < utility.data.StorableCatalog
             obj.Preferences.DefaultPipeline = newValue;
             
         end
-        
     end
     
     methods % Public
@@ -122,11 +117,8 @@ classdef PipelineCatalog < utility.data.StorableCatalog
                 
                 if any(tf)
                 end
-
             end
-        
         end
-        
         
         function tf = matchSessionObjectsToPipeline(obj, pipelineIdx, sessionObjects)
         %matchSessionObjectsToPipeline Match pipeline with sessionobjects
@@ -166,7 +158,7 @@ classdef PipelineCatalog < utility.data.StorableCatalog
                             case 'match'
                                 tf = tf & strcmp(propValues, sMatchMaker(i).Expression);
                                 
-                            otherwise 
+                            otherwise
                                 error('Unsupported matching mode')
                         end
                         
@@ -180,7 +172,7 @@ classdef PipelineCatalog < utility.data.StorableCatalog
                                 error('not implemented yet')
                             case 'match'
                                 tf = tf & ismember(propValues, eval(sMatchMaker(i).Expression));
-                            otherwise 
+                            otherwise
                                 error('Unsupported matching mode')
                         end
                         
@@ -199,11 +191,9 @@ classdef PipelineCatalog < utility.data.StorableCatalog
                     if numel(sMatchMaker) == 1
                         tf(:) = false;
                     end
-                    
                 end
             end
         end
-        
         
         function pipelineItem = getPipelineForSession(obj, pipelineIdx)
         %getPipelineForSession Get a pipeline item for session object.
@@ -224,7 +214,7 @@ classdef PipelineCatalog < utility.data.StorableCatalog
             extendedTaskList = struct( nansen.pipeline.Task );
             
             if isempty(pipelineTaskList) || isempty(fieldnames(pipelineTaskList))
-                extendedTaskList(1) = []; 
+                extendedTaskList(1) = [];
                 pipelineItem.TaskList = extendedTaskList;
                 return
             end
@@ -247,7 +237,6 @@ classdef PipelineCatalog < utility.data.StorableCatalog
             pipelineItem.TaskList = extendedTaskList;
             
         end
-        
     end
     
     methods % Methods for updating substructs
@@ -270,7 +259,6 @@ classdef PipelineCatalog < utility.data.StorableCatalog
         function setModelData(obj, data)
             obj.Data = data;
         end
-        
     end
     
     methods (Access = protected)
@@ -279,18 +267,16 @@ classdef PipelineCatalog < utility.data.StorableCatalog
             item = validateItem@utility.data.StorableCatalog(obj, item);
             
         end
-        
     end
     
-    
-    methods (Hidden, Access = protected) 
+    methods (Hidden, Access = protected)
         
     end
     
     methods (Static)
         
         function pathString = getDefaultFilePath()
-        %getFilePath Get filepath for loading/saving datalocation settings   
+        %getFilePath Get filepath for loading/saving datalocation settings
             fileName = 'PipelineAssignmentModel';
             try
                 pathString = nansen.config.project.ProjectManager.getFilePath(fileName);
@@ -298,8 +284,5 @@ classdef PipelineCatalog < utility.data.StorableCatalog
                 pathString = '';
             end
         end
-        
     end
-    
 end
-

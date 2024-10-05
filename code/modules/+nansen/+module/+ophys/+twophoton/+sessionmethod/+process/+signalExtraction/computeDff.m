@@ -24,9 +24,8 @@ classdef computeDff < nansen.session.SessionMethod
             if ~nargout % how to generalize this???
                 obj.runMethod()
                 clear obj
-            end 
+            end
         end
-        
     end
     
     methods (Static)
@@ -71,11 +70,11 @@ classdef computeDff < nansen.session.SessionMethod
             end
             
             dff = computeDff(signalArray, obj.Options);
-            obj.saveData('RoiSignals_Dff', dff) 
+            obj.saveData('RoiSignals_Dff', dff)
             
         end
         
-        function wasSuccess = preview(obj) 
+        function wasSuccess = preview(obj)
             h = openDffExplorer(obj.SessionObjects);
             wasSuccess = obj.finishPreview(h);
         end
@@ -83,12 +82,8 @@ classdef computeDff < nansen.session.SessionMethod
         function printTask(obj, varargin)
             fprintf(varargin{:})
         end
-        
     end
-
 end
-
-
 
 function hDffPlugin = openDffExplorer(sessionObj)
 
@@ -141,4 +136,3 @@ function hDffPlugin = openDffExplorer(sessionObj)
     hDffPlugin.waitfor()
     
 end
-

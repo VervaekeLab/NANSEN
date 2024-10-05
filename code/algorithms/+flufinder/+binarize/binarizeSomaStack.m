@@ -4,8 +4,7 @@ function BW = binarizeSomaStack(imageArray, varargin)
 %   Note: This method is ad hoc, designed by trial and error.
     
     % Todo:
-    %   [ ] option for getting binarization threshold for each frame individually. 
-
+    %   [ ] option for getting binarization threshold for each frame individually.
 
     % Validate inputs
     assert(ismember( ndims(imageArray), [2,3]), 'Image array must be 2D or 3D')
@@ -15,13 +14,11 @@ function BW = binarizeSomaStack(imageArray, varargin)
     params.RoiDiameter = 12;
     params.PrctileForBinarization = 92;
     %params.ThresholdMethod = 'all'; % 'single frame', 'all frames'
-
     
     params = utility.parsenvpairs(params, [], varargin{:});
     
-    
     global waitbar
-    useWaitbar = ~isempty(waitbar); 
+    useWaitbar = ~isempty(waitbar);
     
     if useWaitbar; waitbar(0, 'Please wait while binarizing images'); end
     
@@ -32,7 +29,7 @@ function BW = binarizeSomaStack(imageArray, varargin)
     nhoodSmall = strel('disk', round(params.RoiDiameter/6) );
     nhoodLarge = strel('disk', round(params.RoiDiameter/3) );
 
-    % Get pixel value for bw threshold 
+    % Get pixel value for bw threshold
     T = prctile(imageArray(:), params.PrctileForBinarization);
 
     % Loop through frames and binarize each frame individually.
@@ -40,7 +37,7 @@ function BW = binarizeSomaStack(imageArray, varargin)
         
 % %         T = adaptthresh(dffStack(:,:,i), 0.5); %'ForegroundPolarity', 'bright'
 % %         BW(:,:,i) = imbinarize(dffStack(:,:,i), T);
-% % 
+% %
 % %         pixelData = dffStack(:,:,i);
 % %         T = prctile(pixelData(:), params.PercentileThreshold);
 
@@ -56,12 +53,9 @@ function BW = binarizeSomaStack(imageArray, varargin)
         BW(:,:,i) = imclearborder(BW(:,:,i));
         BW(:,:,i) = imerode(BW(:,:,i), nhoodLarge);
         BW(:,:,i) = imopen(BW(:,:,i), nhoodLarge);
-    
         
         if useWaitbar && mod(i, 50) == 0
             waitbar(i/size(imageArray, 3))
         end
-        
     end
 end
-

@@ -2,7 +2,7 @@ function [cia_dec, cia_den, cia_opt] = caiman(dff, varargin)
 %getCaImAnDeconvolvedDff Use CaImAn to deconvolve dff signal.
 %
 %   [cia_dec, cia_den, cia_opt] = caiman(dff, opt)
-%   
+%
 %   INPUTS:
 %       dff : matrix (nRois x nTimePoints/nSamples)
 %           matrix containing delta f over f signal for rois
@@ -11,32 +11,27 @@ function [cia_dec, cia_den, cia_opt] = caiman(dff, varargin)
 %
 %   See also nansen.twophoton.roisignals.getDeconvolutionParameters
 
-
 %TODO:
     % [ ] Use hardcoded timeconstants or optimize?
     % [ ] Individual time constants per roi
-    
     
     [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
     
     % Parse potential parameters from input arguments
     opt = utility.parsenvpairs(P, V, varargin{:});
     
-    
     % Turn off warning that comes when adding cvx library
     warning('off', 'MATLAB:dispatcher:nameConflict')
     addpath(genpath('/Users/eivinhen/PhD/Programmering/MATLAB/dependencies'));
     warning('on', 'MATLAB:dispatcher:nameConflict')
-    
     
     % Preallocate arrays for output
     [cia_dec, cia_den] = deal( nan(size(dff)) );
     
     nRois = size(dff, 1);
     cia_opt = cell(nRois, 1);
-
     
-    % todo... 
+    % todo...
     prevstr = [];
     starttime = tic;
     if isempty(gcp('nocreate'))
@@ -55,7 +50,7 @@ function [cia_dec, cia_den, cia_opt] = caiman(dff, varargin)
 
     % %Set time constants
     switch lower(opt.modelType)
-        case 'ar1' 
+        case 'ar1'
     %         g = nthroot(0.5, opt.tauDecay);
             g = exp( -1 / opt.tauDecay );
             opt.modelParams = g;
@@ -79,7 +74,6 @@ function [cia_dec, cia_den, cia_opt] = caiman(dff, varargin)
         opt.modelParams = [];
     end
 
-
     % Loop through all cells
 for r = 1:nRois
     
@@ -90,7 +84,6 @@ for r = 1:nRois
         continue
     end
     
-    
     fr = opt.sampleRate;
     decay_time = 0.5;  % default value in CNMF: 0.4; Maybe this is for f?
     
@@ -98,11 +91,9 @@ for r = 1:nRois
 % %     b = GetSn(roiSignal, [0, .25]);
 % %     fprintf('Signal: %.3f    Noise: %.3f \n', b, a)
 
-
     % Compute values for deconvolution
     spkmin = opt.spikeSnr * GetSn(roiSignal);   % GetSn = Noise Standard Deviation
     lam = choose_lambda(exp(-1/(fr*decay_time)), GetSn(roiSignal), opt.lambdaPr);
-    
     
     switch opt.modelType
         case 'ar1'
@@ -132,11 +123,9 @@ for r = 1:nRois
     
     [cc,spk,opts_oasis] = deconvolveCa(roiSignal, deconvolutionOptions{:});
                             
-                            
     baseline = opts_oasis.b;
     den_df = cc(:) + baseline;
     dec_df = spk(:);
-    
     
     if dispProgress
         dt = toc(starttime);
@@ -145,7 +134,6 @@ for r = 1:nRois
         prevstr = newstr;
     end
     
-    
     cia_dec(r, :) = dec_df;
     cia_den(r, :) = den_df;
     cia_opt{r} = opt;
@@ -153,15 +141,10 @@ for r = 1:nRois
     
 end
 
-
 if dispProgress
 refreshdisp('', prevstr, r)
 msg = sprintf('Signal deconvolution finished in %02d:%02d\n', floor(dt/60), round(mod(dt, 60)));
 fprintf(msg)
 end
-
 end
-
-
-                                
                   

@@ -1,7 +1,7 @@
 function mat2tiffstack( mat, stackPath, createRgb, useBigTiff)
 %mat2tiffstack writes an uint8 array to a tiff-stack
 %
-%   mat2tiffstack(A, filepath) saves 3D array as a tiff stack in 
+%   mat2tiffstack(A, filepath) saves 3D array as a tiff stack in
 %       specified path
 
 % Todo: implement stack order...
@@ -61,12 +61,11 @@ if (nDim == 2 || nDim == 3) && ~createRgb
         tiffFile.setTag('Compression',Tiff.Compression.None);
         tiffFile.write(mat(:, :, f));
 
-        if f < nFrames 
+        if f < nFrames
             tiffFile.writeDirectory();
         end
     end
     tiffFile.close();
-
 
 elseif nDim == 4 || createRgb
     
@@ -102,7 +101,6 @@ else
 
     mat = reshape(mat, height, width, []);
     nansen.stack.utility.mat2tiffstack(mat, stackPath, false, tiffMode)
-    %error('No implementation for %d-dimensional stacks', nDim) 
+    %error('No implementation for %d-dimensional stacks', nDim)
 end
-
 end

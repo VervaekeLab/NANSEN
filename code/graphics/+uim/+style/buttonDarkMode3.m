@@ -31,6 +31,4 @@ classdef buttonDarkMode3 < uim.style.buttonScheme
             'BorderColor', ones(1,3)*0.4, ...
             'BorderWidth', 0.5 )
     end
-    
-    
 end

@@ -35,7 +35,6 @@ classdef RoiGroup < nansen.dataio.FileAdapter
         OPTIONAL_VARIABLE_NAMES = {'ChannelNumber', 'PlaneNumber'}
     end
     
-    
     methods (Access = protected)
         
         function roiGroup = readData(obj, varargin)
@@ -72,8 +71,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                 data.PlaneNumber = num2cell(zz);
             end
 
-
-            % Todo: Account for multipe channels/planes.
+            % Todo: Account for multiple channels/planes.
             % Temporaray quick fix - Perhaps a permanent solution.
             if strcmp(roiFormat, 'Nansen') && isfield(data, 'roiArray') && iscell(data.roiArray)
                 roiGroupStruct = obj.makeNonScalarStruct(data);
@@ -116,7 +114,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
         end
         
         function writeData(obj, data, varName)
-        %writeData Takes care of writing roi group to file as a struct 
+        %writeData Takes care of writing roi group to file as a struct
             
             if isa(data, 'RoI')
                 S = obj.createStructFromRoiArray(data);
@@ -141,7 +139,6 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             % Use superclass method to write to mat...
             obj.writeDataToMat(S);
         end
-        
     end
     
     methods % Set/get
@@ -159,13 +156,12 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             newValue = validatestring(newValue, VALID_FORMATS);
             obj.RoiFormat_ = newValue;
         end
-        
     end
     
     methods (Access = private) % Methods for reading
         
         function tf = requireConversionToMat(obj)
-        %requireConversionToMat Check if file must be converted to mat    
+        %requireConversionToMat Check if file must be converted to mat
             [~, ~, ext] = fileparts(obj.Filename);
             tf = ~strcmp(ext, '.mat');
         end
@@ -207,7 +203,6 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             else
                 roiFormat = 'Unknown';
             end
-            
         end
         
         function conversionFcn = getDataConversionFunction(obj, roiFormat)
@@ -226,13 +221,12 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                     
                 otherwise
                     % Todo:
-                    % Get manual 
+                    % Get manual
             end
-            
         end
         
         function S = collectSuite2pOutputs(obj, data)
-        %collectSuite2pOutputs Collect complimentary variables from suite2p    
+        %collectSuite2pOutputs Collect complimentary variables from suite2p
             
         % Suite2p exports roidata to multiple files. Try to collect it
         % here using the default output names of suite2p. If files are not
@@ -291,7 +285,6 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                 end
             end
         end
-        
     end
     
     methods (Access = private) % Methods for writing %Todo: simplify...
@@ -380,7 +373,6 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                 S.roiArray = roimanager.utilities.roiarray2struct(S.roiArray);
             end
         end
-
     end
     
     methods (Static)
@@ -400,7 +392,6 @@ classdef RoiGroup < nansen.dataio.FileAdapter
                     tf = true;
                 end
             end
-            
         end
         
         function tf = isSuite2pRoiFile(filepath, data)
@@ -437,7 +428,6 @@ classdef RoiGroup < nansen.dataio.FileAdapter
 
             if strcmp(name, 'stat')
                 
-                
             else
                 % What if someone renamed their files...?
             end
@@ -449,7 +439,6 @@ classdef RoiGroup < nansen.dataio.FileAdapter
             [~, name, ~] = fileparts(filepath);
 
             if strcmp(name, 'stat')
-                
                 
             else
                 % What if someone renamed their files...?
@@ -493,4 +482,3 @@ classdef RoiGroup < nansen.dataio.FileAdapter
         end
     end
 end
-

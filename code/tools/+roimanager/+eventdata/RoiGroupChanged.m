@@ -1,12 +1,10 @@
 classdef (ConstructOnLoad) RoiGroupChanged < event.EventData
-   
     
     properties
         eventType   % initialize, append, insert, modify, remove
         roiArray
         roiIndices
     end
-    
     
     methods
         
@@ -15,7 +13,5 @@ classdef (ConstructOnLoad) RoiGroupChanged < event.EventData
             data.roiArray = roiArray;
             data.roiIndices = roiIndices;
         end
-        
     end
-    
 end

@@ -25,5 +25,4 @@ classdef Species < nansen.metadata.abstract.TableVariable
             instances = lower(instances);
         end
     end
-    
 end

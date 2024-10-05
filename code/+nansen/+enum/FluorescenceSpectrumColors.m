@@ -71,7 +71,5 @@ classdef FluorescenceSpectrumColors
             obj.LongLabel = sprintf('%s (%d-%d nm)', obj.Label, ...
                 obj.WaveLengthInterval(1), obj.WaveLengthInterval(2));
         end
-        
     end
-    
 end

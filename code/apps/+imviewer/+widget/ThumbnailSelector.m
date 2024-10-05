@@ -1,6 +1,5 @@
 classdef ThumbnailSelector < handle
     
-    
     properties
         hTiledImageAxes
         Position
@@ -22,15 +21,13 @@ classdef ThumbnailSelector < handle
         currentTiles
     end
     
-    
-    % todo: 
+    % todo:
     % [] Add thumbnail/add tile
     % [] Add scrollbar
     % [] Keep thumbnails for different tabs
     % [] make number of tiles a property...
     
-    
-    methods 
+    methods
         function obj = ThumbnailSelector(parent, imdata, labels, callbacks, varargin)
             
 % % %             if ndims(imdata) == 3
@@ -39,19 +36,15 @@ classdef ThumbnailSelector < handle
 % % %                 [imHeight, imWidth, ~, nImages] = size(imdata);
 % % %             end
 % % %             obj.hTiledImageAxes = uim.graphics.tiledImageAxes(parent, ...
-% % %                     varargin{:});     
-
+% % %                     varargin{:});
 
             obj.hTiledImageAxes = uim.graphics.tiledImageAxes(parent, ...
                 'gridSize', [3,1], 'imageSize', [256, 256], ...
                 'normalizedPadding', 0.02, 'Visible', 'off');
             
-
-            
             obj.hTiledImageAxes.highlightTileOnMouseOver = true;
             
             nImages = min([nImages, obj.hTiledImageAxes.nTiles]);
-            
             
             if ndims(imdata) == 3
                 obj.hTiledImageAxes.updateTileImage(imdata(:, :, 1:nImages), 1:nImages)
@@ -70,7 +63,6 @@ classdef ThumbnailSelector < handle
             
             obj.addThumbnailGroup('Projection', imdata, labels, callbacks);
             
-            
             colormap( obj.hTiledImageAxes.Axes, gray(256) )
             
             obj.Figure = obj.hTiledImageAxes.Figure;
@@ -82,7 +74,6 @@ classdef ThumbnailSelector < handle
             obj.IsConstructed = true;
             
             obj.onVisibleChanged()
-
             
         end
         
@@ -130,7 +121,6 @@ classdef ThumbnailSelector < handle
             % Todo: Update scrollbar and gridsize based on number of
             % images...
             
-            
             obj.updateTabButtonStates(obj.toggleButtons, thumbnailClass)
 
             switch thumbnailClass
@@ -158,7 +148,6 @@ classdef ThumbnailSelector < handle
             for i = IND
                 obj.hTiledImageAxes.tileCallbackFcn(S.Callbacks{i}, i)
             end
-            
         end
         
         function createScrollBar(obj)
@@ -167,7 +156,6 @@ classdef ThumbnailSelector < handle
             scrollbarPosition = [sum(obj.hTiledImageAxes.Axes.Position([1,3])), ...
                                  obj.hTiledImageAxes.Axes.Position(2), ...
                                  20, obj.hTiledImageAxes.Axes.Position(4)];
-             
             
             opts = {'Orientation', 'Vertical', ...
                     'Maximum', 100, ...
@@ -216,7 +204,6 @@ classdef ThumbnailSelector < handle
                 event = struct('incr', i - obj.currentTiles(1));
                 obj.updateView([], event, 'incr')
             end
-            
         end
         
         function stopScrollbarMove(obj, ~, deltaY)
@@ -250,8 +237,6 @@ classdef ThumbnailSelector < handle
                     
                     if n == 0; return; end
                     
-
-                    
                 case 'incr'
                     n = event.incr;
 
@@ -282,7 +267,6 @@ classdef ThumbnailSelector < handle
                 obj.Position_ = newValue;
                 obj.onPositionChanged()
             end
-        
         end
         
         function position = get.Position(obj)
@@ -304,9 +288,7 @@ classdef ThumbnailSelector < handle
             obj.hScrollbar.Position = scrollbarPosition;
             
         end
-        
     end
-    
     
     methods (Static)
         
@@ -325,10 +307,6 @@ classdef ThumbnailSelector < handle
                     hButtons(i).toggleState([], evtDataOff)
                 end
             end
-            
         end
-        
     end
-    
-    
 end

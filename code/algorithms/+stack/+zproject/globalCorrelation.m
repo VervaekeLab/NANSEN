@@ -8,9 +8,8 @@ function cIm = globalCorrelation(IM, dim)
 
 % Todo: Make chunking dependent on input and or available memory.
 
-
 if ndims(IM) > 3
-    error('Not implemented for matrices with more than 3 dims'); 
+    error('Not implemented for matrices with more than 3 dims');
 end
 
 P = double( prctile(single(IM(:)), [0.5, 99.5]) );

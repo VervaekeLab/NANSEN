@@ -16,7 +16,6 @@ function S = renamefield(S, oldNames, newNames)
 %   Output arguments:
 %       S
 
-
     assert( strcmp( class(oldNames), class(newNames) ), ...
         'Old names and new names must be same data type')
 

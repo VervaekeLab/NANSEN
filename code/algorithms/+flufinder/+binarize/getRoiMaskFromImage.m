@@ -37,7 +37,6 @@ function [BW, stats] = getRoiMaskFromImage(im, roiType, roiDiameter)
     if nargout == 2
         stats = getStats(im, BW);
     end
-    
 end
 
 function T = getThreshold(im, roiType)

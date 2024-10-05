@@ -1,7 +1,7 @@
 classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata.abstract.TableColumnFormatter
 %DataLocation Controls behavior of table cells containing datalocation items.
 %
-%   
+%
 
     % Todo: Add an update function
 
@@ -160,7 +160,7 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                         end
                     end
                     
-                    %structeditor is not advanced enough for this yet.. 
+                    %structeditor is not advanced enough for this yet..
                     % todo for the future
                     %S.(fieldName).Subfolder_ = @(x)uigetdir(rootPath);
                 end
@@ -235,7 +235,6 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                 end
             end
         end
-        
     end
     
     methods (Access = ?structeditor.App)
@@ -250,7 +249,7 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                 case 'RootPath'
                     % Todo: change the function handle for uigetdir...
                     %S.(fieldName).Subfolder_
-            end            
+            end
         end
     end
     
@@ -284,7 +283,6 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     
                 end
             end
-            
         end
     end
    
@@ -311,7 +309,5 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
             str = sprintf('<img src="file:%s" %s margin="0">', iconPath, sizeSpec);
             
         end
-        
     end
-    
 end

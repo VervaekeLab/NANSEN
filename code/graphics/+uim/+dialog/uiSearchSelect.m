@@ -33,7 +33,7 @@ classdef uiSearchSelect < handle
         end
     end
 
-    methods 
+    methods
         function selection = get.Selection(obj)
             selection = obj.AutoCompleteWidget.Value;
         end

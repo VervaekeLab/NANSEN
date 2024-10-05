@@ -6,8 +6,8 @@ classdef TimeAxis < handle
 %   datetime vector
 
     properties (Dependent)
-        Visible     % State of visibility 
-        Color       % Color of axis line and labels  
+        Visible     % State of visibility
+        Color       % Color of axis line and labels
     end
     
     properties
@@ -21,7 +21,6 @@ classdef TimeAxis < handle
         ContextMenu     % Store context menu items (for app that implements)
         ReferenceAxisXLimListener % Listener to update xaxis limits.
     end
-    
     
     methods
         
@@ -67,10 +66,9 @@ classdef TimeAxis < handle
             delete(obj.ReferenceAxisXLimListener)
             delete(obj.TimeAxisAxes)
         end
-        
     end
     
-    methods 
+    methods
         function set.Color(obj, newValue)
             obj.TimeAxisAxes.XAxis.Color = newValue;
         end
@@ -87,7 +85,7 @@ classdef TimeAxis < handle
     methods
         
         function setTimeAxisVisibility(obj, timeAxisVisible)
-        %setTimeAxisVisibility Set visibility of time axis.    
+        %setTimeAxisVisibility Set visibility of time axis.
             switch timeAxisVisible
                 case 'on'
                     referenceAxisVisible = 'off';
@@ -139,7 +137,5 @@ classdef TimeAxis < handle
             timeLimits = obj.TimeVector(1) + (sampleLimits - 1) .* obj.TimeStep;
             obj.TimeAxisAxes.XLim = timeLimits;
         end
-
     end
-
 end

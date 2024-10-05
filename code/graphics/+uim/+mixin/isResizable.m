@@ -1,7 +1,7 @@
 classdef isResizable < uim.handle
 %isResizeable
 
-% Todo: 
+% Todo:
 %   [ ] Generalize so that it can be used on any object that implements a
 %       position property. Especially virtual containers?
 %   [ ] Update references in different apps/scripts/functions
@@ -30,18 +30,16 @@ classdef isResizable < uim.handle
         IsConstructed = false;
     end
     
-    properties (Hidden, Transient, Access = public)    
+    properties (Hidden, Transient, Access = public)
         interactiveRectangle
     end
-    
     
     methods (Abstract, Access = protected)
         setDefaultButtonDownFcn(obj, fcnHandle)
         resize(obj, pos)
     end
     
-    
-    methods 
+    methods
         
         function delete(obj)
             for i = numel(obj.Children):-1:1
@@ -53,10 +51,9 @@ classdef isResizable < uim.handle
             end
         end
         
-        
         function createInteractiveRectangle(obj)
             
-            % Make an imrect for interactively moving and resizing the 
+            % Make an imrect for interactively moving and resizing the
             % virtualPanel.
             
             if ~isempty(obj.interactiveRectangle)
@@ -70,34 +67,29 @@ classdef isResizable < uim.handle
             
             el = addlistener(hRect, 'ObjectBeingDestroyed', @(src,evt) delete(obj));
             obj.rectDestroyedListener = el;
-
             
             % todo: work on this....
 % % %             hFunc = makeConstrainToRectFcn('imrect', obj.margins([1,3]), obj.margins([2,4]));
 % % %             hRect.setPositionConstraintFcn(hFunc);
-            
 
 % % %             % Modify button down to also run mousepress callback.
 % % %             ptmp = findobj(hRect,'Type', 'patch');
 % % %             funhandle = ptmp.ButtonDownFcn;
 % % %             set(ptmp, 'ButtonDownFcn', {@obj.mousePressed, funhandle, 'interior'} )
-% % %         
+% % %
 % % %             ctmp = findobj(hRect, '-regexp', 'Tag', 'corner');
 % % %             set(ctmp, 'ButtonDownFcn', {@obj.mousePressed, ctmp(1).ButtonDownFcn, 'corner'} );
-% % % 
+% % %
 % % %             ltmp = findobj(hRect, '-regexp', 'Tag', 'top line');
 % % %             set(ltmp, 'ButtonDownFcn', {@obj.mousePressed, ltmp(1).ButtonDownFcn, 'side'} );
-
         
             % set all context menus for the underlying line and patch objects
 
 % % %             % Edit the context menu of the rectangle. TODO: Add customs..
 % % %             hComp = findobj(hRect, 'Type', 'line', '-or', 'Type', 'patch');
-% % %             
+% % %
 % % %             cmHandle = obj.configContextMenu(hComp(1).UIContextMenu);
 % % %             set(hComp, 'uicontextmenu', cmHandle);
-            
-            
             
             % Find the hggroup of the imrect. Move it down in the stack so
             % that the imrect for the margins will stay on top.
@@ -106,7 +98,6 @@ classdef isResizable < uim.handle
             
             obj.interactiveRectangle = hRect;
          end
-        
         
         function hideInteractiveRectangle(obj)
             if isempty(obj.interactiveRectangle); return; end
@@ -119,7 +110,6 @@ classdef isResizable < uim.handle
             pTmp.HitTest = 'off';
             pTmp.PickableParts = 'none';
         end
-        
         
         function showInteractiveRectangle(obj)
             if isempty(obj.interactiveRectangle); return; end
@@ -135,15 +125,11 @@ classdef isResizable < uim.handle
                 pTmp.HitTest = 'on';
                 pTmp.PickableParts = obj.PickableParts;
             end
-            
-            
         end
-        
         
         function setPositionConstraintFcn(obj, hFunc)
             obj.interactiveRectangle.setPositionConstraintFcn(hFunc);
         end
-        
         
         function setPosition(obj, newPosition, mode)
             
@@ -153,27 +139,23 @@ classdef isResizable < uim.handle
             
             if strcmp(mode, 'constrained')
                 obj.interactiveRectangle.setConstrainedPosition(newPosition)
-            elseif strcmp(mode, 'unconstrained') 
+            elseif strcmp(mode, 'unconstrained')
                 obj.interactiveRectangle.setPosition(newPosition)
             end
         end
-        
         
         function setColor(obj, newColor)
         %setColor Set color of imrect
             obj.interactiveRectangle.setColor(newColor)
         end
         
-        
         function pos = getPosition(obj)
             pos = obj.interactiveRectangle.getPosition();
         end
         
-        
         function lim = getPositionLimits(obj)
             lim = obj.Position([1,2,1,2]) + [0, 0, obj.Position(3:4)];
         end
-        
         
         function pixelpos = getpixelposition(obj)
             pixelPosParent = getpixelposition(obj.Parent);
@@ -181,18 +163,15 @@ classdef isResizable < uim.handle
                             pixelPosParent([3,4,3,4])*obj.Position;
         end
         
-        
         function hArray = getImrectHandles(obj)
             hArray = findobj( obj.interactiveRectangle, ...
                                 'Type', 'line', '-or', 'Type', 'patch');
         end
         
-        
         function set.ResizeButtonDownFcn(obj, newFunc)
             obj.configNewResizeButtonDownFcn(newFunc)
             obj.ResizeButtonDownFcn = newFunc;
         end
-        
         
         function set.DefaultButtonDownFcn(obj, newValue)
             obj.DefaultButtonDownFcn = newValue;
@@ -201,7 +180,6 @@ classdef isResizable < uim.handle
             obj.setDefaultButtonDownFcn(newValue)
         end
         
-        
         function resizeChildren(obj, newPosition, oldPosition)
             
             hFig = ancestor(obj.Parent, 'figure');
@@ -209,13 +187,12 @@ classdef isResizable < uim.handle
             oldLim = [oldPosition(1:2), oldPosition(1:2) + oldPosition(3:4)];
             newLim = [newPosition(1:2), newPosition(1:2) + newPosition(3:4)];
             
-            
-            % Calculate normalized change in position and size of panels 
+            % Calculate normalized change in position and size of panels
             % based on change in the canvas.
             dW = (diff(newLim([1,3])) - diff(oldLim([1,3]))) / diff(oldLim([1,3]));
             dH = (diff(newLim([2,4])) - diff(oldLim([2,4]))) / diff(oldLim([2,4]));
             dx = newLim(1) - oldLim(1);
-            dy = newLim(2) - oldLim(2); 
+            dy = newLim(2) - oldLim(2);
             
             %fprintf('dH: %g, dW: %g\n', dH, dW)
             isResized = abs(dH) > 1e-9 || abs(dW) > 1e-9; % Take care of imprecision
@@ -250,12 +227,9 @@ classdef isResizable < uim.handle
                 end
 
                 obj.Children(i).setPosition(newPosTmp, 'unconstrained')
-            end            
-            
+            end
         end
-        
     end
-    
     
     methods (Access = protected)
         
@@ -281,9 +255,7 @@ classdef isResizable < uim.handle
             if ~isempty(obj.SizeChangedFcn)
                 obj.SizeChangedFcn(newPosition, oldPosition)
             end
-
         end
-        
         
         function configNewResizeButtonDownFcn(obj, newFunc)
         %configNewResizeButtonDownFcn
@@ -304,10 +276,7 @@ classdef isResizable < uim.handle
             set(lTmp, 'ButtonDownFcn', {newFunc, obj.ImrectCallbacks{3}, obj, 'side'} );
             
         end
-        
-        
     end
-    
     
     methods (Static)
         
@@ -319,10 +288,9 @@ classdef isResizable < uim.handle
             
         end
         
-        
         function BW = rect2mask(rectCoords, maskSize)
            
-            maskSize = round(maskSize); 
+            maskSize = round(maskSize);
             
             BW = false(maskSize(2), maskSize(1));
             pos = round(rectCoords .* [maskSize, maskSize]);
@@ -336,15 +304,8 @@ classdef isResizable < uim.handle
             
         end
         
-        
         function newPosition = getChildPosition(oldPosition, deltaPosition)
             
-            
         end
-        
-        
     end
-    
-    
-    
 end

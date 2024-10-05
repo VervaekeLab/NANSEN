@@ -28,5 +28,3 @@ function centerObjectInRectangle(hContainer, position)
 
     hContainer.Position(1:2) = newLocation;
 end
-
-

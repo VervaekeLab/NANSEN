@@ -7,7 +7,7 @@ function [S, P] = getDefaultItem()
 % DataSubfolders    : List of subfolders present in data/session folders (Not implemented yet)
 %
 % SubfolderStructure : A struct array of info about folder hierarchy going
-% for the rood directoty to a data directory
+% for the rood directory to a data directory
 % SubfolderStructure.Name       : Name of a subfolder on specific level
 % SubfolderStructure.Type       : Type of a subfolder on specific level (i.e subject, date, session etc)
 % SubfolderStructure.Expression : String expression used for detecting folders on this level
@@ -37,7 +37,6 @@ function [S, P] = getDefaultItem()
 
     S(i).SubfolderStructure(1).Type = 'Subject';
     S(i).SubfolderStructure(2).Type = 'Session';
-    
     
     P.DefaultDataLocation = 'Processed';
     

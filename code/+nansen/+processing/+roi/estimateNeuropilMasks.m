@@ -6,15 +6,13 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
     %       called max neuropil radius....
     %   [ ] Add doc
     %   [ ] test the max radius
-    %   [ ] add warning if mask cant be created (i.e not enough neuropil available)
-    
+    %   [ ] add warning if mask can't be created (i.e not enough neuropil available)
     
     % Get default parameters and assertion functions.
     [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
     
     % Parse potential parameters from input arguments
-    params = utility.parsenvpairs(P, V, varargin{:});    
-
+    params = utility.parsenvpairs(P, V, varargin{:});
 
     % Create mask of pixel to ignore when creating neuropil masks
     if params.excludeRoiFromNeuropil
@@ -40,7 +38,7 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
     end
     
     % Allocate array for neuropil masks.
-    [height, width, ~] = size(roiMasksIn);    
+    [height, width, ~] = size(roiMasksIn);
     neuropilMasks = false( height, width, numel(params.roiInd) );
     
     % Loop through rois
@@ -53,7 +51,7 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
         origArea = sum(currentRoiMask(:));  % original area
         maxArea = numel(currentRoiMask) - origArea;
 
-        targetArea = min([maxArea, params.neuropilExpansionFactor * origArea]); 
+        targetArea = min([maxArea, params.neuropilExpansionFactor * origArea]);
         
         currentArea = 0;                    % current area
         count = 0;
@@ -84,7 +82,6 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
             if count == 99
                 warning('Could not create npmask for roi %d', currentRoiInd)
             end
-
         end
 
         % Refine the final neuropil mask
@@ -97,13 +94,12 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
     end
 end
 
-
 function mask = imdilateoddeven(mask, count)
 %imdilateoddeven imdilate using different nhood on odd and even iterations
 %
 %   Method for dilation is from Fissa. In current version, we alternate
-%   between case 0 (cardinals) and case 1 (diagonals). Will preserve shape 
-%   of mask. 
+%   between case 0 (cardinals) and case 1 (diagonals). Will preserve shape
+%   of mask.
 %   Todo: add proper credit.
     
     if mod(count, 2) == 0
@@ -116,5 +112,4 @@ function mask = imdilateoddeven(mask, count)
         nhood = [1,0,1; 0,1,0; 1,0,1];
         mask = imdilate(mask, nhood);
     end
-    
 end

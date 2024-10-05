@@ -1,26 +1,22 @@
 classdef freehandDraw < uim.interface.abstractPointer & ...
         roimanager.pointerTool.RoiDisplayInputHandler
-    
         
     properties (Constant)
         exitMode = 'default';
     end
     
-    
     properties
         
         anchorPoint = [nan, nan]        	% defined in clib.hasDraggableRectangle
-        previousPoint = [nan, nan] 
+        previousPoint = [nan, nan]
 
         isButtonDown = false
         
     end
     
-    
     properties (Access = protected)
         hTempLine
     end
-    
     
     methods
         
@@ -28,10 +24,9 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
             obj.hAxes = hAxes;
             obj.hFigure = ancestor(hAxes, 'figure');
             
-            if nargin >= 2  
+            if nargin >= 2
                 obj.RoiDisplay = hRoiDisplay;
             end
-            
         end
         
         function deactivate(obj)
@@ -57,11 +52,10 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
                 case 'f'
                     obj.finishRoi()
             end
-            
         end
         
         function onButtonDown(obj, src, event)
-        %onButtonDown Callback for handling button down events in a roiMap.  
+        %onButtonDown Callback for handling button down events in a roiMap.
                     
             obj.isButtonDown = true;
             %obj.isActive = true;
@@ -74,7 +68,6 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
                obj.drawLine('draw')
                drawnow limitrate
             end
-            
         end
         
         function onButtonUp(obj, src, evt)
@@ -99,10 +92,10 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
                     yNew = point(1,2);
             end
             
-            if isempty(obj.hTempLine) 
+            if isempty(obj.hTempLine)
                 xData = xNew;
                 yData = yNew;
-            else 
+            else
                 xData = horzcat(obj.hTempLine.XData, xNew);
                 yData = horzcat(obj.hTempLine.YData, yNew);
             end
@@ -114,15 +107,14 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
                 yData(win) = smoothdata(yData(win));
             end
             
-            if isempty(obj.hTempLine) 
+            if isempty(obj.hTempLine)
                 obj.hTempLine = plot(obj.hAxes, xData, yData, '-', 'LineWidth', 2, 'Color', 'c');
                 obj.hTempLine.HitTest = 'off';
                 obj.hTempLine.PickableParts = 'None';
-            else 
+            else
                 set(obj.hTempLine, 'XData', xData)
                 set(obj.hTempLine, 'YData', yData)
             end
-    
         end
     
         function resetTempLine(obj)
@@ -145,12 +137,10 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
                 return
             end
             
-            
             divisionPoints = [0, find( isnan(x) )];
             
             xUs = [];
             yUs = [];
-          
             
             for i = 1:numel(divisionPoints)-1
             
@@ -180,5 +170,4 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
                 
         end
     end
-    
 end

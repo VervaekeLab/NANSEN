@@ -10,7 +10,6 @@ classdef sessionMethodClassTemplate < nansen.session.SessionMethod
         OptionsManager = nansen.OptionsManager(mfilename('class')) % todo...
     end
     
-    
     methods
         
         function obj = sessionMethodClassTemplate(varargin)
@@ -18,8 +17,6 @@ classdef sessionMethodClassTemplate < nansen.session.SessionMethod
             obj@nansen.session.SessionMethod(varargin{:})
 
         end
-        
-        
     end
     
     methods
@@ -27,7 +24,5 @@ classdef sessionMethodClassTemplate < nansen.session.SessionMethod
         function runMethod(obj)
             
         end
-        
     end
-
 end

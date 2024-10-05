@@ -2,7 +2,6 @@ classdef ThorLabsTiffs < nansen.stack.data.VirtualArray
 %nansen.stack.virtual.ThorLabsTiffs Create virtual array for Thorlabs data
 %
 
-
     % Todo:
     % [ ] Implement folder initialization.  
     % [ ] assignFilePath: resolve if there are files from multiple planes
@@ -38,9 +37,8 @@ properties (Access = private, Hidden) % File Info
     numFramesPerFile = 1
     frameIndexInfo
 
-    ImageInfo       % Should be for all images, but right now it stores info for first image... 
+    ImageInfo       % Should be for all images, but right now it stores info for first image...
 end
-
 
 methods % Structors
     
@@ -55,7 +53,6 @@ methods % Structors
     function delete(obj)
         
     end
-    
 end
 
 methods (Access = protected) % Implementation of abstract methods
@@ -79,7 +76,7 @@ methods (Access = protected) % Implementation of abstract methods
         % Make sure lists are column vectors
         if isrow(obj.FilePathList)
             obj.FilePathList = obj.FilePathList';
-        end        
+        end
     end
     
     function getFileInfo(obj)
@@ -98,7 +95,7 @@ methods (Access = protected) % Implementation of abstract methods
         obj.MetaData.SizeY = S.pixelY;
         obj.MetaData.SizeZ = S.NumberOfPlanes;
         obj.MetaData.SizeC = numel(S.channel); % Todo: Make sure this is correct.
-        obj.MetaData.SizeT = S.frames; % Todo: Make sure this is correct. 
+        obj.MetaData.SizeT = S.frames; % Todo: Make sure this is correct.
         
         % Specify physical sizes
         obj.MetaData.SampleRate = S.frameRate;
@@ -139,7 +136,7 @@ methods (Access = protected) % Implementation of abstract methods
     end
     
     function createFrameIndexMap(obj)
-    %createFrameIndexMap Create a mapping from frame number to file part    
+    %createFrameIndexMap Create a mapping from frame number to file part
         
         obj.frameIndexInfo = struct('frameNum', [], 'fileNum', [], 'frameInFile', []);
 
@@ -207,11 +204,9 @@ methods (Access = protected) % Implementation of abstract methods
         bitsPerSample = obj.ImageInfo.BitDepth;
         obj.DataType = sprintf('uint%d', bitsPerSample);
     end
-    
 end
 
 methods % Implementation of abstract methods for reading/writing data
-    
     
     function getFrame(obj, frameInd, subs)
         obj.getFrameSet(frameInd, subs)
@@ -275,50 +270,46 @@ methods % Implementation of abstract methods for reading/writing data
 % %             warning('off', 'imageio:tiffmexutils:libtiffWarning')
 % %             obj.tiffObj(fileNum).setDirectory(frameInFile);
 % %             warning('on', 'imageio:tiffmexutils:libtiffWarning')
-% %             
+% %
 % %             data(insertSub{:}) = obj.tiffObj(fileNum).read();
             
             filepath = obj.FilePathList{fileNum};
             data(insertSub{:}) = imread(filepath);
-
             
             if useWaitbar
                 if mod(i, updateRate) == 0
                     waitbar(i/dataSize(end), 'Loading image frames')
                 end
             end
-
         end
-        
     end
     
-    
 % %     function data = readFrames(obj, frameInd)
-% %         
+% %
 % %         % Note: Assume that frames are the last dimension of data...
-% %         
+% %
 % %         % Todo: This is the same for all. Should generalize
-% %         
+% %
 % %         % Todo: simplify. Do not need subs, only need stacksize...
-% %         
+% %
 % %         % Todo: Add error handling if requested image is not right
 % %         % dimension
-% % 
-% %         
+% %
+% %
 % %         % Determine size of requested data
 % %         newDataSize = obj.DataSize;
 % %         newDataSize(end) = numel(frameInd);
-% % 
+% %
 % %         nDim = numel(obj.DataSize);
-% % 
+% %
 % %         % Preallocate data
 % %         data = zeros(newDataSize, obj.DataType);
-% % 
+% %
 % %         % Loop through frames and load into data.
 % %         for i = 1:numel( frameInd )
-% % 
+% %
 % %             frameNum = frameInd(i);
-% % 
+% %
 % %             if nDim == 4
 % %                 data(:,:,:,i) = imread(obj.FilePathList{frameNum});
 % %             elseif nDim == 3
@@ -326,21 +317,20 @@ methods % Implementation of abstract methods for reading/writing data
 % %             else
 % %                 error('Virtual data from images must be 3D or 4D')
 % %             end
-% % 
+% %
 % %         end
-% % 
+% %
 % %     end
-% %     
+% %
     function writeFrames(obj, data, frameInd)
         
         % Todo: combine with getFrameSet???
         % Todo: Test thoroughly
 
         % Todo: Make assertion that data has the same size as the stack
-        % (width and height, numchannels) 
+        % (width and height, numchannels)
         
         nDim = numel(obj.DataSize);
-
                 
         % Loop through frames and write data.
         for i = 1:numel( frameInd )
@@ -356,11 +346,8 @@ methods % Implementation of abstract methods for reading/writing data
             else
                 error('Virtual data from images must be 3D or 4D')
             end
-
         end
-        
     end
-
 end
 
 methods (Access = protected)
@@ -390,7 +377,6 @@ methods (Access = protected)
             %tokens = cellfun(@(c) str2double(c), struct2cell(tokens));
             %tokens = transpose(tokens); % each row is one file
 
-
             % channel is first, part numbers are second.
             % Sort according to channels:
             % [~, ix] = sortrows(tokens, [1,2]);
@@ -407,13 +393,12 @@ methods (Access = protected)
                 numPartsPerChannel, numChannels);
         else
             numChannels = 1;
-        end       
+        end
     end
     
     function numPlanes = detectNumberOfPlanes(obj)
         numPlanes = 1;
     end
-    
 end
 
 methods (Static)
@@ -431,7 +416,7 @@ methods (Static)
             L = L(keep);
             
             % If many files are found and all filenames are same length
-            if numel(L) > 1 
+            if numel(L) > 1
                 filenameExpression = nansen.stack.virtual.ThorLabsTiffs.FilenameExpression;
 
                 fileNames = {L.name};
@@ -448,7 +433,5 @@ methods (Static)
     function initializeFile(filePath, arraySize, arrayClass)
         error('Not implemented yet')
     end
-    
 end
-
 end

@@ -27,6 +27,4 @@ classdef helpButton < uim.style.buttonScheme
             'BorderColor', 'none', ...
             'BorderWidth', 0.5)
     end
-    
-    
 end

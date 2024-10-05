@@ -3,11 +3,9 @@ function varargout = plotImageStats(sessionObj, varargin)
 %
 %   Plot mean pixel value for each frame with a shaded error bar
 %   corresponding to a lower and an upper percentile of the pixel values.
-
     
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
-
     
     % % % Initialization block for a session method function.
     ATTRIBUTES = {'serial', 'unqueueable'};
@@ -17,10 +15,8 @@ function varargout = plotImageStats(sessionObj, varargin)
         varargout = {settings};   return
     end
     
-    
     % % % Parse name-value pairs in function input.
-    params = utility.parsenvpairs(params, [], varargin);    
-    
+    params = utility.parsenvpairs(params, [], varargin);
     
     % % % Implementation of the session method
     S = sessionObj.loadData('ImageStats');
@@ -34,7 +30,7 @@ function varargout = plotImageStats(sessionObj, varargin)
     hViewer.YLimExtreme.left = hViewer.Axes.YLim;
 
     %f = figure;
-    %ax = axes(f); 
+    %ax = axes(f);
     
     %hold(h.Axes, 'on')
     
@@ -72,10 +68,8 @@ function varargout = plotImageStats(sessionObj, varargin)
         drawnow
     end
     uistack(hLine, 'top')
-    
 
 end
-
 
 function params = getDefaultParameters()
     params = struct();

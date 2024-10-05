@@ -4,7 +4,7 @@ classdef OptionsSet < handle
 % NOT IMPLEMENTED YET : Outline for class representing an Options Set
 %
 %   [ ] Inherit from struct adapter
-%   [ ] Method to update from preset 
+%   [ ] Method to update from preset
 
     properties
         Name
@@ -16,7 +16,7 @@ classdef OptionsSet < handle
         DateCreatedNum
         DateCreated
         DateModified
-        Type                % Preset / custom 
+        Type                % Preset / custom
         PresetReference     % For custom options sets
     end
 
@@ -25,12 +25,8 @@ classdef OptionsSet < handle
         function obj = OptionSet(name)
             obj.Name = name;
         end
-        
     end
 
-
     % = datestr(t, 'yyyy.mm.dd - HH:MM:SS')
-
-
 
 end

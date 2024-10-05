@@ -1,5 +1,5 @@
 function kernel = makeDiskKernel(im, varargin)
-%makeDiskKernel Make a disk kernel with values scaled according to image 
+%makeDiskKernel Make a disk kernel with values scaled according to image
 %
 % Adapted from makeRingKernel
 
@@ -26,7 +26,7 @@ m2 = stack.reshape.imexpand(se2.Neighborhood, size(se1.Neighborhood));
 m2(:) = 0; % No hole in the disk
 m3 = stack.reshape.imexpand(se3.Neighborhood, size(se1.Neighborhood));
 
-m1 = m1 & ~m3; 
+m1 = m1 & ~m3;
 m3 = m3 & ~m2;
 
 m1 = single(m1); m2 = single(m2); m3 = single(m3);

@@ -12,15 +12,15 @@ classdef ScanImageMultiRoiTiff < nansen.stack.virtual.ScanImageTiff
 
 % properties (Access = private, Hidden) % File Info
 %     UseTiffStack = false % Flag whether to use DylanMuirs TIFFStack class
-% 
+%
 %     NumChannels_
 %     NumPlanes_
 %     NumTimepoints_
-%     
+%
 %     FileConcatenator
 %     FrameIndexMap   % Holds frame indices for interleaved dimensions (numC x numZ x numT)
 %                     % Todo: Replace with deinterleaver..
-%     
+%
 %     FilePathList
 % end
 
@@ -59,7 +59,6 @@ methods % Structors
                 end
             end
         end
-
     end
     
     function delete(obj)
@@ -73,11 +72,8 @@ methods % Structors
                 close(obj.tiffInfo(i))
             end
         end
-
     end
-    
 end
-
 
 methods (Access = protected) % Implementation of abstract methods
         
@@ -109,7 +105,7 @@ methods (Access = protected) % Implementation of abstract methods
     
     function getFileInfo(obj)
         
-        % Todo: If metadata is assigned, skip 
+        % Todo: If metadata is assigned, skip
         
         if isempty( obj.tiffInfo )
             obj.tiffInfo = Tiff(obj.FilePath);
@@ -128,7 +124,6 @@ methods (Access = protected) % Implementation of abstract methods
         obj.assignDataSize();
         obj.assignDataType()
     end
-  
 end
 
 methods % Implementation of VirtualArray abstract methods
@@ -206,9 +201,7 @@ methods % Implementation of VirtualArray abstract methods
     function writeFrames(obj, frameIndex, data)
         error('Not implemented yet')
     end
-    
 end
-
 
 methods (Access = protected)
     
@@ -245,7 +238,5 @@ methods (Access = protected)
         y2 = y1 + heightPerFov(obj.FovId) - 1;
         sIFovParams.fovLimY = [y1, y2];
     end
-
 end
-
 end

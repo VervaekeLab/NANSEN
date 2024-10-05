@@ -1,7 +1,7 @@
 function imageArray = removeStaticBackground(imageArray, varargin)
 %removeStaticBackground Remove a static background image
 %
-%   imageArray = removeStaticBackground(imageArray) removes background from 
+%   imageArray = removeStaticBackground(imageArray) removes background from
 %   an image array. The background is computed as the mean of a set of
 %   sorted pixel values in a lower percentile interval. The default
 %   percentile interval is [0, 25];
@@ -11,8 +11,8 @@ function imageArray = removeStaticBackground(imageArray, varargin)
 %
 %   Optional name/value pairs:
 %
-%   PrctileForBaseline : scalar or 2x1 vector specifying percentile 
-%       interval to use for computing static background. If value is 
+%   PrctileForBaseline : scalar or 2x1 vector specifying percentile
+%       interval to use for computing static background. If value is
 %       scalar, the interval starts at the 0th percentile.
    
     import flufinder.preprocess.computeStaticBackgroundImage

@@ -4,7 +4,6 @@ classdef GenericMetadata < nansen.dataio.metadata.AbstractMetadata
         MetadataStruct
     end
     
-    
     methods
         function obj = GenericMetadata(filePath, metadataStruct)
             
@@ -15,12 +14,10 @@ classdef GenericMetadata < nansen.dataio.metadata.AbstractMetadata
             if nargin >= 2 && ~isempty(metadataStruct)
                 obj.MetadataStruct = metadataStruct;
             end
-            
         end
-
     end
     
-    methods 
+    methods
         function set(obj, name, value, groupName)
             if nargin < 4 || isempty(groupName)
                 groupName = 'Custom';
@@ -39,7 +36,5 @@ classdef GenericMetadata < nansen.dataio.metadata.AbstractMetadata
         function fromStruct(obj, S)
             obj.MetadataStruct = S;
         end
-        
     end
-    
 end

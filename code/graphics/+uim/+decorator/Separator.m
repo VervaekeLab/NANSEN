@@ -7,7 +7,6 @@ classdef Separator < uim.abstract.Control
     %       should it be relative units?
     %   [ ] Subclass from Decorator instead of Control
     
-    
     properties (Constant)
         Type = 'Separator'
     end
@@ -21,14 +20,13 @@ classdef Separator < uim.abstract.Control
     properties (Access = protected, Transient)
         hSeparator
     end
-    
 
     methods
         function obj = Separator(varargin)
 
             obj@uim.abstract.Control(varargin{:})
             
-            %delete(obj.hBackground); 
+            %delete(obj.hBackground);
             obj.hBackground.Visible = 'off';
             obj.plotSeparator()
             
@@ -64,14 +62,13 @@ classdef Separator < uim.abstract.Control
             y1 = yMean - (obj.Position(4)*obj.Height)/2;
             y2 = yMean + (obj.Position(4)*obj.Height)/2;
             
-%             y1 = obj.Position(2); 
+%             y1 = obj.Position(2);
 %             y2 = sum(obj.Position([2,4]));
             
             X = [x1, x2];
             Y = [y1, y2];
         end
     end
-    
     
     methods
         function relocate(obj, ~)
@@ -88,7 +85,6 @@ classdef Separator < uim.abstract.Control
             end
         end
     end
-    
     
     methods
         function updateLocation(obj, ~)
@@ -108,5 +104,4 @@ classdef Separator < uim.abstract.Control
             end
         end
     end
-
 end

@@ -3,7 +3,7 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
 
 % Todo
 %   [ ] Select to crop left, right or center along x and y
-%   
+%
     properties
         NewSize (1,2) double
     end
@@ -19,18 +19,17 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
     properties (Constant, Hidden)
         DATA_SUBFOLDER = ''	% defined in nansen.processing.DataMethod
         VARIABLE_PREFIX	= '' % defined in nansen.processing.DataMethod
-    end 
+    end
 
     methods (Static)
         
         function S = getDefaultOptions()
-        % Get default options for the temporal downsampler    
+        % Get default options for the temporal downsampler
             S.Cropping.NewSize    = [512, 512];
             className = mfilename('class');
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
-            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});            
+            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
         end
-        
     end
     methods % Constructor
         
@@ -44,19 +43,17 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
                 obj.runMethod()
                 clear obj
             end
-            
         end
-
     end
 
-    methods (Access = protected) % Overide ImageStackProcessor methods
+    methods (Access = protected) % Override ImageStackProcessor methods
         function onInitialization(obj)
             
             % Create output filepath
             [~, sourceName] = fileparts( obj.SourceStack.FileName );
             targetName = strcat(sourceName, '_cropped');
             
-            targetFilepath = strrep(  obj.SourceStack.FileName, sourceName, targetName ); 
+            targetFilepath = strrep(  obj.SourceStack.FileName, sourceName, targetName );
 
             % Get new size
             stackSize = size( obj.SourceStack.Data );
@@ -68,7 +65,6 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
             obj.openTargetStack(targetFilepath, stackSize, dataTypeOut, ...
                 'DataDimensionArrangement', obj.SourceStack.Data.StackDimensionArrangement);
         end
-        
     end
 
     methods (Access = protected) % todo: make public??

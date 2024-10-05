@@ -1,23 +1,23 @@
-% Class for indexing data from a binary file in the same manner that data 
+% Class for indexing data from a binary file in the same manner that data
 % is indexed from matlab arrays.
-%   
+%
 %   Supports the following file extensions:
 %       .raw
 %       .bin
 %       .dat
-%   
+%
 %   See also nansen.stack.virtual.Binary/Binary (Constructor)
     
 classdef Binary < nansen.stack.data.VirtualArray
 % Binary - Class for to represent a virtual data adapter for a binary file.
     
-    % Todo: 
+    % Todo:
     %   [ ] Generalize.
     %   [ ] Open input dialog to enter info about how to open data (format)
     %       if ini file is not available
     %   [ ] Implement data write functionality.
     %   [x] Add methods for writing ini variables...
-    %   [ ] Add more fileformats?    
+    %   [ ] Add more fileformats?
     
     properties (Constant, Hidden)
         FILE_PERMISSION = 'write'       % Binary files have write permission
@@ -35,13 +35,13 @@ classdef Binary < nansen.stack.data.VirtualArray
         % Binary - Creates a VirtualArray from a binary file
         %
         %   Syntax:
-        %   
+        %
         %   virtualData = nansen.stack.virtual.Binary(filePath) opens a
         %       virtualData object from a file with data stored in binary
         %       format.
-        %       
-        %   virtualData = nansen.stack.virtual.Binary(filePath, stackSize, dataType) 
-        %       initializes a new binary file with the given size and 
+        %
+        %   virtualData = nansen.stack.virtual.Binary(filePath, stackSize, dataType)
+        %       initializes a new binary file with the given size and
         %       and datatype and returns the virtualData object.
         
             % Open folder browser if there are no inputs.
@@ -119,7 +119,7 @@ classdef Binary < nansen.stack.data.VirtualArray
                 folderPath = filePath;
                 listing = dir(fullfile(folderPath, '*.raw'));
                 fileName = listing(1).name;
-                if isempty(fileName) 
+                if isempty(fileName)
                     error('Did not find raw file in the specified folder')
                 end
                 
@@ -218,7 +218,7 @@ classdef Binary < nansen.stack.data.VirtualArray
     methods (Access = private)
         
         function tf = isSupportedFileType(obj, filePath)
-        %isSupportedFileType Check if given filepath is supported file type    
+        %isSupportedFileType Check if given filepath is supported file type
             [~, ~, ext] = fileparts(filePath);
             ext = strrep(ext, '.', '');
             
@@ -327,7 +327,7 @@ classdef Binary < nansen.stack.data.VirtualArray
     
             fclose(fid);
     
-            if ~nargout 
+            if ~nargout
                 clear TF
             end
         end
@@ -375,5 +375,5 @@ classdef Binary < nansen.stack.data.VirtualArray
                 fprintf('Binary file already exists: %s\n', filePath)
             end
         end
-    end 
+    end
 end

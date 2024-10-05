@@ -6,7 +6,7 @@ function structArray = structcat(dim, varargin)
 %   same fields, fields are added as needed and initialized with an empty
 %   array.
 
-    % Todo: 
+    % Todo:
     %   [ ] get data type from existing fields and initialize values with
     %       same type
     %   [ ] order fields before returning?

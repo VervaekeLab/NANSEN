@@ -27,16 +27,15 @@ nDim = numel(size(imArray));
 if nDim == 3
     for i = 1:size(imArray, 3)
         frame = imArray(:, :, i);
-        writeVideo(video, frame)  
+        writeVideo(video, frame)
     end
 elseif nDim == 4
     for i = 1:size(imArray, 4)
         frame = imArray(:, :, :, i);
-        writeVideo(video, frame)  
+        writeVideo(video, frame)
     end
 end
 
 video.close()
 
 end
-

@@ -2,47 +2,44 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
 %RoiSegmentation Superclass for running roi autosegmentation on ImageStacks
 %
 %   This class is a template method for running autosegmentation on
-%   ImageStacks. Subclasses must implement the required properties and 
-%   methods for the ImageStackProcessor superclass and additionally 
+%   ImageStacks. Subclasses must implement the required properties and
+%   methods for the ImageStackProcessor superclass and additionally
 %   implement the following methods:
 %
-%         getToolboxSpecificOptions : Should returns options that are 
+%         getToolboxSpecificOptions : Should returns options that are
 %                                     specific to the toolbox in question.
 %
-%         segmentPartition          : Should take care of segmentation 
-%                                     of an image chunk/partition. 
+%         segmentPartition          : Should take care of segmentation
+%                                     of an image chunk/partition.
 %
 %         mergeSpatialComponents    : Should merge the spatial components
 %                                     across temporal chunks/partitions
 %
 %         getRoiArray               : Should collect results as a RoI array
 
-
 %   Todo:
 %       [ ] rename getRoiArray to collect/gather roi array (Q)
 %       [ ] should initializeOptions be an ImageStackProcessor method?
 %       [ ] add instructions on merging of results.
 %       [ ] merge spatial components should be identical to segment
-%           partition, i.e it should not be necessary to specify channel 
+%           partition, i.e it should not be necessary to specify channel
 %           or plane.
 %       [ ] Move originalStack and associated methods to the
 %           ImageStackProcessor (Q)
 
-
 % NOTE FOR SELF ON IMPLEMENTATION:
 %
 %   This class should take care of all looping across channels/planes
-%   
+%
 %       Provide methods that subclasses can implement:
-%       i.e 
+%       i.e
 %           - merge results
 %           - merge spatial components (different from merge results)
 %           - refine spatial components
-%   
+%
 %       - The existDownsampledStack will replace the source stack with a
-%         downsampled version if a downsampled version exists already. 
+%         downsampled version if a downsampled version exists already.
 %         This is convenient, but not very transparent
-
 
     properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         IsManual = false        % Does method require manual supervision?
@@ -65,7 +62,6 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     properties (Access = private)
         RequireDownsampleStack = false; % Flag for whether to downsample sourcestack
     end
-    
 
     % Abstract methods for subclasses to implement
     methods (Abstract, Access = protected)
@@ -76,7 +72,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
     end
 
     % Constructor
-    methods 
+    methods
         
         function obj = RoiSegmentation(varargin)
         %RoiSegmentation Create instance of RoiSegmentation processor
@@ -92,16 +88,15 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         function varName = get.RoiArrayVarName(obj)
             varName = sprintf('roiArray%sAuto', obj.VARIABLE_PREFIX);
         end
-    
     end
     
     % Methods for initialization/completion of algorithm
-    methods (Access = protected) % Extend ImageStackProcessor methods 
+    methods (Access = protected) % Extend ImageStackProcessor methods
         
         function runPreInitialization(obj)
         %onPreInitialization Method that runs before the initialization step
         %
-        %   This adds the substeps that will need to run to the list of 
+        %   This adds the substeps that will need to run to the list of
         %   substeps for the method.
             
             % Reset source stack if method is re-initialized. For a
@@ -161,7 +156,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         end
         
         function mergeResults(obj)
-        %mergeResults Merge results from subparts of ImageStack    
+        %mergeResults Merge results from subparts of ImageStack
 
             [numParts, numZ, numC] = size(obj.Results);
             
@@ -204,7 +199,6 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 obj.saveToRoiGroup()
             end
         end
-        
     end
 
     methods (Access = protected) % Methods specific for roi segmentation
@@ -308,7 +302,6 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
                 end
             end
         end
-        
     end
     
     methods (Access = private)
@@ -320,7 +313,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         %       dsFactor : Integer describing the downsampling factor.
         %
         %   Note. This method will replace the source stack with a
-        %         downsampled version if a downsampled version exists 
+        %         downsampled version if a downsampled version exists
         %         already. This is convenient, but not very transparent.
 
             tf = false; % Assume it does not exist
@@ -344,7 +337,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         end
 
         function resetSourceStack(obj)
-        %resetSourceStack Reset source stack if original stack is present    
+        %resetSourceStack Reset source stack if original stack is present
             if ~isempty(obj.OriginalStack)
                 obj.SourceStack = obj.OriginalStack;
             end
@@ -363,7 +356,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             downsampler.IsSubProcess = true; % Improves logging
             downsampler.runMethod()
             
-            downsampledStack = downsampler.getDownsampledStack();            
+            downsampledStack = downsampler.getDownsampledStack();
             
             obj.replaceSourceStackWithDownsampledStack(downsampledStack)
         end
@@ -418,7 +411,5 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             % S.SpatialPartitioning
             % S.TemporalPartitioning
         end
-
     end
-
 end

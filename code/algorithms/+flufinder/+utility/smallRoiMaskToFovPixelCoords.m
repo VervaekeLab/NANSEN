@@ -8,16 +8,16 @@ function varargout = smallRoiMaskToFovPixelCoords(roiMask, fovSize, roiCenter)
 %       roiMask : a cropped roimask
 %       fovSize : Size of the FOV
 %       roiCenter : Center coordinates of the roimask in the fov (x,y)
-%       
+%
 %   OUTPUT:
 %       coords : coordinates (numPoints x 2). X is 1st col, Y is 2nd col
 
-    [Y, X] = find(roiMask);   
+    [Y, X] = find(roiMask);
 
     xCoords = roiCenter(1) + X;
     yCoords = roiCenter(2) - Y;
 
-    keepX = xCoords >= 1 & xCoords <= fovSize(2); 
+    keepX = xCoords >= 1 & xCoords <= fovSize(2);
     keepY = yCoords >= 1 & yCoords <= fovSize(1);
     keep = keepX & keepY;
  

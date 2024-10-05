@@ -5,7 +5,7 @@ classdef MultiPageApp < uiw.abstract.AppWindow
         PageTitles (1,:) string
     end
 
-    properties 
+    properties
         ActivePageModule = []
     end
 
@@ -22,7 +22,6 @@ classdef MultiPageApp < uiw.abstract.AppWindow
 
             app.Figure.SizeChangedFcn = @(s, e) app.onFigureSizeChanged;
         end
-
     end
 
     methods (Abstract, Access = protected) % Creation
@@ -76,10 +75,8 @@ classdef MultiPageApp < uiw.abstract.AppWindow
             app.createTabPages()
         end
 
-
         % Subclass may override
         function updateLayoutPositions(app)
-        
         
         end
     end

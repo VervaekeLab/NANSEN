@@ -10,7 +10,6 @@ function roiArray = mergeOverlappingRois(roiArray, overlap, method)
 %
 %   See also RoI
 
-
     if nargin < 2 || isempty(overlap); overlap = 0.8; end
     if nargin < 3 || isempty(method); method = 'intersect'; end
     

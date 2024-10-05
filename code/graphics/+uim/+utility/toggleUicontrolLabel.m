@@ -12,5 +12,4 @@ function toggleUicontrolLabel(h, strA, strB)
     else
         error('Text labels are not present, something has gone wrong...')
     end
-
 end

@@ -1,7 +1,7 @@
 function S = getDefaultOptions()
 
     % Big todo. Implement this in same way as getNormCorreOptions
-    %   Also, expand the normcorre options (nansen version) 
+    %   Also, expand the normcorre options (nansen version)
     %   to include these.
 
     S = struct();
@@ -13,7 +13,6 @@ function S = getDefaultOptions()
     %S.Preprocessing.BidirectionalCorrection_ = {'None', 'One Time', 'Continuous'};
     
     S.General.correctDrift = false;
-    
     
     S.Preview.firstFrame = 1;
     S.Preview.numFrames = 500;
@@ -31,7 +30,7 @@ function S = getDefaultOptions()
     S.Export.FileName = '';
     S.Export.FileName_ = 'transient';
     S.Export.SaveDirectory = '';
-    S.Export.SaveDirectory_ = 'uigetdir';  %internal  
+    S.Export.SaveDirectory_ = 'uigetdir';  %internal
     S.Export.OutputDataType = 'uint8';
     S.Export.OutputDataType_ = {'uint8', 'uint16', 'same'};
     S.Export.IntensityAdjustmentPercentile = 0.005;
@@ -43,33 +42,32 @@ function S = getDefaultOptions()
     S.Export.saveAverageProjection = true;
     S.Export.saveMaximumProjection = true;
     
-    
 % %     S.numFramesPerPart = 1000; % Image stack method...
 % %     S.OutputDataType = 'uint8';
 % %     S.OutputDataType_ = {'uint8', 'uint16', 'uint32'};
 % %     S.OutputFileFormat = 'raw';
-% % 
-% %     
-% %     
+% %
+% %
+% %
 % %     S.NumFlybackLines = 0;  % Remove lines in top of image (if the flyback is sampled)
 % %     S.BidirectionalCorrection = 'None';
 % %     S.BidirectionalCorrection_ = {'None', 'Constant', 'Time Dependent'};
 % %     S.correctDrift = false;
-% % 
-% % 
-% % 
-% % 
+% %
+% %
+% %
+% %
 % %     S.saveAverageProjection = true;
 % %     S.saveMaximumProjection = true;
-% % 
-% % 
+% %
+% %
 % %     S.RedoAligning = false;  % Redo aligning if it already was performed...
 % %     S.partsToAlign = [];
-% % 
+% %
 % %     S.updateTemplate = true;
 % %     S.frameNumForInitialTemplate = 1:200;
-% % 
-% % 
+% %
+% %
 % %     S.RecastOutput = true; % Internal...
 
 end

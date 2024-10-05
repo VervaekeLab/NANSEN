@@ -3,7 +3,7 @@ function [fovShifts, imArrayNR] = alignFovs(imArray)
 %
 % fovShifts = alignSessionFov(listOfFilePaths) returns a struct of shifts
 % per FOV. listOfFilePaths is a cell array of complete filepath to each FOV
-% image. 
+% image.
 % The first image loaded from the list of files will be the reference, and
 % fovShifts will have one entry less than the number of images.
 %
@@ -57,7 +57,7 @@ function [fovShifts, imArrayNR] = alignFovs(imArray)
     cropLR = ceil([max([shiftsRig(:,1); 1]), abs( min([shiftsRig(:,1); 0]) )]) ;
     cropUD = ceil([max([shiftsRig(:,2); 1]), abs( min([shiftsRig(:,2); 0]) )]) ;
     
-    % Crop effects of rigid shifts, because these can impair the nonrigid 
+    % Crop effects of rigid shifts, because these can impair the nonrigid
     imArrayCropped = imArrayRot(cropUD(1):end-cropUD(2), cropLR(1):end-cropLR(2), :);
     
     % Do non-rigid correction:
@@ -105,6 +105,3 @@ function [fovShifts, imArrayNR] = alignFovs(imArray)
         clear imArrayNR
     end
 end
-
-
-

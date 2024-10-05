@@ -11,6 +11,4 @@ classdef LocationChangedData < event.EventData
            obj.NewLocation = newLocation;
        end
    end
-   
 end
-

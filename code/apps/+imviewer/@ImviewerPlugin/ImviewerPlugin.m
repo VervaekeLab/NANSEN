@@ -3,7 +3,6 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
 
     % Abstract class providing properties and methods that gives plugin
     % functionality for imviewer.
-    
 
     properties
         PrimaryAppName = 'imviewer'     % Name of primary app
@@ -34,7 +33,7 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
         
         function obj = ImviewerPlugin(varargin)
             
-            % Make sure the given handle is an instance of imviewer.App 
+            % Make sure the given handle is an instance of imviewer.App
             [h, varargin] = imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
             obj@applify.mixin.AppPlugin(h, varargin{:})
             
@@ -46,12 +45,11 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
 
             obj.onImviewerSet()
 
-            obj.assignDataIoModel() % todo: superclass? Should belong to a 
+            obj.assignDataIoModel() % todo: superclass? Should belong to a
             % data method class, not a plugin.
             % So a plugin that runs a method should inherit the imviewer
             % plugin and the datamethod...
         end
-        
     end
 
     methods %Set/get methods
@@ -63,23 +61,21 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
         function numPlanes = get.NumPlanes(obj)
             numPlanes = obj.ImviewerObj.ImageStack.NumPlanes;
         end
-        
     end
     
-    methods 
+    methods
         
         function assignDataIoModel(obj)
             return % Under construction. Todo: Move to another class
             if isempty(obj.DataIoModel)
                 folderPath = fileparts( obj.ImviewerObj.ImageStack.FileName );
                 obj.DataIoModel = nansen.dataio.DataIoModel(folderPath);
-            end            
+            end
         end
         
         function imviewerObj = get.ImviewerObj(obj)
             imviewerObj = obj.PrimaryApp;
         end
-        
     end
     
     methods (Access = protected)
@@ -96,7 +92,6 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
             obj.PrimaryApp.updateImage()
             obj.PrimaryApp.updateImageDisplay()
         end
-    
     end
 
     methods (Access = protected) % Consider private
@@ -117,7 +112,6 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
             obj.resetImviewerListeners()
             obj.createImviewerListeners()
         end
-        
     end
 
     methods (Access = protected) % Listener callbacks
@@ -133,7 +127,6 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
         function onCurrentFrameChanged(obj)
             % Subclasses can implement
         end
-
     end
 
     methods (Access = private)
@@ -174,7 +167,6 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
                 delete( listenerHandle )
             end
         end
-
     end
 
     methods (Static)
@@ -188,6 +180,5 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
                 h = [];
             end
         end
-
     end
 end

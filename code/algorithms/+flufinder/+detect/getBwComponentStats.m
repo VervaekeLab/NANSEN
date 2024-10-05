@@ -6,7 +6,6 @@ function [S, CC] = getBwComponentStats(BW, varargin)
     
 %   Todo. Count number of segments that are ignored and return in summary?
 
-
     assert(ndims(BW)==3, 'Array must be a 3D')
     assert(islogical(BW), 'Array must be logical')
 

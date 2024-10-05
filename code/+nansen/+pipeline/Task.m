@@ -2,12 +2,9 @@ classdef Task
 %TASK Task that can be added to a pipeline.
     %   Detailed explanation goes here
     
-    % Questions: 
+    % Questions:
     % Inherit from DataMethod???
     %   Need to update session object to indicate that task finished.
-    
-    
-    
     
     properties
         TaskName char           % Name of task (for displays)
@@ -19,7 +16,7 @@ classdef Task
         DateFinished datetime   % Datetime for when task is finished
     end
     
-    properties (Dependent, SetAccess = private)    
+    properties (Dependent, SetAccess = private)
         %IsFinished logical      % Flag for whether task is finished
     end
     
@@ -29,10 +26,9 @@ classdef Task
             %   Detailed explanation goes here
 
         end
-        
     end
     
-    methods 
+    methods
 %         function isFinished = get.IsFinished(obj)
 %             isFinished = ~isempty(obj.DateFinished);
 %         end
@@ -41,9 +37,9 @@ classdef Task
     methods % Methods for converting to and from struct. Todo: Structadapter
         
         function S = struct(obj)
-        %struct Get a struct from a note instance.    
+        %struct Get a struct from a note instance.
             warning('off', 'MATLAB:structOnObject')
-            S = builtin('struct', obj);        
+            S = builtin('struct', obj);
             warning('on', 'MATLAB:structOnObject')
         end
         
@@ -60,10 +56,6 @@ classdef Task
                     obj(iObj).(propNames{jProp}) = S(iObj).(propNames{jProp});
                 end
             end
-
         end
-        
     end
-    
 end
-

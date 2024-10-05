@@ -1,7 +1,7 @@
 function virtualData = open(pathStr, varargin)
 %imviewer.stack.open Open imageStack from file using a suitable FileAdapter
 %
-%   
+%
 
     [nvPairs, varargin] = utility.getnvpairs(varargin{:});
 
@@ -18,10 +18,8 @@ function virtualData = open(pathStr, varargin)
     
     numFiles = numel(pathStr);
     [folder, filename, fileext] = fileparts(pathStr{1});
-    
 
     assert(all(contains(pathStr, fileext)), 'All files must be the same')
-    
 
     % Todo: Add a call to a function that checks whether data should be
     % loaded using a custom FileAdapter class.
@@ -84,7 +82,7 @@ function virtualData = open(pathStr, varargin)
         case {'.jpg', '.png', '.bmp'}
 %             tic
 %             if numFiles > 1
-%                 
+%
 %                 images = cell(numFiles, 1);
 %                 for i = 1:numFiles
 %                     images{i} = imread(pathStr{i});
@@ -95,7 +93,7 @@ function virtualData = open(pathStr, varargin)
 %                 catch
 %                     error('Sorry, loading images of different sizes is not supported.')
 %                 end
-%                 
+%
 %             else
 %                 imArray = imread(pathStr{1});
 %             end
@@ -127,12 +125,10 @@ function virtualData = open(pathStr, varargin)
                     'No load definition available for files of type %s', fileext)
             end
     end
-    
 end
 
-
 function virtualData = openUsingCustomFileAdapter(filePath, varargin)
-%openUsingCustomFileAdapter Get virtual data using file adapter based on name    
+%openUsingCustomFileAdapter Get virtual data using file adapter based on name
     import nansen.dataio.fileadapter.imagestack.ImageStack
     
     if iscell(filePath); filePath = filePath{1}; end
@@ -147,12 +143,11 @@ function virtualData = openUsingCustomFileAdapter(filePath, varargin)
     end
 end
 
-
 % NEW VERSION (tbd):
 
 % % virtualData = virtualStack(pathStr, varargin{:});
-% % 
+% %
 % % obj = nansen.stack.ImageStack(virtualData);
-% % 
+% %
 % % % This should be done within the imagestack constructor
 % % obj.filePath = pathStr{1};

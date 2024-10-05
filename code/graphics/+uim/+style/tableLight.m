@@ -19,5 +19,4 @@ classdef tableLight < uim.style.tableTheme
         SortOrderForeground = [240,171,15] ./ 255
         
     end
-
 end

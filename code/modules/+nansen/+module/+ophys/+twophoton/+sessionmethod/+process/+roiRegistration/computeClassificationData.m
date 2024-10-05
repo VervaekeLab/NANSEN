@@ -2,20 +2,18 @@ function varargout = computeClassificationData(sessionObject, varargin)
 %computeClassificationData Summary of this function goes here
 %   Detailed explanation goes here
 
-
-% % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % % 
-% Create a struct of default parameters (if applicable) and specify one or 
+% % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % %
+% Create a struct of default parameters (if applicable) and specify one or
 % more attributes (see nansen.session.SessionMethod.setAttributes)
     
     % Get struct of parameters from local function
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'serial', 'queueable'};   
-
+    ATTRIBUTES = {'serial', 'queueable'};
     
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
     
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
@@ -27,7 +25,6 @@ function varargout = computeClassificationData(sessionObject, varargin)
     
     % Parse name-value pairs from function input and update parameters
     params = utility.parsenvpairs(params, [], varargin);
-    
     
 % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % %
         
@@ -48,8 +45,8 @@ function varargout = computeClassificationData(sessionObject, varargin)
 %     [numZ_, numC_] = size(roiArray);
 %     assert( (numC==numC_) && (numZ==numZ_), ...
 %         'Size of roi array does not match size of image stack.')
-%                 
-% 
+%
+%
     roiGroupCellArrayOfStruct = cell(numZ, numC);
 
     %[roiImages, roiStats] = deal( cell(numZ, numC) );
@@ -106,11 +103,10 @@ function varargout = computeClassificationData(sessionObject, varargin)
         'Subfolder', 'roi_data', 'FileAdapter', 'RoiGroup')
 end
 
-
 function params = getDefaultParameters()
 %getDefaultParameters Get the default parameters for this session method
 %
-%   params = getDefaultParameters() should return a struct, params, which 
+%   params = getDefaultParameters() should return a struct, params, which
 %   contains fields and values for parameters of this session method.
 
     % Add fields to this struct in order to define parameters for this
@@ -129,5 +125,5 @@ function throwError(errorID, sessionID)
                 'exists for all selected sessions.'], sessionID );
     end
 
-    error(errorID, message) %#ok<SPERR> 
+    error(errorID, message) %#ok<SPERR>
 end

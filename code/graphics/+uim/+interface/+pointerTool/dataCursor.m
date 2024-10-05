@@ -1,18 +1,15 @@
 classdef dataCursor < uim.interface.abstractPointer
     
-    % Todo: 
+    % Todo:
     %   1) Implement different modes.
     %       I.e should it show data of a line? or an image? or just the
     %       coordinates of the axes...?
     %   2) Implement different plot styles.
     %   3) Should it work on mouseover, or only on button click?
     
-    
-    
     properties (Constant)
         exitMode = 'default';
     end
-    
     
     properties
         xLimOrig
@@ -20,16 +17,12 @@ classdef dataCursor < uim.interface.abstractPointer
         cursorColor = ones(1,3)*0.5
     end
     
-    
     properties (Access = private)
         isButtonDown = false
         hCrosshair % Line handle for temporary lines of data cursor crosshair
     end
     
-    
-    
     methods
-        
         
         function obj = dataCursor(hAxes)
             
@@ -41,7 +34,6 @@ classdef dataCursor < uim.interface.abstractPointer
             
         end
         
-        
         function activate(obj)
             activate@uim.interface.abstractPointer(obj)
             obj.plotCrosshair()
@@ -50,14 +42,11 @@ classdef dataCursor < uim.interface.abstractPointer
             obj.isActive = true;
             
         end
-        
                 
         function suspend(obj)
             suspend@uim.interface.abstractPointer(obj)
             set(obj.hCrosshair, 'Visible', 'off')
         end
-        
-        
         
         function deactivate(obj)
             deactivate@uim.interface.abstractPointer(obj)
@@ -65,16 +54,13 @@ classdef dataCursor < uim.interface.abstractPointer
             obj.isActive = false;
         end
         
-        
         function setPointerSymbol(obj)
-            obj.hFigure.Pointer = 'circle';            
+            obj.hFigure.Pointer = 'circle';
         end
-        
         
         function onButtonDown(obj, ~, ~)
             obj.isButtonDown = true;
         end
-        
         
         function onButtonMotion(obj, src, evt)
 
@@ -88,29 +74,23 @@ classdef dataCursor < uim.interface.abstractPointer
             if ~isempty(obj.buttonMotionCallback)
             	obj.buttonMotionCallback(src, evt)
             end
-
         end
         
         function onButtonUp(obj, src, evt)
             obj.isButtonDown = false;
         end
         
-        
         function set.cursorColor(obj, newColor)
             obj.cursorColor = newColor;
             obj.updateCursorColor()
         end
-
     end
     
-    
     methods (Access = private)
-        
         
         function plotCrosshair(obj, center)
 
             hAx = obj.hAxes;
-            
             
             if nargin < 2 && ~obj.isPointerInsideAxes()
                 y0 = mean(hAx.YLim);
@@ -122,14 +102,13 @@ classdef dataCursor < uim.interface.abstractPointer
             else
                 x0 = center(1);%+1*ps/10;
                 y0 = center(2);%+0;
-            end            
+            end
             
             xdata1 = obj.xLimOrig;
             ydata1 = ones(size(xdata1))*y0;
             
             ydata2 = obj.yLimOrig;
             xdata2 = ones(size(ydata2))*x0;
-            
             
             % Plot Line
             if isempty(obj.hCrosshair)
@@ -156,17 +135,10 @@ classdef dataCursor < uim.interface.abstractPointer
                                     {'YData'}, {ydata1,ydata2,ydata1,ydata2}' )
                 set(obj.hCrosshair(5), 'XData', x0, 'YData', y0)
             end
-            
-            
         end
-        
         
         function updateCursorColor(obj)
             set( obj.hCrosshair, 'Color', obj.cursorColor)
         end
-        
     end
-    
-    
-    
 end

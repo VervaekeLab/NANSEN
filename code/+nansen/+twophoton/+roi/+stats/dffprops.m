@@ -4,20 +4,20 @@ function stats = dffprops(dff, varargin)
 %   stats = dffprops(dff) Returns struct array with different (statistical)
 %   measurements from a dff roi signal array.
 %
-%   stats = dffprops(dff, name1, ...) Returns struct array with specified 
-%   statistical measurements (Only specified fields are returned). 
+%   stats = dffprops(dff, name1, ...) Returns struct array with specified
+%   statistical measurements (Only specified fields are returned).
 %
 %   INPUT:
 %       dff : matrix of dff (numSamples x numRois)
-%   
+%
 %   OUTPUT: stats is a struct containing the following fields:
-%       DffPeak          : Peak dff of the roi time series. 
-%       DffSkewness      : How assymmetric is the distribution of the signal
+%       DffPeak          : Peak dff of the roi time series.
+%       DffSkewness      : How asymmetric is the distribution of the signal
 %                          around the mean? Positive values for right tail
 %       DffSnr           : Signal to noise ratio of dff
 %       DffSnrStd
 %       DffActivityLevel : Percent of time signal is above baseline + noise
-%   
+%
 %   Each field values is a column vector with one row per roi.
 
     % Make sure inputs are valid
@@ -32,7 +32,6 @@ function stats = dffprops(dff, varargin)
     get = @(name) any( strcmp(params.Properties, name) ); %getfcn
     
     [nSamples, nRois] = size(dff);
-    
     
     % Initialize output
     stats = struct;
@@ -91,9 +90,7 @@ function stats = dffprops(dff, varargin)
         dffSkew = double( skewness(dff, 1, 1) );
         stats.DffSkewness = transpose(dffSkew); % submit as columnvec
     end
-    
 end
-
 
 function sn = GetSn(Y, range_ff, method)
 %% Estimate noise standard deviation
@@ -107,7 +104,7 @@ function sn = GetSn(Y, range_ff, method)
 %   sn: scalar, std of the noise
 
 %% Authors: Pengcheng Zhou, Carnegie Mellon University, 2016
-% adapted from the MATLAB implemention by Eftychios Pnevmatikakis and the
+% adapted from the MATLAB implementation by Eftychios Pnevmatikakis and the
 % Python implementation from Johannes Friedrich
 
 %% References
@@ -135,9 +132,9 @@ switch method
     case 'median'
         sn=sqrt(median(psdx(indf,:)/2));
     case 'logmexp'
-        sn = sqrt(exp(mean(log(psdx(indf,:)/2))));    
+        sn = sqrt(exp(mean(log(psdx(indf,:)/2))));
     otherwise
-        fprintf('wrong method! use logmexp instead.\n'); 
+        fprintf('wrong method! use logmexp instead.\n');
         sn = sqrt(exp(mean(log(psdx(indf,:)/2))));
 end
 sn = sn';

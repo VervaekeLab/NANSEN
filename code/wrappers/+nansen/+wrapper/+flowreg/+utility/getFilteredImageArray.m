@@ -2,7 +2,7 @@ function C1 = getFilteredImageArray(Y, options, varargin)
 %getFilteredImageArray Get 3D gaussian filtered grayscale images
 %
 %   Applies a 3D gaussian filter on the image array and converts
-%   the output to a grayscale image array. 
+%   the output to a grayscale image array.
 
     defaultParams = struct(...
         'sigmaOffset', [0,0,0], ...
@@ -31,6 +31,5 @@ function C1 = getFilteredImageArray(Y, options, varargin)
             C1 = mat2gray(Y);
         end
     end
-
 end
         

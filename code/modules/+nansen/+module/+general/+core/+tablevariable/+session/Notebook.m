@@ -16,7 +16,6 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
             
             assert( all( arrayfun(@isstruct, [obj.Value])), 'Value must be a struct')
         end
-        
     end
     
     methods % Implementation of abstract superclass methods
@@ -47,9 +46,7 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
     % %                 numWarnings = sum(contains(lower(msgLevel), 'important'));
                 end
             
-            
                 formattedStr = sprintf('<html><font color="#000000"> %s </font>', str{i});
-
 
                 if contains('Informal', {commentStruct.Type})
                     iconHtmlStr = obj.getIconHtmlString('help');
@@ -71,8 +68,6 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                     formattedStr = strcat(formattedStr, iconHtmlStr);
                 end
 
-            
-
 % % %             if numComments == 0 && numWarnings > 0
 % % %                 formattedStr = sprintf('<html><font color="#000000"> %s </font> %s', str, str2);
 % % %             elseif numWarnings == 0 && numComments > 0
@@ -81,7 +76,7 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
 % % %                 spaceStr = sprintf('<html><font color="#000000"> %s </font>', ' '); %todo... figure out how to make space between icons...
 % % %                 formattedStr = sprintf('<html><font color="#000000"> %s </font> %s %s %s', str, str2, spaceStr, str1);
 % % %             else
-% % %                 
+% % %
 % % %             end
             
                 str{i} = formattedStr;
@@ -104,7 +99,6 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                     newLine2 = sprintf('<br>&nbsp; %s', noteStruct(j).Text);
                     str = [str, newLine2]; %#ok<AGROW>
                 end
-
             end
         end
         
@@ -113,7 +107,6 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                 obj.openNotebookUI()
             end
         end
-        
     end
 
     methods (Access = private)
@@ -124,7 +117,6 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
             hApp.Visible = 'on';
             hApp.openNotebook(obj.Value);
         end
-        
     end
         
     methods (Static)
@@ -155,8 +147,5 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
             str = sprintf('<img src="file:%s" width="10" height="10" margin="0">', iconPath);
             
         end
-        
     end
-    
-    
 end

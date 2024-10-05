@@ -35,9 +35,6 @@ classdef TwoPhotonSession < nansen.metadata.type.Session
                 varargin = [varargin, {'DataLocation', 'Processed'}];
                 pathStr = getDataFilePath@nansen.metadata.type.Session(obj, varName, varargin{:});
             end
-    
         end
-       
     end
-
 end

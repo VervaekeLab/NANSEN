@@ -6,10 +6,10 @@ function pipelineArray = updatePipelinesFromPipelineTemplate(pipelineArray, pipe
 %       update a list of pipeline items (from session objects) based on a
 %       pipeline template. Useful if the pipeline template has been
 %       modified.
-%   
+%
 %   INPUTS:
 %       pipelineArray : cell array of pipeline structs
-%       pipelineTemplate : a pipeline template as retrieved from the 
+%       pipelineTemplate : a pipeline template as retrieved from the
 %           getPipelineForSession method of the PipelineCatalog
     
     wasConvertedToCell = false; % Add pipeline item to cell array
@@ -58,7 +58,7 @@ function pipelineArray = updatePipelinesFromPipelineTemplate(pipelineArray, pipe
         pipelineArray{i}.TaskList = thisTaskListNew;
     end
     
-    if wasConvertedToCell % If pipeline item was placed in a cell array 
+    if wasConvertedToCell % If pipeline item was placed in a cell array
         % before updating, extract if from the cell array before returning.
         pipelineArray = pipelineArray{1};
     end

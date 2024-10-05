@@ -8,10 +8,10 @@ function roiGroup = ensureRoiGroupMatchImageStack(roiGroup, imageStack)
 %    imageStack - An ImageStack object.
 %
 % Outputs:
-%    roiGroup - A 2D array of roiGroup objects, with dimensions matching the 
-%               number of channels and planes in imageStack. If roiGroup was 
-%               already a 2D array with compatible dimensions, it is returned 
-%               unmodified. Otherwise, an empty 2D roiGroup array is created and 
+%    roiGroup - A 2D array of roiGroup objects, with dimensions matching the
+%               number of channels and planes in imageStack. If roiGroup was
+%               already a 2D array with compatible dimensions, it is returned
+%               unmodified. Otherwise, an empty 2D roiGroup array is created and
 %               the roiGroups from the input roiGroup are copied into it.
 %
 % See also: roimanager.roiGroup nansen.stack.ImageStack

@@ -25,5 +25,4 @@ if ~isempty(ind1)
         end
     end
 end
-  
 end

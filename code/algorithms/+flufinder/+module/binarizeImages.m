@@ -4,7 +4,7 @@ function BW = binarizeImages(imArray, params)
 %   BW = binarizeImages(imArray, params) returns a thresholded array given
 %       a grayscale image array and a set of parameters.
 %
-%   INPUTS: 
+%   INPUTS:
 %       imArray : 3D array of images
 %       params  : Struct of parameters for thresholding
 
@@ -16,8 +16,7 @@ function BW = binarizeImages(imArray, params)
             BW = flufinder.binarize.binarizeSomaStack(imArray, bwOpts);
         case 'axonal bouton'
             BW = flufinder.binarize.binarizeAxonStack(imArray, bwOpts);
-        otherwise 
+        otherwise
             error('Unsupported roi type.')
     end
-    
 end

@@ -40,12 +40,12 @@ function roiMask = getRoiMaskFromSomaImage(im, varargin)
         mediSurroundValue = nanmedian(surroundValues(1:round(end*0.6)));
         T = mediSurroundValue + (mediCytosolValue - mediSurroundValue) / 2;
         
-    else 
+    else
         high_val = nanmedian(somaValues);
         low_val = nanmedian(surroundValues);
         
         T = low_val + (high_val - low_val) / 2;
-    end 
+    end
     
     im = medfilt2(im, [5, 5]);
 

@@ -14,5 +14,4 @@ function hApp = signalviewer(varargin)
     if ~nargout
         clear hApp
     end
-
 end

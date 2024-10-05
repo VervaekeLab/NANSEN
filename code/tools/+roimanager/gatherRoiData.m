@@ -1,7 +1,7 @@
 function [roiImageData, roiStats] = gatherRoiData(imArray, roiData, varargin)
 %roimanager.gatherRoiImages Gather set of roi image thumbnails and roistats
 %
-%   
+%
 %   Image Types:
 %     - 'enhanced average'
 %     - 'peak dff'
@@ -36,7 +36,6 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiData, varargin)
         error('Roi input is not valid.')
     end
     
-    
     % Add average images of roi
     
     % Calculate dff signals from image data and roi array.
@@ -67,11 +66,10 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiData, varargin)
     nvPairs = cat(1, params.ImageTypes, imageData);
     roiImageData = struct(nvPairs{:});
     
-    
     if nargout == 2
         
-        % Todo: Add parameters for what stats to get. Make sure correct 
-        % images are available for getting the stats....       
+        % Todo: Add parameters for what stats to get. Make sure correct
+        % images are available for getting the stats....
         ringW = mean(cat(3, roiImageData.enhancedAverage), 3);
         diskW = mean(cat(3, roiImageData.correlation), 3);
                 
@@ -79,7 +77,4 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiData, varargin)
             roiImageData, dff, ringW, diskW);
 
     end
-    
-    
-
 end

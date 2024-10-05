@@ -1,5 +1,5 @@
 classdef MenuList < uiw.mixin.AssignPVPairs
-% Class to represent a list in a menu or a submenu. 
+% Class to represent a list in a menu or a submenu.
 
     properties
         Items                    % Cell array of chars (names) to place in the menu list
@@ -18,11 +18,10 @@ classdef MenuList < uiw.mixin.AssignPVPairs
         VALID_SELECTIONMODE = {'none', 'single', 'multiple'}
     end
 
-
     methods % Constructor
         
         function obj = MenuList(hMenu, items, value, varargin)
-        %   
+        %
         %   obj = MenuList(hMenu, items, value)
         %
         %   obj = MenuList(hMenu, items, value, Name, Value)
@@ -39,7 +38,6 @@ classdef MenuList < uiw.mixin.AssignPVPairs
             obj.assignPVPairs(varargin{:})
             
         end
-
     end
 
     methods % Set/get
@@ -63,7 +61,6 @@ classdef MenuList < uiw.mixin.AssignPVPairs
             newMode = validatestring(newMode, obj.VALID_SELECTIONMODE);
             obj.SelectionMode = newMode;
         end
-
     end
     
     methods (Access = private)
@@ -100,16 +97,14 @@ classdef MenuList < uiw.mixin.AssignPVPairs
                     if any(strcmp(obj.Value, src.Text))
                         obj.Value = setdiff(obj.Value, src.Text);
                     else
-                        obj.Value = union(obj.Value, src.Text); 
+                        obj.Value = union(obj.Value, src.Text);
                     end
-            end 
+            end
 
             if ~isempty(obj.MenuSelectedFcn)
                 obj.MenuSelectedFcn(src, evt)
             end
         end
-
-
 
         function onMenuSelectedFcnSet(obj)
             % Set callback function for all the menu items.
@@ -136,7 +131,5 @@ classdef MenuList < uiw.mixin.AssignPVPairs
             [~, itemInd] = intersect(obj.Items, obj.Value);
             set(obj.MenuListItems(itemInd), 'Checked', 'on')
         end
-
     end
-
 end

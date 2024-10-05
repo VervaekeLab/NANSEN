@@ -9,7 +9,6 @@ switch type
         hline.LineWidth = 1;
         hline.HitTest = 'off';
         tmpH = uicontrol('style', 'edit', 'Parent', figH, 'Visible', 'off');
-
         
         for i = 1:2
             impoints{i} = impoint(ax);
@@ -28,7 +27,6 @@ switch type
         
 end
 
-
 [x, y] = ds2nfu(ax, centerX, centerY);
 tmpH.Units = 'normalized';
 tmpH.Position = [x+0.03, 1-y-0.02-0.03, 0.07, 0.04];
@@ -42,14 +40,8 @@ pos1 = impoints{1}.getPosition();
 pos2 = impoints{2}.getPosition();
 
 M.PixelLength = sqrt( (pos2(1)-pos1(1)).^2 + (pos2(2)-pos1(2)).^2 );
-
-        
         
 end
-
-
-
-
 
 function imPointMoved(pos, hLine, i, tmpH)
     x = pos(1);
@@ -66,13 +58,10 @@ function imPointMoved(pos, hLine, i, tmpH)
     
 end
 
-
-
 function uiresumeKeyPress(src, event)
 
     switch event.Key
         case 'return'
             uiresume(src)
     end
-    
 end

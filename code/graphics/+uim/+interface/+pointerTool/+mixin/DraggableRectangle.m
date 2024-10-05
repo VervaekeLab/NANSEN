@@ -1,20 +1,16 @@
 classdef DraggableRectangle < handle
     
-    
     properties
         rectanglePlotHandle = gobjects(0);
         rectangleReleaseCallback = [];
     end
-    
     
     properties (Abstract)
         anchorPoint
         hAxes
     end
     
-    
     methods
-        
         
         function plotRectangle(obj)
             
@@ -34,7 +30,6 @@ classdef DraggableRectangle < handle
                 set(obj.rectanglePlotHandle, 'Visible', 'on')
             end
         end
-        
         
         function updateRectangle(obj, currentPoint)
             
@@ -68,9 +63,7 @@ classdef DraggableRectangle < handle
                 obj.rectanglePlotHandle.XData = [x1, x1, x2, x2, x1];
                 obj.rectanglePlotHandle.YData = [y1, y2, y2, y1, y1];
             end
-            
         end
-        
         
         function resetRectangle(obj)
             delete(obj.rectanglePlotHandle)
@@ -79,8 +72,5 @@ classdef DraggableRectangle < handle
             % % % set(obj.rectanglePlotHandle, 'XData', nan, 'Ydata', nan)
             % % % set(obj.rectanglePlotHandle, 'Visible', 'off')
         end
-
     end
-    
-    
 end

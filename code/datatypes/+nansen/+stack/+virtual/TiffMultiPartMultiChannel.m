@@ -20,7 +20,7 @@ classdef TiffMultiPartMultiChannel < nansen.stack.virtual.TiffMultiPart
                 return
             end
 
-            % Check if there is a channel expression if there are more than 
+            % Check if there is a channel expression if there are more than
             % one file
             if numel(obj.FilePathList) > 1
                 
@@ -36,39 +36,36 @@ classdef TiffMultiPartMultiChannel < nansen.stack.virtual.TiffMultiPart
                 tokens = cellfun(@(c) str2double(c), struct2cell(tokens));
                 tokens = transpose(tokens); % each row is one file
                 
-                
                 % channel is first, part numbers are second.
                 % Sort according to channels:
-                % [~, ix] = sortrows(tokens, [1,2]); 
+                % [~, ix] = sortrows(tokens, [1,2]);
                 
                 numChannels = numel( unique(channelIdx) );
                 obj.ChannelMode = 'multipart';
                 
 % % %                 return
-% % %                 
+% % %
 % % %                 channelExpression = 'ch\d*';
-% % % 
+% % %
 % % %                 getChanFcn = @(c)regexp(c, channelExpression, 'match');
 % % %                 channelIds = cellfun(@(c)getChanFcn(c), obj.FilePathList);
-% % % 
+% % %
 % % %                 getNumFcn = @(c) str2double( regexp(c, '\d*', 'match') );
 % % %                 channelNums = cellfun(@(c)getNumFcn(c), channelIds);
-% % % 
+% % %
 % % %                 uniqueChannels = unique(channelNums);
 % % %                 numChannels = numel(uniqueChannels);
-% % % 
+% % %
 % % %                 n = histcounts(channelNums, numChannels);
 % % %                 assert( numel(unique(n)) == 1, 'Number of parts per channel does not match' )
-% % % 
+% % %
 % % %                 % Sort filepaths and tiff objects after channel numbers
 % % %                 [~, ix] = sort(channelNums);
 % % %                 obj.FilePathList = obj.FilePathList(ix);
 % % %                 obj.tiffObj = obj.tiffObj(ix);
 
-
                 numParts = numel( obj.FilePathList );
                 numPartsPerChannel = floor(numParts / numChannels);
-
 
                 obj.FilePathList = reshape(obj.FilePathList, ...
                     numPartsPerChannel, numChannels);
@@ -77,8 +74,5 @@ classdef TiffMultiPartMultiChannel < nansen.stack.virtual.TiffMultiPart
 
             end
         end
-        
     end
-    
 end
-

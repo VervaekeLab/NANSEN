@@ -4,8 +4,7 @@ classdef SciScanXYTSeries < nansen.dataio.FileAdapter
 %   This file adapter provides methods to load the data from a sciscan raw
 %   file to a virtual ImageStack object. This is a read-only file adapter.
 
-
-% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - -
 
     properties (Constant)
         DataType = 'ImageStack'
@@ -16,7 +15,7 @@ classdef SciScanXYTSeries < nansen.dataio.FileAdapter
         SUPPORTED_FILE_TYPES = {'raw'}
     end
     
-% - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - -
 
     methods (Access = protected)
         
@@ -25,7 +24,6 @@ classdef SciScanXYTSeries < nansen.dataio.FileAdapter
             virtualData = nansen.stack.virtual.SciScanRaw(obj.Filename);
             imageStack = nansen.stack.ImageStack(virtualData);
         end
-        
     end
     
     methods
@@ -44,7 +42,5 @@ classdef SciScanXYTSeries < nansen.dataio.FileAdapter
             imageStack = obj.load();
             imviewer(imageStack)
         end
-        
     end
-    
 end

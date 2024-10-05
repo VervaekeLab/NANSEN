@@ -1,8 +1,8 @@
 classdef RoiAdapter < handle
 %RoiAdapter Interface for a roi data adapter.
 %
-%   In order to work with the RoiConverter, each specific implementation 
-%   should be placed in its own a class folders in the +adapter package 
+%   In order to work with the RoiConverter, each specific implementation
+%   should be placed in its own a class folders in the +adapter package
 %   folder (See existing adapters for examples).
 %   A roi adapter should implement the following methods:
 
@@ -16,7 +16,6 @@ classdef RoiAdapter < handle
             if ~nargin; return; end
             obj.FilePath = filepath;
         end
-
     end
 
     methods (Abstract)
@@ -33,5 +32,4 @@ classdef RoiAdapter < handle
         tf = isRoiFormatValid(filePath, data)
 
     end
-
 end

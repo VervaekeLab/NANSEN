@@ -2,7 +2,6 @@ function sessionTable = updateSessionDatalocations(sessionTable, dataLocationMod
 %updateSessionDatalocations Update session data locations by rescanning
 %file system and detecting folders matching the data location model.
 
-
 % Todo: Should this be a method of the model?
 
     import nansen.dataio.session.listSessionFolders
@@ -43,7 +42,7 @@ function sessionTable = updateSessionDatalocations(sessionTable, dataLocationMod
     
     sessionTable.replaceDataColumn('DataLocation', newDataLocation );
 
-    % Post hoc fix: Make sure structs are right format 
+    % Post hoc fix: Make sure structs are right format
     sessionTable = nansen.metadata.temp.fixMetaTableDataLocations(...
         sessionTable, dataLocationModel);
     

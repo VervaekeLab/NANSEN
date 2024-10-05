@@ -1,8 +1,8 @@
 function [ metadata ] = getScanParameters( dataFolderPath )
 %getScanParameters Load fields from a thorlabs XML file into a matlab struct.
-%   
-%   M = getScanParameters(dataFolderPath) returns a struct with metadata 
-%       (M) from a recording specified by v, where folderPath is the path 
+%
+%   M = getScanParameters(dataFolderPath) returns a struct with metadata
+%       (M) from a recording specified by v, where folderPath is the path
 %       to a recording folder.
 %
 %   Returned Fields:
@@ -14,7 +14,6 @@ function [ metadata ] = getScanParameters( dataFolderPath )
 %       - pixelSizeUM    :   um per pixel conversion factor
 %       - channel        :   list of channels that are recorded (e.g. 1)
 %       - nFrames        :   array of nFrames per block
-
 
 % Todo : how to find planes
 
@@ -69,4 +68,3 @@ function attributes = parseAttributes(xmlItem)
         attributes.(thisAttributeName) = thisAttributeValue;
     end
 end
-

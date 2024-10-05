@@ -17,7 +17,7 @@ function infoTable = listPhysicalDrives()
 
 % Written by Eivind Hennestad | 2022-11-24
 
-% Todo: 
+% Todo:
 % [ ] Implement for linux systems
 % [ ] Add internal, external (how to get this on pc?)
 % [ ] On mac, file system is not correct...
@@ -91,14 +91,14 @@ function infoTable = convertListToTableMac(infoStr)
     end
 
     % Get the drive type
-    expression = '\((.*)\)'; 
+    expression = '\((.*)\)';
     driveType = regexp(deviceHeaders, expression, 'tokens');
     driveTypeColumnData = arrayfun(@(x) driveType{x}{1}{1}, deviceNumber, 'uni', 0);
     
     colIdx = size(C, 2) + 1;
     C(:, colIdx) = driveTypeColumnData;
 
-    % Set varible names and create table
+    % Set variable names and create table
     variableNames = {'FileSystem', 'VolumeName', 'Size', 'DeviceID', 'SizeUnit', 'DriveType'};
     infoTable = cell2table(C(2:end,:), 'VariableNames', variableNames);
 
@@ -209,19 +209,19 @@ function cellArray = removeEmptyCells(cellArray)
 end
 
 % % % function filename = filewrite(filename, textString)
-% % %     
+% % %
 % % %     if isempty(filename)
 % % %         filename = [tempname, '.txt'];
 % % %     end
-% % %     
+% % %
 % % %     fid = fopen(filename, 'w');
 % % %     fwrite(fid, textString);
 % % %     fclose(fid);
 % % % end
-% % % 
+% % %
 % % %         [~, infoStr] = system('diskutil list -plist physical');
-% % % 
+% % %
 % % %         filename = [tempname, '.xml'];
 % % %         filename = filewrite(filename, infoStr);
-% % %     
+% % %
 % % %         convertedValue = readstruct(filename);

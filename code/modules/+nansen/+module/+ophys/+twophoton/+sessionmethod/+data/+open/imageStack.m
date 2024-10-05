@@ -11,7 +11,7 @@ function varargout = imageStack(sessionObj, varargin)
 %   the function.
 %
 %   List of options (name, value pairs):
-%        
+%
 %       VariableName    : Name of data variable to open in imviewer
 %       UseVirtualStack : Boolean flag, open using virtual stack or not
 %       FirstImage      : First image to load (if UseVirtualStack is false)
@@ -19,7 +19,7 @@ function varargout = imageStack(sessionObj, varargin)
 
 import nansen.session.SessionMethod
 
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify
 % one or more attributes (see nansen.session.SessionMethod.setAttributes)
 % for details.
@@ -28,15 +28,14 @@ import nansen.session.SessionMethod
     params = getDefaultParameters();
     ATTRIBUTES = {'serial', 'unqueueable'};
     
-    % Get all the data variable alternatives for this function. Add it to 
+    % Get all the data variable alternatives for this function. Add it to
     % the optional 'Alternatives' attribute to autogenerate a menu item for
     % each variable that can be opened as an imagestack object in imviewer.
     variableNames = getVariableNameAlternatives();
     ATTRIBUTES = [ATTRIBUTES, {'Alternatives', variableNames}];
-    
 
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
    
     % % % Initialization block for a session method function.
 
@@ -50,13 +49,12 @@ import nansen.session.SessionMethod
     % % % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, [], varargin);
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the method : Add you code here:
         
     imageStack = sessionObj.loadData(params.Alternative);
 
-    if ~params.UseVirtualStack        
+    if ~params.UseVirtualStack
         if params.LastImage > imageStack.NumTimepoints
             frameIndices = params.FirstImage:imageStack.NumTimepoints;
         else

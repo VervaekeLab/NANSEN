@@ -12,7 +12,6 @@ function [imArrayOut, yLim, xLim] = imtrim(imArrayIn, backgroundValue, polarity,
 %   first image frame of the array. Therefore, do not use this function if
 %   trimming should be dependent on all frames of a stack
 
-
     if nargin < 2 || isempty(backgroundValue);  backgroundValue = 0;    end
     if nargin < 3 || isempty(polarity);         polarity = 'dark';      end
     if nargin < 4 || isempty(mode);             mode = 'ne';            end

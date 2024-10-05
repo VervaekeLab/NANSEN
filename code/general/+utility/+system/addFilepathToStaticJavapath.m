@@ -7,7 +7,7 @@ function wasSuccess = addFilepathToStaticJavapath(filepath)
 %
 %   If the filepath is already in the file, this functions returns.
 
-    wasSuccess = false; 
+    wasSuccess = false;
     
     initDir = prefdir;
     staticJavaFilepath = fullfile(initDir, 'javaclasspath.txt');
@@ -38,5 +38,4 @@ function wasSuccess = addFilepathToStaticJavapath(filepath)
     if status == 0
         wasSuccess = true;
     end
-
 end

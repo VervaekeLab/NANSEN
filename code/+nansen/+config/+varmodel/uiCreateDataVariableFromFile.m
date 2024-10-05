@@ -14,8 +14,7 @@ function wasCreated = uiCreateDataVariableFromFile(filePath, dataLocationName, s
 %       wasCreated       : Boolean flag indicating if a new variable was
 %                          created
 
-
-%   Todo: 
+%   Todo:
 %       [ ] Make dataLocationName and sessionObject optional inputs?
 
     wasCreated = false;

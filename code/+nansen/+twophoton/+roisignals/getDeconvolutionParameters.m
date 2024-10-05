@@ -1,11 +1,11 @@
 function [P, V] = getDeconvolutionParameters()
 %getDeconvolutionParameters Get parameters for signal deconvolution
 %
-%   P = nansen.twophoton.roisignals.getDeconvolutionParameters() returns 
+%   P = nansen.twophoton.roisignals.getDeconvolutionParameters() returns
 %       a struct (P) with default parameters for signal deconvolution
 %
-%   [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters() 
-%       returns an additional struct (V) containing assertions for each 
+%   [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters()
+%       returns an additional struct (V) containing assertions for each
 %       parameter, for use with an input parser etc.
 %
 %   SELECTED PARAMETERS:
@@ -23,11 +23,11 @@ function [P, V] = getDeconvolutionParameters()
 %    [ ] Rename to caiman.deconvolution.parameters
 %    [ ] Rename to caiman.deconvolution.options
 
-% DESRIPTION:
+% DESCRIPTION:
 %   Change these parameters to change the behavior of the deconvolution
 %   method.
 
-    % - - - - - - - - Specify parameters and default values - - - - - - - - 
+    % - - - - - - - - Specify parameters and default values - - - - - - - -
     
     % Names                       Values (default)      Description
     P                           = struct();             %
@@ -44,7 +44,6 @@ function [P, V] = getDeconvolutionParameters()
     % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
     P.modelType_                = {'ar1', 'ar2', 'exp2'};
     P.modelParams_              = 'internal';
-
     
     % - - - - Specify validation/assertion test for each parameter - - - -
     
@@ -54,7 +53,7 @@ function [P, V] = getDeconvolutionParameters()
     V.modelParams               = @(x) assert(isempty(x) || (ismatrix(x) && islogical(x)), ...
                                     'Value must be a logical matrix');
     V.spikeSnr                  = @(x) assert( isnumeric(x) && isscalar(x), ...
-                                    'Value must be a scalar' ); 
+                                    'Value must be a scalar' );
     V.lambdaPr                  = @(x) assert( isnumeric(x) && isscalar(x), ...
                                     'Value must be a scalar' );
     V.tauRise                   = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0 && round(x)==x, ...
@@ -63,7 +62,6 @@ function [P, V] = getDeconvolutionParameters()
                                     'Value must be a scalar, non-negative, integer number' );
     V.sampleRate                = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0, ...
                                     'Value must be a scalar, non-negative number' );
-                                         
                                 
     % - - - - - Adapt output to how many outputs are requested - - - - - -
     
@@ -79,5 +77,4 @@ function [P, V] = getDeconvolutionParameters()
     elseif nargout == 1
         clear V
     end
-    
 end

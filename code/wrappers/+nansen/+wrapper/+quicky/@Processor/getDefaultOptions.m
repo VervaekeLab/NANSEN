@@ -9,4 +9,3 @@ function options = getDefaultOptions()
     options = nansen.mixin.HasOptions.combineOptions(options, superOptions{:});
 
 end
-

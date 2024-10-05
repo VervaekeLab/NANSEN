@@ -45,4 +45,3 @@ function Sout = clearvalues(Sin, useZero)
     [Sout(1:numElements)] = deal(Sout);
     
 end
-

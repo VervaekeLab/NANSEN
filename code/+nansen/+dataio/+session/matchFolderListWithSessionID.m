@@ -13,6 +13,4 @@ function isMatch = matchFolderListWithSessionID(folderList, sessionID, dataLocat
         matchMakerFcn = str2func( utility.path.abspath2funcname(filePath) );
         isMatch = matchMakerFcn(folderList, sessionID, dataLocationName);
     end
-
 end
-

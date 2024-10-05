@@ -1,14 +1,13 @@
 classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
 %TemporalDownsampler Class for running temporal downsampling on ImageStack
 %
-%   This method creates a downsampled ImageStack (virtual or in-memory) 
-%   The downsampled ImageStack has the same resolution and datatype as 
-%   the original ImageStack, but the number of frames/samples depends on 
+%   This method creates a downsampled ImageStack (virtual or in-memory)
+%   The downsampled ImageStack has the same resolution and datatype as
+%   the original ImageStack, but the number of frames/samples depends on
 %   the downsampling factor.
     
-    
     % Todo: How to deal with the slicing off excessive frame because
-    % binning size might not always match chunk size? 
+    % binning size might not always match chunk size?
     
     % [ ] Add cache and methods in order to do "live downsampling" by
     % receiving unspecified chunks of data and adding them to target stack
@@ -30,7 +29,7 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
     properties (Constant, Hidden)
         DATA_SUBFOLDER = ''	% defined in nansen.processing.DataMethod
         VARIABLE_PREFIX	= '' % defined in nansen.processing.DataMethod
-    end 
+    end
     
     properties (SetAccess = private)
         DownsamplingFactor
@@ -65,7 +64,7 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
     methods (Static)
         
         function S = getDefaultOptions()
-        % Get default options for the temporal downsampler    
+        % Get default options for the temporal downsampler
             S.DownsamplingFactor    = 10;               % Number of frames to bin. Default = 10;
             S.DownsamplingMethod    = 'mean';           % Method used for downsampling (binning of frames) Default = 'mean';
             S.SaveToFile            = true;             % Save downsampled stack to file? (logical)
@@ -80,9 +79,8 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             
             className = mfilename('class');
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
-            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});            
+            S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
         end
-        
     end
     
     methods % Constructor
@@ -90,12 +88,11 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
         function obj = TemporalDownsampler(sourceStack, n, method, varargin)
         %DownsampledStack Constructor for creating a downsampled ImageStack
         %
-        %   Inputs :          
+        %   Inputs :
         %       n = downsampling factor
         %       method = downsampling method
         %
         %   Options : See properties.
-        
         
             if nargin < 2 || isempty(n)
                 n = 10;
@@ -115,9 +112,7 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
                 obj.runMethod()
                 clear obj
             end
-            
         end
-        
     end
     
     methods % Set/get
@@ -166,10 +161,9 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
         function set.UseTemporaryFile(obj, value)
             obj.Options.UseTemporaryFile = value;
         end
-        
     end
     
-    methods 
+    methods
         
         function tf = existDownsampledStack(obj)
             
@@ -195,10 +189,9 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             % something and don't clean up when processor is destroyed.
             obj.DeleteTargetStackOnDestruction = false;
         end
-        
     end
     
-    methods (Access = protected) 
+    methods (Access = protected)
                    
         function openTargetStack(obj, ~, ~, ~)
         %openTargetStack Open (or create) and assign the target image stack
@@ -230,7 +223,7 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
         end
 
         function iIndices = getTargetIndices(obj, ~)
-        %getTargetIndices Get downsampled target indices    
+        %getTargetIndices Get downsampled target indices
             iPart = obj.CurrentPart;
             iIndices = obj.TargetFrameIndPerPart{iPart};
         end
@@ -268,7 +261,6 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             % Downsample using the binprojection method
             data = stack.downsample.binprojection(data, binSize, method);
             
-            
             % Todo: Add tolerances
             
             % Save minimum and maximum values of data (for adjusting at end)
@@ -298,7 +290,6 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             ds.IsCompleted = true;
             obj.TargetStack.MetaData.set('Downsampling', ds)
         end
-        
     end
 
     methods (Access = private)
@@ -324,7 +315,7 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
         end
         
         function configureTargetFrameIndicesPerPart(obj)
-        %configureTargetFrameIndicesPerPart Get frame indices for target.   
+        %configureTargetFrameIndicesPerPart Get frame indices for target.
             n = obj.NumFramesPerPart / obj.DownsamplingFactor;
             assert( mod(n, 1) == 0, 'Number of frames per part is not set correctly, please report' )
             
@@ -360,7 +351,7 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
         end
         
         function updateTargetMetadata(obj)
-        %updateTargetMetadata Update metadata of target stack              
+        %updateTargetMetadata Update metadata of target stack
 
             if ~isprop(obj.TargetStack.MetaData, 'Downsampling')
                 
@@ -384,5 +375,4 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             warning('Adjusting of brightness is not implemented yet')
         end
     end
-
 end

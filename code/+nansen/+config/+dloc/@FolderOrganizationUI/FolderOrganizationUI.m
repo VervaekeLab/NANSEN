@@ -4,7 +4,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 % Todo: Add "api" class?
 % Todo: rename class. FolderOrganization something
 
-% Todo: Simplify component creation. 
+% Todo: Simplify component creation.
 %     [] Get cell locations as array with one entry for each column of a row.
 %     [] Do the centering when getting the cell locations.
 %     [] Set fontsize/bg color and other properties in batch.
@@ -18,10 +18,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 %     [ ] Add option for selecting whether lowest level is file or folder.
 %     I.e if data from many sessions, i.e sData, NWB files are located in
 %     the same folder...
-%   
+%
 %     [ ] If a folder organization template is used for the first data @
 %         location, should also fill out the metadata ui  
-
 
 % Note: this class is a mess when it comes to updating the data and values.
 % Needs work in order to instantly update the datalocation model on
@@ -37,10 +36,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 %       - expressionChanged
 %       - onCurrentDataLocationSet
 %
-%   should separate beteen whether 1) names of existing subfolder levels are
+%   should separate between whether 1) names of existing subfolder levels are
 %   changed, 2) subfolders levels are added or removed and 3) datalocation
 %   is set/changed.
-
 
     properties
         AppFigure % Todo: make sure this is set...
@@ -79,11 +77,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         DataLocationTemplates
     end
     
-    
     events
         FilterChanged
     end
-    
     
     methods % Structors
         function obj = FolderOrganizationUI(dataLocationModel, varargin)
@@ -116,7 +112,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 
             obj.closeFolderListViewer()
         end
-        
     end
     
     methods (Access = protected) % Implementation of superclass methods
@@ -136,7 +131,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         % % Create Button for removing current row.
             i = 1;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
-                        
             
 % %             hRow.RemoveImage = uiimage(obj.TablePanel);
 % %             hRow.RemoveImage.Position = [xi y 20 20];
@@ -159,7 +153,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             obj.centerComponent(hRow.RemoveImage, y)
             
-            
         % % Create SubfolderDropdown for selecting subfolder
             i = 2;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
@@ -172,7 +165,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             hRow.SubfolderDropdown.Value = 'Select subfolder';
             hRow.SubfolderDropdown.ValueChangedFcn = @obj.onSubfolderSelectionValueChanged;
             obj.centerComponent(hRow.SubfolderDropdown, y)
-
             
         % % Create SubfolderTypeDropdown for selecting subfolder type
             i = 3;
@@ -191,7 +183,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             else
                 hRow.SubfolderTypeDropdown.Value = rowData.Type;
             end
-
             
         % % Create field for entering foldername expression
             i = 5;
@@ -207,7 +198,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 hRow.DynamicRegexp.Value = rowData.Expression;
             end
             %@(s,e) obj.markDirty;
-            
             
             i = 4;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
@@ -244,7 +234,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         end
             
         function createToolbarComponents(obj, hPanel)
-        %createToolbarComponents Create "toolbar" components above table.    
+        %createToolbarComponents Create "toolbar" components above table.
             if nargin < 2; hPanel = obj.Parent.Parent; end
         
             import uim.utility.layout.subdividePosition
@@ -266,7 +256,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             % Get component positions for the components on the left
             [Xl, Wl] = subdividePosition(toolbarPosition(1), ...
                 toolbarPosition(3), Wl_init, 10);
-            
             
             % Get component positions for the components on the right
             [Xr, Wr] = subdividePosition(toolbarPosition(1), ...
@@ -291,7 +280,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.SelectTemplateLabel.Position = [Xl(3) Y Wl(3) 22];
             obj.SelectTemplateLabel.HorizontalAlignment = 'right';
             obj.SelectTemplateLabel.Text = 'Use template:';
-            
 
             % Create SelectDataLocationDropDown
             obj.SelectTemplateDropdown = uidropdown(hPanel);
@@ -303,7 +291,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.SelectTemplateHelpIcon = obj.createHelpIconButton(hPanel);
             obj.SelectTemplateHelpIcon.Position = [Xl(5)-5 Y+1 Wl(5) 20];
             obj.SelectTemplateHelpIcon.Tag = 'Folder Hierarchy Template';
-            
                         
 % %             % Create Info Button
 % %             obj.InfoButton = uiimage(hPanel);
@@ -337,19 +324,18 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 obj.PreviewButton, ...
                 obj.ShowFilterOptionsButton ];
         end
-        
     end
     
     methods % Public
         
         function updateDataLocationModel(obj)
-        %updateDataLocationModel Update DLModel with current values from UI 
+        %updateDataLocationModel Update DLModel with current values from UI
             
             currentDlName = obj.SelectDataLocationDropDown.Value;
-            idx = find( strcmp({obj.DataLocationModel.Data.Name}, currentDlName) ); 
+            idx = find( strcmp({obj.DataLocationModel.Data.Name}, currentDlName) );
             
             sNew = obj.getSubfolderStructure();
-            sOld = obj.DataLocationModel.Data(idx).SubfolderStructure; 
+            sOld = obj.DataLocationModel.Data(idx).SubfolderStructure;
             if ~isequal(sNew, sOld)
                 obj.DataLocationModel.updateSubfolderStructure(sNew, idx)
             end
@@ -380,7 +366,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.CurrentDataLocation = newDataLocation;
             obj.onCurrentDataLocationSet()
         end
-        
     end
     
     methods (Access = private)
@@ -409,7 +394,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 
             obj.IsUpdating = false;
         end
-        
     end
     
     methods % Callbacks for row components
@@ -421,8 +405,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         %   during table update. The method ensures that events are not
         %   triggered during table update.
         
-            if obj.IsUpdating 
-                return; 
+            if obj.IsUpdating
+                return;
             else
                 notify@handle(obj, eventName, eventData)
             end
@@ -561,7 +545,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             removeRow@applify.apptable(obj, i)
             
-            % Enable button for adding new row on the row above the one 
+            % Enable button for adding new row on the row above the one
             % that was just removed.
             if i > 1
                 obj.RowControls(i-1).AddImage.Enable = 'on';
@@ -596,7 +580,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             % todo: remove iRow and use getRow method (Still necessary? - 2022-01-26)
             iRow = obj.getComponentRowNumber(src);
-            
             
             %Update data property obj.Data(iRow).Name
             obj.Data(iRow).Name = obj.RowControls(iRow).SubfolderDropdown.Value;
@@ -646,7 +629,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             evtData = event.EventData();
             obj.notify('FilterChanged', evtData)
             
-            obj.updateSubfolderItems(iRow); % supress output
+            obj.updateSubfolderItems(iRow); % suppress output
         end
         
         function success = updateSubfolderItems(obj, iRow, folderPath)
@@ -665,7 +648,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             end
             
             S = obj.getSubfolderStructure();
-            
             
             % Look for subfolders in the folderpath
             [~, dirName] = utility.path.listSubDir(folderPath, ...
@@ -695,7 +677,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 % %                 hFigure = ancestor(obj.Parent, 'figure');
 % %                 uialert(hFigure, message, 'Aborting')
                 success = false;
-                hSubfolderDropdown.Items = {'No subfolders were found'};            
+                hSubfolderDropdown.Items = {'No subfolders were found'};
                 if ~nargout; clear success; end
                 return
             end
@@ -773,7 +755,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 end
             end
         end
-        
     end
     
     methods % Callbacks for toolbar components
@@ -804,7 +785,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         end
         
         function onDataLocationSelectionChanged(obj, ~, event)
-        %onDataLocationSelectionChanged Callback handler for when current datalocation changes    
+        %onDataLocationSelectionChanged Callback handler for when current datalocation changes
         %
         %   This function gets the values for the subfolder struct from the
         %   current datalocation and adds to the datalocation model before
@@ -812,9 +793,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         %
         %   Note: This means that the subfolder structure is not updated in
         %   the datalocation model until the datalocation is changed.
-        
                     
-            % Important: Delete this listener so that the the table is not 
+            % Important: Delete this listener so that the the table is not
             % updated while recreating the subfolder settings table.
             
             % Todo: Dont need listener...
@@ -852,7 +832,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 
             S = obj.DataLocationTemplates(isMatched);
             
-            % Check if template is different fram data in gui...
+            % Check if template is different from data in gui...
 
             % Todo: Skip this if the data in the GUI is same as defaults...
 
@@ -925,7 +905,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                     obj.hideAdvancedOptions()
                     obj.ShowFilterOptionsButton.Text = 'Show Filter Options...';
             end
-        end        
+        end
         
         % % % % Methods for the folder listing figure and table
         
@@ -934,7 +914,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             % Todo: Move figure to left side of *current* screen:
             %app.NansenSetupUIFigure.Position(1) = 10;
             
-            %hAppFig = ancestor(obj.Parent, 'figure');       
+            %hAppFig = ancestor(obj.Parent, 'figure');
             %hAppFig.Position(1) = 10;
             
             obj.FolderListViewer = nansen.config.dloc.FolderPathViewer(obj.AppFigure);
@@ -942,12 +922,10 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             addlistener(obj.FolderListViewer, 'ObjectBeingDestroyed', ...
                 @(s, e) obj.onFolderListViewerDeleted);
             
-            
             % hFig.DeleteFcn = @(s,e) app.closeFolderListViewer;
             
             obj.FolderOrganizationFilterListener = listener(obj, ...
                 'FilterChanged', @(s,e) obj.updateFolderList);
-            
 
             % Give focus to the app figure
             figure(obj.AppFigure)
@@ -996,8 +974,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             % % Todo: Which figure?
             %uim.utility.centerFigureOnScreen(app.NansenSetupUIFigure)
-        end        
-    
+        end
     end
     
     methods
@@ -1013,7 +990,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.updateDataLocationModel()
             
             % Get currently selected data location
-            currentDataLoc = obj.SelectDataLocationDropDown.Value;            
+            currentDataLoc = obj.SelectDataLocationDropDown.Value;
             dataLocation = obj.DataLocationModel.getItem(currentDataLoc);
           
             % List session folders for current data location
@@ -1031,7 +1008,6 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             % Update table data in folderlist viewer
             obj.FolderListViewer.Data = sessionFolders';
         end
-        
     end
     
     methods (Access = protected)
@@ -1046,8 +1022,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         function onDataLocationAdded(obj, ~, evt)
         %onDataLocationAdded Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationAdded event on 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationAdded event on
         %   the DataLocationModel object
         
             obj.updateDataLocationSelector()
@@ -1056,8 +1032,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         function onDataLocationModified(obj, ~, evt)
         %onDataLocationModified Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationModified event 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationModified event
         %   on the DataLocationModel object
         
             switch evt.DataField
@@ -1073,13 +1049,13 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                     
                         [~, newInd] = obj.DataLocationModel.containsItem(evt.DataLocationName);
                         obj.CurrentDataLocation = obj.DataLocationModel.Data(newInd);
-% % 
+% %
 % %                     obj.IsUpdating = true;
 % %                     for i = 1:obj.NumRows
 % %                         obj.updateSubfolderItems(i);
 % %                     end
 % %                     obj.IsUpdating = false;
-% %                     
+% %
                         obj.updateFolderList()
                     end
                                         
@@ -1090,13 +1066,12 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         function onDataLocationRemoved(obj, ~, evt)
         %onDataLocationRemoved Callback for DataLocationModel event
         %
-        %   This method is inherited from the HasDataLocationModel 
-        %   superclass and is triggered by the DataLocationRemoved event on 
+        %   This method is inherited from the HasDataLocationModel
+        %   superclass and is triggered by the DataLocationRemoved event on
         %   the DataLocationModel object
             
             obj.updateDataLocationSelector()
         end
-         
     end
     
     methods (Static)
@@ -1107,5 +1082,4 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             S = table2struct( p.getTable('DataLocations') );
         end
     end
-    
 end

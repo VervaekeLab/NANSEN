@@ -1,11 +1,9 @@
 classdef (ConstructOnLoad) RoiClsfChanged < event.EventData
-   
     
     properties
         roiIndices
         classification
     end
-    
     
     methods
         
@@ -13,7 +11,5 @@ classdef (ConstructOnLoad) RoiClsfChanged < event.EventData
             data.roiIndices = roiIndices;
             data.classification = classification;
         end
-        
     end
-    
 end

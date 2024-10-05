@@ -3,14 +3,12 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
 %   Detailed explanation goes here
 
 % Todo: Channels....
-% Todo: Use timetable 
-
+% Todo: Use timetable
 
 % methods:
 %   writeFromTimeseries
 %   writeFromArray
 %   writeFromTimeTable?
-
 
 %   SYNTAX:
 %       import nansen.dataio.fileadapter.timeseries.*
@@ -21,13 +19,13 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
 %       variableName. data is an array with size numSamples x numRois.
 %
 %   EXAMPLE:
-%       
+%
 %       filename = 'roi_signal_array.mat'
 %       data = rand(100, 8);
-%       
+%
 %       % Create file adapter
 %       roiSignalFileAdapter = nansen.dataio.fileadapter.timeseries.RoiSignalArray(filepath, 'writable');
-%       
+%
 %       % Save roi signal array.
 %       roiSignalFileAdapter.save(dffArray, 'dff')
 %       roiSignalFileAdapter.setMetadata('start_time_num', now)
@@ -38,7 +36,7 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
         Description = 'This file contains extracted and processed roi signals';
     end
     
-    properties 
+    properties
         OutputFormat = 'timetable' % timetable, timeseries, array
     end
     
@@ -59,7 +57,6 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
             S.SampleRate = 1;
             S.TimeUnits = 'seconds';
         end
-        
     end
     
     methods (Access = protected)
@@ -82,7 +79,6 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
                 case 'timeseries'
                     roiSignalArray = obj.convertToTimeseries(dataS, metaS);
             end
-
         end
         
         function writeData(obj, data, varargin)
@@ -115,13 +111,12 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
             obj.writeMetadata(metaS)
             
         end
-
     end
     
     methods (Access = private)
         
         function data = convertToTimetable(obj, dataS, metaS)
-        %convertToTimetable Convert loaded data to timetable    
+        %convertToTimetable Convert loaded data to timetable
             samplingRate =  metaS.Data.SampleRate;
             
             vars = struct2cell(dataS);
@@ -155,7 +150,6 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
             else
                 data = tsCellArray{1};
             end
-            
         end
         
         function [metaS, dataS] = convertFromTimetable(obj, timetableObj)
@@ -188,8 +182,5 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
             assert( size(data, 1) == metadata.NumSamples, message )
             assert( size(data, 2) == metadata.NumRois, message )
         end
-
     end
-    
 end
-

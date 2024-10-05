@@ -1,5 +1,4 @@
 classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
-    
 
     methods
         
@@ -7,7 +6,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             
             columnsToDisplay = {'SessionID', 'TaskName', 'OptionsName', 'Comment'};
             
-            % Put tasklist in a struct to mimick a pipeline item
+            % Put tasklist in a struct to mimic a pipeline item
             pipelineStruct = struct();
             pipelineStruct.TaskList = taskList;
             
@@ -25,9 +24,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             app.Figure.Name = name;
 
         end
-        
     end
-    
     
     methods (Access = protected)
         
@@ -44,7 +41,6 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
         function onTaskTableDataSet(app)
             
             isInitialization = isempty(app.UITable.DataTable);
-
             
             app.UITable.DataTable = app.TaskTableData;
             %numRows = size(app.TaskTableData, 1);
@@ -63,7 +59,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
         
         function onTableCellEdited(app, src, evt)
             % Todo?
-            rowNumber = evt.Indices(1); 
+            rowNumber = evt.Indices(1);
             colNumber = evt.Indices(2);
             
         end
@@ -130,5 +126,4 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             
         end
     end
-    
 end

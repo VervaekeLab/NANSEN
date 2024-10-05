@@ -64,7 +64,6 @@ function [jFrame, jLabel, C] = showSplashScreen(imFilePath, titleStr, subTitleSt
     jBackgroundLabel.add(jLabel);
     jBackgroundLabel.add(jLabelLoadGif);
     
-    
     footerText = {'Version 1.0.0 - alpha', 'Created by Eivind Hennestad', 'Vervaeke Lab of Neural Computation', 'University of Oslo'};
     footerText = sprintf( "<html>%s</html>", strjoin(footerText, '<br>'));
     
@@ -81,8 +80,6 @@ function [jFrame, jLabel, C] = showSplashScreen(imFilePath, titleStr, subTitleSt
     set(jLabelFooter, 'Font', titleFont);
     
     jBackgroundLabel.add(jLabelFooter);
-    
-    
 
     % Set size of frame
     jFrame.setSize(imSize(2),imSize(1));

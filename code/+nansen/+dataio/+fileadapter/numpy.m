@@ -23,5 +23,4 @@ classdef numpy < nansen.dataio.FileAdapter
             data = S.data;
         end
     end
-
 end

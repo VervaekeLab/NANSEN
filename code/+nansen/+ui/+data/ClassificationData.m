@@ -1,11 +1,10 @@
 classdef ClassificationData < handle
 
-
     % Todo:
     %   [ ] Add methods for appending, inserting and removing elements.
     %   [ ] Only allow adding a base name for items?
 
-    properties 
+    properties
         Description (1,1) string
     end
         
@@ -13,7 +12,7 @@ classdef ClassificationData < handle
         NumElements = []
     end
 
-    properties 
+    properties
         ClassificationCategories = {'Accepted', 'Rejected', 'Unresolved'};
     end
 
@@ -32,19 +31,18 @@ classdef ClassificationData < handle
     methods % Constructor
         function obj = ClassificationData(varargin)
             
-            
         end
     end
 
-    methods 
+    methods
         function addImageArray(obj, imageName, imageArray)
         %addImageArray - Add one or more image arrays to this instance
         %
         %   Syntax
         %       obj.addImageArray(imageName, imageArray)
-        %   
+        %
         %       obj.addImageArray(imageNameA, imageArrayA, imageNameB,
-        %       imageArrayB, ...) 
+        %       imageArrayB, ...)
 
             arguments
                 obj (1,1) nansen.ui.data.ClassificationData
@@ -82,7 +80,7 @@ classdef ClassificationData < handle
         %
         %   Syntax
         %       obj.addStatistics(name, valueList)
-        %   
+        %
         %       obj.addStatistics(nameA, valueListA, nameB, valueListB, ...)
                     
             arguments
@@ -120,7 +118,7 @@ classdef ClassificationData < handle
             error('Not implemented yet')
         end
 
-        function insertImages(obj, imageName, indicies, imageArray)
+        function insertImages(obj, imageName, indices, imageArray)
             error('Not implemented yet')
         end
         
@@ -178,7 +176,6 @@ classdef ClassificationData < handle
         function remove()
 
         end
-
     end
 
     methods (Access = ?mclassifier.manualClassifier)
@@ -194,7 +191,5 @@ classdef ClassificationData < handle
             nvPairs = name; nvPairs(2,:) = {data};
             S = struct(nvPairs{:});
         end
-
     end
-
 end

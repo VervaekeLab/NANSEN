@@ -1,55 +1,50 @@
 classdef SessionMethod < nansen.processing.DataMethod
 %SessionMethod Abstract class for session methods
-%   
+%
 %   Classes inheriting SessionMethod should provide a method for use on one
 %   or more session objects. The SessionMethod superclass provides some
-%   attributes and methods so that methods can be run in different ways, 
+%   attributes and methods so that methods can be run in different ways,
 %   i.e they can be run directly, or run with configuration mode.
 
 %
 %   Notes on implementation:
-%       
+%
 %       This class should take a SessionObject or an array of
 %       SessionObjects as input. If applicable, the second input should be
-%       selection of an options alternative, i.e running the method with 
+%       selection of an options alternative, i.e running the method with
 %       a preset configuration.
 %       All successive inputs is a list of nvpairs corresponding to
 %       parameters.
 
-
 %   Notes on behavior:
 %       If class is called without inputs it should return an "attributes"
 %       struct. The struct contains all the class' constant properties in
-%       addition to a Parameter field. 
-%   
+%       addition to a Parameter field.
+%
 %       The attribute struct contain info that can be used to check how the
 %       method can be run. For example, some sessions methods should run
 %       one by one session whereas other methods will run a group of
 %       sessions as a batch.
 %
-% 
+%
 %       If class instance is run without output, the class' main
 %       method/implementation is run directly.
 %
 %       If instance is created and output is requested, the class' main
 %       method is not initialized, and can be initialized at a later time.
 
-
-
     % Questions:
     %
     %   Are there benefits of having alternatives as separate properties as
     %   done in the original implementation in the session browser?
-    
     
     % TODO (implemented in options manager):
     % * [ ] Change name of class to SessionTask
     %   [x] methods/functionality for preset options.
     %   [x] append a page in options for saving a preset
     %   [x] create method for getting options based on name.
-
     
-% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - -
     
     properties (Abstract, Constant)
         BatchMode                   % char      : 'serial' | 'batch' Should session method accept one (serial) or multiple (batch) session objects?
@@ -57,13 +52,11 @@ classdef SessionMethod < nansen.processing.DataMethod
         % Similar to above, but for performance or other issues??
      end
     
-    
-    properties 
+    properties
         SessionObjects          % Array of session objects
         ExternalFcn % remove this...???
         % Parameters % inherited from datamethod
     end
-    
     
     properties (Constant, Access = protected)
         VALID_SESSION_CLASS = 'nansen.metadata.type.Session'
@@ -94,7 +87,6 @@ classdef SessionMethod < nansen.processing.DataMethod
                 return
             end
             
-            
             % Validate session objects
             message = 'First input must be a valid session object or a list of valid session objects';
             assert(isa(varargin{1}, obj.VALID_SESSION_CLASS), message)
@@ -121,15 +113,13 @@ classdef SessionMethod < nansen.processing.DataMethod
                 obj.run()
                 clear obj
             end
-            
         end
-        
     end
     
     methods
         
         function checkRequiredVariables(obj)
-        %checkRequiredVariables Check if required variables are available    
+        %checkRequiredVariables Check if required variables are available
             if isempty(obj.DataIoModel)
                 error('Nansen:SessionMethod:IoModelMissing', ...
                     'Data I/O Model is missing for method %s', class(obj))
@@ -148,7 +138,6 @@ classdef SessionMethod < nansen.processing.DataMethod
                 assert(isfile(filePath), assertionMsg)
                 
             end
-            
         end
         
         function run(obj)
@@ -178,21 +167,19 @@ classdef SessionMethod < nansen.processing.DataMethod
             obj.Options = obj.OptionsManager.getOptions(presetName);
             %obj.Parameters = obj.OptionsManager.getOptions(presetName);
         end
-        
     end
     
     methods % Set/get methods
 %         function names = get.PresetOptionNames(obj)
-%             % Todo: This should not be a proprty of this class.
+%             % Todo: This should not be a property of this class.
 %             names = obj.OptionsManager.listPresetOptions();
 %         end
     end
     
-    
     methods (Static)
     
         function name = getMethodName(sessionMethod)
-        %getMethodName Get name of session method    
+        %getMethodName Get name of session method
             
             fcnAttributes = sessionMethod();
             
@@ -206,23 +193,21 @@ classdef SessionMethod < nansen.processing.DataMethod
             elseif isa(fcnAttributes, 'nansen.session.SessionMethod')
                 name = fcnAttributes.MethodName;
             end
-            
         end
         
         function attributes = setAttributes(varargin)
         %setAttributes Create a struct mimicking an object of this class
         %
         %   Quick setup of a struct that has some of the same fields as an
-        %   object of this class. Can be used by functions to give them 
+        %   object of this class. Can be used by functions to give them
         %   similar functionality as the SessionMethod class
         %
-        %   S = nansen.session.SessionMethod.setAttributes(paramStruct) 
+        %   S = nansen.session.SessionMethod.setAttributes(paramStruct)
         %
         %   S = nansen.session.SessionMethod.setAttributes(paramStruct, kwd, ...)
         %
         %
         %   See also nansen.session.methods.template.SessionMethodFunctionTemplate
-        
         
             % Todo: Get all constant properties + parameters from metaclass
             % definition.
@@ -308,11 +293,7 @@ classdef SessionMethod < nansen.processing.DataMethod
             catch % Get defaults it there are no config:
                 mConfig = nansen.session.SessionMethod.setAttributes();
             end
-            
-            
-            
         end
-        
     end
         
     methods (Static, Access = private)
@@ -339,7 +320,6 @@ classdef SessionMethod < nansen.processing.DataMethod
             name = strjoin( [folderNames(isPackage), {st(1).name} ], '.');
 
         end
-        
     end
 
     methods (Static)
@@ -355,11 +335,11 @@ classdef SessionMethod < nansen.processing.DataMethod
 
             count = 1;
                         
-            % Loop through m-files and add to file adapter list if this 
+            % Loop through m-files and add to file adapter list if this
             for i = 1:numel(fileList)
                 mFilePath = utility.dir.abspath(fileList(i));
                 mFilePath = mFilePath{1};
-                thisFcnName = utility.path.abspath2funcname(mFilePath);                
+                thisFcnName = utility.path.abspath2funcname(mFilePath);
                 
                 [~, fileName] = fileparts(mFilePath);
                 
@@ -374,7 +354,5 @@ classdef SessionMethod < nansen.processing.DataMethod
                 tf = contains(mfilename('class'), {mc.SuperclassList.Name});
             end
         end
-
     end
-        
 end

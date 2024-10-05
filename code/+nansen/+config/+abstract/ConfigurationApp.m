@@ -2,7 +2,6 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
 %ConfigurationApp App for user configurations
 %
 %   Super class for configuration apps in the nansen package
-
     
     properties (Constant, Hidden)
         DEFAULT_THEME = nansen.theme.getThemeColors('light');
@@ -43,7 +42,6 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
         LoadingImage
     end
     
-    
     methods % Constructor
         % Todo
         
@@ -66,14 +64,13 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
                     delete( app.Figure )
                 end
             end
-            
         end
     end
     
     methods
         
         function transferOwnership(app, controllerApp)
-        %transferOwnership Transfer ownership of app to another app   
+        %transferOwnership Transfer ownership of app to another app
             
         % App (figure) deletion is now controlled by another app. If figure
         % window is closed, the figure is not deleted, just made invisible
@@ -82,7 +79,6 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
             addlistener(controllerApp, 'ObjectBeingDestroyed', @(s,e) app.delete);
             
         end
-        
     end
     
     methods % Set/Get methods
@@ -139,11 +135,11 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
         function createFigure(obj)
             
             obj.Figure = uifigure('Visible', 'off');
-            obj.Figure.Position(3:4) = obj.FigureSize; 
+            obj.Figure.Position(3:4) = obj.FigureSize;
             obj.Figure.Resize = 'off';
             uim.utility.centerFigureOnScreen(obj.Figure)
 
-            obj.Figure.Name = obj.AppName; 
+            obj.Figure.Name = obj.AppName;
             obj.Figure.CloseRequestFcn = @obj.onFigureClosed;
             
             obj.IsStandalone = true;
@@ -191,13 +187,12 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
             obj.LoadingImage.UserData.Caption.Position(1:2) = ...
                 [refPos(1) + (refPos(3)-currentPos(3))/2, refPos(2) ];
         end
-        
     end
 
     methods (Access = protected)
        
         function applyTheme(obj)
-        % Apply theme % Todo: Superclass 
+        % Apply theme % Todo: Superclass
         
             S = nansen.theme.getThemeColors('deepblue');
             
@@ -210,7 +205,6 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
         function resizeChildren(obj)
             obj.resizeControlPanel()
         end
-
     end
     
     methods (Access = private)
@@ -230,8 +224,6 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
             
             hPanel = uipanel(hParent);
             hPanel.Position = panelPosition;
-        end 
-        
+        end
     end
-    
 end

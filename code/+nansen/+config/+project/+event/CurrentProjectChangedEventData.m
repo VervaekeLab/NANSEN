@@ -11,5 +11,4 @@ classdef (ConstructOnLoad) CurrentProjectChangedEventData < event.EventData
             data.NewProjectName = newProjectName;
         end
     end
-    
 end

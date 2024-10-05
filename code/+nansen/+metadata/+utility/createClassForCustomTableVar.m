@@ -73,6 +73,6 @@ function createClassForCustomTableVar(S, targetFolderPath)
 end
 
 function charVector = cellarray2char(cellArray)
-    cellArray = cellfun(@(c) sprintf('''%s''', c), cellArray, 'uni', 0); 
+    cellArray = cellfun(@(c) sprintf('''%s''', c), cellArray, 'uni', 0);
     charVector = sprintf('{%s}', strjoin(cellArray, ','));
 end

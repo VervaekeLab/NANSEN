@@ -1,5 +1,5 @@
 classdef abstractPointer < handle & matlab.mixin.Heterogeneous
-%uim.interface.abstractPointer 
+%uim.interface.abstractPointer
 %
 % Abstract class framework for a pointer tool
 
@@ -13,7 +13,7 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
         exitMode        % Go back to previous, or go back to default?
     end
     
-    properties 
+    properties
         isActive = false % Is tool doing something right now?
  
         hFigure
@@ -35,7 +35,6 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
     events
         ToggledPointerTool
     end
-    
     
     methods (Abstract) % Todo: don't have to be abstract
         
@@ -101,21 +100,20 @@ classdef abstractPointer < handle & matlab.mixin.Heterogeneous
         function onPointerEnteredAxes(obj)
             % Subclasses may override
         end
-        
     end
     
-% %     methods (Access = public) % These should not be public... Or there 
+% %     methods (Access = public) % These should not be public... Or there
 % %         %should be one method that can be accessed from Pointermanager and
 % %         %one method that can be overridden by subclasses...
-% %         
+% %
 % %         function onPointerExitedAxes(obj)
 % %             % Subclasses may override
 % %         end
-% %         
+% %
 % %         function onPointerEnteredAxes(obj)
 % %             % Subclasses may override
 % %         end
-% %         
+% %
 % %     end
     
 end

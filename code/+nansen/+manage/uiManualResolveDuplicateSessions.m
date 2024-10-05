@@ -3,7 +3,6 @@ function uiManualResolveDuplicateSessions(sessionArray)
     % Todo: add option to remove from list...
     % Todo: add button to retry creating session table / redected sessions
     
-    
     hFig = figure('MenuBar', 'none');
     hFig.NumberTitle = 'off';
     hFig.Name = 'Resolve Duplicate Sessions';

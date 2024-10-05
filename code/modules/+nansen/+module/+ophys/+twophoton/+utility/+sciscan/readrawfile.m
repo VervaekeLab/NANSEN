@@ -54,12 +54,11 @@ fileformat=readinivar(inistring,'file.format');
 
 % count how many channels were recorded
 recorded_ch=0;
-for i=0:5; 
+for i=0:5;
     if strcmp(strtrim(char(readinivar(inistring,['save.ch.' num2str(i)]))),'TRUE') || strcmp(strtrim(char(readinivar(inistring,['ai.active' num2str(i)]))),'TRUE')
 recorded_ch=recorded_ch+1;
     end
 end
-
 
 % determine bitdepth from file.format variable
 
@@ -73,20 +72,18 @@ elseif fileformat==0; % 16 bit raw file
     precparam3='uint16';
 else
     disp([filename ' is not a recognized file format.']);
-return    
-end   
+return
+end
     
 if ~exist('frames') || isempty(frames)
-    frames=framecount;   
+    frames=framecount;
 end
 
 fid=fopen(filename,'r','b');
 
-
     if exist('skipframes') && ~isempty(skipframes)
         fseek(fid,skipframes.*recorded_ch.*precparam2.*prod([x y]),'bof');
     end
-    
     
     switch channel
         
@@ -96,7 +93,7 @@ fid=fopen(filename,'r','b');
                 
 % % %                 if ~rem(fr, 100) && frames > 1
 % % %                     str=['loading frame ' num2str(fr) '/' num2str(frames)];
-% % %                     
+% % %
 % % %                     refreshdisp(str,prevstr,fr);
 % % %                     prevstr=str;
 % % %                 end
@@ -106,21 +103,21 @@ fid=fopen(filename,'r','b');
                     fr=fr-1;
                     data=data(:,1:fr);
                     break
-                end     
+                end
             end
             data=reshape(data,[x y fr]);
             
         case 'second'
             eval(['data=' precparam3 '(zeros(x*y,frames));']);
             if recorded_ch > 1
-                dump = fread(fid,prod([x y]),['1' precparam1]);            
+                dump = fread(fid,prod([x y]),['1' precparam1]);
             end
             
             for fr=1:frames;
                 
 % % %                 if ~rem(fr,10) && frames > 1
 % % %                     str=['loading frame ' num2str(fr) '/' num2str(frames)];
-% % %                     
+% % %
 % % %                     refreshdisp(str,prevstr,fr);
 % % %                     prevstr=str;
 % % %                 end
@@ -130,7 +127,7 @@ fid=fopen(filename,'r','b');
                     fr=fr-1;
                     data=data(:,1:fr);
                     break
-                end     
+                end
             end
             data=reshape(data,[x y fr]);
             
@@ -141,17 +138,17 @@ fid=fopen(filename,'r','b');
             for fr=1:frames;
 % % %                 if ~rem(fr,10) && frames > 1
 % % %                     str=['loading frame ' num2str(fr) '/' num2str(frames)];
-% % %                     
+% % %
 % % %                     refreshdisp(str,prevstr,fr);
 % % %                     prevstr=str;
 % % %                 end
-                try 
+                try
                 data(:,fr)=fread(fid,prod([x y]),[num2str(prod([x y])) precparam1]);
                 catch
                     fr=fr-1;
                     data=data(:,1:fr);
                     break
-                end     
+                end
             end
             data=reshape(data,[x y/recorded_ch recorded_ch fr]);
             data=permute(data,[1 2 4 3]);

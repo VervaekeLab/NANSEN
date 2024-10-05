@@ -10,14 +10,13 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
     % [ ] Implement maxHeight and vertical scrollbar.
     %
     % [ ] Place in a panel. Could even create an axes, and patch a custom
-    % panel appearance. (Access java object, and make it transparent, then 
-    % patch the shape in the axes, and place the listbox on top of the axes 
+    % panel appearance. (Access java object, and make it transparent, then
+    % patch the shape in the axes, and place the listbox on top of the axes
     % with no borders and same background color).
     %
     % [ ] Improve value change callback? I.e, it should not be necessary to
     % have a set-method for callback, instead create internal callback
     % handler that calls callback function if it is assigned.
-    
     
     properties
         
@@ -56,7 +55,6 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
     
     end
     
-    
     methods
         
         function obj = multiSelectionDropDown(varargin)
@@ -78,7 +76,6 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
             delete(obj.hUiControl)
             delete(obj)
         end
-        
     end
     
     methods (Access = private)
@@ -117,13 +114,11 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
             fgColor = java.awt.Color(rgbFg(1), rgbFg(2), rgbFg(3));
 
             jViewport.setBackground( bgColor )
-
             
             % Get the java handle for the listbox component
             jList =  jViewport.getComponent(0);
             jList.setBackground( bgColor )
             jList.setForeground( fgColor )
-
             
             jList = handle(jList, 'CallbackProperties');
             set(jList, 'FocusLostCallback', @(s,e) obj.hide)
@@ -143,7 +138,6 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
 %             set(jVScroller, 'AdjustmentValueChangedCallback', ...
 %                 @app.onVerticalScrollerValueChanged)
 
-
             % Make sure listbox is invisible
             %h.Visible = 'off';
 
@@ -151,7 +145,6 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
             obj.jUiControl = jList;
             
         end
-
     end
     
     methods
@@ -217,7 +210,6 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
         end
     end
     
-    
     methods
         
         function onKeypressInListbox(obj, ~, evt)
@@ -234,9 +226,8 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
             obj.hUiControl.Visible = obj.Visible;
 
             if strcmp(obj.Visible, 'on')
-                obj.giveFocus()                
+                obj.giveFocus()
             end
-            
         end
         
         function onPositionChanged(obj, newPosition)
@@ -245,7 +236,7 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
         
         function onStringUpdated(obj)
            
-            % Make sure all entries are visible? Would prefer not to have a  
+            % Make sure all entries are visible? Would prefer not to have a
             % scrollbar visible...
             if ~obj.IsConstructed; return; end
 
@@ -287,7 +278,6 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
                 case 'open'
                     obj.hide()
             end
-            
         end
 
         function onValueChanged(obj, src, evt)
@@ -296,7 +286,5 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
         function onCallbackChanged(obj)
             obj.hUiControl.Callback = obj.Callback;
         end
-        
     end
-    
 end

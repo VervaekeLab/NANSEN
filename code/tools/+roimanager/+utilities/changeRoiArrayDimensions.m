@@ -5,8 +5,8 @@ function changeRoiArrayDimensions(filePath, numPlanes, numChannels, force)
 %       changeRoiArrayDimensions(filePath, numPlanes, numChannels)
 %
 %       changeRoiArrayDimensions(filePath, numPlanes, numChannels, force)
-%       sets to optional boolean flag force (default = false). If force is 
-%       true, roi array can be shrunk, otherwise not  
+%       sets to optional boolean flag force (default = false). If force is
+%       true, roi array can be shrunk, otherwise not
 
 % Note: Only implemented for roigriup in file:
 % Todo: support inputting a roigroup
@@ -16,7 +16,7 @@ function changeRoiArrayDimensions(filePath, numPlanes, numChannels, force)
     S = load(filePath);
 
     variableName = fieldnames(S);
-    assert(numel(variableName)==1, 'Expected file to have excactly one variable')
+    assert(numel(variableName)==1, 'Expected file to have exactly one variable')
     variableName = variableName{1};
 
     assert( contains(lower(variableName), 'roiarray'), ...
@@ -52,7 +52,6 @@ function changeRoiArrayDimensions(filePath, numPlanes, numChannels, force)
                      'Run this function again using the force flag to resize the roi array anyway.'] ))
             end
         end
-        
     end
     
     S.(variableName) = data;

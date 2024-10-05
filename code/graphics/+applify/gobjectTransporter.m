@@ -1,6 +1,6 @@
 classdef gobjectTransporter < uim.handle
     
-    % TODO: 
+    % TODO:
     %
     % [ ] Rename to InteractiveGraphObject 
     % [ ] Work on style changes. Keep original style in objects userdata
@@ -66,10 +66,10 @@ classdef gobjectTransporter < uim.handle
         end
 
         function moveObject(obj)
-        %moveObject Execute when mouse is dragging a selected object    
+        %moveObject Execute when mouse is dragging a selected object
 
             % Get current coordinates
-            newMousePointAx = obj.hAxes.CurrentPoint(1, 1:2);            
+            newMousePointAx = obj.hAxes.CurrentPoint(1, 1:2);
             shift = newMousePointAx - obj.previousMousePointAxes;
 
             h = obj.currentHandle;
@@ -100,7 +100,6 @@ classdef gobjectTransporter < uim.handle
             obj.isMouseDown = false;
             obj.resetInteractiveFigureListeners()
             
-            
             if ~any(ismember(obj.mouseOnHandle, obj.currentHandle))
                 obj.currentHandle.LineWidth = 1;
                 hFig = obj.hFigure;
@@ -130,7 +129,7 @@ classdef gobjectTransporter < uim.handle
             pointerBehavior.exitFcn     = @(s,e,hObject) obj.onMouseExitedMarker(h);
             pointerBehavior.traverseFcn = [];%@obj.moving;
             
-            try % Use try/catch because this reqiures image processing toolbox.
+            try % Use try/catch because this requires image processing toolbox.
                 iptPointerManager(ancestor(h, 'figure'));
                 iptSetPointerBehavior(h, pointerBehavior);
             catch

@@ -19,7 +19,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
     % Modifications EH:
     % 1) getKeyboardEventData : Add command key as modifier in evtdata
     
-    
     %% Properties
     properties (Hidden, SetAccess=protected)
         JControl % The main Java control
@@ -33,15 +32,11 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
         CallbacksEnabled logical = true % Are callbacks active or should then be suspended? (in case updating a java widget would trigger undesired callbacks)
     end
     
-    
-    
     %% Events
     events
         MouseDrag %Triggered on mouse drag over the control
         MouseMotion %Triggered on mouse motion over the control
     end
-    
-    
     
     %% Public methods
     methods
@@ -68,7 +63,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
         
     end %methods
     
-    
     %% Sealed Protected methods
     methods (Sealed, Access=protected)
         
@@ -90,7 +84,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             value = javax.swing.plaf.FontUIResource(obj.FontName, jStyle, jSize);
             
         end %function
-        
         
         function evt = getMouseEventData(obj,jEvent)
             % Interpret a Java mouse event and return MATLAB data
@@ -142,7 +135,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             
         end %function
         
-        
         function evt = getKeyboardEventData(~,jEvent)
             % Interpret a Java keyboard event and return MATLAB data
             
@@ -167,7 +159,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
                 'Key',key);
             
         end %function
-        
         
         function showContextMenu(obj,cMenu)
             
@@ -199,8 +190,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
         end %function
         
     end % Sealed Protected methods
-    
-    
     
     %% Protected methods
     methods (Access=protected)
@@ -240,7 +229,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             
         end % createControl
         
-        
         function setInteractions(obj,jObj)
             % Set Java control interactions
             
@@ -249,7 +237,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             jObj.KeyReleasedCallback = @(h,e)onKeyReleased(obj,e);
             
         end % setFocusProps
-        
         
         function setFocusProps(obj,jObj)
             % Set Java control focusability and tab order
@@ -263,7 +250,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             
         end % setFocusProps
         
-        
         function onFocusGained(obj,~,~)
             % Triggered on focus on the control, sets this widget as the figure's current object
             
@@ -272,12 +258,10 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             
         end
         
-        
         function onFocusLost(~,~,~)
             % Triggered on focus lost from the control - subclass may override
             
         end
-        
         
         function onKeyPressed(obj,jEvent)
             
@@ -289,7 +273,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             
         end %function
         
-        
         function onKeyReleased(obj,jEvent)
             
             % Get the keyboard event data
@@ -299,7 +282,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             obj.onKeyReleased@uiw.mixin.HasKeyEvents(evt);
             
         end %function
-        
         
         function onResized(obj)
             % Handle changes to widget size - subclass may override
@@ -316,7 +298,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             end %if obj.IsConstructed
             
         end %function
-        
         
         function onEnableChanged(obj,~)
             % Handle updates to Enable state - subclass may override
@@ -343,7 +324,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             
         end % onEnableChanged
         
-        
         function onStyleChanged(obj,~)
             % Handle updates to style - subclass may override
             
@@ -367,7 +347,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
         
     end % Protected methods
     
-    
     %% Static Protected methods
     methods (Static)
         
@@ -381,7 +360,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             
         end %function
         
-        
         function jColor = rgbToJavaColor(rgbColor)
             % Convert a MATLAB RGB vector into a Java color resource
             
@@ -389,7 +367,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             jColor = javax.swing.plaf.ColorUIResource(rgbColor(1),rgbColor(2),rgbColor(3));
             
         end %function
-        
         
         function rgbColor = javaColorToRGB(jColor)
             % Convert a MATLAB RGB vector into a Java color resource
@@ -399,7 +376,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             rgbColor = double([jColor.getRed(), jColor.getGreen(), jColor.getBlue()])/255;
             
         end %function
-        
         
         function value = getJavaDPI()
             
@@ -413,7 +389,6 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
         end %function
         
     end %methods
-    
     
     %% Get/Set methods
     methods

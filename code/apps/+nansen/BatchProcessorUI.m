@@ -1,6 +1,5 @@
 classdef BatchProcessorUI < handle
     
-    
     properties
         ParentContainer
         BatchProcessor nansen.TaskProcessor
@@ -24,7 +23,6 @@ classdef BatchProcessorUI < handle
         HistoryTableVars = {'SessionID', 'Method', 'Status', 'Finished', 'Elapsed Time', 'Comment'}
     end
     
-    
     methods % Structor
         
         function obj = BatchProcessorUI(batchProcessor, hContainer)
@@ -46,7 +44,6 @@ classdef BatchProcessorUI < handle
         function delete(obj)
             delete(obj.TabGroup)
         end
-        
     end
     
     methods % Set/get methods
@@ -75,7 +72,7 @@ classdef BatchProcessorUI < handle
         
             % Create TabGroup
             obj.TabGroup = uitabgroup(obj.ParentContainer, 'Visible', 'off');
-            obj.TabGroup.Units = 'normalized'; 
+            obj.TabGroup.Units = 'normalized';
 
             % Create Queue and History tab
             obj.UITabTaskQueue = uitab(obj.TabGroup);
@@ -87,9 +84,9 @@ classdef BatchProcessorUI < handle
         end
         
         function createUiTables(obj)
-        %createTable Create ui tables for the taskqueue and taskhistory   
+        %createTable Create ui tables for the taskqueue and taskhistory
             
-            drawnow % Need to add this for tables to be positioned properly        
+            drawnow % Need to add this for tables to be positioned properly
             
             obj.UITableQueue = nansen.uiwTaskTable(...
                 'Parent', obj.UITabTaskQueue, ...
@@ -113,7 +110,6 @@ classdef BatchProcessorUI < handle
             obj.UITableHistory.Table.ColumnPreferredWidth = [170, 200, 75, 135, 135, 200];
             obj.UITableHistory.Table.CellEditCallback = @obj.onTableCellEdited;
             obj.UITableHistory.Table.KeyPressFcn = @obj.onKeyPressedInTable;
-
             
             %obj.UITableQueue.Table.UIContextMenu = obj.createQueueContextMenu();
             %obj.UITableHistory.Table.UIContextMenu = obj.createHistoryContextMenu();
@@ -129,7 +125,7 @@ classdef BatchProcessorUI < handle
         end
         
         function h = createQueueContextMenu(obj)
-        %createQueueContextMenu Create context menu for the queue table    
+        %createQueueContextMenu Create context menu for the queue table
             hFig = ancestor(obj.ParentContainer, 'figure');
             h = uicontextmenu(hFig);
             
@@ -138,7 +134,7 @@ classdef BatchProcessorUI < handle
             mTmp = uimenu(h, 'Text', 'Pause Task(s)');
             mTmp.Callback = @(s,e) obj.onSetTaskStatusMenuItemClicked(s);
             mTmp = uimenu(h, 'Text', 'Delete Task(s)');
-            mTmp.Callback = @(s,e) obj.onDeleteTaskMenuItemClicked('queue');            
+            mTmp.Callback = @(s,e) obj.onDeleteTaskMenuItemClicked('queue');
             mTmp = uimenu(h, 'Text', 'Move Task(s)', 'Separator', 'on', 'Enable', 'off');
             labels = {'Top', 'Up', 'Down', 'Bottom'};
             for i = 1:numel(labels)
@@ -161,12 +157,12 @@ classdef BatchProcessorUI < handle
             hFig = ancestor(obj.ParentContainer, 'figure');
             h = uicontextmenu(hFig);
             
-            mTmp = uimenu(h, 'Text', 'Reassign to Queue', 'Enable', 'on'); 
+            mTmp = uimenu(h, 'Text', 'Reassign to Queue', 'Enable', 'on');
             mTmp.Callback = @(s, e) obj.onReassignToQueueMenuItemClicked;
                     
-            mTmp = uimenu(h, 'Text', 'Show Diary', 'Separator', 'on', 'Enable', 'on'); 
+            mTmp = uimenu(h, 'Text', 'Show Diary', 'Separator', 'on', 'Enable', 'on');
             mTmp.Callback = @(s,e,str) obj.onShowDiaryMenuItemClicked('history');
-            mTmp = uimenu(h, 'Text', 'Show Errors'); 
+            mTmp = uimenu(h, 'Text', 'Show Errors');
             mTmp.Callback = @(s,e) obj.onShowErrorsMenuItemClicked;
             mTmp.Accelerator = 'e';
             mTmp = uimenu(h, 'Text', 'Show Warnings', 'Enable', 'off');
@@ -176,7 +172,6 @@ classdef BatchProcessorUI < handle
             mTmp.Callback = @(s,e,taskType) obj.onDeleteTaskMenuItemClicked('history');
             
         end
-        
     end
     
     methods (Access = private) % Methods for gui update
@@ -190,10 +185,9 @@ classdef BatchProcessorUI < handle
                     taskList = obj.BatchProcessor.TaskHistory;
             end
             
-            if nargin >=3 
+            if nargin >=3
                 taskList = taskList(selectedIdx);
             end
-            
         end
         
         function hTable = getUiTable(obj, tableType)
@@ -206,7 +200,7 @@ classdef BatchProcessorUI < handle
         end
         
         function [hTable, taskList] = getTableRefs(obj, tableType)
-        %getTableRefs Get uitable handle and task list for gien tabletype   
+        %getTableRefs Get uitable handle and task list for given tabletype
             switch tableType
                 case 'queue'
                     hTable = obj.UITableQueue;
@@ -239,7 +233,7 @@ classdef BatchProcessorUI < handle
                     names = obj.QueueTableVars;
                 case 'history'
                     names = obj.HistoryTableVars;
-            end            
+            end
         end
         
         function refreshTable(obj, tableType)
@@ -285,7 +279,7 @@ classdef BatchProcessorUI < handle
         function appendTaskToQueueTable(obj, ~, evt)
         %appendTaskToQueueTable
             
-            % Select the following fields fram the task struct for
+            % Select the following fields from the task struct for
             % displaying in the uitable queue viewer
             
             S = evt.Task;
@@ -336,7 +330,7 @@ classdef BatchProcessorUI < handle
         end
         
         function onTaskStateChanged(obj, ~, evt)
-        %onTaskStateChanged Callback for batchprocessor event     
+        %onTaskStateChanged Callback for batchprocessor event
            
             rowIdx = evt.TaskIdx;
             
@@ -439,7 +433,7 @@ classdef BatchProcessorUI < handle
         
             rowIdx = obj.UITableQueue.selectedRows;
             
-            if any(rowIdx == 1) 
+            if any(rowIdx == 1)
                 firstTask = obj.BatchProcessor.getQueuedTask(1);
                 if strcmp(firstTask.status, 'Running') && ~strcmp(newStatus, 'Cancel')
                     msgbox('Task is already running.')
@@ -496,7 +490,7 @@ classdef BatchProcessorUI < handle
         
         function onTableCellEdited(obj, src, evt)
             
-            taskType = obj.TabGroup.SelectedTab.Title;          
+            taskType = obj.TabGroup.SelectedTab.Title;
             taskIdx = evt.Indices(1);
             
             if evt.Indices(2) == 6
@@ -504,7 +498,6 @@ classdef BatchProcessorUI < handle
                 obj.BatchProcessor.updateTaskComment(taskType, taskIdx, newComment)
             end
         end
-        
     end
     
     methods (Access = private) % Actions
@@ -512,7 +505,7 @@ classdef BatchProcessorUI < handle
         function showErrorsForSelectedRows(obj)
             rowIdx = obj.UITableHistory.selectedRows;
             taskItems = obj.BatchProcessor.getArchivedTask(rowIdx);
-            obj.displayErrors(taskItems)    
+            obj.displayErrors(taskItems)
         end
         
         function showDiaryForSelectedRows(obj, mode)
@@ -572,7 +565,7 @@ classdef BatchProcessorUI < handle
                 mConfig = hTask.method();
                 if isa(mConfig, 'struct')
                     % Add an options manager to the mConfig struct
-                    mConfig.OptionsManager = nansen.manage.OptionsManager(..., 
+                    mConfig.OptionsManager = nansen.manage.OptionsManager(...,
                         func2str(hTask.method), mConfig.DefaultOptions);
                 end
                 
@@ -607,7 +600,7 @@ classdef BatchProcessorUI < handle
             mConfig = hTask.method();
             if isa(mConfig, 'struct')
                 % Add an options manager to the mConfig struct
-                mConfig.OptionsManager = nansen.manage.OptionsManager(..., 
+                mConfig.OptionsManager = nansen.manage.OptionsManager(...,
                     func2str(hTask.method), mConfig.DefaultOptions);
             end
 
@@ -630,7 +623,7 @@ classdef BatchProcessorUI < handle
     
     methods (Access = private) % Internal callbacks
         function onBatchProcessorSet(obj)
-        %onBatchProcessorSet Callback for when the BatchProcessor is set.    
+        %onBatchProcessorSet Callback for when the BatchProcessor is set.
             
             addlistener(obj.BatchProcessor, 'TaskAdded', ...
                 @obj.onTaskAdded);
@@ -649,7 +642,7 @@ classdef BatchProcessorUI < handle
         end
         
         function onMouseRightClickedInTable(obj, src, evt)
-        %onMouseRightClickedInTable Method to run when right click happens in table    
+        %onMouseRightClickedInTable Method to run when right click happens in table
             
             tableType = obj.TabGroup.SelectedTab.Title;
             taskIdx = sort( obj.SelectedRowIndices );
@@ -660,7 +653,7 @@ classdef BatchProcessorUI < handle
                 case 'Queue'
                     % Special case, if right click happened on first cell
                     % and the state of the first task is running, only that
-                    % row should be selected (for contextmenu to appear 
+                    % row should be selected (for contextmenu to appear
                     % consistent).
                     
                     if evt.Cell(1) == 1
@@ -689,19 +682,15 @@ classdef BatchProcessorUI < handle
             
             switch evt.Key
                 case 'e'
-                    if isControl(evt.Modifier) 
+                    if isControl(evt.Modifier)
                         obj.showErrorsForSelectedRows()
                     end
                 case 'd'
-                    if isControl(evt.Modifier) 
+                    if isControl(evt.Modifier)
                         obj.showDiaryForSelectedRows()
                     end
-                    
             end
-            
-            
         end
-            
     end
     
     methods (Static)
@@ -716,7 +705,6 @@ classdef BatchProcessorUI < handle
                     disp(items(i).Diary)
                 end
             end
-            
         end
         
         function displayErrors(items)
@@ -729,10 +717,6 @@ classdef BatchProcessorUI < handle
                     disp(getReport(items(i).ErrorStack, 'extended'))
                 end
             end
-            
         end
-        
     end
-    
-    
 end

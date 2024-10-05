@@ -13,8 +13,7 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
 %   Todo: Implement dynamic retrieval of parameters based on file adapter
 %   for opening files.
 
-
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Please create a struct of default parameters (if applicable) and specify
 % one or more attributes (see nansen.session.SessionMethod.setAttributes)
 % for details.
@@ -23,9 +22,8 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
     params = getDefaultParameters();
     ATTRIBUTES = {'serial', 'unqueueable'};
     
-    
-% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % % 
-% - - - - - - - - - - Please do not edit this part - - - - - - - - - - - 
+% % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
+% - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
 
     % % % Initialization block for a session method function.
     fcnAttributes = nansen.session.SessionMethod.setAttributes(params, ATTRIBUTES{:});
@@ -37,8 +35,7 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
     % % % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, [], varargin);
     
-    
-% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
+% % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the method : Add you code here:
         
     filePath = sessionObj.getDataFilePath('TwoPhotonSeries_Original');
@@ -55,9 +52,7 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
     else
         imviewer(filePath)
     end
-
 end
-
 
 function S = getDefaultParameters()
     S = struct();

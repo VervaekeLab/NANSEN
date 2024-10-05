@@ -7,7 +7,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
 
 % Todo: This is deprecated. Should be removed
 
-%   Questions: 
+%   Questions:
 %       - Is it better to have get/create session folders as methods in
 %         DataLocations (the model)
 
@@ -17,8 +17,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
 %       [ ] Spin off loadData/saveData to a separate class (superclass)
 %       [ ] Implement save method... If changes are made, they need to be
 %           saved to file... But also table.....
-%       
-    
+%
 
     % Implement superclass abstract property
     properties (Constant, Hidden) % Protected?
@@ -31,7 +30,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         subjectID      % Add some validation scheme.... Can I dynamically set this according to whatever?
         sessionID    char
                
-        Ignore = false 
+        Ignore = false
 
         % Date and time for experimental session
         Date
@@ -43,7 +42,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         Description char    % A description of the session
 
         DataLocation struct % Where is session data stored
-        Progress struct     % Whats the pipeline status / progress
+        Progress struct     % What's the pipeline status / progress
         
     end
     
@@ -54,7 +53,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
     properties %(Transient, SetAccess = immutable)
         DataLocationModel
     end
-
     
     methods % Constructor
         function obj = Session()
@@ -66,7 +64,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             % Todo: update datalocation struct from data location model
             
         end
-        
     end
     
     methods % Assign metadata
@@ -142,7 +139,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                 end
             end
         end
-        
     end
    
     methods % Set methods
@@ -152,10 +148,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             eventData = obj.getPropertyChangedEventData('Progress');
             obj.notify('PropertyChanged', eventData)
         end
-
     end
     
-    methods 
+    methods
         
         function S = toStruct(obj)
         %TOSTRUCT Convert object to a struct.
@@ -165,7 +160,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             S = toStruct@nansen.metadata.abstract.BaseSchema(obj);
             S = rmfield(S, 'DataLocationModel');
         end
-        
     end
     
     methods % Data location
@@ -191,7 +185,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                 
                 obj.DataLocation.(thisName) = pathString;
             end
-            
         end
         
         function pathString = detectSessionFolder(obj, dataLocation)
@@ -212,11 +205,10 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                 pathString = '';
             elseif sum(isMatch) == 1
                 pathString = rootPath{isMatch};
-            else 
-                warning('Multiple session folders mathed. Selected first one')
+            else
+                warning('Multiple session folders matched. Selected first one')
                 pathString = rootPath{find(isMatch, 1, 'first')};
             end
-            
         end
     end
     
@@ -256,7 +248,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             else
                 error('Variable ''%s'' was not found.', varName)
             end
-            
         end
         
         function saveData(obj, varName, data, varargin)
@@ -275,7 +266,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         %getDataFilePath Get filepath to data within a session folder
         %
         %   pathStr = sessionObj.getDataFilePath(varName) returns a
-        %   filepath (pathStr) for data with the given variable name 
+        %   filepath (pathStr) for data with the given variable name
         %   (varName).
         %
         %   pathStr = sessionObj.getDataFilePath(varName, mode) returns the
@@ -283,7 +274,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         %       '-r'    : Get filepath of existing file (Default)
         %       '-w'    : Get filepath of existing file or create filepath
         %
-        %   pathStr = sessionObj.getDataFilePath(__, Name, Value) uses 
+        %   pathStr = sessionObj.getDataFilePath(__, Name, Value) uses
         %   name-value pair arguments to control aspects of the filename.
         %
         %   PARAMETERS:
@@ -294,16 +285,14 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         %   EXAMPLES:
         %
         %       pathStr = sObj.getFilePath('dff', '-w', 'Subfolder', 'roisignals')
-        
             
-            % Todo: 
+            % Todo:
             %   [ ] (Why) do I need mode here?
             %   [ ] Implement load/save differences, and default datapath
             %       for variable names that are not defined.
             %   [ ] Implement ways to grab data spread over multiple files, i.e
             %       if files are separate by imaging channel, imaging plane,
             %       trials or are just split into multiple parts...
-            
             
             % Get the model for data file paths. %Todo: Should be property
             % of session object... See nansen.metadata.type.Session
@@ -315,7 +304,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             
             % Get the entry for given variable name from model
             [S, isExistingEntry] = dataVariableModel.getVariableStructure(varName);
-
         
             if ~isExistingEntry
                 S = utility.parsenvpairs(S, [], parameters);
@@ -340,7 +328,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                 end
             end
             
-            
             if isempty(S.FileNameExpression)
                 fileName = obj.createFileName(varName, S);
             else
@@ -357,7 +344,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             if ~isExistingEntry && strcmp(mode, 'write')
                 dataFilePathModel.addEntry(S)
             end
-            
         end
         
         function [mode, varargin] = checkDataFilePathMode(~, varargin)
@@ -375,7 +361,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                         varargin = varargin(2:end);
                 end
             end
-            
         end
         
         function fileName = lookForFile(obj, sessionFolder, S)
@@ -406,13 +391,11 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             else
                 fileName = '';
             end
-            
         end
         
         function fileName = createFileName(obj, varName, parameters)
             %todo: variable model...
             sid = obj.sessionID;
-            
             
             % Make the name into snake case before creating the filename
             varName = utility.string.camel2snake(varName);
@@ -478,7 +461,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
                 else
                     folderPath = obj.createSessionFolder(dataLocationName);
                 end
-                
             end
             
             if isempty(folderPath)
@@ -487,7 +469,6 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             elseif ~isfolder(folderPath)
                 error('Session folder not found')
             end
-            
         end
         
         function folderPath = createSessionFolder(obj, dataLocationName)
@@ -544,22 +525,16 @@ classdef Session < nansen.metadata.abstract.BaseSchema
             %eventData = obj.getPropertyChangedEventData('DataLocation');
             obj.notify('PropertyChanged', eventData)
             
-            
             if ~nargout
                 clear folderPath
             end
-
         end
-        
     end
-    
     
     methods (Static)
                         
         function S = getMetaDataVariables()
             
-            
         end
     end
-    
 end

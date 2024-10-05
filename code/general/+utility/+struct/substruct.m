@@ -2,7 +2,7 @@ function sOut = substruct(sIn, varargin)
 %Substruct Create new struct using a subset of fields from original struct
 %
 %   sOut = substruct(sIn, field1, field2, ..., fieldN) returns a substruct
-%   containing the specified fields. 
+%   containing the specified fields.
 
     if numel(varargin) == 1 && isa(varargin{1}, 'cell')
         fieldNames = varargin{1};
@@ -20,6 +20,4 @@ function sOut = substruct(sIn, varargin)
             warning('%s is not a field of input struct', fieldNames{i})
         end
     end
-    
 end
-

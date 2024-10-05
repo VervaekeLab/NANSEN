@@ -1,11 +1,9 @@
 function [P, V] = getDefaultOptions()
 
-
-% DESRIPTION:
+% DESCRIPTION:
 %   Change these parameters to change the behavior of the autosegmentation
 
-
-% - - - - - - - - Specify parameters and default values - - - - - - - - 
+% - - - - - - - - Specify parameters and default values - - - - - - - -
 
 % Names                                 Values (default)        Description
 P                                       = struct();             %
@@ -25,20 +23,13 @@ P.Deconvolution.imagingRate             = 30;                   % imaging rate (
 P.Deconvolution.sensorTimeConstant      = 2;                    % decay half-life (or timescale). Approximate, for initialization of deconvolution kernel.
 P.Deconvolution.maxNeuropil             = 1;                    % for the neuropil contamination to be less th
 
-
 % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
 
 P.CellDetection.signalExtractionType_    = {'surround', 'raw', 'regression'};
-
-    
-    
-    
     
 % - - - - Specify validation/assertion test for each parameter - - - -
 
 V                           = struct();
-
-
 
 % - - - - - Adapt output to how many outputs are requested - - - - - -
 
@@ -48,5 +39,4 @@ if nargout == 0
 elseif nargout == 1
     clear V
 end
-
 end

@@ -1,11 +1,9 @@
 classdef messageBox < uim.mixin.isResizable
 %uim.widget.messageBox A class that implements a messagebox for showing
-% popupmessages within a figure window. 
-    
+% popupmessages within a figure window.
 
-% TODO: 
+% TODO:
 %   [ ] Remove dependence on uim.mixin.isResizeable (imrect fucks up the axes configurations)
-
 
     properties (Access = private)
 
@@ -51,7 +49,6 @@ classdef messageBox < uim.mixin.isResizable
         MinSize = [300, 50] % Should be MaxSize....
     end % \properties
     
-    
     methods
     
         function obj = messageBox(hParent, varargin)
@@ -73,7 +70,6 @@ classdef messageBox < uim.mixin.isResizable
 
             obj.createAxes()
             obj.createTextbox()
-
             
         end % \messageBox (Constructor)
         
@@ -126,7 +122,6 @@ classdef messageBox < uim.mixin.isResizable
             else
                 obj.hAxes = axes('Parent', obj.hParent);
             end
-        
 
             % Set some axes properties
             obj.hAxes.Units = obj.Units;
@@ -156,8 +151,6 @@ classdef messageBox < uim.mixin.isResizable
                 obj.hAxes.Position = [0,0,obj.hParent.Position(3:4)];
             end
             
-
-            
             % Configure isResizable behavior. This will make the messagebox
             % resizeable.
             axUnits = obj.hAxes.Units;
@@ -182,7 +175,7 @@ classdef messageBox < uim.mixin.isResizable
 % %             % Deprecate:
 % %             xLim = obj.hAxes.XLim;
 % %             yLim = obj.hAxes.YLim;
-% % 
+% %
 % %             xData = xLim([1,1,2,2,1]);
 % %             yData = yLim([2,1,1,2,2]);
             
@@ -191,7 +184,6 @@ classdef messageBox < uim.mixin.isResizable
             [xData, yData] = uim.shape.rectangle(boxSize, obj.CornerRadius);
             xData = xData / max(xData(:));
             yData = yData / max(yData(:));
-            
             
         end
         
@@ -233,7 +225,7 @@ classdef messageBox < uim.mixin.isResizable
             % Add button.
             obj.xButton = plot(obj.hAxes, 1, 1, 'x');
             obj.xButton.MarkerSize = 12;
-            obj.xButton.Visible = 'off'; 
+            obj.xButton.Visible = 'off';
             obj.xButton.ButtonDownFcn = @(s,e) obj.clearMessage;
             obj.xButton.Color = obj.FontColor;
             obj.xButton.LineWidth = 1;
@@ -252,7 +244,6 @@ classdef messageBox < uim.mixin.isResizable
             uistack(obj.xButton, 'top')
             
         end % \createTextbox
-
         
         function setXbuttonPosition(obj)
             pixpos = getpixelposition(obj.hAxes);
@@ -264,12 +255,9 @@ classdef messageBox < uim.mixin.isResizable
                 [xData, yData] = obj.getXButtonBackgroundCoords();
                 set(obj.xButtonBg, 'XData', xData, 'YData', yData)
             end
-                
         end
         
-        
         function addXbuttonBackground(obj)
-            
 
             [xData, yData] = obj.getXButtonBackgroundCoords();
             hBtn = patch(obj.hAxes, xData, yData, 'w');
@@ -283,7 +271,7 @@ classdef messageBox < uim.mixin.isResizable
             hBtn.ButtonDownFcn = @(s, e) obj.clearMessage;
             hBtn.HitTest = 'off';
             hBtn.PickableParts = 'none';
-            hBtn.Visible = 'off'; 
+            hBtn.Visible = 'off';
 
             obj.xButtonBg = hBtn;
 
@@ -300,7 +288,7 @@ classdef messageBox < uim.mixin.isResizable
             edgeX = edgeX + offset;
                 
             % Convert edge coordinates to data units (Transpose because
-            % input to px2du is nPoints x 2 and output from createBox is 
+            % input to px2du is nPoints x 2 and output from createBox is
             % row-vectors.
             edgeCoords = uim.utility.px2du(obj.hAxes, [edgeX', edgeY'] );
             xPos = obj.xButton.XData;
@@ -313,7 +301,6 @@ classdef messageBox < uim.mixin.isResizable
             yData = edgeCoords(:, 2);
             
         end
-        
         
         function fadeIn(obj)
             obj.hBackground.FaceAlpha = 0;
@@ -334,7 +321,6 @@ classdef messageBox < uim.mixin.isResizable
 
         end % \fadeIn
         
-        
         function fadeOut(obj)
     
             fade = linspace(obj.BackgroundAlpha, 0, 60);
@@ -352,7 +338,6 @@ classdef messageBox < uim.mixin.isResizable
 
         end % \fadeOut
         
-        
         function foldMessage(obj)
             
             msg = obj.hText.String;
@@ -361,10 +346,9 @@ classdef messageBox < uim.mixin.isResizable
             extent = obj.hText.Extent;
             obj.hText.String = '';
 
-            nLines = ceil(extent(3)); 
+            nLines = ceil(extent(3));
             %Extent is in normalized units, so the extent says how many
             %lines the text should be divided on.
-            
             
             nCharsPerLine = floor(nChars ./ extent(3) ) - 10; % -10 to leave some margin
 
@@ -409,43 +393,41 @@ classdef messageBox < uim.mixin.isResizable
 
         end % \foldMessage
         
-        
 % %         function hijackMouseOver(obj)
 % %             hFig = ancestor(obj.hParent, 'Figure');
-% %             
+% %
 % %             if isempty(obj.MouseMotionListener)
 % %                 el = listener(hFig, 'WindowMouseMotion', @obj.mouseOver);
 % %                 obj.MouseMotionListener = el;
 % %             end
-% %             
+% %
 % %         end
         
-% %         function giveBackMouseOver(obj)            
+% %         function giveBackMouseOver(obj)
 % %             if ~isempty(obj.MouseMotionListener)
 % %                 delete(obj.MouseMotionListener);
 % %                 obj.MouseMotionListener = event.listener.empty;
 % %             end
 % %         end
         
-        
 % %         function mouseOver(obj, src, event)
 % %             %disp('messageBox mouseover')
 % %              h = hittest();
-% % %             
+% % %
 % % %             if ~isequal(h, obj.currentObjectInFocus.handle)
 % % %                 % Reset previous object
 % % %                 if ~isa(obj.currentObjectInFocus.handle, 'matlab.graphics.GraphicsPlaceholder')
 % % %                     set(obj.currentObjectInFocus.handle, obj.currentObjectInFocus.props{:})
 % % %                     obj.currentObjectInFocus = struct('handle', gobjects(1), 'props', {{}});
 % % %                 end
-% % % 
+% % %
 % % %                 if isa(h, 'matlab.graphics.primitive.Patch') && contains(h.Tag, 'Button')
 % % %                     h.FaceAlpha = 0.15;
 % % %                     obj.currentObjectInFocus = struct('handle', h, 'props', {{'FaceAlpha', 0}});
 % % %                 end
 % % %             end
-% %             
-% %             
+% %
+% %
 % %             if isequal(h, obj.xButtonBg)
 % %             	% Already taken care of
 % %             elseif isequal(h, obj.hBackground) || isequal(h, obj.hText)
@@ -455,9 +437,8 @@ classdef messageBox < uim.mixin.isResizable
 % %                     obj.figureCursorMotionFcn(src, event)
 % %                 end
 % %             end
-% % 
+% %
 % %         end
-
 
         function clearMessageIn(obj, n, doFade)
             
@@ -472,7 +453,6 @@ classdef messageBox < uim.mixin.isResizable
             obj.MessageTimer = t;
             start(obj.MessageTimer)
         end
-        
         
         function clearMessageByTimer(obj, t, doFade)
             
@@ -489,7 +469,6 @@ classdef messageBox < uim.mixin.isResizable
             
         end
         
-        
             function onMouseEnteredButton(obj, hSource, eventData)
                 obj.isMouseOver = true;
                 obj.xButtonBg.FaceAlpha = 0.15;
@@ -500,7 +479,6 @@ classdef messageBox < uim.mixin.isResizable
     %             end
             end
 
-
             function onMouseExitedButton(obj, hSource, eventData)
                 obj.isMouseOver = false;
                 obj.xButtonBg.FaceAlpha = 0;
@@ -509,9 +487,6 @@ classdef messageBox < uim.mixin.isResizable
     %             obj.Toolbar.hideTooltip()
 
             end
-            
-
-        
         
     end % \methods (Private)
     
@@ -535,7 +510,6 @@ classdef messageBox < uim.mixin.isResizable
                 case 'update'
                     fprintf = @(varargin)obj.displayMessage(varargin{:});
             end
-
         end
         
         function activateGlobalWaitbar(obj)
@@ -571,7 +545,7 @@ classdef messageBox < uim.mixin.isResizable
                 if isequal(msg, obj.hText.String{1}); return; end
             end
             
-            % todo, do more work on this... i.e 
+            % todo, do more work on this... i.e
             % this function should accept everything that can go into
             % fprintf
             
@@ -584,7 +558,7 @@ classdef messageBox < uim.mixin.isResizable
                 obj.hText.Visible = 'on';
                 obj.hBackground.Visible = 'on';
                 obj.xButton.Visible = 'on';
-                obj.xButtonBg.Visible = 'on'; 
+                obj.xButtonBg.Visible = 'on';
         
                 drawnow
             end
@@ -593,8 +567,6 @@ classdef messageBox < uim.mixin.isResizable
             if isa(obj.hParent, 'matlab.ui.container.Panel')
                 obj.hParent.Visible = 'on';
             end
-            
-            
             
             % Make sure close-button background is will capture
             % mouseclicks/mouseovers.
@@ -607,7 +579,6 @@ classdef messageBox < uim.mixin.isResizable
 %                 pause(duration)
 %                 obj.clearMessage(doFade)
             end
-            
             
         end % \displayMessage
         
@@ -689,15 +660,12 @@ classdef messageBox < uim.mixin.isResizable
         
     end % \methods
     
-    
     methods (Access = public) % Waitbar
-        
         
         function waitbar(obj, p, message, action)
             
             if nargin < 3; message = ''; end
             if nargin < 4; action = 'set'; end
-            
             
             if isempty(obj.hWaitbar) || ~isvalid(obj.hWaitbar) % Create waitbar
                 pixPos = getpixelposition(obj.hAxes);
@@ -705,9 +673,8 @@ classdef messageBox < uim.mixin.isResizable
                     'Position', [0,1,pixPos(3),10], 'Visible', 'off');
             end
             
-            
             switch action
-                case 'close' 
+                case 'close'
                     obj.isWaitbarActive = false;
                     obj.hWaitbar.Status = 0; % Reset status
                     obj.hWaitbar.Visible = 'off';
@@ -726,14 +693,8 @@ classdef messageBox < uim.mixin.isResizable
                     if ~isempty(message)
                         obj.displayMessage(message)
                     end
-            end            
-            
+            end
         end
-
-
-        
     end
     
-    
 end % \classdef
-

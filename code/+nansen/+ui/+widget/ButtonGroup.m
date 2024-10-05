@@ -6,7 +6,6 @@ classdef ButtonGroup < handle
 %   Todo:
 %   [ ] Add set width
 
-
     properties
         CurrentSelection = 'Button 1'
         Items = {'Button 1', 'Button 2', 'Button 3'}
@@ -39,7 +38,7 @@ classdef ButtonGroup < handle
     properties (Access = private)
         Parent
         UIComponentCanvas % Todo: Why is this here?
-        Components (1,1) struct % Holds components of this widget Has the following fields: Group, Buttons 
+        Components (1,1) struct % Holds components of this widget Has the following fields: Group, Buttons
         ParentSizeChangedListener (1,:) event.listener
     end
     
@@ -47,7 +46,7 @@ classdef ButtonGroup < handle
         Padding = [5,0,5,0]
     end
 
-    methods 
+    methods
         function obj = ButtonGroup(hParent, options)
             arguments
                 hParent
@@ -77,7 +76,7 @@ classdef ButtonGroup < handle
         end
     end
 
-    methods 
+    methods
         function w = get.Width(obj)
             w = obj.Components.Group.Width +  sum(obj.Padding([1,3]));
         end
@@ -155,7 +154,7 @@ classdef ButtonGroup < handle
                     obj.Components.Buttons(counter).Value = true;
                 end
             end
-        end 
+        end
     end
     
     methods (Access = private)
@@ -177,7 +176,7 @@ classdef ButtonGroup < handle
             else
                 % If click turns button off, turn it back on!
                 src.Value = true;
-            end 
+            end
         end
     
         function onParentSizeChanged(obj, src, evt)

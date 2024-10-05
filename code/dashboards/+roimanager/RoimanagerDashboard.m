@@ -1,22 +1,19 @@
 classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     
-    
-    % Todo: 
+    % Todo:
     %   [ ] Why does the imviewer panel resize 3-4 times whenever
     %       showing/hiding the signal viewer panel
     %   [ ] Bug when creating rois and modifying them before the
-    %       roisignalarray is initalized.
+    %       roisignalarray is initialized.
     %   [v] Register roitable as a modular app, so that keypresses are
     %       passed on...
-    %   [ ] Create a reset method for reseting all roi-related data, i.e
-    %       roimap, roitable etc. 
-
+    %   [ ] Create a reset method for resetting all roi-related data, i.e
+    %       roimap, roitable etc.
 
     %   [ ] Dashboard should not be a subclass of roimanager
     %       What dependencies exist?
     %           - settings...
     %           - methods for changing settings...
-
     
     properties
         ApplicationName = 'Roimanager'
@@ -37,14 +34,14 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
     end
     
     properties (Access = private)
-       TabButtonGroup = struct() 
+       TabButtonGroup = struct()
        ShowBottomPanel = true;
        
        ShowImagePanel = true;
        
        UiControls = []
        
-       MainControlPanel % Store temorary control panel, i.e autosegmentation options
+       MainControlPanel % Store temporary control panel, i.e autosegmentation options
        TempControlPanelDestroyedListener % Listener for temporary control panel being deleted.
     end
 
@@ -61,13 +58,12 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         ColumnWidthTop = [200, 0.7, 0.3]
     end
     
-    
     methods % Structor
         
         function obj = RoimanagerDashboard(varargin)
         %RoimanagerDashboard Construct a roimanager dashboard application
 
-            [jLabel, C] = roimanager.RoimanagerDashboard.showSplashScreen(); %#ok<ASGLU> 
+            [jLabel, C] = roimanager.RoimanagerDashboard.showSplashScreen(); %#ok<ASGLU>
             % C is a cleanup object, to ensure that the splash screen is
             % deleted on when constructor completes.
 
@@ -77,7 +73,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
            
             % Todo: Get figure position from properties.
             obj.hFigure.Position = [100, 50, obj.FigureSize];
-            obj.keepFigureOnScreen()          
+            obj.keepFigureOnScreen()
             
             obj.Theme = nansen.theme.getThemeColors('dark-purple');
             
@@ -90,9 +86,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             % Call method for activating the roimanager plugin on imviewer
             jLabel.setText('Initializing roi manager...')
             obj.activatePlugin(obj.Imviewer) % Activates the roimanager plugin
-            % Todo: This dashboard should implement roimanager as a 
+            % Todo: This dashboard should implement roimanager as a
             % property, not a superclass...
-            
 
             % Todo: Why do I need this. Should not roimanager take care of
             % this?
@@ -181,7 +176,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         function set.OptionsEditor(obj, handleObj)
             obj.setModuleHandle('Options Editor', handleObj)
         end
-        
     end
     
     methods (Access = protected) % Create/configure layout
@@ -231,7 +225,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.hMainPanel.Visible = 'off';
             %obj.hFigure.Visible = 'off';
             
-            
             % - - - Compute heights and yposition for each of the panel rows
             if obj.ShowBottomPanel
                 panelHeights = [25, obj.RowHeight(2), obj.RowHeight(1)];
@@ -244,12 +237,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             [yPos, H] = obj.computePanelPositions(panelHeights, 'y');
             
-            
             % - - - Compute widths and xposition for each of the panel rows
 
             % New positions of panels on top row (controls, imviewer, roitable)
             [xPosA, Wa] = obj.computePanelPositions(obj.ColumnWidthTop, 'x');
-            
             
             % New positions of panels on middle row (signal viewer, roi image)
             if obj.ShowImagePanel && obj.ShowBottomPanel
@@ -299,7 +290,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             %drawnow
 
         end
-        
     end
     
     methods (Access = private) % Initialize modules
@@ -327,7 +317,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         function initializeRoiTable(obj, roiGroup)
         %initializeRoiTable Initialize the roi table module
             h = roimanager.RoiTable(obj.hPanels(3), roiGroup);
-            % Note: table catches all key events by default. Setting the 
+            % Note: table catches all key events by default. Setting the
             % following callbacks will pass uncaught key events to the
             % roimanager/imviewer.
             h.KeyPressFcn = @(s, e) obj.onKeyPressed(s, e, 'roimanager');
@@ -337,7 +327,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.AppModules(end+1) = h;
         end
 
-        function initializeRoiThumbnailDisplay(obj, roiGroup)  
+        function initializeRoiThumbnailDisplay(obj, roiGroup)
             obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), roiGroup);
             obj.RoiThumbnailViewer.ImageStack = obj.ImviewerObj.ImageStack;
             obj.RoiThumbnailViewer.Dashboard = obj;
@@ -345,7 +335,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.RoiThumbnailViewer.ActiveChannel = obj.ActiveChannel;
             %obj.AppModules(end+1) = obj.RoiThumbnailViewer;
         end
-
     end
 
     methods (Access = protected) % Create/configure modules
@@ -402,7 +391,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             %valueChangedFcn{i} = @obj.onSignalExtractionOptionsChanged;
             %valueChangedFcn{i} = [];
             
-            
             i = i+1;
             obj.dffOptions = obj.settings.DffOptions;
             structs{i} = obj.settings.DffOptions;
@@ -426,15 +414,12 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             names{i} = 'App Layout';
             callbacks{i} = @obj.onLayoutParamsChanged;
 
-
             h = structeditor.App(obj.hPanels(1), structs, 'FontSize', 10, ...
                 'FontName', 'helvetica', 'LabelPosition', 'Over', ...
                 'TabMode', 'dropdown', ...
                 'Name', names, ...
                 'Callback', callbacks);%, ...
                 %'ValueChangedFcn', valueChangedFcn);
-
-            
             
             obj.AppModules(end+1) = h;
             obj.UiControls = h;
@@ -452,7 +437,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             end
             
             %defaults = roimanager.roiDisplayParameters; % Todo. Fix this (need to reset some values in this settings on startup..)
-
             
             % Reset some "transient" fields.
             
@@ -471,7 +455,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             hButton = hAppbar.Children(3);
             hButton.ButtonDownFcn = @(s, e) obj.toggleMaximizePanel(hButton, hPanel);
         end
-        
     end
     
     methods % Settings changed callbacks
@@ -490,7 +473,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 case 'ActiveChannel'
                     obj.changeActiveChannel(value)
             end
-            
         end
         
         function onRoiDisplayPreferencesChanged(obj, name, value)
@@ -553,7 +535,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 case 'NextRoiSelectionMode'
                     obj.RoiGroup.NextRoiSelectionMode = value;
             end
-            
         end
         
         function onAutosegmentationOptionsChanged(obj, name, value)
@@ -566,7 +547,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                
                 case 'autosegmentationMethod'
                     % Todo: Edit preset control and fill out with preset
-                    % for selected method... 
+                    % for selected method...
                     
                     % Reset the method options struct
                     obj.settings.Autosegmentation.options = [];
@@ -637,7 +618,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             switch name
                
                 case 'selectVariable'
-                    % Todo: 
+                    % Todo:
                     % Get/set cutoffValues from cutoffValuesRef_
                     
                 case 'cutoffValues'
@@ -724,7 +705,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 S = obj.OptionsEditor.dataOrig;
                 %obj.AppModules(1).displayMessage('Optio', [], 1.5)
             else
-                S = obj.OptionsEditor.dataEdit; 
+                S = obj.OptionsEditor.dataEdit;
                 obj.Imviewer.displayMessage('Options updated!', [], 1.5)
             end
             
@@ -743,7 +724,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             delete(obj.TempControlPanelDestroyedListener)
             obj.TempControlPanelDestroyedListener=[];
         end
-        
     end
 
     methods (Access = protected) % Internal callbacks
@@ -830,7 +810,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         end
     end
     
-    methods 
+    methods
         
         function createToolbar(obj)
             
@@ -959,14 +939,12 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                     end
             end
             
-            
             % if allPanelsHidden
 %             obj.ShowBottomPanel = true;
 %             obj.resizePanels()
             % end
             
         end
-
     end
     
     methods (Access = private)
@@ -984,7 +962,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         end
 
         function alternativesList = getActiveChannelAlternatives(obj)
-        %getActiveChannelAlternatives Create list of alternatives for options    
+        %getActiveChannelAlternatives Create list of alternatives for options
             alternativesList = arrayfun(@(i) sprintf('Channel %d', i), ...
                 1:obj.NumChannels, 'UniformOutput', false);
 
@@ -992,7 +970,6 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
                 alternativesList = [{'All Channels'}, alternativesList];
             end
         end
-
     end
 
     methods
@@ -1013,6 +990,5 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             [~, jLabel, C] = nansen.ui.showSplashScreen(filepath, ...
                 'RoiManager', 'Initializing imviewer...');
         end
-
     end
 end

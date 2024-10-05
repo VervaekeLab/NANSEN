@@ -11,7 +11,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 %   [v] Set read/write or read only for datalocation  
 %   [v] Add control for adding multiple rootpaths for datalocations
 
-
 %   [ ] Need to reload datalocationmodel if project is changed. Later
 %   comment: Not sure if this is something that should be controlled from
 %   this app. At best, add a method for reloading default model (i.e
@@ -23,12 +22,11 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 %   [ ] Improve the way model changes are detecting when closing the app.
 %   Use the backup of the model which is added to property on construction
 %   and compare the current model to that when a close request is made.
-%   
+%
 %   [ ] Important todo related to above: Need to update the backup version
 %   if the model is saved, because if the app is not properly closed, just
 %   put into "hibernation", the backup would not reflect the current model
 %   if the app is brought back online.
-    
     
     properties (Constant)
         AppName = 'Configure Data Locations'
@@ -73,7 +71,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         function obj = DataLocationModelApp(varargin)
             
             [nvPairs, varargin] = utility.getnvpairs(varargin{:});
-            obj.assignPVPairs(nvPairs{:})            
+            obj.assignPVPairs(nvPairs{:})
             
             if isempty(obj.DataLocationModel)
                 obj.DataLocationModel = nansen.DataLocationModel();
@@ -159,17 +157,17 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         function success = setActiveModule(obj, moduleName)
         %setActiveModule Handle activation (and deactivation) of uimodules
         
-            success = false; 
+            success = false;
             
             % Get name and index of current module.
             selectedTabTitle = obj.Tabgroup.SelectedTab.Title;
-            moduleIdx = find(strcmp(obj.PageTitles, selectedTabTitle)); 
+            moduleIdx = find(strcmp(obj.PageTitles, selectedTabTitle));
             currentModuleName = obj.MODULE_NAMES{moduleIdx};
             
             % Abort if the current module is selected
             if strcmp(currentModuleName, moduleName); return; end
             
-            % Step 1: Check that current module is completed.            
+            % Step 1: Check that current module is completed.
             [allowChangeModule, msg] = obj.UIModule{moduleIdx}.isTableCompleted();
             
             if ~allowChangeModule
@@ -212,7 +210,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         %promptSaveChanges Prompt user if UI changes should be saved.
         
             % Initialize output (assume user is not going to abort)
-            doAbort = false;    
+            doAbort = false;
             
             % Todo: Should compare to a backup of model instead!
             % Check if any modules have made changes to the model
@@ -258,7 +256,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                 end
             end
         end
-        
     end
     
     methods % Get methods
@@ -274,7 +271,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
     methods (Access = protected)
         
         function onFigureClosed(obj, src, evt)
-        %onFigureClosed Callback for when figure is closed.    
+        %onFigureClosed Callback for when figure is closed.
             wasCanceled = promptSaveChanges(obj);
             
             if wasCanceled
@@ -303,7 +300,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         
         % Override applyTheme from HasTheme mixin
         function applyTheme(obj)
-        % Apply theme % Todo: Superclass 
+        % Apply theme % Todo: Superclass
         
             S = nansen.theme.getThemeColors('deepblue');
             
@@ -312,7 +309,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             
             set(obj.ControlPanels, 'BackgroundColor', S.ControlPanelsBgColor)
         end
-       
     end
 
     methods (Access = private) % Methods for app creation
@@ -371,7 +367,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             % Create components for the DataLocationModel configuration
             args = [varargin, {'Parent', obj.ControlPanels(i)}];
             
-            if obj.IsStandalone 
+            if obj.IsStandalone
                 args = [args, 'RootPathComponentType', 'uidropdown'];
             end
             
@@ -402,7 +398,6 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             % Todo: Make adjustable using properties...
             obj.UIModule{i}.hideAdvancedOptions()
         end
-        
     end
     
     methods (Access = private) % Callbacks
@@ -455,10 +450,9 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                     if ~isempty(obj.UIModule{3})
                         if isvalid(obj.UIModule{3}) && obj.UIModule{3}.IsDirty
                             obj.UIModule{3}.updateDataLocationModel()
-                        end 
+                        end
                     end
             end
         end
     end
-    
 end

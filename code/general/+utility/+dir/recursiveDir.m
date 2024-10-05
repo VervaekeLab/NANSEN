@@ -2,7 +2,7 @@ function combinedListing = recursiveDir(rootPath, options)
 % recursiveDir Recursively lists files and folders under the specified root path.
 %
 % SYNTAX:
-%   combinedListing = recursiveDir(rootPath) will recursively list all 
+%   combinedListing = recursiveDir(rootPath) will recursively list all
 %       files and folders under the folder specified by rootPath.
 %
 %   combinedListing = recursiveDir(rootPath, name, value, ...) will
@@ -10,36 +10,36 @@ function combinedListing = recursiveDir(rootPath, options)
 %       specified as name-value pairs.
 %
 % INPUTS:
-%   rootPath        - Root path from which to start listing files and 
+%   rootPath        - Root path from which to start listing files and
 %                     folders. Must be a string representing the path name
 %                     of a directory. Can be an array of path names.
 %
 % OPTIONS:
-%     IgnoreList         - List of words/substrings to ignore during 
+%     IgnoreList         - List of words/substrings to ignore during
 %                          listing. Default is an empty string array.
 %
-%     Expression         - Regular expression to filter files and folders. 
+%     Expression         - Regular expression to filter files and folders.
 %                          Default is an empty string.
 %
-%     Type               - Type of items to list: 'file', 'folder', or 
+%     Type               - Type of items to list: 'file', 'folder', or
 %                          'any'. Default is 'any'.
 %
-%     FileType           - File extension for filtering specific files. 
+%     FileType           - File extension for filtering specific files.
 %                          Default is an empty string.
 %
 %     RecursionDepth     - Maximum recursion depth. Default is inf.
 %
-%     IsCumulative       - Flag to indicate whether to accumulate files 
-%                          and/or folders as the function goes deeper into 
+%     IsCumulative       - Flag to indicate whether to accumulate files
+%                          and/or folders as the function goes deeper into
 %                          the directory tree. Default is true. If false,
 %                          only files and folders from the depth specified
 %                          in RecursionDepth will be returned.
 %
-%     OutputType         - Type of output: 'FilePath' or 'FileAttributes'. 
-%                          Default is 'FileAttributes' (struct array as 
+%     OutputType         - Type of output: 'FilePath' or 'FileAttributes'.
+%                          Default is 'FileAttributes' (struct array as
 %                          returned by the builtin dir function).
 %
-%     IncludeHiddenFiles - Flag to include hidden files and folders. 
+%     IncludeHiddenFiles - Flag to include hidden files and folders.
 %                          Default is false (only works on Unix).
 %
 % OUTPUT:
@@ -47,7 +47,7 @@ function combinedListing = recursiveDir(rootPath, options)
 %       of file attributes for all the items found in the directory tree.
 %
 %   alternatively: If the option 'OutputType' is set to 'FilePath'
-%       combinedListing is a cell array of absolute pathnames for all the 
+%       combinedListing is a cell array of absolute pathnames for all the
 %       found items.
 %
 % EXAMPLES:
@@ -84,8 +84,8 @@ function combinedListing = recursiveDir(rootPath, options)
 
     combinedListing = getEmptyListing(); % Local function
     
-    % Get the OutputType from options and change the value to 
-    % 'FileAttributes'. Any internal (recursive) call to recursiveDir need 
+    % Get the OutputType from options and change the value to
+    % 'FileAttributes'. Any internal (recursive) call to recursiveDir need
     % to return data as FileAttributes.
     outputType = options.OutputType;
     options.OutputType = 'FileAttributes';
@@ -118,7 +118,7 @@ function combinedListing = recursiveDir(rootPath, options)
         end
 
         filteredListing = newListing(keep);
-        keep = true(1, numel(filteredListing)); 
+        keep = true(1, numel(filteredListing));
 
         % 3. Keep only list items that matches expression
         if options.Expression ~= ""

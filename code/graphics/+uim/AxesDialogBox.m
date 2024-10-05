@@ -1,6 +1,5 @@
 classdef AxesDialogBox < applify.DialogBox
     
-    
     properties (Access = protected)
         MessageBox
     end
@@ -9,9 +8,8 @@ classdef AxesDialogBox < applify.DialogBox
         ReferenceAxes
         ReferenceAxesSizeChangedListener
     end
-        
     
-    methods 
+    methods
         
         function obj = AxesDialogBox(referenceAxes)
             
@@ -23,22 +21,19 @@ classdef AxesDialogBox < applify.DialogBox
             obj.ReferenceAxesSizeChangedListener = listener(obj.ReferenceAxes, ...
                 'SizeChanged', @obj.onReferenceAxesSizeChanged);
         end
-    
     end
     
-    methods 
+    methods
         
         function displayMessage(obj, messageString, messageDuration)
             if nargin < 3; messageDuration = []; end
-            obj.MessageBox.displayMessage(messageString, messageDuration)             
+            obj.MessageBox.displayMessage(messageString, messageDuration)
         end
         
         function clearMessage(obj)
             obj.MessageBox.clearMessage()
         end
-        
     end
-    
     
     methods (Access = private)
         
@@ -49,5 +44,4 @@ classdef AxesDialogBox < applify.DialogBox
 
         end
     end
-
 end

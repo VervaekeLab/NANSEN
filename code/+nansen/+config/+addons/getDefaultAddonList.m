@@ -12,7 +12,6 @@ function S = getDefaultAddonList()
 % downloaded...
 % Use git instead of downloading zipped versions of repositories...
 
-
     i = 1;
     S(i).Name = 'Widgets Toolbox';
     S(i).Description = 'Additional app building components';
@@ -49,7 +48,7 @@ function S = getDefaultAddonList()
     S(i).Type = 'General';
     S(i).Source = 'Github';
     S(i).WebUrl = 'https://github.com/ewiger/yamlmatlab';
-    S(i).DownloadUrl = 'https://github.com/ehennestad/yamlmatlab/archive/refs/heads/master.zip'; % Fixed som bugs with original
+    S(i).DownloadUrl = 'https://github.com/ehennestad/yamlmatlab/archive/refs/heads/master.zip'; % Fixed some bugs with original
     S(i).HasSetupFile = false;
     S(i).SetupFileName = 'nansen.config.path.addYamlJarToJavaClassPath';
     S(i).FunctionName = 'yaml.WriteYaml';
@@ -89,7 +88,6 @@ function S = getDefaultAddonList()
     S(i).HasSetupFile = false;
     S(i).SetupFileName = '';
     S(i).FunctionName = 'build_ops3';
-
     
     i = i + 1;
     S(i).Name = 'EXTRACT';
@@ -198,4 +196,3 @@ end
 % %     S(i).HasSetupFile = false;
 % %     S(i).SetupFileName = '';
 % %     S(i).FunctionName = 'dabest.m';
-

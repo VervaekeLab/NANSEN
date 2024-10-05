@@ -1,6 +1,6 @@
 function jData = mat2java(mData,varargin)
 % mat2java - Utility to convert MATLAB array to Java array
-% 
+%
 % Abstract: This utility will convert MATLAB arrays to a Java equivalent
 %
 % Syntax:
@@ -35,8 +35,6 @@ validateattributes(mData,{'numeric','logical','char','cell','datetime'},{'2d'})
 % Constants that may be needed
 persistent epochDate
 
-
-
 %% If a special class was specified, use it and return
 
 if nargin>=2 && ~iscell(mData)
@@ -51,14 +49,13 @@ if nargin>=2 && ~iscell(mData)
     
 end %if nargin>=2 && ~iscell(mData)
 
-
 %% What type of data is this?
 
 switch class(mData)
     
     case 'cell'
         
-        % Requres recursion in each cell
+        % Requires recursion in each cell
         jData = cell(size(mData));
         for idx=1:numel(mData)
             if ~isempty(mData{idx}) %added by EH - 2022-03-03 (Otherwise, would fail if cell is empty...)

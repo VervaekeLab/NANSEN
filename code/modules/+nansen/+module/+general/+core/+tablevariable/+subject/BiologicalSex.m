@@ -15,5 +15,4 @@ classdef BiologicalSex < nansen.metadata.abstract.TableVariable
             obj@nansen.metadata.abstract.TableVariable(varargin{:});
         end
     end
-    
 end

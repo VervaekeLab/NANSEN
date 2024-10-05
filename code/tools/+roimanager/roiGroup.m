@@ -1,14 +1,14 @@
 classdef roiGroup < handle
-%roiGroup Class that stores rois and associated data and broadcasts events 
+%roiGroup Class that stores rois and associated data and broadcasts events
 % whenever rois are added, removed or modified.
 %
-%   This class is used to give shared access to rois across multiple apps 
+%   This class is used to give shared access to rois across multiple apps
 %   and uses events to let other apps know of changes to the rois.
 %
 %   It also keeps track of some roi application data, namely
 %   roiClassification, roiStats and roiImages.
 
-%   NOTE: 
+%   NOTE:
 %   The roiClassification, roiStats and roiImages are "externalized"
 %   from the rois for two reasons. 1) they should be customizable, i.e not
 %   all rois might not have the same images or stats etc and 2) for
@@ -20,9 +20,8 @@ classdef roiGroup < handle
 %   roiarray has the same set of these data when working with rois in
 %   applications.
 
-
-%   Todo: 
-%       [ ] Better solution to visible rois. Specifically: Now, everytime a
+%   Todo:
+%       [ ] Better solution to visible rois. Specifically: Now, every time a
 %           roi is added or removed the filtering for visible rois is reset.
 %       [ ] Add channel number and plane number as arguments that can be
 %           passed on construction
@@ -72,7 +71,6 @@ classdef roiGroup < handle
         VisibleRoisChanged
     end
     
-    
     methods % Constructor
         
         function obj = roiGroup(varargin)
@@ -82,7 +80,7 @@ classdef roiGroup < handle
         %   from file. filename is the absolute filepath for a file
         %   containing roi data.
         %
-        %   roiGoupObj = roimanager.roiGroup(roiGroupStuct) creates a 
+        %   roiGoupObj = roimanager.roiGroup(roiGroupStuct) creates a
         %   roigroup
         
             if ~isempty(varargin)
@@ -112,7 +110,6 @@ classdef roiGroup < handle
                 end
             end
         end
-
     end
 
     methods (Access = private) % Methods for construction / initialization
@@ -139,7 +136,7 @@ classdef roiGroup < handle
                 obj.populateFromStruct(varargin{1})
                 
             % Check if first input is a struct/struct array holding
-            % items that can be converted to RoIs         
+            % items that can be converted to RoIs
             elseif isa(varargin{1}, 'struct') && isfield(varargin{1}, 'uid')
                 roiArray = roimanager.utilities.struct2roiarray(varargin{1});
                 obj.addRois(roiArray)
@@ -147,7 +144,6 @@ classdef roiGroup < handle
                 
             end
         end
-        
     end
 
     methods % Methods for handling changes on the roiGroup
@@ -247,11 +243,11 @@ classdef roiGroup < handle
             end
             
             % Notify that rois have changed
-            % fprintf('\nIndex pre event notification: %d\n', roiInd) % debug 
+            % fprintf('\nIndex pre event notification: %d\n', roiInd) % debug
             eventData = roimanager.eventdata.RoiGroupChanged(newRois, roiInd, mode);
             obj.notify('roisChanged', eventData)
             
-            % Update roi relations. (i.e if rois are added that have 
+            % Update roi relations. (i.e if rois are added that have
             % relations). Relevant if there was an undo/redo action.
             % This needs to be done after all rois are added.
             obj.updateRoiRelations(newRois, 'added')
@@ -334,8 +330,8 @@ classdef roiGroup < handle
             eventData = roimanager.eventdata.RoiGroupChanged([], roiInd, 'remove');
             obj.notify('roisChanged', eventData)
             
-            % Update roi relations. (i.e if rois are removed that have 
-            % relations). Relevant if there was an undo/redo action for 
+            % Update roi relations. (i.e if rois are removed that have
+            % relations). Relevant if there was an undo/redo action for
             % example. This needs to be done after all rois are removed.
             obj.updateRoiRelations(removedRois, 'removed')
             
@@ -394,7 +390,7 @@ classdef roiGroup < handle
             tags = {obj.roiArray(roiInd).tag};
             nums = strsplit( num2str(roiInd, formatStr), ' ');
 
-            roiLabels = strcat(tags, nums); 
+            roiLabels = strcat(tags, nums);
         end
 
         function roiInd = getNextRoiInd(obj, currentRoiInd, direction, selectionMode)
@@ -406,7 +402,7 @@ classdef roiGroup < handle
         %   selectionMode : what "type" of roi to select next. Can be:
         %       - 'with same classification'
         %       - 'Next unclassified roi'
-        %       - 'Closest' (euclidian distance)
+        %       - 'Closest' (euclidean distance)
         %       - 'None'
         
             if nargin < 3 || isempty(direction)
@@ -490,7 +486,7 @@ classdef roiGroup < handle
         % INPUTS:
         %   oldSelection : indices of rois that were selected before.
         %   newSelection : indices of rois that are newly selected.
-        %   origin       : the class/interface that origninated this call
+        %   origin       : the class/interface that originated this call
         
             if nargin < 4; origin = []; end
             
@@ -565,7 +561,7 @@ classdef roiGroup < handle
         end
         
         function updateRoiRelations(obj, updatedRois, action)
-        %updateRoiRelations Update relations in roi array, if rois with 
+        %updateRoiRelations Update relations in roi array, if rois with
         % relations are added or removed.
         
             allRoiUid = {obj.roiArray.uid};
@@ -609,16 +605,15 @@ classdef roiGroup < handle
                 end
             end
             
-            % For simplicity, just notify that all rois are updated and do a 
+            % For simplicity, just notify that all rois are updated and do a
             % relink. Relations are plotted on children references, but if
-            % parent has been readded, this needs to be updated on children
+            % parent has been re-added, this needs to be updated on children
             % that are already existing. Therefore, the relink, which will
-            % flush and update all relations. 
+            % flush and update all relations.
             evtDataCls = @roimanager.eventdata.RoiGroupChanged;
             eventData = evtDataCls(obj.roiArray, 1:obj.roiCount, 'relink');
             obj.notify('roisChanged', eventData)
         end
-        
     end
     
     methods % Methods for saving rois
@@ -638,7 +633,7 @@ classdef roiGroup < handle
             fileObj.save(obj)
             obj.markClean()
             
-            wasSuccess = true;    
+            wasSuccess = true;
             
             if nargout == 1
                 clear savePath
@@ -651,7 +646,6 @@ classdef roiGroup < handle
                         
             obj.roiFilePath = savePath;
         end
-        
     end
     
     methods
@@ -688,7 +682,6 @@ classdef roiGroup < handle
                     obj.(fields{i}) = D;
                     tf(i) = true;
                 end
-                
             end
             
             if isempty(obj.roiClassification)
@@ -700,9 +693,7 @@ classdef roiGroup < handle
             
             tf = all(tf);
         end
-        
     end
-    
 
     methods (Access = protected)
 
@@ -718,13 +709,12 @@ classdef roiGroup < handle
                 tf = false;
             end
         end
-
     end
 
     methods (Access = private)
         
         function assignAppdata(obj)
-        %assignAppdata Assign roi appdata to properties of this object 
+        %assignAppdata Assign roi appdata to properties of this object
             if obj.roiCount > 0
                 obj.roiClassification = getappdata(obj.roiArray, 'roiClassification');
                 obj.roiImages = getappdata(obj.roiArray, 'roiImages');
@@ -737,7 +727,7 @@ classdef roiGroup < handle
         end
         
         function populateFromStruct(obj, S)
-        %populateFromStruct Assign properties from fields of a struct  
+        %populateFromStruct Assign properties from fields of a struct
            
             fields = fieldnames(S);
             numRois = numel(S.roiArray);
@@ -748,7 +738,7 @@ classdef roiGroup < handle
                         obj.addRois(S.roiArray)
                     case 'roiImages'
                         if numel(S.roiImages) == numRois
-                            obj.roiImages = S.roiImages;                            
+                            obj.roiImages = S.roiImages;
                         end
                     case 'roiStats'
                         if numel(S.roiStats) == numRois
@@ -826,8 +816,7 @@ classdef roiGroup < handle
 
     methods (Static)
         function fileAdapter = getFileAdapter(filePath)
-            fileAdapter = nansen.dataio.fileadapter.roi.RoiGroup(filePath); 
-        end 
+            fileAdapter = nansen.dataio.fileadapter.roi.RoiGroup(filePath);
+        end
     end
-
 end

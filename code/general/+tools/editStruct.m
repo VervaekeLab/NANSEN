@@ -1,9 +1,8 @@
 function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
 % editStruct opens a GUI for editing fields of a struct/object
-    
 
     % Determine which fieldnames to include for editing...
-    if nargin < 2 || isempty(fieldNames) || isequal(fieldNames, 'all') 
+    if nargin < 2 || isempty(fieldNames) || isequal(fieldNames, 'all')
         if isa(sIn, 'struct')
             fieldNames = fields(sIn);
             
@@ -19,7 +18,7 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
 
         else
             error('Input must be a struct or an object')
-        end 
+        end
     end
     
     if nargin >= 3 && ~isempty(titleStr) % Preserve backwards compatibility.
@@ -28,7 +27,7 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
     
     wasAborted = false;
     
-    % Check if this is a struct of structs. 
+    % Check if this is a struct of structs.
     % In that case, make a tab/page for each of them.
     convertOutputToStruct = false;
     if isstruct(sIn)
@@ -81,11 +80,9 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
                 rethrow(ME)
         end
         
-        
-        
         % Create the figure
         guiFig = createFigure(titleStr);
-        guiFig.UserData.sBak = sIn;   
+        guiFig.UserData.sBak = sIn;
         guiFig.UserData.sTmp = sIn;
 
         try
@@ -104,15 +101,12 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
                 clear wasAborted
             end
             
-        catch 
+        catch
             errordlg('Something went wrong')
             delete(guiFig)
         end
-
     end
-            
 end
-
 
 %TODO implement scroller
 function guiFig = createFigure(titleStr)
@@ -135,7 +129,6 @@ function guiFig = createFigure(titleStr)
     guiFig.CloseRequestFcn = {@quit, 'Cancel'};
 
 end
-
 
 function keyboardShortcuts(src, event)
 
@@ -169,12 +162,11 @@ function createComponents(guiFig, S, fieldNames)
     rowSep = 10;
     totHeight = guiPanel.Position(4);
 %     guiPanel.Units = 'normalized';
-
     
     y = rowSep;
 
     % Go through each property and make an inputfield for it. Each
-    % editfield has a Tag which is the same as the propertyname. 
+    % editfield has a Tag which is the same as the propertyname.
     % This is how to refer to them in other functions of the gui.
     for p = numel(fieldNames):-1:1
 
@@ -213,7 +205,6 @@ function createComponents(guiFig, S, fieldNames)
                 addInputField(guiPanel, y, currentProperty, val)
                 y = y + rowHeight + rowSep;
         end
-        
     end
     
     if y < totHeight
@@ -229,7 +220,7 @@ function createComponents(guiFig, S, fieldNames)
     saveButton = uicontrol(guiFig, 'style', 'pushbutton');
 %     saveButton.Units = 'normalized';
     saveButton.Position = [guiFig.Position(3)/4-75, 15, 150, 20];
-    saveButton.String = 'Save and Close';  
+    saveButton.String = 'Save and Close';
     saveButton.FontUnits = 'normalized';
     saveButton.FontSize = 0.7;
     saveButton.Callback = {@quit, 'Save'};
@@ -244,14 +235,12 @@ function createComponents(guiFig, S, fieldNames)
     
 end
 
-
 % Note inputbox belongs to guiPanel
 function addInputField(guiPanel, y, name, val)
 % Add input field for editing of property value
 %       y       : y position in panel
 %       name    : name of property. Used for text field and Tag
 %       val     : value f property. Assigned to input field.
-
     
     % Create a textbox with the property name
     textbox = uicontrol(guiPanel, 'style', 'text');
@@ -311,9 +300,7 @@ function addInputField(guiPanel, y, name, val)
         browseButton.Tag = name;
         browseButton.Callback = @buttonCallback_openBrowser;
     end
-
 end
-
 
 function editCallback_propertyValueChange(src, ~)
 % Callback for value change in inputfields. Update session property
@@ -364,7 +351,6 @@ function editCallback_propertyValueChange(src, ~)
             else
                 %Not implemented
             end
-
     end
 
     % Check if new value is different than old, and update if so
@@ -378,11 +364,9 @@ function editCallback_propertyValueChange(src, ~)
         % structs.
         eval(['guiFig.UserData.sTmp.', name, ' = ', val , ';'])
     end
-
 end
 
-
-function createScrollBar(guiFig)     
+function createScrollBar(guiFig)
 % Creates a scrollbar on a panel if all the fields does not fit on the panel
 
     guiPanel = findobj(guiFig, 'Type', 'uipanel');
@@ -401,7 +385,7 @@ function createScrollBar(guiFig)
 
         % Add a java scrollbar
         jScrollbar = javaObjectEDT('javax.swing.JScrollBar');
-        jScrollbar.setOrientation(jScrollbar.VERTICAL);                          
+        jScrollbar.setOrientation(jScrollbar.VERTICAL);
         [jScroller, jScrollContainer] = javacomponent(jScrollbar);
 
         % Add a callback for value changes
@@ -416,11 +400,9 @@ function createScrollBar(guiFig)
         guiPanel.UserData.scrollBar = jScroller;
         guiPanel.UserData.lastScrollValue = get(jScroller, 'value');
     end
+end
 
-end 
-
-
-function scrollValueChange(scroller, ~, guiPanel)        
+function scrollValueChange(scroller, ~, guiPanel)
 % Callback for value change on scroller belonging to panel. Scrolls up or down.
 
     delta = scroller.value - guiPanel.UserData.lastScrollValue;
@@ -445,11 +427,8 @@ function scrollValueChange(scroller, ~, guiPanel)
             fieldPos(2) = fieldPos(2) + (delta)/100;
             set(inputfields(j), 'Position', fieldPos)
         end
-
     end
-
 end
-
 
 function mouseScrollCallback(src, event)
 % Callback for mousescroll. Controls scrollslider in panel.
@@ -470,9 +449,7 @@ function mouseScrollCallback(src, event)
             scrollvalue = get(guiPanel.UserData.scrollBar, 'value');
             set(guiPanel.UserData.scrollBar, 'value', scrollvalue + i)
     end
-
 end
-
 
 function buttonCallback_openBrowser(src, ~)
 % Button callback for browse button. Used to change path
@@ -488,7 +465,6 @@ function buttonCallback_openBrowser(src, ~)
     else
         [initPath, ~, ~] = fileparts(oldPathString);
     end
-
 
     if contains(lower(src.Tag), {'file'})
         [fileName, folderPath, ~] = uigetfile({'*', 'All Files (*.*)'}, '', initPath);
@@ -508,9 +484,7 @@ function buttonCallback_openBrowser(src, ~)
             inputfield.String = pathString;
         end
     end
-
 end
-
 
 % Is src always guiFig? What are userdata fieldnames?
 function quit(src, ~, action)
@@ -535,7 +509,6 @@ function quit(src, ~, action)
     
 end
 
-
 function label = varname2label(varname)
 % Convert a camelcase variable name to a label where each word starts with
 % capital letter and is separated by a space.
@@ -545,8 +518,8 @@ function label = varname2label(varname)
 %
 %   Example:
 %   label = varname2label('helloWorld')
-%   
-%   label = 
+%
+%   label =
 %       'Hello World'
 
 if ~ischar(varname); varname = inputname(1); end
@@ -563,5 +536,3 @@ varname(1) = upper(varname(1));
 label = varname;
 
 end
-
-

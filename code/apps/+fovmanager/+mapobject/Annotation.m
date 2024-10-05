@@ -1,12 +1,10 @@
 classdef Annotation < fovmanager.mapobject.BaseObject
     
-    
     % What style should this thing be, and how should style be applied?
     % Local methods, abstract properties?
     %
-    % Should be possible to add image to an annotation. Then image can be 
+    % Should be possible to add image to an annotation. Then image can be
     % added without first adding a window, and then a fov.
-    
     
     properties
         
@@ -16,16 +14,12 @@ classdef Annotation < fovmanager.mapobject.BaseObject
     
     end
     
-    
     properties (Transient)
         boundaryWidth = 2;
         boundaryColor = 'k'
     end
     
-    
-    
     methods
-        
         
         function obj = Annotation(varargin)
              
@@ -48,14 +42,11 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             [x, y] = obj.getBoundaryCoords();
             obj.edge = [x, y];
 
-
             if exist('fmHandle', 'var')
                 obj.displayObject(fmHandle)
                 setLineStyle(obj)
             end
-            
         end
-        
         
         function infoText = getInfoText(obj)
         
@@ -64,10 +55,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             if ~isempty(obj.name)
                 infoText = sprintf('%s', obj.name);
             end
-            
-            
         end
-        
         
         function createContextMenu(obj, fmHandle)
 
@@ -95,7 +83,6 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             mitem = uimenu(m, 'Text', 'Always Show');
             mitem.Callback = @obj.togglePersistentState;
             
-            
             if obj.isMovable
                 mitem = uimenu(m, 'Text', 'Lock Position', 'Separator', 'on');
             else
@@ -114,7 +101,6 @@ classdef Annotation < fovmanager.mapobject.BaseObject
 
         end
         
-        
         function changeColor(obj, ~, ~, color)
         
             obj.color = lower(color(1));
@@ -124,13 +110,11 @@ classdef Annotation < fovmanager.mapobject.BaseObject
 
         end
         
-        
         function setLineStyle(obj)
             hTmp = findobj(obj.guiHandle, 'Tag', 'Map Annotation Outline');
             set(hTmp, 'LineStyle', '-')
             
         end
-        
         
         function addImage(obj)
             addImage@fovmanager.mapobject.BaseObject(obj)
@@ -143,9 +127,8 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             [xCoords, yCoords] = obj.getBoundaryCoords('resetEdge', true);
             newPos = [min(xCoords), min(yCoords), range(xCoords), range(yCoords)];
             obj.resize(newPos);
-            obj.updateImage();            
+            obj.updateImage();
         end
-        
         
         function resize(obj, newPos)
             
@@ -158,7 +141,6 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             obj.radius = [range(xCoords)/2, range(yCoords)/2] * 1000;
 
         end
-        
         
         function togglePersistentState(obj, src, event)
             
@@ -173,9 +155,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
                     src.Text = 'Always Show';
             end
         end
-        
     end
-    
     
     methods (Access = protected)
         
@@ -191,7 +171,6 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             if opt.resetEdge
                 obj.edge = [];
             end
-            
             
             if isempty(obj.edge)
                 radiusMapCoords = obj.radius / 1000;
@@ -229,10 +208,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             obj.edge = [x, y];
 
         end
-        
     end
-    
-    
     
     methods (Static)
         
@@ -244,7 +220,6 @@ classdef Annotation < fovmanager.mapobject.BaseObject
                 'shape', shapes.Selection, 'color', 'k', 'radius', 0);
             S = tools.editStruct(S);
         end
-        
         
         function shapes = getShapes()
 
@@ -258,6 +233,4 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             
         end
     end
-    
-    
 end

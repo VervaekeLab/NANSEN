@@ -32,7 +32,7 @@ function rgbImage = colorCodeImageStack(imArray, colorMap)
     end
     
     % Get the average of each color channel.
-    rgbImage = squeeze(nanmean(imarrayRGB, 3)); %#ok<NANMEAN> 
+    rgbImage = squeeze(nanmean(imarrayRGB, 3)); %#ok<NANMEAN>
     
     % Recast to original datatype if relevant
     if exist('dataType', 'var')

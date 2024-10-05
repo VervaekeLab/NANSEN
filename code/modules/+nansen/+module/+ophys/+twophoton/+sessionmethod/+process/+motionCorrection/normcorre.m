@@ -32,10 +32,7 @@ classdef normcorre < nansen.session.SessionMethod & nansen.wrapper.normcorre.Pro
             if ~nargout % how to generalize this???
                 obj.runMethod()
                 clear obj
-            end 
-            
+            end
         end
-        
     end
-
 end

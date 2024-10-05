@@ -2,7 +2,6 @@ function BW = binarizeAxonStack(imageArray, varargin)
 %binarizeAxonStack Binarize image array with neruonal axonal boutons
 %
 %   Note: This method is ad hoc, designed by trial and error.
-    
  
     % Validate inputs
     assert(ndims(imageArray) == 3, 'Image array must be 3D')
@@ -14,12 +13,11 @@ function BW = binarizeAxonStack(imageArray, varargin)
 
     params = utility.parsenvpairs(params, [], varargin{:});
 
-    global waitbar; useWaitbar = ~isempty(waitbar); 
+    global waitbar; useWaitbar = ~isempty(waitbar);
     if useWaitbar; waitbar(0, 'Please wait while binarizing images'); end
     
     roiAreaPixels = pi .*  (params.RoiDiameter./2) .^ 2;
     minAreaPixels = round(roiAreaPixels ./ 4);
-    
     
     T = prctile( imageArray(:), params.PrctileForBinarization );
     BW = false(size(imageArray));
@@ -36,5 +34,4 @@ function BW = binarizeAxonStack(imageArray, varargin)
             waitbar(i/size(imageArray, 3))
         end
     end
-
 end

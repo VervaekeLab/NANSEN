@@ -4,7 +4,6 @@ classdef AddonManager < handle
     %   to the matlab path. Addons are specified in a separate function
     %   and this class provides several methods for managing these addons.
     
-    
     % TODOS:
     % [X] Save addon list
     % [x] System for adding addons to path on startup
@@ -12,30 +11,27 @@ classdef AddonManager < handle
     % [v] Rename to addon manager
     % [ ] Add option for setting a custom installation dir
     % [ ] File with list of addons should be saved based on which software
-    %     it belongs to. Either use subclassing, or make a way to use access 
+    %     it belongs to. Either use subclassing, or make a way to use access
     %     a settings file by a keyword or something similar.
     % [ ] Better warning/resolving when addons are duplicated...
     
     % [v] Use matlab.addons.install(filename) for matlab toolbox files.
     % [ ] Provide table with addons to install as input...
-
     
     % QUESTIONS:
     %   - Use gitmodules??
     %   - Implement better git functionality, i.e version tracking
-    
 
     % NOTES:
     % addons = matlab.addons.installedAddons
     % S = matlab.addons.toolbox.installedToolboxes Does not show Mathworks toolboxes
-
         
     properties % Preferences
         InstallationDir char = ''   % Path where addons should be installed
         UseGit logical = false      % Whether to use git for downloads and updates
     end
 
-    properties 
+    properties
         AddonList struct = struct() % List of addons (table or struct array)
     end
 
@@ -51,7 +47,7 @@ classdef AddonManager < handle
         
         % A list of fields that are relevant for each addon entry
         % Todo: make into a separate class...
-        addonFields = {...  
+        addonFields = {...
             'Name', ...             % Name of addon
             'IsRequired', ...       % Whether addon is required or optional
             'IsInstalled', ...
@@ -66,7 +62,6 @@ classdef AddonManager < handle
             'AddToPathOnInit', ...
             'IsDoubleInstalled'}
     end
-    
     
     methods (Access = ?nansen.internal.user.NansenUserSession)
         
@@ -93,7 +88,6 @@ classdef AddonManager < handle
             % search path.
             obj.checkAddonDuplication()
         end
-        
     end
     
     methods
@@ -143,7 +137,7 @@ classdef AddonManager < handle
         end
         
         function S = updateAddonList(~, S)
-        %updateAddonList Compare current with default 
+        %updateAddonList Compare current with default
         %   (in case defaults have been updated)
         
         %   %todo: rename
@@ -214,9 +208,9 @@ classdef AddonManager < handle
             obj.AddonList(addonIdx).DateInstalled = datestr(now);
             obj.AddonList(addonIdx).FilePath = pkgInstallationDir;
             
-            % Addon is added using this addon manager. Addon should 
+            % Addon is added using this addon manager. Addon should
             % therefore be added to the Matlab search path when this
-            % class is initialized. (assume it should not permanently be 
+            % class is initialized. (assume it should not permanently be
             % saved to the search path)
             obj.AddonList(addonIdx).AddToPathOnInit = true;
             
@@ -291,16 +285,16 @@ classdef AddonManager < handle
             clear fileCleanupObj
 
             % Fix github unzipped directory...
-            if strcmp(addonEntry.Source, 'Github') 
+            if strcmp(addonEntry.Source, 'Github')
                 renamedDir = obj.restructureUnzippedGithubRepo(pkgInstallationDir);
                 pkgInstallationDir = renamedDir;
             end
 
             obj.AddonList(addonIdx).FilePath = pkgInstallationDir;
             
-            % Addon is added using this addon manager. Addon should 
+            % Addon is added using this addon manager. Addon should
             % therefore be added to the Matlab search path when this
-            % class is initialized. (assume it should not permanently be 
+            % class is initialized. (assume it should not permanently be
             % saved to the search path)
             obj.AddonList(addonIdx).AddToPathOnInit = true;
             obj.markDirty()
@@ -353,7 +347,7 @@ classdef AddonManager < handle
             pathListNoGit = strjoin(pathListCell, pathsep);
 
             % Add all remaining folders to path.
-            addpath(pathListNoGit); 
+            addpath(pathListNoGit);
         end
         
         function addAllToMatlabPath(obj)
@@ -374,7 +368,7 @@ classdef AddonManager < handle
                 % Only add those who have filepath assigned (those are added from this interface)
                 if obj.AddonList(i).IsInstalled
                     if obj.AddonList(i).AddToPathOnInit
-                        obj.AddonList(i).AddToPathOnInit = false; 
+                        obj.AddonList(i).AddToPathOnInit = false;
                     end
                 end
             end
@@ -418,7 +412,7 @@ classdef AddonManager < handle
         
         % Not implemented:
         function TF = isAddonUpToDate(obj)
-        %isAddonRecent 
+        %isAddonRecent
         
             % Check if version is latest...?
         
@@ -438,7 +432,7 @@ classdef AddonManager < handle
     methods (Access = protected)
         
         function addonIdx = getAddonIndex(obj, addonIdx)
-        %getAddonIndex Get index (number) of addon in list given addon name  
+        %getAddonIndex Get index (number) of addon in list given addon name
             
             if isa(addonIdx, 'char')
                 addonIdx = strcmpi({obj.AddonList.Name}, addonIdx);
@@ -448,10 +442,9 @@ classdef AddonManager < handle
                 error('Something went wrong, addon was not found in list.')
             end
         end
-    
     end
     
-    methods (Hidden, Access = protected) 
+    methods (Hidden, Access = protected)
                
         function pathStr = getPathForAddonList(obj, prefDir)
         %getPathForAddonList Get path where local addon list is saved.
@@ -465,7 +458,7 @@ classdef AddonManager < handle
         end
         
         function fileType = getFileTypeFromUrl(obj, addonEntry)
-        %getFileTypeFromUrl Get filetype from the url download entry.    
+        %getFileTypeFromUrl Get filetype from the url download entry.
             downloadUrl = addonEntry.DownloadUrl;
             
             % Todo: Does this generalize well?
@@ -508,7 +501,6 @@ classdef AddonManager < handle
 %               Identifier - Unique identifier of the installed add-on
             
         end
-        
     end
     
     methods (Hidden)
@@ -525,7 +517,6 @@ classdef AddonManager < handle
                 fprintf('%s : %s\n', thisAddon.Name, fileType)
             end
         end
-        
     end
 
     methods (Static)
@@ -561,7 +552,7 @@ classdef AddonManager < handle
                             addpath(genpath(subfoldersNotOnPath{i}))
                         end
                         savepath()
-                end                
+                end
             end
         end
     end
@@ -650,6 +641,4 @@ classdef AddonManager < handle
                     isfolder(fullfile(rootDir, 'neuroscience_toolboxes'));
         end
     end
-
 end
-

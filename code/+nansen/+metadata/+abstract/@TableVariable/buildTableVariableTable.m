@@ -1,15 +1,15 @@
 function attributeTable = buildTableVariableTable(fileList)
 %buildTableVariableTable Build table variable info table from list of files.
 %
-%   attributeTable = buildTableVariableTable(fileList) returns a table 
-%   where each row represents information for a table variable. fileList 
-%   is a list (struct array) of file attributes as returned by the dir 
-%   function. If elements in the list does not represent a table variable, 
+%   attributeTable = buildTableVariableTable(fileList) returns a table
+%   where each row represents information for a table variable. fileList
+%   is a list (struct array) of file attributes as returned by the dir
+%   function. If elements in the list does not represent a table variable,
 %   they are ignored.
 %
 %   The attributeTable contains the following variables:
-%       - Name : Name of the table variable. (Todo: Should this be of the form TableType.Name, see next line). 
-%       - TableType : Name of table type this variable is defined for 
+%       - Name : Name of the table variable. (Todo: Should this be of the form TableType.Name, see next line).
+%       - TableType : Name of table type this variable is defined for
 %       - IsCustom : Whether table variable is custom. Consider removing
 %       - IsEditable: Whether table variable is editable
 %       - HasClassDefinition: Whether table variable is defined by a class.
@@ -26,7 +26,7 @@ function attributeTable = buildTableVariableTable(fileList)
     % Table variables as they are implemented now:
     %
     % A session has public properties. These are default table variables,
-    % i.e not custom. 
+    % i.e not custom.
     %
     % IsEditable is an attribute. Default table variables are not editable.
     % A table variable becomes editable if the class definition has a
@@ -41,7 +41,6 @@ function attributeTable = buildTableVariableTable(fileList)
         "nansen.metadata.type.Subject" ];
 
     defaultAttributes = getDefaultTableVariableAttribute();
-    
 
     % Initialize the table based on default variables.
     for i = 1:numel(supportedTypes)
@@ -82,7 +81,6 @@ function attributeTable = buildTableVariableTable(fileList)
         else
             idx = find(isMatch);
         end
-
 
         try
             fcnResult = feval(thisFcnName);

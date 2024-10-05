@@ -10,7 +10,7 @@ classdef iconSet < uim.handle
 % IconData for an icon is received by calling iconSet.iconName where
 % iconName is the name of the icon.
 
-% Todo: 
+% Todo:
 %   Implement remove icons
 %   Add multiple icons in one go
 %   Create colorful icons
@@ -24,7 +24,7 @@ classdef iconSet < uim.handle
     
     methods %Structors
         function obj = iconSet(pathStr)
-        %iconSet Initialize an iconSet for an icon library 
+        %iconSet Initialize an iconSet for an icon library
         %
         %   obj = iconSet(pathStr)
         
@@ -33,7 +33,6 @@ classdef iconSet < uim.handle
             
             obj.loadIcons();
         end
-
     end
     
     methods
@@ -66,9 +65,7 @@ classdef iconSet < uim.handle
                         [varargout{:}] = builtin('subsref', obj, s);
                     end
             end
-            
         end
-        
         
         function loadIcons(obj)
         %LOADICONS Load icons from matfile
@@ -79,7 +76,6 @@ classdef iconSet < uim.handle
             
             obj.iconNames = fieldnames(obj.iconData);
         end
-        
         
         function saveIcons(obj, S)
         %SAVEICONS Save icons to matfile
@@ -95,11 +91,9 @@ classdef iconSet < uim.handle
             end
         end
         
-        
         function listIcons(obj)
             fprintf([strjoin(obj.iconNames, '\n'), '\n'])
         end
-        
         
         function addIcon(obj, iconName, S)
         %addIcon Add icon to the library
@@ -128,7 +122,6 @@ classdef iconSet < uim.handle
             
         end
         
-        
         function addIconFromFile(obj, iconName, filePath)
             
             if nargin < 3
@@ -140,7 +133,7 @@ classdef iconSet < uim.handle
             S = load(filePath);
             
             if nargin < 2
-                iconName = inputdlg(); 
+                iconName = inputdlg();
                 if isempty(iconName); return; end
                 iconName = iconName{1};
             end
@@ -150,7 +143,6 @@ classdef iconSet < uim.handle
             obj.addIcon(iconName, newS)
             
         end
-        
         
         function removeIcon(obj, iconName)
             
@@ -164,7 +156,6 @@ classdef iconSet < uim.handle
             
         end
         
-        
         function setSimplifyFalse(obj)
             
             names = obj.iconNames;
@@ -177,12 +168,11 @@ classdef iconSet < uim.handle
                 end
             end
         end
-        
     end
     
     methods (Access = private)
 % %         function filePath = getIconPackagePath(obj)
-% %             
+% %
 % %         end
     end
     
@@ -196,8 +186,8 @@ classdef iconSet < uim.handle
         %   later be plotted using the patch function.
         %
         %   S = createIcon(rootDir, iconName, plotType) returns a struct of
-        %   patch properties (S) given rootDir (directory with png files) and 
-        %   iconName (name of icon png file). plotType can be 'patch' 
+        %   patch properties (S) given rootDir (directory with png files) and
+        %   iconName (name of icon png file). plotType can be 'patch'
         %   (default) or 'polygon'. Not sure why I would ever want to use
         %   polygon...
             
@@ -219,7 +209,6 @@ classdef iconSet < uim.handle
             fig = figure('Visible', 'off');
             ax = axes(fig);
             axis equal
-
             
             for i = IND
                 imageName = L(i).name;
@@ -267,5 +256,4 @@ classdef iconSet < uim.handle
 
         end
     end
-    
 end

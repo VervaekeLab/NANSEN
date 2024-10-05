@@ -1,5 +1,5 @@
 classdef assignProperties < uim.handle & matlab.mixin.SetGet
-%assignProperties Class interface for parsing inputs to properties. 
+%assignProperties Class interface for parsing inputs to properties.
 %
 %   Parse inputs in the form of either a) cell array of name value pairs or
 %   b) a struct of fields reflecting class properties. This class should
@@ -16,7 +16,7 @@ classdef assignProperties < uim.handle & matlab.mixin.SetGet
             
             % NOTE! It is important that the varargin inputs are set to
             % property values after default because some properties depend
-            % on each other. 
+            % on each other.
             
             % NOTE2. No idea why I use utility.parsenvpairs here. Is it
             % just something I did for speed, but which creates problem
@@ -54,9 +54,7 @@ classdef assignProperties < uim.handle & matlab.mixin.SetGet
                     obj.(propertyNames{i}) = S.(propertyNames{i});
                 end
             end
-            
         end
-        
         
         function varargout = addComponentDefaultValues(obj, cellOfArgin)
             % Question: Are subclass defaults overriding superclass
@@ -79,7 +77,6 @@ classdef assignProperties < uim.handle & matlab.mixin.SetGet
             %parseInputs@uim.mixin.assignProperties(obj, C{:})
         
         end
-        
     end
         
     methods (Static, Access = protected)
@@ -88,7 +85,6 @@ classdef assignProperties < uim.handle & matlab.mixin.SetGet
             % Subclass may override
             S = struct;
         end
-        
     end
     
     methods
@@ -98,7 +94,7 @@ classdef assignProperties < uim.handle & matlab.mixin.SetGet
             mc = metaclass(obj);
 
             % Get all property names
-            propertyNames = {mc.PropertyList.Name}; 
+            propertyNames = {mc.PropertyList.Name};
             isTransient = [ mc.PropertyList.Hidden ];
             propertyNames = propertyNames(~isTransient);
             
@@ -107,17 +103,13 @@ classdef assignProperties < uim.handle & matlab.mixin.SetGet
             
         end
         
-        
         function fromStruct(obj)
-            
             
         end
         
-        
 % % %         function saveobj()
-% % %             
+% % %
 % % %         end
         
     end
-    
 end

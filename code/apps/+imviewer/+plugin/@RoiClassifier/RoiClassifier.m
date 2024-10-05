@@ -1,6 +1,5 @@
 classdef RoiClassifier < applify.mixin.AppPlugin
     
-    
     properties (Constant, Hidden = true) % Inherited from applify.mixin.UserSettings via AppPlugin
         USE_DEFAULT_SETTINGS = false
         DEFAULT_SETTINGS = imviewer.plugin.RoiClassifier.getDefaultSettings() % Todo... This is classifier settings.I guess these should be settings relevant for connecting the two apps...
@@ -36,7 +35,6 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                 IND = contains({imviewerApp.Plugins.Name}, 'Roimanager');
 
                 h = imviewerApp.Plugins(IND);
-
                 
                 % Todo: move to on plugin activated???
                 % Get roi group
@@ -59,15 +57,12 @@ classdef RoiClassifier < applify.mixin.AppPlugin
 
                     % % Get image stack and rois. Cancel if there are no rois
                     
-                    
                     frameIdx = 1:min([5000, imviewerApp.ImageStack.NumTimepoints]);
-                    
                     
                     imviewerApp.displayMessage('Please wait. Loading image frames. This might take a minute')
                     imageData = imviewerApp.ImageStack.getFrameSet(frameIdx);
                     
                     imviewerApp.displayMessage('Please wait. Creating thumbnail images of rois and calculating statistics. This might take a minute')
-
                     
                     import('nansen.twophoton.roi.getRoiAppData')
                     [roiImages, roiStats] = getRoiAppData(imageData, roiArray);       % Imported function
@@ -81,7 +76,6 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                     %roiArray = roiArray.setappdata('roiClassification', zeros(1, numel(roiArray)));
                     
                     roiGroup.addRois(roiArray, [], 'replace')
-
                     
                     % Todo: set to appdata of roiarray...
 % %                     roiGroup.roiImages = roiImages;
@@ -93,7 +87,6 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                     hasRoiData = roiGroup.validateForClassification();
 
                 end
-
                 
                 if roiGroup.roiCount > 0 && hasRoiData
                     % Initialize roi classifier
@@ -102,28 +95,23 @@ classdef RoiClassifier < applify.mixin.AppPlugin
                     
                     success = true;
                 end
-
             end
 
             if ~success
                 imviewerApp.displayMessage('Error: No rois are present')
             end
-
-
         end
         
         function delete(obj)
             
         end
-        
     end
     
     methods
         
-        function setFilePath(obj, filePath) 
+        function setFilePath(obj, filePath)
             obj.ClassifierApp.dataFilePath = filePath;
         end
-
     end
     
     methods (Access = protected)
@@ -136,16 +124,11 @@ classdef RoiClassifier < applify.mixin.AppPlugin
             % fprintf('roiclassifier plugin activated...')
             
         end
-        
     end
     
-    
-    methods (Static)       
+    methods (Static)
         function icon = getPluginIcon()
             
         end
     end
-
 end
-
-

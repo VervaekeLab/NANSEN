@@ -26,13 +26,13 @@ function roiArray = run(Y, roiDiameter)
         % Format figure that is used for tuning alpha
         init_opt.figureHandle = 1;
         figure;
-        set(gcf, 'Position', [10, 10, 1910, 385]);      
+        set(gcf, 'Position', [10, 10, 1910, 385]);
 
         % Tune alpha for metric (correlation image)
         [alpha, phi_0] = tune_alpha(corrIm, radius, alpha, init_opt);
 
     else
-        phi_0          = initialise(corrIm, radius, alpha, init_opt);  
+        phi_0          = initialise(corrIm, radius, alpha, init_opt);
     end
 
     plotContoursOnSummaryImage(corrIm, phi_0<0, []);
@@ -50,7 +50,7 @@ function roiArray = run(Y, roiDiameter)
     seg_opt.mergeDuring         = 1;
     seg_opt.maxIt               = 20;
 
-    if retune_lambda  
+    if retune_lambda
         lambda         = tune_lambda(phi_0, video, radius,...
                                      seg_opt, corrIm, meanIm);
         seg_opt.lambda = lambda;
@@ -131,7 +131,7 @@ function roiArray = run(Y, roiDiameter)
     %% Post processing (size thresholding)
     figure;
     % If a user is only looking for cell bodies, it is beneficial to threshold
-    % the size of the ROIs. 
+    % the size of the ROIs.
     min_size     = pi*radius^2*0.5;
     smaller_ROIs = masks(:,:, pix_num < min_size);
     larger_ROIs  = masks(:,:, pix_num >= min_size);
@@ -159,6 +159,5 @@ function roiArray = run(Y, roiDiameter)
     
     imSize = [size(Y,1), size(Y,2)];
     roiArray = autosegment.able.getRoiArray(all_ROIs, imSize);
-
 
 end

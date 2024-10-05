@@ -37,6 +37,4 @@ function saveIcon(iconName)
 
         save(savePath, '-struct', 'S')
     end
-    
 end
-

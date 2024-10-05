@@ -1,10 +1,10 @@
 classdef NansenUserSession < handle
 % NansenUserSession - Interface for managing a user session in NANSEN
-%   
-%   This class is activated when a user runs nansen, and handles all the 
-%   user-specific customization for nansen. It saves all changes the user 
-%   makes during a session and restores them when a the user starts a new 
-%   session at a later time. It should work behind the scenes, but users 
+%
+%   This class is activated when a user runs nansen, and handles all the
+%   user-specific customization for nansen. It saves all changes the user
+%   makes during a session and restores them when a the user starts a new
+%   session at a later time. It should work behind the scenes, but users
 %   are free to interact with it directly.
 %
 %   Note: The class is created to handle multiple users/user profiles, but
@@ -15,18 +15,17 @@ classdef NansenUserSession < handle
 %       UserSession instance.
 
 %   This class provides a singleton instance containing the following
-%   componenets: 
+%   components:
 %       - Preferences
 %       - ProjectManager
 %       - AddonManager
 
-% Todo: 
+% Todo:
 %   [ ] Clear projectmanager instance when user session is deleted
 %   [ ] Add DataManager app when it is initialized and shut it down
 %   properly when a user session is ended.
 %   [ ] If DataManager app is shut down independently, DataManagerApp
 %   property should be reset
-
     
     properties (SetAccess = immutable) % Public
         CurrentUserName = "default"
@@ -40,9 +39,9 @@ classdef NansenUserSession < handle
     properties (Access = private)
         AddonManager nansen.config.addons.AddonManager
         ProjectManager nansen.config.project.ProjectManager
-        DataManagerApp % App of type nansen.App. 
-        % NB: Can not specify type for property, because the nansen.App 
-        % class depends on the Widgets Toolbox which might not be installed 
+        DataManagerApp % App of type nansen.App.
+        % NB: Can not specify type for property, because the nansen.App
+        % class depends on the Widgets Toolbox which might not be installed
         % when creating a UserSession for the first time.
     end
 
@@ -63,7 +62,7 @@ classdef NansenUserSession < handle
     end
 
     methods (Static)
-        %instance Return a singleton instance of the NansenUserSession  
+        %instance Return a singleton instance of the NansenUserSession
         obj = instance(userName, mode, skipProjectCheck) % Method in separate file
     end
 
@@ -75,7 +74,6 @@ classdef NansenUserSession < handle
         function project = get.CurrentProject(obj)
             project = obj.ProjectManager.CurrentProject;
         end
-
     end
 
     methods
@@ -136,7 +134,6 @@ classdef NansenUserSession < handle
                 fprintf('Closed NANSEN user session for user "%s" (%s).\n', userName, obj.SessionUUID)
             end
         end
-
     end
 
     methods (Access = private) % Initialization procedures
@@ -224,7 +221,6 @@ classdef NansenUserSession < handle
             obj.Preferences.CurrentProjectName = evt.NewProjectName;
             obj.activatePreferenceListener('CurrentProjectName')
         end
-
     end
 
     methods (Access = private) % Internal actions
@@ -232,7 +228,7 @@ classdef NansenUserSession < handle
         function runPreStartupUpdateActions(obj)
         % runPreStartupUpdateActions - Run upgrade actions
             
-        % The actions here should be a one-time thing. Sometimes changes 
+        % The actions here should be a one-time thing. Sometimes changes
         % are made to the code which influence user data, and these actions
         % update userdata if necessary.
             
@@ -251,11 +247,11 @@ classdef NansenUserSession < handle
         function runPostConstructionUpdateActions(obj)
         % runPostStartupUpdateActions - Are actions needed due to update?
         %
-        % The actions here should be a one-time thing. Sometimes changes 
+        % The actions here should be a one-time thing. Sometimes changes
         % are made to the code which influence user data, and these actions
         % update userdata if necessary.
 
-        % Note: This method will be and should only be called from the 
+        % Note: This method will be and should only be called from the
         % static instance method. This is because some of the procedures
         % below might depend on the user session itself, so the singleton
         % instance must have been created when this method is called to
@@ -276,7 +272,6 @@ classdef NansenUserSession < handle
                 rmpref('Nansen', 'CurrentProjectPath');
             end
         end
-
     end
     
     methods (Static)
@@ -290,5 +285,4 @@ classdef NansenUserSession < handle
             preferenceDirectory = fullfile(prefdir, 'Nansen', userName);
         end
     end
-
 end

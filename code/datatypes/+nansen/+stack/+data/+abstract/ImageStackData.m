@@ -22,9 +22,9 @@ classdef ImageStackData < uim.mixin.assignProperties
 %           Rename StackDimensionOrder to StackPermutationOrder or
 %           something similar? Also store the DataPermutation order
 %           (equivalent to the ipermute order)?
-%   
+%
 
-% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - -
 
     properties (Constant, Hidden) % Default values and names for dimensions
         DEFAULT_DIMENSION_ARRANGEMENT = 'YXCZT'
@@ -55,8 +55,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         StackDimensionOrder             % Numeric vector describing the order of dimensions in the stack
     end
     
-    
-% - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - 
+% - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - -
 
     methods (Abstract, Access = protected) % ABSTRACT METHODS
         
@@ -76,7 +75,7 @@ classdef ImageStackData < uim.mixin.assignProperties
     % These methods should not be redefined in subclasses
     
         function varargout = size(obj, dim)
-        %SIZE Implement size function to mimick array functionality.
+        %SIZE Implement size function to mimic array functionality.
             
             numObj = numel(obj);
             if numObj > 1
@@ -120,11 +119,10 @@ classdef ImageStackData < uim.mixin.assignProperties
                     end
                 end
             end
-            
         end
         
         function ndim = ndims(obj)
-        %NDIMS Implement ndims function to mimick array functionality.
+        %NDIMS Implement ndims function to mimic array functionality.
             
             %ndim = numel(obj.DataSize);
             % Use dataDimensionArrangement instead because trailing
@@ -135,7 +133,7 @@ classdef ImageStackData < uim.mixin.assignProperties
         end
         
         function dataType = class(obj)
-        %CLASS Implement class function to mimick array functionality.
+        %CLASS Implement class function to mimic array functionality.
             dataType = sprintf('%s (%s ImageStackData)', obj(1).DataType, obj(1).StackDimensionArrangement);
         end
                 
@@ -191,7 +189,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                     % one.?
                 end
                 
-                % Todo: check that subs are not exceeding data/array bounds 
+                % Todo: check that subs are not exceeding data/array bounds
                 % obj.validateSubs() % Todo: make this method...
                 
                 data = obj.getData(subs);
@@ -262,7 +260,6 @@ classdef ImageStackData < uim.mixin.assignProperties
                 obj.DataDimensionArrangement = newValue;
                 obj.onDataDimensionArrangementChanged(oldValue, newValue)
             end
-            
         end
         
         function set.StackDimensionArrangement(obj, newValue)
@@ -278,7 +275,6 @@ classdef ImageStackData < uim.mixin.assignProperties
             obj.StackDimensionOrder = newValue;
             obj.onStackDimensionOrderChanged()
         end
-        
     end
     
     methods
@@ -310,7 +306,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                 defaultDimensionArrangement = 'YX';
 
             % Assume a 3D array with 3 frames is a multichannel (RGB) image
-            elseif nDim == 3 && obj.DataSize(3) == 3 
+            elseif nDim == 3 && obj.DataSize(3) == 3
                 defaultDimensionArrangement = 'YXC';
 
             % Assume a 3D array with N frames is a timeseries stack
@@ -366,7 +362,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                 if ~isempty(obj.DataSize)
                     obj.DataSize(nDims) = 1;
                     obj.DataSize(obj.DataSize==0) = 1;
-                end    
+                end
             end
 
             % Check if any dimensions were redefined
@@ -381,7 +377,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                 elseif ~isempty(newDim) && isempty(oldDim)
                     % A data dimension was added
                     % Note: This assumes the dimension was added at the end
-                    % I dont know if thats a valid assumption.
+                    % I dont know if that's a valid assumption.
                     % Todo: This need more development for special cases
                     obj.StackDimensionArrangement = strcat(obj.StackDimensionArrangement, newDim);
                 elseif isempty(newDim) && isempty(oldDim)
@@ -402,7 +398,7 @@ classdef ImageStackData < uim.mixin.assignProperties
             if ~isequal(stackDimensionOrderPre, obj.StackDimensionOrder)
                 error('Unexpected behavior. Debug/report!')
             end
-            % Todo: remove. This is also redundant 
+            % Todo: remove. This is also redundant
             %obj.updateStackSize();
         end
         
@@ -416,7 +412,7 @@ classdef ImageStackData < uim.mixin.assignProperties
             % % % i.e the "ipermutation" indices.
             % % % [Lia, Locb] = ismember(obj.StackDimensionArrangement, ...
             % % %     obj.DataDimensionArrangement);
-            % % % 
+            % % %
             % % % dataDimensionOrder = Locb(Lia);
 
             [Lia, Locb] = ismember(obj.DataDimensionArrangement, ...
@@ -459,7 +455,6 @@ classdef ImageStackData < uim.mixin.assignProperties
             else
                 dim = strfind(obj.DataDimensionArrangement, 'T');
             end
-            
         end
         
         function subs = rearrangeSubs(obj, subs)
@@ -484,14 +479,13 @@ classdef ImageStackData < uim.mixin.assignProperties
             nd = numel(obj.DataSize);
             if numel(obj.StackDimensionOrder) > nd
                 obj.StackSize(obj.StackDimensionOrder(1:nd)) = obj.DataSize; % Todo: is this correct?
-            else 
+            else
                 %obj.StackSize = obj.DataSize(obj.StackDimensionOrder);
                 if ~isempty(obj.StackDimensionOrder)
                     obj.StackSize(obj.StackDimensionOrder) = obj.DataSize;
                 end
             end
         end
-        
     end
     
     methods (Static, Access = private)
@@ -520,9 +514,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                 msg3 = sprintf('Dimension arrangement must be a permutation of the reference dimensions: %s', refArrangement);
                 assert(isSameLength && isSameDims, msg3)
             end
-            
         end
-        
     end
     
     methods (Static)
@@ -562,10 +554,7 @@ classdef ImageStackData < uim.mixin.assignProperties
                 case {'single', 'double'}
                     limits = [0, 1];
             end
-            
         end
-        
     end
-    
 end
      

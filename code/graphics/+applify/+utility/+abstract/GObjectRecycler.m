@@ -1,19 +1,19 @@
 classdef GObjectRecycler < uiw.mixin.AssignPVPairs
 %GObjectRecycler Class for recycling graphical object handles of an axes
 %
-%   The class will cache graphical objects internally, and if cached 
-%   objects are available, they will be provided when asked for. If no 
-%   objects are available, new objects will be created. If an app needs to 
-%   temporarily discard objects, instead of deleting them, the app can use 
-%   the recycle method, which resets the graphical object handles and 
+%   The class will cache graphical objects internally, and if cached
+%   objects are available, they will be provided when asked for. If no
+%   objects are available, new objects will be created. If an app needs to
+%   temporarily discard objects, instead of deleting them, the app can use
+%   the recycle method, which resets the graphical object handles and
 %   places them back in the cache.
 %
 %   Getting cached graphical objects are faster than creating new objects
-%   and therefore an app can more flexibly and efficiently scale up and 
-%   down the number of objects that are displayed, as well as "replace" 
+%   and therefore an app can more flexibly and efficiently scale up and
+%   down the number of objects that are displayed, as well as "replace"
 %   them when needed.
 
-    % Todo: 
+    % Todo:
     %   [ ] Setting Visible and HandleVisibility has a small overhead.
     %       Necessary? Alternatively, make it more specific.
 
@@ -22,7 +22,7 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
         PickableParts = 'none'
     end
     
-    properties 
+    properties
         CacheSize = inf;    % Not implemented yet
         BlockSize = 10;     % How many new handles to create if no handles are available
     end
@@ -39,7 +39,6 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
         GObjects = gobjects(0,1)
         GObjectPropertyNames
     end
-    
 
     methods (Abstract, Access = protected)
         h = createNewHandles(obj, n)
@@ -57,18 +56,16 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
         function delete(obj)
             delete(obj.GObjects)
         end
-
     end
     
     methods % Set/get
         
-        function n = get.NumAvailableObjects(obj) 
+        function n = get.NumAvailableObjects(obj)
             n = numel(obj.GObjects);
         end
-        
     end
 
-    methods 
+    methods
 
         function recycle(obj, h)
             
@@ -79,7 +76,6 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
             set(h, 'HandleVisibility', 'off')
             obj.GObjects = cat(1, obj.GObjects, h);
         end
-
     end
 
     methods (Access = protected)
@@ -116,13 +112,11 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
             
             propertyValues = cell(1, numel(propertyNames));
             for i = 1:numel(propertyNames)
-                propertyValues{i} = obj.(propertyNames{i});                
+                propertyValues{i} = obj.(propertyNames{i});
             end
 
             nvPairs = cat(1, propertyNames', propertyValues);
             nvPairs = transpose( nvPairs(:) ); % Return as row vector
         end
-
     end
-
 end

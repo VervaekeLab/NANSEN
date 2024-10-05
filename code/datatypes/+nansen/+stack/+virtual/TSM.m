@@ -1,4 +1,4 @@
-% Class for indexing data from a tsm file in the same manner that data 
+% Class for indexing data from a tsm file in the same manner that data
 % is indexed from matlab arrays.
 
 classdef TSM < nansen.stack.data.VirtualArray
@@ -14,7 +14,7 @@ end
 
 properties (Access = private, Hidden)
     MemMap                          % A matlab memorymap for a binary file
-    DarkFrame 
+    DarkFrame
 end
 
 methods % Structors
@@ -31,7 +31,6 @@ methods % Structors
         % Create a virtual stack object
         obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
     end
-    
 end
 
 methods (Access = protected) % Implementation of abstract methods
@@ -52,7 +51,7 @@ methods (Access = protected) % Implementation of abstract methods
             folderPath = filePath;
             listing = dir(fullfile(folderPath, '*.tsm'));
             fileName = listing(1).name;
-            if isempty(fileName) 
+            if isempty(fileName)
                 error('Did not find tsm file in the specified folder')
             end
             
@@ -120,7 +119,6 @@ methods (Access = protected) % Implementation of abstract methods
         obj.MemMap = memmapfile( obj.FilePath, 'Writable', false, ...
             'Format', mapFormat );
     end
-    
 end
 
 methods % Implementation of abstract methods
@@ -159,19 +157,17 @@ methods % Implementation of abstract methods
         
         obj.MemMap.Data.ImageArray(subs{:}) = data;
     end
-    
 end
 
 methods (Access = private)
     
     function tf = isSupportedFileType(obj, filePath)
-    %isSupportedFileType Check if given filepath is supported file type    
+    %isSupportedFileType Check if given filepath is supported file type
         [~, ~, ext] = fileparts(filePath);
         ext = strrep(ext, '.', '');
         
         tf = any(strcmpi(obj.FILE_FORMATS, ext));
     end
-    
 end
 
 methods (Static)
@@ -183,7 +179,5 @@ methods (Static)
     function initializeFile(~, ~, ~)
         error('Creating tsm files is not supported')
     end
-    
 end
-
 end

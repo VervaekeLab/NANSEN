@@ -9,7 +9,7 @@ classdef ModuleManagerApp < nansen.config.abstract.ConfigurationApp
         UIControlPanel
     end
 
-    events 
+    events
         ModuleSelectionChanged
     end
 
@@ -32,7 +32,7 @@ classdef ModuleManagerApp < nansen.config.abstract.ConfigurationApp
             %obj.setLayout()
             obj.applyTheme()
 
-            obj.UIModule{1} = nansen.config.module.ModuleManagerUI(obj.UIControlPanel); 
+            obj.UIModule{1} = nansen.config.module.ModuleManagerUI(obj.UIControlPanel);
             addlistener(obj.UIModule{1}, 'ModuleSelectionChanged', @obj.onSelectionChanged);
             
             if nargin >= 1
@@ -66,5 +66,4 @@ classdef ModuleManagerApp < nansen.config.abstract.ConfigurationApp
             drawnow
         end
     end
-
 end

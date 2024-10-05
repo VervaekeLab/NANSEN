@@ -31,9 +31,8 @@ classdef Caiman < nansen.session.SessionMethod
             if ~nargout % how to generalize this???
                 obj.runMethod()
                 clear obj
-            end 
+            end
         end
-        
     end
     
     methods
@@ -58,7 +57,7 @@ classdef Caiman < nansen.session.SessionMethod
             
         end
         
-        function wasSuccess = preview(obj) 
+        function wasSuccess = preview(obj)
             h = openDeconvolutionExplorer(obj.SessionObjects);
             wasSuccess = obj.finishPreview(h);
         end
@@ -67,7 +66,6 @@ classdef Caiman < nansen.session.SessionMethod
             fprintf(varargin{:})
         end
     end
-
 end
 
 function hDffPlugin = openDeconvolutionExplorer(sessionObj)
@@ -82,7 +80,6 @@ function hDffPlugin = openDeconvolutionExplorer(sessionObj)
     
     % Load signals
     roiSignalTable = sessionObj.loadData('RoiSignals_MeanF');
-    
     
     % Create roi group
     if isa(roiArray, 'RoI')

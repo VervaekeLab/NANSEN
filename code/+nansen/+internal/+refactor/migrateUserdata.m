@@ -37,7 +37,7 @@ function migrateUserdata(userSession)
         throw(newException);
     end
     
-    % If copy went fine, we can remove the original userdata folder from 
+    % If copy went fine, we can remove the original userdata folder from
     % MATLAB's savepath and delete the folder from disk.
     rmpath(genpath(oldPath)); savepath
     disp('Removed _userdata from MATLAB''s search path and saved changes.')
@@ -66,7 +66,6 @@ function migrateUserdata(userSession)
         save(projectCatalogFilePath, '-struct', 'S');
     end
 end
-
 
 function newProjectFolderPath = moveProjectFolderToUserpath(projectFolderPath)
 % moveProjectFolderToUserpath - Move a project folder to Nansen's userpath.

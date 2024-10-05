@@ -16,10 +16,9 @@ classdef extractSignals < nansen.session.SessionMethod
         VARIABLE_PREFIX	= 'RoiSignals'          % defined in nansen.processing.DataMethod
     end
 
-    properties 
+    properties
         RequiredVariables = {'TwoPhotonSeries_Corrected', 'roiArray'}
     end
-    
     
     methods (Static)
         function S = getDefaultOptions()
@@ -37,9 +36,7 @@ classdef extractSignals < nansen.session.SessionMethod
                 obj.runMethod()
                 clear obj
             end
-            
         end
-        
     end
     
     methods
@@ -60,7 +57,6 @@ classdef extractSignals < nansen.session.SessionMethod
             obj.saveData('RoiSignals_MeanF', squeeze(signalArray(:, 1, :)) )
             obj.saveData('RoiSignals_NeuropilF', squeeze(signalArray(:, 2:end, :)) )
             
-            
             obj.saveData('OptionsSignalExtraction', P, ...
                 'Subfolder', 'roisignals', 'IsInternal', true)
             
@@ -70,7 +66,6 @@ classdef extractSignals < nansen.session.SessionMethod
             %fileAdapter.setMetadata('StartTimeNum', imageStack.getStartTime('number'), 'Data')
             %fileAdapter.setMetadata('StartTimeStr', imageStack.getStartTime('string'), 'Data')
         end
-        
     end
 
     methods
@@ -78,5 +73,4 @@ classdef extractSignals < nansen.session.SessionMethod
             fprintf(varargin{:})
         end
     end
-
 end

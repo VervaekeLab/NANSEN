@@ -1,7 +1,7 @@
 classdef SessionTaskMenu < handle
 %SessionTaskMenu Class for displaying session methods in a uimenu
 %
-%   A session method should be coded according to descriptions in the 
+%   A session method should be coded according to descriptions in the
 %   SessionMethod class (or function template). These functions are then
 %   saved in a package hierarchy, and this hierarchy will be used here to
 %   create a uimenu using the same hierarchy.
@@ -12,11 +12,11 @@ classdef SessionTaskMenu < handle
 %       'TaskAttributes' : A struct with attributes for a session task
 %       'Mode' : The mode for which the method should be run
 %
-%   The mode is one of the following: 
+%   The mode is one of the following:
 %       - 'Default'
-%       - 'Preview' 
+%       - 'Preview'
 %       - 'TaskQueue'
-%       - 'Edit' 
+%       - 'Edit'
 %
 %   The mode is determined by the value of the Mode property at the time
 %   when the event is triggered. The Mode property has no functionality in
@@ -26,7 +26,6 @@ classdef SessionTaskMenu < handle
 %   Note: The nomenclature of this class is inconsistent. A session method
 %   and a session task refers to the same concept. Need to clean up.
 
-
     % TODO
     %   [ ] Make it possible to get session tasks from different
     %       directories. I.e also directories outside of the nansen repo.
@@ -35,9 +34,8 @@ classdef SessionTaskMenu < handle
     %   [ ] Can the menus be created more efficiently, with regards to
     %       getting task attributes
     %   [ ] Add a mode called update (for updating specific menu item)
-    
 
-%   Generalization: 
+%   Generalization:
 %       If inheriting from a MultiModalMenu:
 %
 %       Should this class have project information? Preferably not, the
@@ -47,7 +45,6 @@ classdef SessionTaskMenu < handle
 %       responsibility to set a property TempPackageDirectory (come up
 %       with better name) instead of having a project changed listener
 %       here...
-
 
     properties (Constant, Hidden)
         ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Help', 'Restart'} % Available modes
@@ -90,16 +87,15 @@ classdef SessionTaskMenu < handle
         MenuUpdated
         MethodSelected
     end
-    
 
     methods
         
         function obj = SessionTaskMenu(appHandle, currentProject)
-        %SessionTaskMenu Create a SessionTaskMenu object 
+        %SessionTaskMenu Create a SessionTaskMenu object
         %
         %   obj = SessionTaskMenu(appHandle, modules) creates a
-        %   SessionTaskMenu for a given app. appHandle is a handle for the 
-        %   app and modules is a cell array containing session task 
+        %   SessionTaskMenu for a given app. appHandle is a handle for the
+        %   app and modules is a cell array containing session task
         %   packages to include when building the menu
         %
         %   Currently available modules:
@@ -137,9 +133,8 @@ classdef SessionTaskMenu < handle
             end
             if isdeletable(obj.hMenuDirs)
                 delete(obj.hMenuDirs)
-            end            
+            end
         end
-
     end
     
     methods % Set/get
@@ -167,7 +162,6 @@ classdef SessionTaskMenu < handle
                 obj.onMethodsRootPathSet()
             end
         end
-        
     end
     
     methods
@@ -201,7 +195,6 @@ classdef SessionTaskMenu < handle
             menuNames = strrep(menuNames, '+', '');
             menuNames = unique(menuNames);
         end
-    
     end
     
     methods (Access = private) % Methods for configuring menu
@@ -213,11 +206,11 @@ classdef SessionTaskMenu < handle
         function buildMenuFromDirectory(obj, hParent, dirPath)
         %buildMenuFromDirectory Build menu items from a directory tree
         %
-        % Go recursively through a directory tree of matlab packages 
-        % and create a menu item for each matlab function which is found 
+        % Go recursively through a directory tree of matlab packages
+        % and create a menu item for each matlab function which is found
         % inside. The menu item is configured to trigger an event when it
         % is selected.
-        % 
+        %
         % See also nansen.session.SessionMethod
 
         % Requires: utility.string.varname2label
@@ -255,7 +248,7 @@ classdef SessionTaskMenu < handle
                 else
                     [~, ~, ext] = fileparts(L(i).name);
                     
-                    if ~strcmp(ext, '.m') && ~strcmp(ext, '.mlx')  
+                    if ~strcmp(ext, '.m') && ~strcmp(ext, '.mlx')
                         continue % Skip files that are not .m
                     end
 
@@ -287,7 +280,7 @@ classdef SessionTaskMenu < handle
         end
         
         function addSubmenuForPackageFolder(obj, hParent, folderListing)
-        %addSubmenuForPackageFolder Add submenu for a package folder    
+        %addSubmenuForPackageFolder Add submenu for a package folder
         %
         %   addSubmenuForPackageFolder(obj, hParent, folderListing) adds a
         %   submenu under the given parent menu for a package folder.
@@ -344,7 +337,7 @@ classdef SessionTaskMenu < handle
                     iMitem = uimenu(iSubMenu, 'Text', menuName);
                     
                     obj.createMenuCallback(iMitem, taskAttributes, ...
-                        'OptionsSelection', options{j} )   
+                        'OptionsSelection', options{j} )
                     obj.storeMenuObject(iMitem, taskAttributes)
                 end
             end
@@ -376,7 +369,7 @@ classdef SessionTaskMenu < handle
                     iMitem = uimenu(iSubMenu, 'Text', menuName);
                     
                     obj.createMenuCallback(iMitem, taskAttributes, ...
-                        'Alternative', taskAttributes.Alternatives{j} )   
+                        'Alternative', taskAttributes.Alternatives{j} )
                     obj.storeMenuObject(iMitem, taskAttributes)
                 end
             else
@@ -401,7 +394,7 @@ classdef SessionTaskMenu < handle
         %storeMenuObject Store the menuobject in class properties
         %
         %   The menu item and the session task attributes are stored in
-        %   parallell, so they should always match one to one.
+        %   parallel, so they should always match one to one.
         
             numItems = numel(obj.hMenuItems) + 1;
 
@@ -459,7 +452,6 @@ classdef SessionTaskMenu < handle
                 end
             end
         end
-        
     end
     
     methods (Access = private) % Callback
@@ -490,7 +482,6 @@ classdef SessionTaskMenu < handle
             obj.IsModeLocked = false;
 
         end
-        
     end
 
     methods (Access = private) % Utility methods
@@ -513,7 +504,7 @@ classdef SessionTaskMenu < handle
         end
 
         function packagePathList = listPackageHierarchy(obj)
-        %listPackageHierarchy Get all package folders containing session methods   
+        %listPackageHierarchy Get all package folders containing session methods
         %
         %   This function retrieves all package folders that contain
         %   session methods, both default nansen methods and user project
@@ -535,7 +526,7 @@ classdef SessionTaskMenu < handle
                 if isempty(absPath)
                     finished = true;
                 else
-                    packagePathList = [packagePathList, absPath]; %#ok<AGROW> 
+                    packagePathList = [packagePathList, absPath]; %#ok<AGROW>
                     dirPath = absPath;
                 end
             end
@@ -579,7 +570,6 @@ classdef SessionTaskMenu < handle
 
             sortedNames = menuNames(sortIdx);
         end
-        
     end
     
     methods (Static)
@@ -644,7 +634,5 @@ classdef SessionTaskMenu < handle
                 end
             end
         end
-
     end
-    
 end

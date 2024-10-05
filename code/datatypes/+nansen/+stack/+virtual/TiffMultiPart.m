@@ -3,17 +3,15 @@ classdef TiffMultiPart < nansen.stack.data.VirtualArray
 %
 %   Works for set (data split across multiple files) of multipage tiff files.
 
-
     % Todo:
     % [v] Implement writable.
     % [ ] Set channel mode and write according to selection. I.e we can
     %     write multichannel data to interleaved tiffstacks with 1 sample
-    %     per pixel or we can configure to tiff file with multiple samples 
+    %     per pixel or we can configure to tiff file with multiple samples
     %     per pixels and write multichannel data to each tiff frame
     % [ ] Test that multi plane/ multi channel works with any kind of
     %     dimension arrangement
     %
-    
     
 properties (Constant, Hidden)
     FILE_PERMISSION = 'write'
@@ -26,7 +24,7 @@ end
 
 properties (Access = protected, Hidden)
     tiffObj Tiff
-    fileSize    
+    fileSize
 end
 
 properties (Access = protected)
@@ -47,7 +45,6 @@ properties (Access = protected)
     ChannelMode = '' % multisample, interleaved, multipart
 end
 
-
 methods % Structors
     
     function obj = TiffMultiPart(filePath, varargin)
@@ -62,7 +59,6 @@ methods % Structors
             close(obj.tiffObj(i))
         end
     end
-    
 end
 
 methods (Access = protected) % Implementation of abstract methods
@@ -100,7 +96,6 @@ methods (Access = protected) % Implementation of abstract methods
         if isrow(obj.tiffObj)
             obj.tiffObj = obj.tiffObj';
         end
-        
     end
     
     function getFileInfo(obj)
@@ -223,9 +218,7 @@ methods (Access = protected) % Implementation of abstract methods
             otherwise
                 error('Tiff file is not supported')
         end
-
     end
-    
 end
 
 methods (Access = protected)
@@ -240,13 +233,12 @@ methods (Access = protected)
         else
             numChannels = 1;
         end
-        
     end
     
     function numFrames = countNumFrames(obj)
-    %countNumFrames 
+    %countNumFrames
     %
-    % Making some assumptions here to speed things up. 
+    % Making some assumptions here to speed things up.
     %   1) Number of frames depends on filesize (file not compressed)
     %   2) If there are many files, files with same filesize have same
     %   frame number
@@ -304,7 +296,7 @@ methods (Access = protected)
     end
     
     function createFrameIndexMap(obj)
-    %createFrameIndexMap Create a mapping from frame number to file part    
+    %createFrameIndexMap Create a mapping from frame number to file part
         
         obj.frameIndexInfo = struct('frameNum', [], 'fileNum', [], 'frameInFile', []);
 
@@ -322,11 +314,9 @@ methods (Access = protected)
             count = count + n;
         end
     end
-    
 end
 
-
-methods % Implementation of abstract methods for readin/writing
+methods % Implementation of abstract methods for reading/writing
     
     function data = readData(obj, subs)
     %readData Reads data from multipart tiff file
@@ -430,8 +420,8 @@ methods % Implementation of abstract methods for readin/writing
         % Todo: Test thoroughly
 
 % %         % Todo: Make assertion that data has the same size as the stack
-% %         % (width and height, numchannels) 
-% %         
+% %         % (width and height, numchannels)
+% %
 % %         % Todo: Resolve which is the subs containing number of samples.
 % %         sampleDim = strfind(obj.DimensionOrder, 'T'); % todo, store in property.
 % %         frameIndices = subs{sampleDim};
@@ -464,7 +454,6 @@ methods % Implementation of abstract methods for readin/writing
             obj.tiffObj(fileNum).write(data(dataSub{:}));
 
         end
-        
     end
 
     function writeMetadata(obj)
@@ -474,11 +463,8 @@ methods % Implementation of abstract methods for readin/writing
         if obj.SaveMetadata
             writeMetadata@nansen.stack.data.VirtualArray(obj)
         end
-        
     end
-    
 end
-
 
 methods (Static)
 
@@ -533,7 +519,7 @@ methods (Static)
             if numel(L) > 1 && numel( unique(cellfun(@numel, {L.name})) ) == 1
                 filepathCandidates = fullfile({L.folder}, {L.name});
                 
-                % Remove all numbers from filenames. If all names are 
+                % Remove all numbers from filenames. If all names are
                 % identical after, we assume folder contains multipart files.
                 
                 filepathCandidates_ = regexprep(filepathCandidates, '\d*', '');
@@ -546,5 +532,4 @@ methods (Static)
         end
     end
 end
-
 end

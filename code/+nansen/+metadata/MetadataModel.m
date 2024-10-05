@@ -3,7 +3,6 @@ classdef MetadataModel < handle
     properties (Dependent)
         Name
     end
-    
 
     methods (Abstract)
     
@@ -20,8 +19,5 @@ classdef MetadataModel < handle
             name = classNameSplit{end};
 
         end
-
     end
-
-
 end

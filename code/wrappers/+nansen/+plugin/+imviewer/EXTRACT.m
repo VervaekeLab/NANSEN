@@ -6,7 +6,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin
 %
 %       extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
 
-
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false    % Ignore settings file
         DEFAULT_SETTINGS = []           % This class uses an optionsmanager
@@ -21,7 +20,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         hCellTemplates
         gobjectTransporter
     end
-        
     
     methods % Structors
         
@@ -34,7 +32,7 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         
             obj@imviewer.ImviewerPlugin(varargin{:})
             
-            if ~obj.PartialConstruction 
+            if ~obj.PartialConstruction
                 obj.openControlPanel()
             end
             
@@ -48,7 +46,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin
             delete(obj.hCellTemplates)
             delete(obj.gobjectTransporter)
         end
-        
     end
     
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} )
@@ -85,7 +82,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin
             obj.PrimaryApp.displayMessage(message, [], msgTime)
 
         end
-        
     end
     
     methods (Access = protected)
@@ -95,7 +91,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         end
         
         function onSettingsChanged(obj, name, value)
-            
             
             switch name
                 case {'num_partitions_x', 'num_partitions_y'}
@@ -132,14 +127,11 @@ classdef EXTRACT < imviewer.ImviewerPlugin
                     if strcmp(value, 'raw')
                         obj.showTip('Please check EXTRACT''s FAQ before using this options')
                     end
-                    
             end
-            
         end
-        
     end
     
-    methods (Static) % Inherited... 
+    methods (Static) % Inherited...
         function getPluginIcon()
             
         end
@@ -180,10 +172,8 @@ classdef EXTRACT < imviewer.ImviewerPlugin
                 obj.gobjectTransporter = applify.gobjectTransporter(obj.Axes);
             end
             
-            
             % Assign the Ancestor App of the roigroup to the app calling
             % for its creation.
-            
             
             if ~isempty(obj.hCellTemplates) % Update radius
                 x0 = arrayfun(@(h) mean(h.XData), obj.hCellTemplates);
@@ -211,9 +201,7 @@ classdef EXTRACT < imviewer.ImviewerPlugin
                     h.ButtonDownFcn = @(s,e) obj.gobjectTransporter.startDrag(h,e);
                     obj.hCellTemplates(i) = h;
                 end
-
             end
-            
         end
         
         function checkGridSize(obj)
@@ -231,7 +219,5 @@ classdef EXTRACT < imviewer.ImviewerPlugin
                 obj.PrimaryApp.clearMessage()
             end
         end
-        
      end
-     
 end

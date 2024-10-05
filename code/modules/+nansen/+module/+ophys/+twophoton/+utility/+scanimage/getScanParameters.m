@@ -69,5 +69,4 @@ function parameterStruct = getScanParameters(fileRef, parameterList)
             parameterStruct = subsasgn(parameterStruct, subs, paramValue);
         end
     end
-
 end

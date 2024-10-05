@@ -1,9 +1,7 @@
 function metadata = getScanParameters( fileReference )
 %getScanParameters Get scan parameters for a MDF file from sutter
 
-
 % Modified from MDF_file_reader @ flow_registration by Philipp Flotho.
-
 
 %%  Get MCSX File object
     if ismac
@@ -21,7 +19,6 @@ function metadata = getScanParameters( fileReference )
     else
         error('Wrong input')
     end
-
     
 %% Read metadata
     S = struct;
@@ -31,13 +28,12 @@ function metadata = getScanParameters( fileReference )
     S.FrameWidth = str2double( mfileObj.ReadParameter('Frame Width') );
     S.FrameCount = str2double( mfileObj.ReadParameter('Frame Count') );
 
-
     % Count available channels
     channelInd = [];
     for i = 0:2
         channelParameterName = sprintf('Scanning Ch %d Name', i);
         if ~isempty( mfileObj.ReadParameter(channelParameterName) )
-            channelInd(end+1) = i + 1; %#ok<AGROW> 
+            channelInd(end+1) = i + 1; %#ok<AGROW>
         end
     end
     S.ChannelInd = channelInd;
@@ -50,7 +46,6 @@ function metadata = getScanParameters( fileReference )
     bitDepth = mfileObj.ReadParameter('Frame Bit Depth');
     S.BitDepth = stringWithUnitToNumber(bitDepth, '-bit');
     S.DataType = sprintf('uint%d', ceil(S.BitDepth / 8) .* 8);
-    
 
     % Physical units
     micronsPerPixel = mfileObj.ReadParameter('Microns per Pixel');
@@ -67,7 +62,6 @@ function metadata = getScanParameters( fileReference )
     magnification = mfileObj.ReadParameter('Magnification');
     S.Magnification = stringWithUnitToNumber(magnification, 'x');
 
-
     % Physical position
     xPositionStr = mfileObj.ReadParameter('X Position');
     S.XPosition = stringWithUnitToNumber(xPositionStr, 'µm');
@@ -80,7 +74,6 @@ function metadata = getScanParameters( fileReference )
     zPositionStr = mfileObj.ReadParameter('Z Position');
     S.ZPosition = stringWithUnitToNumber(zPositionStr, 'µm');
     S.ZPositionUnit = 'µm';
-    
 
     % Handle potentially missing values
     if isempty(S.MicronsPerPixel) || isnan(S.MicronsPerPixel)
@@ -103,7 +96,6 @@ function metadata = getScanParameters( fileReference )
     
     metadata = S;
 end
-
 
 function num = stringWithUnitToNumber(str, unit)
     

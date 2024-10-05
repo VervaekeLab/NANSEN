@@ -18,7 +18,7 @@ function [ new_im ] = correctResonanceStretch(im, scanParam, method, binSize)
 %       Each image strip is stretched or destretched using matlabs imresize
 %       function based on a stretch profile which is loaded from lookup
 %       table.
-%       
+%
 %       For IMWARP: The image is warped using matlabs imwarp function. The
 %       displacement matrix is loaded from the destretch lookup table. It
 %       will take some more time because it need to run a few iterations on
@@ -44,7 +44,6 @@ if numel(imSize) == 2
 else
     nFrames = imSize(3);
 end
-
 
 zoom = scanParam.zoom;
 xcorrect = scanParam.xcorrect;
@@ -115,15 +114,14 @@ switch method
         newBinStartIdx = horzcat(1, cumsum(newBinSizes) + 1);
         newBinStopIdx = horzcat(cumsum(newBinSizes));
 
-
-        % Loop through images. Split into stripes and compress each 
+        % Loop through images. Split into stripes and compress each
         % stripe based on the new calculated binsize
         c = 0;
         for bin = 1:binSize:width
             imStrip = im(:, bin:bin+binSize-1, :);
             c = c+1;
             imStrip = imresize(imStrip, [height, newBinSizes(c)]);
-            new_im(:, newBinStartIdx(c):newBinStopIdx(c), :) = imStrip; 
+            new_im(:, newBinStartIdx(c):newBinStopIdx(c), :) = imStrip;
         end
         
     case 'imwarp'
@@ -149,10 +147,8 @@ switch method
 %             for i = 1:nFrames
 %                 im(:,:,i) = imwarp(im(:,:,i), D, 'cubic');
 %             end
-            
 
             im = imwarp(im, D, 'cubic');
-
             
             if isa(im, 'logical')
                 dummy = ones(size(im)); dummy = imwarp(dummy, D, 'cubic');
@@ -198,8 +194,6 @@ new_im = reshape(new_im, stackSize);
 new_im = squeeze(new_im);
 
 end
-
-
 
 function [D, BW] = createDisplacementFieldFromPixelShifts(shiftX, shiftY, dim)
 
@@ -258,7 +252,6 @@ BW = repmat(BW, 1,1,2);
 D(~BW) = 2000;
 
 if nargout == 1
-   clear BW 
+   clear BW
 end
-
 end

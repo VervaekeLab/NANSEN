@@ -1,11 +1,9 @@
 classdef zoomIn < uim.interface.abstractPointer & uim.interface.zoom & ...
         uim.interface.pointerTool.mixin.DraggableRectangle
     
-    
     properties (Constant)
         exitMode = 'previous';
     end
-    
     
     properties % Tool specific
         zoomInCallback
@@ -13,22 +11,18 @@ classdef zoomIn < uim.interface.abstractPointer & uim.interface.zoom & ...
         runDefault = false;
     end
     
-    
     properties % Implement abstract properties from zoom
         zoomFactor = 0.25
         xLimOrig
         yLimOrig
     end
     
-    
     properties % Implement abstract properties hasDraggableRectangle
         anchorPoint = [nan, nan]
         isButtonDown = false
     end
-
     
     methods
-        
         
         function obj = zoomIn(hAxes)
             
@@ -38,12 +32,10 @@ classdef zoomIn < uim.interface.abstractPointer & uim.interface.zoom & ...
             
             obj.hFigure = ancestor(hAxes, 'figure');
         end
-        
 
         function setPointerSymbol(obj)
             setptr(obj.hFigure, 'glassplus');
         end
-
         
         function onButtonDown(obj, ~, evt)
             
@@ -59,13 +51,11 @@ classdef zoomIn < uim.interface.abstractPointer & uim.interface.zoom & ...
             set(obj.hFigure, 'Pointer', 'crosshair');
         end
         
-        
         function onButtonMotion(obj, ~, ~)
             if obj.isButtonDown
                 obj.updateRectangle()
             end
         end
-        
         
         function onButtonUp(obj, src, evt)
             if ~obj.isButtonDown; return; end % MouseDown happened before tool was activated
@@ -77,7 +67,6 @@ classdef zoomIn < uim.interface.abstractPointer & uim.interface.zoom & ...
             currentPoint = currentPoint(1, 1:2);
             
             deltaErr = mean( [diff(obj.hAxes.XLim),diff(obj.hAxes.YLim) ] ) / 100;
-            
 
             if all((abs(obj.anchorPoint - currentPoint)) < deltaErr) % No movement
                 if ~isempty(obj.zoomInCallback)
@@ -111,9 +100,5 @@ classdef zoomIn < uim.interface.abstractPointer & uim.interface.zoom & ...
             obj.setPointerSymbol()
 
         end
-        
-
     end
-    
-    
 end

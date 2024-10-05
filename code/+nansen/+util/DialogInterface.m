@@ -8,7 +8,7 @@ classdef DialogInterface < handle
     properties
         Verbosity
         ErrorStackDepth = inf           % How many levels to display from error stack
-        WarningStackDepth = inf         
+        WarningStackDepth = inf
     end
     
     properties (Access = protected)
@@ -34,5 +34,4 @@ classdef DialogInterface < handle
         uiselect(obj, selectionList)
         
     end
-
 end

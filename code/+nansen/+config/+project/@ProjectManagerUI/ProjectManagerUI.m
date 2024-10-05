@@ -122,7 +122,7 @@ classdef ProjectManagerUI < handle
         end
         
         function createProject(obj)
-        % createProject - Validate entered information and create new project    
+        % createProject - Validate entered information and create new project
            
         % Question: Does this method have to be public?
 
@@ -148,11 +148,11 @@ classdef ProjectManagerUI < handle
 % %             if isempty(projectLongName)
 % %                 message = 'Please enter a name for project';
 % %                 title = 'Project Name Missing';
-% %                 
+% %
 % %                 % app.displayMessage(message, true)
 % %                 obj.uialert(message, title)
 % %                 return
-% %                 
+% %
 % %             end
 
             if isempty(projectFolderPath)
@@ -233,7 +233,6 @@ classdef ProjectManagerUI < handle
             obj.UIControls.BrowseButton.FontWeight = 'bold';
             obj.UIControls.BrowseButton.Position = [565 89 100 25];
             obj.UIControls.BrowseButton.Text = 'Change Folder';
-
             
             % Create label and input field for the project name
             obj.UILabels.ProjectName = uilabel(obj.TabList(1));
@@ -246,7 +245,6 @@ classdef ProjectManagerUI < handle
             obj.UIControls.ProjectName = uieditfield(obj.TabList(1), 'text');
             obj.UIControls.ProjectName.Visible = 'off';
             obj.UIControls.ProjectName.Position = [336 141 279 22];
-
             
             % Create label for the project path input field
             obj.UILabels.ProjectPathInput = uilabel(obj.TabList(1));
@@ -258,7 +256,6 @@ classdef ProjectManagerUI < handle
             % Create control for the project path input field
             obj.UIControls.ProjectPathInput = uieditfield(obj.TabList(1), 'text');
             obj.UIControls.ProjectPathInput.Position = [49 90 489 22];
-
             
             % Create label and input field for the project short name
             hLabel = uilabel(obj.TabList(1));
@@ -282,7 +279,6 @@ classdef ProjectManagerUI < handle
             
             obj.UILabels.ProjectShortNameInput = hLabel;
             obj.UIControls.ProjectShortNameInput = hEditField;
-
             
             % Create CreateNewProjectButton
             obj.UIControls.CreateNewProjectButton = uibutton(obj.TabList(1), 'push');
@@ -292,14 +288,13 @@ classdef ProjectManagerUI < handle
             obj.UIControls.CreateNewProjectButton.Position = [265 27 170 34];
             obj.UIControls.CreateNewProjectButton.Text = 'Create New Project';
 
-
             % Create controls on the Add Existing Project tab page
             taxIdx = strcmp({obj.TabList.Title}, 'Add Existing Project');
             hButton = uibutton(obj.TabList(taxIdx), 'push');
             hButton.Text = 'Add Existing Project';
             hButton.ButtonPushedFcn = @obj.onAddExistingProjectButtonPushed;
             hButton.Position(3:4) = [170 34];
-            hButton.FontWeight = 'bold'; 
+            hButton.FontWeight = 'bold';
             
             obj.UIControls.AddExistingButton = hButton;
             uim.utility.layout.centerObjectInRectangle(hButton, obj.TabList(taxIdx))
@@ -428,7 +423,7 @@ classdef ProjectManagerUI < handle
                 obj.UIControls.ProjectTable.Data(rowIdx, 'Current') = {true};
             catch
                 obj.UIControls.ProjectTable.Data(:, 1) = {false};
-                obj.UIControls.ProjectTable.Data(rowIdx, 1) = {true};                
+                obj.UIControls.ProjectTable.Data(rowIdx, 1) = {true};
             end
         end
         
@@ -477,7 +472,7 @@ classdef ProjectManagerUI < handle
             
             projectName = obj.getNameFromRowIndex(rowIdx);
             
-            % Remove project before removing table row 
+            % Remove project before removing table row
             % (In case project can not be removed)
             try
                 obj.ProjectManager.removeProject(projectName, deleteFolder);
@@ -528,10 +523,10 @@ classdef ProjectManagerUI < handle
         end
         
         function name = getNameFromRowIndex(obj, rowIndex)
-        %getNameFromRowIndex Get name of project from row index    
+        %getNameFromRowIndex Get name of project from row index
             
             try
-                name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 2};    % Name colum index = 2
+                name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 2};    % Name column index = 2
                 if iscell(name)
                     name = name{1};
                 end
@@ -560,7 +555,7 @@ classdef ProjectManagerUI < handle
             
             currentRootFolder = fileparts(currentProjectPath);
 
-            % Call function thats asks user to interactively select a new folder
+            % Call function that's asks user to interactively select a new folder
             newFolder = uisetProjectFolder(currentRootFolder, projectShortName);
 
             % Bring ui figure back into focus.
@@ -568,7 +563,7 @@ classdef ProjectManagerUI < handle
             
             % Return if user canceled / update the folderpath ui control
             if newFolder == 0
-                return; 
+                return;
             else
                 obj.UIControls.ProjectPathInput.Value = newFolder;
             end
@@ -596,7 +591,7 @@ classdef ProjectManagerUI < handle
             isNameValid = isvarname(projectNewName);
             
             if isempty(projectNewName) || isNameValid
-                return 
+                return
                 
             elseif ~isNameValid
                 msg = 'Project name can only consist of letters, numbers and underscores';
@@ -624,7 +619,7 @@ classdef ProjectManagerUI < handle
             obj.UIControls.ProjectPathInput.Tooltip = obj.UIControls.ProjectPathInput.Value;
         end
 
-        % Tab selection chaged function: TabGroupSelectionChanged
+        % Tab selection changed function: TabGroupSelectionChanged
         function TabGroupSelectionChanged(obj, ~, event)
             
             switch event.NewValue.Title

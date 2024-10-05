@@ -7,5 +7,4 @@ classdef DialogBox < handle
         clearMessage(obj)
         
     end
-
 end

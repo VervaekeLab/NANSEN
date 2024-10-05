@@ -8,5 +8,4 @@ function value = getParameterValueFromString(parameterString)
     else
         value = eval(parameterValueStr);
     end
-    
 end
