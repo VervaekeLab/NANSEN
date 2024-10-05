@@ -349,7 +349,7 @@ classdef Binary < nansen.stack.data.VirtualArray
             S = struct('Size', arraySize, 'Class', arrayClass);
     
             % Create file if it does not exist
-            if ~exist(filePath, 'file')
+            if ~isfile(filePath)
                 assert(isfield(S, 'Size'), 'Size input is missing')
                 assert(isfield(S, 'Class'), 'Class input is missing')
                 

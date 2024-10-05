@@ -45,7 +45,7 @@ for i = 1:numel(listing)
 end
 
 % Remove directory if it still exists.
-if exist(dirPath, 'dir')
+if isfolder(dirPath)
     rmdir(dirPath)
 end
 

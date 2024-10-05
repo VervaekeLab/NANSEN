@@ -5423,7 +5423,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
                 if contains( event.Modifier, {'command', 'ctrl', 'control'})
                     str = clipboard('paste');
                     strCellArray = strsplit(str, '\n');
-                    isFiles = cellfun(@(str) exist(str, 'file'), strCellArray, 'uni', 1);
+                    isFiles = cellfun(@(str) isfile(str), strCellArray, 'uni', 1);
                     if all(isFiles)
                         obj.openFile(strCellArray)
                     end

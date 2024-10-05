@@ -140,7 +140,7 @@ function pathStr = localpath(pathKeyword, projectName)
     
     % Make folder if it does not exist
     if ischar( folderPath )
-        if ~exist(folderPath, 'dir');  mkdir(folderPath);  end
+        if ~isfolder(folderPath);  mkdir(folderPath);  end
     end
     
     % Prepare output, either file- or folderpath

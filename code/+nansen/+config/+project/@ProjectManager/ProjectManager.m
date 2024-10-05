@@ -553,7 +553,7 @@ classdef ProjectManager < handle
 
         function loadCatalog(obj)
         %loadCatalog Load the project catalog
-            if ~exist(obj.CatalogPath, 'file')
+            if ~isfile(obj.CatalogPath)
                 newCatalog = obj.getEmptyProjectStruct();
                 S.projectCatalog = newCatalog;
             else
@@ -769,7 +769,7 @@ classdef ProjectManager < handle
             projectRootPath = fullfile(preferenceDirectory, 'projects');
             
             % Get default project path
-            if ~exist(projectRootPath, 'dir'); mkdir(projectRootPath); end
+            if ~isfolder(projectRootPath); mkdir(projectRootPath); end
             
             % Add project details to project catalog file
             pathStr = fullfile(projectRootPath, 'project_catalog.mat');
@@ -810,7 +810,7 @@ classdef ProjectManager < handle
                 localProjectPath = fullfile(nansen.prefdir, 'projects');
                 
                 pathStr = fullfile(localProjectPath, projectName);
-                if ~exist(pathStr, 'dir'); mkdir(pathStr); end
+                if ~isfolder(pathStr); mkdir(pathStr); end
                 
             else
                 
@@ -841,7 +841,7 @@ classdef ProjectManager < handle
             fileName = strcat(catalogName, '.mat');
             
             % Make folder if it does not exist
-            if ~exist(folderPath, 'dir');  mkdir(folderPath);    end
+            if ~isfolder(folderPath);  mkdir(folderPath);    end
             
             pathStr = fullfile(folderPath, fileName);
         end
@@ -896,7 +896,7 @@ classdef ProjectManager < handle
             end
             
             % Make folder if it does not exist
-            if ~exist(saveDir, 'dir');  mkdir(saveDir);    end
+            if ~isfolder(saveDir);  mkdir(saveDir);    end
             
             % Prepare output, either file- or folderpath
             if exist('fileName', 'var')

@@ -168,7 +168,7 @@ classdef StorableCatalog < handle
         %setFilePath Set fielpath of archive. %Todo: remove?
         
             folderPath = fileparts(filePath);
-            if ~exist(folderPath, 'dir'); mkdir(folderPath); end
+            if ~isfolder(folderPath); mkdir(folderPath); end
             
             obj.FilePath = filePath;
             
@@ -542,7 +542,7 @@ classdef StorableCatalog < handle
                 if isFilePath
 
                     parentDir = fileparts(argList{1});
-                    if exist(parentDir, 'dir')
+                    if isfolder(parentDir)
                         obj.FilePath = argList{1};
                         argList = argList(2:end);
                     else

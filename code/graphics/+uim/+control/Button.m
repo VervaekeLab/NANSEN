@@ -656,7 +656,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
         
         function set.Icon(obj, value)
 %             assert(isa(value, 'char'), 'Icon property of button must be a pathstr')
-%             assert(exist(value, 'file')==2, 'Icon file was not found')
+%             assert(isfile(value), 'Icon file was not found')
             
             obj.Icon = value;
             if obj.IsConstructed

@@ -262,7 +262,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
                 initPath = obj.PrimaryApp.ImageStack.FileName;
             end
 
-            if exist(initPath, 'file') == 2
+            if isfile(initPath)
                 [initPath, fileName, ~] = fileparts(initPath);
             end
             
@@ -748,7 +748,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             % % Create save path
             [initPath, fileName] = obj.getInitPath();
             savePath = utility.path.validatePathString(options.savePath, initPath);
-            if ~exist(savePath, 'dir'); mkdir(savePath); end 
+            if ~isfolder(savePath); mkdir(savePath); end 
             
             if contains(fileName, 'rois')
                 fileName = strrep(fileName, 'rois', 'roisignals');

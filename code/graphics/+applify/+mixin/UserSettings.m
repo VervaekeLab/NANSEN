@@ -146,7 +146,7 @@ classdef (Abstract) UserSettings < uim.handle
             % Load settings from file
             loadPath = obj.settingsFilePath;
             
-            if exist(loadPath, 'file') % Load settings from file
+            if isfile(loadPath) % Load settings from file
                 
                 S = load(loadPath, 'settings');
 
@@ -530,7 +530,7 @@ classdef (Abstract) UserSettings < uim.handle
         
         function S = staticLoad(className, filePath)
             
-            if exist(filePath, 'file') % Load settings from file
+            if isfile(filePath) % Load settings from file
                 S = load(filePath, 'settings');
                 S = S.settings;
             else
@@ -551,7 +551,7 @@ classdef (Abstract) UserSettings < uim.handle
             settingsFileName = strcat(classFilename, '_settings.mat');
             
             % Create folder to save settings file in if it does not exist
-            if ~exist(settingsFolderPath, 'dir'); mkdir(settingsFolderPath); end
+            if ~isfolder(settingsFolderPath); mkdir(settingsFolderPath); end
             
             % Return the filepath where to save and load settings from
             pathStr = fullfile(settingsFolderPath, settingsFileName);

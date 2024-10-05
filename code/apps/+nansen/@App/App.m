@@ -3057,7 +3057,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             try
                 % Load existing or create new experiment inventory 
-                if exist(loadPath, 'file') == 2
+                if isfile(loadPath)
                     metaTable = nansen.metadata.MetaTable.open(loadPath);
                 else % Todo: do i need this...?
                     metaTable = nansen.metadata.MetaTable;

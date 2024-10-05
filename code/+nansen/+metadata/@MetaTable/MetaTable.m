@@ -287,7 +287,7 @@ classdef MetaTable < handle
         %   can be read even if the MetaTable class is not on Matlabs path.
             
             % If a filepath does not exist, throw error.
-            if ~exist(obj.filepath, 'file')
+            if ~isfile(obj.filepath)
                 error('File "%s" does not exist.')
             end
             
@@ -440,7 +440,7 @@ classdef MetaTable < handle
                 end
             end
             
-            if isempty(S.MetaTableName) || ~exist(S.SavePath, 'dir')
+            if isempty(S.MetaTableName) || ~isfolder(S.SavePath)
                 error('Not enough info provided to create a new entry')
             end
             

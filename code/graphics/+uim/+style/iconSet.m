@@ -73,7 +73,7 @@ classdef iconSet < uim.handle
         function loadIcons(obj)
         %LOADICONS Load icons from matfile
         
-            if exist(obj.filePath, 'file')
+            if isfile(obj.filePath)
                 obj.iconData = load(obj.filePath);
             end
             
@@ -88,7 +88,7 @@ classdef iconSet < uim.handle
                 S = obj.iconData;
             end
             
-            if ~exist(obj.filePath, 'file')
+            if ~isfile(obj.filePath)
                 save(obj.filePath, '-struct', 'S');
             else
                 save(obj.filePath, '-struct', 'S', '-append');

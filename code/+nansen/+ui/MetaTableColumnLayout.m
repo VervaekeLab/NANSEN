@@ -217,7 +217,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % Load settings from file
             loadPath = obj.settingsFilePath;
             
-            if exist(loadPath, 'file') % Load settings from file
+            if isfile(loadPath) % Load settings from file
                 
                 S = load(loadPath, 'settings');
                 obj.settings = S.settings;

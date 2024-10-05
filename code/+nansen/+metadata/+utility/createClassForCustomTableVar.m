@@ -61,7 +61,7 @@ function createClassForCustomTableVar(S, targetFolderPath)
     fcnTargetPath = fullfile(targetFolderPath, ['+', lower(tableClass)] );
     fcnFilename = [variableName, '.m'];
     
-    if ~exist(fcnTargetPath, 'dir'); mkdir(fcnTargetPath); end
+    if ~isfolder(fcnTargetPath); mkdir(fcnTargetPath); end
     
     % Create a new m-file and add the function template to the file.
     fid = fopen(fullfile(fcnTargetPath, fcnFilename), 'w');

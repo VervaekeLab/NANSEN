@@ -1016,7 +1016,7 @@ classdef App < handle & applify.mixin.UserSettings
                 
                 
             else
-                if ~exist(loadPath, 'file')
+                if ~isfile(loadPath)
                     obj.msgBox.displayMessage('File does not exist, removing from list.', 2)
                     obj.updateRecentFilesList(loadPath, 'remove')
                     return
@@ -1135,7 +1135,7 @@ classdef App < handle & applify.mixin.UserSettings
             
             % Create a folder for saving screendumps
             saveDir = fullfile(fileparts(path), 'screendump');
-            if ~exist(saveDir, 'dir'); mkdir(saveDir); end
+            if ~isfolder(saveDir); mkdir(saveDir); end
             
             % Set axes units to pixels and get pixel size
             axUnits = obj.hAxes.Units;
@@ -2753,7 +2753,7 @@ classdef App < handle & applify.mixin.UserSettings
             path = mfilename('fullpath');
             settingsPath = strcat(path, '_settings.mat');
 
-            if exist(settingsPath, 'file') % Load settings from file
+            if isfile(settingsPath) % Load settings from file
                 S = load(settingsPath, 'settings');
                 S = S.settings;
             else
@@ -2817,7 +2817,7 @@ classdef App < handle & applify.mixin.UserSettings
         function Db = getDefaultDatabase()
             S = fovmanager.getSettings();
             if ~isempty(S)
-                if ~isempty(S.defaultFilePath) && exist(S.defaultFilePath, 'file')
+                if ~isempty(S.defaultFilePath) && isfile(S.defaultFilePath)
                     S2 = load(S.defaultFilePath);
                     Db = S2.fovDb;
                 end
