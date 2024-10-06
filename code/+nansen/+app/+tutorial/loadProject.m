@@ -32,6 +32,19 @@ if ok
     end
 end
 
+if startsWith(S(selection), 'Allen Brain Observatory')
+    am = nansen.AddonManager();
+    
+    names = {addonManager.AddonList.Name};
+    S = addonManager.AddonList(strcmp(names, "Brain Observatory Toolbox"));
+    if ~S.IsInstalled
+        fprintf('Downloading %s...', S.Name)
+        addonManager.downloadAddon(S.Name)
+        addonManager.addAddonToMatlabPath(S.Name)
+        fprintf('Finished.\n')
+    end
+end
+
 % Check if project is already in the catalog
 projectManager = userSession.getProjectManager();
 
