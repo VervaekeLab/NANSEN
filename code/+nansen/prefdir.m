@@ -4,7 +4,8 @@ function preferenceDirectory = prefdir()
     
     userSession = NansenUserSession.instance('', 'nocreate');
     if isempty(userSession)
-        throw(nansen.common.exception.NoUserSessionActive())
+        preferenceDirectory = NansenUserSession.getPrefdir('anon_user');
+        %throw(nansen.common.exception.NoUserSessionActive())
     else
         preferenceDirectory = userSession.getPrefdir(userSession.CurrentUserName);
     end

@@ -47,19 +47,22 @@ if ~projectManager.containsProject(projectName)
     projectManager.changeProject(projectName);
 
     % Todo: Choose a datapath:
-    S = struct();
-    S.DataDirectory = fullfile(userpath, 'Nansen-Tutorial', 'Data', projectName);
-    S.DataDirectory_ = 'uigetdir';
-    
-    [S, wasAborted] = tools.editStruct(S);
+    %S = struct();
+    %S.DataDirectory = fullfile(userpath, 'Nansen-Tutorial', 'Data', projectName);
+    %S.DataDirectory_ = 'uigetdir';
+    %[S, wasAborted] = tools.editStruct(S);
+
+    dataDirectory = fullfile(userpath, 'Nansen-Tutorial', 'Data', projectName);
     
     project = projectManager.getCurrentProject();
     dlModel = project.DataLocationModel;
     for i = 1:dlModel.NumDataLocations
         item = dlModel.getItem(i);
-        [~,folderName] = fileparts(item.RootPath.Value);
-        item.RootPath.Value = fullfile(S.DataDirectory, folderName);
-        project.DataLocationModel.replaceItem(item)
+        if ~isempty(item.RootPath)
+            [~,folderName] = fileparts(item.RootPath.Value);
+            item.RootPath.Value = fullfile(dataDirectory, folderName);
+            project.DataLocationModel.replaceItem(item)
+        end
     end
 else
     if ~strcmp( projectManager.CurrentProject, projectName )
