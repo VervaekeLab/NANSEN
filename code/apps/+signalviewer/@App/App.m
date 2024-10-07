@@ -1260,10 +1260,13 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     
                     hNew = plot(obj.ax, sampleIdx, thisTimeseries.Variables, ...
                         'Visible', 'on', 'Color', colors(colorInd,:) );
+
+                    varName = thisTimeseries.Properties.VariableNames{1};
+                    obj.hLineArray(1).(varName) = hNew;
                 end
 
                 set(hNew, 'HitTest', 'off', 'PickableParts', 'none')
-
+                
             end
             
 
