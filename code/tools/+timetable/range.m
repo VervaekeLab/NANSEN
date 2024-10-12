@@ -10,16 +10,20 @@ function t_out = range(t_in,R)
 %   [Y_new_bin_x Y_new_bin_x+1] = [ Y_bin_x_min Y_bin_x_max Y_bin_x+1_max Y_bin_x+1_min ] 
 % and so on. 
 % 
-%
-% See also: DECIMATE
+% The number of timestamps of the returned table is 2*ceil(size(t_in,1)/R);
+% 
+% See also: TIMETABLE
 
 
 newR = ceil(size(t_in,1)/R);
 
-TDn = zeros(newR,size(t_in,2));
+t_max = retime(t_in,'regular','max','SampleRate',t_in.Properties.SampleRate/R);
+t_min = retime(t_in,'regular','min','SampleRate',t_in.Properties.SampleRate/R);
 
-for i=1:size(t_in,2),
-    TDn(:,i) = decimate(t_in{:,i},R);
-end;
+sample = reshape(repmat(1:newR,2,1),2*newR,1);
+dataset_max = find(mod(1:2*newR,4)>1);
+sample(dataset_max) = sample(dataset_max)+newR;
 
-t_out = array2timetable(TDn,"RowTimes",t_in.Time(1:R:end),"VariableNames", t_in.Properties.VariableNames);
+total_set = cat(1,t_min{:,:},t_max{:,:});
+
+t_out = array2timetable(total_set(sample,:),"VariableNames",t_in.Properties.VariableNames,"StartTime",t_min.Time(1),"SampleRate",2*t_min.Properties.SampleRate);
