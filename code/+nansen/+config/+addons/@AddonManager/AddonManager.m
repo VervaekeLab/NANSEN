@@ -453,7 +453,7 @@ classdef AddonManager < handle
                 prefDir = fullfile(nansen.prefdir, 'settings');
             end
 
-            if ~exist(prefDir, 'dir'); mkdir(prefDir); end
+            if ~isfolder(prefDir); mkdir(prefDir); end
             pathStr = fullfile(prefDir, 'installed_addons.mat');
         end
         

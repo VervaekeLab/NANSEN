@@ -89,7 +89,7 @@ classdef roiGroup < handle
                 % obj = parseConstructorInputs(obj, varargin);
 
                 if isa(varargin{1}, 'char')
-                    if exist(varargin{1}, 'file')
+                    if isfile(varargin{1})
                         fileAdapter = obj.getFileAdapter(varargin{1});
                         obj = fileAdapter.load();
                     else
@@ -119,7 +119,7 @@ classdef roiGroup < handle
 
             % Check if first input is a valid filepath
             if isa(varargin{1}, 'char')
-                if exist(varargin{1}, 'file')
+                if isfile(varargin{1})
                     fileAdapter = obj.getFileAdapter(varargin{1});
                     obj = fileAdapter.load();
                 else

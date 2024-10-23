@@ -83,7 +83,7 @@ classdef ObjectCatalog < handle
         
         % Todo: Load Preferences and Data
         
-            if ~exist(obj.FilePath, 'file')
+            if ~isfile(obj.FilePath)
                 S.Data =  obj.getEmptyObject();
                 S.Preferences = struct();
             else
@@ -131,7 +131,7 @@ classdef ObjectCatalog < handle
         function setFilePath(obj, filePath)
             
             folderPath = fileparts(filePath);
-            if ~exist(folderPath, 'dir'); mkdir(folderPath); end
+            if ~isfolder(folderPath); mkdir(folderPath); end
             
             obj.FilePath = filePath;
             
@@ -171,7 +171,7 @@ classdef ObjectCatalog < handle
                 if isFilePath
 
                     parentDir = fileparts(argList{1});
-                    if exist(parentDir, 'dir')
+                    if isfolder(parentDir)
                         obj.FilePath = argList{1};
                         argList = argList(2:end);
                     else

@@ -42,6 +42,8 @@ function pathStr = localpath(pathKeyword, projectName)
         projectRootDir = nansen.config.project.ProjectManager.getProjectPath(projectName);
     end
 
+    projectRootDir = char(projectRootDir);
+
     % Determine path folder (and filename if relevant) based input keyword
     switch pathKeyword
         
@@ -137,7 +139,7 @@ function pathStr = localpath(pathKeyword, projectName)
     
     % Make folder if it does not exist
     if ischar( folderPath )
-        if ~exist(folderPath, 'dir');  mkdir(folderPath);  end
+        if ~isfolder(folderPath);  mkdir(folderPath);  end
     end
     
     % Prepare output, either file- or folderpath

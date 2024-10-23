@@ -346,7 +346,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             if strcmp(obj.settings.exportAs, 'images')
             
                 rootPath = fullfile(obj.settings.exportFolder, 'images');
-                if ~exist(rootPath, 'dir'); mkdir(rootPath); end
+                if ~isfolder(rootPath); mkdir(rootPath); end
                 fileName = sprintf('image_%05d.png', obj.currentSample);
                 savePath = fullfile(rootPath, fileName);
 

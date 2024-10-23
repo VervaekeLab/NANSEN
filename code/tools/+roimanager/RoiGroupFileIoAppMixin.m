@@ -15,7 +15,7 @@ classdef RoiGroupFileIoAppMixin < handle
             lastwarn('')
             
              % Load roi array from selected file path.
-            if exist(loadPath, 'file')
+            if isfile(loadPath)
                 fileObj = nansen.dataio.fileadapter.roi.RoiGroup(loadPath);
                 try
                     loadedRoiGroup = fileObj.load();
@@ -84,7 +84,7 @@ classdef RoiGroupFileIoAppMixin < handle
             if nargin < 2 || isempty(initPath)
                 initPath = obj.getRoiInitPath();
                 
-                if exist(initPath, 'file') == 2
+                if isfile(initPath)
                     [initPath, fileName, ext] = fileparts(initPath);
                 end
             end

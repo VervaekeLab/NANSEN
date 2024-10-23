@@ -471,7 +471,7 @@ classdef Project < nansen.module.Module
             localProjectPath = fullfile(nansen.prefdir, 'projects');
             
             folderPath = fullfile(localProjectPath, obj.Name);
-            if ~exist(folderPath, 'dir'); mkdir(folderPath); end
+            if ~isfolder(folderPath); mkdir(folderPath); end
         end
     end
     
@@ -577,7 +577,7 @@ classdef Project < nansen.module.Module
             projectName = char( projectInfo.Name );
 
             % Make folder for saving project related configs and metadata
-            if ~exist(projectDirectoryPath, 'dir')
+            if ~isfolder(projectDirectoryPath)
                 mkdir(projectDirectoryPath);
             end
 

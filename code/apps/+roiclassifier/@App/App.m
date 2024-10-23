@@ -125,7 +125,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         function nvpairs = parseInputs(obj, varargin)
             
             if ischar(varargin{1})
-                if exist(varargin{1}, 'file')
+                if isfile(varargin{1})
                     obj.uiopenFromFile(varargin{1});
                     varargin = varargin(2:end);
                 end

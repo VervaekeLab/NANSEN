@@ -32,6 +32,19 @@ if ok
     end
 end
 
+if startsWith(S(selection), 'Allen Brain Observatory')
+    am = nansen.AddonManager();
+    
+    names = {addonManager.AddonList.Name};
+    S = addonManager.AddonList(strcmp(names, "Brain Observatory Toolbox"));
+    if ~S.IsInstalled
+        fprintf('Downloading %s...', S.Name)
+        addonManager.downloadAddon(S.Name)
+        addonManager.addAddonToMatlabPath(S.Name)
+        fprintf('Finished.\n')
+    end
+end
+
 % Check if project is already in the catalog
 projectManager = userSession.getProjectManager();
 
@@ -47,19 +60,22 @@ if ~projectManager.containsProject(projectName)
     projectManager.changeProject(projectName);
 
     % Todo: Choose a datapath:
-    S = struct();
-    S.DataDirectory = fullfile(userpath, 'Nansen-Tutorial', 'Data', projectName);
-    S.DataDirectory_ = 'uigetdir';
-    
-    [S, wasAborted] = tools.editStruct(S);
+    %S = struct();
+    %S.DataDirectory = fullfile(userpath, 'Nansen-Tutorial', 'Data', projectName);
+    %S.DataDirectory_ = 'uigetdir';
+    %[S, wasAborted] = tools.editStruct(S);
+
+    dataDirectory = fullfile(userpath, 'Nansen-Tutorial', 'Data', projectName);
     
     project = projectManager.getCurrentProject();
     dlModel = project.DataLocationModel;
     for i = 1:dlModel.NumDataLocations
         item = dlModel.getItem(i);
-        [~,folderName] = fileparts(item.RootPath.Value);
-        item.RootPath.Value = fullfile(S.DataDirectory, folderName);
-        project.DataLocationModel.replaceItem(item)
+        if ~isempty(item.RootPath)
+            [~,folderName] = fileparts(item.RootPath.Value);
+            item.RootPath.Value = fullfile(dataDirectory, folderName);
+            project.DataLocationModel.replaceItem(item)
+        end
     end
 else
     if ~strcmp( projectManager.CurrentProject, projectName )

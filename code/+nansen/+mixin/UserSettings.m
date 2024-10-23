@@ -56,7 +56,7 @@ classdef UserSettings < applify.mixin.UserSettings
             settingsFileName = strcat(className, '_settings.mat');
             
             % Create folder to save settings file in if it does not exist
-            if ~exist(settingsFolderPath, 'dir'); mkdir(settingsFolderPath); end
+            if ~isfolder(settingsFolderPath); mkdir(settingsFolderPath); end
             
             % Return the filepath where to save and load settings from
             pathStr = fullfile(settingsFolderPath, settingsFileName);

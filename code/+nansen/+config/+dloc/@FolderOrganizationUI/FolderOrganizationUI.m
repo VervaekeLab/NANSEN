@@ -346,7 +346,11 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.DataLocationTemplates = obj.getDataLocationTemplates();
 
             if ~isempty(obj.SelectTemplateDropdown)
-                obj.SelectTemplateDropdown.Items = ['No Selection', {obj.DataLocationTemplates.Name}];
+                if isempty(obj.DataLocationTemplates)
+                    obj.SelectTemplateDropdown.Items = {'No Selection'};
+                else
+                    obj.SelectTemplateDropdown.Items = ['No Selection', {obj.DataLocationTemplates.Name}];
+                end
                 obj.SelectTemplateDropdown.Value = 'No Selection';
             end
         end

@@ -1410,7 +1410,7 @@ methods % Mostly internal updating
         end
         S.classificationLabels = obj.classificationLabels;
         
-        if exist(savePath, 'file')
+        if isfile(savePath)
             save(savePath, '-struct', 'S', '-append')
         else
             save(savePath, '-struct', 'S')

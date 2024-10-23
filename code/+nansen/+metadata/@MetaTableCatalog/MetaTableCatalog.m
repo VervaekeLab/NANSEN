@@ -110,7 +110,7 @@ classdef MetaTableCatalog < uim.handle
             % Todo: Call the static load method?
             filePath = obj.FilePath;
             
-            if exist(filePath, 'file')
+            if isfile(filePath)
                 S = load(filePath);
                 obj.Table = S.metaTableCatalog;
                 % All items should be located in the same folder as the catalog
@@ -302,7 +302,7 @@ classdef MetaTableCatalog < uim.handle
             % Todo: get this from project instance...
             metaTableDir = fullfile(projectRootDir, 'metadata', 'tables');
             
-            if ~exist(metaTableDir, 'dir');  mkdir(metaTableDir);    end
+            if ~isfolder(metaTableDir);  mkdir(metaTableDir);    end
             
             % Get path string from project settings
             pathString = fullfile(metaTableDir, nansen.metadata.MetaTableCatalog.DEFAULT_FILENAME);
@@ -320,7 +320,7 @@ classdef MetaTableCatalog < uim.handle
                 filePath = nansen.metadata.MetaTableCatalog.getFilePath();
             end
 
-            if exist(filePath, 'file')
+            if isfile(filePath)
                 S = load(filePath);
                 MT = S.metaTableCatalog;
             else

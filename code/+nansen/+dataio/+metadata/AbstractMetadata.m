@@ -166,11 +166,12 @@ classdef AbstractMetadata < dynamicprops
     methods
         
         function tf = get.ExistAsYaml(obj)
-            tf = exist(obj.Filename, 'file')==2;
+            tf = isfile(obj.Filename);
         end
         
         function tf = get.ExistAsText(obj)
-            tf = exist([obj.Filename,'.txt'], 'file')==2;
+            txtFileName = [obj.Filename, '.txt'];
+            tf = isfile(txtFileName);
         end
     end
 end

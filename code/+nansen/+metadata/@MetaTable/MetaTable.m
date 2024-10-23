@@ -95,26 +95,21 @@ classdef MetaTable < handle
 
     methods % Structor
         
-        function obj = MetaTable(varargin)
+        function obj = MetaTable(metadata, propValues)
+            arguments
+                metadata table = table.empty
+                propValues.MetaTableClass
+                propValues.ItemClassName
+                propValues.MetaTableIdVarname
+            end
             
-            if nargin >= 1 && isa(varargin{1}, 'table')
-                obj.entries = varargin{1};
-                varargin(1) = [];
+            if ~isempty(metadata)
+                obj.entries = metadata;
+            end
 
-                % Todo: Make parser
-                [nvPairs, ~] = utility.getnvpairs(varargin{:});
-                s = utility.nvpairs2struct(nvPairs);
-
-                if isfield(s, 'MetaTableClass')
-                    obj.MetaTableClass = s.MetaTableClass;
-                end
-                if isfield(s, 'ItemClassName')
-                    obj.ItemClassName = s.ItemClassName;
-                end
-                if isfield(s, 'MetaTableIdVarname')
-                    obj.MetaTableIdVarname = s.MetaTableIdVarname;
-                    obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
-                end
+            propFields = fieldnames(propValues);
+            for i = 1:numel(propFields)
+                obj.(propFields{i}) = propValues.(propFields{i});
             end
         end
     end
@@ -169,7 +164,18 @@ classdef MetaTable < handle
             obj.entries = value;
             obj.onEntriesChanged()
         end
-            
+
+        function set.MetaTableIdVarname(obj, value)
+            obj.MetaTableIdVarname = value;
+            obj.postSetMetaTableIdVarname()
+        end
+
+        function postSetMetaTableIdVarname(obj)
+            if ~isempty(obj.entries)
+                obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            end
+        end
+
         function name = getName(obj)
             name = obj.MetaTableName;
         end
@@ -284,7 +290,7 @@ classdef MetaTable < handle
         %   can be read even if the MetaTable class is not on Matlabs path.
             
             % If a filepath does not exist, throw error.
-            if ~exist(obj.filepath, 'file')
+            if ~isfile(obj.filepath)
                 error('File "%s" does not exist.')
             end
             
@@ -437,7 +443,7 @@ classdef MetaTable < handle
                 end
             end
             
-            if isempty(S.MetaTableName) || ~exist(S.SavePath, 'dir')
+            if isempty(S.MetaTableName) || ~isfolder(S.SavePath)
                 error('Not enough info provided to create a new entry')
             end
             
@@ -1250,7 +1256,12 @@ classdef MetaTable < handle
         %       - A keyword ('master' or 'dummy') to create a blank
         %         MetaTable
             
-            metaTable = nansen.metadata.MetaTable();
+            if numel(varargin) > 1
+                nvPairs = varargin(2:end);
+            else
+                nvPairs = {};
+            end
+            metaTable = nansen.metadata.MetaTable(nvPairs{:});
             
             if isempty(varargin) || isempty(varargin{1})
                 return

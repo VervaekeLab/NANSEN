@@ -39,7 +39,7 @@ function reset()
         
         iPath = folderPath{i};
         
-        if ~exist(iPath, 'dir')
+        if ~isfolder(iPath)
             continue
         end
         

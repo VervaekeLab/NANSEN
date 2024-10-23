@@ -592,7 +592,7 @@ classdef Button_ < uim.abstract.Control
             errMsg2 = 'Icon file was not found';
             
 %             assert(isa(value, 'char'), errMsg1)
-%             assert(exist(value, 'file')==2, errMsg2)
+%             assert(isfile(value), errMsg2)
             
             obj.Icon = value;
             if obj.IsConstructed
