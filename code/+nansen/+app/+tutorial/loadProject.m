@@ -11,14 +11,13 @@ S = ["Nansen Quickstart", ...
 S = ["Nansen Quickstart", ...
      "Allen Brain Observatory - Visual Coding (Calcium Imaging)"];
 
-
 [selection, ok] = listdlg('ListString', S, 'ListSize', [360, 240]);
 
 if ok
     switch S(selection)
         case "Nansen Quickstart"
             repositoryName = "Nansen_Demo";
-            projectName = 'nansen_demo'; 
+            projectName = 'nansen_demo';
 
         case "Allen Brain Observatory - Visual Coding (Neuropixels)"
             repositoryName = "ABO-VisualCoding-Neuropixels-Test";
@@ -84,3 +83,6 @@ else
 end
 
 nansen
+
+% Todo: Clone BrainObservatoryToolbox
+% Todo: Download manifests for selected dataset.
