@@ -1071,14 +1071,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Create table menu (menu for selecting tables):
             metatableTypes = app.CurrentProject.MetaTableCatalog.Table.MetaTableClass;
+            isSelected = strcmp(metatableTypes, class(app.MetaTable));
+
             if numel(unique(metatableTypes)) > 1
                 metatableTypes = utility.string.getSimpleClassName(metatableTypes);
-                metaTableTypes = unique(metatableTypes);
+                metaTableTypes = unique(metatableTypes, 'stable');
 
                 buttonGroup = nansen.ui.widget.ButtonGroup(hTab, 'Items', metaTableTypes);
                 buttonGroup.updateLocation()
                 buttonGroup.SelectionChangedFcn = @app.onMetaTableTypeChanged;
                 app.UiMetaTableSelector = buttonGroup;
+                app.UiMetaTableSelector.CurrentSelection = metaTableTypes(isSelected);
                 app.updateTablePosition()
             end
         end
@@ -3661,9 +3664,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
             sessionObj = app.getSelectedMetaObjects();
 
-            if ~isempty(sessionObj)
-                varName = app.settings.Session.SessionObjectWorkspaceName;
-                assignin('base', varName, sessionObj)
+            if ~isempty(sessionObj) % Todo: Resolve varName more flexibly
+                if strcmp( app.UiMetaTableSelector.CurrentSelection, 'Session' )
+                    varName = app.settings.Session.SessionObjectWorkspaceName;
+                else
+                    varName = app.UiMetaTableSelector.CurrentSelection;
+                end
+
+                assignin('base', lower(varName), sessionObj)
             end
         end
         

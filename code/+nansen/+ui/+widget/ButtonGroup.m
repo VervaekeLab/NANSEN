@@ -90,6 +90,11 @@ classdef ButtonGroup < handle
         function value = get.Location(obj)
             value = obj.Components.Group.Location;
         end
+
+        function set.CurrentSelection(obj, value)
+            obj.CurrentSelection = value;
+            obj.postSetCurrentSelection()
+        end
     end
 
     methods (Access = private)
@@ -154,33 +159,56 @@ classdef ButtonGroup < handle
                     obj.Components.Buttons(counter).Value = true;
                 end
             end
+            obj.Components.Buttons = fliplr(obj.Components.Buttons);
+        end
+    
+        function wasSwitched = switchButtonOn(obj, buttonHandle)
+            % Make sure all other buttons than current is off
+            for iBtn = 1:numel(obj.Components.Buttons)
+                if ~isequal(buttonHandle, obj.Components.Buttons(iBtn))
+                    obj.Components.Buttons(iBtn).Value = 0;
+                else
+                    if ~buttonHandle.Value;
+                        buttonHandle.Value = 1;
+                        wasSwitched = true;
+                    else
+                        wasSwitched = false;
+                    end
+                end
+            end
+            if ~nargout; clear wasSwitched; end
         end
     end
     
     methods (Access = private)
         function onButtonPressed(obj, src, evt, pageNum)
             
-            % Make sure all other buttons than current is off
-            for iBtn = 1:numel(obj.Components.Buttons)
-                if ~isequal(src, obj.Components.Buttons(iBtn))
-                    obj.Components.Buttons(iBtn).Value = 0;
-                end
-            end
-
+            wasSwitched = obj.switchButtonOn(src);
+            
             % Make sure current button is on (and change page if it was turned on)
-            if src.Value
-                % If click turns button on, change page!
+            if wasSwitched
+                % If button was switch by method above, the user turned the
+                % button on and the above method turned the button back on
+                % to make this button group function like radiobuttons.
+            else
+                % If click turned button on, change page!
                 if ~isempty(obj.SelectionChangedFcn)
                     obj.SelectionChangedFcn(src, evt)
                 end
-            else
-                % If click turns button off, turn it back on!
-                src.Value = true;
             end
+            obj.CurrentSelection = src.Text;
         end
     
         function onParentSizeChanged(obj, src, evt)
             obj.updateLineHeight()
+        end
+    end
+
+    methods (Access = private)
+        function postSetCurrentSelection(obj)
+            isMatchedButton = strcmp(obj.Items, obj.CurrentSelection);
+            matchedButton = obj.Components.Buttons(isMatchedButton);
+            obj.switchButtonOn(matchedButton)
         end
     end
 end
