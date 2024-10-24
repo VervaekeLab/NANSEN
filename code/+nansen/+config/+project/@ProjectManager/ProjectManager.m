@@ -428,7 +428,9 @@ classdef ProjectManager < handle
         
         function projectObj = getProjectObject(obj, name)
         %getProjectObject Get project entry as object given its name
-            
+            if isempty(obj.ProjectCache)
+                obj.ProjectCache = containers.Map;
+            end
             if isKey(obj.ProjectCache, name)
                 projectObj = obj.ProjectCache(name);
             else

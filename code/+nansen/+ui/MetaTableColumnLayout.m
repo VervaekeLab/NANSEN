@@ -3,14 +3,13 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 %
 %   Used for retrieval and editing of column layout preferences for the
 %   MetaTableViewer UI.
-
     
     % TODO:
     %
     % [ ] Rename to ColumnModel...
     % [ ] Test and debug if this works if more metatables are added to
     %     settings. I think I need to work more on the different indexing
-    %     methods 
+    %     methods
     %     - Do we get the correct values for each table variable from the
     %     settings. Even if variable names are shuffled around in settings?
     %     - Do we set the right values to settings, even when names are
@@ -20,7 +19,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     % [ ] Add better comments regarding indexing of variables from table to
     %     settings and vice versa
     %
-    % [ ] Settings should be saved indiviually based on where the table is used...
+    % [ ] Settings should be saved individually based on where the table is used...
     %
     % [ ] Struct should not be a valid column type. Before it was (when the
     % MetaTable property was a nansen.metadata.MetaTable object), but now
@@ -28,7 +27,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     % sufficient just to change this value to false, since the parent class
     % already should take care of changing a struct variable to a valid type
     % before it ends up in the MetaTable property.
-    
     
     % Ideas for appearance:
     %
@@ -41,13 +39,12 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     % not renderable... If it is the metatable, this class should do
     % that... Not sure yet...
     
-    
     % Need to clean up the table layout
     %
     %   1) One subset of variables from settings are displayed in the settings
     %   editor. Every property and method related to this behavior should
     %   be private to this class.
-    %   
+    %
     %   2) Another subset of this subset is displayed in the metatable.
     %      The order which this subset is displayed is determined by column
     %      order. This order should be the main IndexList for interacting
@@ -60,11 +57,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     %
     
     %   Column order determines which order columns are displayed at.
-    %   
+    %
     %   ColumnVisible determines if column is part of list to display
-    %   
-    
-    
+    %
     
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false
@@ -83,7 +78,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
     properties (SetAccess = private)
         
         % Indices to use for retrieval of values from the settings. These
-        % should be updated if the MetaTable changes, and if the any of 
+        % should be updated if the MetaTable changes, and if the any of
         % the values in the ShowColumn settings changes.
         SettingsIndices         % Indices of metatable variable, in the order they appear in the settings.
         MetaTableIndicesAll     % Indices of all metatable variable that are included in settings.
@@ -110,7 +105,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         UIEditorTable % Table for editing column settings.
     end
     
-    
     methods
         
         function obj = MetaTableColumnLayout(hViewer, varargin)
@@ -134,7 +128,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % The editable property depends on the metatable and the
             % associated project-dependent variables and should be updated
             % on each instance creation.
-            % Todo: This is not good solution. 
+            % Todo: This is not good solution.
             obj.updateColumnEditableState();
 
             obj.MetaTableUi = hViewer;
@@ -156,7 +150,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             delete(obj.MetaTableChangedListener)
         end
-        
     end
     
     methods %temp
@@ -169,12 +162,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 end
             end
         end
-        
     end
     
     methods
         
-      % % Overide methods from superclass UserSettings
+      % % Override methods from superclass UserSettings
         
         function editSettings(obj)
         %editSettings Override superclass method.
@@ -236,7 +228,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         end
         
         function updateColumnEditableState(obj)
-        %updateColumnEditableState Update the state of column editable for all variables    
+        %updateColumnEditableState Update the state of column editable for all variables
             
             %  Also, need to call this
             % whenever a table variable was edited in sessionbrowser/nansen
@@ -268,16 +260,16 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         end
         
         function colIndices = getColumnIndices(obj)
-        %getColumnIndices Get column indices for current metadata table..    
+        %getColumnIndices Get column indices for current metadata table..
        
-        % dont remember what the difference is between 
+        % dont remember what the difference is between
         % obj.MetaTableIndicesAll & obj.SettingsIndices
             
             colIndices = [];
             if isempty(obj.MetaTable); return; end
             if isempty(obj.settings); return; end
 
-            indAll = obj.MetaTableIndicesAll;            
+            indAll = obj.MetaTableIndicesAll;
             
             indSkip = [obj.settings(indAll).SkipColumn];
             indShow = [obj.settings(indAll).ShowColumn];
@@ -290,7 +282,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             [~, sortInd] = sort(columnOrder);
             
-            % This yields the column indices 
+            % This yields the column indices
             colIndices = 1:size(obj.MetaTable, 2);
             colIndices = colIndices(indShow & ~indSkip);
             
@@ -317,7 +309,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             currentIndices = currentIndices(sortInd);
         end
             
-      % % Methods for getting varibles from settings:
+      % % Methods for getting variables from settings:
         
         function [colNames, varNames] = getColumnNames(obj)
 
@@ -325,9 +317,9 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 
             IND = obj.getIndicesToShowInMetaTable();
             if isempty(obj.settings); return; end
-            colNames = {obj.settings(IND).ColumnLabel};            
+            colNames = {obj.settings(IND).ColumnLabel};
             
-            % Why this? 
+            % Why this?
 % %             [~, indSort] = sort(intersect( obj.SettingsIndices, IND, 'stable'));
 % %             colNames(indSort) = colNames;
             
@@ -403,14 +395,13 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 obj.settings_(IND(iB(i))).ColumnWidth = columnWidths(i);
             end
             
-            
             obj.updateUiTableEditor()
             obj.saveSettings()
         end
         
         function hideColumn(obj, columnIdx)
             %IND = obj.getIndicesToShowInMetaTable();
-            %columnIdxSetting = IND(columnIdx);            
+            %columnIdxSetting = IND(columnIdx);
               
             colInd = obj.getColumnIndicesSettings;
             columnIdxSetting = colInd(columnIdx);
@@ -426,25 +417,24 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 obj.UIEditorTable.Data = table2cell(T);
             end
             
-            
             % Todo: Update table view (remove columns).
             obj.MetaTableUi.refreshTable([], true)
             obj.updateUiTableEditor()
         end
         
         function setNewColumnOrder(obj, newColumnArrangement)
-        %setNewColumnOrder 
+        %setNewColumnOrder
         %
         
         %   Note: This methods should be used to update settings when the
-        %   columns have already been rearranged. 
+        %   columns have already been rearranged.
         %
         %   This is currently the only behavior, but an idea is to be able
         %   to change these values for the column settings editor, and in
         %   this case we need to also to the actual rearranging of columns
         
-            % newColumnOrder is a cellarray of column names in the order 
-            % they appear in the table   
+            % newColumnOrder is a cellarray of column names in the order
+            % they appear in the table
             
             % Indices of variables in settings that are currently visible
             % in the metatable.
@@ -535,13 +525,12 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 clear colNames
             end
         end
-        
     end
     
     methods (Access = private) % Create gui for editing settings
         
         function IND = getIndicesToShowInLayoutEditor(obj)
-        %getIndicesToShowInLayoutEditor For indexing the settings struct 
+        %getIndicesToShowInLayoutEditor For indexing the settings struct
         
             if isempty(obj.settings); IND = []; return; end
 
@@ -549,7 +538,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % current metatable.
             indA = obj.MetaTableIndicesAll;
             
-            % Indices of those varibles that are not displayable
+            % Indices of those variables that are not displayable
             indB = find( [obj.settings.SkipColumn] );
             
             % Indices of variables in current metatable that are displayable
@@ -609,7 +598,6 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                 obj.UIEditorTable.Data = table2cell(T);
             end
         end
-        
     end
     
     methods % Set/get
@@ -619,7 +607,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 %             obj.MetaTable = newTable;
 %             obj.onMetaTableChanged()
 %         end
-%         
+%
     end
     
     methods (Access = protected)
@@ -632,7 +620,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             if isempty(obj.settings)
                 varNamesA = '';
             else
-                varNamesA = {obj.settings.VariableName}; 
+                varNamesA = {obj.settings.VariableName};
             end
 
             if isempty(obj.MetaTable)
@@ -642,13 +630,12 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % Variable names that are in the current metatable.
             varNamesB = obj.MetaTable.Properties.VariableNames;
             
-            % Check if any variable names from the MetaTable are missing 
+            % Check if any variable names from the MetaTable are missing
             % from the settings file (if a new table definition is loaded)
             varNamesC = setdiff(varNamesB, varNamesA, 'stable');
             
             % If not, we can return
             if isempty(varNamesC);    return;    end
-            
             
             % Need to get a table row to test data types of variables
             tableRow = table2struct(obj.MetaTable(1,:));
@@ -700,15 +687,14 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         end
         
         function onSettingsChanged(obj, src, event)
-        %onSettingsChanged Callback for when settings are changed. 
+        %onSettingsChanged Callback for when settings are changed.
         %
         %   Note: This method has a slightly different implementation than
         %   the definition from the superclass. This is because
         %   editSettings opens settings in a table view instead of a
         %   structeditor.
-        
             
-            % Get those indices of the settings struct array that are 
+            % Get those indices of the settings struct array that are
             % currently shown in the column-layout table editor.
             IND = obj.getIndicesToShowInLayoutEditor();
             
@@ -741,12 +727,11 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                     obj.MetaTableUi.changeColumnWidths(newWidths);
                     
             end
-            
         end
         
         function onMetaTableChanged(obj)
             
-            obj.MetaTable = obj.MetaTableUi.MetaTable; %Todo: Change to TableVariables 
+            obj.MetaTable = obj.MetaTableUi.MetaTable; %Todo: Change to TableVariables
 
             obj.checkAndUpdateColumnEntries()
             obj.updateSettingsIndices()
@@ -787,7 +772,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         
             if isempty(obj.settings); IND = []; return; end
 
-            % Indices of those variables in settings that should be 
+            % Indices of those variables in settings that should be
             % displayed from the current metatable.
             indA = obj.getIndicesToShowInLayoutEditor();
             indB = find( [obj.settings.ShowColumn] );
@@ -799,9 +784,8 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         
         function IND = getRearrangedColumnIndices(obj)
             
-            IND = obj.getIndicesToShowInMetaTable();            
+            IND = obj.getIndicesToShowInMetaTable();
         end
-
     end
     
     methods (Static)
@@ -826,7 +810,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         end
         
         function tf = checkIfColumnDataIsValid(value)
-        %checkIfColumnDataIsValid Check if data type is valid for display    
+        %checkIfColumnDataIsValid Check if data type is valid for display
         %
         % Valid data types are numerics, logicals, character vectors and
         % structs. Numeric or logical arrays are not valid.
@@ -850,11 +834,10 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             elseif isa(value, 'nansen.metadata.abstract.TableVariable')
                 tf = true;
             elseif isa(value, 'matlab.mixin.CustomCompactDisplayProvider')
-                tf = true;   
+                tf = true;
             else
                 tf = false;
             end
-            
         end
         
         function tf = checkIfColumnIsEditable(variableName)
@@ -873,13 +856,14 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             end
             
             thisFcn = getCustomTableVariableFcn(variableName);
-            fcnValue = thisFcn();
-
-            if isa(fcnValue, 'nansen.metadata.abstract.TableVariable')
-                tf = fcnValue.IS_EDITABLE;
+            try
+                fcnValue = thisFcn();
+                if isa(fcnValue, 'nansen.metadata.abstract.TableVariable')
+                    tf = fcnValue.IS_EDITABLE;
+                end
+            catch
+                tf = false;
             end
-            
         end
-        
     end
 end

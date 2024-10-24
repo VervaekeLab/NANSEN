@@ -2179,7 +2179,7 @@ methods % App update
         try
             obj.uiwidgets.msgBox.clearMessage()
         catch ME
-            warning('Could not clear message from message display. The following error was caught: %s', ME.message)
+            warning(ME.identifier, 'Could not clear message from message display. The following error was caught: %s', ME.message)
         end
     end
     
