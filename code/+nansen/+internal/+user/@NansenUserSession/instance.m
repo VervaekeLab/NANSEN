@@ -3,7 +3,7 @@ function obj = instance(userName, mode, skipProjectCheck)
 %
 %   Input arguments:
 %       userName    - Not supported yet
-%       mode        -  char, 'check' (default) | 'force' | 'nocreate' | 'reset'
+%       mode        - char, 'check' (default) | 'force' | 'nocreate' | 'reset'
 %       skipProjectCheck - logical (default = false)
 
 %   Note: to achieve a persistent singleton instance that survives a "clear
@@ -12,19 +12,19 @@ function obj = instance(userName, mode, skipProjectCheck)
 %   this?
 
     % - Set default arguments if none are given
-    if nargin < 1 || isempty(userName)
+
+    arguments
+        userName (1,1) string = missing
+        mode (1,1) string ...
+            {mustBeMember(mode, ["check", "force", "nocreate", "reset"])} = "check"
+        skipProjectCheck (1,1) logical = false
+    end
+
+    if ismissing(userName) || isempty(char(userName))
         userName = "default";
         changeUser = false;
     else
         changeUser = true;
-    end
-
-    if nargin < 2 || isempty(mode)
-        mode = "check";
-    end
-
-    if nargin < 3 || isempty(skipProjectCheck)
-        skipProjectCheck = false;
     end
 
     SINGLETON_NAME = nansen.internal.user.NansenUserSession.SINGLETON_NAME;
