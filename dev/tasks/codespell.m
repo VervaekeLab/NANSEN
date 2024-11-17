@@ -11,5 +11,4 @@ function codespell()
     end
 
     matbox.tasks.codespellToolbox(projectDirectory, nvOptions{:});
-
 end

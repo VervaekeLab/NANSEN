@@ -35,7 +35,7 @@ assert(islogical(roiMask(1)) & numel(size(roiMask))==2, ...
 [y, x] = find(roiMask);
 centre = [mean(y), mean(x)];
 
-% Get the (x,y) co-ordinates of the pixels in the mask
+% Get the (x,y) coordinates of the pixels in the mask
 [y, x] = find(npMask);
 
 % Find the angle of the vector from the mask centre to each pixel
