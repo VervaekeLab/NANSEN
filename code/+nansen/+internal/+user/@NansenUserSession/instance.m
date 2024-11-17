@@ -6,9 +6,9 @@ function obj = instance(userName, mode, skipProjectCheck)
 %       mode        -  char, 'check' (default) | 'force' | 'nocreate' | 'reset'
 %       skipProjectCheck - logical (default = false)
 
-%   Note: to achieve persistent singleton instance that survives a clear
-%   all statement, the singleton instance is stored in the graphics root
-%   object's UserData property. Open question: Are there better ways to do
+%   Note: to achieve a persistent singleton instance that survives a "clear
+%   all" statement, the singleton instance is stored in the graphics root
+%   object's appdata. Open question: Are there better ways to do
 %   this?
 
     % - Set default arguments if none are given
@@ -27,20 +27,12 @@ function obj = instance(userName, mode, skipProjectCheck)
         skipProjectCheck = false;
     end
 
+    SINGLETON_NAME = nansen.internal.user.NansenUserSession.SINGLETON_NAME;
+
     userName = string(userName); mode = string(mode);
 
-    %persistent userSessionObject % Singleton instance
-    userSessionObject = [];
     resetUserSessionInstance = false;
-
-    rootUserData = get(0, 'UserData');
-    if isstruct(rootUserData)
-        if isfield(rootUserData, 'SingletonInstances')
-            if isfield(rootUserData.SingletonInstances, 'NansenUserSession')
-                userSessionObject = rootUserData.SingletonInstances.NansenUserSession;
-            end
-        end
-    end
+    userSessionObject = getappdata(0, SINGLETON_NAME);
     
     % - If user session exists, check that name is correct
     if ~isempty(userSessionObject) && isvalid(userSessionObject)
@@ -50,8 +42,6 @@ function obj = instance(userName, mode, skipProjectCheck)
                 warning('NANSEN:UserSession:UserSessionActive', ...
                     'Another user session is active and will be closed.')
                 resetUserSessionInstance = true;
-                %delete(userSessionObject)
-                %userSessionObject = [];
 
             elseif mode == "check"
                 message = sprintf(...
@@ -87,16 +77,15 @@ function obj = instance(userName, mode, skipProjectCheck)
     if resetUserSessionInstance
         delete(userSessionObject)
         userSessionObject = [];
-        rootUserData.SingletonInstances.NansenUserSession = [];
-        set(0, 'UserData', rootUserData)
+        if isappdata(0, SINGLETON_NAME)
+            rmappdata(0, SINGLETON_NAME)
+        end
     end
 
     % - Construct the user session if singleton instance is not present
     if isempty(userSessionObject) && ~strcmp(mode, 'nocreate') && ~strcmp(mode, 'reset')
         userSessionObject = nansen.internal.user.NansenUserSession(userName, skipProjectCheck);
-        
-        rootUserData.SingletonInstances.NansenUserSession = userSessionObject;
-        set(0, 'UserData', rootUserData)
+        setappdata(0, SINGLETON_NAME, userSessionObject)
         
         % Check if user's data need to be updated due to changes in the
         % code base. Important that this is done after the singleton is created.

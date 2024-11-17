@@ -61,9 +61,21 @@ classdef NansenUserSession < handle
         LOG_UUID = false;
     end
 
+    properties (Constant, Access = private)
+        SINGLETON_NAME = "NansenUserSessionSingleton"
+    end
+
     methods (Static)
         %instance Return a singleton instance of the NansenUserSession
         obj = instance(userName, mode, skipProjectCheck) % Method in separate file
+
+        function reset()
+            singletonName = nansen.internal.user.NansenUserSession.SINGLETON_NAME;
+            if isappdata(0, singletonName)
+                delete( getappdata(0, singletonName) )
+                rmappdata(0, singletonName)
+            end
+        end
     end
 
     methods % Set/get methods for dependent properties
@@ -267,7 +279,13 @@ classdef NansenUserSession < handle
 
             if ispref('Nansen', 'CurrentProject')
                 currentProject = getpref('Nansen', 'CurrentProject');
-                obj.ProjectManager.changeProject(currentProject)
+                try
+                    obj.ProjectManager.changeProject(currentProject)
+                catch
+                    warning("NANSEN:UserSession:ChangeProjectFailed", ...
+                        "Failed to change project to `%s` for user `%s`", ...
+                        currentProject, obj.CurrentUserName)
+                end
                 rmpref('Nansen', 'CurrentProject');
                 rmpref('Nansen', 'CurrentProjectPath');
             end
