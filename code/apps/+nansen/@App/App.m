@@ -1227,6 +1227,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             if any( isMatch )
                 tableVariableFunctionName = TVA(isMatch).RendererFunctionName;
+                if isempty(tableVariableFunctionName); return; end
                 
                 tableRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow); % Visible row to data row transformation
                 tableValue = app.MetaTable.entries{tableRowIdx, thisColumnName};
@@ -1498,6 +1499,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 metaObjects = app.createMetaObjects(entries, useCache);
             end
+        end
+
+        function ids = getObjectId(app, object)
+            idName = app.MetaTable.SchemaIdName;
+            ids = {object.(idName)};
         end
         
         function metaObjects = tableEntriesToMetaObjects(app, entries)
@@ -2620,8 +2626,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function copySessionIdToClipboard(app)
             
             sessionObj = app.getSelectedMetaObjects();
+            sessionID = app.getObjectId(sessionObj);
             
-            sessionID = {sessionObj.sessionID};
             sessionID = cellfun(@(sid) sprintf('''%s''', sid), sessionID, 'uni', 0);
             sessionIDStr = strjoin(sessionID, ', ');
             clipboard('copy', sessionIDStr)
@@ -2656,6 +2662,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onCreateNoteSessionContextMenuClicked(app)
 
             sessionObj = app.getSelectedMetaObjects();
+
             sessionID = sessionObj.sessionID;
             noteObj = nansen.notes.Note.uiCreate('session', sessionID);
             
