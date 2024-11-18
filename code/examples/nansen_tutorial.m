@@ -1,5 +1,5 @@
 S = ver("widgets");
-if isempty(S) 
+if isempty(S)
     nansen.internal.setup.installWidgetsToolbox()
 end
 try

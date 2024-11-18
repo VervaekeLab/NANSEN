@@ -1071,6 +1071,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Create table menu (menu for selecting tables):
             metatableTypes = app.CurrentProject.MetaTableCatalog.Table.MetaTableClass;
+            metatableTypes = unique(metatableTypes);
             isSelected = strcmp(metatableTypes, class(app.MetaTable));
 
             if numel(unique(metatableTypes)) > 1
@@ -1556,8 +1557,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Todo: Need to apply this fix when migrating projects
             if isempty(app.MetaTable.ItemClassName)
-                %schema = str2func(class(app.MetaTable));
-                schema = @table2struct;
+                schema = str2func(class(app.MetaTable));
+                %schema = @table2struct;
             else
                 schema = str2func(app.MetaTable.ItemClassName);
             end
