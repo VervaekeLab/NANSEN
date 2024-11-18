@@ -3,19 +3,19 @@
 userSession = nansen.internal.user.NansenUserSession.instance('tutorial');
 
 % Allow user to select an existing project
-S = ["Nansen Quickstart", ...
+S = ["Nansen - Two-photon Quickstart", ...
      "Allen Brain Observatory - Visual Coding (Neuropixels)", ...
      "Allen Brain Observatory - Visual Coding (Calcium Imaging)", ...
      "EBRAINS D&K - L2/3 + L5 Visual occlusion (Calcium Imaging)"];
 
-S = ["Nansen Quickstart", ...
+S = ["Nansen - Two-photon Quickstart", ...
      "Allen Brain Observatory - Visual Coding (Calcium Imaging)"];
 
 [selection, ok] = listdlg('ListString', S, 'ListSize', [360, 240]);
 
 if ok
     switch S(selection)
-        case "Nansen Quickstart"
+        case "Nansen - Two-photon Quickstart"
             repositoryName = "Nansen_Demo";
             projectName = 'nansen_demo';
 
@@ -32,8 +32,8 @@ if ok
 end
 
 if startsWith(S(selection), 'Allen Brain Observatory')
-    am = nansen.AddonManager();
-    
+    addonManager = nansen.AddonManager();
+
     names = {addonManager.AddonList.Name};
     S = addonManager.AddonList(strcmp(names, "Brain Observatory Toolbox"));
     if ~S.IsInstalled
@@ -52,9 +52,11 @@ if ~projectManager.containsProject(projectName)
     % Download target repository folder (todo: function)
     repositoryUrl = sprintf('https://github.com/NansenProjects/%s', repositoryName);
     installationLocation = fullfile(userpath, 'Nansen-Tutorial');
+    fprintf("Downloading project ""%s""...\n", S(selection))
     repoTargetFolder = setuptools.internal.installGithubRepository(repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
     
     L = dir(fullfile(repoTargetFolder, '*', 'project.nansen.json'));
+    fprintf("Adding project ""%s"" to NANSEN...\n", S(selection))
     projectManager.importProject(L.folder);
     projectManager.changeProject(projectName);
 

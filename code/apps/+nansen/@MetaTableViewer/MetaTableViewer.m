@@ -817,8 +817,10 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 if isprotected(categoricalObject)
                     colFormatData{i} = categories(categoricalObject);
                 else
-                    % Add <undefined> as an option for unprotected
-                    % categoricals
+                    % colFormatData{i} = categories(categoricalObject);
+                    
+                    % Add <undefined> as an option for unprotected categoricals
+                    % - Question: Does that responsibility lie here or upstream?
                     colFormatData{i} = cat(1, '<undefined>', categories(categoricalObject));
                 end
             end
@@ -849,7 +851,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 popupOptions = obj.MetaTableVariableAttributes(tableVarIndex).OptionsList;
 
                 dataTypes(iA(i)) = {'popup'};
-                colFormatData(iA(i)) = popupOptions; %Todo; popupOptions should be 1xn cell
+                if isa(popupOptions, 'cell') && numel(popupOptions) == 1
+                    colFormatData(iA(i)) = popupOptions;
+                else
+                    colFormatData(iA(i)) = {popupOptions};
+                end
                 obj.HTable.ColumnEditable(iA(i)) = true;
             end
 
@@ -1237,6 +1243,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
                 if ~isempty(obj.MouseDoubleClickedFcn)
                     obj.MouseDoubleClickedFcn(src, evt)
+                else
+                    obj.onMouseDoubleClickedInTable(src, evt)
                 end
                 
                 % Todo:
@@ -1291,8 +1299,52 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                     obj.openTableContextMenu(position(1), position(2));
                 end
             end
+        end  
+                    
+        function onMouseDoubleClickedInTable(obj, src, evt)
+        % onMouseDoubleClickedInTable - Callback for double clicks
+        %
+        %   Check if the currently selected column has an associated table
+        %   variable definition with a double click callback function.
+
+            thisRow = evt.Cell(1); % Clicked row index
+            thisCol = evt.Cell(2); % Clicked column index
+            
+            if thisRow == 0 || thisCol == 0
+                return
+            end
+            
+            % Get name of column which was clicked
+            thisColumnName = obj.getColumnNames(thisCol);
+
+            % Use table variable attributes to check if a double click 
+            % callback function exists for the current table column
+            TVA = obj.MetaTableVariableAttributes([obj.MetaTableVariableAttributes.HasDoubleClickFunction]);
+            
+            isMatch = strcmp(thisColumnName, {TVA.Name});
+
+            if any( isMatch )
+                tableVariableFunctionName = TVA(isMatch).RendererFunctionName;
+                
+                if ~isempty(tableVariableFunctionName)
+                    tableRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow); % Visible row to data row transformation
+                    tableValue = app.MetaTable.entries{tableRowIdx, thisColumnName};
+                    tableVariableObj = feval(tableVariableFunctionName, tableValue);
+                    
+                    tableRowData = app.MetaTable.entries(tableRowIdx,:);
+                    metaObj = app.tableEntriesToMetaObjects( tableRowData );
+                    tableVariableObj.onCellDoubleClick( metaObj );
+                else
+                    if isa(TVA(isMatch).DoubleClickFunctionName, 'function_handle')
+                        TVA(isMatch).DoubleClickFunctionName()
+                    else
+                        error('Not supported')
+                    end
+                end
+            end
         end
         
+
         function onMouseMotionInTable(obj, src, evt)
             % This functionality is put in the nansen app for now.
         end
@@ -1317,6 +1369,13 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             evtColIdx = obj.ColumnModel.getColumnIdx( evtData.Indices(2) ); % 2 is for columns
             tableColInd = colInd(evtColIdx);
+            
+            % Todo: Implement this, if dropdown contains actionable options
+            % formatted like this: <action name>
+            % % newValue = evtData.NewValue;
+            % % if startsWith(newValue, '<') && endsWith(newValue, '>')
+            % %     evtData.NewValue = [];
+            % % end
             
             % Update value in table and table cell array
             %obj.MetaTable(tableRowInd, tableColInd) = {evtData.NewValue};

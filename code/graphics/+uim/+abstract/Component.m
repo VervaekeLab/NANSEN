@@ -556,7 +556,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 parentSize = parentPos(3:4);
                 locationPoint = obj.location2point(parentSize, obj.Location);
             else
-                warning('Parent of type %s is supported', class(obj.Parent))
+                warning('Parent of type %s is not supported', class(obj.Parent))
                 locationPoint = [1,1];
             end
             

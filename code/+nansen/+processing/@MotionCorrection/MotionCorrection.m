@@ -438,7 +438,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 
             % Get file reference for corrected stack
             DATANAME = obj.TargetStackName;
-            filePath = obj.getDataFilePath( DATANAME );
+            filePath = obj.getDataFilePath( DATANAME, '-w');
             
             folderPath = fileparts(filePath);
             if ~isfolder(folderPath); mkdir(folderPath); end

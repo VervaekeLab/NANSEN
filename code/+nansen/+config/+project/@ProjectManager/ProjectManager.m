@@ -347,13 +347,12 @@ classdef ProjectManager < handle
         %
         %   Example usage:
         %       removeProject(obj, 'myProject');
-
-            if nargin < 3
-                deleteProjectFolder = false;
-            end
-
-            if nargin < 4
-                allowRemoveCurrentProject = false;
+            
+            arguments
+                obj (1,1) nansen.config.project.ProjectManager
+                name (1,1) string
+                deleteProjectFolder (1,1) logical = false
+                allowRemoveCurrentProject (1,1) logical = false
             end
             
             IND = obj.getProjectIndex(name);
