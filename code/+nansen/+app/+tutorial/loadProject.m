@@ -32,8 +32,8 @@ if ok
 end
 
 if startsWith(S(selection), 'Allen Brain Observatory')
-    am = nansen.AddonManager();
-    
+    addonManager = nansen.AddonManager();
+
     names = {addonManager.AddonList.Name};
     S = addonManager.AddonList(strcmp(names, "Brain Observatory Toolbox"));
     if ~S.IsInstalled

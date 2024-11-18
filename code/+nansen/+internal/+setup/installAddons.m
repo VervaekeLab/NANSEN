@@ -14,5 +14,4 @@ function installAddons()
     end
     
     addonManager.saveAddonList()
-
 end
