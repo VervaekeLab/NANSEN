@@ -16,8 +16,8 @@ function packageToolbox(versionNumber)
 
     % This should be the same across versions:
     identifier = "07b2cd84-23b5-43a5-a61b-a5de9d19687a"; 
-    rootFolder = fileparts(mfilename("fullpath"));
-    toolboxFolder = fullfile(rootFolder, "code");
+    rootFolder = fileparts(fileparts(mfilename("fullpath")));
+    toolboxFolder = fullfile("..", "code");
     opts = matlab.addons.toolbox.ToolboxOptions(toolboxFolder, identifier);
     
     toIgnore = contains(opts.ToolboxFiles, '_dev');
