@@ -77,6 +77,7 @@ classdef TimeseriesPyramid < handle
             xDataFull = obj.xData{level};
             tDataFull = obj.TData{level};
             
+            
             ind = xDataFull >= xLim(1) & xDataFull <= xLim(2);
             
             xData = xDataFull(ind);
@@ -164,10 +165,12 @@ classdef TimeseriesPyramid < handle
             obj.TData{1} = timeTableObj;
             obj.xData{1} = 1:size(timeTableObj, 1);
             for i = 2:numLevels+1
-                
-                sampleRateTemp = sampleRateTemp ./ downsamplingStepFactor;
-                obj.TData{i} = retime(obj.TData{i-1}, 'regular', 'linear', ...
-                    'SampleRate', sampleRateTemp);
+                obj.TData{i} = timetable.range(obj.TData{i-1},downsamplingStepFactor);
+                %obj.TData{i} = timetable.range(obj.TData{1},power(downsamplingStepFactor,i-1));
+                %sampleRateTemp = sampleRateTemp ./ downsamplingStepFactor;
+                %obj.TData{i} = retime(obj.TData{i-1}, 'regular', 'linear', ...
+                %    'SampleRate', sampleRateTemp);
+                %obj.xData{i} = seconds(obj.TData{i}.Time);
                 obj.xData{i} = linspace(1, numSamplesMax, size(obj.TData{i}, 1));
                 
             end
