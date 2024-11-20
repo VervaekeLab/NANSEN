@@ -31,6 +31,7 @@ jobs:
       
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
+        with:
           products: Image_Processing_Toolbox
 
       # Check for MATLAB code issues in the project.
