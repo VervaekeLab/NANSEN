@@ -1,4 +1,4 @@
-function createTestedWithBadgeforToolbox(versionNumber)
+function createTestedWithBadgeForToolbox(versionNumber)
     arguments
         versionNumber (1,1) string
     end
