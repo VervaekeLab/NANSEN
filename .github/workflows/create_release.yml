@@ -106,8 +106,8 @@ jobs:
       - name: Save packaged toolbox
         uses: actions/upload-artifact@v4
         with:
-          name: ${{TOOLBOX_FILE_NAME}}${{ env.versionNumber }}.mltbx
-          path: releases/${{TOOLBOX_FILE_NAME}}_${{ env.versionNumber }}.mltbx
+          name: ${{env.TOOLBOX_FILE_NAME}}${{ env.versionNumber }}.mltbx
+          path: releases/${{env.TOOLBOX_FILE_NAME}}_${{ env.versionNumber }}.mltbx
 
       # Commit the updated Contents.m
       - name: Commit updated Contents.m file
@@ -170,6 +170,6 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           draft: true        
-          artifacts: "releases/${{TOOLBOX_FILE_NAME}}_${{ env.versionNumber }}.mltbx"
+          artifacts: "releases/${{env.TOOLBOX_FILE_NAME}}_${{ env.versionNumber }}.mltbx"
           generateReleaseNotes: true
           body: "![MATLAB Versions Tested](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2F{{github.repository}}%2Fgh-badges%2F.github%2Fbadges%2F${{ github.ref_name }}%2Ftested_with.json)"
