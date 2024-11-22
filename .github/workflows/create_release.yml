@@ -60,9 +60,9 @@ jobs:
       # Use deploy key to push back to protected branch
       - name: Checkout repository using deploy key
         uses: actions/checkout@v4
-        with:
-            ref: refs/heads/main
-            ssh-key: ${{ secrets.DEPLOY_KEY }}
+        #with:
+        #    ref: refs/heads/main
+        #    ssh-key: ${{ secrets.DEPLOY_KEY }}
 
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
@@ -78,7 +78,9 @@ jobs:
       - name: Generate tested with badge
         uses: matlab-actions/run-command@v2
         with:
-          command: addpath(genpath("tools")), createTestedWithBadgeforToolbox("${{  github.ref_name }}")     
+          command: | 
+            addpath(genpath("tools"));
+            createTestedWithBadgeForToolbox("${{  github.ref_name }}")     
           
       # Publish test results from all the releases
       - name: Publish Test Results
