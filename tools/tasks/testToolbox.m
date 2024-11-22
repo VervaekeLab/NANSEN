@@ -3,7 +3,7 @@ function testToolbox(varargin)
    
     projectRootDirectory = nansentools.projectdir();
     addpath(genpath(fullfile(projectRootDirectory, 'code')))
-    [status, teardownObjects] = setupNansenTestEnvironment(ClearAll=true); %#ok<ASGLU>
+    [status, teardownObjects] = setupNansenTestEnvironment("ClearAll", true); %#ok<ASGLU>
     if status ~= 0; error('Something went wrong'); end
    
     % Prepare
