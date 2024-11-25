@@ -176,7 +176,8 @@ classdef TemporalDownsampler < nansen.stack.ImageStackProcessor
             % Todo: Use this as a backup? I.e if targetStack already
             % exists, but for some reason the IsCOmplete flag was not
             % added.
-            
+                        
+            tf = false;
             if ~isempty(obj.TargetStack)
                 tf = nansen.stack.ImageStack.isStackComplete(obj.TargetStack);
             end
