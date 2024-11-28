@@ -95,7 +95,7 @@ classdef ImageClassifier < mclassifier.manualClassifier
 
     methods
             
-        function removeItems(obj, indToRemove)
+        function removeItems(obj, indToRemove) %#ok<INUSD>
             errordlg('Removal of items is not implemented yet.')
             return
         end
@@ -150,7 +150,7 @@ classdef ImageClassifier < mclassifier.manualClassifier
             if isempty(tileNumbers); return; end
 
             imageSelection = getCurrentImageSelection(obj);
-            imageSize = obj.hTiledImageAxes.imageSize;
+            %imageSize = obj.hTiledImageAxes.imageSize;
 
             try
                 imageData = cat(3, obj.itemImages(itemIndices).(imageSelection));
@@ -175,7 +175,7 @@ classdef ImageClassifier < mclassifier.manualClassifier
             %obj.hTiledImageAxes.updateTilePlotLinewidth(tileNumbers, 2)
         end
         
-        function onSelectedItemChanged(obj)
+        function onSelectedItemChanged(obj) %#ok<MANU>
             % Pass
         end
     end
