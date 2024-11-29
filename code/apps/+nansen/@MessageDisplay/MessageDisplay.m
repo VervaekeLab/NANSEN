@@ -10,7 +10,7 @@ classdef MessageDisplay < handle
     end
 
     methods
-        function inform(obj, message, options)
+        function hFigure = inform(obj, message, options)
         % inform - Open a message box with info message
             
             arguments
@@ -23,7 +23,10 @@ classdef MessageDisplay < handle
             messageStr = obj.getFormattedMessage(message);
             opts = obj.getDialogOptions();
             
-            msgbox(messageStr, options.Title, opts)
+            hFigure = msgbox(messageStr, options.Title, opts);
+            if ~nargout
+                clear hFigure
+            end
         end
 
         function answer = ask(obj, question, options)
