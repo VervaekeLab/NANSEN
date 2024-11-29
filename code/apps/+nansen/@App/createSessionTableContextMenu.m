@@ -1,4 +1,4 @@
-function createSessionTableContextMenu(app)
+function hContextMenu = createSessionTableContextMenu(app)
 %createSessionTableContextMenu Create a context menu for sessions in table
     
     hContextMenu = uicontextmenu(app.Figure);
@@ -10,6 +10,7 @@ function createSessionTableContextMenu(app)
 % % %     end
 % % %     app.UiMetaTableViewer.HTable.ContextMenu = hContextMenu;
 
+    % Delete context menu if it exists from before:
     if ~isempty(app.UiMetaTableViewer.TableContextMenu)
         delete(app.UiMetaTableViewer.TableContextMenu)
     end

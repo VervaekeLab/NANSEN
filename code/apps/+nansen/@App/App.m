@@ -1,5 +1,7 @@
 classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     applify.HasTheme
+% NANSEN - Data manager application with table overviews, dynamic item
+% representations, configurable tasks and file integrations.
 
     % Todo:
     %   [ ] Add a splash screen when this is starting up
@@ -11,7 +13,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     %   [ ] Update menu or submenu using call to that function
     %   [x] Remove vars from table on load if vars are not represented in
     %       tablevar folder.
-    
     %   [v] Important: Load task list and start running it if preferences
     %       are set for that, even if gui is not initialized...
     %   [v] Keep track of session objects.
@@ -28,29 +29,79 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         AppName char = 'Nansen'
     end
     
-    properties (Constant, Hidden = true) % move to appwindow superclass
-        DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
-    end
-    
-    properties (Constant)
+    properties (Constant) % Name of pages / modules to include
         % Pages = {'Overview', 'File Viewer', 'Data Viewer', 'Task Processor'}%, 'Figures'}
         Pages = {'Overview', 'File Viewer', 'Task Processor'} %, 'Figures'}
     end
     
-    properties % Page modules
-        UiMetaTableViewer
+    properties (Dependent) % Main program dependables
+        CurrentProject % Currently selected project
+        CurrentTableSelection % Current selection of data objects.
+        CurrentObjectSelection
+    end
+
+    properties (Access = private) % Page modules
         UiMetaTableSelector
+        UiMetaTableViewer
         UiFileViewer
+        BatchProcessor % UserSession?
+        BatchProcessorUI
         UiDataViewer % Work in progress
-        UiProcessor
     end
     
-    properties
-        NotesViewer % Auxiliary app, that we need to keep track of.
-        DLModelApp % Auxiliary app, that we need to keep track of.
-        VariableModelApp % Auxiliary app, that we need to keep track of.
+    properties (Access = private)
+        UserSession nansen.internal.user.NansenUserSession
+        ProjectManager nansen.config.project.ProjectManager % From UserSession
+        DataLocationModel % Project
+        VariableModel % Project
+        MetaTable % Project
+        
+        MetaObjectMembers = {}
+        MetaObjectList % Todo: should be map/dictionary with a key per table type. File viewer should be available independent of which table is currently active
+    end
+       
+    properties (Access = private) % Auxiliary apps that we need to keep track of
+        NotesViewer
+        DLModelApp
+        VariableModelApp
+    end
 
-        SchemaViewerApp
+    properties (Access = private) % App / gui components
+        % Heartbeat - Timer that periodically runs internal updates 
+        Heartbeat (1,1) timer
+
+        % MessageDisplay - A message display interface for displaying
+        % information to users.
+        MessageDisplay (1,1) nansen.MessageDisplay
+
+        % StatusText - A status text interface for displaying status
+        % information to users (at bottom of figure). This object is used
+        % for updating the content status messages.
+        StatusText applify.StatusText
+
+        % SessionTaskMenu - An object for creating and updating a dynamic
+        % set of session / items tasks on the main figure menu
+        SessionTaskMenu nansen.SessionTaskMenu
+
+        % DiskConnectionMonitor - Monitors disk connections. This is used
+        % for nansen to update states for data location indicators.
+        DiskConnectionMonitor (1,1) nansen.internal.system.DiskConnectionMonitor
+
+        % Context menu for session table. Todo: Need to generalize this to
+        % flexibly update when tables are changed.
+        SessionContextMenu matlab.ui.container.ContextMenu
+    end
+
+    properties (Access = private)
+        
+        ActiveTabModule = []
+        ApplicationState nansen.enum.ApplicationState = "Initializing";
+
+        TableIsUpdating = false
+    end
+
+    properties (Constant, Hidden = true) % move to appwindow superclass
+        DEFAULT_THEME = nansen.theme.getThemeColors('dark-gray');
     end
     
     properties (Constant, Hidden = true) % Inherited from UserSettings
@@ -58,60 +109,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         DEFAULT_SETTINGS = nansen.App.getDefaultSettings() % Struct with default settings
     end
     
-    properties (Hidden, Access = private) % Window
-        MinimumFigureSize
-        IsIdle % Todo: make dependent on app.ApplicationState
-        TableIsUpdating = false
-        TaskInitializationListener
-        SessionTaskMenuUpdatedListener
-    end
-
-    properties (Access = private)
-        MetaObjectMembers = {}
-        MetaObjectList % Todo: should be map/dictionary with a key per table type. File viewer should be available independent of which table is currently active
-    end
-
-    properties
-        MetaTablePath = ''
-        MetaTable % Project
-        
-        BatchProcessor % UserSession?
-        BatchProcessorUI
-        
-        SessionTasks matlab.ui.container.Menu
-        SessionTaskMenu
-        SessionContextMenu
-        
-        DataLocationModel % Project
-        VariableModel % Project
-        
-        ProjectManager % UserSession
-        
-        StatusText applify.StatusText
-    end
-
-    properties (Access = private)
-        % MessageDisplay - A message display interface for displaying
-        % information to users.
-        MessageDisplay (1,1) nansen.MessageDisplay
-    end
-    
-    properties
-        CurrentSelection     % Current selection of data objects.
-        WindowKeyPressedListener
-        Timer
-        RegularTimer    % Timer that regularly looks for updates
-        DiskConnectionMonitor (1,1) nansen.internal.system.DiskConnectionMonitor
-    end
-
-    properties (Dependent)
-        CurrentProject
-    end
-    
-    properties (Access = private)
-        UserSession nansen.internal.user.NansenUserSession
-        ActiveTabModule = []
-        ApplicationState = 'Uninitialized';
+    properties (Hidden, Access = private) % Event listeners
+        % WindowKeyPressedListener event.listener 
+        TaskInitializationListener event.listener
+        SessionTaskMenuUpdatedListener event.listener
     end
     
     methods % Structors
@@ -128,7 +129,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             [isAppOpen, hApp] = app.isOpen();
             if isAppOpen
                 app = hApp;
-                % delete(app); clear app; % Todo: get handle for app.
                 return
             else
                 app.Figure.Visible = 'on';
@@ -170,8 +170,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.setIdle()
             
-            app.initializeTimer()
-            app.ApplicationState = 'idle';
+            app.initializeHeartbeat()
+            app.ApplicationState = 'Idle';
 
             if app.settings.General.MonitorDrives
                 app.initializeDiskConnectionMonitor()
@@ -193,13 +193,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 delete(PipelineViewer); PipelineViewer = [];
             end
 
-            if ~isempty(app.SchemaViewerApp)
-                delete( app.SchemaViewerApp );
-            end
-
-            if ~isempty(app.RegularTimer)
-                stop(app.RegularTimer)
-                delete(app.RegularTimer)
+            if ~isempty(app.Heartbeat)
+                stop(app.Heartbeat)
+                delete(app.Heartbeat)
             end
 
             if ~isempty(app.DiskConnectionMonitor)
@@ -243,7 +239,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if ~doExit; return; end
             end
             
-            if ~app.IsIdle
+            if ~app.isIdle()
                 doExit = app.promptQuitIfBusy();
                 if ~doExit; return; end
             end
@@ -265,7 +261,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
         function currentProject = get.CurrentProject(obj)
             currentProject = obj.ProjectManager.getCurrentProject();
-        end
+        end        
     end
     
     methods (Access = private) % Methods for app creation
@@ -273,68 +269,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         createSessionTableContextMenu(app) % Function in file...
         
         %% Create and configure main window and layout
-        function createWindow(app)
-        %createWindow Create and customize UIFigure
-        
-            screenSize = getMonitorPosition(app.browserSettings.defaultMonitor);
-            
-            % Set position values
-            if app.browserSettings.useDefaultFigureSize
-                figSize = [1180, 700];
-            else
-                figSize = app.browserSettings.FigureSize;
-            end
-            
-            % Make sure figure size is not bigger than screen
-            if figSize(1) > screenSize(3); figSize(1) = screenSize(3); end
-            if figSize(2) > screenSize(4); figSize(2) = screenSize(4); end
-            
-            margins = (screenSize(3:4) - figSize) ./ 2;
-            margins = margins + screenSize(1:2);
-            
-            % Create the figure window
-            app.UIFigure = figure('Position', [margins figSize]);
-            % app.UIFigure.AutoResizeChildren = 'off';
-            app.UIFigure.Position = [margins figSize];
-            app.UIFigure.Resize = app.browserSettings.FigureResize.Selection;
-            
-            app.UIFigure.Name = 'Session Browser';
-            app.UIFigure.NumberTitle = 'off';
-            app.UIFigure.MenuBar = 'none';
-            
-            [~, fileName] = fileparts(app.experimentInventoryPath);
-            app.UIFigure.Name = sprintf('Session Browser | %s (idle)', fileName);
-            
-            app.UIFigure.Color = [0.3216    0.3255    0.3333];
-            
-            % Make sure that plots does not end up in this figure window
-            app.UIFigure.NextPlot = 'new'; % Not sure if this works...
-            % app.UIFigure.HandleVisibility = 'off';
-            
-%             app.UIFigure.WindowButtonDownFcn = @app.tableMousePress;
-%             app.UIFigure.WindowButtonUpFcn = @app.mouseRelease;
-
-            % Set figure callbacks..
-            app.UIFigure.WindowKeyPressFcn = @app.keyboardShortcuts;
-            app.UIFigure.CloseRequestFcn = @app.UIFigureCloseRequest;
-               
-            minWidth = 1180;
-            minHeight = 700;
-            LimitFigSize(app.UIFigure, 'min', [minWidth, minHeight]) %FEX
-            
-            % Experimental: Change tooltip appearance in sessionbrowser. Need
-            % to know more about how callbacks actually interact in terms of
-            % giving focus to a window.
-% %             jframe = getjframe(app.UIFigure);
-% %             set(jframe, 'WindowActivatedCallback', @(s, e) app.onWindowActivated())
-% %             set(jframe, 'WindowGainedFocusCallback', @(s, e) app.onWindowActivated())
-% %             set(jframe, 'MouseEnteredCallback', @(s, e) app.onWindowActivated())
-% %
-% %             set(jframe, 'WindowDeactivatedCallback', @(s, e) app.onWindowDeactivated())
-% %             set(jframe, 'WindowLostFocusCallback', @(s, e) app.onWindowDeactivated())
-% %             set(jframe, 'MouseExitedCallback', @(s, e) app.onWindowDeactivated())
-        end
-        
         function configureWindow(app)
             
             % Place screen on the preferred screen if multiple screens are
@@ -348,12 +282,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 prefScreenPos = app.getPreference('PreferredScreenPosition', [1, 1, 1180, 700]);
                 app.Figure.Position = prefScreenPos{screenNumber};
             end
-            
+
             % Configure figure window to have a minimum allowed size.
-            app.MinimumFigureSize = app.getPreference('MinimumFigureSize');
-            minWidth = app.MinimumFigureSize(1);
-            minHeight = app.MinimumFigureSize(2);
-            LimitFigSize(app.Figure, 'min', [minWidth, minHeight]) % FEX
+            minimumFigureSize = app.getPreference('MinimumFigureSize');
+            LimitFigSize(app.Figure, 'min', minimumFigureSize) % FEX
         end
         
         function configFigureCallbacks(app)
@@ -465,7 +397,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Todo: Update this on project change
             uiSubMenu = uimenu( mitem, 'Text', 'Data Location Roots' );
-            app.updateDatalocationRootConfigurationSubMenu(uiSubMenu)
+            app.updateMenu_DatalocationRootConfiguration(uiSubMenu)
 
             menuSubItem = uimenu(mitem, 'Text', 'Variables...');
             menuSubItem.MenuSelectedFcn = @(s,e) app.openVariableModelEditor;
@@ -618,7 +550,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem.MenuSelectedFcn = @app.menuCallback_CreateNewPipeline;
 
             mitem = uimenu(hMenu, 'Text', 'Edit Pipeline', 'Enable', 'on');
-            app.updatePipelineItemsInMenu(mitem)
+            app.updateMenu_PipelineItems(mitem)
         
             mitem = uimenu(hMenu, 'Text', 'Configure Pipeline Assignment...', 'Enable', 'on');
             mitem.MenuSelectedFcn = @app.menuCallback_ConfigurePipelineAssignment;
@@ -738,7 +670,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
         end
         
-        function updatePipelineItemsInMenu(app, hMenu)
+        function updateMenu_PipelineItems(app, hMenu)
             
             if nargin < 2
                 hMenu = gobjects(0);
@@ -797,7 +729,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
         
-        function updateDatalocationRootConfigurationSubMenu(app, hMenu)
+        function updateMenu_DatalocationRootConfiguration(app, hMenu)
             
             if nargin < 2
                 hMenu = findobj(app.Figure, 'Text', 'Data Location Roots');
@@ -876,7 +808,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function updateSessionInfoDependentMenus(app)
-            app.createSessionTableContextMenu()
+            app.SessionContextMenu = app.createSessionTableContextMenu();
             app.createMenu_Session([], true)
         end
         
@@ -916,12 +848,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function createMenuFromDir(app, hParent, dirPath)
         %createMenuFromDir Create menu components from a folder/folder tree
         %
-        % Purpose: Create a folder called SessionTasks with different
-        % packages, all with functions that can be called with sessionIDs.
-        % These functions will be organized in the menu according the the
-        % packages within the root folder.
-        %
-        % See also app.menuCallback_SessionMethod
+        % Todo: Create a utility function for doing this, and combine with
+        % SessionTaskMenu if there are overlaps...
         
         % Requires: varname2label
             import utility.string.varname2label
@@ -983,28 +911,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     iMitem = uimenu(hParent, 'Text', name);
                     iMitem.MenuSelectedFcn = hfun;
                     % % % end
-                    
-                    % app.SessionTasks(end+1) = iMitem;
                 end
             end
         end
         
-        function refreshMenuLabels(app, modifier)
-                         
-             for i = 1:numel(app.SessionTasks)
-                 
-                 switch modifier
-                     case ''
-                         app.SessionTasks(i).Text = strrep(app.SessionTasks(i).Text, '...', '');
-                         app.SessionTasks(i).Text = strrep(app.SessionTasks(i).Text, ' (q)', '');
-                     case 'shift'
-                         app.SessionTasks(i).Text = [app.SessionTasks(i).Text, '...'];
-                     case 'alt'
-                         app.SessionTasks(i).Text = [app.SessionTasks(i).Text, ' (q)'];
-                 end
-             end
-        end
-
         %% Create/initialize subcomponents and modules
         function createStatusField(app)
             
@@ -1099,7 +1009,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             addlistener(h, 'SelectionChanged', @app.onSessionSelectionChanged);
             addlistener(h, 'TableUpdated', @(s,e)app.updateSessionCount);
 
-            app.createSessionTableContextMenu()
+            app.SessionContextMenu = app.createSessionTableContextMenu();
 
             % Set background color for tab to match the color of the
             % TabGroup container.
@@ -1203,12 +1113,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.BatchProcessorUI = h;
         end
         
-        function initializeTimer(app)
-            app.RegularTimer = timer('Name', 'Nansen App Timer');
-            app.RegularTimer.ExecutionMode = 'fixedRate';
-            app.RegularTimer.Period = 30; % Consider setting from preference
-            app.RegularTimer.TimerFcn = @(timer, event) app.regularCheckup();
-            start(app.RegularTimer)
+        function initializeHeartbeat(app)
+            app.Heartbeat = timer('Name', 'Nansen App Timer');
+            app.Heartbeat.ExecutionMode = 'fixedRate';
+            app.Heartbeat.Period = 30; % Consider setting from preference
+            app.Heartbeat.TimerFcn = @(timer, event) app.onHeartbeat();
+            start(app.Heartbeat)
         end
     
         function initializeDiskConnectionMonitor(app)
@@ -1323,20 +1233,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.refreshTable()
         end
 
-        function regularCheckup(app)
-        %regularCheckup Timer callback
-            
+        function onHeartbeat(app)
+        %onHeartbeat - Manage periodic internal update 
+
             % Check that we have the newest version of the metatable
             if ~isempty(app.MetaTable) && ~app.TableIsUpdating
                 if ~app.MetaTable.isLatestVersion()
-                    stop(app.RegularTimer) % Stop timer while waiting for user's response
+                    stop(app.Heartbeat) % Stop timer while waiting for user's response
                     discardNewest = app.MetaTable.resolveCurrentVersion();
                     if discardNewest
                         app.reloadMetaTable()
                     else
-                        app.saveMetaTable([], [], true) % true = force save current version
+                        app.saveMetaTable([], [], true) % true = force-save current version
                     end
-                    start(app.RegularTimer)
+                    start(app.Heartbeat)
                 end
             end
         end
@@ -1388,6 +1298,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onProjectChanged(app, varargin)
             app.TableIsUpdating = true;
+            returnToIdle = app.setBusy('Changing project'); %#ok<NASGU>
+            hDlg = app.MessageDisplay.inform('Please wait, changing project...');
             
             app.BatchProcessor.closeTaskList()
 
@@ -1427,10 +1339,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Update menus
             app.SessionTaskMenu.refresh()
-            app.createSessionTableContextMenu()
-            app.updatePipelineItemsInMenu()
+            app.SessionContextMenu = app.createSessionTableContextMenu();
+            app.updateMenu_PipelineItems()
             app.updateTableVariableMenuItems()
-            app.updateDatalocationRootConfigurationSubMenu()
+            app.updateMenu_DatalocationRootConfiguration()
             
             % Make sure project list is displayed correctly
             % Indicating current project
@@ -1451,6 +1363,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             app.TableIsUpdating = false;
+            delete(hDlg)
+            clear returnToIdle
         end
         
         function onDataLocationModelChanged(app, src, ~)
@@ -1932,7 +1846,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function updateFigureTitle(app)
             fileName = app.MetaTable.getName();
 
-            if app.IsIdle
+            if app.isIdle()
                 status = 'idle';
             else
                 status = 'busy';
@@ -1943,8 +1857,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.Figure.Name = titleStr;
         end
     
+        function tf = isInitialized(app)
+            tf = app.ApplicationState ~= nansen.enum.ApplicationState.Initializing;
+        end
+
+        function tf = isIdle(app)
+            tf = app.ApplicationState ~= nansen.enum.ApplicationState.Idle;
+        end
+
         function setIdle(app)
-            app.IsIdle = true;
+            app.ApplicationState = nansen.enum.ApplicationState.Idle;
             app.StatusText.Status = sprintf('Status: Idle');
             app.updateFigureTitle()
             
@@ -1954,7 +1876,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function finishup = setBusy(app, statusStr)
                         
-            app.IsIdle = false;
+            app.ApplicationState = nansen.enum.ApplicationState.Busy;
             app.Figure.Pointer = 'watch';
             drawnow
             
@@ -3007,7 +2929,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if isempty(loadPath)
                 projectName = app.ProjectManager.CurrentProject;
-                if ~strcmp(app.ApplicationState, 'Uninitialized')
+                if app.isInitialized()
                     message = sprintf('The configuration of the current project (%s) is not completed (metatable is missing)', projectName);
                     title = 'Aborted';
                     app.MessageDisplay.alert(message, 'Title', title)
@@ -3904,7 +3826,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             uiwait(hUi.Figure)
             
-            app.updatePipelineItemsInMenu()
+            app.updateMenu_PipelineItems()
             
             % Todo: uiwait, and update pipeline names in menu for editing
             % pipelines.
