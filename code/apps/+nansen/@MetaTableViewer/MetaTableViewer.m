@@ -982,7 +982,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             if isa(newTable, 'nansen.metadata.MetaTable')
                 T = newTable.getFormattedTableData();
-                obj.MetaTableType = newTable.getTableType();
+                obj.MetaTableType = lower( newTable.getTableType() );
                 obj.MetaTableCell = table2cell(T);
             elseif isa(newTable, 'table')
                 obj.MetaTableCell = table2cell(newTable);

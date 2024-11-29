@@ -182,7 +182,6 @@ classdef MetaTable < handle
 
         function typeName = getTableType(obj)
             typeName = utility.string.getSimpleClassName(obj.MetaTableClass);
-            typeName = lower(typeName);
         end
           
         function key = getKey(obj)
@@ -615,7 +614,7 @@ classdef MetaTable < handle
             formattingFcn(isStruct) = {'dispStruct'};
 
             % Step 2: Get nansen table variables formatters.
-            tableClass = obj.getTableType();
+            tableClass = lower( obj.getTableType() );
             [fcnHandles, names] = getColumnFormatter(variableNames, tableClass);
             
             for i = 1:numel(names)

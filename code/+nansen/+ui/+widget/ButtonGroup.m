@@ -184,7 +184,8 @@ classdef ButtonGroup < handle
         function onButtonPressed(obj, src, evt, pageNum)
             
             wasSwitched = obj.switchButtonOn(src);
-            
+            obj.CurrentSelection = src.Text;
+
             % Make sure current button is on (and change page if it was turned on)
             if wasSwitched
                 % If button was switch by method above, the user turned the
@@ -196,7 +197,6 @@ classdef ButtonGroup < handle
                     obj.SelectionChangedFcn(src, evt)
                 end
             end
-            obj.CurrentSelection = src.Text;
         end
     
         function onParentSizeChanged(obj, src, evt)

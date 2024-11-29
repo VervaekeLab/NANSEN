@@ -1,5 +1,13 @@
-function wasSuccess = createNewSessionMethod(app)
+function wasSuccess = createNewSessionMethod(app, itemType, options)
 %createNewSessionMethod Let user interactively create a new session method template
+
+% Todo: generalize to apply to any item type
+
+    arguments
+        app (1,1) nansen.App
+        itemType (1,1) string = "Session" %#ok<INUSA> % not implemented yet
+        options.GroupNames (1,:) string
+    end
 
     wasSuccess = false;
     
@@ -14,11 +22,10 @@ function wasSuccess = createNewSessionMethod(app)
     S.Type = 'Function'; % (Template type, i.e use function template or sessionmethod template)
     S.Type_ = {'Function', 'SessionMethod Class'};
     
-    menuNames = app.SessionTaskMenu.getRootLevelMenuNames();
-    S.MenuLocation = menuNames{1};
-    S.MenuLocation_ = menuNames;
+    S.MenuLocation = options.GroupNames{1}; % use {} to ensure char type
+    S.MenuLocation_ = cellstr(options.GroupNames); % add as cell array
     
-    S.MenuSubLocation = '';
+    S.MenuSubLocation = ''; % Free text...
     
     [S, wasAborted] = tools.editStruct(S, '', 'Create Session Method', ...
                 'Prompt', 'Configure new session method:', ...
@@ -104,7 +111,6 @@ function wasSuccess = createNewSessionMethod(app)
     
     % Finally, open the function in the matlab editor.
     edit(fullfile(fcnTargetPath, fcnFilename))
-
 end
 
 function onValueChanged(~, evt)

@@ -5,14 +5,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
     % Todo:
     %   [ ] Add a splash screen when this is starting up
-    %   [ ] Make method for figure title name
     %   [ ] More methods/options for updating statusfield. Timers, progress
     %   [ ] Make sure that project directory is on path on startup or when
     %       project is changed...
-    %   [ ] Create Menu in separate function.
-    %   [ ] Update menu or submenu using call to that function
     %   [x] Remove vars from table on load if vars are not represented in
-    %       tablevar folder.
+    %       tablevar folder. BUT: Not if this is first time initialization
     %   [v] Important: Load task list and start running it if preferences
     %       are set for that, even if gui is not initialized...
     %   [v] Keep track of session objects.
@@ -21,7 +18,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     %   [ ] Send session object to task manager as a struct.
     %   [ ] Create a new session object in task manager when a task is
     %       started
-    %   [ ] Todo: Create quit method
     %   [ ] If table is filtered, reset row selection. Also, update custom
     %       table status (updateCustomRowSelectionStatus).
 
@@ -36,13 +32,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     properties (Dependent) % Main program dependables
         CurrentProject % Currently selected project
-        CurrentTableSelection % Current selection of data objects.
-        CurrentObjectSelection
+        CurrentItemType % Name of currently selected table/item type.
+        CurrentObjectSelection % Current selection of data objects.
     end
 
     properties (Access = private) % Page modules
-        UiMetaTableSelector
-        UiMetaTableViewer
+        UiMetaTableSelector nansen.ui.widget.ButtonGroup
+        UiMetaTableViewer nansen.MetaTableViewer
         UiFileViewer
         BatchProcessor % UserSession?
         BatchProcessorUI
@@ -52,9 +48,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     properties (Access = private)
         UserSession nansen.internal.user.NansenUserSession
         ProjectManager nansen.config.project.ProjectManager % From UserSession
-        DataLocationModel % Project
-        VariableModel % Project
-        MetaTable % Project
+        DataLocationModel nansen.config.dloc.DataLocationModel % From Project
+        VariableModel nansen.config.varmodel.VariableModel % From Project
+        MetaTable nansen.metadata.MetaTable % From Project
         
         MetaObjectMembers = {}
         MetaObjectList % Todo: should be map/dictionary with a key per table type. File viewer should be available independent of which table is currently active
@@ -68,7 +64,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
     properties (Access = private) % App / gui components
         % Heartbeat - Timer that periodically runs internal updates 
-        Heartbeat (1,1) timer
+        Heartbeat timer
 
         % MessageDisplay - A message display interface for displaying
         % information to users.
@@ -93,11 +89,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
 
     properties (Access = private)
-        
-        ActiveTabModule = []
+        ActiveTabModule = [] % Will eventually be an AbstractTabPageModule
+        ItemTypes (1,:) string
         ApplicationState nansen.enum.ApplicationState = "Initializing";
-
-        TableIsUpdating = false
+        TableIsUpdating (1,1) logical = false
     end
 
     properties (Constant, Hidden = true) % move to appwindow superclass
@@ -165,13 +160,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Add this callback after every component is made
             app.Figure.SizeChangedFcn = @(s, e) app.onFigureSizeChanged;
             
-%             app.initialized = true;
             app.configFigureCallbacks() % Do this last
 
-            app.setIdle()
-            
             app.initializeHeartbeat()
-            app.ApplicationState = 'Idle';
+            app.setIdle()
 
             if app.settings.General.MonitorDrives
                 app.initializeDiskConnectionMonitor()
@@ -259,12 +251,35 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function set.MetaTable(app, newTable)
             app.MetaTable = newTable;
             app.onNewMetaTableSet()
-            app.updateSessionCount()
+            app.updateTableItemCount()
         end
     
         function currentProject = get.CurrentProject(obj)
             currentProject = obj.ProjectManager.getCurrentProject();
-        end        
+        end
+
+        function itemType = get.CurrentItemType(app)
+            if isempty(app.MetaTable)
+                itemType = string(missing); return
+            end
+            
+            % Todo: Rely on one or the other...
+            tableType = app.MetaTable.getTableType();
+
+            if ~isempty(app.UiMetaTableSelector)
+                itemType = app.UiMetaTableSelector.CurrentSelection;
+            else
+                if isempty(app.ItemTypes)
+                    itemType = tableType;
+                else
+                    assert(numel(app.ItemTypes)==1)
+                    itemType = app.ItemTypes;
+                end
+            end
+            assert(strcmpi(tableType, itemType), ...
+                'NANSEN:App:UnexpectedError', ...
+                'Expected name for item type to match type of table')
+        end
     end
     
     methods (Access = private) % Methods for app creation
@@ -934,10 +949,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.h.StatusField.HorizontalAlignment = 'left';
             app.h.StatusField.Enable = 'inactive';
 
-            app.StatusText = applify.StatusText({'Sessions', 'CustomStatus', 'Status'});
+            app.StatusText = applify.StatusText({'ItemCount', 'CustomStatus', 'Status'});
             app.StatusText.UpdateFcn = @app.updateStatusField;
             app.StatusText.Status = 'Status : Idle';
-            app.updateSessionCount()
+            app.updateTableItemCount()
         end
 
         function updateStatusField(app, text)
@@ -1009,8 +1024,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
-            addlistener(h, 'SelectionChanged', @app.onSessionSelectionChanged);
-            addlistener(h, 'TableUpdated', @(s,e)app.updateSessionCount);
+            addlistener(h, 'SelectionChanged', @app.onTableItemSelectionChanged);
+            addlistener(h, 'TableUpdated', @(s,e)app.updateTableItemCount);
 
             app.SessionContextMenu = app.createSessionTableContextMenu();
 
@@ -1019,8 +1034,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             hTab.BackgroundColor = ones(1,3)*0.91;
 
             % Create table menu (menu for selecting tables):
+            % Todo: reset and update this on project change
             metatableTypes = app.CurrentProject.MetaTableCatalog.Table.MetaTableClass;
             metatableTypes = unique(metatableTypes);
+            app.ItemTypes = metatableTypes;
             isSelected = strcmp(metatableTypes, class(app.MetaTable));
 
             if numel(unique(metatableTypes)) > 1
@@ -1556,8 +1573,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function resetMetaObjectList(app)
         %resetMetaObjectList Delete all meta objects from the list
             for i = numel(app.MetaObjectList):-1:1
-                if isvalid( app.MetaObjectList(i) )
-                    delete( app.MetaObjectList(i) )
+                if ismethod(app.MetaObjectList(i), 'isvalid')
+                    % It's a handle, we might need to delete it
+                    if isvalid( app.MetaObjectList(i) )
+                        delete( app.MetaObjectList(i) )
+                    end
                 end
             end
             app.MetaObjectList = [];
@@ -1633,7 +1653,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.setIdle()
             end
         end
-        
     end
     
     methods (Hidden, Access = protected) % Methods for internal app updates
@@ -1683,7 +1702,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
                     % Todo: Remove this when MetaTable is a map with one
                     % key for each table type.
-                    if ~strcmp(app.MetaTable.getTableType, 'session')
+                    if ~strcmpi(app.MetaTable.getTableType, 'session')
                         msgbox('File viewer is only available when viewing the session table', 'Not supported')
                         app.hLayout.TabGroup.SelectedTab = evt.OldValue;
                         return
@@ -1952,37 +1971,44 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             drawnow
         end
         
-        function updateSessionCount(app, numSessionsTotal, numSessionsSelected)
+        function updateTableItemCount(app, numItemsTotal, numItemsSelected)
             if ~isempty(app.StatusText)
-                
-                elementName = 'sessions';
-
-                if nargin < 2 || isempty(numSessionsTotal)
+                if nargin < 2 || isempty(numItemsTotal)
                     if isempty(app.UiMetaTableViewer)
-                        numSessionsTotal = size(app.MetaTable.entries, 1);
+                        numItemsTotal = size(app.MetaTable.entries, 1);
                     else
-                        numSessionsTotal = size(app.UiMetaTableViewer.HTable.Data, 1);
+                        numItemsTotal = size(app.UiMetaTableViewer.HTable.Data, 1);
                     end
                 end
 
-                if nargin < 3 || isempty(numSessionsSelected)
+                if numItemsTotal == 0
+                    app.StatusText.ItemCount = "No items available";
+                    return
+                end
+
+                if nargin < 3 || isempty(numItemsSelected)
                     if isempty(app.UiMetaTableViewer)
-                        numSessionsSelected = 0;
+                        numItemsSelected = 0;
                     else
-                        numSessionsSelected = numel(app.UiMetaTableViewer.HTable.SelectedRows);
+                        numItemsSelected = numel(app.UiMetaTableViewer.HTable.SelectedRows);
                     end
                 end
 
-                if numSessionsSelected > 0
-                    str = sprintf('Selected %d/%d %s', numSessionsSelected, numSessionsTotal, elementName);
+                itemName = lower(app.CurrentItemType);
+                if numItemsTotal > 1 
+                    itemName = itemName + "s"; % plural
+                end
+
+                if numItemsSelected > 0
+                    str = sprintf('Selected %d/%d %s', numItemsSelected, numItemsTotal, itemName);
                 else
-                    str = sprintf('%d %s', numSessionsTotal, elementName);
+                    str = sprintf('%d %s', numItemsTotal, itemName);
                 end
 
-                app.StatusText.Sessions = str;
+                app.StatusText.ItemCount = str;
             end
         end
-    
+
         function updateCustomRowSelectionStatus(app)
             projectName = app.CurrentProject.Name;
             % Todo: Consider adding this to the tablevar package, and
@@ -2025,12 +2051,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.openMetaTable(metaTableName)
         end
 
-        function onSessionSelectionChanged(app, src, evt)
-        %onSessionSelectionChanged Callback for session table
-            numSessionsSelected = numel(evt.SelectedRows);
-            numSessionsTotal = size(src.HTable.Data, 1);
+        function onTableItemSelectionChanged(app, src, evt)
+        %onTableItemSelectionChanged Callback for meta table
+            numItemsSelected = numel(evt.SelectedRows);
+            numItemsTotal = size(src.HTable.Data, 1);
             
-            app.updateSessionCount(numSessionsTotal, numSessionsSelected)
+            app.updateTableItemCount(numItemsTotal, numItemsSelected)
             app.updateCustomRowSelectionStatus()
         end
 
@@ -2078,8 +2104,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Todo: Make separate method for this. Potentially in the
                 % metatable class itself? Although then it needs access to
                 % the data location model.
-                tableType = utility.string.getSimpleClassName( class(app.MetaTable) );
-                
+
+                tableType = app.CurrentItemType;
                 for iRow = evt.Indices(1)
                     id = app.MetaTable.entries{iRow, app.MetaTable.SchemaIdName};
                     data = table2struct( app.MetaTable.entries(iRow, :) );
@@ -2110,7 +2136,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             import nansen.metadata.utility.createFunctionForCustomTableVar
             import nansen.metadata.utility.createClassForCustomTableVar
             
-            metadataClass = app.MetaTable.getTableType();
+            metadataClass = lower( app.MetaTable.getTableType() ); % Lowercase needed?
 
             inputModeSelection = {...
                 'Enter values manually', ...
@@ -2196,7 +2222,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Todo: Check that the selected m-file actually contains a valid
             % table variable class definition.
             
-            currentTableType = app.MetaTable.getTableType();
+            currentTableType = lower( app.MetaTable.getTableType() );
             try
                 assert(isequal(importedTableType, currentTableType), ...
                     ['Can not import table variable because the selected ', ...
@@ -2521,13 +2547,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function copySessionIdToClipboard(app)
+            itemObject = app.getSelectedMetaObjects();
+            itemID = app.getObjectId(itemObject);
             
-            sessionObj = app.getSelectedMetaObjects();
-            sessionID = app.getObjectId(sessionObj);
-            
-            sessionID = cellfun(@(sid) sprintf('''%s''', sid), sessionID, 'uni', 0);
-            sessionIDStr = strjoin(sessionID, ', ');
-            clipboard('copy', sessionIDStr)
+            itemID = cellfun(@(id) sprintf('''%s''', id), itemID, 'uni', 0);
+            itemIDStr = strjoin(itemID, ', ');
+            clipboard('copy', itemIDStr)
         end
 
         function copyTableValuesToClipboard(app, ~, ~)
@@ -2737,7 +2762,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             if isempty(metaTable.entries); return; end
     
-            tableType = metaTable.getTableType();
+            tableType = lower( metaTable.getTableType() );
             metaTable = app.addMissingVarsToMetaTable(metaTable, tableType);
         
             metaTable = app.removeMissingVarsFromMetaTable(metaTable, tableType);
@@ -2983,7 +3008,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
                     @app.onMetaTableModifiedChanged);
                                 
-% %                 if app.initialized % Todo: implement this
+% %                 if app.isInitialized() % Todo: implement this
 % %                     app.updateRelatedInventoryLists()
 % %                 end
             catch ME
@@ -3086,58 +3111,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Todo: generalize, i.e are there subclasses (project specific subject definitions?)
             tf = any(strcmp(existingClasses, 'nansen.metadata.type.Subject'));
         end
-
-        function wasCanceled = promptToSaveCurrentMetaTable(app)
-        %promptToSaveCurrentMetaTable Ask user to save current metatable
-        %
-        %   wasCanceled = promptToSaveCurrentMetaTable(app)
-        
-            wasCanceled = false;
-            
-            % Return if there are no unsaved changes
-            if app.MetaTable.isClean
-                return
-            end
-            
-            currentProjectName = app.ProjectManager.CurrentProject;
-
-            % Prepare inputs for the question dialog
-            question = sprintf(['The session table for project "%s" has ', ...
-                'unsaved changes. Do you want to save changes to the ', ...
-                'table?'], currentProjectName);
-
-            answer = app.MessageDisplay.ask(question, ...
-                'Title', 'Save changes to table?', ...
-                'Alternatives', {'Save', 'Don''t Save', 'Cancel'}, ...
-                'DefaultAnswer', 'Save');
-
-            switch answer
-                case 'Save'
-                    app.saveMetaTable()
-                case 'Don''t Save'
-                    % Continue without saving (mark as clean to avoid
-                    % entering current method again, i.e when changing
-                    % project)
-                    app.MetaTable.markClean()
-                otherwise % Cancel or no answer.
-                    wasCanceled = true;
-                    return
-            end
-        end
-        
-        function doExit = promptQuitIfBusy(app)
-            
-            % Prepare inputs for the question dialog
-            question = 'The app is busy with something. Do you want to quit anyway?';
-            title = 'Confirm Quit?';
-
-            answer = app.MessageDisplay.ask(question, ...
-                'Title', title, ...
-                'Alternatives', {'Yes', 'No'}, ...
-                'DefaultAnswer', 'Yes');
-
-            doExit = strcmp(answer, 'Yes');
-        end
     end
     
     methods (Access = protected) % Callbacks
@@ -3177,7 +3150,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onNewMetaTableSet(app)
             if isempty(app.UiMetaTableViewer);    return;    end
             app.UiMetaTableViewer.refreshColumnModel()
-            if ~strcmp(app.UiMetaTableViewer.MetaTableType, app.MetaTable.getTableType())
+            if ~strcmpi(app.UiMetaTableViewer.MetaTableType, app.MetaTable.getTableType())
                 % If table type is changed, use the flush option.
                 app.UiMetaTableViewer.refreshTable(app.MetaTable, true)
             else
@@ -3878,7 +3851,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             import nansen.session.methods.template.createNewSessionMethod
             
             % Todo: Generalize from session to any item type
-            wasSuccess = createNewSessionMethod(app);
+            itemType = app.CurrentItemType;
+            groupNames = app.SessionTaskMenu.getRootLevelMenuNames();
+            wasSuccess = createNewSessionMethod(app, itemType, "GroupNames", groupNames);
             
             % Update session menu!
             if wasSuccess
@@ -3981,7 +3956,60 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
 
     methods (Access = private) % Methods for information, warning and error messages
-        %% Methods for information, warning and error messages
+        %% User dialog - Asking user for choice or confirmation
+        function wasCanceled = promptToSaveCurrentMetaTable(app)
+        %promptToSaveCurrentMetaTable Ask user to save current metatable
+        %
+        %   wasCanceled = promptToSaveCurrentMetaTable(app)
+        
+            wasCanceled = false;
+            
+            % Return if there are no unsaved changes
+            if app.MetaTable.isClean
+                return
+            end
+            
+            currentProjectName = app.ProjectManager.CurrentProject;
+
+            % Prepare inputs for the question dialog
+            question = sprintf(['The session table for project "%s" has ', ...
+                'unsaved changes. Do you want to save changes to the ', ...
+                'table?'], currentProjectName);
+
+            answer = app.MessageDisplay.ask(question, ...
+                'Title', 'Save changes to table?', ...
+                'Alternatives', {'Save', 'Don''t Save', 'Cancel'}, ...
+                'DefaultAnswer', 'Save');
+
+            switch answer
+                case 'Save'
+                    app.saveMetaTable()
+                case 'Don''t Save'
+                    % Continue without saving (mark as clean to avoid
+                    % entering current method again, i.e when changing
+                    % project)
+                    app.MetaTable.markClean()
+                otherwise % Cancel or no answer.
+                    wasCanceled = true;
+                    return
+            end
+        end
+        
+        function doExit = promptQuitIfBusy(app)
+            
+            % Prepare inputs for the question dialog
+            question = 'The app is busy with something. Do you want to quit anyway?';
+            title = 'Confirm Quit?';
+
+            answer = app.MessageDisplay.ask(question, ...
+                'Title', title, ...
+                'Alternatives', {'Yes', 'No'}, ...
+                'DefaultAnswer', 'Yes');
+
+            doExit = strcmp(answer, 'Yes');
+        end
+        
+        %% User dialog - Display information, warning and error messages
         function throwSessionMethodFailedError(app, ME, taskName, methodName)
         % throwSessionMethodFailedError - Display error message if task fails            
             errorMessage = sprintf([...
