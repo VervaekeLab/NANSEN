@@ -94,9 +94,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % MessageDisplay - A message display interface for displaying
         % information to users.
         MessageDisplay (1,1) nansen.MessageDisplay
-        % Not implemented:
-        % MessagePanel % Todo: Use HasDisplay mixin...
-        % MessageBox
     end
     
     properties
@@ -162,7 +159,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.createLayout()
             app.createComponents()
-            app.createMessagePanel()
             
             app.switchJavaWarnings('on')
             
@@ -961,16 +957,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createTabPages()
             
             % app.createSidePanelComponents()
-        end
-        
-        function createMessagePanel(app) %#ok<MANU>
-% %             app.MessagePanel = uipanel(app.Figure, 'units', 'pixels');
-% %             app.MessagePanel.Position(3:4) = [400, 100];
-% %             app.MessagePanel.Visible = 'off';
-% %             app.MessagePanel.BorderType = 'line';
-% %             referencePosition =  [1,1,app.Figure.Position(3:4)];
-% %             uim.utility.layout.centerObjectInRectangle(app.MessagePanel, referencePosition)
-% %             app.MessageBox = uim.widget.messageBox(app.MessagePanel);
         end
         
         function createStatusField(app)
