@@ -57,7 +57,7 @@ function hContextMenu = createSessionTableContextMenu(app)
 
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Assign Pipeline');
-    app.updatePipelineItemsInMenu(hMenuItem(c))
+    app.updateMenu_PipelineItems(hMenuItem(c))
     
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Update Column Variable');

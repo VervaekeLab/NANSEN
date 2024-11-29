@@ -44,12 +44,12 @@ classdef MessageDisplay < handle
             dlgOptions = obj.getDialogOptions();
 
             if any( strcmp(options.Alternatives, options.DefaultAnswer) )
-                dlgOptions.Default = char(options.DefaultAnswer);
+                defaultAnswer = char(options.DefaultAnswer);
             else
-                dlgOptions.Default = options.Alternatives{1};
+                defaultAnswer = options.Alternatives{1};
             end
-            
-            answer = questdlg(promptStr, options.Alternatives{:}, dlgOptions);
+            dlgOptions.Default = defaultAnswer;
+            answer = questdlg(promptStr, options.Alternatives{:}, defaultAnswer, dlgOptions);
         end
 
         function warn(obj, message, options)

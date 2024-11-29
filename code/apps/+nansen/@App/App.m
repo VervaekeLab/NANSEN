@@ -239,13 +239,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if ~doExit; return; end
             end
             
-            if ~app.isIdle()
+            if ~app.isIdle() && ~app.isShuttingDown()
                 doExit = app.promptQuitIfBusy();
                 if ~doExit; return; end
             end
+            app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
 
-            % Todo: This is called twice, because of some weird reason
-            % in (uiw.abstract.BaseFigure?)
+            % This function is called twice if the figure's close button is 
+            % pressed. First when pressing the close button, and then when the 
+            % figure handle is deleted, because of the way onExit is set up in
+            % uiw.abstract.BaseFigure
 
             app.onExit@uiw.abstract.AppWindow(h);
             % delete(app) % Not necessary, happens in superclass' onExit method
@@ -266,7 +269,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     methods (Access = private) % Methods for app creation
         
-        createSessionTableContextMenu(app) % Function in file...
+        hContextMenu = createSessionTableContextMenu(app) % Function in file...
         
         %% Create and configure main window and layout
         function configureWindow(app)
@@ -1862,7 +1865,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function tf = isIdle(app)
-            tf = app.ApplicationState ~= nansen.enum.ApplicationState.Idle;
+            tf = app.ApplicationState == nansen.enum.ApplicationState.Idle;
+        end
+
+        function tf = isShuttingDown(app)
+            tf = app.ApplicationState == nansen.enum.ApplicationState.ShuttingDown;
         end
 
         function setIdle(app)
