@@ -33,9 +33,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties (Constant)
-        %Pages = {'Overview', 'File Viewer', 'Data Viewer', 'Task Processor'}%, 'Figures'}
+        % Pages = {'Overview', 'File Viewer', 'Data Viewer', 'Task Processor'}%, 'Figures'}
         Pages = {'Overview', 'File Viewer', 'Task Processor'} %, 'Figures'}
-
     end
     
     properties % Page modules
@@ -61,7 +60,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     properties (Hidden, Access = private) % Window
         MinimumFigureSize
-        IsIdle % todo: make dependent on app.ApplicationState
+        IsIdle % Todo: make dependent on app.ApplicationState
         TableIsUpdating = false
         TaskInitializationListener
         SessionTaskMenuUpdatedListener
@@ -88,9 +87,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         ProjectManager % UserSession
         
-        MessagePanel % Todo: Use HasDisplay mixin...
-        MessageBox
         StatusText applify.StatusText
+    end
+
+    properties (Access = private)
+        % MessageDisplay - A message display interface for displaying
+        % information to users.
+        MessageDisplay (1,1) nansen.MessageDisplay
+        % Not implemented:
+        % MessagePanel % Todo: Use HasDisplay mixin...
+        % MessageBox
     end
     
     properties
@@ -125,7 +131,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             [isAppOpen, hApp] = app.isOpen();
             if isAppOpen
                 app = hApp;
-                %delete(app); clear app; % Todo: get handle for app.
+                % delete(app); clear app; % Todo: get handle for app.
                 return
             else
                 app.Figure.Visible = 'on';
@@ -230,7 +236,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if ~isempty(app.Figure) && isvalid(app.Figure)
                 app.saveFigurePreferences()
-                %delete(app.Figure) % This will trigger onExit again...
+                % delete(app.Figure) % This will trigger onExit again...
             end
         end
         
@@ -250,7 +256,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % in (uiw.abstract.BaseFigure?)
 
             app.onExit@uiw.abstract.AppWindow(h);
-            %delete(app) % Not necessary, happens in superclass' onExit method
+            % delete(app) % Not necessary, happens in superclass' onExit method
         end
     end
     
@@ -279,7 +285,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Create the figure window
             app.UIFigure = figure('Position', [margins figSize]);
-            %app.UIFigure.AutoResizeChildren = 'off';
+            % app.UIFigure.AutoResizeChildren = 'off';
             app.UIFigure.Position = [margins figSize];
             app.UIFigure.Resize = app.browserSettings.FigureResize.Selection;
             
@@ -294,7 +300,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Make sure that plots does not end up in this figure window
             app.UIFigure.NextPlot = 'new'; % Not sure if this works...
-            %app.UIFigure.HandleVisibility = 'off';
+            % app.UIFigure.HandleVisibility = 'off';
             
 %             app.UIFigure.WindowButtonDownFcn = @app.tableMousePress;
 %             app.UIFigure.WindowButtonUpFcn = @app.mouseRelease;
@@ -488,7 +494,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 mItem = uics.MenuList(mitem, schemaNames, '', 'SelectionMode', 'none');
                 mItem.MenuSelectedFcn = @(s,e) app.addMetadataSchema(s, iMetadataModel);
-
             end
 
             % mItem.MenuSelectedFcn = @app.addOpenMindsSchema;
@@ -520,7 +525,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             m = uimenu(app.Figure, 'Text', 'Session');
             app.createSessionMenu(m)
 
-            %m = uimenu(app.Figure, 'Text', 'Apps');
+            % m = uimenu(app.Figure, 'Text', 'Apps');
 
             % Create a separator
             uimenu(app.Figure, 'Text', '|', 'Enable', 'off');
@@ -567,7 +572,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %             end
             
             return
-            
         end
         
         function updateProjectList(app)
@@ -610,7 +614,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function updateMetaTableViewMenu(app, mItem)
-            % todo (not implemented yet)
+            % Todo: (not implemented yet)
             if nargin < 2
                 mItem = findobj(app.Figure, 'Type', 'uimenu', '-and', 'Text', 'Change Table View');
             end
@@ -728,7 +732,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             mitem = uimenu(m, 'Text','Reactivate All Popup Tips');
             mitem.Enable = 'off';
-            %mitem.MenuSelectedFcn = @(src, event) nansen.internal.reactivatePopupTips;
+            % mitem.MenuSelectedFcn = @(src, event) nansen.internal.reactivatePopupTips;
 
             mitem = uimenu(m, 'Text','Go to NANSEN Wiki Page', 'Separator', 'on');
             mitem.MenuSelectedFcn = @(s, e) web('https://github.com/VervaekeLab/NANSEN/wiki');
@@ -902,7 +906,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     iMitem.MenuSelectedFcn = hfun;
                     % % % end
                     
-                    %app.SessionTasks(end+1) = iMitem;
+                    % app.SessionTasks(end+1) = iMitem;
                 end
             end
         end
@@ -938,7 +942,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.hLayout.MainPanel.BorderType = 'none';
             
             app.hLayout.SidePanel = uipanel('Parent', app.Figure, 'Tag', 'Side Panel');
-            %app.hLayout.SidePanel.BorderType = 'none';
+            % app.hLayout.SidePanel.BorderType = 'none';
             app.hLayout.SidePanel.Units = 'pixels';
             app.hLayout.SidePanel.Visible = 'off';
             
@@ -956,7 +960,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                   
             app.createTabPages()
             
-            %app.createSidePanelComponents()
+            % app.createSidePanelComponents()
         end
         
         function createMessagePanel(app) %#ok<MANU>
@@ -975,7 +979,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.h.StatusField.Units = 'normalized';
             app.h.StatusField.Position = [0,-0.2,1,1];                      % -0.2: Correct for text being offset towards top of textbox
             
-            %app.h.StatusField.FontName = 'avenir next';
+            % app.h.StatusField.FontName = 'avenir next';
             app.h.StatusField.FontSize = 12;
             app.h.StatusField.FontUnits = 'pixels';
             
@@ -1015,7 +1019,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.UiDataViewer = h;
 
                     case 'Task Processor'
-
                 end
             end
             
@@ -1034,7 +1037,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                        
             try
                 columnSettings = app.loadMetatableColumnSettingsFromProject();
-                %app.UiMetaTableViewer.ColumnSettings = columnSettings;
+                % app.UiMetaTableViewer.ColumnSettings = columnSettings;
             catch
                 columnSettings = struct.empty;
             end
@@ -1047,7 +1050,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Add keypress callback to uiw.Table object
             h.HTable.KeyPressFcn = @app.onKeyPressed;
-            %h.HTable.MouseMotionFcn = @(s,e) onMouseMotionInTable(h, s, e);
+            % h.HTable.MouseMotionFcn = @(s,e) onMouseMotionInTable(h, s, e);
             
             addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
             
@@ -1197,7 +1200,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             addlistener(app.DiskConnectionMonitor, 'DiskRemoved', ...
                 @(s,e) app.onAvailableDisksChanged);
-
         end
     end
 
@@ -1340,9 +1342,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function promptOpenProject(app, projectName)
             
-            prompt = sprintf('Do you want to open the project "%s"', projectName);
+            question = sprintf('Do you want to open the project "%s"', projectName);
             title = 'Open Project?';
-            answer = app.openQuestionDialog(prompt, title);
+            answer = app.MessageDisplay.ask(question, 'Title', title);
             
             switch answer
                 case 'Yes'
@@ -1515,8 +1517,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function metaObjects = tableEntriesToMetaObjects(app, entries)
         %tableEntriesToMetaObjects Create meta objects from table rows
         
-            %schema = str2func(class(app.MetaTable));
-            %schema = @nansen.metadata.type.Session;
+            % schema = str2func(class(app.MetaTable));
+            % schema = @nansen.metadata.type.Session;
             
             if isempty(entries)
                 if isempty(app.MetaTable.ItemClassName)
@@ -1570,7 +1572,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Todo: Need to apply this fix when migrating projects
             if isempty(app.MetaTable.ItemClassName)
                 schema = str2func(class(app.MetaTable));
-                %schema = @table2struct;
+                % schema = @table2struct;
             else
                 schema = str2func(app.MetaTable.ItemClassName);
             end
@@ -1618,7 +1620,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function updateMetaObjectMembers(app)
         %updateMetaObjectMembers Update list of ids for members of the
-        %metaobject list
+        % metaobject list
             idName = app.MetaTable.SchemaIdName;
             app.MetaObjectMembers = {app.MetaObjectList.(idName)};
 
@@ -1682,7 +1684,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function onTaskAddedEventTriggered(app, ~, evt) %#ok<INUSD>
         %onTaskAddedEventTriggered Callback for event when task is added to
-        %batchProcessor task list
+        % batchProcessor task list
         
             if strcmp( evt.Table, 'History' )
                 
@@ -1726,7 +1728,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             figPosPix = getpixelposition(app.Figure);
            
             w = figPosPix(3);
-            %h = figPosPix(4);
+            % h = figPosPix(4);
             
             for i = 0
                 app.hLayout.SidePanel.Position(1) = w-10*i;
@@ -1741,10 +1743,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onThemeChanged(app)
             app.Figure.Color = app.Theme.FigureBackgroundColor;
             app.hLayout.MainPanel.BackgroundColor = app.Theme.FigureBackgroundColor;
-            %app.hLayout.StatusPanel.BackgroundColor = app.Theme.FigureBackgroundColor;
+            % app.hLayout.StatusPanel.BackgroundColor = app.Theme.FigureBackgroundColor;
             
             % Something like this:
-            %app.UiMetaTableViewer.HTable.Theme = uim.style.tableDark;
+            % app.UiMetaTableViewer.HTable.Theme = uim.style.tableDark;
         end
         
         function onFigureSizeChanged(app)
@@ -1826,7 +1828,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.ActiveTabModule = app.UiDataViewer;
                     
                     selectedSessionObj = app.getSelectedMetaObjects();
-                    %if isempty(selectedSessionObj); return; end
+                    % if isempty(selectedSessionObj); return; end
                     
                     % Todo: Handle multiple session selected same as file
                     % viewer above.
@@ -1859,7 +1861,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onMouseMotion(app, ~, ~) %#ok<INUSD>
-            
         end
        
         function onKeyPressed(app, src, evt)
@@ -2216,17 +2217,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 'ReferencePosition', app.Figure.Position);
             
             if isempty(S.VariableName); return; end
-                     
+            
             % Make sure variable does not already exist
             currentVars = app.MetaTable.entries.Properties.VariableNames;
             if any(strcmp( S.VariableName, currentVars ))
                 
-                message = sprintf(['The variable "%s" already exists in this table. ', ...
+                question = sprintf(['The variable "%s" already exists in this table. ', ...
                     'Do you want to modify this variable? ', ...
                     'Note: The old variable definition will be lost.'], S.VariableName);
                 title = 'Confirm Variable Modification';
-                %answer = questdlg(message, title);
-                answer = app.openQuestionDialog(message, title);
+                answer = app.MessageDisplay.ask(question, 'Title', title);
 
                 switch answer
                     case 'Yes'
@@ -2234,8 +2234,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     case {'No', 'Cancel'}
                         return
                 end
-% %                 error('Variable with name %s already exists in this table', ...
-% %                     S.VariableName )
             end
         
             % Add the metadata class to s. An idea is to also select this
@@ -2244,7 +2242,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Make sure the variable name is valid
             msg = sprintf('%s is not a valid variable name', S.VariableName);
-            if ~isvarname(S.VariableName); app.openErrorDialog(msg); return; end
+            if ~isvarname(S.VariableName); app.MessageDisplay.alert(msg); return; end
             
             switch S.InputMode
                 case 'Enter values manually'
@@ -2293,7 +2291,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     'file is a table variable for a "%s" table, whereas the ', ...
                     'active table is a "%s" table.'], importedTableType, currentTableType)
             catch ME
-                app.openErrorDialog( ME.message, 'Could not import table variable')
+                titleStr = 'Could not import table variable';
+                app.MessageDisplay.alert(ME.message, 'Title', titleStr)
+                % Todo: add explanation?
                 return
             end
 
@@ -2381,7 +2381,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             S.DataType = 'text';
             S.InputMode = 'Get values from list';
 
-            %S.DataType_ = {'numeric', 'text', 'logical'};
+            % S.DataType_ = {'numeric', 'text', 'logical'};
             S.SelectionList = schemaInstanceNames;
             createClassForCustomTableVar(S)
 
@@ -2441,8 +2441,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 updateMode = 'SelectedRows';
             end
 
-            % Todo: add case for all rows that are empty
-            % Todo: add case for all visible rows...
+            % Todo: Add case for all rows that are empty
+            % Todo: Add case for all visible rows...
             
             switch updateMode
                 case 'SelectedRows'
@@ -2452,7 +2452,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     rows = app.UiMetaTableViewer.getSelectedEntries();
 
                 case 'AllEmptyRows'
-                    % Todo....
                     
                 case 'AllRows'
                     rows = 1:size(app.MetaTable.entries, 1);
@@ -2507,7 +2506,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         end
 
                         if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
-                        %if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but that's for later
+                        % if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but that's for later
 
                         % Currently, only three data types are accepted,
                         % numerics, cell array of character vector and
@@ -2553,9 +2552,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             skippedRowInd = [skippedRowInd, iSession]; %#ok<AGROW>
                             if ~wasWarned
                                 warningMessage = sprintf('The table variable function returned something unexpected.\nPlease make sure that the table variable function for "%s" returns a %s.', varName, expectedDataType);
-                                app.openMessageBox(warningMessage, 'Update failed')
+                                app.MessageDisplay.warn(warningMessage, 'Title', 'Update failed')
                                 wasWarned = true;
-                                ME = MException('TableVar:WrongType', warningMessage);
+                                ME = MException('Nansen:TableVar:WrongType', warningMessage);
                             end
                         end
 
@@ -2576,7 +2575,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 sessionIDs = strjoin({sessionObj(skippedRowInd).sessionID}, newline);
                 messageStr = sprintf( 'Failed to update %s for the following sessions:\n\n%s\n', varName, sessionIDs);
                 errorMessage = sprintf('\nThe following error message was caught:\n%s', ME.message);
-                app.openMessageBox([messageStr, errorMessage], 'Update failed')
+                app.MessageDisplay.alert([messageStr, errorMessage], "Title", 'Update failed')
             end
             
             if isempty(rows); return; end
@@ -2625,7 +2624,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Not clear how to get the selected column index, as this is
             % currently not accessible from any property.
             selectedEntries = app.UiMetaTableViewer.getSelectedEntries(); %#ok<NASGU>
-
         end
 
         function removeSessionFromTable(app)
@@ -2717,7 +2715,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     @app.onVariableModelChanged);
                 
             else
-                %app.VariableModel.load()
+                % app.VariableModel.load()
                 app.VariableModelApp.Visible = 'on';
             end
         end
@@ -2732,7 +2730,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isempty(hApp) || ~isvalid(hApp) || ~hApp.Valid
                 hApp = nansen.config.module.ModuleManagerApp(dataModules);
                 hApp.transferOwnership(app)
-                %hApp.changeWindowStyle('modal')
+                % hApp.changeWindowStyle('modal')
                 addlistener(hApp, 'ModuleSelectionChanged', @app.onModuleSelectionChanged);
             else
                 hApp.setSelectedModules(dataModules)
@@ -2771,15 +2769,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 varName = src.Text;
             end
 
-            % Create a dialog here.
-            message = sprintf( ['This will delete the data of column ', ...
+            question = sprintf( ['This will delete the data of column ', ...
                 '%s from the table. The associated tablevar function ', ...
                 'will also be deleted. Are you sure you want to continue?'], ...
                 varName );
             title = 'Delete data?';
-            
-            %answer = questdlg(message, title);
-            answer = app.openQuestionDialog(message, title);
+            answer = app.MessageDisplay.ask(question, 'Title', title);
 
             switch answer
                 case {'No', 'Cancel', ''}
@@ -2810,7 +2805,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function metaTable = checkIfMetaTableComplete(app, metaTable)
         %checkIfMetaTableComplete Check if user-defined variables are
-        %missing from the table.
+        % missing from the table.
         
         % Todo: Add to metatable class? Eller muligens BaseSchema??? Kan
         % man legge inn dynamiske konstante egenskaper?
@@ -2914,13 +2909,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             for iVarName = 1:numel(missingVarNames)
                 thisName = missingVarNames{iVarName};
 
-                message = sprintf( ['The tablevar definition is missing ', ...
+                question = sprintf( ['The tablevar definition is missing ', ...
                     'for "%s". Do you want to delete data for this variable ', ...
                     'from the table?'], thisName );
                 title = 'Delete Table Data?';
                 
-                %answer = questdlg(message, title);
-                answer = app.openQuestionDialog(message, title);
+                answer = app.MessageDisplay.ask(question, 'Title', title);
 
                 switch answer
                     case 'Yes'
@@ -3019,7 +3013,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if ~strcmp(app.ApplicationState, 'Uninitialized')
                     message = sprintf('The configuration of the current project (%s) is not completed (metatable is missing)', projectName);
                     title = 'Aborted';
-                    app.openMessageBox(message, title)
+                    app.MessageDisplay.warn(message, 'Title', title)
                 else
                     delete(app)
                 end
@@ -3034,7 +3028,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             try
-                % Load existing or create new experiment inventory 
+                % Load existing or create new experiment inventory
                 if isfile(loadPath)
                     metaTable = nansen.metadata.MetaTable.open(loadPath);
                 else % Todo: do i need this...?
@@ -3063,11 +3057,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
                     @app.onMetaTableModifiedChanged);
                                 
-% %                 if app.initialized % todo
+% %                 if app.initialized % Todo: implement this
 % %                     app.updateRelatedInventoryLists()
 % %                 end
             catch ME
-                app.openErrorDialog(ME.message, 'Could Not Load Session Table')
+                titleStr = 'Could Not Load Session Table'; % Todo: generalize string, i.e session should depend on current table type
+                app.MessageDisplay.alert(ME.message, "Title", titleStr)
                 disp(getReport(ME, 'extended'))
             end
             
@@ -3122,17 +3117,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             currentProjectName = app.ProjectManager.CurrentProject;
 
             % Prepare inputs for the question dialog
-            qstring = sprintf(['The session table for project "%s" has ', ...
+            question = sprintf(['The session table for project "%s" has ', ...
                 'unsaved changes. Do you want to save changes to the ', ...
                 'table?'], currentProjectName);
-            
-            title = 'Save changes to table?';
-            alternatives = {'Save', 'Don''t Save', 'Cancel'};
-            default = 'Save';
-            
-            %answer = questdlg(qstring, title, alternatives{:}, default);
-            answer = app.openQuestionDialog(qstring, title, alternatives{:}, default);
-            
+
+            answer = app.MessageDisplay.ask(question, ...
+                'Title', 'Save changes to table?', ...
+                'Alternatives', {'Save', 'Don''t Save', 'Cancel'}, ...
+                'DefaultAnswer', 'Save');
+
             switch answer
                 case 'Save'
                     app.saveMetaTable()
@@ -3150,21 +3143,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function doExit = promptQuitIfBusy(app)
             
             % Prepare inputs for the question dialog
-            qstring = 'The app is busy with something. Do you want to quit anyway?';
-            
+            question = 'The app is busy with something. Do you want to quit anyway?';
             title = 'Confirm Quit?';
-            alternatives = {'Yes', 'No'};
-            default = 'Yes';
-            
-            %answer = questdlg(qstring, title, alternatives{:}, default);
-            answer = app.openQuestionDialog(qstring, title, alternatives{:}, default);
+
+            answer = app.MessageDisplay.ask(question, ...
+                'Title', title, ...
+                'Alternatives', {'Yes', 'No'}, ...
+                'DefaultAnswer', 'Yes');
+
             doExit = strcmp(answer, 'Yes');
         end
     end
     
     methods (Access = protected) % Callbacks
 
-        %onSettingsChanged Callback for change of fields in settings
+        % onSettingsChanged Callback for change of fields in settings
         function onSettingsChanged(app, name, value)
             
             switch name
@@ -3376,9 +3369,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             newTask.timeStarted = datetime("now");
 
-
             % Prepare arguments for the session method
-            %app.prepareSessionMethodArguments() %todo
+            % app.prepareSessionMethodArguments() % Todo: Create prepareSessionMethodArguments function
             
             methodArgs = {sessionObj, opts};
             if ~isempty(taskConfiguration.Alternative)
@@ -3397,7 +3389,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         case 'Restart'
                             app.runTaskWithReset(sessionMethod, taskType, methodArgs)
                         case 'Preview'
-                            % Todo
+                            % Todo: Add
                     end
 
                     if numel(sessionObj) == 1 && ismethod(sessionObj, 'updateProgress')
@@ -3455,7 +3447,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             functionName = taskConfiguration.TaskAttributes.FunctionName;
 
             try
-                
                 taskName = app.createTaskName( sessionObj );
                 % Open the options / method in preview mode
                 if strcmp(taskType, 'class')
@@ -3474,8 +3465,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     % Update session task menu (in case new options were defined...)
                     app.SessionTaskMenu.refresh()
                         
-                    %functionName = taskConfiguration.TaskAttributes.FunctionName;
-                    %app.SessionTaskMenu.refreshMenuItem(functionName) % todo
+                    % functionName = taskConfiguration.TaskAttributes.FunctionName;
+                    % app.SessionTaskMenu.refreshMenuItem(functionName) % todo
     
                     % Todo: Only refresh this submenu.
                     % Todo: Only refresh if options sets were added.
@@ -3483,11 +3474,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 elseif strcmp(taskType, 'function')
                     
                     if isempty(fieldnames(opts))
-                        app.openMessageBox('This method does not have any parameters')
+                        message = 'This method does not have any parameters';
+                        app.MessageDisplay.warn(message)
                         wasAborted = true;
                     else
                         optManager = taskConfiguration.TaskAttributes.OptionsManager;
-                        %optManager = nansen.manage.OptionsManager(functionName, opts, optsName);
+                        % optManager = nansen.manage.OptionsManager(functionName, opts, optsName);
                         [~, opts, wasAborted] = optManager.editOptions(optsName, opts);
                     end
 
@@ -3569,7 +3561,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             figName = sprintf( 'List of %s Tasks', mode);
             f = figure('MenuBar', 'none', 'Name', figName, 'NumberTitle', 'off', 'Visible', 'off');
-            %h = nansen.TaskProcessor('Parent', f)
+            % h = nansen.TaskProcessor('Parent', f)
             
             h = nansen.uiwTaskTable('Parent', f, ...
                 'ColumnNames', {'SessionID', 'MethodName', 'Parameters', 'Comment'}, ...
@@ -3605,7 +3597,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if count == 0
                 close(f)
-                app.openMessageBox('No tasks were found')
+                message = 'No tasks were found';
+                app.MessageDisplay.inform(message)
             end
         end
         
@@ -3643,7 +3636,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
                 uim.utility.layout.centerObjectInRectangle(h, app.Figure)
             else
-                app.openMessageBox('No tasks were found')
+                message = 'No tasks were found';
+                app.MessageDisplay.inform(message)
             end
         end
         
@@ -3678,12 +3672,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function menuCallback_DetectSessions(app, ~, ~)
 
             % Default to use the first datalocation or all?
-            %dataLocationName = app.DataLocationModel.Data(1).Name;
+            % dataLocationName = app.DataLocationModel.Data(1).Name;
             dataLocationName = 'all';
             newSessionObjects = nansen.manage.detectNewSessions(app.MetaTable, dataLocationName);
             
             if isempty(newSessionObjects)
-                app.openMessageBox('No sessions were detected')
+                app.MessageDisplay.inform('No sessions were detected')
                 return
             end
             
@@ -3698,7 +3692,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
             
-            app.openMessageBox(sprintf('%d sessions were successfully added', numel(newSessionObjects)))
+            message = sprintf('%d sessions were successfully added', numel(newSessionObjects));
+            app.MessageDisplay.inform(message, 'Title', 'Success')
             % Display sessions that were added on the commandline
             fprintf('The following sessions were added: \n%s\n', strjoin({newSessionObjects.sessionID}, '\n'))
         
@@ -3715,10 +3710,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 case 'Create...'
                     % Todo: open setup from create project page
                     
-                    msg = 'This will close the current app and open nansen setup. Do you want to continue?';
-                    %answer = questdlg(msg, 'Close and continue?');
-                    answer = app.openQuestionDialog(msg, 'Close and continue?');
-                    
+                    question = ['This will close the current app and open ', ...
+                        'nansen setup. Do you want to continue?'];
+                    answer = app.MessageDisplay.ask(question, ...
+                        'Title', 'Close and continue?');
+
                     switch answer
                         case 'Yes'
                             app.onExit(app.Figure)
@@ -3793,7 +3789,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 mItem(1) = findobj(app.Figure, 'Tag', 'Open Metatable');
                 mItem(2) = findobj(app.Figure, 'Tag', 'Add to Metatable');
             else
-                
             end
 
             names = app.MetaTable.getAssociatedMetaTables('same_class');
@@ -3924,7 +3919,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onUpdateSessionListMenuClicked(app, ~, ~) %#ok<INUSD>
-
         end
         
         function onAddNewPipelineTaskMenuItemClicked(app, ~, ~) %#ok<INUSD>
@@ -3937,7 +3931,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Get task catalog (from props?) and add new task
 
             % Make sure task catalog is up to date in other parts of app.
-            
         end
         
         function onCreateNewPipelineMenuItemClicked(app, ~, ~)
@@ -4022,7 +4015,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onRefreshTableMenuItemClicked(app, ~, ~)
              
             returnToIdle = app.setBusy('Updating table'); %#ok<NASGU>
-            %uipopup(app.Figure, 'Updating table')
+            % uipopup(app.Figure, 'Updating table')
             resetView = false;
             app.UiMetaTableViewer.resetTable(resetView)
             onNewMetaTableSet(app)
@@ -4098,7 +4091,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     % Display Customization
     methods (Access=protected)
-        
         function propGroup = getPropertyGroups(app) %#ok<MANU>
             
             titleTxt = ['Nansen Properties: '...
@@ -4115,96 +4107,36 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
 
     methods (Access = private) % Assertions
-
         function assertSessionSelected(app)
-
             entryIdx = app.UiMetaTableViewer.getSelectedEntries();
             
             if isempty(entryIdx)
-                msg = 'No sessions are selected. Select one or more sessions for this operation.';
-                app.openMessageBox(msg, 'Session Selection Required')
-                error('NansenApp:SessionSelectionRequired', msg)
+                message = 'No sessions are selected. Select one or more sessions for this operation.';                                
+                app.MessageDisplay.inform(message, 'Title', 'Session Selection Required')
             end
         end
     end
    
-    methods (Access = private) % Open dialog windows. Todo: make separate class
-        
-        function openMessageBox(app, messageStr, titleStr)
-            
-            % Todo: Specify icons in inputs...
-            
-            messageStr = app.getFormattedMessage(messageStr);
-            opts = app.getDialogOptions();
-            
-            if nargin < 3
-                msgbox(messageStr, opts)
-            elseif nargin == 3
-                msgbox(messageStr, titleStr, opts)
-            end
-        end
-        
-        function answer = openQuestionDialog(app, varargin)
-        %openQuestionDialog Open a question dialog window
-        %
-        %   app.openQuestionDialog(message)
-        
-            messageStr = app.getFormattedMessage(varargin{1});
-            varargin = varargin(2:end);
-            opts = app.getDialogOptions();
-            
-            if numel(varargin) > 1
-                if contains(varargin{end}, varargin)
-                    opts.Default = varargin{end};
-                    varargin(end) = [];
-                else
-                    error('Invalid inputs for openQuestionDialog')
-                end
-            else
-                opts.Default = 'Yes';
-            end
-            answer = questdlg(messageStr, varargin{:}, opts);
-        end
-        
-        function openErrorDialog(app, messageStr, titleStr)
-                    
-            if nargin < 3
-                titleStr = 'Error';
-            end
-            
-            messageStr = app.getFormattedMessage(messageStr);
-            opts = app.getDialogOptions();
-            errordlg(messageStr, titleStr, opts)
-        end
-        
-        function formattedMessage = getFormattedMessage(~, message)
-            formattedMessage = strcat('\fontsize{14}', message);
-            
-            % Fix some characters that are interpreted as tex markup
-            formattedMessage = strrep(formattedMessage, '_', '\_');
-        end
-        
-        function opts = getDialogOptions(~)
-            opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex');
-        end
-        
+    %% Methods for information, warning and error messages
+    methods (Access = private) % 
         function throwSessionMethodFailedError(app, ME, taskName, methodName)
+        % throwSessionMethodFailedError - Display error message if task fails            
+            errorMessage = sprintf([...
+                'Method ''%s'' failed for session ''%s'', with the ', ...
+                'following error:\n\n %s'], methodName, taskName, ME.message);
             
-            % Todo: Use a messagebox widget to show error message
+            app.MessageDisplay.alert(errorMessage)
             
-            errorMessage = sprintf('Method ''%s'' failed for session ''%s'', with the following error:\n', ...
-                methodName, taskName);
-            
-            % Show error message in user dialog
-            app.openErrorDialog(sprintf('%s\n%s', errorMessage, ME.message))
-            
-            % Display error stack for better chance at debugging
+            % Display error stack in command window to support debugging
             disp(getReport(ME, 'extended'))
         end
     end
     
+    %% Static methods
     methods (Static)
-    
+            
+        S = getDefaultSettings() % Defined in external file
+
         function [tf, hApp] = isOpen()
         %ISOPEN Check if app figure is open bring to focus if it is.
         %
@@ -4253,16 +4185,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             pathStr = fullfile(rootDir, 'resources', 'icons');
         end
     end
-    
-    methods (Static) % Method defined in separate file
-        S = getDefaultSettings()
-    end
 
+    %% Not implemented yet
     methods (Static)
-
         function [jLabel, C] = showSplashScreen()
+        % showSplashScreen - Show a splash window
             filepath = fullfile(nansen.toolboxdir, 'resources', ...
-                'images', 'nansen_splash.png'); % NB nansen_splash does not exist yet
+                'images', 'nansen_splash.png');
 
             if isfile(filepath)
                 [~, jLabel, C] = nansen.ui.showSplashScreen(filepath, ...

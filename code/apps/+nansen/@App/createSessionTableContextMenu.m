@@ -2,8 +2,8 @@ function createSessionTableContextMenu(app)
 %createSessionTableContextMenu Create a context menu for sessions in table
     
     hContextMenu = uicontextmenu(app.Figure);
-    %hContextMenu.ContextMenuOpeningFcn = @(s,e,m) disp('test');%onContextMenuOpening;
-    %hContextMenu.ContextMenuOpeningFcn = @(src,event)disp('Context menu opened');
+    % hContextMenu.ContextMenuOpeningFcn = @(s,e,m) disp('test');%onContextMenuOpening;
+    % hContextMenu.ContextMenuOpeningFcn = @(src,event)disp('Context menu opened');
     
 % % %     if ~isempty(app.UiMetaTableViewer.HTable.ContextMenu)
 % % %         delete(app.UiMetaTableViewer.HTable.ContextMenu)
@@ -35,7 +35,7 @@ function createSessionTableContextMenu(app)
         end
     end
     
-    % % Todo... Create method for adding session to other databases....
+    % % Todo: Create method for adding session to other databases....
     m0 = uimenu(hContextMenu, 'Text', 'Add to Metatable', 'Tag', 'Add to Metatable');
     app.updateRelatedInventoryLists(m0)
     
@@ -81,14 +81,13 @@ function createSessionTableContextMenu(app)
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy SessionID(s)', 'Separator', 'on');
     hMenuItem(c).Callback = @(s, e) app.copySessionIdToClipboard;
 
-    %hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy Value(s)');
-    %hMenuItem(c).Callback = @app.copyTableValuesToClipboard;
+    % hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy Value(s)');
+    % hMenuItem(c).Callback = @app.copyTableValuesToClipboard;
 
     c = c + 1;
     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Remove Session', 'Separator', 'on');
     hMenuItem(c).Callback = @(s, e) app.onRemoveSessionMenuClicked;
 
-    %m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
-    %m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');
-        
+    % m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
+    % m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');
 end
