@@ -5503,11 +5503,15 @@ methods (Access = protected)
                    
             case 'extend'
                 
-                scrollFactor = abs(event.VerticalScrollCount )/10.*obj.settings.Interaction.scrollFactor;
+                if obj.settings.Interaction.scrollFactor > 10
+                    scrollFactor = abs(event.VerticalScrollCount );
+                else
+                    scrollFactor = abs(event.VerticalScrollCount )/10.*obj.settings.Interaction.scrollFactor;
+                end
                 
-                if event.VerticalScrollCount > 0 && sum(obj.scrollHistory) > 0 
+                if event.VerticalScrollCount > 0 
                     imageZoom(obj, 'in', scrollFactor);
-                elseif event.VerticalScrollCount < 0  && sum(obj.scrollHistory) < 0
+                elseif event.VerticalScrollCount < 0  
                     imageZoom(obj, 'out', scrollFactor);
                 end
         end
