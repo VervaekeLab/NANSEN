@@ -57,25 +57,25 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
         numStacks = numel(imageStack);
         
         if numStacks > 1
-            [indx,~] = listdlg('ListString', arrayfun(@(i)sprintf('Fov %d', i), 1:numStacks, 'uni', 0), 'SelectionMode', 'multi'); 
+            % Let user select one or more image stacks if multiple stacks
+            % are found (i.e multi FOV (mesoscope) imaging).
+            alternatives = arrayfun(@(i) sprintf('Fov %d', i), 1:numStacks, 'uni', 0);
+            [selectionInd, ~] = listdlg(...
+                'ListString', alternatives, ...
+                'SelectionMode', 'multi'); 
         else
-            indx=1;
+            selectionInd = 1;
         end
         
-        for i = indx
+        for i = selectionInd
             imviewer(imageStack(i))
         end
-        
-        %eeimviewer(filePath)
     end
-
 end
-
 
 function S = getDefaultParameters()
     S = struct();
     S.UseVirtualStack = true;
     S.FirstImage = 1;
     S.LastImage = inf;
-
 end
