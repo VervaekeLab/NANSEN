@@ -268,6 +268,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             if ~isempty(app.UiMetaTableSelector)
                 itemType = app.UiMetaTableSelector.CurrentSelection;
+                itemType = string(itemType); % might be cell
             else
                 if isempty(app.ItemTypes)
                     itemType = tableType;
@@ -2091,7 +2092,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if numItemsTotal > 1 
                     itemName = itemName + "s"; % plural
                 end
-
+                
                 if numItemsSelected > 0
                     str = sprintf('Selected %d/%d %s', numItemsSelected, numItemsTotal, itemName);
                 else

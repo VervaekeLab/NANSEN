@@ -20,9 +20,13 @@ classdef Species < nansen.metadata.abstract.TableVariable
         function instances = getSpeciesInstances()
 
             % Todo: Assert openMINDS is on path
-            instances = openminds.controlledterms.Species.CONTROLLED_INSTANCES;
-            instances = cellfun(@(c) utility.string.varname2label(c), instances, 'uni', 0);
-            instances = lower(instances);
+            try
+                instances = openminds.controlledterms.Species.CONTROLLED_INSTANCES;
+                instances = cellfun(@(c) utility.string.varname2label(c), instances, 'uni', 0);
+                instances = lower(instances);
+            catch
+                instances = {'no species found'};
+            end
         end
     end
 end
