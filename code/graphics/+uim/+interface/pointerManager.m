@@ -296,7 +296,7 @@ classdef pointerManager < handle
                     notifyUser = false;
                 end
             end
-            
+            wasCaptured = false;
             if ~isempty(obj.currentPointerTool)
                 wasCaptured = obj.currentPointerTool.onKeyRelease(src, event);
             end

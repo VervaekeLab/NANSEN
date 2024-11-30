@@ -8,7 +8,9 @@
 [![Twitter](https://img.shields.io/twitter/follow/NeuroNansen?style=social)](https://twitter.com/NeuroNansen)
 [![YouTube](https://img.shields.io/youtube/channel/views/UCKOzL-MVWgy7oOMo6x_GSkQ?style=social)](https://www.youtube.com/channel/UCKOzL-MVWgy7oOMo6x_GSkQ)
 
-A collection of apps and modules for processing, analysis and visualization of two-photon imaging data. Check out the introduction to Nansen on [YouTube](https://youtu.be/_u0Aw1n5gHg) and/or see the [Wiki](https://github.com/VervaekeLab/NANSEN/wiki) for more details.
+[![Codespell](https://github.com/VervaekeLab/NANSEN/actions/workflows/run_codespell.yml/badge.svg?branch=add%2Fdeveloper-tools)](https://github.com/VervaekeLab/NANSEN/actions/workflows/run_codespell.yml)
+
+A collection of apps and modules for processing, analysis and visualization of two-photon imaging data. Check out the introduction to Nansen on [YouTube](https://youtu.be/_u0Aw1n5gHg) and/or see the [Wiki](https://github.com/VervaekeLab/NANSEN/wiki) for more details!
 
 <img src="https://user-images.githubusercontent.com/17237719/201542036-3be1b9b2-b59c-4e2d-9104-52f6d3806f02.gif?raw=true" alt="Session table demo" width="100%"/>
 <!---
