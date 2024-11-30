@@ -11,7 +11,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
     % New a getPosition property.
     
     % % NB. Pickable parts of button background is visible, si if the
-    % backgroundalpha is set to 0, this interface wont work as intended
+    % backgroundalpha is set to 0, this interface won't work as intended
     % Implement onVisibleChanged.
     
     % Where did I implement a button which is released when mouse moves
@@ -35,7 +35,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
         FixedAspectRatio = true;
 
         ButtonDownFcn = []
-        HorizontalTextAlignment = 'left' 
+        HorizontalTextAlignment = 'left'
 
         FontName = 'helvetica'
         FontSize = 12
@@ -50,7 +50,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
         aR = 1 % Needed?
         Extent %Needed? Not internally. Does any outside function use it?
     end
-    
     
     properties (Access = protected, Transient)
         %%%Toolbar % Parent
@@ -69,7 +68,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
     properties (Access = private, Dependent)
     end
     
-    
     methods
         
         function obj = Button(varargin)
@@ -84,7 +82,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
                 varargin = varargin(2:end);
             elseif isa(varargin{1}, 'matlab.graphics.axis.Axes')
                 obj.Parent = varargin{1};
-                obj.Canvas = struct('Axes', obj.Parent);   
+                obj.Canvas = struct('Axes', obj.Parent);
                 varargin = varargin(2:end);
             end
                 
@@ -102,7 +100,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             obj.create()
             
             obj.hBackground.ButtonDownFcn = @obj.onButtonPressed;
-            
             
             obj.setTooltipPosition()
             
@@ -137,7 +134,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
 % %         function onSizeChanged(obj, oldPosition, newPosition)
 % %             obj.resize()
 % %         end
-% %         
+% %
 % %         function onLocationChanged(obj, oldPosition, newPosition)
 % %             obj.relocate(newPosition-oldPosition)
 % %         end
@@ -194,7 +191,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
                     obj.plotText()
                 end
             end
-            
         end
         
         function updateButtonText(obj)
@@ -234,10 +230,9 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
         %plotIcon Plot button icon
         
             if strcmp(obj.Icon, 'x')
-                obj.plotSymbol(); 
+                obj.plotSymbol();
                 return;
             end
-            
 
             obj.hForeground = uim.graphics.imageVector(obj.Canvas.Axes, obj.Icon);
 
@@ -268,11 +263,8 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             
             % Center icon in middle of button...
             obj.hForeground.Position = obj.Position(1:2) + (obj.Position(3:4)-[obj.hForeground.Width, obj.hForeground.Height]) / 2;
-
             
             %obj.hForeground.Position = obj.Position(1:2) + obj.Padding(1:2);
-
-            
 
             % Set color
             if ~obj.UseDefaultIcon
@@ -334,7 +326,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
         end
         
         function changeAppearance(obj)
-        %changeAppearance Update button appearance based on state     
+        %changeAppearance Update button appearance based on state
             
             %if ~obj.IsConstructed; return; end
             
@@ -381,9 +373,8 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             obj.hBackground.EdgeColor = obj.BorderColor;
             obj.hBackground.LineWidth = obj.BorderWidth;
             
-            
-            % Todo: This should be in this function, while above should be in 
-            % onStyleChanged 
+            % Todo: This should be in this function, while above should be in
+            % onStyleChanged
             [X_, Y_] = uim.shape.rectangle(round(obj.Size), obj.CornerRadius);
 
             X = X_ + obj.Position(1);
@@ -400,7 +391,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
         
         % Todo: This method is inherited from virtualContainer.
         function updateBackgroundPosition(obj, newPosition)
-        %updateBackgroundPosition Update position of background patch 
+        %updateBackgroundPosition Update position of background patch
         
             if isempty(obj.hBackground); return; end
             
@@ -413,7 +404,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             if shift(2) ~= 0
                 obj.hBackground.YData = obj.hBackground.YData + shift(2);
             end
-            
         end
         
         function updateForegroundPosition(obj, newPosition)
@@ -427,7 +417,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             elseif isa(obj.hForeground, 'matlab.graphics.primitive.Text')
                 obj.hForeground.Position(1:2) = newPosition;
             end
-            
         end
         
         function updateBackgroundSize(obj)
@@ -438,7 +427,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             obj.hBackground.XData = X;
             obj.hBackground.YData = Y;
         end
-        
     end
     
     methods( Access = private ) % Event & other callbacks
@@ -481,7 +469,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             if ~isempty(obj.ButtonDownFcn)
                 obj.ButtonDownFcn(obj, event)
             end
-            
         end
         
         function onButtonReleased(obj, src, event)
@@ -502,7 +489,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             obj.ButtonReleasedListener = [];
             
         end
-        
     end
     
     methods( Access = public ) % Event & other callbacks
@@ -522,7 +508,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             end
         end
         
-        
         function onHorizontalTextAlignmentChanged(obj)
             if ~obj.IsConstructed; return; end
             
@@ -541,9 +526,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
                     obj.hForeground.Position(1) = obj.Position(1) + obj.hForeground.Margin + (buttonWidth-textWidth);
                     
             end
-            
         end
-        
         
         function onStyleChanged(obj)
             
@@ -617,7 +600,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
                 obj.Value = event.Value;
                 obj.changeAppearance()
             end
-            
         end
         
         function addToggleListener(obj, handle, eventName)
@@ -630,7 +612,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
                 obj.Canvas.hideTooltip()
             end
         end
-        
     end
     
     methods % Set/get
@@ -642,7 +623,6 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             if obj.IsConstructed
                 obj.updateButtonText()
             end
-
         end
         
         function set.Style(obj, newStyle)
@@ -656,7 +636,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
         
         function set.Icon(obj, value)
 %             assert(isa(value, 'char'), 'Icon property of button must be a pathstr')
-%             assert(exist(value, 'file')==2, 'Icon file was not found')
+%             assert(isfile(value), 'Icon file was not found')
             
             obj.Icon = value;
             if obj.IsConstructed
@@ -693,19 +673,19 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
         end
     
 %         function set.Position(obj, value)
-%             
+%
 %             assert(isnumeric(value) && numel(value == 2), ...
 %                 'Value must be a 2 element vector of numeric type')
-%             
+%
 %             obj.updateBackgroundPosition(value)
 %             obj.updateForegroundPosition(value)
-%             
+%
 %             obj.Position = value;
-%             
+%
 %         end
         
 %         function size = get.Size(obj)
-%            size = obj.Toolbar.Height .* [obj.aR, 1]; 
+%            size = obj.Toolbar.Height .* [obj.aR, 1];
 %            size(1) = size(1);% + obj.InnerMargin*2;
 %         end
         
@@ -744,12 +724,10 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
 %             obj.BackgroundColor = newValue;
 %             obj.updateBackground()
 %         end
-%         
+%
 %         function set.BackgroundAlpha(obj, newValue)
 %             obj.BackgroundAlpha = newValue;
 %             obj.updateBackground()
 %         end
     end
-    
-    
 end

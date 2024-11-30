@@ -1,0 +1,54 @@
+{
+  "_type": "Nansen Data Location Template Specification",
+  "_version": "1.0.0",
+  "Name": "BIDS",
+  "DataType": "Recorded",
+  "SubfolderStructure": [
+    {
+      "Name": "",
+      "Type": "Subject",
+      "Expression": "",
+      "IgnoreList": []
+    },
+    {
+      "Name": "",
+      "Type": "Session",
+      "Expression": "",
+      "IgnoreList": []
+    }
+  ],
+  "MetaDataDef": [
+    {
+      "VariableName": "Subject ID",
+      "SubfolderLevel": 1,
+      "StringDetectMode": "ind",
+      "StringDetectInput": "5:end",
+      "StringFormat": "",
+      "FunctionName": ""
+    },
+    {
+      "VariableName": "Session ID",
+      "SubfolderLevel": 2,
+      "StringDetectMode": "ind",
+      "StringDetectInput": "5:end",
+      "StringFormat": "",
+      "FunctionName": ""
+    },
+    {
+      "VariableName": "Experiment Date",
+      "SubfolderLevel": [],
+      "StringDetectMode": "ind",
+      "StringDetectInput": "",
+      "StringFormat": "",
+      "FunctionName": ""
+    },
+    {
+      "VariableName": "Experiment Time",
+      "SubfolderLevel": [],
+      "StringDetectMode": "ind",
+      "StringDetectInput": "",
+      "StringFormat": "",
+      "FunctionName": ""
+    }
+  ]
+}

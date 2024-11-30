@@ -2,11 +2,14 @@ function openFolder(folderPath)
 %openFolder Open a folder using the system's (OS) default method
 %
 %   openFolder(folderPath)
-
     
     if ismac
-        [status, ~] = unix(sprintf('open -a finder ''%s''', folderPath));
-        
+        if isfile(folderPath)
+            [status, ~] = unix(sprintf('open -R ''%s''', folderPath));
+        else
+            [status, ~] = unix(sprintf('open -a Finder ''%s''', folderPath));
+        end
+
         if status
             % Todo: Throw exception.
             fprintf('Folder was not found for given path ''%s'' \n', folderPath)
@@ -19,6 +22,4 @@ function openFolder(folderPath)
     elseif ispc
         winopen(folderPath);
     end
-
-    
 end

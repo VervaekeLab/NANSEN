@@ -5,7 +5,7 @@ function [iA, iB] = findOverlappingRois(roiArrayA, roiArrayB, overlapThresh)
 %   rois in roiArrayA which are overlapping with rois in roIArrayB
 %
 %   [IA, IB]  = findOverlappingRois(roiArrayA, roiArrayB, overlapThresh) finds
-%   overlapping rois determined by overlapThresh (fraction of overlap from 
+%   overlapping rois determined by overlapThresh (fraction of overlap from
 %   0 to 1). Default value of overlapThresh is 0.75.
 
 if nargin < 3

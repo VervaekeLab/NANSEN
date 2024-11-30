@@ -36,6 +36,4 @@ function salience = roiSalience(roiArray, roiImageArray)
 
         salience(i) = (meanIntensityRoi-meanIntensityPil+1)./(meanIntensityPil+1);
     end
-
 end
-

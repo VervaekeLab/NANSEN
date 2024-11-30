@@ -1,12 +1,11 @@
 function roiArray = run(imArray, ops)
 
-% Todo: 
+% Todo:
 %   1. Is there a difference between nSVDforROI and nSVD
 
-% Use highjacked fprintf if available
-global fprintf 
+% Use hijacked fprintf if available
+global fprintf
 if isempty(fprintf); fprintf = str2func('fprintf'); end
-
 
 imArray = imArray - mean(imArray,3);
 
@@ -17,7 +16,6 @@ ops.clustrules.diameter = ops.diameter;
 ops.clustrules = get_clustrules(ops.clustrules);
 ops.ThScaling   = getOr(ops, 'ThScaling', 1);
 % ops.maxIterRoiDetection = 5;
-
 
 model = struct;
 
@@ -35,7 +33,6 @@ ops.NavgFramesSVD = min(ops.NavgFramesSVD, nFrames);
 
 % Number of images to do svd on...
 ops.nSVDforROI = min(ops.nSVDforROI, size(imArray,3));
-
  
 % smooth spatially to get high SNR SVD components
 imArraySmooth = zeros(size(imArray), 'like', imArray);
@@ -85,17 +82,17 @@ U = reshape(U, Ly, Lx, []);
 imArray = reshape(imArray, [], size(imArray,3));
     
 % U2 = imArray * V;
-% U2 = single(U2);    
-% 
+% U2 = single(U2);
+%
 % % reshape U to frame size
 % U2 = reshape(U2, Ly, Lx, []);
 
 % % project spatial masks onto raw data
 % fid = fopen(ops.RegFile, 'r');
 % ix = 0;
-% 
+%
 % Fs = zeros(ops.nSVDforROI, sum(ops.Nframes), 'single');
-% 
+%
 % while 1
 %     data = fread(fid,  Ly*Lx*nimgbatch, '*int16');
 %     if isempty(data)
@@ -103,21 +100,20 @@ imArray = reshape(imArray, [], size(imArray,3));
 %     end
 %     data = single(data);
 %     data = reshape(data, Ly, Lx, []);
-% 
+%
 %     % subtract off the mean of this batch
 %     data = bsxfun(@minus, data, mean(data,3));
 %     %     data = bsxfun(@minus, data, ops.mimg1);
 %     data = data(ops.yrange, ops.xrange, :);
-% 
+%
 %     Fs(:, ix + (1:size(data,3))) = U' * reshape(data, [], size(data,3));
-% 
+%
 %     ix = ix + size(data,3);
 % end
 % fclose(fid);
-% 
+%
 % save(sprintf('%s/SVDroi_%s_%s_plane%d.mat', ops.ResultsSavePath, ...
 %     ops.mouse_name, ops.date, ops.iplane), 'U', 'Sv', 'Fs', 'ops');
-
 
 % reshape U to be (nMaps x Y x X)
 U =  reshape(U, [], size(U,ndims(U)))';
@@ -135,7 +131,7 @@ StS = S'*S; % covariance of neuropil basis functions
 
 % make cell mask with ops.diameter
 d0   = ceil(ops.diameter); % expected cell diameter in pixels
-sig = ceil(d0/4); 
+sig = ceil(d0/4);
 dx = repmat([-d0:d0], 2*d0+1, 1);
 dy = dx';
 rs = dx.^2 + dy.^2 - d0^2;
@@ -164,7 +160,7 @@ nBasis = size(S,2);
 
 %
 while 1
-    iter = iter + 1;    
+    iter = iter + 1;
     
     % residual is smoothed at every iteration
     us = my_conv2_circ(Ucell, sig, [2 3]);
@@ -188,7 +184,7 @@ while 1
     
     V = V - lbound;
     
-    if iter==1        
+    if iter==1
         % find indices of all maxima  in plus minus 1 range
         % use the median of these peaks to decide stopping criterion
         maxV    = -my_min(-V, 1, [1 2]);
@@ -213,10 +209,10 @@ while 1
     ind = find(ix);
     
     if iter==1
-       Nfirst = numel(ind); 
+       Nfirst = numel(ind);
     end
     
-    if numel(ind)==0 
+    if numel(ind)==0
         break;
     end
     
@@ -232,7 +228,7 @@ while 1
         
         Usub = Ucell(:, ipix);
         
-        lam = max(0, new_codes(:, i)' * Usub);        
+        lam = max(0, new_codes(:, i)' * Usub);
         
         % threshold pixels
         lam(lam<max(lam)/5) = 0;
@@ -248,23 +244,23 @@ while 1
         
         LtU(icell, :)   = U(:,ipix) * lam;
         LtS(icell, :)   = lam' * S(ipix,:);
-    end    
+    end
     
-    % ADD NEUROPIL INTO REGRESSION HERE    
+    % ADD NEUROPIL INTO REGRESSION HERE
     LtL     = full(L'*L);
     codes   = ([LtL LtS; LtS' StS]+ 1e-3 * eye(icell+nBasis))\[LtU; StU];
-    neu     = codes(icell+1:end,:);    
+    neu     = codes(icell+1:end,:);
     codes   = codes(1:icell,:);
-%     codes = (LtL+ 1e-3 * eye(icell))\LtU;    
+%     codes = (LtL+ 1e-3 * eye(icell))\LtU;
     
     % subtract off everything
-    Ucell = U - reshape(neu' * S', size(U)) - reshape(double(codes') * L', size(U));    
+    Ucell = U - reshape(neu' * S', size(U)) - reshape(double(codes') * L', size(U));
     
     % re-estimate masks
     L   = sparse(Ly*Lx, icell);
-    for j = 1:icell        
+    for j = 1:icell
         ipos = find(mPix(:,j)>0);
-        ipix = mPix(ipos,j);        
+        ipix = mPix(ipos,j);
         
         Usub = Ucell(:, ipix)+ codes(j, :)' * mLam(ipos,j)';
         
@@ -277,7 +273,6 @@ while 1
         % extract biggest connected region of lam only
         mLam(:,j) = normc(getConnected(mLam(:,j), rs));
         lam = mLam(ipos,j);
-        
         
         L(ipix,j) = lam;
         
@@ -321,17 +316,16 @@ roiArray = nansen.twophoton.autosegmentation.suite2p.getRoiArray(stat, [Ly, Lx])
 
 % % compute compactness of ROIs
 % stat = anatomize(ops, mPix, mLam, stat);
-% 
+%
 % [~, iclust, lam] = drawClusters(ops, r, mPix, mLam, Ly, Lx);
-% 
+%
 % model.L     = L;
 % model.S     = S;
 % model.LtS   = LtS;
 % model.LtL   = LtL;
 % model.StS   = StS;
-% 
+%
 % % get anatomical projection weights
 % stat = weightsMeanImage(ops, stat, model);
 
 end
-

@@ -8,14 +8,13 @@ function im = localCorrelation(imArray, dim)
         return
         
     elseif ndims(imArray) > 4
-        error('Not implemented for matrices with more than 4 dims'); 
+        error('Not implemented for matrices with more than 4 dims');
     end
     
     numRows = ceil(imageHeight / 128);
     numCols = ceil(imageWidth / 128);
     
     showWaitbar = false;
-    
 
     getChunkedData = @stack.reshape.imsplit;
     tmpIm = getChunkedData(imArray, true, [], 'numRows', numRows, 'numCols', numCols);
@@ -27,7 +26,6 @@ function im = localCorrelation(imArray, dim)
     end
     
     P = double( prctile(single(imArray(:)), [0.5, 99.5]) );
-    
     
     numIter = numRows .* numCols;
     currentIter = 0;
@@ -43,7 +41,6 @@ function im = localCorrelation(imArray, dim)
             if showWaitbar
                 waitbar(currentIter/numIter, h)
             end
-            
         end
     end
 

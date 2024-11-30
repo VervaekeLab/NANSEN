@@ -3,19 +3,17 @@ function sessionID = validateSessionObject(sessionID, mode)
 %
 %   sessionID = validateSessionID(sessionID, mode) validates a sessionID or
 %   a list of sessionIDs using the rules in strfindsid. sessionID is either
-%   a character vector or a cell array of character vectors. mode is a 
-%   character vector of either 'single', 'multi' or 'any' and determines if 
+%   a character vector or a cell array of character vectors. mode is a
+%   character vector of either 'single', 'multi' or 'any' and determines if
 %   one or several sessionIDs are accepted. An error is thrown if the
 %   sessionID is invalid or if it does not match the mode.
 %
-%   Returns sessionID where sessionID is a char if mode is 'single' and a 
+%   Returns sessionID where sessionID is a char if mode is 'single' and a
 %   cell array if mode is 'multi' or 'any'.
 %
 %   The purpose of this function is to throw an error in a caller function
 %   if sessionID has the wrong form, either being an invalid sessionID or
 %   being of a mode not accepted in the caller function.
-
-
 
 switch mode
     
@@ -52,7 +50,6 @@ switch mode
         ME = MException('VLab:InvalidArg:NotImplentedYet', 'Not implemented yet');
         throwAsCaller(ME)
         
-        
         if isa(sessionID, 'char')
             isValid = contains(sessionID, strfindsid(sessionID));
         elseif isa(sessionID, 'cell')
@@ -61,7 +58,7 @@ switch mode
             isValid = false;
         end
         
-        if ~isValid 
+        if ~isValid
             ME = MException('VLab:InvalidSessionInput:invalidSessionID', 'One or more sessionIDs are not valid.');
             throwAsCaller(ME)
         end
@@ -70,11 +67,7 @@ switch mode
 
 end
 
-
 if ~nargout
     clear sessionID
 end
-
-
-
 end

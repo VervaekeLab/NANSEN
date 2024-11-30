@@ -1,13 +1,12 @@
 function dff = dffClassic(signalArray, varargin)
 
 %   INPUTS:
-%       
+%
 %   signalArray : 3D array (numSamples x numSubregions x numRois)
 %   varargin : Options as struct or name-value pairs.
 %
 %   OUTPUT:
-%   dff : 2D (numSamples x numRois) 
-
+%   dff : 2D (numSamples x numRois)
 
     P = struct;
     P.baseline = 20;

@@ -1,10 +1,10 @@
 function similarity = templateSimilarity(roiImageArray, template)
 %templateSimilarity Calculate xcorrelations between images and average
 %
-%   similarity = templateMatch(roiImageArray) computes the crosscorrelation 
-%       between a roi image and the average of all roi images of the 
+%   similarity = templateMatch(roiImageArray) computes the crosscorrelation
+%       between a roi image and the average of all roi images of the
 %       given array of roi images.
-%   
+%
 %
 %   OUTPUT
 %       similarity : column vector with a value for each roi

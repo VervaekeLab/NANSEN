@@ -4,7 +4,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %
 %   h = nansen.wrapper.quicky.Processor(imageStackReference) runs quicky
 %       on the ImageStack referred to by the imageStackReference. Valid
-%       references are an ImageStack object or a filepath to a file that 
+%       references are an ImageStack object or a filepath to a file that
 %       can be opened as an ImageStack object.
 %
 %   h = nansen.wrapper.quicky.Processor(__, options) additionally
@@ -13,16 +13,15 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 %   To get the default options:
 %       defOptions = nansen.wrapper.quicky.Processor.getDefaultOptions()
 %
-%   For additional optional parameters that can be used for configuring the 
+%   For additional optional parameters that can be used for configuring the
 %   processor;
 %   See also nansen.stack.ImageStackProcessor
-
 
 %   This class creates the following data variables:
 %
 %     * <strong>QuickyOptions</strong> : Struct with options used.
 %
-%     * <strong>QuickyResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack. 
+%     * <strong>QuickyResultsTemp</strong> : Cell array of struct. One struct for each chunk of imagestack.
 %           Struct contains output from Quicky
 %
 %     * <strong>roiArrayQuickyAuto</strong> :
@@ -30,14 +29,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 % Todo: delegate saving of results to superclasses, and have relevant
 % superclass check if results already exists.
 
-
     properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_quicky')
         ROI_VARIABLE_NAME = 'roiArrayQuickyAuto' %roiArrayFlufinderAuto
         VARIABLE_PREFIX = 'Quicky' %'FluFinder'
     end
 
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Quicky (Autosegmentation)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.quicky.Processor')
@@ -46,7 +44,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
     properties (Constant) % Implement property from ImageStackProcessor
         ImviewerPluginName = 'FluFinder'
     end
-    
     
     methods % Constructor
         
@@ -73,7 +70,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 clear obj
             end
         end
-        
     end
         
     methods (Access = protected) % Implementation of ImageStackProcessor methods
@@ -96,15 +92,15 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         % Step 2
         function Y = preprocessImageData(obj, Y)
             % Subclasses may override
-            % Todo: 
+            % Todo:
             % Y_ = flufinder.preprocessImages(Y, options);
             %
-            %   Need to save mean of original to summary/results 
+            %   Need to save mean of original to summary/results
         end
 
         % Step 3
         function results = segmentPartition(obj, Y)
-        %segmentPartition Run segmentation on subpart of image stack  
+        %segmentPartition Run segmentation on subpart of image stack
             options = obj.ToolboxOptions; %todo...
             
             % Preprocess and binarize stack
@@ -118,7 +114,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             results.spatialComponents = S;
             results.meanFovImage = mean(Y, 3);
             results.meanFovImagePreprocessed = mean(Y_, 3);
-            results.componentMatrix = labelmatrix(CC);          
+            results.componentMatrix = labelmatrix(CC);
         end
         
         function onCompletion(obj)
@@ -128,7 +124,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 obj.mergeResults()
             end
         end
-        
     end
     
     methods (Access = protected) % Implementation of RoiSegmentation methods
@@ -151,7 +146,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         
         function saveResults(obj)
             tempResults = obj.Results;
-            obj.saveData('QuickyResultsTemp', tempResults) 
+            obj.saveData('QuickyResultsTemp', tempResults)
         end
         
         function mergeSpatialComponents(obj, iPlane, iChannel)
@@ -164,20 +159,20 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
 % %         function mergeResults(obj, iPlane, iChannel)
 % %         %mergeResults Merge results from each processing part
-% %                     
+% %
 % %             import flufinder.detect.findUniqueRoisFromComponents
-% %             
+% %
 % %             obj.displayStartCurrentStep()
-% % 
+% %
 % %             % Combine spatial segments
 % %             obj.Results = cat(1, obj.Results{:});
 % %             S = cat(1, obj.Results.spatialComponents );
-% %                 
+% %
 % %             imageSize = obj.SourceStack.FrameSize;
 % %             roiArrayT = findUniqueRoisFromComponents(imageSize, S);         % imported function
-% % 
+% %
 % %             obj.RoiArray = roiArrayT;
-% %             
+% %
 % %             obj.displayFinishCurrentStep()
 % %         end
         
@@ -216,9 +211,8 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
                 [fMean, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
 
-
                 % % Detect rois from a shape-based kernel convolution
-                % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+                % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 if opts.UseShapeDetection
                     fprintf('Searching for %s-shaped cells...\n', ...
                         opts.MorphologicalShape)%MorphologicalShape)
@@ -238,14 +232,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %getRoiArray Get results as a roi array
             roiArray = obj.RoiArray;
         end
-        
     end
-    
 
     methods (Static) % Method in external file.
         options = getDefaultOptions()
         
         pathList = getDependentPaths()
     end
-
 end

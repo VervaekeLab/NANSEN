@@ -6,7 +6,6 @@ function results = computeDriftSummary(avgProjImageArray)
 %           each of a set of subparts of an imageStack (downsampled binned
 %           average)
 
-
     numParts = size(avgProjImageArray, 3);
 
     fprintf('Computing image frame statistics...'); fprintf(newline)
@@ -41,7 +40,7 @@ function results = computeDriftSummary(avgProjImageArray)
     avgProjImageArray = avgProjImageArray ./ sqrt(avgProjImageArray);       % Not sure if this is useful
     
     % 1) Colorcode first and last frame with different colors
-    cMap = [ 1, 0.5, 0; 
+    cMap = [ 1, 0.5, 0;
              0, 0.5, 1 ];
     imageMerged = stack.colorCodeImageStack(...
         avgProjImageArray(:, :, [1,end]), cMap);
@@ -49,7 +48,7 @@ function results = computeDriftSummary(avgProjImageArray)
     imageMerged = imageMerged - min(imageMerged(:));
     imageMerged = uint8( imageMerged ./ max(imageMerged(:)) .* 255 );
 
-    % 2) Create a difference image between first and last frame 
+    % 2) Create a difference image between first and last frame
     imageDiff = avgProjImageArray(:, :, 1) - avgProjImageArray(:, :, end);
 
     % Gather results in a struct

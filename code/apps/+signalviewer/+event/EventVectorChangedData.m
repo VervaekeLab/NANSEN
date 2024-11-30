@@ -1,11 +1,9 @@
 classdef (ConstructOnLoad) EventVectorChangedData < event.EventData
-   
     
     properties
         TimeSeriesIndex
         XCoordinates
     end
-    
     
     methods
         
@@ -14,7 +12,5 @@ classdef (ConstructOnLoad) EventVectorChangedData < event.EventData
             data.TimeSeriesIndex = timeSeriesIndex;
             data.XCoordinates = xCoordinates;
         end
-        
     end
-    
 end

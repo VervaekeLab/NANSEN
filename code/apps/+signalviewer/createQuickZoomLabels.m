@@ -1,6 +1,5 @@
 function createQuickZoomLabels(parent, numFrames, callbackFcn, options)
 
-
     uicc = uim.UIComponentCanvas(parent);
 
     newButtonSize = [50, 15];
@@ -21,7 +20,6 @@ function createQuickZoomLabels(parent, numFrames, callbackFcn, options)
         'CornerRadius', 0};
 
     hBtn = uim.control.Button.empty;
-    
     
     minNumber = min([100, numFrames/10]);
     
@@ -46,7 +44,6 @@ function createQuickZoomLabels(parent, numFrames, callbackFcn, options)
         %hBtn(i).ButtonDownFcn = @(s,e,h,ind) onLabelPressed(s, hBtn, i);
         hBtn(i).ButtonDownFcn = @(s,e,h,ind) callbackFcn(s,hBtn,i);
     end
-
 end
 
 function onLabelPressed(src, hBtn, i)
@@ -61,5 +58,4 @@ function onLabelPressed(src, hBtn, i)
     else
         hBtn(end).Value = true;
     end
-    
 end

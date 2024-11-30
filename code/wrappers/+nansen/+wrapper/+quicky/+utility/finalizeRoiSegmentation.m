@@ -12,15 +12,12 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     def = struct('RingConvolutionSearch', true); % add roiSize...
     opt = utility.parsenvpairs(def, [], varargin);
     
-    
     tBegin = tic; % Start timer
-
     
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
         
     % Remove candidates very close to edge of the image
     roiArrayT = roimanager.utilities.removeRoisOnBoundary(roiArrayT);
-    
     
     if opt.RingConvolutionSearch
         % Search for ring shaped candidates (spatial footprint only)
@@ -32,11 +29,9 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
             roiArrayS = roimanager.utilities.mergeOverlappingRois(roiArrayS);
             roiArrayS = roimanager.utilities.removeRoisOnBoundary(roiArrayS);
 
-
             % Remove candidates that are overlapping...
             [~, iB] = roimanager.utilities.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
             roiArrayT(iB) = [];
-
 
             % Extract signals for detected rois
             fprintf('Extracting signals for ring-shaped cells...\n')
@@ -52,7 +47,6 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
             roiArrayS = roiArrayS.addImage(roiImageArray);
         end
     end
-    
 
     fprintf('Extracting signals for temporally active cells...\n')
     
@@ -67,30 +61,25 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     roiArrayT(discard) = [];
     dffT(:, discard) = [];
 
-
     %%% Improve roi estimate for active cells.
     fprintf('Improving estimates for temporally active cells...\n')
     roiImageArray = roimanager.autosegment.extractRoiImages(imArray, roiArrayT, dffT', 'ImageType', 'correlation');
     roiArrayT = roiArrayT.addImage(roiImageArray);
     [roiArrayT1, ~] = roimanager.binarize.improveMaskEstimate2(roiArrayT);
     
-    
     % Merge overlapping rois in the activity based roi Array.
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
-    
     
     % Do a final check for overlapping rois...
     if opt.RingConvolutionSearch && ~isempty(roiArrayS)
         [iA, iB] = roimanager.utilities.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
         roiArrayT(iB) = [];
     end
-
         
     % Remove small rois:
     areas = [roiArrayT.area];
     keep = areas > 50 & areas < 200;
     roiArrayT = roiArrayT(keep);
-
     
     if opt.RingConvolutionSearch
         roiArrayS = roiArrayS.addTag('spatial_segment');
@@ -101,7 +90,6 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     else
         roiArray = roiArrayT;
     end
-
     
     t2 = toc(tBegin);
     nRois = numel(roiArray);
@@ -109,4 +97,3 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     fprintf(sprintf('Autodetection finished. Found %d rois in %d seconds.\n', nRois, round(t2) ))
     
 end
-

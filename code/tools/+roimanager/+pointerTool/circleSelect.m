@@ -1,7 +1,6 @@
 classdef circleSelect < uim.interface.abstractPointer & ...
         roimanager.pointerTool.RoiDisplayInputHandler
     
-    
     properties (Constant)
         exitMode = 'default';
     end
@@ -9,9 +8,8 @@ classdef circleSelect < uim.interface.abstractPointer & ...
     properties % Properties related to displaying circle during creation
         circleToolCoords
         hCircle        % Line handle for temporary lines of roi circle
-        defaultRadius = 6 
+        defaultRadius = 6
     end
-    
     
     methods
                
@@ -56,7 +54,6 @@ classdef circleSelect < uim.interface.abstractPointer & ...
             
         end
         
-        
         function onButtonMotion(obj, src, evt)
             
             persistent prevValue
@@ -65,7 +62,7 @@ classdef circleSelect < uim.interface.abstractPointer & ...
             currentPoint = obj.hAxes.CurrentPoint(1, 1:2);
             
             % Hide circle tool if pointer is not in a "valid" position.
-            x = round(currentPoint(1)); y = round(currentPoint(2));            
+            x = round(currentPoint(1)); y = round(currentPoint(2));
             tf = obj.RoiDisplay.isPointValid(x, y);
             
             if tf == 0 && prevValue ~= 0
@@ -74,17 +71,14 @@ classdef circleSelect < uim.interface.abstractPointer & ...
                 obj.showCircle()
             end
             prevValue = tf;
-
             
             tmpCoords = [currentPoint, obj.circleToolCoords(3)];
             obj.plotCircleTool(tmpCoords);
         end
         
-        
         function onButtonUp(obj, src, event)
             obj.isActive = false;
         end
-        
         
         function wasCaptured = onKeyPress(obj, src, event)
             wasCaptured = true;
@@ -112,7 +106,6 @@ classdef circleSelect < uim.interface.abstractPointer & ...
                 wasCaptured = obj.roiKeypressHandler(src, event);
             end
         end
-
     end
     
     methods
@@ -125,11 +118,9 @@ classdef circleSelect < uim.interface.abstractPointer & ...
             obj.hCircle.Visible = 'on';
         end
         
-        
         function hideCircle(obj)
             obj.hCircle.Visible = 'off';
         end
-        
         
         function changeCircleRadius(obj, deltaR)
             
@@ -138,12 +129,7 @@ classdef circleSelect < uim.interface.abstractPointer & ...
             obj.plotCircleTool(tmpCoords)
             
         end
-        
-         
-        
     end
-    
-    
     
     methods (Access = protected)
         
@@ -156,7 +142,7 @@ classdef circleSelect < uim.interface.abstractPointer & ...
                     r = obj.defaultRadius;
                     obj.circleToolCoords = [x, y, r];
                 else
-                    x = obj.circleToolCoords(1); y = obj.circleToolCoords(2); 
+                    x = obj.circleToolCoords(1); y = obj.circleToolCoords(2);
                     r = obj.circleToolCoords(3);
                 end
                 
@@ -170,7 +156,7 @@ classdef circleSelect < uim.interface.abstractPointer & ...
                     r = obj.circleToolCoords(3);
                 end
             else
-                x = coords(1); y = coords(2); r = coords(3);            
+                x = coords(1); y = coords(2); r = coords(3);
             end
             
             if r <= 0
@@ -178,7 +164,6 @@ classdef circleSelect < uim.interface.abstractPointer & ...
             else
                 obj.circleToolCoords = [x, y, r];
             end
-            
             
             % Create circular line
             th = 0:pi/50:2*pi;
@@ -196,9 +181,5 @@ classdef circleSelect < uim.interface.abstractPointer & ...
                 set(obj.hCircle, 'XData', xData, 'YData', yData)
             end
         end
-
     end
-    
-    
-    
 end

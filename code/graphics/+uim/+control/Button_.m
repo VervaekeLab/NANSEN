@@ -1,7 +1,6 @@
 classdef Button_ < uim.abstract.Control
     
-    
-    % Todo: 
+    % Todo:
     %   [x] How to best implement push and toggle buttons. Mech. action...
     %   [ ] Maybe also have a mode prop which can be push and toggle...
     %   [ ] Setting Location prop at construction does not work.
@@ -19,11 +18,9 @@ classdef Button_ < uim.abstract.Control
     %       north...
     %   [ ] Fix horizontal and vertical text aligning.
     
-    
     % Should icon resize when button resizes? yes...
     % Should there be property to scale icon to fit within button?
     % Should button automatically resize to fit text/icon?
-    
     
     properties (Constant) % Inherited from Component
         Type = 'Button' % push / toggle % Todo: subclasses..
@@ -43,7 +40,7 @@ classdef Button_ < uim.abstract.Control
         
         UseDefaultIcon = false %Todo: Rename or reconsider...
         AutoWrapText = false % Similar to BarExtensionMode
-        IconAlignment = 'left'; 
+        IconAlignment = 'left';
         IconSize = [nan, nan];
         IconTextSpacing = 5;
         
@@ -53,7 +50,7 @@ classdef Button_ < uim.abstract.Control
         %ButtonReleasedFcn = []
         
         % These properties should be moved to another class?
-        HorizontalTextAlignment = 'left' 
+        HorizontalTextAlignment = 'left'
         VerticalTextAlignment = 'middle'
         
         FontName = 'helvetica'
@@ -83,7 +80,6 @@ classdef Button_ < uim.abstract.Control
     properties (Access = private, Dependent, Transient)
         MechanicalAction_ % Until I figure out a better solution for mode + mechanical action properties
     end
-    
         
     methods % Structors
         
@@ -92,12 +88,11 @@ classdef Button_ < uim.abstract.Control
             obj@uim.abstract.Control( varargin{:} )
 
             % Create button foreground, i.e plot text label or icon.
-            obj.create() % Todo... 
+            obj.create() % Todo...
             % Create will set up button foreground. This must happen after
-            % all position based properties are set. 
+            % all position based properties are set.
             
             obj.IsConstructed = true; % IsConstructed will trigger the drawing of the component....
-            
             
             % Configure button interactive behavior.
             obj.hBackground.ButtonDownFcn = @obj.onMousePressed;
@@ -129,7 +124,6 @@ classdef Button_ < uim.abstract.Control
                 delete(obj.ToggleButtonListener)
             end
         end
-        
     end
     
     methods (Hidden, Access = protected)
@@ -143,7 +137,7 @@ classdef Button_ < uim.abstract.Control
         function plotForeground(obj, updateFlag)
         %plotForeground Plot button foreground (Text or icon)
             
-            % Todo: 
+            % Todo:
         
             if nargin < 2; updateFlag = false; end
                 
@@ -161,7 +155,6 @@ classdef Button_ < uim.abstract.Control
                     obj.plotButtonText()
                 end
             end
-            
         end
         
         function plotButtonText(obj)
@@ -172,15 +165,19 @@ classdef Button_ < uim.abstract.Control
             obj.hButtonText.Color = obj.ForegroundColor;
             obj.hButtonText.Interpreter = 'none';
             obj.hButtonText.FontUnits = 'pixels';
+            obj.hButtonText.FontSize = obj.FontSize;
             obj.hButtonText.PickableParts = 'none';
             obj.hButtonText.HitTest = 'off';
 
             obj.updateTextLocation()
-            
         end
         
         function updateButtonText(obj)
-            obj.hButtonText.String = obj.Text;
+            if isempty(obj.hButtonText)
+                obj.plotButtonText()
+            else
+                obj.hButtonText.String = obj.Text;
+            end
             %obj.autoWrapButtonText()
             %obj.updateBackgroundSize()
         end
@@ -240,7 +237,7 @@ classdef Button_ < uim.abstract.Control
         %plotButtonIcon Plot button icon
         
             if strcmp(obj.Icon, 'x') ||  strcmp(obj.Icon, '>')
-                obj.plotSymbol(); 
+                obj.plotSymbol();
                 return;
             end
             
@@ -280,17 +277,16 @@ classdef Button_ < uim.abstract.Control
         
             % Get aspect ratios of icon and button...
             iconAr = obj.hButtonIcon.Width / obj.hButtonIcon.Height;
-            buttonAr = (obj.Position(3) - sum(obj.Padding([1,3]))) / ... 
+            buttonAr = (obj.Position(3) - sum(obj.Padding([1,3]))) / ...
                             (obj.Position(4) - sum(obj.Padding([2,4])));
-            
                         
-            if all(~isnan(obj.IconSize)) 
+            if all(~isnan(obj.IconSize))
                 if iconAr > 1
                     obj.hButtonIcon.Width = obj.IconSize(1);
                 else
                     obj.hButtonIcon.Height = obj.IconSize(2);
                 end
-            else   
+            else
                 %... in order to scale icon to fit within button
                 if iconAr >= buttonAr
                     obj.hButtonIcon.Width = obj.Size(1) - sum(obj.Padding([1,3]));
@@ -298,12 +294,13 @@ classdef Button_ < uim.abstract.Control
                     obj.hButtonIcon.Height = obj.Size(2) - sum(obj.Padding([2,4]));
                 end
             end
-            
         end
         
         function updateIconLocation(obj)
         %updateIconLocation Update location of the icon within the button
             
+            if isempty(obj.hButtonIcon); return; end
+
             try
                 iconSize = [obj.hButtonIcon.Width, obj.hButtonIcon.Height];
             catch
@@ -346,7 +343,7 @@ classdef Button_ < uim.abstract.Control
         end
         
         function changeAppearance(obj)
-        %changeAppearance Update button appearance based on state     
+        %changeAppearance Update button appearance based on state
             
             %if ~obj.IsConstructed; return; end
             
@@ -426,7 +423,6 @@ classdef Button_ < uim.abstract.Control
                     obj.Value = false;
                     
             end
-                        
         end
         
         function onMouseReleased(obj, ~, event)
@@ -456,7 +452,6 @@ classdef Button_ < uim.abstract.Control
                         obj.Value = false;
                     end
             end
-            
         end
         
         function invokeCallback(obj, event)
@@ -486,14 +481,12 @@ classdef Button_ < uim.abstract.Control
             if ~isempty(obj.hButtonText) && isgraphics(obj.hButtonText)
                 obj.hButtonText.Visible = obj.Visible;
             end
-            
         end
-        
     end
     
     methods (Access = protected)
         
-       function onStyleChanged(obj)
+        function onStyleChanged(obj)
             onStyleChanged@uim.abstract.Component(obj)
             
             if obj.IsConstructed
@@ -509,13 +502,13 @@ classdef Button_ < uim.abstract.Control
                 if ~isempty(obj.hButtonText)
                     obj.hButtonText.FontWeight = obj.FontWeight;
                 end
-                
             end
-       end
+        end
          
-       function onSizeChanged(obj, oldPosition, newPosition)
-           onSizeChanged@uim.abstract.Control(obj, oldPosition, newPosition);
-           obj.updateTextLocation()
+        function onSizeChanged(obj, oldPosition, newPosition)
+            onSizeChanged@uim.abstract.Control(obj, oldPosition, newPosition);
+            obj.updateTextLocation()
+            obj.updateIconLocation()
        end
     end
     
@@ -554,7 +547,6 @@ classdef Button_ < uim.abstract.Control
                 obj.Value = event.Value;
                 obj.changeAppearance()
             end
-            
         end
     end
     
@@ -580,7 +572,6 @@ classdef Button_ < uim.abstract.Control
                 error('Not implemented')
                 
             end
-            
         end
         
         function set.Text(obj, value)
@@ -593,7 +584,6 @@ classdef Button_ < uim.abstract.Control
             if obj.IsConstructed
                 obj.updateButtonText()
             end
-
         end
         
         function set.Icon(obj, value)
@@ -602,7 +592,7 @@ classdef Button_ < uim.abstract.Control
             errMsg2 = 'Icon file was not found';
             
 %             assert(isa(value, 'char'), errMsg1)
-%             assert(exist(value, 'file')==2, errMsg2)
+%             assert(isfile(value), errMsg2)
             
             obj.Icon = value;
             if obj.IsConstructed
@@ -658,9 +648,7 @@ classdef Button_ < uim.abstract.Control
             elseif strcmp(obj.Mode, 'togglebutton')
                 mechanicalAction = strrep(mechanicalAction, 'Latch', 'Switch');
             end
-            
         end
-        
     end
     
     methods (Static)
@@ -673,5 +661,4 @@ classdef Button_ < uim.abstract.Control
             
         end
     end
-
 end

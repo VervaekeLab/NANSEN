@@ -5,10 +5,10 @@ classdef OptionsAdapter < handle
 %   OptionsAdapter subclass.
 %
 %   An OptionsAdapter class should define an options struct with clear names
-%   that can be inputed to the struct editor app. It should also convert
+%   that can be inputted to the struct editor app. It should also convert
 %   these options to the format required by its corresponding toolbox.
 
-    % Question: 
+    % Question:
     %   1.  Why are methods in general static?
     %       So that we can get preset options without creating a class
     %       instance... But what is the benefit???
@@ -17,9 +17,6 @@ classdef OptionsAdapter < handle
     %
     %   3.  Should the Options property provide the default options struct
     %       on demand
-    
-    
-    
     
     properties (Abstract, Constant)
         ToolboxName     % Name of toolbox this options adapter correspond with
@@ -30,7 +27,6 @@ classdef OptionsAdapter < handle
     properties (Dependent)
         Options         % A struct of options. Not sure if this should be stored in the class...
     end
-    
     
     methods (Abstract, Static)
         S = getOptions()            % For nansen/ui options
@@ -43,7 +39,6 @@ classdef OptionsAdapter < handle
         function S = get.Options(obj)
             S = obj.getOptions();
         end
-        
     end
     
     methods (Static)
@@ -93,7 +88,6 @@ classdef OptionsAdapter < handle
                     SOut = nvPairs;
                     
             end
-            
         end
 
         function S = removeUiSpecifications(S)
@@ -128,5 +122,4 @@ classdef OptionsAdapter < handle
             
         end
     end
-
 end

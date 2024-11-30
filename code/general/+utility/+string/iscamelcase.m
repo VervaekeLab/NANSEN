@@ -6,5 +6,4 @@ function isCamelCase = iscamelcase(varname)
     else
         isCamelCase = false;
     end
-    
 end

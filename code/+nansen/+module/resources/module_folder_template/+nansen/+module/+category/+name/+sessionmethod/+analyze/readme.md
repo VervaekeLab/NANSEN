@@ -1,0 +1,1 @@
+A package to hold analysis specific session methods for a module.

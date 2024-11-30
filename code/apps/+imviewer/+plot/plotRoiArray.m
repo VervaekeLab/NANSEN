@@ -26,7 +26,7 @@ for roiNo = 1:numel(roiArray)
         boundary = roiArray(roiNo).boundary{j};
 
         if j == 1
-            roiBoundaryCellArray{1, roiNo} = boundary(:,2); 
+            roiBoundaryCellArray{1, roiNo} = boundary(:,2);
             roiBoundaryCellArray{2, roiNo} = boundary(:,1);
 
         else
@@ -34,7 +34,6 @@ for roiNo = 1:numel(roiArray)
             roiBoundaryCellArray{2, roiNo} = vertcat(roiBoundaryCellArray{2, roiNo}, nan, boundary(:,1));
         end
     end
-
 end
 
 % Plot lines and add text objects for all rois
@@ -54,6 +53,4 @@ elseif nargout == 1
 elseif nargout == 2 && ~showNumbers
     hText = [];
 end
-
-
 end

@@ -1,6 +1,6 @@
 function Cn = correlation_image(Y,sz,d1,d2,flag_norm)
 
-% construct correlation image based on neighboing pixels
+% construct correlation image based on neighboring pixels
 % Y: raw data
 % sz: define the relative location of neighbours. it can be scalar, 2
 %       element vector or a binary matrix

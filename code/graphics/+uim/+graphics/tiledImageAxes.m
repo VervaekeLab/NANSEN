@@ -5,7 +5,7 @@ classdef tiledImageAxes < uim.handle
 %   a line/patch and a text object. Additionally tiles can be selected
 %   and it is possible to add custom callback functions to the action of
 %   selecting a tile.
-%   
+%
 %   This class will function like a virtual subplot in the sense that you
 %   can plot into multiple small subplots whereas the actual axes object is
 %   one "matlab.graphics.axis.Axes" object. This means that the class is
@@ -23,24 +23,21 @@ classdef tiledImageAxes < uim.handle
 %       See mclassifier.manualClassifier &
 %       imviewer.widgets.ThumbnailSelector for practical examples.
 
-
 % Todo:
 %   [ ] Make TileCallbackFcn a property and invoke it internally whenever a
 %       tile is selected. Define eventdata that has the tile number as a
 %       property.
 
-
 % "Persistent settings" Consider if it should be configurable for objects.
 properties (Constant = true)
-    plotOrder = 'rowwise'       % rowwise | columnwise 
+    plotOrder = 'rowwise'       % rowwise | columnwise
 end
-
 
 properties % Properties to configure axes layout (Default values are preset)
     gridSize = [3, 5]           % [nRows, nCols]
     imageSize = [128, 128]      % [imHeight, imWidth] Size (Reso) in px per tile
     padding = 10                % Number of pixels between each tile. Todo: Rename to spacing. Note: not in use
-    numChan = 1;                % Number of color channels. 
+    numChan = 1;                % Number of color channels.
 
     normalizedPadding = 0.012;  % Padding between tiles in normalized units.
     tileUnits = 'pixel'         % pixel | scaled. scaled units will set axes coordinates in a scaled unit vis a vis pixels.
@@ -61,7 +58,7 @@ properties % Properties for configuration of appearance
 end
 
 properties (SetAccess = protected) % Properties for public access
-    selectedTiles  % Number of tiles that are selected 
+    selectedTiles  % Number of tiles that are selected
     axesRange      % Store the range of axes limits for quick retrieval ([x,y])
 end
 
@@ -92,8 +89,8 @@ properties (Access = private, Hidden)
     IsConstructed = false
 end
 
-% Dependent properties that are used internally 
-properties (Dependent = true, Access = private) 
+% Dependent properties that are used internally
+properties (Dependent = true, Access = private)
     pixelWidth          % Number of pixels in x for the whole mosaic image
     pixelHeight         % Number of pixels in y for the whole mosaic image
     pixelPadding        % Number of pixels for padding between tiles.
@@ -114,13 +111,12 @@ properties (Access = private, Hidden)
     debug = false
 end
 
-
 methods %Structors
     
     % % Constructor
     function obj = tiledImageAxes(varargin)
-    %tiledImageAxes Crate and configure the tileImageAxes object
-    %   
+    %tiledImageAxes Create and configure the tileImageAxes object
+    %
     %   tiledImageAxes Creates a tiled image axes in a new figure.
     %
     %   tiledImageAxes(parent) Creates a tiled images axes in an existing
@@ -129,12 +125,11 @@ methods %Structors
     %   tiledImageAxes(..., Name, Value) creates a tiled images given
     %   additional parameters.
     %
-    %   Parameters: 
+    %   Parameters:
     %       gridSize            : size of grid with tiles [nRows, nCols]
     %       imageSize           : nPixels for image in each tile [h, w]
     %       padding             : nPixels of padding between tiles (int) -- Not scale invariant :(
     %       tileConfiguration   : 'rowwise' (default) | 'columnwise'
-    
     
         isFigCreated = false;
         if nargin == 0
@@ -160,18 +155,17 @@ methods %Structors
 
         createAxes(obj)
 
-        % Initialize grid. 
+        % Initialize grid.
         % The changeGridSize method also takes care of the initialization
+        obj.updateScaleFactor()
         obj.changeGridSize()
-        
+
         if isFigCreated; obj.fitFigure; end
         obj.IsConstructed = true;
-
         
         if ~nargout
             clear obj
         end
-
     end
 
     % % Destructor
@@ -180,16 +174,14 @@ methods %Structors
             delete(obj.hAxes)
         end
     end
-    
 end
-
 
 methods (Access = private) % Methods for setting up gui
     
     function parseVarargin(obj, cellOfVarargin)
 
-        fields = {'gridSize', 'padding', 'imageSize', 'tileConfiguration', ...
-            'numChan', 'normalizedPadding', 'tileUnits', 'Visible'};
+        fields = {'imageSize', 'gridSize', 'padding', 'tileConfiguration', ...
+            'numChan', 'normalizedPadding', 'tileUnits', 'Visible' };
 
         isInputName = cellfun(@(argin) isa(argin, 'char'), cellOfVarargin);
         inputNames = cellOfVarargin(isInputName);
@@ -203,7 +195,6 @@ methods (Access = private) % Methods for setting up gui
                 continue
             end
         end
-
     end
 
     function createFigure(obj)
@@ -323,7 +314,6 @@ methods (Access = private) % Methods for setting up gui
             for i = 1:numel(obj.hTileOutline)
                 iptSetPointerBehavior(obj.hTileOutline(i), []);
             end
-            
         end
         
         iptPointerManager(obj.hFigure);
@@ -346,10 +336,9 @@ methods (Access = private) % Methods for setting up gui
         % Initialize empty image data.
         imdata = zeros(obj.pixelHeight, obj.pixelWidth, obj.numChan, 'uint8');
         
-        
         % % Initialize/Update image object.
         if isempty(obj.hImage)
-            obj.hImage = image(imdata, 'Parent', obj.hAxes);            
+            obj.hImage = image(imdata, 'Parent', obj.hAxes);
             obj.hImage.Visible = obj.Visible;
             obj.updateAxesLimits()
             
@@ -359,7 +348,6 @@ methods (Access = private) % Methods for setting up gui
         else
             obj.hImage.CData = imdata;
         end
-        
 
         obj.hImage.AlphaData = zeros(obj.pixelHeight, obj.pixelWidth);
 
@@ -367,7 +355,6 @@ methods (Access = private) % Methods for setting up gui
         % padding/spacing
         ind = cat(3, obj.tileIndices{:});
         obj.hImage.AlphaData(ind(:)) = 1;
-        
         
         % % Initialize/update tile outline
         if isempty(obj.hTileOutline)
@@ -377,8 +364,8 @@ methods (Access = private) % Methods for setting up gui
         end
         
         % Set some properties on the tile outline handles.
-        set(obj.hTileOutline, 'EdgeColor', ones(1,3)*0.7); 
-        set(obj.hTileOutline, 'FaceAlpha', 0.05); 
+        set(obj.hTileOutline, 'EdgeColor', ones(1,3)*0.7);
+        set(obj.hTileOutline, 'FaceAlpha', 0.05);
         set(obj.hTileOutline, 'LineWidth', obj.tileLineWidth);
         set(obj.hTileOutline, 'Clipping', 'off')
         
@@ -410,7 +397,7 @@ methods (Access = private) % Methods for setting up gui
             coords = obj.bbox2points(bbox) ;
             coords = coords + (obj.scaleFactor-1).*pixelSize/2; % dont understand this...
 
-            % Calculate and update position 
+            % Calculate and update position
             xData{i} = coords(:, 1);
             yData{i} = coords(:, 2);
             
@@ -461,7 +448,7 @@ methods (Access = private) % Methods for setting up gui
     %       tileIndices  : Cell array of linear indices for each pixel in a
     %                      tile. Size is nRows x nCols
     %       tileCorners  : Matrix with x- and y- pixel coordinates for each
-    %                      tile's corner. Size is nTiles x 2 (x = 1st col, 
+    %                      tile's corner. Size is nTiles x 2 (x = 1st col,
     %                      y = 2nd col)
     %       tileCenters  : Not implemented here.
     %       tileIndexMap : A matrix with same size as the image object's
@@ -508,7 +495,6 @@ methods (Access = private) % Methods for setting up gui
                 obj.tileIndexMap(Y{j}, X{i}) = tileNum;
             end
         end
-        
     end
     
     function h = initializePlotHandles(obj, hClass, n)
@@ -526,7 +512,7 @@ methods (Access = private) % Methods for setting up gui
 
                 h = text(ones(1,n), ones(1,n), '');
                 set(h, 'Parent', obj.hAxes)
-                set(h, 'Color', obj.tileConfiguration.TextColor) 
+                set(h, 'Color', obj.tileConfiguration.TextColor)
                 set(h, 'FontSize', 12)
                 set(h, 'VerticalAlignment', 'top')
                 set(h, 'HitTest', 'off', 'PickableParts', 'none')
@@ -546,14 +532,13 @@ methods (Access = private) % Methods for setting up gui
         
         set(h, 'Visible', obj.Visible)
 
-
     end
     
     function handles = updateNumHandles(obj, handles, n)
     %updateNumHandles Update number of handles if gridsize changes
     %
     %   handles = updateNumHandles(obj, handles, n) updates the handles
-    %   vector to contains n elements, either through adding or removing 
+    %   vector to contains n elements, either through adding or removing
     %   handles
         
         if numel(handles) < n
@@ -567,11 +552,10 @@ methods (Access = private) % Methods for setting up gui
         else
             return
         end
-
     end
     
     function changeGridSize(obj)
-    %changeGridSize Take care of updates required when grid size is changed 
+    %changeGridSize Take care of updates required when grid size is changed
     
         if isempty(obj.hAxes); return; end % Skip during initialization
         
@@ -587,7 +571,7 @@ methods (Access = private) % Methods for setting up gui
     function updateTileLineWidth(obj)
     %updateTileLineWidth Update linewidth of outline based on tile's size
     %
-    %   Set the line with for the tile's outline based on its "physical", 
+    %   Set the line with for the tile's outline based on its "physical",
     %   i.e pixel size.
     
         axesPixelPosition = getpixelposition(obj.Axes);
@@ -597,7 +581,7 @@ methods (Access = private) % Methods for setting up gui
     end
 
     function makeFigureTight(obj)
-    %makeFigureTight Set position of figure to wrap tighly around axes.
+    %makeFigureTight Set position of figure to wrap tightly around axes.
         
         obj.fitAxes()
         
@@ -607,9 +591,7 @@ methods (Access = private) % Methods for setting up gui
         obj.hFigure.Position(3:4) = figPixelPosition;
                 
     end
-    
 end
-
 
 methods
 
@@ -644,11 +626,9 @@ methods
         nRows = obj.gridSize(1);
     end
 
-
     function nCols = get.nCols(obj)
         nCols = obj.gridSize(2);
     end
-
 
     function pixelWidth = get.pixelWidth(obj)
 %         pixelWidth = obj.nCols .* obj.imageSize(2) + ...
@@ -658,7 +638,6 @@ methods
         pixelWidth = pixelWidth + obj.pixelPadding .* (obj.nCols-1);
     end
 
-
     function pixelHeight = get.pixelHeight(obj)
 %          pixelHeight = obj.nRows .* obj.imageSize(1) + ...
 %                             (obj.nRows-1) .* obj.padding;
@@ -667,27 +646,31 @@ methods
         pixelHeight = pixelHeight + obj.pixelPadding .* (obj.nRows-1);
     end
     
-    
     function pixelPadding = get.pixelPadding(obj)
         pixelPadding = round(obj.nRows .* obj.imageSize(1) .* obj.normalizedPadding);
         
     end
 
-
     function nTiles = get.nTiles(obj)
-        nTiles = numel(obj.tileIndices);    
+        nTiles = numel(obj.tileIndices);
     end
-
 
     function hAx = get.Axes(obj)
         hAx = obj.hAxes;
     end
-    
 
     function hFig = get.Figure(obj)
         hFig = obj.hFigure;
     end
     
+    function setOriginalImageSize(obj, imageSize)
+        % Quick fix. Not quite sure if this is actually the original image
+        % size. Was needed to get the scalefactor correct, because the
+        % hardcoded default value ([128,128]) of imageSize_ is not always
+        % applicable. Todo: Clean this up
+        obj.imageSize_ = imageSize;
+        obj.updateScaleFactor()
+    end
     
     function pos = getTileOffset(obj, tileNum)
         
@@ -745,7 +728,6 @@ methods
         
     end
     
-    
 % % Methods to set properties
     function set.gridSize(obj, gridSize)
 
@@ -755,7 +737,6 @@ methods
             obj.gridSize = gridSize;
             obj.changeGridSize()
         end
-
     end
 
     function set.imageSize(obj, imageSize)
@@ -798,9 +779,8 @@ methods
     end
 
 % % %     function set.tileConfiguration(obj, newConfig)
-% % %         
+% % %
 % % %     end
-
 
     function fitAxes(obj)
     %fitAxes Todo: Rename, and make sure it does not exceed screen size...
@@ -839,7 +819,6 @@ methods
         set(obj.hTilePlot(tileNum), 'XData', nan, 'YData', nan)
         set(obj.hTileText(tileNum), 'String', '')
     end
-    
 
 % % Update image or plot data within a tile.
     
@@ -862,7 +841,6 @@ methods
             
         end
         
-        
         % Update image data for the specified tiles.
         if obj.numChan == 1
             obj.hImage.CData([obj.tileIndices{tileNum}]) = imdata;
@@ -871,15 +849,13 @@ methods
                 tmpIm = obj.hImage.CData(:, :, i);
                 tmpIm( [obj.tileIndices{tileNum}] ) = imdata(:, :, i, :);
                 obj.hImage.CData(:, :, i) = tmpIm;
-            end 
+            end
         end
         obj.hImage.AlphaData([obj.tileIndices{tileNum}]) = 1;
         
     end
-   
 
     function removeTileImage(obj, tileNum)
-
         
         if obj.numChan == 1
             obj.hImage.CData([obj.tileIndices{tileNum}]) = 0;
@@ -888,14 +864,12 @@ methods
                 tmpIm = obj.hImage.CData(:, :, i);
                 tmpIm( [obj.tileIndices{tileNum}] ) = 0;
                 obj.hImage.CData(:, :, i) = tmpIm;
-            end 
+            end
         end
         
         obj.hImage.AlphaData([obj.tileIndices{tileNum}]) = 0;
         
-        
     end
-    
     
     function updateTileText(obj, textString, tileNum, varargin)
     %updateTileText Update displayed text in given tile(s)
@@ -913,9 +887,7 @@ methods
         if ~isempty(varargin)
             set(obj.hTileText(tileNum), varargin{:})
         end
-        
     end
-    
     
     function updateTilePlot(obj, xData, yData, tileNum)
     %updateTilePlot Update displayed plot in given tile(s)
@@ -935,7 +907,7 @@ methods
             tileCenter = obj.getTileCenter( tileNum(i) );
             tileCenter = obj.getTileCenterAxesCoords( tileNum(i) );
             
-            % Calculate and update position 
+            % Calculate and update position
             xData{i} = xData{i} + tileCenter(1);
             yData{i} = yData{i} + tileCenter(2);
             
@@ -953,12 +925,10 @@ methods
         set(obj.hTilePlot(tileNum), {'XData'}, xData, {'YData'}, yData)
 
     end
-
     
     function updateTilePlotLinewidth(obj, tileNum, lineWidth)
         set(obj.hTilePlot(tileNum), 'LineWidth', lineWidth')
     end
-    
     
     % TODO: Rename these methods to setCallbacks
     function tileCallbackFcn(obj, funHandle, tileNum)
@@ -987,11 +957,10 @@ methods
                     obj.hFigure.UserData.uiwait = false;
                 end
         end
-
     end
 
     function ind = uiwait(obj)
-    %uiwait Implements uiwait on the gui figure and returns selected tile ind   
+    %uiwait Implements uiwait on the gui figure and returns selected tile ind
     
     % Dont remember what this is used for.
     
@@ -1013,7 +982,6 @@ methods
         else
             ind = nan;
         end
-        
     end
     
     % % % User callbacks
@@ -1042,7 +1010,6 @@ methods
     function setTileOutlineColor(obj, tileNum, color)
     %setTileOutlineColor Set color of tile outline
 
-
     % NB: Only works for one tile at a time.
     % Todo: Adapt to work for more than one tile.
         tmpH = obj.hTileOutline(tileNum);
@@ -1061,7 +1028,6 @@ methods
             tmpH.FaceColor = color;
             setappdata(tmpH, 'OrigColor', color);
         end
-
     end
     
     function setTextColor(obj, newColor)
@@ -1076,10 +1042,7 @@ methods
     function setTileTransparency(obj, tileNum, alphaLevel)
         set(obj.hTileOutline(tileNum), 'FaceAlpha', alphaLevel)
     end
-    
-    
 end
-
 
 methods (Access = private) % Internal gui management
     
@@ -1088,10 +1051,10 @@ methods (Access = private) % Internal gui management
     %
     %   Tiled images are resized to fit the resolution of a tile. This is
     %   practical for internal updates, and it was the way the interface
-    %   was originally constructed. However, this setup can create problems 
-    %   when other interfaces are dependent on a specific coordinate system. 
+    %   was originally constructed. However, this setup can create problems
+    %   when other interfaces are dependent on a specific coordinate system.
     %   To keep backwards compatibility, pixel units and are used by
-    %   default, but scaled units can be optionally used. This methods 
+    %   default, but scaled units can be optionally used. This methods
     %   updates the internal scalefactor.
     
         switch obj.tileUnits
@@ -1145,9 +1108,8 @@ methods (Access = private) % Internal gui management
     
     function onMouseExitedTile(obj, tileNum)
         tileColor = getappdata(obj.hTileOutline(tileNum), 'OrigColor');
-        obj.hTileOutline(tileNum).EdgeColor = tileColor;        
+        obj.hTileOutline(tileNum).EdgeColor = tileColor;
     end
-    
 end
 
 methods(Static)
@@ -1157,26 +1119,26 @@ methods(Static)
     
     function points = bbox2points(bbox)
         % BBOX2POINTS Convert a rectangle into a list of points
-        % 
+        %
         %   points = BBOX2POINTS(rectangle) converts a bounding box
         %   into a list of points. rectangle is either a single
         %   bounding box specified as a 4-element vector [x y w h],
         %   or a set of bounding boxes specified as an M-by-4 matrix.
-        %   For a single bounding box, the function returns a list of 4 points 
+        %   For a single bounding box, the function returns a list of 4 points
         %   specified as a 4-by-2 matrix of [x,y] coordinates. For multiple
         %   bounding boxes the function returns a 4-by-2-by-M array of
         %   [x,y] coordinates, where M is the number of bounding boxes.
         %
         %   Class Support
         %   -------------
-        %   bbox can be int16, uint16, int32, uint32, single, or double. 
+        %   bbox can be int16, uint16, int32, uint32, single, or double.
         %   points is the same class as rectangle.
         %
         %   Example
         %   -------
         %   % Define a bounding box
         %   bbox = [10 20 50 60];
-        %   
+        %
         %   % Convert the bounding box to a list of 4 points
         %   points = bbox2points(bbox);
         %
@@ -1204,7 +1166,6 @@ methods(Static)
 
         validateattributes(bbox(:, [3,4]), {'numeric'}, ...
             {'>=', 0}, 'bbox2points', 'bbox(:,[3,4])');
-        
 
         numBboxes = size(bbox, 1);
         points = zeros(4, 2, numBboxes, 'like', bbox);
@@ -1225,7 +1186,5 @@ methods(Static)
         points(4, 1, :) = bbox(:, 1);
         points(4, 2, :) = bbox(:, 2) + bbox(:, 4);
     end
-
 end
-
 end

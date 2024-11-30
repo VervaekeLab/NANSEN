@@ -1,7 +1,7 @@
 classdef handle < handle
     % Super handle where handle methods dont show up in doc list.
 
-    %Overload matlab handle methods to hide them 
+    %Overload matlab handle methods to hide them
     methods(Sealed, Hidden)
         
         function lh = addlistener(varargin)
@@ -47,9 +47,5 @@ classdef handle < handle
         function TF = ge(varargin)
             TF = ge@handle(varargin{:});
         end
-        
     end
-    
-    
 end
-

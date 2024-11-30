@@ -17,8 +17,7 @@ classdef TwoPhotonRecording < handle
 %       * Bidirectional offset correction : On resonance scanning systems,
 %           there might be a line offset between even and odd lines in the
 %           image. (Not implemented yet.)
-%   
-
+%
 
 %   Questions in implementation:
 %     * Should this be a mixin or just a set of methods that can be
@@ -27,7 +26,6 @@ classdef TwoPhotonRecording < handle
 %       Stretch correction depends on several aspects of the acquizition
 %       system. not sure if it is easily generalizable.
 
-
     properties (Dependent)
         PreprocessDataEnabled % Flag for subclass to decide whether is should invoke the processdata method
         PreprocessingOptions
@@ -35,7 +33,7 @@ classdef TwoPhotonRecording < handle
         % are changed?
     end
 
-    properties (Hidden) 
+    properties (Hidden)
         NumFlybackLines = 8
         StretchCorrectionMethod = 'none' % 'imwarp', 'imresize', 'none'
         CorrectBidirectionalOffset = false;
@@ -72,9 +70,7 @@ classdef TwoPhotonRecording < handle
                 end
             end
         end
-
     end
-    
     
     methods % Set/get methods
         
@@ -115,7 +111,6 @@ classdef TwoPhotonRecording < handle
             % validateattributes(newValue, {'numeric'}, 'integer')
             obj.NumFlybackLines = newValue;
         end
-        
     end
     
     methods (Access = protected)
@@ -135,11 +130,10 @@ classdef TwoPhotonRecording < handle
             if obj.CorrectBidirectionalOffset
                 obj.correctBidirectionalOffset()
             end
-
         end
         
         function data = removeFlybackLines(obj, data, subs)
-        %removeFlybackLines Remove flyback lines from data 
+        %removeFlybackLines Remove flyback lines from data
             
             firstLineToInclude = obj.NumFlybackLines + 1;
                     
@@ -163,8 +157,10 @@ classdef TwoPhotonRecording < handle
         end
         
         function data = correctResonanceStretch(obj, data)
-                        
-            % Correct stretching of images due to the sinusoidal movement profile 
+            
+            import nansen.module.ophys.twophoton.utility.sciscan.correctResonanceStretch
+
+            % Correct stretching of images due to the sinusoidal movement profile
             % of the resonance mirror
             switch obj.StretchCorrectionMethod
 
@@ -182,8 +178,7 @@ classdef TwoPhotonRecording < handle
                     end
                         
                     % Todo: Add this method...
-                    data = ophys.twophoton.sciscan.correctResonanceStretch(data, scanParam, ...
-                        obj.StretchCorrectionMethod);
+                    data = correctResonanceStretch(data, scanParam, obj.StretchCorrectionMethod);
                     
                     if isTransposed
                         data = ipermute(data, dimOrder);
@@ -194,14 +189,12 @@ classdef TwoPhotonRecording < handle
                 otherwise
                     warning('Unknown stretch correction method, resonance stretch is not corrected')
             end
-            
         end
         
         function data = correctBidirectionalOffset(obj, data)
             % Todo...
             % [data, bidirBatchSize, colShifts] = correctLineOffsets(data, 100);
         end
-
     end
     
     methods (Access = private)
@@ -217,8 +210,5 @@ classdef TwoPhotonRecording < handle
             warning('off', 'SciScan:StretchProfileMissing')
             
         end
-        
     end
-    
-    
 end

@@ -3,22 +3,21 @@ function [S, L] = getImageSubsetBounds(imSize, x, y, r, padding, varargin)
 %
 %   [S, L] = getImageSubsetBounds(imSize, x, y, r, pad, name, value)
 %
-%   INPUTS: 
+%   INPUTS:
 %       imSize : size of image containing point (x,y)
 %       x : center coordinate of roi along x-axis
 %       y : center coordinate of roi along y-axis
 %       r : radius of roi ( integer for square, 2x1 [r_y, r_x] for
 %       rectangle )
 %       padding : optional extra padding for image (default = 0)
-%           
-%   OUTPUTS: 
+%
+%   OUTPUTS:
 %       S : smaller bound (xmin, ymin)
 %       L : larger bound (xmax, ymax)
 %
 %   OPTIONS:
 %       boundaryMethod : 'none' (default) or 'crop'. If crop, limits are
 %       forced to be within image boundaries.
-
 
 %   % Todo: make padding part of options.
 
@@ -45,8 +44,8 @@ function [S, L] = getImageSubsetBounds(imSize, x, y, r, padding, varargin)
         % pass
     elseif strcmp(param.boundaryMethod, 'crop')
         % Make sure bounds are within image
-        xMin = max( [xMin, 1] ); 
-        yMin = max( [yMin, 1] ); 
+        xMin = max( [xMin, 1] );
+        yMin = max( [yMin, 1] );
         xMax = min( [xMax, imSize(2)] );
         yMax = min( [yMax, imSize(1)] );
     else

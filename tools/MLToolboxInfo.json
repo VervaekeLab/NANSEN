@@ -1,0 +1,16 @@
+{
+    "Namespace" : "nansen",
+    "ToolboxOptions": {
+        "Identifier": "07b2cd84-23b5-43a5-a61b-a5de9d19687a",
+        "ToolboxName": "NANSEN - Neuro Analysis Software Ensemble",
+        "AuthorName": "Eivind Hennestad",
+        "AuthorEmail": "eivihe@uio.no",
+        "AuthorCompany": "VervaekeLab",
+        "Summary": "A collection of apps and modules for processing, analysis and visualization of two-photon imaging data.",
+        "Description": "",
+        "MinimumMatlabRelease": "R2022b",
+        "MaximumMatlabRelease": "",
+        "ToolboxImageFile": "resources/images/toolbox_image.png",
+        "ToolboxGettingStartedGuide": "code/GettingStarted.mlx"
+    }
+}

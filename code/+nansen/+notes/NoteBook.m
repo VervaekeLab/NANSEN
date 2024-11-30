@@ -30,10 +30,7 @@ classdef NoteBook
             
             obj.NoteArray = notes;
         end
-        
     end
-    
-
     
     methods
         function numNotes = get.NumNotes(obj)
@@ -47,7 +44,6 @@ classdef NoteBook
         function removeNote(obj)
             
         end
-        
     end
     
     methods
@@ -75,7 +71,6 @@ classdef NoteBook
             titleStrArray = {obj.NoteArray.Title};
         end
         
-        
         function oidCellArray = getObjectIds(obj)
             oidCellArray = {obj.NoteArray.ObjectID};
         end
@@ -88,7 +83,6 @@ classdef NoteBook
                     values = [obj.NoteArray.(fieldName)];
                     [~, sortIdx] = sort(values, sortDirection);
             end
-
         end
 
         function idx = getTypeMatch(obj, type)
@@ -106,12 +100,7 @@ classdef NoteBook
                 if any(strcmp(obj.NoteArray(i).Tags, tag))
                     idx = [idx, i];
                 end
-                
             end
-
         end
-        
     end
-    
 end
-

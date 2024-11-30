@@ -1,5 +1,4 @@
 classdef searchAutoCompleteInputDlg < handle
-
     
     properties (Access = private)
         
@@ -12,8 +11,6 @@ classdef searchAutoCompleteInputDlg < handle
         listOfChoices
         
     end
-        
-    
     
     methods
         
@@ -47,7 +44,6 @@ classdef searchAutoCompleteInputDlg < handle
                 
                 obj.createDropDownSelector(listOfChoices)
                 
-                
                 if any(contains(varargin(1:2:end), 'TextPrompt'))
                     ind = find(contains(varargin(1:2:end), 'TextPrompt'));
                     txtArg = varargin{(ind-1)*2 + 2};
@@ -59,16 +55,15 @@ classdef searchAutoCompleteInputDlg < handle
 
         end
         
-        
         function createDropDownSelector(obj, listOfChoices)
                        
-            % Note: MJComboBox is better than JComboBox: the popup panel 
+            % Note: MJComboBox is better than JComboBox: the popup panel
             % has more width than the base control if needed
-            obj.jComboBox = com.mathworks.mwswing.MJComboBox(listOfChoices); 
+            obj.jComboBox = com.mathworks.mwswing.MJComboBox(listOfChoices);
             obj.jComboBox.setEditable(true);
            
             % Set color (unfortunately, this only affects editable combos)
-            obj.jComboBox.setBackground(java.awt.Color.white); 
+            obj.jComboBox.setBackground(java.awt.Color.white);
            
             [jhComboBox, hContainer1] = javacomponent(obj.jComboBox, [], obj.uiPanel);
 %             set(jhComboBox, 'ActionPerformedCallback', []);
@@ -77,21 +72,19 @@ classdef searchAutoCompleteInputDlg < handle
            
 % %             jhComboBox = handle(obj.jComboBox, 'CallbackProperties');
 % %             set(jhComboBox, 'MousePressedCallback', @(src, event) disp('mousepress on jhComboBox'))
-% %                         
+% %
 % % %             obj.jComboBox.getComponent(0) - Combobox Button
 % %             set(obj.jComboBox.getComponent(0), 'MousePressedCallback', @(src, event) disp('mousepress on combobox button'))
 % % %             obj.jComboBox.getComponent(1) - Cell Renderer Pane
 % %             set(obj.jComboBox.getComponent(1), 'MousePressedCallback', @(src, event) disp('mousepress on cell renderer pane'))
 % % %             obj.jComboBox.getComponent(2) - Textfield
 % %             set(obj.jComboBox.getComponent(2), 'MousePressedCallback', @(src, event) disp('mousepress on textfield'))
-            
 
             set(obj.jComboBox, 'FocusLostCallback', @(h,e)obj.jComboBox.hidePopup);  % hide the popup when another component is selected
             set(obj.jComboBox, 'ActionPerformedCallback', {@obj.updateSearch, 'ComboBox'});
             obj.listOfChoices = listOfChoices;
             
         end
-        
         
         function createSearchInputField(obj, txtArg)
             
@@ -106,7 +99,7 @@ classdef searchAutoCompleteInputDlg < handle
 %             jSize = java.awt.Dimension(9999, 20);
 %             jInputField.getComponent(0).setMaximumSize(jSize);
 %             jInputField.getComponent(0).setPreferredSize(jSize);
-%             
+%
 
             % Set callback for mousepress on cancel button
             hjCancelButton = handle(obj.jSearchField.getComponent(1), 'CallbackProperties');
@@ -123,14 +116,12 @@ classdef searchAutoCompleteInputDlg < handle
             set(obj.jSearchField, 'MousePressedCallback', {@obj.updateSearch, 'searchField'});
             
             set(obj.jSearchField, 'FocusLostCallback', @(h,e)obj.resetScroll);  % hide the popup when another component is selected
-
             
         end
         
         function resetScroll(obj)
             set(obj.jSearchField, 'ScrollOffset', 1)
         end
-        
         
         function updateSearch(obj, ~, event, sourceName)
             
@@ -154,16 +145,15 @@ classdef searchAutoCompleteInputDlg < handle
                 % of selections and show the dropdown (popup)
                 case 'searchButton'
                     obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.listOfChoices));
-                    obj.jComboBox.showPopup;                    
+                    obj.jComboBox.showPopup;
                     set(obj.jSearchField, 'ScrollOffset', 1)
 
-                % If the cancle button is clicked, reset the dropdown list
+                % If the cancel button is clicked, reset the dropdown list
                 % of selections, but do not show the dropdown (popup)
                 case 'cancelButton'
                     obj.jComboBox.setModel(javax.swing.DefaultComboBoxModel(obj.listOfChoices));
 
             end
-            
             
             % If there is textinput, catch the text on the search field and
             % use it to search in the current dropdown list. If some
@@ -205,7 +195,6 @@ classdef searchAutoCompleteInputDlg < handle
             % into the search field. Look for search string in the list of
             % choices and update the dropdown selection list.
             matchInd = ~cellfun('isempty', regexpi(obj.listOfChoices, searchText));
-
             
              % Compute the filtered names
             newNames = obj.listOfChoices(matchInd);
@@ -223,10 +212,8 @@ classdef searchAutoCompleteInputDlg < handle
             
         end
         
-        
         function answer = getAnswer(obj)
             answer = char(obj.jSearchField.getText());
         end
     end
-    
 end

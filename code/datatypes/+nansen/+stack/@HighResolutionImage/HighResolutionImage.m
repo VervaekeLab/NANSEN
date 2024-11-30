@@ -1,7 +1,7 @@
 classdef HighResolutionImage < nansen.stack.ImageStack
 %HighResolutionImage Pyramidal multiresolution interface to hires image
 %
-%   This derivation of ImageStack provides methods to retrieve spatially 
+%   This derivation of ImageStack provides methods to retrieve spatially
 %   downsampled versions of a high resolution image at different
 %   magnifications and crops. This is necessary when viewing an image in
 %   the imviewer, in order to have a smooth experience. Displaying the full
@@ -16,7 +16,6 @@ classdef HighResolutionImage < nansen.stack.ImageStack
         DownSamplingFactors = 1; % A list of factors that were used for creating downsampled versions
         DownsampledImageData     % Cell array containing a set of spatially downsampled versions of the original image
     end
-    
     
     methods % Constructor
         function obj = HighResolutionImage(datareference, varargin)
@@ -45,11 +44,9 @@ classdef HighResolutionImage < nansen.stack.ImageStack
                 end
             end
             
-            
             % Load data
             imData = obj.getFrameSet('all'); % Load data and add to a in-memory MatlabArray
             obj.Data = nansen.stack.data.MatlabArray(imData);
-            
             
             % Create downsampled versions of the image
             imPyramid = cell(count,1);
@@ -64,7 +61,6 @@ classdef HighResolutionImage < nansen.stack.ImageStack
             
             obj.DownsampledImageData = imPyramid;
         end
-        
     end
     
     methods % Methods for getting data
@@ -99,7 +95,6 @@ classdef HighResolutionImage < nansen.stack.ImageStack
             else
                 imArray = obj.DownsampledImageData{dsInd}(subs{:});
             end
-            
         end
         
         function subs = getDataIndexingStructure(obj, frameInd, dsInd)
@@ -141,9 +136,6 @@ classdef HighResolutionImage < nansen.stack.ImageStack
                         end
                 end
             end
-            
         end
-        
     end
-
 end

@@ -22,7 +22,7 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
 %       'batch'  : iterate over all items in one iteration
 %
 %   Setting the mode determines how many iteration counts will be used for
-%   each dimension and it determines the values of CurrentChannel and 
+%   each dimension and it determines the values of CurrentChannel and
 %   CurrentPlane for each iteration.
 %
 %   This class provides the following methods:
@@ -30,10 +30,8 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
 %       hasMore() : check if more iterations are available
 %       reset() : reset iteration counter
 
-
 %   Question: Should the chunking of image stacks (division of subparts
 %   along main dimension) also be taken care of by this class?
-
 
     properties
         ChannelProcessingMode = 'serial'    % Mode for processing of multiple channels. 'single', 'serial' or 'batch'
@@ -48,7 +46,7 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
     
     properties (SetAccess = private)
         CurrentChannel  % Current channel of ImageStack
-        CurrentPlane    % Current plane of ImageStack 
+        CurrentPlane    % Current plane of ImageStack
         
         CurrentIterationC (1,1) double = 0
         CurrentIterationZ (1,1) double = 0
@@ -68,7 +66,6 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
         
         IsInitialized = false
     end
-    
 
     methods
         
@@ -89,7 +86,6 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
             obj.assignIterationValuesC()
             obj.assignIterationValuesZ()
         end
-        
     end
     
     methods % Set/get
@@ -147,14 +143,27 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
     end
     
     methods %(Access = ?nansen.stack.ImageStackProcessor)
-        
+        function setChannels(obj, channelInd)
+            obj.assertIteratorUninitialized()
+            isValid = all( channelInd >= 1 & channelInd <= obj.NumChannels );
+            assert(isValid, 'Channel indices are out of range' )
+            obj.IterationValuesC = channelInd;
+        end
+
+        function setPlanes(obj, planeInd)
+            obj.assertIteratorUninitialized()
+            isValid = all( planeInd >= 1 & planeInd <= obj.NumPlane );
+            assert(isValid, 'Plane indices are out of range' )
+            obj.IterationValuesZ = planeInd;
+        end
+
         function [iZ, iC] = next(obj)
         %next Move the iterator to the next iteration state
         %
         %   iteratorObj.next() moves the iterator to the next iteration
         %       state.
         %
-        %   [iZ, iC] = iteratorObj.next() moves the iterator to the next 
+        %   [iZ, iC] = iteratorObj.next() moves the iterator to the next
         %       iteration state and returns the current iteration numbers
         %       for planes (iZ) and channels (iC)
         
@@ -167,7 +176,7 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
                 if obj.CurrentIterationZ < obj.NumIterationsZ % Increment Z
                     obj.CurrentIterationZ = obj.CurrentIterationZ + 1;
                 else % Reached end of Z, increment C
-                    obj.CurrentIterationZ = 1; 
+                    obj.CurrentIterationZ = 1;
                     obj.CurrentIterationC = obj.CurrentIterationC + 1;
                 end
                 
@@ -195,7 +204,6 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
             obj.CurrentIterationC = 1;
             obj.CurrentIterationZ = 1;
         end
-        
     end
         
     methods (Access = private)
@@ -226,9 +234,7 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
             assert( ~obj.IsInitialized, ...
                 'Can not set ChannelProcessingMode when iterator is running')
         end
-        
     end
-
     
     methods (Static, Access = private)
         
@@ -236,7 +242,7 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
         %getIterationValues Get iteration values depending on mode
         %
         %   values = getIterationValues(mode, numItems, primaryItem)
-        %   returns a cell array where each cell contains the values for 
+        %   returns a cell array where each cell contains the values for
         %   one iteration step.
         %
         %   mode is a char which can have the following values:
@@ -261,11 +267,8 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
                     values = {1:numItems};
             end
         end
-        
     end
-
 end
-
 
 function test()
     
@@ -285,5 +288,4 @@ function test()
             num2str(iterator.CurrentChannel), ...
             num2str(iterator.CurrentPlane) )
     end
-    
 end

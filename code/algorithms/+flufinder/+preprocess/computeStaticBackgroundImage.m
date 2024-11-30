@@ -23,7 +23,7 @@ function bgImage = computeStaticBackgroundImage(imArray, varargin)
     % Sort pixel values along the 3rd (frame) dimension
     sortedPixelValues = sort(imArray, 3);
     
-    % Create background from mean of lower end of pixel values. 
+    % Create background from mean of lower end of pixel values.
     pixelIdxKeep = round( numFrames .* prctInterval ./ 100 );
     pixelIdxKeep(pixelIdxKeep<1) = [];
     sortedPixelValuesLow = sortedPixelValues(:, :, pixelIdxKeep);

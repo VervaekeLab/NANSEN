@@ -1,8 +1,8 @@
 classdef Options < nansen.wrapper.abstract.OptionsAdapter
 %nansen.wrapper.normcorre.Options Options adapter for normcorre method
 %
-%   Implements default options which can be edited in structeditor and 
-%   a conversion map so that options can be converted to the format 
+%   Implements default options which can be edited in structeditor and
+%   a conversion map so that options can be converted to the format
 %   required by normcorre.
 
     properties (Constant)
@@ -50,7 +50,6 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
             nameMap = nansen.wrapper.normcorre.Options.getAdapter();
             nvPairs = nansen.wrapper.abstract.OptionsAdapter.rename(S, nameMap, 'nvPairs');
             
-            
             if isfield(S, 'Configuration') && isfield(S.Configuration, 'numRows')
                 numPatches = [S.Configuration.numRows, S.Configuration.numCols];
                 nvPairs{end+1} = 'grid_size';
@@ -60,7 +59,5 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
             options = NoRMCorreSetParms('d1', d1, 'd2', d2, 'd3', d3, nvPairs{:});
            
         end
-
     end
-    
 end

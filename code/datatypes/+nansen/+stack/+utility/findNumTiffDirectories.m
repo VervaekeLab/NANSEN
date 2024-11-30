@@ -3,8 +3,8 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
 %
 %   <strong>DESCRIPTION:</strong>
 %   Recursive search for number of image file directories (IFDs) in a tiff
-%   file. Try to set number of directories, using an incremental approach, 
-%   and when it fails, restart at last successful number with smaller 
+%   file. Try to set number of directories, using an incremental approach,
+%   and when it fails, restart at last successful number with smaller
 %   incremental steps.
 %
 %   <strong>SYNTAX:</strong>
@@ -23,9 +23,8 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
 %   additionally specifies the stepSize to use when looking for number of
 %   directories. Default is 10000.
 
-
 %   NOTE:
-%   Seems like when the setDirectory method of TIFF fails with the 
+%   Seems like when the setDirectory method of TIFF fails with the
 %   'MATLAB:imagesci:Tiff:unableToChangeDir' error ID, current directory is
 %   set to the last directory in the file. In this case, recursive search
 %   is not necessary.
@@ -44,7 +43,6 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
     else
         error('First input must be a Tiff object or the path to a tiff file')
     end
-    
     
     if nargin < 2; dirNumInit = 1; end
     if nargin < 3; stepSize = 10000; end
@@ -94,5 +92,3 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
         clear finished
     end
 end
-
-

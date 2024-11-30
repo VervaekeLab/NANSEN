@@ -9,7 +9,6 @@ function tMergedTable = merge_tables(varargin)
 % Function is reused from the brain observatory toolbox:
 % https://www.mathworks.com/matlabcentral/fileexchange/90900-brain-observatory-toolbox
 
-
 if nargin < 1
    help bot.internal.merge_tables;
    error('BOT:Usage', 'Incorrect usage');
@@ -28,7 +27,6 @@ cTables = varargin;
 cstrVariableNames = {};
 vbIsCellVarDest = logical([]);
 vbIsStructVarDest = logical([]);
-
 
 % - Loop over tables
 for nTable = numel(cTables):-1:1

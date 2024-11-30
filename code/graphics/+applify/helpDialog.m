@@ -60,7 +60,7 @@ function helpDialog(functionName)
         %y = y + nLines*0.03;
 
         makeBold = contains(messages{i}, '\b');
-        messages{i} = strrep(messages{i}, '\b', ''); 
+        messages{i} = strrep(messages{i}, '\b', '');
 
         count = count + 1;
         hTxt(count) = text(0.05, y, sprintf(messages{i}));
@@ -90,7 +90,7 @@ function helpDialog(functionName)
     warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
     
     % Close help window if it loses focus
-    jframe = getjframe(helpfig); 
+    jframe = getjframe(helpfig);
     set(jframe, 'WindowDeactivatedCallback', @(s, e) delete(helpfig))
     
     warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')

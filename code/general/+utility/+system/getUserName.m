@@ -3,7 +3,6 @@ function username = getUserName()
 %
 %   username = GETUSERNAME()
 
-
 % Find username of current user
 if ismac || isunix
     [~, username] = system('whoami');
@@ -13,5 +12,4 @@ elseif ispc
 else
     username = 'unknown_user';
 end
-
 end

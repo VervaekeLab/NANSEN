@@ -9,8 +9,11 @@
 [![YouTube](https://img.shields.io/youtube/channel/views/UCKOzL-MVWgy7oOMo6x_GSkQ?style=social)](https://www.youtube.com/channel/UCKOzL-MVWgy7oOMo6x_GSkQ)
 
 [![Codespell](https://github.com/VervaekeLab/NANSEN/actions/workflows/run_codespell.yml/badge.svg?branch=add%2Fdeveloper-tools)](https://github.com/VervaekeLab/NANSEN/actions/workflows/run_codespell.yml)
+[![Run tests](https://github.com/VervaekeLab/NANSEN/actions/workflows/run_tests.yml/badge.svg?branch=add%2Fdeveloper-tools)](https://github.com/VervaekeLab/NANSEN/actions/workflows/run_tests.yml)
+[![codecov](https://codecov.io/github/VervaekeLab/NANSEN/graph/badge.svg?token=4B2A694WZ2)](https://codecov.io/github/VervaekeLab/NANSEN)
+[![MATLAB Code Issues](.github/badges/code_issues.svg)](https://github.com/VervaekeLab/NANSEN/security/code-scanning)
 
-A collection of apps and modules for processing, analysis and visualization of two-photon imaging data. Check out the introduction to Nansen on [YouTube](https://youtu.be/_u0Aw1n5gHg) and/or see the [Wiki](https://github.com/VervaekeLab/NANSEN/wiki) for more details!
+A collection of apps and modules for processing, analysis and visualization of two-photon imaging data. Check out the introduction to Nansen on [YouTube](https://youtu.be/_u0Aw1n5gHg) and/or see the [Wiki](https://github.com/VervaekeLab/NANSEN/wiki) for more details.
 
 <img src="https://user-images.githubusercontent.com/17237719/201542036-3be1b9b2-b59c-4e2d-9104-52f6d3806f02.gif?raw=true" alt="Session table demo" width="100%"/>
 <!---

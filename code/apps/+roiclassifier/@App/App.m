@@ -4,30 +4,31 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 %   roiClassifier.App(filename) initializes the app using rois from file
 %   specified by filename. Filename is a character vector containing the
 %   path to a file containing a roi group
-%   
+%
 %   roiClassifier.App(roiGroup) initializes the app with an existing roi
 %   group.
 
-
-    % Todo: 
-    % [ ] selectedItem is the same as roiDisplay's SelectedRois and 
+    % Todo:
+    % [ ] Save composite roi group in roi classifier...
+    %
+    % [ ] selectedItem is the same as roiDisplay's SelectedRois and
     %     displayedItems is the same as roiDisplay's VisibleRois
-    %    
+    %
     % [ ] roiFilePath = dataFilePath....
     %
-    % [ ] old comment: mouse tools are quite slow. should I use polygons 
+    % [ ] old comment: mouse tools are quite slow. should I use polygons
     %     instead of patches? Is this still a problem
     %
-    % [ ] old comment: Why are superclass keyPress and onKeyPressed both 
+    % [ ] old comment: Why are superclass keyPress and onKeyPressed both
     %     activated on keypress? - Is this still a problem
     % [ ] Fix imprecise coordinate representations of rois
 
-    % This class requires a big upgrade. 
-    %   1) Should make a clear distinction between the app and the 
-    %      "classifier". The classifier widget consist of the tiled image 
+    % This class requires a big upgrade.
+    %   1) Should make a clear distinction between the app and the
+    %      "classifier". The classifier widget consist of the tiled image
     %      axes and added functionality for classification of tiles, but
     %      the app contains more functionality, like roi load/save etc.
-    % 
+    %
     %   2) Roi editing tools should be moved/joined in a RoiEditor class.
     %   3) Roi display should be a property of the App class?
 
@@ -40,21 +41,24 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 % %         classificationColors = { [0.174, 0.697, 0.492], ...
 % %                                  [0.920, 0.339, 0.378], ...
 % %                                  [0.176, 0.374, 0.908] }
-% % 
+% %
 % %         classificationLabels = { 'Accepted', 'Rejected', 'Unresolved' }
-
 
 %         guiColors = struct('Background', ones(1,3)*0.1, ...
 %                            'Foreground', ones(1,3)*0.7 )
          guiColors = struct('Background',  [0.1020 0.1137 0.1294], ...
-                            'Foreground', [0.8196 0.8235 0.8275])                  
-                      
+                            'Foreground', [0.8196 0.8235 0.8275])
     
+    end
+
+    properties
+        SaveFcn % Custom function for saving rois
     end
     
     properties (Dependent)
         dataFilePath            % Filepath to load/save data from
     end
+
     properties
         roiFilePath
         RoiSelectedCallbackFunction % Callback function that will run when a roi is selected.
@@ -74,7 +78,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
     end
     
     properties (SetAccess = protected)
-        hSignalViewer 
+        hSignalViewer
         pointerManager
     end
     
@@ -84,7 +88,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         
         roiPixelIndices
     end
-    
 
     methods % Structors
 
@@ -115,7 +118,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         function delete(obj)
             
         end
-        
     end
     
     methods (Access = protected) % Creation
@@ -123,7 +125,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         function nvpairs = parseInputs(obj, varargin)
             
             if ischar(varargin{1})
-                if exist(varargin{1}, 'file')
+                if isfile(varargin{1})
                     obj.uiopenFromFile(varargin{1});
                     varargin = varargin(2:end);
                 end
@@ -158,8 +160,8 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             hAxes = obj.hTiledImageAxes.Axes;
             obj.pointerManager = uim.interface.pointerManager(obj.hFigure, hAxes);
 
-            % Todo: implement a sensible polydraw method... 
-            % Start editing on click in tile. 
+            % Todo: implement a sensible polydraw method...
+            % Start editing on click in tile.
             % Restrict impoints within tile
             % Update roi on finish.
             
@@ -168,7 +170,8 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             
             pointerNames = {'selectObject', 'circleSelect', 'autoDetect'};
             
-            % Specify where pointer tools are defind:
+            % Specify where pointer tools are defined:
+     
             % Todo: Constant property or some roimanager constant class
             pointerRoot = strjoin({'roimanager', 'pointerTool'}, '.');
             
@@ -202,7 +205,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             label = sprintf('(%d) Selected', numOptions);
             hControl.String{end+1} = label;
             
-            
             hControl = findobj(obj.hFigure, 'Tag', 'SelectionImage');
             numOptions = numel(hControl.String);
             
@@ -210,9 +212,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 % %             % Add a final option to show selected rois
 % %             label = sprintf('(%d) Current Frame', numOptions+1);
 % %             hControl.String{end+1} = label;
-            
         end
-        
     end
     
     methods % Touch callback handling
@@ -229,7 +229,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 if contains('command', event.Modifier) && contains('shift', event.Modifier) ...
                         || contains('control', event.Modifier) && contains('shift', event.Modifier)
                     obj.RoiGroup.redo()
-                elseif contains('command', event.Modifier) || contains('control', event.Modifier) 
+                elseif contains('command', event.Modifier) || contains('control', event.Modifier)
                     obj.RoiGroup.undo()
                 end
                 
@@ -239,10 +239,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                     if contains('command', event.Modifier) || contains('control', event.Modifier)
                         obj.importRois()
                     end
-                    
-                    
             end
-            
         end
         
         function mousePressed(obj, src, event, tileNum)
@@ -260,7 +257,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             else
                 obj.pointerManager.onButtonDown(obj.hFigure, event)
             end
-                        
         end
         
         function mouseClickInRoi(obj, src, event, tileNum)
@@ -284,7 +280,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             else
                 obj.pointerManager.onButtonDown(obj.hFigure, event)
             end
-
         end
         
         function onMousePressedInRoi(obj)
@@ -294,7 +289,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             if isempty(obj.selectedItem)
                 return
             end
-            
         end
         
         function growRois(obj)
@@ -354,10 +348,9 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             % Is it more responsive if we get current pointer from 0?
     %             pl = get(0, 'PointerLocation');
     %             newMousePointAx2 = pl-obj.hFigure.Position(1:2);
-    %             newMousePointAx2 = (newMousePointAx2 ./ obj.hFigure.Position(3:4) - 0.02) .* [obj.pixelWidth, obj.pixelHeight];  
+    %             newMousePointAx2 = (newMousePointAx2 ./ obj.hFigure.Position(3:4) - 0.02) .* [obj.pixelWidth, obj.pixelHeight];
     %             newMousePointAx2(2) = obj.pixelHeight - newMousePointAx2(2);
     %             newMousePointAx = newMousePointAx2;
-
             
             %TODO: Fix
             
@@ -396,13 +389,11 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             if abs(sum(object.UserData.Shift)) > 0.1
                 obj.repositionRoi(tileNum, object.UserData.Shift)
             end
-
         end
         
         function repositionRoi(obj, tileNum, shift)
         
             roiInd = obj.displayedItems(tileNum);
-            
             
             % Get selected rois
             originalRoi = obj.RoiGroup.roiArray(roiInd);
@@ -414,7 +405,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             obj.updateTile(roiInd, tileNum)
 
         end
-        
     end
     
     methods
@@ -434,7 +424,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 x = round(currentPoint(1));
                 y = round(currentPoint(2));
             end
-            
 
             tileNum = obj.hTiledImageAxes.hittest(x, y);
             tf = ~isnan(tileNum);
@@ -458,7 +447,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             
         function newRoi = autodetectRoi(obj, x, y, r, autodetectionMode, doReplace)
 
-            if nargin < 5; autodetectionMode = 1; end            
+            if nargin < 5; autodetectionMode = 1; end
             newRoi = [];
             
             %tileSize = obj.hTiledImageAxes.imageSize;
@@ -476,10 +465,10 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             
             % Find the distance between the mouse pointer position and the
             % center of the current image tile. Correct by 0.5 to go from
-            % axes coordinates to image pixel coordinates. 
+            % axes coordinates to image pixel coordinates.
           
             %Calculate the center offset of the mouse pointer in the
-            % current image. 
+            % current image.
             
             centerOffset = [x, y] - tileCenter + 0.5;
             
@@ -487,15 +476,14 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             %IM = circshift(IM, -fliplr(centerOffset));
             IM = imtranslate(IM, -centerOffset);
             
-            
 % %             persistent f ax hIm
 % %             if isempty(f) || ~isvalid(f)
-% %                 f = figure('Position', [300,300,300,300], 'MenuBar', 'none'); 
+% %                 f = figure('Position', [300,300,300,300], 'MenuBar', 'none');
 % %                 ax = axes(f, 'Position',[0,0,1,1]);
 % %             else
 % %                 cla(ax)
 % %             end
-% % 
+% %
 % %             hIm = imagesc(ax, IM); hold on
 % %             plot(ax, size(IM,2)/2+0.5, size(IM,1)/2+0.5, 'xw')
             
@@ -510,7 +498,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             roiMask_ = imtranslate(roiMask_, round(centerOffset)); % + correction);
             %roiMask_ = circshift(roiMask_, centerOffset);
             
-            if ~nargout                
+            if ~nargout
                 
                 roiObject = obj.RoiGroup.roiArray(roiInd);
                 
@@ -537,7 +525,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 yInd = round( (1:imSize(1)) - imSize(1)/2 + tileCenter(2)-0.5);
                 roiMask(yInd, xInd) = roiMask_;
                 %roiMask = imtranslate(roiMask, [-1,0]);
-      
                 
 % %                 if isempty(hImage)
 % %                     f=figure; ax=axes(f); hImage = image(roiMask, 'Parent', ax);
@@ -550,8 +537,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 
                 %newRoi = roiMask;
             end
-
-            
         end
         
         function newRoi = autodetectRoi2(obj, x, y, r, autodetectionMode, doReplace)
@@ -565,7 +550,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         end
         % todo: move to roimanager
         function createCircularRoi(obj, x, y, r)
-            
             
             tileNum = obj.hTiledImageAxes.hittest(x, y);
             roiInd = obj.displayedItems(tileNum);
@@ -638,7 +622,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             else
                 roiImage = getRoiImage@mclassifier.manualClassifier(obj, roiInd, varargin);
             end
-            
         end
         
         function updateView(obj, src, event, mode)
@@ -670,7 +653,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             obj.hTiledImageAxes.updateTileImage(imData, 1:numel(obj.displayedItems))
             
         end
-
     end
         
     methods (Access = protected) % Other event and callback handlers
@@ -681,7 +663,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             % Call the changeRoiSelection of roiGroup, which will trigger
             % the roiSelectionChanged event
             obj.RoiGroup.changeRoiSelection(obj.selectedItem, roiIndices, obj)
-        end 
+        end
         
         function onRoiSelectionChanged(obj, evtData) %Roidisplay
         %onRoiSelectionChanged Callback for event listener on roi selection
@@ -691,9 +673,8 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         %   separates it from the onSelectedItemChanged which is a callback
         %   from the manualClassifier.
         %
-        %   Takes care of selection of roi. Show roi as white in image 
+        %   Takes care of selection of roi. Show roi as white in image
         %   on selection. Reset color on deselection.
-        
         
             selectedRoiIdx = setdiff(evtData.NewIndices, obj.selectedItem);
             deselectedRoiIdx = setdiff(obj.selectedItem, evtData.NewIndices);
@@ -707,7 +688,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             if ~isempty(deselectedRoiIdx) % Update appearance of deselected roi
                 tileNum = ismember(obj.displayedItems, deselectedRoiIdx);
                 obj.hTiledImageAxes.updateTilePlotLinewidth(tileNum, 1)
-                obj.selectedItem = setdiff(obj.selectedItem, deselectedRoiIdx);            
+                obj.selectedItem = setdiff(obj.selectedItem, deselectedRoiIdx);
             end
             
             % Make sure the list is unique and well behaving....
@@ -742,9 +723,8 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         function onRoiGroupChanged(obj, evt) %Roidisplay
             % Triggered on existing roiGroup events
             
-            % Todo: also update text label. 
+            % Todo: also update text label.
             % (Maybe text label is not implemented)
-            
             
             % Take action for this EventType
             switch lower(evt.eventType)
@@ -759,7 +739,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                     if ~isempty(tileInd) || numel(obj.displayedItems) < obj.hTiledImageAxes.nTiles
                         obj.updateView([], [], 'refresh')
                     end
-                                        
                     
 %                     obj.updateRoiMaskAll(evt.roiIndices, evt.eventType)
 %                     obj.updateRoiIndexMap()
@@ -780,7 +759,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                         obj.updateView([], [], 'refresh')
                     end
                     
-                    
                 case {'connect', 'relink'}
                     obj.updateLinkPlot(evt.roiIndices, evt.eventType)
 
@@ -799,10 +777,9 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         function onSettingsChanged(obj, name, value)
             onSettingsChanged@mclassifier.manualClassifier(obj, name, value)
         end
-        
 
         function onFigureCloseRequest(obj)
-                        
+
             wasAborted = obj.promptSaveRois();
             if wasAborted; return; end
             
@@ -823,7 +800,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             else
                 candidates = getCandidatesForUpdatedView@mclassifier.manualClassifier(obj);
             end
-            
         end
         
         function updateTile(obj, roiInd, tileNum)
@@ -845,7 +821,11 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 elseif strcmp(imageSelection, 'Current Frame')
                     roiImage = cat(3, obj.itemSpecs(roiInd).enhancedImage);
                 else
-                    roiImage = cat(3, obj.itemImages(roiInd).(imageSelection));
+                    roiImages = {obj.itemImages(roiInd).(imageSelection)};
+                    isEmpty = cellfun(@(c) isempty(c), roiImages);
+                    ind = find(~isEmpty, 1, 'first');
+                    [roiImages{isEmpty}] = deal(zeros(size(roiImages{ind}, [1,2]), 'like', roiImages{ind}));
+                    roiImage = cat(3, roiImages{:});
                 end
             catch
                 error('Not implemented for images of different size')
@@ -860,7 +840,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 
             % Update outline color according to classification
             obj.updateTileColor(tileNum)
-
 
             %cellOfStr = arrayfun(@(i) num2str(i), roiInd, 'uni', 0);
             roiLabels = obj.getItemText(roiInd);
@@ -890,7 +869,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         end
         
         function setRoiPixelIndices(obj)
-        %setRoiPixelIndices Create 3D array with pixel ind for roi thumbs 
+        %setRoiPixelIndices Create 3D array with pixel ind for roi thumbs
         %
         %   This is used for retrieving new images if the current frame of
         %   imviewer is changed
@@ -908,9 +887,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 obj.roiPixelIndices(:,2,i) = J;
                 
             end
-            
         end
-        
         
     % % % Methods for modifying roi objects.
     
@@ -927,7 +904,6 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                         circshift(obj.itemImages(roiInd).(imageNames{i}), -fliplr(round(shift)) );
                 end
             end
-
         end
         
         % Todo reposition / move rois. Old way, capture figure callbacks
@@ -940,9 +916,28 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
     
     methods (Access = public)
         
+        function addCustomGridSize(obj, customGridSize)
+
+            if isnumeric(customGridSize)
+                assert(numel(customGridSize)==2, 'Grid size must be numerix height x width')
+                customGridSize = sprintf('%dx%d', customGridSize(1), customGridSize(2));
+            end
+
+            obj.settings_.GridSize_{end+1} = customGridSize;
+
+            % Add to dropdown control
+            h = findobj(obj.hPanelSettings, 'Tag', 'Set GridSize');
+            h.String{end+1} = customGridSize;
+        end
+
         % Methods for saving results.
         function saveClassification(obj, ~, ~, varargin)
         % saveClassification
+
+            if ~isempty(obj.SaveFcn)
+                obj.SaveFcn(obj.RoiGroup)
+                return
+            end
 
             % Get path for saving data to file.
             if isempty(varargin)
@@ -958,23 +953,33 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             % Save clean version of rois....
             % Todo: Show have setting for this, and default should be to
             % not save...
-            keep = obj.itemClassification ~= 2;
-            
+
+            if isa(obj.RoiGroup, 'roimanager.CompositeRoiGroup')
+                tempRoiGroup = obj.RoiGroup.getAllRoiGroups();
+            else
+                tempRoiGroup = obj.RoiGroup;
+            end
+
             roiGroupStruct = struct;
-            roiGroupStruct.roiArray = obj.RoiGroup.roiArray(keep);
-            roiGroupStruct.roiImages = obj.RoiGroup.roiImages(keep);
-            roiGroupStruct.roiStats = obj.RoiGroup.roiStats(keep);
-            roiGroupStruct.roiClassification = obj.RoiGroup.roiClassification(keep);
-            
+
+            for i = 1:numel(tempRoiGroup)
+
+                keep = tempRoiGroup(i).roiClassification ~= 2;
+                
+                roiGroupStruct(i).roiArray = tempRoiGroup(i).roiArray(keep);
+                roiGroupStruct(i).roiImages = tempRoiGroup(i).roiImages(keep);
+                roiGroupStruct(i).roiStats = tempRoiGroup(i).roiStats(keep);
+                roiGroupStruct(i).roiClassification = tempRoiGroup(i).roiClassification(keep);
+            end
+
             savePath = strrep(savePath, '.mat', '_clean.mat');
 
             % Save roigroup using roigroup fileadapter
             fileObj = nansen.dataio.fileadapter.roi.RoiGroup(savePath, '-w');
-            fileObj.save(roiGroupStruct);            
+            fileObj.save(roiGroupStruct);
             fprintf('Saved clean classification results to %s\n', savePath)
             
         end
-               
     end
     
     methods (Access = public) % Load/save rois
@@ -1000,18 +1005,20 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             if doInitialization
                 obj.updateView([], [], 'Initialize')
             end
-            
         end
         
         function saveRois(obj, initPath)
-        %saveRois Save rois with confirmation message in app.    
+        %saveRois Save rois with confirmation message in app.
             if nargin < 2; initPath = ''; end
-            saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
             
-            saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);                        
-            obj.hMessageBox.displayMessage(saveMsg, [], 2)
+            if ~isempty(obj.SaveFcn)
+                obj.SaveFcn(obj.RoiGroup)
+            else
+                saveRois@roimanager.RoiGroupFileIoAppMixin(obj, initPath)
+                saveMsg = sprintf('Rois Saved to %s\n', obj.roiFilePath);
+                obj.hMessageBox.displayMessage(saveMsg, [], 2)
+            end
         end
-        
     end
 
     methods (Access = protected) % RoiGroupFileIoAppMixin methods
@@ -1051,9 +1058,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 initPath = '';
             end
         end
-        
     end
-    
     
     methods %Set/get
 
@@ -1094,8 +1099,5 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
         function S = getSettings()
             S = getSettings@applify.mixin.UserSettings('roiclassifier.App');
         end
-        
     end
-
 end
-

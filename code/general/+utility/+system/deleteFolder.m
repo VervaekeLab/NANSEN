@@ -3,7 +3,7 @@ function deleteFolder(dirPath, varargin)
 %
 %   utility.system.deleteFolder(dirPath) deletes the folder at the given
 %   directory path.
-%   
+%
 %   utility.system.deleteFolder(dirPath, name, value) deletes the folder
 %   using the name,value pair options
 %
@@ -12,11 +12,9 @@ function deleteFolder(dirPath, varargin)
 %
 %   Use this with care!!!
 
-
 params = struct();
 params.moveToTrash = true;
 params = utility.parsenvpairs(params, [], varargin);
-
 
 % set the state of recycle before deleting folder
 if params.moveToTrash
@@ -33,9 +31,9 @@ listing = dir(dirPath);
 
 for i = 1:numel(listing)
     
-    if strcmp(listing(i).name, '.') 
+    if strcmp(listing(i).name, '.')
         continue
-    elseif strcmp(listing(i).name, '..') 
+    elseif strcmp(listing(i).name, '..')
         continue
     elseif listing(i).isdir
         utility.system.deleteFolder(fullfile(dirPath, listing(i).name))
@@ -45,8 +43,6 @@ for i = 1:numel(listing)
 end
 
 % Remove directory if it still exists.
-if exist(dirPath, 'dir')
+if isfolder(dirPath)
     rmdir(dirPath)
 end
-
-

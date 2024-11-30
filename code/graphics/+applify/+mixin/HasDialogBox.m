@@ -31,7 +31,6 @@ classdef HasDialogBox < uim.handle
             obj.DialogBox.clearMessage()
         end
         
-        
         function displayMessage(obj, message, msgDuration)
             
             if isempty(obj.DialogBox)
@@ -53,9 +52,6 @@ classdef HasDialogBox < uim.handle
             if isvalid(obj) && ~isempty(obj.DialogBox)
                 obj.DialogBox.clearMessage()
             end
-
         end
-        
     end
-    
 end

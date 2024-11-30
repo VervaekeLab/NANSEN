@@ -13,4 +13,3 @@ function filePath = getDownsampledStackFilename(hImageStack, n, method)
     filePath = strrep(hImageStack.FileName, ext, postfix);
 
 end
-

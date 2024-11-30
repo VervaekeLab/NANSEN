@@ -1,6 +1,6 @@
 function fovMask = placeLocalRoiMaskInFovMask(roiMask, roiCenter, fovMask)
 %placeLocalRoiMaskInFovMask Place a local roi mask in a global fov mask
-%   
+%
 %   fovMask = placeLocalRoiMaskInFovMask(roiMask, roiCenter, fovMask)
 %   places the roiMask in the fovMask centered on the coordinates given by
 %   roiCenter.
@@ -24,7 +24,7 @@ function fovMask = placeLocalRoiMaskInFovMask(roiMask, roiCenter, fovMask)
     indX = round( indX + roiCenter(1) );
     indY = round( indY + roiCenter(2) );
     
-    % Make sure all coordinates are valid (might not be the case close to 
+    % Make sure all coordinates are valid (might not be the case close to
     % edges of the fov).
     isValidX = indX >= 1 & indX <= fovImageSize(2);
     isValidY = indY >= 1 & indY <= fovImageSize(1);

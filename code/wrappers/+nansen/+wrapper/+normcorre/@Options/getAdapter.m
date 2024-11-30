@@ -1,9 +1,9 @@
 function M = getAdapter()
 %normcorre.Options.getAdapter
 %
-%    M = normcorre.Options.getAdapter() returns a struct (M) where each 
-%       field of M corresponds to a field from the options, and the value 
-%       is the name of that parameter from the original toolbox options. 
+%    M = normcorre.Options.getAdapter() returns a struct (M) where each
+%       field of M corresponds to a field from the options, and the value
+%       is the name of that parameter from the original toolbox options.
 
     M                               = struct();
     
@@ -26,4 +26,3 @@ function M = getAdapter()
     M.Misc.UseParallell             = 'use_parallel';
 
 end
-     

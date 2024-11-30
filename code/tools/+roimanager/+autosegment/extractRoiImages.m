@@ -1,24 +1,21 @@
 function roiImageStack = extractRoiImages(imArray, roiArray, dff, varargin)
-% 
+%
 % Inputs
 %   dff     : Signalarray (nRois x nFrames)
 %
 % Parameters
 %   BoxSize   : size of extracted image [h, w]
-%   ImageType : 'average' | 'correlation' | 'peak_dff' | 'enhanced_average' | 'enhanced_correlation' | 'correlation_product' 
+%   ImageType : 'average' | 'correlation' | 'peak_dff' | 'enhanced_average' | 'enhanced_correlation' | 'correlation_product'
 %   AutoAdjust : Autoadjust contrast (boolean) - Not implemented.
 
-
-% Todo: 
+% Todo:
 %   [ ] Dff should be nFrames x nRois!
 %   [ ] move out of autosegmentation
 %   [ ] autoadjust
 
-
 def = struct('BoxSize', [21, 21], 'ImageType', 'enhanced_average', ...
     'AutoAdjust', true, 'SubtractBaseline', true, 'Debug', false);
 opt = utility.parsenvpairs(def, [], varargin);
-
 
 % Get the roimanager as a local package (1 folder up)
 %rootPath = fileparts(fileparts(mfilename('fullpath')));
@@ -33,7 +30,6 @@ imageType = lower( opt.ImageType );
 % Function for autoadjusting the contrast.
 normalizeimage = @(im) (im-min(im(:))) ./ (max(im(:))-min(im(:))) .* 255;
 
-
 % Get number of frames and number of rois.
 nRois = numel(roiArray);
 signalSize = size(dff);
@@ -46,14 +42,12 @@ if opt.Debug
     nFrames = zeros(nRois, 1);
 end
 
-
 roiImageStack = zeros( [boxSize, nRois] );
 
 indX = (1:boxSize(2)) - ceil(boxSize(2)/2);
 indY = (1:boxSize(1)) - ceil(boxSize(1)/2);
 
 centerCoords = round(cat(1, roiArray.center));
-
 
 for i = 1:nRois
     
@@ -72,7 +66,7 @@ for i = 1:nRois
         val = prctile(dff(i, :), [5, 50]);
         thresh = val(2) + val(2)-val(1);
 
-        frameInd = dff(i, :) > thresh; 
+        frameInd = dff(i, :) > thresh;
         frameInd = imdilate(frameInd, ones(1,5) );
        
     elseif contains(imageType, 'multipeak')
@@ -100,7 +94,6 @@ for i = 1:nRois
         % pass...
     end
     
-    
     if sum(frameInd) < 50
         [~, peakSortedFrameInd] = sort(dff(i, :), 'descend');
         frameInd = peakSortedFrameInd(1:min([50,numel(peakSortedFrameInd)]));
@@ -114,8 +107,6 @@ for i = 1:nRois
     isValidY = tmpY >= 1 & tmpY <= numRows;
     tmpX = tmpX(isValidX);
     tmpY = tmpY(isValidY);
-    
-    
     
     % Create the image
     switch lower(opt.ImageType)
@@ -133,34 +124,31 @@ for i = 1:nRois
     tmpX = tmpX(isValidX);
     tmpY = tmpY(isValidY);
     
-    
     imArrayChunk = imArray(tmpY, tmpX, :);
     if opt.SubtractBaseline
         imArrayChunk = imArrayChunk - median(imArrayChunk(:));
     end
-    
-    
     
     try
         % Create the image
         switch imageType
             case 'activity weighted mean'
                 imArrayChunkW = double(imArrayChunk) .* reshape(W, 1, 1, []);
-                currentRoiIm = mean(imArrayChunkW, 3);                
+                currentRoiIm = mean(imArrayChunkW, 3);
                 currentRoiIm = normalizeimage(currentRoiIm);
                 
             case 'activity weighted std' % not as good as mean
                 imArrayChunkW = double(imArrayChunk) .* reshape(W, 1, 1, []);
-                currentRoiIm = std(imArrayChunkW, 0, 3);                
+                currentRoiIm = std(imArrayChunkW, 0, 3);
                 currentRoiIm = normalizeimage(currentRoiIm);
                 
             case 'std' % not good
-                currentRoiIm = std(double(imArrayChunk(:, :, frameInd)), 0, 3);                
+                currentRoiIm = std(double(imArrayChunk(:, :, frameInd)), 0, 3);
                 currentRoiIm = normalizeimage(currentRoiIm);
                 
             case 'activity weighted max' % crap if cell is not active
                 imArrayChunkW = double(imArrayChunk) .* reshape(W, 1, 1, []);
-                currentRoiIm = max(imArrayChunkW, [], 3);                
+                currentRoiIm = max(imArrayChunkW, [], 3);
                 currentRoiIm = normalizeimage(currentRoiIm);
             
             case {'average', 'enhanced average', 'peak dff', 'enhancedaverage', 'peakdff', 'enhanced_average', 'peak activity', 'multipeak', 'top 99th percentile'}
@@ -200,7 +188,7 @@ for i = 1:nRois
                 currentRoiIm = normalizeimage(currentRoiIm);
             
             case 'percentile90'
-                % not a good idea. 
+                % not a good idea.
                 imArrayChunk = sort(imArrayChunk, 3, 'descend');
                 numFrames =  round(numel(frameInd) .* 0.1);
                 currentRoiIm = mean(imArrayChunk(:, :, 1:numFrames), 3);
@@ -218,7 +206,7 @@ for i = 1:nRois
                 W = getWeights(fdiff);
 
                 imArrayChunkW = double(imArrayChunk) .* reshape(W(:,1), 1, 1, []);
-                currentRoiIm = mean(imArrayChunkW, 3);                
+                currentRoiIm = mean(imArrayChunkW, 3);
                 currentRoiIm = normalizeimage(currentRoiIm);
                 
             case 'diff surround orig'
@@ -229,11 +217,11 @@ for i = 1:nRois
                 W = getWeights(f_);
                 
                 imArrayChunkW1 = double(imArrayChunk) .* reshape(W(:,1), 1, 1, []);
-                currentRoiIm1 = mean(imArrayChunkW1, 3);                
+                currentRoiIm1 = mean(imArrayChunkW1, 3);
                 %currentRoiIm1 = normalizeimage(currentRoiIm1);
                 
                 imArrayChunkW2 = double(imArrayChunk) .* reshape(W(:,2), 1, 1, []);
-                currentRoiIm2 = mean(imArrayChunkW2, 3);                
+                currentRoiIm2 = mean(imArrayChunkW2, 3);
                 %currentRoiIm2 = normalizeimage(currentRoiIm2);
                 
                 if sum(currentRoiIm1(:)) > sum(currentRoiIm2(:))
@@ -243,19 +231,15 @@ for i = 1:nRois
                 end
                 currentRoiIm = normalizeimage(currentRoiIm);
                 
-                
         end
     catch %ME
         fprintf('Failed to create roi thumbnail image.\n')
     end
-   
     
     % Add image to the stack
     roiImageStack(isValidY, isValidX, i) = currentRoiIm;
 end
-
 end
-
 
 function dff = calculateDFFStack(im)
 
@@ -267,7 +251,6 @@ function dff = calculateDFFStack(im)
     dff = dff ./ max(dff(:));
 
 end
-
 
 function W = getWeights(f)
 %getWeights Get weights from signal using a sigmoidal function.

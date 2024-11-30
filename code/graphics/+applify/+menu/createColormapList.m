@@ -1,12 +1,11 @@
 function createColormapList(hMenu, hAxes, varargin)
 %createColormapList Create a list of colormaps in a menu.
 %
-%   createColormapList(hMenu, hAxes) 
+%   createColormapList(hMenu, hAxes)
 %
 
 % TODO: Should take a list of colormaps as an input, and only show the
 % colormaps in that list.
-
 
     def = struct('Separator', 'off');
     opt = utility.parsenvpairs(def, [], varargin);
@@ -20,11 +19,7 @@ function createColormapList(hMenu, hAxes, varargin)
             tmpItem = uimenu(mitem, 'Label', colormapNames{i});
             tmpItem.Callback = @(src, event) changeColormap(src, event, hAxes);
         end
-
-
     end
-    
-    
     
 function changeColormap(src, ~, hAxes)
             
@@ -47,7 +42,7 @@ function changeColormap(src, ~, hAxes)
             cmap = flipud(cbrewer('seq', src.Label, 256));
         case {'GnBu', 'Greens', 'YlOrRd'}
             cmap = cbrewer('seq', src.Label, 256);
-        case 'PuOr' 
+        case 'PuOr'
             cmap = flipud(cbrewer('div', src.Label, 256));
         case 'Gray'
             cmap = gray(256);

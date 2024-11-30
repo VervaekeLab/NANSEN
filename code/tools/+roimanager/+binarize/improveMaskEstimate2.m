@@ -4,14 +4,11 @@ function [roiArrayOut, statOut] = improveMaskEstimate2(roiArrayIn, roiType)
 
     roiImages = cat(3, roiArrayIn.enhancedImage);
     
-    
     boxSize = size(roiImages);
     boxSize = boxSize(1:2);
     
-    
     indX = (1:boxSize(2)) - ceil(boxSize(2)/2);
     indY = (1:boxSize(1)) - ceil(boxSize(1)/2);
-    
 
     centerCoords = round(cat(1, roiArrayIn.center));
     tmpMask = zeros(roiArrayIn(1).imagesize, 'logical');

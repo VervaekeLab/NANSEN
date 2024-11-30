@@ -7,14 +7,15 @@ function funcHandles = getCustomTableVariableFcn(varNames, projectName, tableTyp
     end
     
     if nargin < 2 || isempty(projectName)
-        projectName = getpref('Nansen', 'CurrentProject');
+        projectManager = nansen.ProjectManager();
+        projectName = projectManager.CurrentProject;
     end
 
     if nargin < 3 || isempty(tableType)
         tableType = 'session';
     end
     
-    packageList = {projectName, 'tablevar', tableType};
+    packageList = {projectName, 'tablevariable', tableType};
     
     varname2fcn = @(name) str2func(strjoin([ packageList, name], '.'));
     
@@ -25,6 +26,6 @@ function funcHandles = getCustomTableVariableFcn(varNames, projectName, tableTyp
     end
         
     if iscell(funcHandles) && numel(funcHandles) == 1
-        funcHandles = funcHandles{1}; 
+        funcHandles = funcHandles{1};
     end
 end

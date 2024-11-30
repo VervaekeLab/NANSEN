@@ -28,5 +28,3 @@ function h = uiCreatePipeline()
         clear h
     end
 end
-
-

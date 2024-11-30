@@ -64,7 +64,5 @@ while ~finished
     else
         n = n+1;
     end
-    
-    
 end
         

@@ -1,26 +1,25 @@
 function sessionMethodPathList = listSessionMethods(integrationNames)
 %collectSessionMethods Collect known session methods for current project
 
+    % Todo: Delete (deprecated)
+
     if nargin < 1
         integrationNames = 'ophys.twophoton';
     end
     
-    sesMethodRootFolder = nansen.localpath('sessionmethods');
+    % Get folder for the general session methods.
     
+    %sesMethodRootFolder = nansen.localpath('sessionmethods');
+    sesMethodRootFolder = '';
     integrationDirs = utility.path.packagename2pathstr(integrationNames);
     sesMethodRootPathList = fullfile(sesMethodRootFolder, integrationDirs);
     
-    % Todo: create a function for this....
-    projectRootPath = nansen.localpath('project');
-    [~, projectName] = fileparts(projectRootPath);
-    projectMethodsPath = fullfile(projectRootPath, ...
-                'Session Methods', ['+', projectName] );
-    
+    % Get folder for the current project's session methods
+    projectMethodsPath = nansen.session.methods.getProjectsSessionMethodsDirectory();
     
     sesMethodRootPathList = [sesMethodRootPathList; {projectMethodsPath}];
     
     %ignoreList = {'+abstract', '+template'};
-
     
     % Find all folders
     finished = false;
@@ -30,15 +29,13 @@ function sessionMethodPathList = listSessionMethods(integrationNames)
 
         [absPath, ~] = utility.path.listSubDir(sesMethodRootPathList);
 
-        if isempty(absPath)
+        if isempty(absPath) || isequal(absPath, sesMethodRootPathList)
             finished = true;
         else
             packagePathList = [packagePathList, absPath];
             sesMethodRootPathList = absPath;
         end
     end
-     
-    
     
     % Find all matlab functions in the session methods folders.
     L = [];
@@ -51,7 +48,6 @@ function sessionMethodPathList = listSessionMethods(integrationNames)
         else
             L = cat(1, L, L_);
         end
-        
     end
     
     sessionMethodPathList = fullfile({L.folder}, {L.name});
@@ -61,8 +57,6 @@ function sessionMethodPathList = listSessionMethods(integrationNames)
     
 end
 
-
 function tf = validateIntegration(integrationFolder)
-
 
 end

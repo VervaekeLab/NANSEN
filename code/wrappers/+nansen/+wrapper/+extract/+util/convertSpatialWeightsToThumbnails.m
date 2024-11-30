@@ -1,5 +1,5 @@
 function imArray = convertSpatialWeightsToThumbnails(roiArray, spatialWeights, thumbnailSize)
-%convertSpatialWeightsToThumbnails Get roi images from EXTRACT's spatial w 
+%convertSpatialWeightsToThumbnails Get roi images from EXTRACT's spatial w
 %
 %   imArray = convertSpatialWeightsToThumbnails(roiArray, spatialWeights)
 %       converts the spatial weight array to a roi thumbnail image array
@@ -15,7 +15,6 @@ function imArray = convertSpatialWeightsToThumbnails(roiArray, spatialWeights, t
 %
 %   OUTPUT:
 %       imArray : Array of roi thumbnail images (thumbnailSize x numRois)
-
 
 % Todo: Move to flufinder...
 

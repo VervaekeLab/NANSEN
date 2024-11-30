@@ -7,13 +7,12 @@ classdef scrollerBar < uim.handle
 %   size and location of the scrollerbar.
 %
 %   h = clib.widgets.scrollerBar(hParent, Name, Value) creates the
-%   scrollbar and specifies one or more scrollbar property names and 
+%   scrollbar and specifies one or more scrollbar property names and
 %   corresponding values. All properties of the scrollbar can be set.
 %
 %   Written by Eivind Hennestad | Vervaeke Lab
 
-
-    % Todo: 
+    % Todo:
     %   [x] Fix scroller so that its not jumpy/jittery when reaching the
     %       end. Done. But it might still be glitchy when turning around...?
     %
@@ -23,8 +22,7 @@ classdef scrollerBar < uim.handle
     %   [ ] Redraw scrollbar when container resizes. 
     %   [ ] Change /xlim(horz) or ylim/ver only when maximum changes...
 
-
-    properties 
+    properties
         Orientation = 'vertical' %Todo: Resolve automatically based on pos
         Direction = 'normal' % normal or reverse
         Position = [0,0,1,1]
@@ -44,7 +42,6 @@ classdef scrollerBar < uim.handle
         StopMoveCallback = []       % Callback function for when bar stops moving.
         Visible = 'on'
     end % /properties
-    
     
     properties (Access = private)
         hParent
@@ -67,12 +64,10 @@ classdef scrollerBar < uim.handle
         MouseScrollListener event.listener
         
     end % /properties (private)
-
     
     properties (Dependent, Access = private)
         barPosition
     end
-    
     
     methods
         
@@ -113,7 +108,7 @@ classdef scrollerBar < uim.handle
         end
            
         function redraw(obj)
-        %redraw Redraw scrollbar.    
+        %redraw Redraw scrollbar.
             obj.updateBarLength()
             drawnow
         end % /redraw
@@ -224,12 +219,12 @@ classdef scrollerBar < uim.handle
         
         function lowlightBar(obj)
         %lowlightBar Change the barcolor (make default color).
-            obj.hScrollbar(2).FaceColor = obj.BarColor;   
+            obj.hScrollbar(2).FaceColor = obj.BarColor;
             obj.hScrollbar(2).FaceAlpha = 0.6;
         end % /lowlightBar
         
         function hittest(obj, h)
-        %hittest Will change appearance and cursor mode if scrollbar is "hit".    
+        %hittest Will change appearance and cursor mode if scrollbar is "hit".
             
             if isequal(h, obj.hScrollbar(1))
                 if ~obj.isCursorOnTrack
@@ -289,7 +284,6 @@ classdef scrollerBar < uim.handle
             % Get current mouse position, and save it to obj
             mousePointAx = get(obj.hScrollbarAxes, 'CurrentPoint');
             
-            
             switch lower(obj.Orientation)
                 case 'horizontal'
                     obj.moveStartPosition = mousePointAx(1, 1);
@@ -334,14 +328,13 @@ classdef scrollerBar < uim.handle
                         initialCoords = obj.hScrollbar(2).YData;
                 end
                 barInitialPosition = min(initialCoords);
-
                                 
                 % Use the scrollHistory to avoid "glitchy" scrolling. For small
                 % movements on a mousepad, scroll values can come in as 0, 1, 1,
                 % -1, 1, 1 even if fingers are moving in on direction.
                 obj.scrollHistory = cat(1, obj.scrollHistory(2:5), event.VerticalScrollCount);
 
-                if event.VerticalScrollCount > 0 && sum(obj.scrollHistory) > 0 
+                if event.VerticalScrollCount > 0 && sum(obj.scrollHistory) > 0
                     change = event.VerticalScrollCount .* obj.Maximum ./ 20;    %Todo: Scroll increment should be a property.
                 elseif event.VerticalScrollCount < 0  && sum(obj.scrollHistory) < 0
                     change = event.VerticalScrollCount .* obj.Maximum ./ 20;
@@ -384,11 +377,10 @@ classdef scrollerBar < uim.handle
                     newPosition = newMousePointAx(1, 2);
             end
             
-            change = newPosition - obj.moveStartPosition;            
+            change = newPosition - obj.moveStartPosition;
 
             barInitialPosition = min(obj.barInitialCoords);
             change = obj.checkMoveLimits(change, barInitialPosition);
-            
             
             % Todo: Make change part of an eventdata object.
             if ~isempty(obj.StopMoveCallback)
@@ -439,7 +431,6 @@ classdef scrollerBar < uim.handle
 
     end % /methods
     
-    
     methods
         
         function position = get.barPosition(obj)
@@ -457,7 +448,6 @@ classdef scrollerBar < uim.handle
 
             position = min(scrollerData);
         end
-        
     end
     
     methods (Access = private)
@@ -633,7 +623,6 @@ classdef scrollerBar < uim.handle
             drawnow limitrate
             
         end % /updateBarLength
-    
 
         function updateBarPosition(obj)
         %updateBarPosition Update scrollerbar position
@@ -659,7 +648,7 @@ classdef scrollerBar < uim.handle
                 change = obj.Value - scrollerPos;
 
                 % Make sure scroller stays within bar range
-                change = obj.checkMoveLimits(change, scrollerPos); 
+                change = obj.checkMoveLimits(change, scrollerPos);
                 
                 % Update the position of the scrollbar
                 switch lower(obj.Orientation)
@@ -671,7 +660,6 @@ classdef scrollerBar < uim.handle
             end
             
         end % /updateBarPosition
-        
 
         function updateTrackLimits(obj)
 
@@ -685,7 +673,6 @@ classdef scrollerBar < uim.handle
                     obj.hScrollbar(1).YData = yDataTrack;
             end
         end
-
         
     end % /methods (private)
     

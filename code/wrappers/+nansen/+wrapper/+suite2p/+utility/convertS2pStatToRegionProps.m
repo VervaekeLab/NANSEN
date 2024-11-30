@@ -19,4 +19,3 @@ function S = convertS2pStatToRegionProps(stat, imageSize)
         S(i).PixelValues = stat(i).lam;
     end
 end
-

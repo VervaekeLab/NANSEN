@@ -1,4 +1,4 @@
-classdef apptable < applify.UiControlTable
+classdef apptable < applify.UiControlTable %Rename? MLAppTable
 % A row based table for placing in an app using uifigure
 %
 %
@@ -9,23 +9,22 @@ classdef apptable < applify.UiControlTable
 % tables larger than 20 rows.
 
 % One question I have. Should I implement it as a superclass with abstract
-% properties so that any implementation needs to go through a subclass or 
+% properties so that any implementation needs to go through a subclass or
 % should I make it possible to instantiate directly? For now,
 % subclassing...
 
 %
-%   Todo:   
+%   Todo:
 %       [x] Create method createTableRowComponents (which will be a subclass method)
 %       [ ] Implement row checkbox as a true/false selection option
 %       [ ] Come up with a nice way to add/remove columns. Ie dropbox
 %           papers table. Or add toolbar buttons above table and checkboxes
 %           for selecting  rows.
-%       [x] place tablepanel right underneatch the column header border,
+%       [x] place tablepanel right underneath the column header border,
 %           without spacing, but do something so that the interior area of
 %           the scrollpanel is a bit higher than the uppermost component.
 %       [ ] Debug why text extent of header labels change in some cases
 %           after the drawnow command is executed...
-
 
     properties (Access = protected, Hidden) % Internal layout properties
         TempFig
@@ -37,12 +36,15 @@ classdef apptable < applify.UiControlTable
         TableHeaderSpacer % An empty image placed in top of table panel to create some padding in the top of a scrollpanel.
         ImageGraphicPaths struct = struct()
     end
-    
+
+    properties (Constant, Access = protected)
+        DEFAULT_COMPONENT_HEIGHT = 22 % Default height of appdesigner components
+    end
     
     methods % Structors
         
         function obj = apptable(varargin)
-        %apptable Constructor                
+        %apptable Constructor
             obj@applify.UiControlTable(varargin{:})
             
             delete(obj.TempFig)
@@ -64,11 +66,8 @@ classdef apptable < applify.UiControlTable
             obj.deleteHeader()
             
         end
-        
     end
-    
 
-    
     methods (Access = protected) % Configuration and construction
         
         function assignDefaultTablePropertyValues(obj)
@@ -90,7 +89,7 @@ classdef apptable < applify.UiControlTable
         end
 
         function createTempAxes(obj)
-        % Temporary axes for getting length of strings to fit component 
+        % Temporary axes for getting length of strings to fit component
         % width to text length..... Wtf matlab, this should not be necessary.
         
         % Note important to plot in traditional figure to get pixel size
@@ -119,8 +118,9 @@ classdef apptable < applify.UiControlTable
             obj.ColumnHeaderBorder = uiimage(obj.Parent);
             obj.ColumnHeaderBorder.Position = obj.ColumnHeaderPosition;
             obj.ColumnHeaderBorder.ImageSource = imagePathStr;
-            
-            yOff = 5; % Correction factor in pixels to keep labels closer 
+            obj.ColumnHeaderBorder.ScaleMethod='stretch';
+
+            yOff = 5; % Correction factor in pixels to keep labels closer
                       % to horizontal border below
                       
             % Todo(?): Create panel for header
@@ -129,10 +129,10 @@ classdef apptable < applify.UiControlTable
                 % Skip this column if name is empty
                 if isempty(obj.ColumnNames{i}); continue; end
                 
-                % Add position(1) to correct for xOffset (column header is 
-                % created directly in parent, but table components are 
+                % Add position(1) to correct for xOffset (column header is
+                % created directly in parent, but table components are
                 % created in table panel)
-                xi = obj.ColumnLocations(i) + obj.Position(1); 
+                xi = obj.ColumnLocations(i) + obj.Position(1);
                 w = obj.ColumnWidths(i);
                 y = obj.ColumnHeaderPosition(2);
                 
@@ -156,7 +156,6 @@ classdef apptable < applify.UiControlTable
                     obj.ColumnLabelHelpButton{i}.Tag = obj.ColumnNames{i};
                     obj.centerComponent(obj.ColumnLabelHelpButton{i}, y-yOff)
                 end
-
             end
             drawnow;
             
@@ -178,8 +177,7 @@ classdef apptable < applify.UiControlTable
         function hIconButton = createHelpIconButton(obj, hContainer)
         %createHelpIconButton Create a help button
         
-            imgPath = fullfile(nansen.rootpath, 'code', 'setup', '_icons');
-            
+            imgPath = fullfile(nansen.toolboxdir, 'resources', 'icons');
             hIconButton = uiimage(hContainer);
             hIconButton.Tooltip = 'Press for help';
             hIconButton.ImageSource = fullfile(imgPath, 'help.png');
@@ -189,13 +187,14 @@ classdef apptable < applify.UiControlTable
         function setTableScrolling(obj, state)
             msg = 'Table scroll state must be ''on'' or ''off''';
             assert( any( strcmp(state, {'on', 'off'}) ), msg)
-            obj.TablePanel.Scrollable = state;
+            if ~isempty(obj.TablePanel)
+                obj.TablePanel.Scrollable = state;
+            end
+            obj.Parent.Scrollable = state;
         end
 
 %         function createTableRow(obj, rowNum)
-%             
 %             % y = obj.RowLocations(rowNum);
-% 
 %         end
 
         function updateTableRowBackground(obj, rowNumber, isSelected)
@@ -217,8 +216,7 @@ classdef apptable < applify.UiControlTable
         end
         
         function pathStr = getTableRowBackground(obj, varargin)
-        %getTableRowBorder Get path to image containing a table row border    
-            
+        %getTableRowBorder Get path to image containing a table row border
         
         % Todo: Implement with keywords for where border should be and for
         % background color
@@ -290,23 +288,19 @@ classdef apptable < applify.UiControlTable
                     delete(obj.ColumnLabelHelpButton{i})
                 end
             end
-                
-            
         end
-
     end
     
     methods (Access = private, Hidden) % Internal updating
         
         function addTablePanelMargin(obj)
-        %addTablePanelMargin Create image object which serves to give some 
-        % space in the interior top part of a scrollable panel. 
+        %addTablePanelMargin Create image object which serves to give some
+        % space in the interior top part of a scrollable panel.
         
             % Place empty image in top of table to add some space between
             % table and column header.
             obj.TableHeaderSpacer = uiimage(obj.TablePanel);
             obj.updateTablePanelMargin()
-                    
         end
 
         function createTableRowBackgroundImages(obj)
@@ -314,7 +308,7 @@ classdef apptable < applify.UiControlTable
         end
     
         function pathStr = getColumnHeaderRowBorder(obj)
-        %getColumnHeaderRowBorder Get path to image containing a table row border    
+        %getColumnHeaderRowBorder Get path to image containing a table row border
         %
         % Same as getTableRowBorder, but this image is not so tall because
         % row spacing is not included
@@ -349,7 +343,7 @@ classdef apptable < applify.UiControlTable
         end
     end
     
-    methods 
+    methods
         
         function addRow(obj, rowNumber, rowData)
         %addRow Add a row to the table.
@@ -363,7 +357,6 @@ classdef apptable < applify.UiControlTable
             end
             
             obj.updateTablePanelMargin()
-            
         end
         
         function removeRow(obj, rowNumber)
@@ -371,7 +364,6 @@ classdef apptable < applify.UiControlTable
             removeRow@applify.UiControlTable(obj, rowNumber)
         
             obj.updateTablePanelMargin()
-
         end
     end
 end

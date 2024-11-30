@@ -3,9 +3,9 @@ classdef HasOptions < handle
 %
 %   This class provides an interface for classes that represent an
 %   algorithm which is dependent on a set of options/parameters.
-%   
+%
 %   Options can be edited interactively, and edited options can be saved as
-%   presets and retrieved at a later time using an OptionsManager object. 
+%   presets and retrieved at a later time using an OptionsManager object.
 %   The OptionsManager is implemented as an abstract, constant method.
 %   Therefore, any class that inherits this mixin must assign the
 %   OptionsManager in the class definition.
@@ -14,7 +14,7 @@ classdef HasOptions < handle
 %   explicitly, the get method for options will return the default options
 %   from the OptionsManager.
 %
-%   EXAMPLES 
+%   EXAMPLES
 %       hAlgorithm = subclassInheritingHasOptions()
 %
 %       % Retrieve options:
@@ -23,8 +23,7 @@ classdef HasOptions < handle
 %       % Open dialog to edit options:
 %       hAlgorithm.editOptions()
 
-
-%   - - - - - - - - - - - - - SUBCLASSING - - - - - - - - - - - - - 
+%   - - - - - - - - - - - - - SUBCLASSING - - - - - - - - - - - - -
 %
 %   Any subclass MUST implement:
 %       OptionsManager (Constant property)
@@ -32,29 +31,27 @@ classdef HasOptions < handle
 %   Any subclass SHOULD implement:
 %       options = getDefaultOptions() (Static method)
 
-
-%   - - - - - - - - - - - - - - NOTES - - - - - - - - - - - - - - - 
+%   - - - - - - - - - - - - - - NOTES - - - - - - - - - - - - - - -
 %
-%   Notes on implementation: The OptionsManager is implemented as a 
+%   Notes on implementation: The OptionsManager is implemented as a
 %   "singleton" for each instance of a subclass (algorithm). This might not
-%   be a good idea, but I'll let the programming oracle be the judge of 
-%   that. The shortterm benefit is that available options for an algorithm 
+%   be a good idea, but I'll let the programming oracle be the judge of
+%   that. The shortterm benefit is that available options for an algorithm
 %   can be retrieved without creating an object of the class, and the
 %   options manager only needs to be constructed once. One drawback happens
 %   during development, if e.g default options are changed, it will not
 %   register with the optionsmanager until the next clear all/clear classes
 
-
 %   TODO:
 %   [ ] Edit options method, or use optionsmanager?
-%  *[ ] Create a method for detecting options from varargin and assigning 
+%  *[ ] Create a method for detecting options from varargin and assigning
 %       to the options property (to be used in a subclass constructor). 
 %   [ ] 
 
 %   QUESTIONS
 %   [ ] How to deal with options names which are necessary for storing and
 %       retrieving preset options
-%  
+%
 %   [ ]
     
     properties (Abstract, Constant)
@@ -98,7 +95,7 @@ classdef HasOptions < handle
 % % %             if ~isempty(obj.Options)
 % % %                 args = [args, obj.Options];
 % % %             end
-% % %             
+% % %
 % % % %             if ~isempty(obj.OptionsName)
 % % % %                 args = [obj.OptionsName, args];
 % % % %             else
@@ -106,19 +103,16 @@ classdef HasOptions < handle
 % % %                     args = ['Custom', args];
 % % %                 end
 % % % %             end
-
             
             [~, optsStruct, wasAborted] = obj.OptionsManager.editOptions(args{:});
             obj.Options_ = optsStruct;
             
-            if ~nargout 
+            if ~nargout
                 clear optsStruct wasAborted
             elseif nargout == 1
                 clear wasAborted
             end
-            
         end
-        
     end
     
     methods % Set/get methods
@@ -134,7 +128,6 @@ classdef HasOptions < handle
                 opts = obj.OptionsManager.Options;
             end
         end
-        
     end
     
     methods (Access = protected)
@@ -156,15 +149,13 @@ classdef HasOptions < handle
             if ~nargout
                 clear opts
             end
-            
         end
-        
     end
     
     methods (Static, Sealed)%, Access = protected)
         
         function options = getSuperClassOptions(className)
-        %getSuperClassOptions Get default options from all superclasses   
+        %getSuperClassOptions Get default options from all superclasses
             if nargin < 1
                 className = mfilename('class');
             end
@@ -185,7 +176,6 @@ classdef HasOptions < handle
                 options = [options, nansen.mixin.HasOptions.getSuperClassOptions(iClassName)];
                 
             end
-            
         end
         
         function options = combineOptions(options, varargin)
@@ -205,7 +195,5 @@ classdef HasOptions < handle
                 end
             end
         end
-        
     end
-    
 end

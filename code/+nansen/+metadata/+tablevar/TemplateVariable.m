@@ -12,7 +12,6 @@ classdef TemplateVariable < nansen.metadata.abstract.TableVariable
     methods
         function obj = TemplateVariable(varargin)
             obj@nansen.metadata.abstract.TableVariable(varargin{:});
-        end 
+        end
     end
-    
 end

@@ -1,11 +1,10 @@
 function IND = findActiveSamplePoints(signal, varargin)
 
-    % Set activity threshold. 
+    % Set activity threshold.
     % Todo: Optimize this based on more  informed methods.
 
     val = prctile(signal, [5, 50]);
     thresh = val(2) - (val(2)-val(1));
-
     
     TF = signal > thresh;
     if isrow(signal)

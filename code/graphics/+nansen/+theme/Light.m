@@ -20,5 +20,4 @@ classdef Light
         SortOrderForeground = [240,171,15] ./ 255
         
     end
-
 end

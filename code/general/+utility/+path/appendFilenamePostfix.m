@@ -6,4 +6,3 @@ function newFilename = appendFilenamePostfix(filename, postfix)
     newFilename = sprintf('%s_%s', oldFilename, postfix);
     newFilename = strrep(filename, oldFilename, newFilename);
 end
-

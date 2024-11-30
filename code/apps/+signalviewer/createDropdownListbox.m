@@ -1,7 +1,7 @@
 function [hAppbar, hBtn] = createDropdownListbox(parent, strings, options)
 
     % Change order because buttons are created bottom to top?
-    strings = fliplr(strings); 
+    strings = fliplr(strings);
 
     uicc = uim.UIComponentCanvas(parent);
 
@@ -31,6 +31,4 @@ function [hAppbar, hBtn] = createDropdownListbox(parent, strings, options)
             'Type', 'togglebutton', buttonArgs{:});
         
     end
-
-
 end

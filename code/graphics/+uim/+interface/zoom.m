@@ -15,7 +15,7 @@ classdef zoom < handle
     
     properties
         zoomFinishedCallback
-        % LimitsChangedFcn % Function to run when limits change. 
+        % LimitsChangedFcn % Function to run when limits change.
     end
 
     methods
@@ -39,7 +39,7 @@ classdef zoom < handle
         end
     
         function imageZoom(obj, direction, speed)
-            % Zoom in image    
+            % Zoom in image
 
             if nargin < 3; speed = 1; end
 
@@ -65,7 +65,6 @@ classdef zoom < handle
             mp_a = get(obj.hAxes, 'CurrentPoint');
             obj.hAxes.Units = axUnits;
             mp_a = mp_a(1, 1:2);
-
             
             axPos = getpixelposition(obj.hAxes, true); % Need axes position in figure
 
@@ -97,7 +96,6 @@ classdef zoom < handle
                 yLimNew = yLimNew + shiftY;
             end
             
-            
             if diff(xLimNew) > diff(obj.xLimOrig)
                 xLimNew = obj.xLimOrig;
             elseif xLimNew(1) <= obj.xLimOrig(1)
@@ -113,8 +111,6 @@ classdef zoom < handle
             elseif yLimNew(2) > obj.yLimOrig(2)
                 yLimNew = yLimNew - (yLimNew(2) - obj.yLimOrig(2));
             end
-            
-            
 
             setNewImageLimits(obj, xLimNew, yLimNew)
 
@@ -127,7 +123,6 @@ classdef zoom < handle
             
             pos = getpixelposition(obj.hAxes);
             axAR = pos(3)/pos(4); % Axes aspect ratio.
-
             
             xRange = diff(xLimNew); yRange = diff(yLimNew);
 
@@ -137,7 +132,6 @@ classdef zoom < handle
             elseif xRange/yRange < axAR
                 xLimNew = xLimNew + [-1, 1] * (yRange*axAR-xRange)/2;
             end
-            
     
             if diff(xLimNew) > diff(obj.xLimOrig)
                 xLimNew = obj.xLimOrig;
@@ -155,16 +149,13 @@ classdef zoom < handle
                 yLimNew = yLimNew - (yLimNew(2) - obj.yLimOrig(2));
             end
 
-
             set(obj.hAxes, 'XLim', xLimNew, 'YLim', yLimNew)
             %plotZoomRegion(obj, xLimNew, yLimNew)
 
             if ~isempty(obj.zoomFinishedCallback)
                 obj.zoomFinishedCallback()
             end
-            
         end
-        
         
         function setNewXLims(obj, newLimits)
                       
@@ -195,10 +186,6 @@ classdef zoom < handle
                 set(obj.ax, 'YLim', newLimits);
                 obj.updateFrameMarker('update_y')
             end
-            
         end
-        
-        
     end
-    
 end

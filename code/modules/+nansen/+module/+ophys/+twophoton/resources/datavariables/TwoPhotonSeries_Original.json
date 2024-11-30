@@ -1,0 +1,19 @@
+{
+  "_type": "Nansen File Variable Specification",
+  "_version": "1.0.0",
+  "Properties": {
+    "VariableName": "TwoPhotonSeries_Original",
+    "DataLocation": "",
+    "DataLocationUuid": "",
+    "Subfolder": "",
+    "FileNameExpression": "",
+    "FileType": "",
+    "FileAdapter": "",
+    "DataType": "",
+    "Alias": "",
+    "GroupName": "",
+    "IsCustom": false,
+    "IsInternal": false,
+    "IsFavorite": false
+  }
+}

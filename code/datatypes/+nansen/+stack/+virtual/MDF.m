@@ -1,10 +1,9 @@
 classdef MDF < nansen.stack.data.VirtualArray
-% A class that creates a virtual array for an MDF file. 
+% A class that creates a virtual array for an MDF file.
 %
 %
 %   Created from the MDF_file_reader @ flow_registration by Philipp Flotho
 %       https://github.com/phflot/flow_registration
-
     
     properties (Constant, Hidden)
         FILE_PERMISSION = 'read'
@@ -14,7 +13,6 @@ classdef MDF < nansen.stack.data.VirtualArray
         mfile  % MDF File object
         ChannelInd
     end
-    
     
     methods % Structors
         
@@ -28,7 +26,6 @@ classdef MDF < nansen.stack.data.VirtualArray
                 delete(obj.mfile)
             end
         end
-
     end
 
     methods (Access = protected) % Implementation of abstract methods
@@ -54,7 +51,6 @@ classdef MDF < nansen.stack.data.VirtualArray
             if status
                 error('Only one MDF file instance can be opened at once! E.g. close the MDF Viewer and clear the Matlab workspace.');
             end
-    
         end
         
         function getFileInfo(obj)
@@ -87,7 +83,6 @@ classdef MDF < nansen.stack.data.VirtualArray
         function assignDataType(obj)
             obj.DataType = obj.MetaData.Class;
         end
-        
     end
 
     methods
@@ -112,7 +107,7 @@ classdef MDF < nansen.stack.data.VirtualArray
             
             data = zeros(dataSize, obj.DataType);
             
-            for i = 1:numFrames             
+            for i = 1:numFrames
                 for j = 1:obj.MetaData.SizeC
                     data(:, :, j, i) = cast(...
                         obj.mfile.ReadFrame(obj.ChannelInd(j), frameInd(i)), ...
@@ -124,9 +119,7 @@ classdef MDF < nansen.stack.data.VirtualArray
         function writeFrames(obj, frameIndex, data)
             error('Writing frames to an MDF (MScan) file is not supported')
         end
-
     end
-
 
     methods (Access = private)
            
@@ -161,7 +154,8 @@ classdef MDF < nansen.stack.data.VirtualArray
         end
         
         function mdfParams = getScanParameters(obj)
-            mdfParams = ophys.twophoton.mscan.getScanParameters(obj.mfile);
+            import nansen.module.ophys.twophoton.utility.mscan.getScanParameters
+            mdfParams = getScanParameters(obj.mfile);
         end
         
         function assignScanParametersToMetadata(obj, mdfParams)
@@ -196,9 +190,6 @@ classdef MDF < nansen.stack.data.VirtualArray
             else
             
             end
-
         end
-        
     end
-
 end

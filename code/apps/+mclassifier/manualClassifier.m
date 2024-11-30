@@ -1,21 +1,20 @@
-classdef manualClassifier < applify.mixin.UserSettings
+classdef manualClassifier < applify.mixin.UserSettings %& uiw.mixin.AssignPVPairs
 %manualClassifier App for manually classifying set of items
 %
 %
 %   Abstract class for manual classification of images or plot segments
-%   or a combination of the two. 
+%   or a combination of the two.
 %
 %   Options:
 %       tileUnits : Units for tiles: pixel | scaled
 %       numChan   : Number of channels
-
+%       ItemNames : Names for each item (Should be a cell array of character vectors or a string array with same size as data items)
     
 % ABSTRACT PROPERTIES:
 % --------------------
 %   classificationLabels : Label to use for each classification             Ex: { 'Accepted', 'Rejected', 'Unresolved' }
-%   classificationColors : Cell array of colors to use for each             
+%   classificationColors : Cell array of colors to use for each
 %                          classification label                             Ex: { [0.174, 0.697, 0.492] , [0.920, 0.339, 0.378] , [0.176, 0.374, 0.908] }
-
     
 %   TODO:
 %       [ ] Inherit from theme mixin class.
@@ -25,12 +24,11 @@ classdef manualClassifier < applify.mixin.UserSettings
 %       [ ] Save image scale factor in settings. Image pixel size should be
 %       determined from image data to maintain aspect ratios.
 %
-%       [ ] Grid size and grid size options should dynamically update when 
+%       [ ] Grid size and grid size options should dynamically update when
 %           the figure size changes.
 %
 %       [ ] Rename internal variable names (remove roi and replace with
 %           item)
-
 
 properties (Constant, Hidden = true) % Inherited from UserSettings
     USE_DEFAULT_SETTINGS = false     % Ignore settings file
@@ -46,15 +44,18 @@ end
 % Properties holding data
 properties (Abstract)
     dataFilePath            % Filepath to load/save data from
-
     itemSpecs               % Struct array of different specifications per item
     itemImages              % Struct array of different images per item
     itemStats               % Struct array of different stats per item
     itemClassification      % Vector with classification status per item
 end
 
+properties
+    ItemNames (1,:)
+end
+
 % Graphical handles for gui
-properties 
+properties %(Access = protected)
     hFigure
     hPanelSettings % Top panel (toolbar)
     hPanelImage  % Main panel (grid view)
@@ -62,6 +63,10 @@ properties
     hTiledImageAxes
     hMessageBox
     UiAnnotations struct = struct
+end
+
+properties (Access = protected)
+
 end
 
 % Graphical handles for gui that are private
@@ -93,11 +98,10 @@ properties (Access = public, SetObservable = true) % Todo: protected?
     prevMousePointAx
 end
 
-
 methods % Structors
     
     function obj = manualClassifier(varargin)
-    %manualClassifier Constructor    
+    %manualClassifier Constructor
         
         if ~nargin
             success = obj.uiopenFromFile();
@@ -107,9 +111,17 @@ methods % Structors
             nvpairs = obj.parseInputs(varargin{:});
         end
         
-        def = struct('numChan', 1, 'tileUnits', 'pixel');
+        def = struct('numChan', 1, 'tileUnits', 'pixel', 'ItemNames', []);
         opt = utility.parsenvpairs(def, [], nvpairs);
-        
+    
+        % Todo: Inherit from uiw.mixin.AssignPVPairs
+        fieldNames = fieldnames(opt);
+        for i = 1:numel(fieldNames)
+            if isprop(obj, fieldNames{i})
+                obj.(fieldNames{i}) = opt.(fieldNames{i});
+            end
+        end
+
         obj.loadSettings()
         obj.createFigure()
         
@@ -140,7 +152,6 @@ methods % Structors
         delete(obj.hTiledImageAxes)
         delete(obj.hScrollbar)
     end
-
 end
 
 methods (Abstract, Access = protected) % Subclasses must implement
@@ -162,7 +173,6 @@ methods (Access = protected) % Optional, subclasses may implement
     function assignClassificationColors(obj)
 
     end
-
 end
 
 methods (Access = private, Hidden) % Gui Creation/construction
@@ -189,7 +199,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
         
         %obj.hFigure.WindowButtonDownFcn = @obj.mousePressed;
         obj.hFigure.ButtonDownFcn = @obj.mousePressed;
-        obj.hFigure.WindowScrollWheelFcn = @obj.scrollHandler; 
+        obj.hFigure.WindowScrollWheelFcn = @obj.scrollHandler;
         obj.hFigure.WindowButtonMotionFcn = @obj.onMouseMotion;
     end
 
@@ -224,7 +234,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
 
         obj.updatePanelLayout()
     end
-
     
     % Adapted to non-square images
     function createTiledImageAxes(obj, varargin)
@@ -233,19 +242,27 @@ methods (Access = private, Hidden) % Gui Creation/construction
         def = struct('numChan', 1, 'tileUnits', 'pixel');
         opt = utility.parsenvpairs(def, [], varargin);
     
-        imageSize = obj.getImageSizeFromData();
+        originalImageSize = obj.getImageSizeFromData();
 
-        obj.updateGridSizeOptions(imageSize)
-        newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+        obj.updateGridSizeOptions(originalImageSize)
+        if strcmp(obj.settings.GridSize, 'Custom')
+            newGridSize = obj.settings.CustomGridSize;
+        else
+            newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+        end
 
         imageScaleFactor = eval( obj.settings.ImageScaleFactor );
-        imageSize = round( imageSize .* imageScaleFactor);
+        imageSize = round( originalImageSize .* imageScaleFactor);
 
         % Create a Tiled Image Axes Object in the image panel.
         tmpH = uim.graphics.tiledImageAxes(obj.hPanelImage, 'gridSize', newGridSize, ...
             'imageSize', imageSize, 'numChan', opt.numChan, 'tileUnits', opt.tileUnits);
+        tmpH.setOriginalImageSize(originalImageSize)
+
+        % Note: This is set explicitly, but should be set in the
+        % constructor of tiledImageAxes
         obj.hTiledImageAxes = tmpH;
-        
+
         obj.setTileCallbacks()
 
         tmpHAX = obj.hTiledImageAxes.Axes;
@@ -260,7 +277,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
         mitem.Callback = @(s, e) obj.onTreeItemContextMenuSelected(s);
     end
     
-    function createGuiControls(obj)  
+    function createGuiControls(obj)
     %createGuiControls Create Gui Controls on the top panel
     
         % Add settings controls to the top panel
@@ -451,11 +468,11 @@ methods (Access = private, Hidden) % Gui Creation/construction
         
         %obj.hPanelSettings
 % % %         set(inputbox, 'ForegroundColor', ones(1,3)*0.85)
-% % % 
+% % %
 % % %         applify.AppWindow.switchJavaWarnings('off')
 % % %         h = applify.uicontrolSchemer(inputbox);
 % % %         h = applify.uicontrolSchemer(buttons);
-% % % 
+% % %
 % % %         applify.AppWindow.switchJavaWarnings('on')
     end
     
@@ -520,9 +537,8 @@ methods (Access = private, Hidden) % Gui Creation/construction
         VisibleAmount = barLength;
         obj.hScrollbar.VisibleAmount = VisibleAmount;
         
-        
         if ~isempty(obj.displayedItems)
-            barInit = find( candidates ==  obj.displayedItems(1), 1, 'first'); 
+            barInit = find( candidates ==  obj.displayedItems(1), 1, 'first');
             barInit = (barInit-1) ./ numel(candidates);
         else
             barInit = 0;
@@ -530,7 +546,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
 
         obj.hScrollbar.Value = barInit * 100;
     end
-    
     
     % % % Keyboard and mouse callbacks
     function keyPress(obj, src, event)
@@ -564,9 +579,8 @@ methods (Access = private, Hidden) % Gui Creation/construction
 % %                     obj.changeSelectedItem('prev')
 % %                 end
                 
-                
             % Numeric keypress should change the selected value in one of 3
-            % popupmenus and make necessary updates. If an item is selected 
+            % popupmenus and make necessary updates. If an item is selected
             % during numeric keypress, that item will be classified.
             
             case {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
@@ -595,12 +609,12 @@ methods (Access = private, Hidden) % Gui Creation/construction
                 end
                 
                 % Change selected item in the popup by changing the Value.
-                if val <= numel(hPopup.String) 
+                if val <= numel(hPopup.String)
                     hPopup.Value = val;
                 end
                 
                 % Invoke the new selection from the popup menu.
-                if contains(event.Modifier, 'shift')                 
+                if contains(event.Modifier, 'shift')
                     obj.updateView([], [], 'change selection');
                 elseif any(contains({'command',  'control'}, event.Modifier))
                     obj.changeImageType()
@@ -615,7 +629,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
 %                 hPopup = findobj(obj.hPanelSettings, 'Tag', 'ClickMode');
 %                 hPopup.Value = 2;
             case 's'
-                if contains(event.Modifier, 'shift') 
+                if contains(event.Modifier, 'shift')
                     btnH = findobj(obj.hFigure, 'Tag', 'Show Outline Button');
                     btnH.Value = ~btnH.Value;
                     obj.toggleShowOutlines(btnH, [])
@@ -629,7 +643,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
                 btnH = findobj(obj.hFigure, 'Tag', 'Show Outline Button');
                 btnH.Value = ~btnH.Value;
                 obj.toggleShowOutlines(btnH, [])
-                
                 
 %             case 'o'
 %                 hPopup = findobj(obj.hPanelSettings, 'Tag', 'ClickMode');
@@ -653,7 +666,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
         obj.hScrollbar.moveScrollbar(src, event)
         obj.updateView(src, event, 'scroll')
     end
-    
     
     function onMouseMotion(obj, src, event)
 
@@ -691,7 +703,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
             obj.mouseMode = newMouseMode;
         end
     end
-    
 end
 
 methods (Access = protected)
@@ -707,7 +718,7 @@ methods (Access = protected)
     %getCandidatesForUpdatedView Get indices for candidates that pass filter
     %
     %   Get all candidates that are passing the current selection in the
-    %   show dropdown menu. 
+    %   show dropdown menu.
     %
     %   Dropdown selection has n+2 modes where 1->n is the available
     %   classifications, 0 is unclassified and n+1 is to show all.
@@ -759,7 +770,6 @@ methods (Access = protected)
         set(obj.UiAnnotations.TopDivider, 'X', [X(1), X(1)+w], 'Y', [Y(2)-2, Y(2)-2]);
         obj.UiAnnotations.TopDivider.Units = 'normalized';
     end
-
 end
 
 methods % Mostly internal updating
@@ -798,12 +808,10 @@ methods % Mostly internal updating
         % This needs to be set after updating the view.
         obj.setTileCallbacks()
     end
-    
 
     % % % Methods for updating tile(s) with data
     
     function updateView(obj, src, event, mode)
-
         
         % Reset selection of roi if any rois are selected.
 % %         if ~isempty(obj.selectedItem)
@@ -830,7 +838,7 @@ methods % Mostly internal updating
             lastIndex = obj.displayedItems(end);
         end
     
-        % Get indices of all candidate items. 
+        % Get indices of all candidate items.
         candidates = getCandidatesForUpdatedView(obj);
         
         % Get order of rois. Update candidates according to current sorting.
@@ -1003,7 +1011,6 @@ methods % Mostly internal updating
 
         % tileNum must be a row vector
         if iscolumn(tileNum); tileNum = tileNum'; end
-
         
         colors = obj.classificationColors;
         
@@ -1017,7 +1024,6 @@ methods % Mostly internal updating
             else
                 obj.hTiledImageAxes.setTileOutlineColor(i, colors{cInd})
             end
-            
         end
 
         tileNum = find(tileClsf~=0);
@@ -1032,7 +1038,6 @@ methods % Mostly internal updating
             obj.hTiledImageAxes.setPlotVisibility('off')
        end
     end
-    
     
     % % % Get current selections/indices based on states of popup menus.
 
@@ -1055,10 +1060,10 @@ methods % Mostly internal updating
     end
     
     function imageSelection = getCurrentImageSelection(obj)
-    %getCurrentImageSelection Get image type selection from popup menu 
+    %getCurrentImageSelection Get image type selection from popup menu
         
         if isempty(obj.itemImages)
-            imageSelection = 'default'; 
+            imageSelection = 'default';
         else
             imageAlternatives = fieldnames(obj.itemImages);
             hSelectionPopup = findobj(obj.hFigure, 'Tag', 'SelectionImage');
@@ -1073,7 +1078,6 @@ methods % Mostly internal updating
             end
         end
     end
-    
     
     % Todo: Make protected
     function roiImage = getRoiImage(obj, roiInd, varargin)
@@ -1099,7 +1103,6 @@ methods % Mostly internal updating
             else
                 roiImage = arrayfun(@(i) obj.itemImages(i).(imageSelection), roiInd, 'uni', 0);
             end
-            
         end
 
         if opt.Resize
@@ -1113,10 +1116,15 @@ methods % Mostly internal updating
     end
 
     function itemText = getItemText(obj, roiInd)
-    %getItemText Get text to show in tile for each item.    
+    %getItemText Get text to show in tile for each item.
         
-        cellOfStr = arrayfun(@(i) sprintf('%d', i), roiInd, 'uni', 0);
-            
+        if ~isempty(obj.ItemNames)
+            cellOfStr = obj.ItemNames(roiInd);
+            if iscolumn(cellOfStr); cellOfStr = cellOfStr'; end
+        else
+            cellOfStr = arrayfun(@(i) sprintf('%d', i), roiInd, 'uni', 0);
+        end
+
         % Find value of variable selector:
         hTmp = findobj(obj.hFigure, 'Tag', 'VariableSelector');
         if isempty(hTmp); itemText=cellOfStr; return; end
@@ -1137,11 +1145,10 @@ methods % Mostly internal updating
             if isrow(valuesStr); valuesStr = valuesStr'; end
             if isrow(cellOfStr); cellOfStr = cellOfStr'; end
             cellOfStr = strcat(cellOfStr, valuesStr);
-        end 
+        end
         
         itemText = cellOfStr;
     end
-    
 
     % % % Methods for making changes...
     
@@ -1202,7 +1209,6 @@ methods % Mostly internal updating
         
         obj.roiArray(indToRemove) = [];
     end
-    
 
     % % % Roi callbacks
     
@@ -1222,12 +1228,12 @@ methods % Mostly internal updating
         % Determine which roi to select next depending on the 'mode' input
         switch mode
             case 'prev'
-                nextTileNum = max([1, currentTileNum-1]); 
+                nextTileNum = max([1, currentTileNum-1]);
             case 'next'
                 nextTileNum = min([currentTileNum+1, obj.hTiledImageAxes.nTiles]);
             case 'up'
                 numCols = obj.hTiledImageAxes.nCols;
-                nextTileNum = currentTileNum-numCols; 
+                nextTileNum = currentTileNum-numCols;
                 if nextTileNum < 0
                     nextTileNum = currentTileNum;
                 end
@@ -1245,7 +1251,7 @@ methods % Mostly internal updating
                 nextTileNum = tileNum;
         end
         
-        % Add roi index to selectedItem property and highlight plot 
+        % Add roi index to selectedItem property and highlight plot
         if exist('nextTileNum', 'var')
             obj.selectedItem = obj.displayedItems(nextTileNum);
             obj.hTiledImageAxes.updateTilePlotLinewidth(nextTileNum, 2)
@@ -1258,7 +1264,7 @@ methods % Mostly internal updating
     function mouseClickInTile(obj, src, event, tileNum)
     %mouseClickInTile Callback for user input (mouseclicks) on a tile
     
-        % If mousemode is not select, pass this to the mousePressed method 
+        % If mousemode is not select, pass this to the mousePressed method
         if ~isempty(obj.mouseMode) && ~strcmp(obj.mouseMode, 'Select')
             obj.mousePressed(src, event, tileNum)
             return
@@ -1293,7 +1299,7 @@ methods % Mostly internal updating
                 doClassify = true;
                 
             case 'open' % (doubleclick)
-                % Do nothing 
+                % Do nothing
 
             case 'extend' % Shift-click
                 
@@ -1356,7 +1362,7 @@ methods % Mostly internal updating
             obj.classifyRoi(roiInd, newClsf)
         end
         
-        % Update the proprty containing the roi number of the last selected
+        % Update the property containing the roi number of the last selected
         % roi
         obj.lastSelectedItem = roiInd(end);
     end
@@ -1381,7 +1387,6 @@ methods % Mostly internal updating
         end
     end
     
-    
     % % % Handling of user input for moving a roi within a tile.
     
     % Methods for saving results.
@@ -1405,7 +1410,7 @@ methods % Mostly internal updating
         end
         S.classificationLabels = obj.classificationLabels;
         
-        if exist(savePath, 'file')
+        if isfile(savePath)
             save(savePath, '-struct', 'S', '-append')
         else
             save(savePath, '-struct', 'S')
@@ -1469,7 +1474,6 @@ methods % Mostly internal updating
             savePath = fullfile(folderPath, filename);
         end
     end
-
 end
 
 methods (Access = protected)
@@ -1482,13 +1486,18 @@ methods (Access = protected)
                 tileNum = find(tileClsf~=0);
                 if val == 0
                     obj.settings.TileAlpha = 0.01;
-                    val = 0.01; 
+                    val = 0.01;
                 end % Patch becomes unpickable if it is completely transparent.
                 obj.hTiledImageAxes.setTileTransparency(tileNum, val) %#ok<FNDSB>
             
             case 'GridSize'
                 obj.settings.(name) = val;
-                newGridSize = obj.stringSizeToNumbers(val);
+
+                if strcmp(val, 'Custom')
+                    newGridSize = obj.settings.CustomGridSize;
+                else
+                    newGridSize = obj.stringSizeToNumbers(val);
+                end
 
                 % Apply!
                 if ~obj.hMessageBox.isMessageDisplaying()
@@ -1501,6 +1510,9 @@ methods (Access = protected)
                 % Change the value of the popup control.
                 hPopup = findobj(obj.hFigure, 'Tag', 'Set GridSize');
                 hPopup.Value = find(contains(hPopup.String, val));
+            
+            case 'CustomGridSize'
+                obj.changeGridSize(val)
 
             case 'ImageScaleFactor'
                 obj.settings.(name) = val;
@@ -1510,7 +1522,11 @@ methods (Access = protected)
                 newImageSize = round( imageSize .* imageScaleFactor);
                 
                 obj.updateGridSizeOptions(newImageSize)
-                newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+                if strcmp(obj.settings.GridSize, 'Custom')
+                    newGridSize = obj.settings.CustomGridSize;
+                else
+                    newGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+                end
 
                 % Apply changes:
                 obj.hMessageBox.displayMessage('Updating Image Resolution')
@@ -1566,10 +1582,19 @@ methods (Access = private)
         
         imageSelection = getCurrentImageSelection(obj);
         if numel( obj.itemImages(1) ) >= 1
-            imageData = obj.itemImages(1).(imageSelection);
-            imageSize = size(imageData);
-            imageSize = imageSize(1:2);
+            for i = 1:numel(obj.itemImages)
+                imageData = obj.itemImages(i).(imageSelection);
+                if isempty(imageData)
+                    continue
+                end
+                imageSize = size(imageData);
+                imageSize = imageSize(1:2);
+            end
         else
+            imageSize = nan;
+        end
+
+        if all(imageSize==0)
             imageSize = nan;
         end
     end
@@ -1582,7 +1607,7 @@ methods (Access = private)
         imageSizeOptions = cell(size(scaleFactors));
         for i = 1:numel(scaleFactors)
             thisScaleFactor = eval(scaleFactors{i});
-            scaledImageSize = imageSize .* thisScaleFactor;
+            scaledImageSize = round( imageSize .* thisScaleFactor);
             imageSizeOptions{i} = obj.numbersToStringSize(scaledImageSize);
         end
     end
@@ -1609,13 +1634,18 @@ methods (Access = private)
 
         % Update grid size options in settings
         opts = arrayfun(@(i) sprintf('%dx%d', nRows(i), nCols(i)), 1:numel(nRows), 'uni', 0);
+        opts = ['Custom', opts];
         obj.settings_.GridSize_ = opts;
 
         % Compute new preferred grid size by finding the new grid size with
         % the row number being closest to the row number in the old grid size
-        oldGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
-        [~, closestMatch] = min(abs(nRows - oldGridSize(1))); 
-        obj.settings_.GridSize = obj.settings.GridSize_{closestMatch};
+        if strcmp(obj.settings.GridSize, 'Custom')
+            closestMatch = 1;
+        else
+            oldGridSize = obj.stringSizeToNumbers(obj.settings.GridSize);
+            [~, closestMatch] = min(abs(nRows - oldGridSize(1)));
+            obj.settings_.GridSize = obj.settings.GridSize_{closestMatch};
+        end
 
         % Todo: update options in grid size dropdown menu
         % Change the value of the grid-size popup control.
@@ -1625,7 +1655,6 @@ methods (Access = private)
             hPopup.Value = closestMatch;
         end
     end
-    
 end
 
 methods (Static)
@@ -1640,14 +1669,13 @@ methods (Static)
         drawnow;
         set(h, 'Enable', 'on');
     end
-    
 end
 
 methods (Static, Access = private)
 
     function numberSize = stringSizeToNumbers(stringSize)
     %stringSizeToNumbers Convert a string formatted size to numbers
-    % 
+    %
     %   Example: '100x100' -> [100, 100]
     
         stringSizeSplit = strsplit(stringSize, 'x');
@@ -1660,7 +1688,5 @@ methods (Static, Access = private)
     %   Example: [100, 100] -> '100x100'
         stringSize = sprintf('%dx%d', numberSize(1), numberSize(2));
     end
-
 end
-    
 end

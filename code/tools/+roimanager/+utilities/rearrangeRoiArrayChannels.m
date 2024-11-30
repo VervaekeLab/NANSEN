@@ -9,7 +9,7 @@ function rearrangeRoiArrayChannels(filePath, newChannelOrder)
     variableName = fieldnames(S);
 
     assert(numel(variableName)==1, ...
-        'Expected file to have excactly one variable')
+        'Expected file to have exactly one variable')
     variableName = variableName{1};
 
     assert( contains(lower(variableName), 'roiarray'), ...

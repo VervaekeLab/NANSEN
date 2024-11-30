@@ -1,30 +1,28 @@
 function imageStackData = initializeData(dataReference, varargin)
-%imviewer.stack.initialize Initialize an imageStack object from a data reference.    
-%     
+%imviewer.stack.initialize Initialize an imageStack object from a data reference.
+%
 %   Data Reference can be a file- or folder path or it can be a matlab
 %   array.
 %
 %   INPUTS:
 %       dataReference : matrix | array | char | cell array of chars
 %           Reference to image data. Different types are allowed:
-%           
+%
 %           - matrix (n x m) : treated as a grayscale image
 %           - array (n x m x 3) : treated as a grayscale image
 %           - array (3D / 4D ) : treated as an image stack
 %           - char : treated as a path string to a image stack file
 %           - cell : treated as a cell array of path string to multiple
 %                    image stack file
-%   
+%
 %   PARAMETERS:
-
 
 % TODO:
 %   [ ] dataReference from clipboard could be a cell array of strings...
-%   [ ] Work out what todo if dataReference is a cellarray of pathStrings. 
+%   [ ] Work out what todo if dataReference is a cellarray of pathStrings.
 %       Should open many stack objects or concatenate into one stack
 %       object?
 % 	[?] Fix so that many can be loaded...
-
 
     [nvPairs, varargin] = utility.getnvpairs(varargin{:});
     
@@ -33,7 +31,6 @@ function imageStackData = initializeData(dataReference, varargin)
         imageStackData = dataReference;
         return
     end
-    
     
     % CASE 1: dataReference is empty. First, check if there is a filepath
     % on the clipboard. If not, open filebrowser.
@@ -59,7 +56,6 @@ function imageStackData = initializeData(dataReference, varargin)
         imageStackData = nansen.stack.data.MatlabArray(dataReference, nvPairs{:});
         return
     end
-    
 
     % CASE 4: dataReference is a cell array. Confirm that cells are pathstrings
     if isa(dataReference, 'cell')
@@ -69,7 +65,6 @@ function imageStackData = initializeData(dataReference, varargin)
         msg = 'Cell array must contain strings to files or folders';
         assert(all(isValidCellArray), msg)
     end
-    
     
     % CASE 5: dataReference is a character vector. Check if folder
     if isa(dataReference, 'char') || isa(dataReference, 'string')
@@ -83,7 +78,6 @@ function imageStackData = initializeData(dataReference, varargin)
             dataReference = fullfile(dataReference, fileName);
         end
     end
-    
 
     % Finally: Create an  ImageStackData from the dataReference
     
@@ -100,5 +94,4 @@ function imageStackData = initializeData(dataReference, varargin)
         error(['dataReference is not valid. See help for ', ...
             'nansen.stack.ImageStack for description of valid inputs'] )
     end
-    
 end

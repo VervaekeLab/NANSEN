@@ -1,5 +1,5 @@
 function computerName = getComputerName(doHash)
-%GETCOMPUTERNAME Return username for current user
+%GETCOMPUTERNAME Return name of current computer/platform
 %
 %   computerName = GETCOMPUTERNAME()
 
@@ -16,11 +16,22 @@ function computerName = getComputerName(doHash)
         [~, macAdress] = system('ifconfig en0 | grep ether');
         ind0 = regexp(macAdress, 'ether', 'once', 'end');
         computerName = macAdress(2 + (ind0:ind0+16));
+    elseif isunix
+        [~, currentUsername] = system('whoami');
+        currentUsername = strtrim(currentUsername);
+        if strcmp(currentUsername, 'matlab') || strcmp(currentUsername, 'mluser')
+            % Special case for matlab online
+            computerName = 'matlab_online';
+        else
+            [status, computerName] = system('cat /etc/machine-id');
+            if status ~= 0
+                [~, computerName] = system('hostname');
+            end
+            computerName = strtrim(computerName);
+        end
     end
     
-    
     if doHash
-        
         try
             Engine = java.security.MessageDigest.getInstance('MD5');
         catch ME  % Handle errors during initializing the engine:
@@ -34,5 +45,4 @@ function computerName = getComputerName(doHash)
         Hash = typecast(Engine.digest, 'uint8');
         computerName = sprintf('%.2x', double(Hash));
     end
-
 end

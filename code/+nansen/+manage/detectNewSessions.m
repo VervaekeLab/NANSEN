@@ -2,11 +2,11 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 %detectNewSessions Detect new sessions associated with a metatable
 %
 %   newSessionArray = detectNewSessions(metaTable, dataLocationName)
-%   look for session folders based on the current datalocation model 
+%   look for session folders based on the current datalocation model
 %   (i.e current project) and make a list of session objects based on
 %   folders. Session objects for all sessions that are not present in the
 %   table is returned.
-%   
+%
 %   INPUTS:
 %       metaTable : a session metatable
 %       dataLocationName : (Optional) Name of datalocation. Default is 'all'
@@ -16,8 +16,7 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
     
     % Get current data location model. Todo: What if there are situations
     % where another datalocation model should be used?
-    filePath = nansen.localpath('DataLocationSettings');    
-    dataLocationModel = nansen.config.dloc.DataLocationModel(filePath);
+    dataLocationModel = nansen.DataLocationModel();
     
     if nargin < 2 || isempty(dataLocationName)
         %dataLocationName = dataLocationModel.DefaultDataLocation;
@@ -70,7 +69,9 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
             newSessionArray = [];
             return
         end
-    end       
+    elseif any( cellfun('isempty', sessionIDs) )
+        newSessionArray( cellfun('isempty', sessionIDs) ) = [];
+    end
 end
 
 function sessionArray = validateDataLocationStruct(metaTable, sessionArray, dataLocationModel)

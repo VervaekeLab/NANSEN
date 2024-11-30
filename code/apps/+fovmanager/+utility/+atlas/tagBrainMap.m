@@ -8,8 +8,6 @@ set(h, 'ButtonDownFcn', @addTag);
 
 end
 
-
-
 function addTag(src, ~)
 
 tag = inputdlg('Enter Name');
@@ -17,6 +15,5 @@ if isempty(tag); return; end
 
 src.DisplayName = tag{1};
 src.Tag = tag{1};
-
 
 end

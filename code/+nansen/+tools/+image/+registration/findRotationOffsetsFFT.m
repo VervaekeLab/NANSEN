@@ -48,7 +48,7 @@ IM = IM(:, :, rotating);
 % Add refIm on the end on the imarray so that it is unfolded with the rest
 % of the images.
 if ~isempty(refIm)
-    IM = cat(3, IM, refIm); 
+    IM = cat(3, IM, refIm);
 end
 
 % Upsample to minimize offsets in the concentric lines due to diameter
@@ -115,7 +115,6 @@ end
 % Downsample to original image size before running the fft.
 unfoldedIm = imresize(unfoldedIm, 1/usFactor);
 imWidth = imWidth ./ usFactor;
-
 
 % Remove the inner part of the disk/the upper part of the unfolded image
 unfoldedImSize = size(unfoldedIm);

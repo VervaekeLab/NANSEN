@@ -1,0 +1,1 @@
+A package to hold visualization specific session methods for a module.

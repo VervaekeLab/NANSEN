@@ -1,5 +1,5 @@
 function [f, results] = visualizeDrift(data)
-%visualizeDrift Visualize the drift occuring throughout a stack of images
+%visualizeDrift Visualize the drift occurring throughout a stack of images
 %
 %   INPUT:
 %       avgProjImageArray : a 3D image array with an average projection for
@@ -20,7 +20,6 @@ function [f, results] = visualizeDrift(data)
 %          the stack.
 %
 %   See also ophys.twophoton.analysis.computeDriftSummary
-
     
     if isnumeric(data)
         results = ophys.twophoton.analysis.computeDriftSummary(data);
@@ -31,7 +30,6 @@ function [f, results] = visualizeDrift(data)
     % todo: Check results...
     numParts = results.NumParts;
 
-
     % Specify configuration for figure
     MARGIN = 50;
     SPACING = 20;
@@ -41,7 +39,6 @@ function [f, results] = visualizeDrift(data)
     yHeightU = 0.75;
     yHeightL = 0.25;
     yHeightPix = (figSize(2)-MARGIN*2-SPACING*4) .* [yHeightU, yHeightL];
-
 
     fprintf('Plotting data...'); fprintf(newline)
     

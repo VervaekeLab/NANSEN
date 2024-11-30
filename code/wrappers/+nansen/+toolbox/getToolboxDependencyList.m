@@ -2,14 +2,14 @@ function pathList = getToolboxDependencyList(toolboxInfo)
 %getToolboxDependencyList Get list of folders required for toolbox
 %
 %   PATHLIST = nansen.toolbox.getToolboxDependencyList(S) returns a list
-%   (PATHLIST, cell array) of absolute folder paths that are necessary to 
+%   (PATHLIST, cell array) of absolute folder paths that are necessary to
 %   run a toolbox addon. Input S is a struct containing the following three
 %   fields:
 %       * ToolboxName           : Name of toolbox
 %       * FunctionName          : Name of function that is part of toolbox
 %       * FolderExcludeTokens   : A cell array of expressions to exclude
 %         from the list. Example: {'.git'} to exclude .git subfolders.
-%   
+%
 %   Note: This function is used to generate a list of paths when creating a
 %   job using the batch function.
 
@@ -21,7 +21,10 @@ function pathList = getToolboxDependencyList(toolboxInfo)
         toolboxInfo.FolderExcludeTokens = {};
     end
     
-    nansenPathList = nansen.localpath('subfolder_list');
+    initPath = nansen.toolboxdir();
+    % Get all subfolders in the nansen toolbox directory.
+    folderPath = strsplit(genpath(initPath), pathsep);
+    nansenPathList = folderPath(1:end-1);
     
     % Find local toolbox location
     S = which(toolboxInfo.FunctionName);

@@ -9,7 +9,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             'exportAs_', {{'video', 'images'}}, ...
             'exportAs', 'video', ...
             'quality_', {{'high', 'medium', 'low'}}, ...
-            'quality', 'medium', ...    
+            'quality', 'medium', ...
             'startingFrame', 1, ...
             'numberOfSamples', 1000, ...
             'speed', 5, ...
@@ -29,7 +29,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
         % Implement with roimanager. So that rois are interactively
         % selected, and then video is exported based on selection
     end
-   
     
     properties
         imviewerRef
@@ -41,7 +40,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
         hAxSignalDisplay
         hScalebar
         
-        hRoiArray 
+        hRoiArray
         hColoredRois
         hSignalData
         
@@ -59,9 +58,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
         orignalImageDisplayUnits
         orignalImageDisplayPosition
     end
-   
-   
-    
     
     methods
         function obj = RoiSignalVideo(imvieverRef)
@@ -105,7 +101,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             
         end
         
-        
         function onFigureClosed(obj, ~, ~)
             obj.giveBackImageDisplay()
             obj.imviewerRef.clearMessage
@@ -114,9 +109,8 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             delete(obj)
         end
         
-        
         function setupFigure(obj)
-        %setupFigure Setup figure for image and signal display.    
+        %setupFigure Setup figure for image and signal display.
             figureHeight = obj.imviewerRef.imHeight;
             panelSpacing = 70;
             
@@ -164,7 +158,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             
         end
         
-        
         function prepareData(obj)
             
             % Specify which sample indices to subset data with.
@@ -190,12 +183,10 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             % Get roi array, dff and time vector from sData.
             obj.roiArray = sData.roiArray;
             
-            obj.timeVector = sData.time(sampleInd); 
+            obj.timeVector = sData.time(sampleInd);
             dff = squeeze( sData.roisignals(2).dff );
             
-            
             obj.roiInd = sort( randperm(numel(obj.roiArray), numRois) );
-
             
             % Prepare dff as lines stacked on top of each other
             dff = dff(:, sampleInd);
@@ -208,7 +199,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             obj.dffStacked = dffN;
             
         end
-        
         
         function borrowImageDisplay(obj)
             
@@ -224,7 +214,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             
             obj.hFigure.CloseRequestFcn = @obj.onFigureClosed;
         end
-        
         
         function giveBackImageDisplay(obj)
             obj.imviewerRef.Axes.Parent = obj.imviewerRef.Figure;
@@ -243,7 +232,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
                 delete(obj.hScalebar.Line)
             end
         end
-        
         
         function plotRoisAndSignals(obj)
             [hl, ~] = drawRoiOutlines(obj.hAxImageDisplay, obj.roiArray);
@@ -267,7 +255,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
                 count = count + 1;
             end
             
-            
             if obj.settings.addScalebar
                 
                 obj.hScalebar = scalebar(obj.hAxImageDisplay, 'x', 100, 'microm', ...
@@ -278,8 +265,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
                 obj.hScalebar.Line.Color = obj.settings.foregroundColor;
             end
             
-            
-            
             % patch roi with a color;
 % % %             for i = 1:numRois
 % % %                [pObj(i), tObj] = patchTunedNeurons(obj.hAxImageDisplay, ...
@@ -287,7 +272,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
 % % %                pObj(i).FaceAlpha = 0.15;
 % % %                delete(tObj)
 % % %             end
-% % %             
+% % %
 % % %             obj.hColoredRois = pObj;
             
             %numSamples = obj.settings.numberOfFrames;
@@ -304,7 +289,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             hold(obj.hAxSignalDisplay, 'on')
             obj.hAxSignalDisplay.XLim = obj.timeVector([1,end]);
             obj.hAxSignalDisplay.YLim = [0, numRois+1];
-
             
             obj.hAxSignalDisplay.XLabel.Color = obj.settings.foregroundColor;
             obj.hAxSignalDisplay.XLabel.String = 'Time (s)';
@@ -316,7 +300,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             obj.hAxSignalDisplay.YAxis.FontSize = obj.settings.fontSize;
 
         end
-        
 
         function updateFrame(obj)
                         
@@ -339,7 +322,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
            
         end
         
-        
         function loopVideo(obj)
             
             for i = 1:obj.settings.speed:obj.settings.numberOfSamples
@@ -351,9 +333,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
                 obj.saveCurrentFrame()
                 
             end
-
         end
-        
         
         function saveCurrentFrame(obj)
             
@@ -363,11 +343,10 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             
             % big todo: why is print made with white bgcolor????
             
-            
             if strcmp(obj.settings.exportAs, 'images')
             
                 rootPath = fullfile(obj.settings.exportFolder, 'images');
-                if ~exist(rootPath, 'dir'); mkdir(rootPath); end
+                if ~isfolder(rootPath); mkdir(rootPath); end
                 fileName = sprintf('image_%05d.png', obj.currentSample);
                 savePath = fullfile(rootPath, fileName);
 
@@ -383,7 +362,6 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
                         im = imresize(im, 0.5);
                         imwrite(im, savePath)
                 end
-                
                 
             elseif strcmp(obj.settings.exportAs, 'video')
                 
@@ -408,11 +386,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
                 obj.imageArray(:, :, :, obj.frameCount) = cdata;
 
             end
-            
-            
-
         end
-        
         
         function saveFramesToVideo(obj)
             % Todo: Implement export dir
@@ -424,21 +398,15 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             
         end
         
-        
         function convertPngsToVideo(obj)
             % Todo: Implement export dir
             
         end
-        
-        
     end
     
     methods (Access = protected)
         function onSettingsChanged(obj, name, value)
             
-            
         end
     end
-    
-    
 end

@@ -6,7 +6,6 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
         Description = 'Options for EXTRACT'
     end
     
-    
     methods (Static) % Functions defined in files.
         
         [P, V] = getDefaults()
@@ -24,7 +23,7 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
             
             % Most config fields are just placed in substructs, but some
             % fields where renamed before placing in a substruct called
-            % CellFind. 
+            % CellFind.
             
             if nargin < 1
                 S = nansen.wrapper.extract.Options.getDefaults();
@@ -57,7 +56,5 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
                 end
             end
         end
-        
     end
-    
 end

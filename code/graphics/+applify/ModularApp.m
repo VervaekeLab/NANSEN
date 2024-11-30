@@ -4,13 +4,13 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
 %
 %   ModularApp() creates the app in a new figure
 %
-%   ModularApp(hPanel) creates the app in a panel.   
+%   ModularApp(hPanel) creates the app in a panel.
 %
 %
 %   Main functionality:
 %
 %     - Creates an app which can be placed in a separate figure window or
-%       in a panel within a figure. 
+%       in a panel within a figure.
 %     - Maximize / restore app
 %     - Assigns window (mouse/keyboard) callbacks for figures and handle
 %       their interaction if multiple modular apps are docked in one figure.
@@ -22,10 +22,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
 %       pos = initializeFigurePosition(app)
 %       resizePanel(app, src, evt)
 
-
-
 % Questions..
-
 
 % - - - - - - - - - - TODO LIST - - - - - - - - - - - - - - - - - - - - -
 %
@@ -35,7 +32,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
 %       based if mode is standalone and normalized if mode is docked. Is
 %       this a good idea? Should they instead always be one or the other?%
 %
-%   [ ] Methods for mouse leaving or entering app. 
+%   [ ] Methods for mouse leaving or entering app.
 %           - onMouseEnteredApp 
 %           - onMouseExitedApp
 %
@@ -55,7 +52,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
 %       Imviewer and structeditor needs these to be set in different
 %       ways...
 
-
 % - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - - - -
     
     properties (Constant, Hidden = true) % move to appwindow superclass
@@ -71,8 +67,8 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
     end
     
     properties
-        Figure matlab.ui.Figure     % Should this be public? 
-        Widgets                     % Should this be public? 
+        Figure matlab.ui.Figure     % Should this be public?
+        Widgets                     % Should this be public?
         % Visible
     end
     
@@ -95,7 +91,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
     end
     
     properties (Access = protected) % Todo: Move to pointermanager. Make pointermanager a property of this class.
-        isMouseDown             
+        isMouseDown
         PreviousMouseClickPoint   % Point where mouse was last clicked
         PreviousMousePoint
     end
@@ -121,7 +117,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         function resizePanel(app, src, evt)
             % Subclass may implement
         end
-        
     end
     
     methods
@@ -133,7 +128,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             app.mode = newMode;
 
         end
-        
     end
     
     methods % Constructor
@@ -147,7 +141,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             else
                 app.mode = 'standalone';
             end
-            
             
             % Initialize figure and panel properties based on mode
             switch app.mode
@@ -169,12 +162,11 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         end
         
         function delete(app)
-            if strcmp(app.mode, 'standalone') 
+            if strcmp(app.mode, 'standalone')
                 
                 if isvalid(app.Figure)
                     delete(app.Figure)
                 end
-                
             end
         end
     end
@@ -190,7 +182,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         end
     end
     
-    methods 
+    methods
         function tf = isMouseInApp(app)
         
             tf = false;
@@ -223,7 +215,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         end
            
         function place(app, location, offset)
-        %PLACE Place apps figure in location on screen 
+        %PLACE Place apps figure in location on screen
             if nargin < 3; offset = 0; end
             uim.utility.layout.place(app.Figure, location, offset)
         end
@@ -235,7 +227,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         function distribute(app, handles, keyword)
             error('Not implemented yet')
         end
-
     end
     
     methods (Access = protected)
@@ -248,11 +239,11 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             versionSplit = strsplit(matlabVersion, '.');
             versionVector = cellfun(@(c) str2double(c), versionSplit(1:3));
             
-            if all( versionVector >= VERSION_REFERENCE) 
+            if all( versionVector >= VERSION_REFERENCE)
                 app.isMatlabPre2018b = false;
             else
                 app.isMatlabPre2018b = true;
-            end 
+            end
         end % Todo: system function....
         
         function assignPanelFromArgin(app, hPanel)
@@ -295,7 +286,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                 end
                 src.Toolbar = [];
             end
-            
         end
         
         function createAppPanel(app, target)
@@ -312,7 +302,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             app.Panel.Position = [0,0,1,1];
             app.Panel.Tag = 'App Content Panel';
 
-            if strcmp(app.mode, 'standalone') 
+            if strcmp(app.mode, 'standalone')
                 app.Panel.Units = 'pixel'; % todo....
             end
             
@@ -353,7 +343,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                     src.Tooltip = 'Maximize Window';
                     %app.hFigure.Resize = 'off';
             end
-
         end
 
         function maximizeWindow(app, src, evt)
@@ -386,16 +375,14 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
 
             newPanelPos = app.hFigure.InnerPosition + [10, 10, -20, -20];
 
-
             app.hPanel.Position = newPanelPos;
             app.hPanel.Units = 'normalized';
             app.hPanel.BorderType = 'etchedin';
-            app.hPanel.HighlightColor = [0.1569    0.1569    0.1569]; 
+            app.hPanel.HighlightColor = [0.1569    0.1569    0.1569];
 
             %app.uiaxes.imdisplay.Position = [1,1,newPanelPos(3:4)-2];
             %app.uiaxes.textdisplay.Visible = 'off';
         end
-
     end
     
     methods (Access = protected) % Configurations (Subclasses may override)
@@ -466,9 +453,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                     hFig, 'WindowScrollWheel', @obj.onMouseScrolled);
                 
             end
-
         end
-        
     end
     
     methods (Access = protected) % Internal Callbacks
@@ -507,7 +492,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             obj.Panel.BackgroundColor = S.FigureBgColor;
             
         end
-        
     end
     
     methods (Access = {?applify.ModularApp, ?applify.DashBoard} ) % Event / interactive Callbacks
@@ -535,7 +519,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         function onMouseScrolled(obj, src, evt)
             % Subclass can implement this
         end
-        
     end
     
     methods (Static)
@@ -564,19 +547,19 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                 menubarHeight = applify.ModularApp.MAC_MENUBAR_HEIGHT;
             elseif ispc
                 menubarHeight = 0;
+            else
+                menubarHeight = 0;
             end
             
             % Todo: For menubar offset, i.e on window when menubar is on
             % bottom..
             screenSize(4) = screenSize(4) - menubarHeight;
 
-
             screenSize(4) = screenSize(4) - titleBarHeight;
 
             if nargout == 2
                 screenNum = i;
             end
-
         end
 
         function figPos = assertWindowOnScreen(figPos, screenPos)
@@ -591,14 +574,14 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             end
 
             % Make sure figure is not above available screen space
-            figPos(1:2) = max( [screenPos(1:2); figPos(1:2)] );            
+            figPos(1:2) = max( [screenPos(1:2); figPos(1:2)] );
 
         end
 
         function [h, varargin] = splitArgs(varargin)
         %splitArgs Pop possible panel arg from varargin
         
-            h = []; 
+            h = [];
             
             if isempty(varargin)
                 return
@@ -609,7 +592,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                 h = varargin{1};
                 varargin(1) = [];
             end
-            
         end
         
         function tf = isValidPanel(hPanel)
@@ -622,11 +604,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                 if numel(hPanel) == 1 && isvalid(hPanel)
                     tf = true;
                 end
-
             end
-            
         end
     end
-    
-    
 end

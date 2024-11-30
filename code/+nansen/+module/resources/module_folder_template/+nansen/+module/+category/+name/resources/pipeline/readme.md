@@ -1,0 +1,1 @@
+A folder to hold pipeline templates for a module.

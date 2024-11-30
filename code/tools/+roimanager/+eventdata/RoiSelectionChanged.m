@@ -1,5 +1,5 @@
 classdef (ConstructOnLoad) RoiSelectionChanged < event.EventData
-%RoiSelectionChanged Eventdata for "roi selection changed" event.   
+%RoiSelectionChanged Eventdata for "roi selection changed" event.
     
     properties
         OldIndices      % Indices of rois that were selected before
@@ -18,7 +18,5 @@ classdef (ConstructOnLoad) RoiSelectionChanged < event.EventData
             data.OriginSource = origin;
             
         end
-        
     end
-    
 end

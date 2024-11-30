@@ -28,84 +28,59 @@ function pathStr = localpath(pathKeyword, projectName)
             return
         end
     end
-
     
     if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')% Should it be called current?
-        projectRootDir = nansen.config.project.ProjectManager.getProjectPath();
+        
+        userSession = nansen.internal.user.NansenUserSession.instance('', 'nocreate');
+        if ~isempty(userSession)
+            projectRootDir = nansen.config.project.ProjectManager.getProjectPath();
+        else
+            projectRootDir = '';
+            warning('Calling localpath with no active user session')
+        end
     else
         projectRootDir = nansen.config.project.ProjectManager.getProjectPath(projectName);
     end
+
+    projectRootDir = char(projectRootDir);
 
     % Determine path folder (and filename if relevant) based input keyword
     switch pathKeyword
         
       % % Folders
-        
-        case {'nansen_root', 'root'}
-            % Get folder for nansen root.
-            folderPath = nansen.rootpath();
-
-        case 'integrations'
-            rootPath = fullfile(nansen.localpath('root'));
-            folderPath = fullfile(rootPath, 'code', 'integrations');
-            
-        case 'sessionmethods'
-            rootPath = fullfile(nansen.localpath('integrations'));
-            folderPath = fullfile(rootPath, 'sessionmethods');
-
         case 'session_method_templates'
-            rootPath = fullfile(nansen.rootpath, 'code', '+nansen');
+            rootPath = fullfile(nansen.toolboxdir, '+nansen');
             folderPath = fullfile(rootPath, '+session', '+methods', '+template');
                 
         case 'table_variable_templates'
-            rootPath = fullfile(nansen.rootpath, 'code', '+nansen');
+            rootPath = fullfile(nansen.toolboxdir, '+nansen');
             folderPath = fullfile(rootPath, '+metadata', '+tablevar');
         
         case 'builtin_file_adapter'
-            rootPath = fullfile(nansen.rootpath, 'code', '+nansen');
+            rootPath = fullfile(nansen.toolboxdir, '+nansen');
             folderPath = fullfile(rootPath, '+dataio', '+fileadapter');
 
-        case 'subfolder_list'
-            initPath = fullfile(nansen.localpath('nansen_root'), 'code');
-            folderPath = strsplit(genpath(initPath), pathsep);
-            folderPath = folderPath(1:end-1);
-
-        case {'_user_data', 'user_data', '_userdata', 'userdata'} % Todo...
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata');
-            
-        case {'current_project_dir', 'project'}
-            rootDir = fullfile(nansen.localpath('user_data'));
-            defaultProjectDir = fullfile(rootDir, 'projects', 'default');
-            folderPath = getpref('Nansen', 'CurrentProjectPath', defaultProjectDir); %todo: add default
+        case {'_user_data', 'user_data', '_userdata', 'userdata'}
+            folderPath = nansen.prefdir();
             
         case 'project_settings'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata', 'projects');
+            folderPath = fullfile(nansen.prefdir, 'projects');
             
         case 'custom_options'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata', 'custom_options');
+            folderPath = fullfile(nansen.prefdir, 'custom_options');
             
         case 'user_settings'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, '_userdata', 'settings');
+            folderPath = fullfile(nansen.prefdir, 'settings');
             
         case {'current_project_folder', 'Current Project'}
-            folderPath = getpref('Nansen', 'CurrentProjectPath');
-            
-        case {'MetaTable', 'metatable_folder'}
-            folderPath = fullfile(projectRootDir, 'Metadata Tables');
-            
+            pm = nansen.ProjectManager();
+            folderPath = pm.CurrentProjectPath;
+           
         case 'Custom Metatable Variable'
             [~, projectName] = fileparts(projectRootDir);
 
-            folderPath = fullfile(projectRootDir, 'Metadata Tables', ...
-                ['+', projectName], '+tablevar');
-            
-        case 'Data Variable Template Folder'
-            initPath = nansen.localpath('nansen_root');
-            folderPath = fullfile(initPath, 'templates', 'datavariables');
+            folderPath = fullfile(projectRootDir, 'code', ...
+                ['+', projectName], '+tablevariable');
             
       % % Files
       
@@ -160,13 +135,11 @@ function pathStr = localpath(pathKeyword, projectName)
             else
                 error('No localpath found for "%s"', pathKeyword)
             end
-            
     end
-    
     
     % Make folder if it does not exist
     if ischar( folderPath )
-        if ~exist(folderPath, 'dir');  mkdir(folderPath);  end
+        if ~isfolder(folderPath);  mkdir(folderPath);  end
     end
     
     % Prepare output, either file- or folderpath
@@ -179,4 +152,3 @@ function pathStr = localpath(pathKeyword, projectName)
     nansenPreferences.localPath(pathKeyword) = pathStr;
 
 end
-

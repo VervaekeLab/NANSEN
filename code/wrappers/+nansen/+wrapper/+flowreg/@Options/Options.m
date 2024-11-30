@@ -1,5 +1,4 @@
 classdef Options < nansen.wrapper.abstract.OptionsAdapter
-
     
     properties (Constant)
         ToolboxName = 'FlowRegistration'
@@ -30,7 +29,6 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
             S.Run.ChannelProcessingMode_ = {'batch', 'single'};
         end
         
-        
         function options = convert(S, ~)
         %getToolboxOptions Get options compatible with the toolbox.
         %
@@ -43,15 +41,12 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
             nameMap = nansen.wrapper.flowreg.Options.getAdapter();
             nvPairs = nansen.wrapper.abstract.OptionsAdapter.rename(S, nameMap, 'nvPairs');
             
-            
             %nvPairs = Options.getToolboxNvPairs(S);
                         
             options = OF_options(nvPairs{:});
                         
         end
-
     end
-    
 end
 
 % % % Original flowreg options
@@ -67,14 +62,13 @@ end
 % %         alpha       = 1.5;                  smoothness parameter, regularization parameter
 % %         weight      = [0.5, 0.5];           Channel weight
 % %         levels      = 100;
-% %         min_level   = -1;                   % Something about performance 
+% %         min_level   = -1;                   % Something about performance
 % %         quality_setting = 'quality'; warping depth
 % %         eta         = 0.8;                  downsampling factor
 % %         update_lag  = 5;
 % %         iterations  = 50;
 % %         a_smooth    = 1;                    penalizer power?
 % %         a_data      = 0.45;
-
 
 % %         sigma       = [1, 1, 0.1; ...       % Gaussian smoothing? Preprocessing
 % %                        1, 1, 0.1];          % Per channel

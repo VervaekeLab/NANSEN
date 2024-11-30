@@ -10,7 +10,7 @@ function [tileIndices, tileCorners, tileIndexMap] = ...
 %       tileIndices  : Cell array of linear indices for each pixel in a
 %                      tile. Size is nRows x nCols
 %       tileCorners  : Matrix with x- and y- pixel coordinates for each
-%                      tile's corner. Size is nTiles x 2 (x = 1st col, 
+%                      tile's corner. Size is nTiles x 2 (x = 1st col,
 %                      y = 2nd col)
 %       tileCenters  : Not implemented here.
 %       tileIndexMap : A matrix with same size as the image object's
@@ -23,10 +23,9 @@ function [tileIndices, tileCorners, tileIndexMap] = ...
     end
     
     pixelWidth = nCols .* imageSize(2);
-    pixelWidth = pixelWidth + pixelPadding .* (nCols-1);          
+    pixelWidth = pixelWidth + pixelPadding .* (nCols-1);
     pixelHeight = nRows .* imageSize(1);
     pixelHeight = pixelHeight + pixelPadding .* (nRows-1);
-
 
     % Pixel coordinate for the position of rows and columns
     x0 = ((1:nCols)-1) .* (imageSize(2)+pixelPadding) + 1;
@@ -73,5 +72,4 @@ function [tileIndices, tileCorners, tileIndexMap] = ...
     elseif nargout == 2
         clear tileIndexMap
     end
-
 end

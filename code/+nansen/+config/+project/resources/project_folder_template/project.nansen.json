@@ -1,0 +1,12 @@
+{
+  "_type": "NANSEN Project Specification",
+  "_description": "Contains properties and preferences for a NANSEN project",
+  "_version": "1.0.0",
+  "Properties": {
+    "Name": "<Project name>",
+    "ShortName": "<Project short name>",
+    "Description": "<Project description>"
+  },
+  "Preferences": {
+  }
+}

@@ -9,8 +9,8 @@ classdef roiDisplay < uim.handle
 %
 %   Methods that may be implemented by a subclass:
 %
-%       onRoiGroupChanged          : handle changes that should occur on 
-%                                    the roi display if the one or more 
+%       onRoiGroupChanged          : handle changes that should occur on
+%                                    the roi display if the one or more
 %                                    rois are modified
 %
 %       onRoiClassificationChanged : handle changes that should occur on
@@ -24,8 +24,8 @@ classdef roiDisplay < uim.handle
 %       onVisibleRoisChanged       : handle changes on the roi display
 %                                    when the visibility of one or more
 %                                    rois are changed
-%                                     
-%       addRois                    : handle changes on the roi display 
+%
+%       addRois                    : handle changes on the roi display
 %                                    when rois are added to RoiGroup
 %
 %       removeRois                 : handle changes on the roi display
@@ -34,10 +34,10 @@ classdef roiDisplay < uim.handle
 %       onRoiGroupSet              : handle changes on the roi display
 %                                    when a RoiGroup is set.
 
-%   TODO: 
+%   TODO:
 %       [ ] selectRois should be a method of the roidisplay
 %       [ ] hittest (or similar name) should be a method of the roi display
-%       [ ] Should have a onRoisSelected method 
+%       [ ] Should have a onRoisSelected method
 
 % Work in progress.
     
@@ -59,7 +59,7 @@ classdef roiDisplay < uim.handle
     
     properties
         % The handle of a roigroup object
-        RoiGroup %roimanager.roiGroup % Todo: Add property validation, but see comment in roimanager.RoiGroupFileIoAppMixin      
+        RoiGroup %roimanager.roiGroup % Todo: Add property validation, but see comment in roimanager.RoiGroupFileIoAppMixin
     end
     
     properties (SetAccess = protected)
@@ -94,7 +94,6 @@ classdef roiDisplay < uim.handle
         function onVisibleRoisChanged(obj, evtData)
             % Subclasses may override
         end
-
     end
     
     methods % Todo: Should these be public?
@@ -111,7 +110,7 @@ classdef roiDisplay < uim.handle
         
         function classifyRois(obj, classification, roiInd)
         %ClassifyRois Change classification state for selected rois
-            if nargin < 3 
+            if nargin < 3
                 roiInd = obj.SelectedRois;
             end
             
@@ -119,7 +118,6 @@ classdef roiDisplay < uim.handle
             
             obj.RoiGroup.setRoiClassification(roiInd, newClass)
         end
-        
     end
     
     methods % Constructor
@@ -135,7 +133,6 @@ classdef roiDisplay < uim.handle
         function delete(obj)
             obj.resetListeners()
         end
-
     end
 
     methods % Set/get
@@ -180,7 +177,6 @@ classdef roiDisplay < uim.handle
             newValue = unique(newValue);
             obj.VisibleRois = newValue;
         end
-        
     end
     
     methods (Access = protected)
@@ -220,7 +216,6 @@ classdef roiDisplay < uim.handle
             
             obj.VisibleRois = visibleRois;
         end
-        
     end
     
     methods (Access = private)
@@ -231,7 +226,7 @@ classdef roiDisplay < uim.handle
         end
         
         function createListeners(obj)
-        %createListeners Create listeners for events on RoiGroup    
+        %createListeners Create listeners for events on RoiGroup
         
             obj.RoisChangedListener = event.listener(obj.RoiGroup, ...
                 'roisChanged', @(s, e) onRoiGroupChanged(obj, e));
@@ -247,7 +242,7 @@ classdef roiDisplay < uim.handle
         end
         
         function resetListeners(obj)
-        %resetListeners Reset the RoiGroup event listeners    
+        %resetListeners Reset the RoiGroup event listeners
             if ~obj.hasListeners; return; end
             
             delete( obj.RoisChangedListener )
@@ -260,7 +255,5 @@ classdef roiDisplay < uim.handle
             obj.RoiClassificationChangedListener = event.listener.empty;
             obj.VisibleRoisChangedListener = event.listener.empty;
         end
-        
     end
-    
 end

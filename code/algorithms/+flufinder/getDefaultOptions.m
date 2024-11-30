@@ -1,11 +1,11 @@
 function [P, V] = getDefaultOptions(mode)
 %getDefaultOptions Get parameters for flufinder autosegmentation
 %
-%   P = flufinder.getDefaultOptions() returns a struct (P) with default 
+%   P = flufinder.getDefaultOptions() returns a struct (P) with default
 %       parameters for running flufinder's autosegmentation algorithm.
 %
-%   [P, V] = flufinder.getDefaultOptions() returns an additional struct (V) 
-%       containing assertions for each parameter, for use with an input 
+%   [P, V] = flufinder.getDefaultOptions() returns an additional struct (V)
+%       containing assertions for each parameter, for use with an input
 %       parser etc.
 %
 %   SELECTED PARAMETERS:
@@ -17,11 +17,10 @@ function [P, V] = getDefaultOptions(mode)
 %   Note: for full list of parameters, run function without output, i.e
 %       flufinder.getDefaultOptions() ()
 
-
-% DESRIPTION:
+% DESCRIPTION:
 %   Change these parameters to change the behavior of the autosegmentation.
 
-    % - - - - - - - - Specify parameters and default values - - - - - - - - 
+    % - - - - - - - - Specify parameters and default values - - - - - - - -
 
     % Names                             Values (default)      Description
     P                                   = struct();
@@ -36,7 +35,7 @@ function [P, V] = getDefaultOptions(mode)
     P.Detection.MaxNumRois              = 300;                % Maximum number of rois to detect
 
     % Image stack preprocessing
-    P.Preprocessing.BinningMethod       = 'maximum';          % Method for fram binning. Alternatives: 'maximum' (default) or 'average' (not implemented)
+    P.Preprocessing.BinningMethod       = 'maximum';          % Method for frame binning. Alternatives: 'maximum' (default) or 'average' (not implemented)
     P.Preprocessing.BinningSize         = 5;
     P.Preprocessing.SpatialFilterType   = 'gaussian';         % todo...
     P.Preprocessing.SmoothingSigma      = 20;                 % "Size" (standard deviation/sigma) of the gaussian kernel for creating background image
@@ -65,7 +64,6 @@ function [P, V] = getDefaultOptions(mode)
     P.Preprocessing.PrctileForBaseline_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 100, 'nTicks', 99, 'TooltipPrecision', 0}});
     P.Detection.PrctileForBinarization_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 100, 'nTicks', 99, 'TooltipPrecision', 0}});
     
-    
     % - - - - Specify validation/assertion test for each parameter - - - -
     
     V                           = struct();
@@ -89,8 +87,4 @@ function [P, V] = getDefaultOptions(mode)
     elseif nargout == 1
         clear V
     end
-    
 end
-
-
-

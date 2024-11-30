@@ -8,7 +8,6 @@ function place(hFigure, location, offset)
 %   place(hFigure, location, offset) places the figure at a location with
 %   an offset. offset can be a scalar or a vector with x- and y-offset.
 
-
     if nargin < 3; offset = [0, 0]; end
     screenSize = uim.utility.getCurrentScreenSize(hFigure);
     
@@ -50,5 +49,4 @@ function place(hFigure, location, offset)
             uim.utility.layout.place(hFigure, 'left', offset(2))
             
     end
-
 end

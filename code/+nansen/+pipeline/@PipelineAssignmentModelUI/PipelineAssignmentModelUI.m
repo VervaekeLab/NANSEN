@@ -1,14 +1,12 @@
 classdef PipelineAssignmentModelUI < applify.apptable
 % Class interface for creating pipeline assignment model in a uifigure
 
-
 % TODO:
 %   [ ] Add third button to buttongroup, where user can write an expression
 %       or a function handle (1 or 2 buttons?). This is particularly
 %       relevant for variables that are numeric, I.e you want to select
 %       values in an interval. But also useful in order to to logical
 %       operations like and/or.
-
 
     properties
         PipelineModel
@@ -34,9 +32,8 @@ classdef PipelineAssignmentModelUI < applify.apptable
     end
     
     properties % Toolbar
-        AdvancedOptionsButton 
+        AdvancedOptionsButton
     end
-    
     
     methods % Structors
         function obj = PipelineAssignmentModelUI(varargin)
@@ -46,7 +43,6 @@ classdef PipelineAssignmentModelUI < applify.apptable
            
             obj.onModelSet()
         end
-        
     end
     
     methods % Set/get methods
@@ -56,20 +52,16 @@ classdef PipelineAssignmentModelUI < applify.apptable
             obj.MetaTable = value;
             obj.onMetaTableSet();
         end
-        
-        
-        
     end
-    
 
     methods (Access = protected) % Methods for creation
         
         function assignDefaultTablePropertyValues(obj)
 
             obj.ColumnNames = {'', 'Variable name', 'Selection Mode', 'Input'};
-            obj.ColumnHeaderHelpFcn = @nansen.setup.getHelpMessage;
+            obj.ColumnHeaderHelpFcn = @nansen.app.setup.getHelpMessage;
             obj.ColumnWidths = [22, 200, 150, 200];
-            obj.RowSpacing = 20;   
+            obj.RowSpacing = 20;
             obj.ColumnSpacing = 25;
         end
         
@@ -77,19 +69,17 @@ classdef PipelineAssignmentModelUI < applify.apptable
         
             hRow = struct();
             
-            
-        % % Create variable name 
+        % % Create variable name
             i = 1;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
             
             hRow.RemoveRowButton = uibutton(obj.TablePanel);
             hRow.RemoveRowButton.Position = [xi y wi h];
             hRow.RemoveRowButton.Text = '';
-            hRow.RemoveRowButton.Icon = 'minus.png';
+            hRow.RemoveRowButton.Icon = nansen.internal.getIconPathName('minus.png');
             obj.centerComponent(hRow.RemoveRowButton, y)
             hRow.RemoveRowButton.ButtonPushedFcn = ...
                 @obj.onRemoveSessionVariableButtonPushed;
-            
             
         % % Create variable name dropdown
             i = 2;
@@ -104,7 +94,6 @@ classdef PipelineAssignmentModelUI < applify.apptable
             
             obj.updateVariableNameDropdown(rowNum, ...
                 hRow.VariableNameDropdown)
-
             
         % % Create Togglebutton group for selecting string detection mode
             i = 3;
@@ -135,7 +124,6 @@ classdef PipelineAssignmentModelUI < applify.apptable
             obj.updateSelectionModeButtonGroup(rowNum, ...
                 hRow.SelectionModeButtonGroup)
 
-
         % % Create Editbox for string input
             i = 4;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
@@ -146,7 +134,6 @@ classdef PipelineAssignmentModelUI < applify.apptable
             hRow.VariableValueInputField.ValueChangedFcn = @obj.onVariableValueChanged;
             
             obj.centerComponent(hRow.VariableValueInputField, y)
-            
             
         % % Create dropdown for selection...
             hRow.VariableValueDropdown = uidropdown(obj.TablePanel);
@@ -180,17 +167,16 @@ classdef PipelineAssignmentModelUI < applify.apptable
             obj.UIButton_AddSessionVar.ButtonPushedFcn = @(s, e) obj.onAddNewSessionVariableButtonPushed;
             obj.UIButton_AddSessionVar.Position = [location buttonSize];
             obj.UIButton_AddSessionVar.Text = '';
-            obj.UIButton_AddSessionVar.Icon = 'plus.png';
+            obj.UIButton_AddSessionVar.Icon = nansen.internal.getIconPathName('plus.png');
             obj.UIButton_AddSessionVar.Tooltip = 'Add New Session Variable';
             
         end
-        
     end
     
     methods (Access = private) % Methods for updating component values
         
         function updateVariableNameDropdown(obj, rowNum, hDropdown)
-        %updateVariableNameDropdown Update component items and values.   
+        %updateVariableNameDropdown Update component items and values.
             if nargin < 3
                 hDropdown = obj.RowControls(rowNum).VariableNameDropdown;
             end
@@ -210,7 +196,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
         end
         
         function updateSelectionModeButtonGroup(obj, rowNum, hButtonGroup)
-        %updateSelectionModeButtonGroup    
+        %updateSelectionModeButtonGroup
             if nargin < 3
                 hButtonGroup = obj.hRowControls(rowNum).SelectionModeButtonGroup;
             end
@@ -228,7 +214,6 @@ classdef PipelineAssignmentModelUI < applify.apptable
                 case 'contains'
                     hButtonGroup.SelectedObject = hButtonGroup.Children(1);
             end
-            
         end
             
         function updateVariableValueField(obj, rowNum, hRow)
@@ -276,14 +261,12 @@ classdef PipelineAssignmentModelUI < applify.apptable
                         hDropdown.Value = hDropdown.Items{1};
                     end
                 end
-
             end
 
             % Update values for edit field
             hRow.VariableValueInputField.Value = rowData.Expression;
 
         end
-
     end
     
     methods (Access = private)
@@ -307,7 +290,6 @@ classdef PipelineAssignmentModelUI < applify.apptable
                 case 'Contains'
                     mode = 'contains';
             end
-            
         end
         
         function getVariableValueExpression(obj, rowNum)
@@ -331,8 +313,6 @@ classdef PipelineAssignmentModelUI < applify.apptable
             selectedPipeline = obj.PipelineModel.getItem(evt.Value);
             obj.Data = selectedPipeline.SessionProperties;
             
-            
-            
             % Update controls with values from session property fields...
             obj.createTable()
 
@@ -348,8 +328,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
             % Update selection dropdown with remaining session variable
             % names.
             
-            % If 
-            
+            % If
             
         end
         
@@ -363,7 +342,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
         end
         
         function onVariableNameSelectionChanged(obj, src, ~)
-        %onVariableNameSelectionChanged Callback fro dropdown
+        %onVariableNameSelectionChanged Callback for dropdown
         
             rowNumber = obj.getComponentRowNumber(src);
             if strcmp( src.Value, 'Select variable name' )
@@ -398,7 +377,6 @@ classdef PipelineAssignmentModelUI < applify.apptable
                     obj.Data(rowNumber).Mode = 'contains';
                     obj.Data(rowNumber).Expression = hRow.VariableValueInputField.Value;
             end
-            
         end
 
         function onVariableValueChanged(obj, src, ~)
@@ -410,7 +388,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
     methods % Methods for updating
         
         function createToolbar(obj, ~)
-        %createToolbar Create components of toolbar acompanying table
+        %createToolbar Create components of toolbar accompanying table
         
             import uim.utility.layout.subdividePosition
             hPanel = obj.Parent.Parent;
@@ -465,7 +443,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
         end
         
         function updateModel(obj, pipelineName)
-        %updateModel Update model with changes from UI   
+        %updateModel Update model with changes from UI
         
             % Update the data for the pipeline with the given name
             S = obj.getUpdatedTableData(pipelineName);
@@ -499,7 +477,6 @@ classdef PipelineAssignmentModelUI < applify.apptable
             obj.SessionVariableNames = varNames;
             
         end
-
     end
     
     methods (Access = private) % Internal updating
@@ -532,9 +509,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
                 itemSelection = setdiff(defaultItems, tmpSkipNames, 'stable');
                 hDropdown(i).Items = itemSelection;
             end
-            
         end
-        
     end
     
     methods
@@ -542,7 +517,5 @@ classdef PipelineAssignmentModelUI < applify.apptable
         function markClean(obj)
             obj.IsDirty = false;
         end
-        
     end
-    
 end

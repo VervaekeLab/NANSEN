@@ -43,7 +43,7 @@ classdef eventAnnotator < uim.interface.abstractPointer
         EventModified
     end
     
-    methods 
+    methods
         function obj = eventAnnotator(hAxes)
             obj.hAxes = hAxes;
             obj.hFigure = ancestor(hAxes, 'figure');
@@ -86,7 +86,6 @@ classdef eventAnnotator < uim.interface.abstractPointer
         function setPointerSymbol(obj)
             %obj.hFigure.Pointer = 'arrow';
         end
-
     end
 
     methods % Public methods...
@@ -117,7 +116,6 @@ classdef eventAnnotator < uim.interface.abstractPointer
         function set.EventVectorName(obj, newName)
         
         end
-        
     end
     
     methods (Access = public) % Methods for mouse interactive callbacks
@@ -130,7 +128,6 @@ classdef eventAnnotator < uim.interface.abstractPointer
 
         function onButtonUp(obj, src, event)
         end
-        
     end
     
     methods (Access = protected)
@@ -140,8 +137,5 @@ classdef eventAnnotator < uim.interface.abstractPointer
         
         function updateMarker(obj)
         end
-
     end
-    
-    
 end

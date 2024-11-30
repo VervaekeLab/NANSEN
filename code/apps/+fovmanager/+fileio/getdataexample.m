@@ -4,7 +4,7 @@ function S = getdata(sessionID, dataName)
 %   S = fovmanager.fileio.getdata(sessionID, dataName) loads data given a sessionID.
 %   dataName is a character vector or a cellarray of character vectors
 %   S is a struct with names corresponding to the given dataNames.
-% 
+%
 %   This function should support the following dataNames:
 %       fovImage : An average image of the FoV
 %       roiArray : The roi array from this fov
@@ -14,7 +14,7 @@ function S = getdata(sessionID, dataName)
 %
 %   Example: S = fovmanager.fileio.getdata(sessionID, {'fovImage', 'fovSize'})
 %       Output S will have two fields, fovImage and fovSize.
-%   
+%
 %   This function is used in some parts of the fov manager to retrieve
 %   necessary data from a session.
 
@@ -46,7 +46,5 @@ function S = getdata(sessionID, dataName)
                 umPerPx = [sData.meta2P.umPerPxY, sData.meta2P.umPerPxX];
                 S.fovSize = mean(imSize.*umPerPx)./1000;
         end
-        
     end
-    
 end

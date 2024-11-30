@@ -18,7 +18,6 @@ classdef RoiArray < nansen.dataio.FileAdapter
             
             % Todo: Check all variables in file, to see if any are of type
             % RoI or struct, and try to resolve...
-
             
             % Keep backwards compatibility (Todo: remove at some point):
             refVariableNames = {'roi_arr', 'RoiArray', 'roiArray'};
@@ -58,8 +57,5 @@ classdef RoiArray < nansen.dataio.FileAdapter
             % Use superclass method to write to mat...
             obj.writeDataToMat(S);
         end
-
     end
-    
 end
-

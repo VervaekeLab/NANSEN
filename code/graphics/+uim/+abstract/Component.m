@@ -3,7 +3,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
 % This class provides basic positioning (layout) and style methods.
 %
 %   The component class provides a mix of functionality for positioning a
-%   component and for giving it a background and border appeareance, i.e
+%   component and for giving it a background and border appearance, i.e
 %   layout and style. In the ideal world, these would be separate classes.
 %
 %   The layout of a component is a bit more advanced than the standard
@@ -11,9 +11,9 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
 %       1. A component can be placed relative to a location in the parent
 %          container. The margin is used to offset the component from
 %          this location.
-%       2. A component can have a floating size in one or both dimensions. 
+%       2. A component can have a floating size in one or both dimensions.
 %          I.e it will stretch to fill up available space.
-% 
+%
 %   Illustration showing layout of a component:
 %
 % % % % % % % Parent Container  % % % % % % % % % % % %
@@ -43,10 +43,9 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
 %
 %
 %   ABSTRACT PROPERTIES:
-%       Type (Constant) : A name to describe the component type 
+%       Type (Constant) : A name to describe the component type
 %
 %   ABSTRACT METHODS:
-
 
 % Questions:
 %       [ ] Should there be an allowed subclasses attribute? I.e Control and
@@ -57,16 +56,13 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
 % Todo:
 %       [ ] Simplify positioning. ie remove size and use position(3:4)?         (Not sure if this is needed).
 %       [x] Remove hAxes property and replace with CanvasAxes
-%       [ ] Implement a set.Parent method
-%       [ ] Implement a set.IsFixedSize method
-%       [ ] Implement a getpixelposition method.
-%       [ ] Implement a set methods for PositionMode, SizeMode
-%       [ ] Implement a set methods for MinimumSize, MaximumSize
+%       [ ] Implement a set.Parent method
+%       [ ] Implement a set.IsFixedSize method
+%       [ ] Implement a getpixelposition method.
+%       [ ] Implement a set methods for PositionMode, SizeMode
+%       [ ] Implement a set methods for MinimumSize, MaximumSize
 %       [ ] Make a component style... which is basically all the
 %           backgroundstyles...
-
-
-
 
     properties (Abstract, Constant)
         Type % Should rename to name????
@@ -152,13 +148,11 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
         IsConstructed_ = false % Constructed flag internal to the component superclass
     end
     
-    
     events
         LocationChanged
         SizeChanged
         StyleChanged
     end
-    
    
     methods % Structors
         
@@ -170,7 +164,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 obj.Parent = hParent.getGraphicsContainer();
             elseif isgraphics(hParent)
                 obj.Parent = hParent;
-            else 
+            else
                 error('Parent must be this or that')
             end
             
@@ -188,11 +182,10 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             obj.updateSize(obj.SizeMode)
 
             % Call updateLocation to trigger location update
-            obj.updateLocation(obj.PositionMode) 
-
+            obj.updateLocation(obj.PositionMode)
             
             % Todo: add listener. If uicc is deleted, delete this class as
-            % well. 
+            % well.
 
             %obj.Canvas = hParent;
             %obj.hAxes = obj.Canvas.Axes;
@@ -208,9 +201,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             if ~isempty(obj.hBorder) && isvalid(obj.hBorder)
                 delete(obj.hBorder)
             end
-            
         end
-        
     end
     
     methods (Access = protected) % Creation
@@ -253,7 +244,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
         end
         
         function assignComponentCanvas(obj)
-        %assignComponentCanvas Assign component canvas    
+        %assignComponentCanvas Assign component canvas
             obj.Canvas = getappdata(obj.Parent, 'UIComponentCanvas');
             
             if isempty(obj.Canvas)
@@ -282,15 +273,14 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
         end
         
         function createBorder(obj) % Subclasses can override
-        %createBorder Plot the component border    
+        %createBorder Plot the component border
             
-            % Why not just use the edge of the patch?? 
+            % Why not just use the edge of the patch??
             %   -If we want to create more advanced borders...
         end
-        
     end
     
-    methods % Set/Get 
+    methods % Set/Get
 
         function set.IsConstructed(obj, newValue)
             
@@ -311,7 +301,6 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 newValue = validatestring(newValue, {'shared', 'private'});
                 obj.CanvasMode = newValue;
             end
-
         end
         
         function pos = get.CanvasPosition(obj)
@@ -328,6 +317,9 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             % Todo: check with minimum size
             obj.switchSizeMode('manual')
             obj.Position_(3:4) = newValue;
+            if strcmp(obj.PositionMode, 'auto')
+                obj.setAutoLocation()
+            end
         end
         
         function size = get.Size(obj)
@@ -362,7 +354,6 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             % elseif isLocationChanged
             %   obj.onLocationChanged
             % end
-            
             
             % Update size first
             if isSizeChanged
@@ -436,11 +427,10 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 obj.Visible = newValue;
                 obj.onVisibleChanged(newValue)
             end
-            
         end
         
         function hAx = get.CanvasAxes(obj)
-            hAx = obj.hAxes; 
+            hAx = obj.hAxes;
             return;
         
 %             if isa(obj.Canvas, 'uim.UIComponentCanvas')
@@ -477,12 +467,12 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
         end
         
         function updateSize(obj, mode)
-        %updateSize Handler of conditions that update component size  
+        %updateSize Handler of conditions that update component size
         %
         %   Calculate new size based on size of parent container and
         %   internal properties (margins) that determine the size.
         
-            % Abort if component has not finished construction. No need to 
+            % Abort if component has not finished construction. No need to
             % go through this before all position-related properties are set.
             if ~obj.IsConstructed_; return; end
             
@@ -533,7 +523,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
         % If PositionMode is manual, the values of the position property is
         % used.
             
-            % Abort if component has not finished construction. No need to 
+            % Abort if component has not finished construction. No need to
             % go through this before all position-related properties are set.
             if ~obj.IsConstructed_; return; end
             
@@ -547,9 +537,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 case 'manual'
                     % Location should stay the same.
             end
-                        
         end
-
     end
     
     methods (Access = private) % Internal Updates
@@ -568,10 +556,9 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 parentSize = parentPos(3:4);
                 locationPoint = obj.location2point(parentSize, obj.Location);
             else
-                warning('Parent of type %s is supported', class(obj.Parent))
+                warning('Parent of type %s is not supported', class(obj.Parent))
                 locationPoint = [1,1];
             end
-
             
             % Find the new location (Position(1:2)) based on the values of
             % anchoring properties (Horizontal/Vertical alignment)
@@ -581,7 +568,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             if contains(obj.Location, 'west')
                 newLocation(1) = locationPoint(1) + obj.Margin(1);
             elseif contains(obj.Location, 'east')
-                newLocation(1) = locationPoint(1) - obj.Size(1) - obj.Margin(3);                
+                newLocation(1) = locationPoint(1) - obj.Size(1) - obj.Margin(3);
             end
 
             if contains(obj.Location, 'south')
@@ -600,12 +587,11 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 newLocation(2) = locationPoint(2) + obj.Margin(2);
             end
             
-            
 % %             % Centered along horizontal dimension
 % %             if strcmp(obj.Location, 'south') || strcmp(obj.Location, 'north')
 % %                 newLocation(1) = (parentSize(1)-obj.Size(1)) / 2;
 % %             end
-% % 
+% %
 % %             % Centered along vertical dimension
 % %             if strcmp(obj.Location, 'east') || strcmp(obj.Location, 'west')
 % %                 newLocation(2) = (parentSize(2)-obj.Size(2)) / 2;
@@ -635,7 +621,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
         function switchPositionMode(obj, newMode)
         %switchPositionMode Update position mode
             obj.PositionMode = newMode;
-            %obj.SizeMode = newMode; Todo: Need to test this. 
+            %obj.SizeMode = newMode; Todo: Need to test this.
         end % protected?
         
         function switchSizeMode(obj, newMode)
@@ -668,7 +654,6 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
         function moveBorder(obj, shift)
             
         end
-        
     end
     
     methods (Access = protected)
@@ -686,13 +671,12 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 
                 set(obj.hBackground, 'XData', X, 'YData', Y)
             end
-            
         end
         
         % Todo: remove
         function updateBackground(obj)
             warning('this should be removed')
-        end 
+        end
 
         function onConstructed(obj)
             
@@ -707,7 +691,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 obj.updateSize(obj.SizeMode)
 
                 % Call updateLocation to trigger location update
-                obj.updateLocation(obj.PositionMode) 
+                obj.updateLocation(obj.PositionMode)
                 
                 % Set style
                 obj.onStyleChanged()
@@ -715,7 +699,6 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 if ~obj.IsDrawCompleted
                     obj.redraw()
                 end
-                
             end
         end
         
@@ -733,8 +716,6 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                     obj.CanvasAxes.YLim = [1, newPosition(4)];
                     obj.resize()
             end
-            
-
         end
         
         function onLocationChanged(obj, oldPosition, newPosition)
@@ -745,13 +726,12 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                     obj.relocate(newPosition-oldPosition)
                     evtData = uim.event.LocationChangedData(oldPosition(1:2), newPosition(1:2));
                     obj.notify('LocationChanged', evtData)
-                case 'private' 
+                case 'private'
                     % Only need to set new position of axes in parent
                     setpixelposition(obj.CanvasAxes, newPosition)
                     %obj.CanvasAxes.Position = newPosition;
             end
-            
-        end        
+        end
         
         function onStyleChanged(obj)
             if ~isempty(obj.hBackground) && obj.IsConstructed
@@ -767,9 +747,8 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             % updateSize
             
             obj.redrawBackground()
-            %obj.redrawBorder() Not imlemented yet
+            %obj.redrawBorder() Not implemented yet
         end
-        
     end
     
     methods (Hidden, Access = protected)
@@ -790,7 +769,6 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             shift = evt.NewLocation - evt.oldLocation;
             obj.Position_(1:2) = obj.Position_(1:2) + shift;
         end
-        
     end
     
     methods % Wrappers for placing matlab components
@@ -823,7 +801,6 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             hContainer = obj.getGraphicsContainer();
             h = axes(hContainer, varargin{:});
         end
-    
     end
     
     methods (Static)
@@ -836,7 +813,6 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             % todo: merge with getLocationPoint method. Should this be a
             % methods of this class or virtual container or just a
             % utilities function?
-            
             
             locationPoint = [1,1]; % Southwest
             
@@ -875,7 +851,8 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             validGraphicsParents = {...
                 'matlab.ui.Figure', ...
                 'matlab.graphics.axis.Axes', ...
-                'matlab.ui.container.Panel' ...
+                'matlab.ui.container.Panel', ...
+                'matlab.ui.container.Tab' ...
                 };
             
             tf = false;
@@ -884,21 +861,13 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             for i = 1:numel(validGraphicsParents)
             
                 if isa(h, validGraphicsParents{i})
-                    tf = true; 
+                    tf = true;
                     return
                 end
-                
             end
-                        
         end
     end
-        
-    
-    
 end
-
-
-
 
 % Dones
 %       [x] Make this into a component super class. (from virtualContainer
@@ -908,11 +877,11 @@ end
 %       [x] Add anchoring position mode. (Think this is done)
 %       [-] Add a sizeChangedFcn prop? Like matlab containers have? Why???
 %       [-] Add/implement units property? NO! This is pixelbased!
-%     
+%
 %       [x] Split into component and container.
-%     
+%
 %       [x] rename onSizeChanged & onLocationChanged to updateSize &
-%           updateLocation. onSizeChanged should be called after the 
+%           updateLocation. onSizeChanged should be called after the
 %           position is set...
 %       [x] Add a abstract static method called getTypeDefaults?
 %       This would be a method that when implemented returns default values

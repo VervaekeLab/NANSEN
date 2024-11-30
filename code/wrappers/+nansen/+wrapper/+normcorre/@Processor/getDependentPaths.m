@@ -15,9 +15,8 @@ function pathList = getDependentPaths()
     
     pathList = [nansenDir(1:end-1), {toolboxPath}];
     
-    
-    % Todo: 
+    % Todo:
     %   Need nansen.stack.ImageStack
-    %   Need nansen.DataMethod
+    %   Need nansen.processing.DataMethod
     %   Need nansen.processing.MotionCorrection
 end

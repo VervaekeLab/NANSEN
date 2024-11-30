@@ -8,5 +8,4 @@ classdef buttonScheme < handle
         On
         Off
     end
-
 end

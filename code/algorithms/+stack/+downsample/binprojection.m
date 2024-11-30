@@ -37,6 +37,4 @@ function imDataOut = binprojection(imDataIn, n, method, dim)
             imDataOut = squeeze( mean(imDataIn, 3) );
             imDataOut = cast(imDataOut, 'like', imDataIn);
     end
-
 end
-

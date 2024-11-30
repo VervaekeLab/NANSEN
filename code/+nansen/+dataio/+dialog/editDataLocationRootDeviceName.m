@@ -3,7 +3,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
 %
 %   S = editDataLocationRootDeviceName(S) opens a table dialog for editing
 %   the disk name for all the datalocation roots in the
-%   dataLocationRootInfo struct (S). 
+%   dataLocationRootInfo struct (S).
 
 %   Todo
 %       [ ] Add some instructions in a textbox
@@ -24,7 +24,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     % Make table with 3 columns, device name and root path, and disk type
     dataTable = rmfield(dataLocationRootInfo, 'Key');
     dataTable = orderfields(dataTable, {'DiskName', 'DiskType', 'Value'});
-    dataTable = struct2table(dataTable);
+    dataTable = struct2table(dataTable, 'AsArray', true);
     
     % Fix data type issue. Todo: Should be done upstream
     if isa(dataTable.DiskName, 'char')
@@ -46,7 +46,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     hFigure = figure('Menubar', 'none');
     hFigure.Position = [1,1,1000,200];
     uim.utility.centerFigureOnScreen(hFigure)
-    hFigure.NumberTitle = 'off'; 
+    hFigure.NumberTitle = 'off';
     hFigure.Name = 'Select Disk Name for Root Path';
 
     % Create and configure the table.
@@ -66,7 +66,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     hTable.changeColumnWidths([150,150,650]);
     hTable.ColumnResizePolicy = 'last';
 
-    % Format device name as dropdown, add 
+    % Format device name as dropdown, add
     colDataTypes = {'popup', 'popup', 'char'};
     colFormatData = {allVolumeNames, {'External', 'Local'}, ''};
 
@@ -83,7 +83,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     addlistener(hTable, 'MouseMotion', @onMouseMoveInTable);
     
     % When table is closed, return updated dataLocationRootInfo
-    hFigure.CloseRequestFcn = @(src, evt) uiresume(src); 
+    hFigure.CloseRequestFcn = @(src, evt) uiresume(src);
     uiwait(hFigure)
 
     tableData = hTable.Data;
@@ -120,7 +120,7 @@ function onTableDataChanged(src, evt, volumeInfo)
     
     pathColIdx = 3; % Path is on 3rd column
 
-    currentRoot = src.Data{rowIdx, pathColIdx}; 
+    currentRoot = src.Data{rowIdx, pathColIdx};
 
     % Todo: combine / use DataLocationModel/replaceDiskMountInPath
     
@@ -133,7 +133,7 @@ function onTableDataChanged(src, evt, volumeInfo)
     end
 
     if isCurrentPathMacStyle && ispc
-        oldString = ['\Volumes\', evt.OldValue]; % because / -> \ below 
+        oldString = ['\Volumes\', evt.OldValue]; % because / -> \ below
         isMatch = volumeInfo.VolumeName == string(evt.NewValue);
         newString = volumeInfo.DeviceID(isMatch);
         currentRoot = strrep(currentRoot, '/', '\');
@@ -160,5 +160,5 @@ function onTableDataChanged(src, evt, volumeInfo)
         currentRoot = replace(currentRoot, oldString, newString);
     end
 
-    src.Data{rowIdx, pathColIdx} = currentRoot;    
+    src.Data{rowIdx, pathColIdx} = currentRoot;
 end

@@ -1,9 +1,5 @@
-# Folder with external repositories
-external/neuroscience_toolboxes/
-external/general_toolboxes
-
-# Folder with userdata
-_userdata/
+releases/
+docs/reports/
 
 # Settings file
 *settings.mat

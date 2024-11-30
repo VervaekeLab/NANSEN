@@ -2,7 +2,7 @@ classdef App < handle & applify.mixin.UserSettings
     
     % Todo: fix display of object center coords. Should not show when mouse
     % is pressed on object, should appear when drag operation is started.
-    % Alternatively: Show them in the object popup textbox.... 
+    % Alternatively: Show them in the object popup textbox....
     
     properties (Constant, Hidden = true)
         DEFAULT_SETTINGS = fovmanager.App.getDefaultSettings()
@@ -42,7 +42,6 @@ classdef App < handle & applify.mixin.UserSettings
         % Temp handles...
         mouseListbox
         mouseDropdownMenu
-
         
         textCoords
         mapCoordinatesMode = 'none'
@@ -56,7 +55,6 @@ classdef App < handle & applify.mixin.UserSettings
         
         hInfoBox
         hSlider
-
         
         pointerManager
         
@@ -75,13 +73,11 @@ classdef App < handle & applify.mixin.UserSettings
         
     end
     
-    
     methods % Structors
         
         function obj = App(mode)
             
             obj.checkDependencies()
-            
             
 %             if obj.isOpen()
 %                 clear obj; return
@@ -108,7 +104,6 @@ classdef App < handle & applify.mixin.UserSettings
             el = listener(hDataCursor, 'ToggledPointerTool', @obj.onDataCursorToggled);
             obj.DataCursorToggledListener = el;
             
-            
             % Create UIComponentCanvas for drawing uicontrols and widget on
             uicc = uim.UIComponentCanvas(obj.hFigure);
             setappdata(obj.hFigure, 'UIComponentCanvas', uicc);
@@ -117,8 +112,6 @@ classdef App < handle & applify.mixin.UserSettings
             obj.addToolbar()
             
             obj.setAppearance()
-
-            
             
             obj.hFigure.Visible = 'on';
             
@@ -155,8 +148,7 @@ classdef App < handle & applify.mixin.UserSettings
                 % Save settings
                 obj.saveSettings()
                 
-                
-                setpref('fovmanager', 'figureLocation', obj.hFigure.Position(1:2));   
+                setpref('fovmanager', 'figureLocation', obj.hFigure.Position(1:2));
 
             end
             
@@ -173,9 +165,7 @@ classdef App < handle & applify.mixin.UserSettings
             delete(obj)
 
         end
-        
     end
-    
     
     methods (Access = protected, Hidden) % Gui Construction
         
@@ -210,7 +200,6 @@ classdef App < handle & applify.mixin.UserSettings
                         
                         set(obj.hMapLabels, {'Position'}, txtPos' )
                    end
-                   
            end
         end
         
@@ -221,7 +210,7 @@ classdef App < handle & applify.mixin.UserSettings
                     src.Icon = obj.ICONS.minimize;
                     src.Tooltip = 'Restore Figure';
                     screenSize = get(0, 'ScreenSize');
-                    setpref('fovmanager', 'figureLocation', obj.hFigure.Position(1:2));   
+                    setpref('fovmanager', 'figureLocation', obj.hFigure.Position(1:2));
 
                     height = screenSize(4)-80;
                     width = height .* obj.hFigure.Position(3)./obj.hFigure.Position(4);
@@ -235,8 +224,8 @@ classdef App < handle & applify.mixin.UserSettings
                     src.Icon = obj.ICONS.maximize2;
                     src.Tooltip = 'Maximize Figure';
                     
-                    figureLocation = getpref('fovmanager', 'figureLocation');            
-                    figurePosition = [figureLocation, obj.figureSizeSmall];                    
+                    figureLocation = getpref('fovmanager', 'figureLocation');
+                    figurePosition = [figureLocation, obj.figureSizeSmall];
                     obj.hFigure.Position = figurePosition;
                     obj.Toolbar.Spacing = 7;
                     obj.setAxesPosition()
@@ -275,7 +264,7 @@ classdef App < handle & applify.mixin.UserSettings
             obj.Toolbar.BackgroundAlpha = S.ToolbarAlpha;
             obj.Toolbar.DarkMode = S.ToolbarDarkMode;
             
-            obj.hSlider.TextColor = S.AxesForegroundColor; 
+            obj.hSlider.TextColor = S.AxesForegroundColor;
             
             % Set color of data cursor
             hDataCursor = obj.pointerManager.pointers.dataCursor;
@@ -287,13 +276,11 @@ classdef App < handle & applify.mixin.UserSettings
             hRegions = flipud(hRegions);
             hRegions(31).FaceColor = S.AxesForegroundColor;
             set(hRegions, 'FaceAlpha', S.MapAlpha)
-            
         
         end
-        
 
         function setDefaultPreferences(obj)
-        %setDefaultPreferences Set default preferences on first time startup    
+        %setDefaultPreferences Set default preferences on first time startup
             
             % Todo: Add more defaults...
             setpref('fovmanager', 'figureLocation', [200, 100])
@@ -301,8 +288,6 @@ classdef App < handle & applify.mixin.UserSettings
             setpref('fovmanager', 'recentFiles', repmat({''}, 9,1))
 
         end
-        
-        
         
 % % % %  Methods for setting up the gui
 
@@ -313,7 +298,6 @@ classdef App < handle & applify.mixin.UserSettings
             
             obj.createAxes()
             obj.plotMap()
-            
             
             obj.createAnnotationAxes()
             
@@ -326,11 +310,9 @@ classdef App < handle & applify.mixin.UserSettings
                 obj.hAxes.Toolbar.Visible = 'off';
                  disableDefaultInteractivity(obj.hAxes)
             end
-
             
             obj.msgBox = uim.widget.messageBox(obj.hAxes, 'Units', 'pixel', ...
                             'MinSize', [300, 50]);
-            
             
             % Define slider position and add slidebar
             sliderSize = [100, 15];
@@ -342,13 +324,11 @@ classdef App < handle & applify.mixin.UserSettings
             obj.hSlider.Position = [sliderPosX, sliderPosY, sliderSize];
             obj.hSlider.Visible = 'off';
             
-            
             % Textbox for showing coordinates on map
             obj.textCoords = text(obj.hAxes, 0,0, '0, 0', 'BackgroundColor', 'w', 'EdgeColor', 'k');
             obj.textCoords.VerticalAlignment = 'bottom';
             obj.textCoords.FontSize = 14;
             obj.textCoords.Visible = 'off';
-
             
             % Textbox for showing object information when selected
             obj.hObjectInformation = text(obj.hAxes, 0,0, '');
@@ -365,7 +345,7 @@ classdef App < handle & applify.mixin.UserSettings
 % %                 'LineStyle','none',...
 % %                 'FitBoxToText','off');
 
-        end   
+        end
         
         function initializeGuiSimple(obj)
             
@@ -389,7 +369,7 @@ classdef App < handle & applify.mixin.UserSettings
         function createFigure(obj)
               
             % Get position from preferences
-            figureLocation = getpref('fovmanager', 'figureLocation');            
+            figureLocation = getpref('fovmanager', 'figureLocation');
             figurePosition = [figureLocation, obj.figureSizeSmall];
             
             obj.hFigure = figure('Visible', 'off');
@@ -424,7 +404,6 @@ classdef App < handle & applify.mixin.UserSettings
             
             mSubItem(5) = uimenu(mSubItem(4), 'Text', 'Image (Png)', 'Enable', 'off');
             mSubItem(6) = uimenu(mSubItem(4), 'Text', 'Image (Eps)', 'Enable', 'off');
-
             
             mItem(2) = uimenu(obj.hFigure, 'Text', 'Edit');
             mSubItem(3) = uimenu(mItem(2), 'Text', 'Undo', 'Enable', 'off');
@@ -451,7 +430,6 @@ classdef App < handle & applify.mixin.UserSettings
             mSubItem(5) = uimenu(mItem(5), 'Text', 'Sort Mice by Name', 'Separator', 'on', 'Enable', 'off');
             mSubItem(5).Callback = [];
             
-            
             mItem(6) = uimenu(obj.hFigure, 'Text', 'Map Objects');
             mSubItem(1) = uimenu(mItem(6), 'Text', 'Add Cranial Window');
             mSubItem(1).Callback = @(src, event) obj.addObjectToMouse('window');
@@ -473,7 +451,6 @@ classdef App < handle & applify.mixin.UserSettings
             
             mSubItem(7) = uimenu(mItem(6), 'Text', 'Add Annotation(s)', 'Separator', 'on', 'Enable', 'off');
             mSubItem(7).Callback = @(src, event) obj.addObjectToMouse('annotation');
-            
  
             mItem(3) = uimenu(obj.hFigure, 'Text', 'Show');
             mSubItem(2) = uimenu(mItem(3), 'Text', 'Show All FoVs');
@@ -481,18 +458,16 @@ classdef App < handle & applify.mixin.UserSettings
             mSubItem(3) = uimenu(mItem(3), 'Text', 'Show Map Labels');
             mSubItem(3).Callback = @obj.showMapLabels;
             mSubItem(4) = uimenu(mItem(3), 'Text', 'Show Fine Grid', 'Separator', 'on');
-            mSubItem(4).Callback = @obj.showMinorGrid;         
+            mSubItem(4).Callback = @obj.showMinorGrid;
             mSubItem(4).Accelerator = 'g';
             mSubItem(5) = uimenu(mItem(3), 'Text', 'Show Transparency Slider');
             mSubItem(5).Callback = @obj.showTransparencySlider;
             mSubItem(5).Accelerator = 't';
-
                         
             mItem(4) = uimenu(obj.hFigure, 'Text', 'More');
             mSubItem(4) = uimenu(mItem(4), 'Text', 'Set Current Inventory as Default', 'Enable', 'off');
             %mSubItem(4).Callback = @(s,e,h)obj.setDefaultDatabase(obj);
             %Todo: make method.
-            
             
             mSubItem(1) = uimenu(mItem(4), 'Text', 'Set Appeareance');
             mSubItem(2) = uimenu(mSubItem(1), 'Text', 'Light');
@@ -523,12 +498,11 @@ classdef App < handle & applify.mixin.UserSettings
                 mSubItemTmp = uimenu(hMenu, 'Text', fileName);
                 mSubItemTmp.Callback = @(src, evt, p) obj.loadFovDatabase(filePath);
                 mSubItemTmp.Accelerator = num2str(i);
-            end 
-            
+            end
         end
         
         function createAxes(obj)
-        %createAxes Create and configure axes for plotting map and objects 
+        %createAxes Create and configure axes for plotting map and objects
         
             obj.hAxes = axes();
             obj.hAxes.Units = 'pixel';
@@ -611,7 +585,7 @@ classdef App < handle & applify.mixin.UserSettings
             toolbarHeight = 30;
             
 % %             axPosition = getpixelposition(obj.hAxes);
-% % 
+% %
 % %             initPosition(1) = axPosition(1);
 % %             initPosition(2) = sum(axPosition([2,4])) + toolbarHeight - 10;
 % %             initPosition(3) = axPosition(3);
@@ -658,7 +632,6 @@ classdef App < handle & applify.mixin.UserSettings
                 hBtn.ButtonDownFcn = @(s,e,h,str) togglePointerMode(hPm, pointerModes{i});
                 hBtn.addToggleListener(hPm.pointers.(pointerModes{i}), 'ToggledPointerTool')
             end
-
             
 % %             % Add toolbar to the widget property.
 % %             obj.uiwidget.Toolbar = hToolbar;
@@ -676,7 +649,7 @@ classdef App < handle & applify.mixin.UserSettings
             obj.mouseDropdownMenu.Style = 'popup';
             obj.mouseDropdownMenu.String = {'No Selection'};
             obj.mouseDropdownMenu.Callback = @(src, event) obj.hFigure;
-            obj.mouseDropdownMenu.Position = [xPosition, yPosition 135 25]; 
+            obj.mouseDropdownMenu.Position = [xPosition, yPosition 135 25];
             obj.mouseDropdownMenu.Callback = @obj.onMouseSelectionChanged;
             obj.mouseDropdownMenu.FontSize = 13;
             
@@ -732,10 +705,7 @@ classdef App < handle & applify.mixin.UserSettings
             obj.hAxes.UIContextMenu = m;
             
         end
-        
-        
     end
-    
     
     methods
         
@@ -747,7 +717,6 @@ classdef App < handle & applify.mixin.UserSettings
             S.theta = obj.settings.fovOrientation.rotationAngle;
         end
         
-        
         function createAnnotationAxes(obj)
             
             %Todo: Remove this. Move some things as widget to ui component
@@ -758,7 +727,7 @@ classdef App < handle & applify.mixin.UserSettings
             obj.hAnnotationAxes.Position = obj.hAxes.Position;
             obj.hAnnotationAxes.XLim = [1, obj.hAnnotationAxes.Position(3)];
             obj.hAnnotationAxes.YLim = [1, obj.hAnnotationAxes.Position(4)];
-            obj.hAnnotationAxes.Tag = 'Annotation Axes'; 
+            obj.hAnnotationAxes.Tag = 'Annotation Axes';
             
             hLink = linkprop([obj.hAxes, obj.hAnnotationAxes], 'Position');
             setappdata(obj.hAnnotationAxes, 'LinkObject', hLink)
@@ -774,7 +743,6 @@ classdef App < handle & applify.mixin.UserSettings
             obj.hHighlightedRegion.HitTest = 'off';
             
         end
-        
         
         function plotCurrentPoint(obj)
             
@@ -800,18 +768,15 @@ classdef App < handle & applify.mixin.UserSettings
                     obj.hCurrentPoint.FaceAlpha = 0.3;
             end
             
-            
             set(obj.hCurrentPoint, 'Parent', obj.hAnnotationAxes)
             set(obj.hCurrentPoint, 'PickableParts', 'none')
             set(obj.hCurrentPoint, 'HitTest', 'off')
-
             
         end
         
-        
         function plotInfoBox(obj)
             
-            obj.hInfoBox = text(obj.hAnnotationAxes, 0,0, ''); 
+            obj.hInfoBox = text(obj.hAnnotationAxes, 0,0, '');
             
             obj.hInfoBox(1).Color = ones(1,3)*0.9;
             obj.hInfoBox(1).VerticalAlignment = 'bottom';
@@ -820,12 +785,11 @@ classdef App < handle & applify.mixin.UserSettings
             x = obj.hInfoBox(1).Extent([1,1,3,3]);
             y = obj.hInfoBox(1).Extent([1,4,4,1]);
             
-            obj.hInfoBox(2) = patch(obj.hAnnotationAxes, x, y, 'k', 'FaceAlpha', 0.5); 
+            obj.hInfoBox(2) = patch(obj.hAnnotationAxes, x, y, 'k', 'FaceAlpha', 0.5);
             obj.hInfoBox(2).Clipping = 'off';
             uistack(obj.hInfoBox(1), 'up')
             set(obj.hInfoBox, 'Visible', 'off');
         end
-        
         
         function updateInfoBox(obj, msg)
             
@@ -847,7 +811,6 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function updateCurrentPoint(obj)
             
             if isempty(obj.hCurrentPoint); return; end
@@ -861,7 +824,6 @@ classdef App < handle & applify.mixin.UserSettings
                 obj.hCurrentPoint(2).XData = obj.hCurrentPoint(2).XData - mean(obj.hCurrentPoint(2).XData) + coords(1, 1);
             end
         end
-   
         
         function showGraphicalHandle(~, handle)
             if ~isempty(handle) && isequal( handle(1).Visible, 'off')
@@ -869,13 +831,11 @@ classdef App < handle & applify.mixin.UserSettings
             end
         end
         
-        
         function hideGraphicalHandle(~, handle)
             if ~isempty(handle) && isequal( handle(1).Visible, 'on')
                 set(handle, 'Visible', 'off')
             end
         end
-        
         
         function coords = getCurrentPointCoords(~)
             
@@ -887,7 +847,6 @@ classdef App < handle & applify.mixin.UserSettings
 
         end
         
-        
         function decolorMap(obj)
             hPoly = findobj(obj.hAxes, 'Type', 'Polygon');
             
@@ -897,7 +856,6 @@ classdef App < handle & applify.mixin.UserSettings
                 newC(newC>1) = 1;
                 hPoly(i).FaceColor = newC;
             end
-            
         end
         
 % % % %  Methods for loading and saving database
@@ -908,7 +866,7 @@ classdef App < handle & applify.mixin.UserSettings
                 savePath = '';
             end
             
-            if nargin < 3 
+            if nargin < 3
                 forceSave = false;
             end
             
@@ -979,10 +937,9 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function loadFovDatabase(obj, loadPath)
             
-            % Todo: Add or replace mice in list and plot windows, fovs etc.        
+            % Todo: Add or replace mice in list and plot windows, fovs etc.
             if ~isempty(obj.fovDatabase)
                 answer = questdlg('This will remove all the existing entries. Do you want to continue?');
                 if isempty(answer); answer = 'cancel'; end
@@ -993,7 +950,7 @@ classdef App < handle & applify.mixin.UserSettings
                     case {'no', 'cancel'}
                         return
                 end
-            end 
+            end
             
             % Get file to load, from settings or user input
             if isempty(obj.currentFile)
@@ -1014,9 +971,8 @@ classdef App < handle & applify.mixin.UserSettings
                     if isempty(filename) || isequal(filename, 0); obj.msgBox.clearMessage();  return; end
                 end
                 
-                
             else
-                if ~exist(loadPath, 'file')
+                if ~isfile(loadPath)
                     obj.msgBox.displayMessage('File does not exist, removing from list.', 2)
                     obj.updateRecentFilesList(loadPath, 'remove')
                     return
@@ -1032,7 +988,6 @@ classdef App < handle & applify.mixin.UserSettings
             [~, fileName] = fileparts(loadPath);
             obj.hFigure.Name = sprintf('FOV Manager (%s)', fileName);
             
-            
             % Add mouse entries to listbox.
             for i = 1:numel(S.fovDb)
                 obj.mouseDropdownMenu.String{i+1} = obj.getMouseLabel(S.fovDb(i));
@@ -1045,7 +1000,7 @@ classdef App < handle & applify.mixin.UserSettings
             obj.changeSelectedMouse(0)
             
             % Todo: Save struct db as property
-            % Todo: Make method for plotting entry on request. I.e forst
+            % Todo: Make method for plotting entry on request. I.e first
             % time mouse is selected...
             for i = 1:numel(S.fovDb)
 
@@ -1085,7 +1040,6 @@ classdef App < handle & applify.mixin.UserSettings
                         obj.addObjectToMouse(hAnnotation)
                     end
                 end
-                
             end
 
             % Set the mouse selection to "No Selection" (index 0)
@@ -1097,7 +1051,6 @@ classdef App < handle & applify.mixin.UserSettings
 
             obj.updateRecentFilesList(loadPath)
         end
-        
         
         function updateRecentFilesList(obj, newPath, action)
         %updateRecentFilesList Update list of recent files.
@@ -1135,7 +1088,7 @@ classdef App < handle & applify.mixin.UserSettings
             
             % Create a folder for saving screendumps
             saveDir = fullfile(fileparts(path), 'screendump');
-            if ~exist(saveDir, 'dir'); mkdir(saveDir); end
+            if ~isfolder(saveDir); mkdir(saveDir); end
             
             % Set axes units to pixels and get pixel size
             axUnits = obj.hAxes.Units;
@@ -1172,7 +1125,6 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
 % % % % Mouse and keyboard callbacks
 
         function onDataCursorToggled(obj, src, evtData)
@@ -1204,7 +1156,6 @@ classdef App < handle & applify.mixin.UserSettings
                 hPatch = flipud(hPatch);
                 
                 info = sprintf('x = %.2f, y = %.2f', pointerCoords(1,1), pointerCoords(1,2) );
-                
                 
                 if regionInd >= 31; regionInd = regionInd+1; end
                 
@@ -1243,7 +1194,6 @@ classdef App < handle & applify.mixin.UserSettings
                 
                 obj.updateInfoBox(info)
                 obj.showGraphicalHandle(obj.hInfoBox)
-
                 
             else
                 obj.hideGraphicalHandle(obj.hCurrentPoint)
@@ -1253,7 +1203,6 @@ classdef App < handle & applify.mixin.UserSettings
             drawnow limitrate
             
         end
-        
         
         function tf = isPointerOnAxes(obj, coords)
             
@@ -1265,9 +1214,7 @@ classdef App < handle & applify.mixin.UserSettings
                     tf = true;
                 end
             end
-            
         end
-        
 
         function mousePressAxes(obj, src, event)
             
@@ -1281,12 +1228,9 @@ classdef App < handle & applify.mixin.UserSettings
                 obj.hSlider.Visible = 'off';
                 obj.hSlider.Callback = [];
             end
-            
         end
         
-        
         function keyPress(obj, src, event)
-            
             
             wasCaptured = obj.pointerManager.onKeyPress([], event);
             
@@ -1319,16 +1263,14 @@ classdef App < handle & applify.mixin.UserSettings
                     end
                     
 % %                 case 'tab'
-% %                     
+% %
 
                 case 'w'
                     if any(contains(event.Modifier, {'shift'}))
                         obj.resetZoom()
                     end
             end
-            
         end
-        
 
         function keyPressObject(obj, src, event)
             
@@ -1416,16 +1358,10 @@ classdef App < handle & applify.mixin.UserSettings
                     if any(contains(event.Modifier, {'shift'}))
                         obj.resetZoom()
                     end
-                    
-                    
             end
-            
-            
         end
         
-        
 % % % % Methods for requesting user input
-
 
         function pos = selectMapPosition(obj)
             % Interactive selection of position in map (x, y)
@@ -1445,7 +1381,6 @@ classdef App < handle & applify.mixin.UserSettings
             obj.hideMapCoordinates('mousePoint')
 
         end
-
         
         function sessionIDs = requestSessionIds(obj)
                 
@@ -1472,7 +1407,6 @@ classdef App < handle & applify.mixin.UserSettings
             sessionIDs = sessionIDs(isValid);
             
         end
-        
         
         function [mId, hbLabel] = requestMouseInfo(obj, token)
             
@@ -1509,9 +1443,7 @@ classdef App < handle & applify.mixin.UserSettings
                     return
                 end
             end
-            
         end
-        
         
 % % % % Database / FOV List methods
 
@@ -1540,7 +1472,6 @@ classdef App < handle & applify.mixin.UserSettings
             obj.changeSelectedMouse(newMouseIndex)
         end
         
-        
         function mLabel = getMouseLabel(~, dbEntry)
             
             mLabel = sprintf('mouse %s', dbEntry.MouseId);
@@ -1548,18 +1479,16 @@ classdef App < handle & applify.mixin.UserSettings
             if isfield(dbEntry, 'HeadbarLabel') && ~isempty(dbEntry.HeadbarLabel)
                 mLabel = sprintf('%s (%s)', mLabel, dbEntry.HeadbarLabel);
             end
-            
         end
-        
 
         function renameMouse(obj, src, ~)
 
             mInd = obj.getCurrentMouseSelection();
-            if mInd == 0 
-                obj.msgBox.displayMessage('Hint: No mouse is selected'); 
-                pause(1); 
+            if mInd == 0
+                obj.msgBox.displayMessage('Hint: No mouse is selected');
+                pause(1);
                 obj.msgBox.clearMessage;
-                return; 
+                return;
             end
                         
             switch src.Text
@@ -1580,17 +1509,16 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function deleteMouse(obj, ~, ~)
             mInd = obj.getCurrentMouseSelection();
-            if mInd == 0 
-                obj.msgBox.displayMessage('Hint: No mouse is selected'); 
-                pause(1); 
+            if mInd == 0
+                obj.msgBox.displayMessage('Hint: No mouse is selected');
+                pause(1);
                 obj.msgBox.clearMessage;
-                return; 
+                return;
             end
              
-            answer = questdlg('Are you sure? There is way back...'); 
+            answer = questdlg('Are you sure? There is way back...');
             switch answer
                 case 'Yes'
                     delete(obj.fovDatabase(mInd).Windows)
@@ -1599,15 +1527,14 @@ classdef App < handle & applify.mixin.UserSettings
                     obj.changeSelectedMouse(0) % Reset selection
             end
         end
-
         
         function addObjectToMouse(obj, objectOrType)
             
             currentMouseInd = obj.getCurrentMouseSelection();
             
             if currentMouseInd == 0
-                obj.msgBox.displayMessage('Hint: No mouse is selected'); 
-                pause(1); obj.msgBox.clearMessage; return; 
+                obj.msgBox.displayMessage('Hint: No mouse is selected');
+                pause(1); obj.msgBox.clearMessage; return;
             end
             
             if isa(objectOrType, 'char')
@@ -1657,7 +1584,6 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function newWindow = createWindow(obj)
 
             newWindow = [];
@@ -1678,14 +1604,13 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function addWindow(obj, hWindow)
                         
             currentMouseInd = obj.getCurrentMouseSelection(); %NB: First element of lb is none
             
             if currentMouseInd == 0
-                obj.msgBox.displayMessage('Hint: No mouse is selected'); 
-                pause(1); obj.msgBox.clearMessage; return; 
+                obj.msgBox.displayMessage('Hint: No mouse is selected');
+                pause(1); obj.msgBox.clearMessage; return;
             end
             
             if nargin < 2
@@ -1709,7 +1634,6 @@ classdef App < handle & applify.mixin.UserSettings
             uistack(obj.textCoords, 'top')
 
         end
-        
         
         function newInjections = createInjectionSpots(obj)
 
@@ -1737,9 +1661,7 @@ classdef App < handle & applify.mixin.UserSettings
                 newInjections(end+1) = fovmanager.mapobject.InjectionSpot(obj, pos, virusName, volume, depth, spread);
                 uistack(obj.textCoords, 'top')
             end
-            
         end
-        
         
         function newAnnotation = createAnnotation(obj)
             newAnnotation = [];
@@ -1755,7 +1677,6 @@ classdef App < handle & applify.mixin.UserSettings
             newAnnotation = fovmanager.mapobject.Annotation(obj, S);
             
         end
-        
         
         function addInjections(obj, hInjection)
                    
@@ -1785,7 +1706,6 @@ classdef App < handle & applify.mixin.UserSettings
             uistack(obj.textCoords, 'top')
             
         end
-        
 
         function newFoV = createFov(obj)
             
@@ -1804,7 +1724,6 @@ classdef App < handle & applify.mixin.UserSettings
             % NB: Can this be done easier?
             uistack(obj.textCoords, 'top')
         end
-        
         
         function newFoV = createFovFromSession(obj, sessionID)
             % Todo: Combine this with create Fov
@@ -1846,7 +1765,6 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function addFov(obj, hFov)
             
             % Add to current window.
@@ -1861,9 +1779,7 @@ classdef App < handle & applify.mixin.UserSettings
                 if isempty(hFov); return; end
             end
             
-            
             currentWindow = obj.selectedObject;
-            
             
             hFov.guiHandle.Parent = currentWindow.guiHandle;
             hFov.guiHandle.ButtonDownFcn = {@obj.selectObject, hFov};
@@ -1880,7 +1796,6 @@ classdef App < handle & applify.mixin.UserSettings
             obj.isSaved = false;
             
         end
-        
         
         function sessionObjects = createSessionObjects(obj, sessionIDs)
             %The idea of having this as a separate method is that some time
@@ -1902,11 +1817,8 @@ classdef App < handle & applify.mixin.UserSettings
                     sessionObjects(end).depth = [];
                     sessionObjects(end).fovImage = obj.selectedObject.image;
                 end
-                    
             end
-
         end
-        
         
         function addSession(obj, sessionIDs)
             % Todo: Do I need the same method in the FoV Class?
@@ -1934,7 +1846,6 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function removeSession(obj, sessionIDs)
             
             % Request sessionIDs from user if no sessionID is provided.
@@ -1956,7 +1867,6 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function cleanDatabase(obj, objectClass)
             % Remove elements from database when they are deleted from gui.
             
@@ -1967,12 +1877,11 @@ classdef App < handle & applify.mixin.UserSettings
             if ~isempty(obj.selectedObject) && ~isvalid(obj.selectedObject)
                 obj.selectedObject = [];
             end
-            
                         
             mInd = obj.getCurrentMouseSelection();
             if mInd == 0; return; end
             
-            switch objectClass 
+            switch objectClass
                 case {'window', 'fovmanager.mapobject.CranialWindow'}
                     isDeletedWindow = ~isvalid(obj.fovDatabase(mInd).Windows);
                     obj.fovDatabase(mInd).Windows(isDeletedWindow) = [];
@@ -1993,8 +1902,7 @@ classdef App < handle & applify.mixin.UserSettings
             
             obj.isSaved = false;
 
-        end 
-        
+        end
         
         function clearDatabase(obj)
             
@@ -2005,11 +1913,10 @@ classdef App < handle & applify.mixin.UserSettings
             end
 
             obj.fovDatabase=[];
-        end 
-        
+        end
         
         function resetGui(obj)
-        %resetGui Reset app by clearing database, mouse list and plot handles 
+        %resetGui Reset app by clearing database, mouse list and plot handles
         
             obj.clearDatabase()
             obj.changeSelectedMouse(0) % Reset mouse selection
@@ -2019,7 +1926,6 @@ classdef App < handle & applify.mixin.UserSettings
             if ~isempty(obj.resizeRectHandle)
                 finishResizeFov(obj)
             end
-            
         end
         
 % % % % Display coordinates of map position
@@ -2028,7 +1934,7 @@ classdef App < handle & applify.mixin.UserSettings
             obj.textCoords.Visible = 'on';
             obj.mapCoordinatesMode = pointToDisplay;
             
-            % this is a bit hacky, but thats unfortunately how it is.
+            % this is a bit hacky, but that's unfortunately how it is.
             % Assign mouse motion listener if it is empty. It will not be
             % empty if map object was selected. Then the startDrag assigns
             % moveObject to mousemotion event, and moveObject already calls
@@ -2044,7 +1950,6 @@ classdef App < handle & applify.mixin.UserSettings
             end
         end
         
-        
         function hideMapCoordinates(obj, point)
             obj.textCoords.Visible = 'off';
             obj.mapCoordinatesMode = 'none';
@@ -2058,9 +1963,7 @@ classdef App < handle & applify.mixin.UserSettings
                 h = findobj(obj.selectedObject.guiHandle, 'Tag', 'CenterPoint', '-depth', 1);
                 h.Visible = 'off';
             end
-            
         end
-        
         
         function updateMapCoordinates(obj, ~, ~)
             
@@ -2075,7 +1978,7 @@ classdef App < handle & applify.mixin.UserSettings
             if ~any(any(diff([axLim(1:2); [x, y]; axLim(3:4)]) < 0))
                 
                 switch obj.mapCoordinatesMode
-                    case 'mousePoint' 
+                    case 'mousePoint'
                         obj.textCoords.Position(1:2) = [x,y] + [0.2, 0.2];
                         obj.textCoords.String = sprintf('x=%.1f, y=%.1f', x, y);
                     
@@ -2090,9 +1993,7 @@ classdef App < handle & applify.mixin.UserSettings
             else
                 obj.textCoords.Visible = 'off';
             end
-            
         end
-        
         
 % % % % Callbacks for interaction with objects (fov and window)
 
@@ -2140,7 +2041,6 @@ classdef App < handle & applify.mixin.UserSettings
 % % %                     obj.hObjectInformation.Visible = 'on';
 % % %                 end
 % % %             end
-            
 
             obj.selectedObject = object;
 
@@ -2157,7 +2057,6 @@ classdef App < handle & applify.mixin.UserSettings
                 obj.hSlider.Callback = @object.setImageAlpha;
             end
         end
-        
         
         function unselectObject(obj)
             
@@ -2184,7 +2083,6 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function startDrag(obj, ~, event, object)
             
             % NB: Call this before assigning moveObject callback. Update
@@ -2205,9 +2103,8 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function moveObject(obj, h)
-        %moveObject Execute when mouse is dragging a selected object    
+        %moveObject Execute when mouse is dragging a selected object
         
             % Update center coords
             if strcmp(obj.textCoords.Visible, 'off')
@@ -2218,7 +2115,7 @@ classdef App < handle & applify.mixin.UserSettings
 
             obj.isSaved = false;
             
-            newMousePointAx = obj.hAxes.CurrentPoint(1, 1:2);            
+            newMousePointAx = obj.hAxes.CurrentPoint(1, 1:2);
             shift = newMousePointAx - obj.prevMousePointAx;
             
             % Selected object. Force move if shift-click
@@ -2227,7 +2124,6 @@ classdef App < handle & applify.mixin.UserSettings
             obj.prevMousePointAx = newMousePointAx;
                 
         end
-        
         
         function stopDrag(obj)
         %stopDrag Execute when mouse is released from a selected object
@@ -2241,14 +2137,12 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
 % %         function setDefaultWindowButtonCallbacks(obj)
-% %             
+% %
 % %             obj.hFigure.WindowButtonMotionFcn = [];%@obj.onMouseOver;
 % %             obj.hFigure.WindowButtonUpFcn = [];
-% %             
+% %
 % %         end
-        
         
         function startResizeFov(obj, ~, ~)
             
@@ -2271,7 +2165,7 @@ classdef App < handle & applify.mixin.UserSettings
             xCoords = h.XData; yCoords = h.YData;
             objPosition = [min(xCoords), min(yCoords), range(xCoords), range(yCoords)];
             
-            obj.resizeRectHandle = imrect(obj.hAxes, objPosition);           
+            obj.resizeRectHandle = imrect(obj.hAxes, objPosition);
             obj.resizeRectHandle.addNewPositionCallback(@(pos) thisFov.resize(pos));
             
             % Edit the context menu of the rectangle. TODO: Add customs..
@@ -2285,12 +2179,10 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function finishResizeFov(obj)
             delete(obj.resizeRectHandle);
             obj.resizeRectHandle = [];
         end
-        
         
         function zoomOnDoubleClick(obj, plotHandle, object)
                 
@@ -2305,7 +2197,7 @@ classdef App < handle & applify.mixin.UserSettings
                 xLim = obj.hAxes.XLim;
                 yLim = obj.hAxes.YLim;
                    
-                % Calculate aspect ratio of axes and object 
+                % Calculate aspect ratio of axes and object
                 arAxes = range(xLim) / range(yLim);
                 arObject = range(hTmp.XData) / range(hTmp.YData);
                 
@@ -2314,17 +2206,16 @@ classdef App < handle & applify.mixin.UserSettings
                 centerY = min(hTmp.YData) + range(hTmp.YData)/2;
                 
                 % Zoom Factor. @ 1, the object will occupy the whole zoomed
-                % in view. @ 2, the object will occupy the half of the 
+                % in view. @ 2, the object will occupy the half of the
                 % zoomed in view.
                 zF = 1.1; zF = zF/2;
                 
                 objectZoomXLim = centerX + [-zF, zF] .* range(hTmp.XData);
                 objectZoomYLim = centerY + [-zF, zF] .* range(hTmp.YData);
 
-                if objectZoomYLim(1) < -9 || objectZoomYLim(2) > 7 
+                if objectZoomYLim(1) < -9 || objectZoomYLim(2) > 7
                     obj.resetZoom(); return
                 end
-                                
                 
                 if arAxes < arObject % Width of x-axis is limiting factor
                     if isequal(xLim, objectZoomXLim) % zoom out
@@ -2348,7 +2239,7 @@ classdef App < handle & applify.mixin.UserSettings
                         newYrange = range(objectZoomXLim)./arAxes;
                         obj.hAxes.YLim = centerY + [-0.5, 0.5] .* newYrange;
                         %obj.hAxes.GridAlpha = 0;
-                        obj.hAxes.Layer = 'top';    
+                        obj.hAxes.Layer = 'top';
                     end
                     
                 else % Width of y-axis is limiting factor
@@ -2365,12 +2256,11 @@ classdef App < handle & applify.mixin.UserSettings
                         newXrange = range(objectZoomYLim).*arAxes;
                         obj.hAxes.XLim = centerX + [-0.5, 0.5] .* newXrange;
                         %obj.hAxes.GridAlpha = 0;
-                        obj.hAxes.Layer = 'top';                    
+                        obj.hAxes.Layer = 'top';
                     end
                 end
                 drawnow
         end
-        
         
         function resetZoom(obj, ~, ~)
             
@@ -2381,7 +2271,6 @@ classdef App < handle & applify.mixin.UserSettings
             obj.hAxes.YLim = [-9, 7];
 
         end
-        
 
 % % % % Callback Methods
         
@@ -2407,7 +2296,6 @@ classdef App < handle & applify.mixin.UserSettings
             else
                 currentMouseInd = [];
             end
-
         end
         
         function setCurrentMouseSelection(obj, currentMouseInd)
@@ -2416,7 +2304,6 @@ classdef App < handle & applify.mixin.UserSettings
                 obj.mouseDropdownMenu.Value = currentMouseInd + 1;
             end
         end
-        
         
         function changeSelectedMouse(obj, currentMouseInd)
 
@@ -2449,7 +2336,6 @@ classdef App < handle & applify.mixin.UserSettings
                 return
             end
             
-            
             for i = 1:numel(obj.fovDatabase)
                 if ~isempty(obj.fovDatabase(i).Windows)
                     tmpH = [obj.fovDatabase(i).Windows(:).guiHandle];
@@ -2464,7 +2350,6 @@ classdef App < handle & applify.mixin.UserSettings
                     end
                 end
                 
-                
                 if ~isempty(obj.fovDatabase(i).Injections)
                     tmpH = [obj.fovDatabase(i).Injections(:).guiHandle];
                     
@@ -2476,7 +2361,6 @@ classdef App < handle & applify.mixin.UserSettings
                         set(tmpH, 'HandleVisibility', 'off')
                     end
                 end
-                
                 
                 if isfield(obj.fovDatabase(i), 'Annotations') && ~isempty(obj.fovDatabase(i).Annotations)
                     tmpH = [obj.fovDatabase(i).Annotations(:).guiHandle];
@@ -2494,25 +2378,20 @@ classdef App < handle & applify.mixin.UserSettings
                                 set(tmpH(j), 'HandleVisibility', 'on')
                             end
                         end
-                        
                     end
                 end
-                
             end
             
             % Make sure value of dropdown selection menu is updated.
             obj.setCurrentMouseSelection(currentMouseInd)
             
-            
             obj.makeBackgroundOpaque()
             
         end
         
-        
         function showTransparencySlider(obj, ~, ~)
             obj.hSlider.Visible = 'on';
         end
-        
         
         function showFovsInWindow(obj, src, ~)
             
@@ -2533,19 +2412,17 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
-% % % % Methods for displaying 
+% % % % Methods for displaying
 
         function showAllFovs(obj, src, ~)
-        
             
             if strcmp(src.Text, 'Show All FoVs')
             
                 nFovs = numel(findall(obj.hAxes, 'DisplayName', 'FoV'));
-                nFovs = nFovs / 2; % If fovs are already copied to axes, 
+                nFovs = nFovs / 2; % If fovs are already copied to axes,
                                                 % there are twice as many
                 
-                % Set the mouse selection to no selection (index 0) 
+                % Set the mouse selection to no selection (index 0)
                 obj.changeSelectedMouse(0)
                                                 
                 if isempty(obj.tempFovHandles) || nFovs ~= numel(obj.tempFovHandles)
@@ -2557,7 +2434,7 @@ classdef App < handle & applify.mixin.UserSettings
                         delete(obj.tempFovHandles)
                     end
 
-                    % "Turn off" edge color of selected fovs 
+                    % "Turn off" edge color of selected fovs
                     if isa(obj.selectedObject, 'fovmanager.mapobject.FoV')
                         hTmp = findobj(obj.selectedObject.guiHandle, 'Type', 'Patch', '-depth', 1);
                         hTmp.EdgeColor = obj.PLOTCOLORS.EdgeColor;
@@ -2590,9 +2467,7 @@ classdef App < handle & applify.mixin.UserSettings
                     set(obj.tempFovHandles, 'Visible', 'off')
                     src.Text = 'Show All FoVs';
             end
-                
         end
-        
         
         function showGrid(obj, src, ~)
             
@@ -2617,9 +2492,7 @@ classdef App < handle & applify.mixin.UserSettings
                     btnH.String = src.String;
                 end
             end
-                
         end
-        
         
         function showMinorGrid(obj, src, ~)
             % Todo...
@@ -2635,10 +2508,7 @@ classdef App < handle & applify.mixin.UserSettings
                     obj.hAxes.XMinorGrid = 'off';
                     obj.hAxes.YMinorGrid = 'off';
             end
-            
-            
         end
-        
         
         function showInfoCursor(obj, src, ~)
             
@@ -2658,7 +2528,7 @@ classdef App < handle & applify.mixin.UserSettings
                     if isempty(obj.hMapLabels)
                         obj.msgBox.displayMessage('Just a second...')
 
-                        leftOrRight = obj.settings.hemisphereToLabel();            
+                        leftOrRight = obj.settings.hemisphereToLabel();
                         obj.hMapLabels = fovmanager.utility.atlas.showBrainMapLabels(obj.hAxes, leftOrRight);
                         
                         obj.msgBox.clearMessage()
@@ -2672,9 +2542,7 @@ classdef App < handle & applify.mixin.UserSettings
                     set(obj.hMapLabels, 'Visible', 'off')
                     src.Text = 'Show Map Labels';
             end
-            
         end
-        
         
 % % % % Plot methods
         
@@ -2687,25 +2555,18 @@ classdef App < handle & applify.mixin.UserSettings
             mInd = obj.getCurrentMouseSelection(); %NB: First element of lb is none
             if mInd == 0; return; end
             
-            
             if ~isempty(obj.fovDatabase(mInd).Windows)
                 winH = findobj(obj.fovDatabase(mInd).Windows(:).guiHandle, 'Tag', 'Window Outline');
                 obj.hBg = obj.makeMapOpaque(obj.hAxes, winH);
             end
-            
         end
-        
 
         function resetBackground(obj)
             if ~isempty(obj.hBg) && isvalid(obj.hBg)
                 delete(obj.hBg)
             end
         end
-        
-        
     end
-    
-    
     
     methods (Static)
         
@@ -2753,13 +2614,12 @@ classdef App < handle & applify.mixin.UserSettings
             path = mfilename('fullpath');
             settingsPath = strcat(path, '_settings.mat');
 
-            if exist(settingsPath, 'file') % Load settings from file
+            if isfile(settingsPath) % Load settings from file
                 S = load(settingsPath, 'settings');
                 S = S.settings;
             else
                 S = struct.empty;
             end
-            
         end
         
         function S = getAppearance(appearanceName)
@@ -2784,9 +2644,8 @@ classdef App < handle & applify.mixin.UserSettings
             darkMode.AxesForegroundColor = ones(1,3) .* 0.85;
             darkMode.AxesGridAlpha = 0.5;
             darkMode.MapAlpha = 0.8;
-            darkMode.ToolbarAlpha = 0.2; 
+            darkMode.ToolbarAlpha = 0.2;
             darkMode.ToolbarDarkMode = 'on';
-            
             
             switch lower(appearanceName)
                 case 'light'
@@ -2796,9 +2655,7 @@ classdef App < handle & applify.mixin.UserSettings
                     S = darkMode;
 
             end
-            
         end
-
         
         function setDefaultDatabase(pathStr)
             
@@ -2811,25 +2668,22 @@ classdef App < handle & applify.mixin.UserSettings
             save(settingsPath, '-struct', 'S')
         end
         
-        
         % % % Methods to get things out of the default database
         
         function Db = getDefaultDatabase()
             S = fovmanager.getSettings();
             if ~isempty(S)
-                if ~isempty(S.defaultFilePath) && exist(S.defaultFilePath, 'file')
+                if ~isempty(S.defaultFilePath) && isfile(S.defaultFilePath)
                     S2 = load(S.defaultFilePath);
                     Db = S2.fovDb;
                 end
             end
         end
         
-        
         function Db = getDatabase(dbPath)
             S2 = load(dbPath);
             Db = S2.fovDb;
         end
-        
         
         function fovArray = findFovFromSession(sessionIDs, database)
 
@@ -2880,13 +2734,9 @@ classdef App < handle & applify.mixin.UserSettings
                         fovArray = cat(2, fovArray, thisFov);
 %                         break % if we got this far
                     end
-
                 end
-                
             end
-            
         end
-        
         
         function mapCoords = getRoiMapCoordinates(sessionID, fovDb)
 
@@ -2902,7 +2752,6 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function fovCenter = getFovCenter(sessionID)
             
             sessionID = validateSessionID(sessionID, 'any');
@@ -2917,7 +2766,6 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function fovLabel = getFovLabel(sessionID)
             
             % Todo: Merge this with another function.
@@ -2930,7 +2778,6 @@ classdef App < handle & applify.mixin.UserSettings
             allFovs = fovmanager.findFovFromSession(sessionID);
             if isempty(allFovs); return; end
             
-            
             tmpFig = brainmap.paxinos.open('invisible');
 
             h = findobj(tmpFig, 'Type', 'Polygon');
@@ -2942,7 +2789,6 @@ classdef App < handle & applify.mixin.UserSettings
             xRange = range(ax.XLim);
             yRange = range(ax.YLim);
             m = 100;
-
             
             for iSession = 1:numSessions
             
@@ -2995,7 +2841,6 @@ classdef App < handle & applify.mixin.UserSettings
             end
         end
         
-        
         function thisWindow = getWindow(sessionID, varargin)
             
             param = struct('dbPath', 'default');
@@ -3018,12 +2863,10 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function windowCoords = getWindowCoords(sessionID)
             thisWindow = fovmanager.getWindow(sessionID);
             windowCoords = thisWindow.edge;
         end
-        
         
         function showHelp()
             
@@ -3064,7 +2907,6 @@ classdef App < handle & applify.mixin.UserSettings
                  'h : Flip image horizontally', ...
                  'x : Toggle (on/off) coordinate cursor point'};
 
-
             % Plot messages from bottom top. split messages by colon and
             % put in different xpositions.
             hTxt = gobjects(0, 1);
@@ -3077,7 +2919,7 @@ classdef App < handle & applify.mixin.UserSettings
                 y = y + nLines*0.03;
                 
                 makeBold = contains(messages{i}, '\b');
-                messages{i} = strrep(messages{i}, '\b', ''); 
+                messages{i} = strrep(messages{i}, '\b', '');
                 
                 if contains(messages{i}, ':')
                     msgSplit = strsplit(messages{i}, ':');
@@ -3093,7 +2935,6 @@ classdef App < handle & applify.mixin.UserSettings
             end
 
             set(hTxt, 'FontSize', 14, 'Color', S.AxesForegroundColor, 'VerticalAlignment', 'top')
-            
             
             hTxt(end).ButtonDownFcn = @(s,e) fovmanager.App.openWiki;
          
@@ -3114,15 +2955,11 @@ classdef App < handle & applify.mixin.UserSettings
 
         end
         
-        
         function openWiki()
             web('https://github.uio.no/VervaekeLab/fovmanager/wiki', '-browser')
         end
         
-        
-        
-        % Methods to plot the brain map and 
-        
+        % Methods to plot the brain map and
         
         function [fig, ax] = showMap(varargin)
         %fovmanager.App.showMap Plot the paxinos dorsal surface map
@@ -3130,14 +2967,14 @@ classdef App < handle & applify.mixin.UserSettings
         %   fovmanager.showMap() open a new figure with the dorsal brain
         %   surface map.
         %
-        %   fovmanager.showMap(ax) creates the map in the in the axes 
+        %   fovmanager.showMap(ax) creates the map in the in the axes
         %   specified by ax
         %
         %   fovmanager.showMap(ax, Name, Value, ...) creates the map with
         %   additional name value pair arguments:
         %
         %   Name, Value pair arguments:
-        %       
+        %
         %       'Grayscale'  (logical)    : Show map in grayscale or color
         %       'ShowLabels' (logical)    : Show region text labels on the map
         %       'LabelHemisphere' (char)  : 'left' | 'right' Hemisphere to label
@@ -3181,7 +3018,6 @@ classdef App < handle & applify.mixin.UserSettings
 
             ax.GridAlpha = 0.15;
             ax.Layer = 'top';
-            
 
             % Make black and white
             if opt.Grayscale
@@ -3193,26 +3029,21 @@ classdef App < handle & applify.mixin.UserSettings
                     hPoly(i).FaceColor = newC;
                 end
             end
-
             
             % Add labels for regions
             if opt.ShowLabels
                 fovmanager.utility.atlas.showBrainMapLabels(ax, opt.LabelHemisphere);
             end
             
-            
             if ~nargout
                 clear fig ax
             end
-            
         end
-        
         
         function hWin = plotWindow(ax, sessionID, varargin)
         
             def = struct('MakeMapOpaque', false, 'Opaqueness', 0, 'ShowImage', false);
             opt = parsenvpairs(def, [], varargin);
-            
             
             % Plot window
             thisWindow = fovmanager.getWindow(sessionID);
@@ -3235,13 +3066,10 @@ classdef App < handle & applify.mixin.UserSettings
             
         end
         
-        
         function h = plotFov(ax, sessionID, varargin)
-        
             
             def = struct('FovShape', 'square');
             opt = parsenvpairs(def, [], varargin);
-            
             
             % Plot window
             if isa(sessionID, 'char')
@@ -3258,7 +3086,7 @@ classdef App < handle & applify.mixin.UserSettings
                 
                 thisFov = fovmanager.findFovFromSession(sessionID{i}(1:end-4)); % Todo: might exclude last part of sessionID
 
-                xCoords = thisFov.edge(:, 1); 
+                xCoords = thisFov.edge(:, 1);
                 yCoords = thisFov.edge(:, 2);
                 
                 if strcmp( opt.FovShape, 'circle' )
@@ -3279,7 +3107,6 @@ classdef App < handle & applify.mixin.UserSettings
                    'LineWidth', 1 )
             
         end
-        
         
         function hBg = makeMapOpaque(ax, winH, varargin)
             
@@ -3314,11 +3141,9 @@ classdef App < handle & applify.mixin.UserSettings
             ax.YLim = origYLim + range(origYLim) .* [-0.01, 0.01];
             
         end
-        
     end
     
     methods (Static)
         S = getDefaultSettings()
     end
-    
 end

@@ -16,8 +16,7 @@ classdef RoiDisplayInputHandler < handle
         end
     end
     
-    
-    methods 
+    methods
         
         function wasCaptured = roiKeypressHandler(obj, src, event)
             
@@ -26,8 +25,8 @@ classdef RoiDisplayInputHandler < handle
             if isempty(obj.RoiDisplay); return; end
             if isempty(obj.RoiDisplay.SelectedRois); return; end
             
-            % Set flag to true. Instead of setting flag to true for each 
-            % case where key event is captured, it is set to false for each 
+            % Set flag to true. Instead of setting flag to true for each
+            % case where key event is captured, it is set to false for each
             % case where it is not.
             wasCaptured = true;
 
@@ -44,10 +43,22 @@ classdef RoiDisplayInputHandler < handle
                     
                 case {'backspace', '⌫', 'del', 'delete'}
                     obj.RoiDisplay.removeRois();
-                    
+                                
+                case 'e'
+                    if strcmp(event.Modifier, 'shift')
+                        obj.RoiDisplay.changeCellType('excitatory')
+                    end
+
                 case 'i'
-                    obj.RoiDisplay.improveRois();
-                    
+                    if strcmp(event.Modifier, 'shift')
+                        obj.RoiDisplay.changeCellType('inhibitory')
+                    elseif isempty(event.Modifier)
+                        obj.RoiDisplay.improveRois();
+                    end
+                case 'x'
+                    if strcmp(event.Modifier, 'shift')
+                        obj.RoiDisplay.changeCellType('axon')
+                    end
                 case 'g'
                     obj.RoiDisplay.growRois();
                     
@@ -86,12 +97,10 @@ classdef RoiDisplayInputHandler < handle
 
                     obj.RoiDisplay.moveRoi(shift)
                     
-                    
                 otherwise
                     wasCaptured = false;
             end
         end
-        
     end
     
     methods (Static, Access = private)
@@ -118,10 +127,8 @@ classdef RoiDisplayInputHandler < handle
                 case {'up', '↑'}
                     shift = [0, -1];
                 case {'down', '↓'}
-                    shift = [0, 1]; 
+                    shift = [0, 1];
             end
         end
-        
     end
-    
 end

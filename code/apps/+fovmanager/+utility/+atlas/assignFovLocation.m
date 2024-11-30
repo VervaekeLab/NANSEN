@@ -12,16 +12,14 @@ function fovLocs = assignFovLocation(fovArray, varargin)
 %   Name, Value pairs:
 %       mergeRegions    : true | false
 
-
     % S is a struct containing a region index map and some other necessary
-    % parameters. S is loaded from a file. Use persistent variable, because 
-    % this function might be called many times. Also, the file will have a 
+    % parameters. S is loaded from a file. Use persistent variable, because
+    % this function might be called many times. Also, the file will have a
     % small footprint in memory.
-    persistent S 
+    persistent S
     
     opt = struct('mergeRegions', true);
     opt = utility.parsenvpairs(opt, [], varargin);
-
     
     % Load file with region index map
     if isempty(S)
@@ -32,14 +30,12 @@ function fovLocs = assignFovLocation(fovArray, varargin)
     m = S.magnificationFactor;
     regionLabels = S.regionLabels;
     [mapHeight, mapWidth] = size(S.indexMap);
-
     
     % Merge regions / region labels if requested
     if opt.mergeRegions
         regionLabels = fovmanager.utility.atlas.mergeRegions(regionLabels);
     end
     uniqueRegions = unique(regionLabels);
-    
     
     numFovs = numel(fovArray);
     fovLocs = cell(numFovs, 1);
@@ -67,5 +63,4 @@ function fovLocs = assignFovLocation(fovArray, varargin)
         fovLocs(iFov) = uniqueRegions(bestRegionInd);
         
     end
-
 end

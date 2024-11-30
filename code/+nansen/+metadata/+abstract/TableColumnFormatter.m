@@ -4,10 +4,9 @@ classdef TableColumnFormatter
 %   This class should be inherited by concrete table variable classes which
 %   should have a custom display of column data.
 %
-%   Subclasses must implement two methods, one for creating a string to be 
-%   displayed within a cell and one for creating a string to be displayed 
+%   Subclasses must implement two methods, one for creating a string to be
+%   displayed within a cell and one for creating a string to be displayed
 %   as a tooltip (getCellDisplayString, getCellTooltipString respectively).
-
 
 % Note on implementation:
 %   Subclasses should work on vectors of objects, and return cell
@@ -27,5 +26,4 @@ classdef TableColumnFormatter
         str = getCellTooltipString(obj)
         
     end
-
 end

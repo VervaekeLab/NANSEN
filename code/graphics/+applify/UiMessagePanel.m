@@ -32,8 +32,8 @@ classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
         function printMessage(obj, msg, mode)
         %printMessage Print a message in the app's message window
         %
-        %    obj.printMessage(msgString, mode) where msgString is a string 
-        %    containing a message and mode is 'normal', 'append' or 'replace'.   
+        %    obj.printMessage(msgString, mode) where msgString is a string
+        %    containing a message and mode is 'normal', 'append' or 'replace'.
         %
         %        'normal'  : add new message
         %        'append'  : add message to end of current message
@@ -55,7 +55,6 @@ classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
             scroll(obj.UIListBox, 'bottom')
             drawnow
         end
-
     end
     
     methods % Set / get
@@ -70,7 +69,6 @@ classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
         function pos = get.Position(obj)
             pos = obj.Position_;
         end
-        
     end
     
     methods (Access = private)
@@ -90,8 +88,6 @@ classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
                     fprintf('%s is not a property of this class\n.', names{i})
                 end
             end
-            
-            
         end
         
         function createListboxLabel(obj)
@@ -123,7 +119,5 @@ classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
                 obj.UILabel.Position = position;
             end
         end
-        
     end
-    
 end

@@ -1,11 +1,9 @@
-function [P, V] = getDefaultOptions()
+function [P, V] = getDefaults()
 
-
-% DESRIPTION:
+% DESCRIPTION:
 %   Change these parameters to change the behavior of the autosegmentation
 
-
-% - - - - - - - - Specify parameters and default values - - - - - - - - 
+% - - - - - - - - Specify parameters and default values - - - - - - - -
 
 % Names                                 Values (default)        Description
 P                                           = struct();             %
@@ -69,7 +67,6 @@ P.Estimation.plot_loss                      = false;
 P.Estimation.l1_penalty_factor              = 0;
 P.Estimation.hyperparameter_tuning_flag     = false;
 
-
 % Cell elimination parameters
 P.CellElimination.T_lower_snr_threshold     = 10;
 P.CellElimination.remove_duplicate_cells    = true;
@@ -86,23 +83,19 @@ P.Output.compact_output                     = true;
 P.Output.save_all_found                     = false;
 P.Output.use_sparse_arrays                  = false;
 
-
 % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
 P.Main.avg_cell_radius_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 20, 'nTicks', 19}});
 P.Main.num_partitions_x_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 8, 'nTicks', 7}});
 P.Main.num_partitions_y_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 8, 'nTicks', 7}});
-P.Main.trace_output_option_ = {'nonneg', 'raw'}; 
+P.Main.trace_output_option_ = {'nonneg', 'raw'};
 P.Main.verbose_ = {0,1,2};
 P.CellFind.filter_type_ = {'butter', 'gauss', 'wiener', 'movavg', 'none'};
-
 
 % P.Fov.movie_mask Make interactive tool for creating this...
     
 % - - - - Specify validation/assertion test for each parameter - - - -
 
 V                           = struct();
-
-
 
 % - - - - - Adapt output to how many outputs are requested - - - - - -
 
@@ -112,5 +105,4 @@ if nargout == 0
 elseif nargout == 1
     clear V
 end
-
 end

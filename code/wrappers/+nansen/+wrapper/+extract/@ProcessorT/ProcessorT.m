@@ -2,7 +2,7 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
 
 %   This class creates the following data variables:
 %
-%     * <strong>ExtractTemporalWeights</strong> : Extracted temporal components 
+%     * <strong>ExtractTemporalWeights</strong> : Extracted temporal components
 %           (numRois x numTimepoints) single matrix
     
     % Rename to ExtractT
@@ -35,7 +35,6 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
         end
     end
     
-    
     methods % Structor
         
         function obj = ProcessorT(varargin)
@@ -49,9 +48,7 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
                 obj.runMethod()
                 clear obj
             end
-            
         end
-        
     end
     
     methods (Access = protected)
@@ -77,7 +74,7 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
             config = obj.SegmentationResults.config;
             config.max_iter = 0;
             config.num_iter_stop_quality_checks=0;
-            config.S_init = reshape(spatialWeights, h * w, n); 
+            config.S_init = reshape(spatialWeights, h * w, n);
             config.verbose = 0;
             
             obj.ExtractConfig = config;
@@ -93,7 +90,6 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
             obj.saveData('ExtractTemporalWeights', T, 'Subfolder', ...
                 obj.DATA_SUBFOLDER, 'IsInternal', true)
         end
-
     end
     
     methods (Access = protected) % Implement methods from ImageStackProcessor
@@ -114,15 +110,11 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
         function tf = checkIfPartIsFinished(obj, partNumber)
             tf = ~isempty(obj.Results{partNumber});
         end
-        
     end
     
-    methods (Access = private) 
+    methods (Access = private)
 
         function loadResults(obj)
         end
-
     end
-    
-
 end

@@ -1,6 +1,6 @@
 function S = getSessionMethodInfo(pathStr)
 %GETSESSIONMETHODINFO Get info struct for session method
-%   
+%
 %   S = getSessionMethodInfo(pathStr)
 %
 %   S contains the following fields:
@@ -11,7 +11,7 @@ function S = getSessionMethodInfo(pathStr)
 
     S = struct();
     
-    [~, fileName] = fileparts(pathStr); 
+    [~, fileName] = fileparts(pathStr);
 
     S.SessionMethodName = fileName;
     S.SessionMethodPathStr = pathStr;
@@ -21,4 +21,3 @@ function S = getSessionMethodInfo(pathStr)
     S.OptionsAlternatives = optsManager.AvailableOptionSets;
 
 end
-

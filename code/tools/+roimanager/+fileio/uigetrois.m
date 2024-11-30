@@ -17,5 +17,4 @@ function [S, filePath] = uigetrois()
         S.roiArray = S.roi_arr;
         S = rmfield(S, 'roi_arr');
     end
-
 end

@@ -11,12 +11,12 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
 
 % Note: In general, it is better to parent the canvas in a panel than
 % directly in a figure. When resizing the figure window, if the canvas axes
-% is parented to a figure, things appear more glitchy (the axes is 
-% temporarily squeezed when figure size is decreased) than if the axes is 
+% is parented to a figure, things appear more glitchy (the axes is
+% temporarily squeezed when figure size is decreased) than if the axes is
 % parented to a panel.
 
-% Note: 
-% The 'DefaultAxesCreateFcn' property of figure is used to notify whenever 
+% Note:
+% The 'DefaultAxesCreateFcn' property of figure is used to notify whenever
 % a new axes is created on the figure. This is done to make sure the
 % UIComponentCanvas axes is always on top.
 %
@@ -29,17 +29,15 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
 % object family, but I also inherit stuff I dont fully understand. I.e,
 % what does an extra container in the figure do? Where is it in the stack?
 
-
-% Todo: 
+% Todo:
 %   [�] Create a variation of UIComponentCanvas for single components.
 %   [ ] Outsource tooltip manager to a separate class.
-%   [ ] Debug object desctruction...
-
+%   [ ] Debug object destruction...
     
     properties (SetAccess = private, Transient)
         Parent = []                 % Parent handle (figure/uifigure)
         Axes = []                   % Handle to the axes which components are plotted in
-        Position (1,4) double = [0,0,1,1] % Position within the parent. 
+        Position (1,4) double = [0,0,1,1] % Position within the parent.
         Units = 'pixels'            % Units for position property
         Children = []               % List of uicomponents
         Tag = 'UI Component Canvas' % A tag which is also applied to the axes.
@@ -87,7 +85,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             if ~nargout
                 clear obj
             end
-            
         end
         
         function delete(obj)
@@ -95,7 +92,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             delete(obj.ParentSizeChangedListener)
             delete(obj.ParentLocationChangedListener)
         end
-        
     end
     
     methods
@@ -135,7 +131,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
         function bringTooltipToFront(obj)
             uistack(obj.TooltipHandle, 'top')
         end
-        
     end
     
     methods (Access = private) % Creation
@@ -180,7 +175,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             if doDisableToolbar
                 disableDefaultInteractivity(obj.Axes)
             end
-            
         end
 
         function configureParentPositionChangedListener(obj)
@@ -193,7 +187,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             if ~isempty(obj.ParentLocationChangedListener)
                 delete(obj.ParentLocationChangedListener)
             end
-            
             
             % Create listeners for Parent's SizeChanged & LocationChanged
             el = listener(obj.Parent, 'SizeChanged', @obj.onSizeChanged);
@@ -241,7 +234,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             obj.TooltipHandle.PickableParts = 'none';
             
         end
-        
     end
     
     methods (Access = protected) % Event callbacks
@@ -266,7 +258,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             else
                 evt = uim.event.SizeChangedData(oldSize, newSize);
             end
-            
 
             obj.notify('SizeChanged', evt)
 
@@ -294,7 +285,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
                 end
             end
         end
-        
     end
     
     methods (Access = private) % Internal updates
@@ -308,19 +298,18 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             if strcmp(obj.Axes.Units, 'pixels')
 
 % %                 if ~all(isnan(obj.PreviousPixelPosition))
-% %                     obj.setAxesLimitsRelative()                
+% %                     obj.setAxesLimitsRelative()
 % %                 else
                     newPosition = [1,1, obj.PixelSize];
 
                     set(obj.Axes, 'Position', newPosition, 'XLim', [1, obj.PixelSize(1)], 'YLim', [1, obj.PixelSize(2)])
-% %                     
+% %
 % %                 end
 
             else
                 obj.Axes.XLim = [1, obj.PixelSize(1)];
                 obj.Axes.YLim = [1, obj.PixelSize(2)];
             end
-                    
         end
         
         function setAxesLimitsRelative(obj)
@@ -336,7 +325,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             deltaY = obj.PixelPosition(2) - obj.PreviousPixelPosition(2);
             deltaW = obj.PixelPosition(3) - obj.PreviousPixelPosition(3);
             deltaH = obj.PixelPosition(4) - obj.PreviousPixelPosition(4);
-                    
                     
             if deltaX ~= 0 && deltaW ~= 0
                 newXLim(1) = obj.Axes.XLim(1) + deltaX;
@@ -382,7 +370,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
                 delete(obj.ParentLocationChangedListener)
                 obj.ParentLocationChangedListener = [];
             end
-            
         end
         
         function reparentAxes(obj)
@@ -406,7 +393,7 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
         end
         
         function set.Parent(obj, newValue)
-        %set.Parent Validate value and assign to Parent property   
+        %set.Parent Validate value and assign to Parent property
         
             errMsg = sprintf(['Error setting property ''Parent'' of class ''%s'': \n', ...
                     'Value must be ''matlab.graphics.Graphics'''], class(obj));
@@ -416,7 +403,7 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             hadParent = ~isempty(obj.Parent) && isvalid(obj.Parent);
             
             if hadParent
-                obj.removeParent(obj); 
+                obj.removeParent(obj);
             end
             
             obj.Parent = newValue;
@@ -425,9 +412,8 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             setappdata(obj.Parent, 'UIComponentCanvas', obj);
             
             if hadParent
-                obj.reparentAxes(); 
+                obj.reparentAxes();
             end
-            
         end
         
         function set.PixelSize(obj, newValue)
@@ -452,7 +438,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             
             locationPoint = [1,1]; % Southwest
             %locationPoint = [obj.Axes.XLim(1), obj.Axes.YLim(1)]; % Southwest
-            
             
             if contains(locationKey, 'north')
                 locationPoint(2) = pixelSize(2);
@@ -480,7 +465,6 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             locationPoint = round( locationPoint );
 
         end
-        
     end
     
     methods (Static)
@@ -505,7 +489,7 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
 
             set(hAxes, 'XTick', [], 'YTick', [])
             hAxes.Visible = 'off';
-            hAxes.Units = 'pixel';         
+            hAxes.Units = 'pixel';
             hAxes.HandleVisibility = 'off';
             hAxes.Tag = 'Widget Container';
             
@@ -515,14 +499,9 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             if doDisableToolbar
                 disableDefaultInteractivity(hAxes)
             end
-            
         end
-        
     end
-    
 end
-
-
 
 % % Test SizeChangedListener
 % % f=figure;

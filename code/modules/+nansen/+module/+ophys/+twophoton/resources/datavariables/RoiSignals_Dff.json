@@ -1,0 +1,19 @@
+{
+  "_type": "Nansen File Variable Specification",
+  "_version": "1.0.0",
+  "Properties": {
+    "VariableName": "RoiSignals_Dff",
+    "DataLocation": "DEFAULT",
+    "DataLocationUuid": "",
+    "Subfolder": "roisignals",
+    "FileNameExpression": "roisignals",
+    "FileType": ".mat",
+    "FileAdapter": "RoiSignalArray",
+    "DataType": "",
+    "Alias": "dff",
+    "GroupName": "",
+    "IsCustom": false,
+    "IsInternal": false,
+    "IsFavorite": false
+  }
+}

@@ -1,7 +1,6 @@
 classdef numpy < nansen.dataio.FileAdapter
 %numpy File adapter for a numpy file
     
-
     properties (Constant)
         DataType = 'struct'
     end
@@ -9,7 +8,6 @@ classdef numpy < nansen.dataio.FileAdapter
     properties (Constant, Hidden, Access = protected)
         SUPPORTED_FILE_TYPES = {'npy'}
     end
-    
     
     methods % Constructor
         function obj = numpy(varargin)
@@ -25,5 +23,4 @@ classdef numpy < nansen.dataio.FileAdapter
             data = S.data;
         end
     end
-
 end

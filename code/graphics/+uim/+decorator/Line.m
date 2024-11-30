@@ -7,9 +7,13 @@ classdef Line < uim.abstract.Control
     %       should it be relative units?
     %   [ ] Subclass from Decorator instead of Control
     
-    
     properties (Constant)
         Type = 'Line'
+    end
+    
+    properties
+        XData
+        YData
     end
     
     properties
@@ -20,14 +24,13 @@ classdef Line < uim.abstract.Control
     properties (Access = protected, Transient)
         hLine
     end
-    
 
     methods
         function obj = Line(varargin)
 
             obj@uim.abstract.Control(varargin{:})
             
-            %delete(obj.hBackground); 
+            %delete(obj.hBackground);
             obj.hBackground.Visible = 'off';
             obj.plotLine()
             
@@ -57,13 +60,19 @@ classdef Line < uim.abstract.Control
         end
         
         function [X, Y] = getPlotData(obj)
-            
-            X = [obj.Position(1), obj.Position(3)];
-            Y = [obj.Position(2), obj.Position(4)];
-            
+            if isempty(obj.XData)
+                X = [obj.Position(1), obj.Position(3)];
+            else
+                X = obj.XData;
+            end
+
+            if isempty(obj.YData)
+                Y = [obj.Position(2), obj.Position(4)];
+            else
+                Y = obj.YData;
+            end
         end
     end
-    
     
     methods
         function relocate(obj, ~)
@@ -80,7 +89,6 @@ classdef Line < uim.abstract.Control
             end
         end
     end
-    
     
     methods
         function updateLocation(obj, ~)
@@ -100,5 +108,4 @@ classdef Line < uim.abstract.Control
             end
         end
     end
-
 end

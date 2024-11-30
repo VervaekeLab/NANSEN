@@ -1,6 +1,6 @@
 classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin.UserSettings
-%SessionData Class that provides access to File Variables in DataLocations 
-% 
+%SessionData Class that provides access to File Variables in DataLocations
+%
 %
 %
 
@@ -8,13 +8,12 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 % properties and methods are accounted for, there could be issues if
 % subclassing this class and implementing protected properties. Long story
 % short, protected properties would not be protected in this case.
-% Another issue if trying something like {sessionData.RoiArray.area}, wont
+% Another issue if trying something like {sessionData.RoiArray.area}, won't
 % work, so assign roiArray to another variable first
 
 % Note: This class is not yet well adapted non-scalar objects!
 
-
-% Todo: 
+% Todo:
 %   [v] Should hold the session object and call methods from the session
 %       object, instead of running a copy of those methods....
 %   [ ] Remove all methods that are duplicates from the session class.
@@ -34,8 +33,8 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 
     properties (Access = private)
         DataLocation
-        subjectID 
-        Date 
+        subjectID
+        Date
         Time
     end
     
@@ -55,26 +54,23 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         VariableNames
     end
     
-    
     methods (Hidden) % Constructor
         
         function obj = SessionData(sessionObj)
             
             obj.SessionObject = sessionObj;
                         
-            % Inherit properties for sessionObj. Todo: Avoid duplication...       
+            % Inherit properties for sessionObj. Todo: Avoid duplication...
             obj.sessionID = sessionObj.sessionID;
 % %             obj.subjectID = sessionObj.subjectID;
 % %             obj.Date = sessionObj.Date;
 % %             obj.Time = sessionObj.Time;
 % %             obj.DataLocation = sessionObj.DataLocation;
-
             
             % Initialize the property value here (because Map is handle)
             obj.FileList = containers.Map; % Todo: Use java.HashTable or similar instead?
             
         end
-        
     end
     
     methods
@@ -88,6 +84,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         function obj = update(obj)
             fprintf('Updating session data variables...\n')
             obj.updateDataVariables();
+        end
+
+        function varNames = getVariableNames(obj)
+            varNames = obj.VariableNames;
         end
         
         function resetCache(obj, varNames)
@@ -107,10 +107,9 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 end
             end
         end
-        
     end
     
-    methods 
+    methods
         function dlModel = get.DataLocationModel(obj)
             dlModel = obj.SessionObject.DataLocationModel;
         end
@@ -130,7 +129,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 tf = true;
             end
         end
-        
     end
     
     methods (Hidden)
@@ -166,7 +164,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         function obj = hideUserVariables(obj)
             obj.settings.ShowUserVariables = false;
         end
-        
 
         function updateDataVariables(obj)
             
@@ -176,7 +173,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 return
             end
             
-            obj.DataVariableModel = nansen.config.varmodel.VariableModel();
+            obj.DataVariableModel = nansen.VariableModel();
             varNames = {obj.DataVariableModel.Data.VariableName};
             
             for i = 1:numel(varNames)
@@ -205,7 +202,8 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             if nargin < 3; mustExist = true; end
 
             % Todo: get from session object:
-            dataVariableModel = nansen.config.varmodel.VariableModel();
+            %dataVariableModel = obj.SessionObject.VariableModel;
+            dataVariableModel = nansen.VariableModel();
             fileAdapters = {dataVariableModel.Data.FileAdapter};
 
             switch typeName
@@ -248,7 +246,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         %
         %   OUTPUT:
         %       varNames : cell array of variable name(s)
-        
         
             if nargin < 2
                 varNames = obj.VariableNames;
@@ -301,7 +298,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             obj.saveData(variableName, data)
             obj.updateDataVariables();
         end
-    
     end
     
     methods (Access = protected)
@@ -340,16 +336,14 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             else
                 value = obj.(privateVarName);
             end
-
         end
         
         function assignDataToPrivateVar(obj, varName)
             privateVarName = strcat(varName, '_');
             
             if isempty(obj.(privateVarName))
-                obj.(privateVarName) = obj.loadData(varName); 
+                obj.(privateVarName) = obj.loadData(varName);
             end
-            
         end
         
         function setDataVariable(obj, varargin)
@@ -393,33 +387,32 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 return;
             end
             
-            isDefault = [obj(1).VariableList.IsDefaultVariable];
             isInternal = [obj(1).VariableList.IsInternal];
             isFavorite = [obj(1).VariableList.IsFavorite];
             isCustom = [obj(1).VariableList.IsCustom];
+            isPreset = ~isCustom;
             
             propGroup = matlab.mixin.util.PropertyGroup.empty;
                         
             if obj.settings.ShowFavouriteVariables && any(isFavorite)
-                propNames = sort( {obj.VariableList(isFavorite).VariableName} ); 
+                propNames = sort( {obj.VariableList(isFavorite).VariableName} );
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Favorite Variables:')];
             end
             
-            if obj.settings.ShowDefaultVariables && any(isDefault)
-                propNames = sort( {obj.VariableList(isDefault).VariableName} ); 
+            if obj.settings.ShowDefaultVariables && any(isPreset)
+                propNames = sort( {obj.VariableList(isPreset).VariableName} );
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Default Variables:')];
             end
             
             if obj.settings.ShowUserVariables && any(isCustom)
-                propNames = sort( {obj.VariableList(isCustom).VariableName} ); 
+                propNames = sort( {obj.VariableList(isCustom).VariableName} );
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'User Variables:')];
             end
             
             if obj.settings.ShowInternalVariables && any(isInternal)
-                propNames = sort( {obj.VariableList(isInternal).VariableName} ); 
+                propNames = sort( {obj.VariableList(isInternal).VariableName} );
                 propGroup = [propGroup, matlab.mixin.util.PropertyGroup(propNames, 'Internal Variables:')];
             end
-            
         end
         
         function onSettingsChanged(obj, name, value)
@@ -488,9 +481,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                             errorMsg = sprintf('Unrecognized method, property, or field ''%s'' for class ''%s''.', s(1).subs, class(obj));
                             throwAsCaller(MException(errorID, errorMsg))
                         end
-                        
                     end
-
             end
               
             % If we got this far, use the builtin subsref
@@ -512,9 +503,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                     end
                 end
             end
-                    
         end
-
     end
             
     methods (Access = protected) % Load data variables
@@ -531,7 +520,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         %getDataFilePath Get filepath to data within a session folder
         %
         %   pathStr = sessionObj.getDataFilePath(varName) returns a
-        %   filepath (pathStr) for data with the given variable name 
+        %   filepath (pathStr) for data with the given variable name
         %   (varName).
         %
         %   pathStr = sessionObj.getDataFilePath(varName, mode) returns the
@@ -539,7 +528,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         %       '-r'    : Get filepath of existing file (Default)
         %       '-w'    : Get filepath of existing file or create filepath
         %
-        %   pathStr = sessionObj.getDataFilePath(__, Name, Value) uses 
+        %   pathStr = sessionObj.getDataFilePath(__, Name, Value) uses
         %   name-value pair arguments to control aspects of the filename.
         %
         %   PARAMETERS:
@@ -550,9 +539,8 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         %   EXAMPLES:
         %
         %       pathStr = sObj.getFilePath('dff', '-w', 'Subfolder', 'roisignals')
-        
             
-            % Todo: 
+            % Todo:
             %   [v] (Why) do I need mode here? If -w, variable is added to
             %       model
             %   [ ] Implement load/save differences, and default datapath
@@ -560,7 +548,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             %   [ ] Implement ways to grab data spread over multiple files, i.e
             %       if files are separate by imaging channel, imaging plane,
             %       trials or are just split into multiple parts...
-            
             
             pathStr = obj.SessionObject.getDataFilePath(varName, varargin{:});
         end

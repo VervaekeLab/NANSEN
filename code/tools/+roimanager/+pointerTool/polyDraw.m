@@ -1,7 +1,6 @@
 classdef polyDraw < uim.interface.abstractPointer & ...
         roimanager.pointerTool.RoiDisplayInputHandler
     
-    
     properties (Constant)
         exitMode = 'default';
     end
@@ -23,7 +22,6 @@ classdef polyDraw < uim.interface.abstractPointer & ...
         selectedImpointColor = [0.8,0.8,0.8]
     end
     
-    
     methods
                
         function obj = polyDraw(hAxes)
@@ -31,17 +29,14 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             obj.hFigure = ancestor(hAxes, 'figure');
         end
         
-        
         function deactivate(obj)
             deactivate@uim.interface.abstractPointer(obj)
             removeTmpRoi(obj)
         end
-
         
         function setPointerSymbol(obj)
             obj.hFigure.Pointer = 'crosshair';
         end
-        
         
         function onButtonDown(obj, src, evt)
             
@@ -58,7 +53,6 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             end
         end
         
-        
         function onButtonMotion(obj, src, evt)
             
             if obj.isActive; return; end
@@ -71,14 +65,11 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             else
                 obj.hFigure.Pointer = 'circle';
             end
-            
         end
-        
         
         function onButtonUp(obj, src, event)
             obj.isActive = false;
         end
-        
         
         function wasCaptured = onKeyPress(obj, src, event)
             
@@ -108,20 +99,16 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             end
         end
         
-        
         function [x, y] = getPolygonVertices(obj)
             x = obj.tmpRoiPosX;
             y = obj.tmpRoiPosY;
         end
     end
     
-    
-    
     methods (Access = protected)
         
-        
         function drawPolygonOutline(obj)
-        % Draw the lines between the impoints of tmp roi. 
+        % Draw the lines between the impoints of tmp roi.
         
             % Get list of vertex points
             x = obj.tmpRoiPosX;
@@ -138,7 +125,7 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             x(end+1) = x(1);
             y(end+1) = y(1);
             
-            % There should only be one instance of the tmp roi plot. 
+            % There should only be one instance of the tmp roi plot.
             if isempty(obj.hlineTmpRoi) || ~isvalid(obj.hlineTmpRoi)
                 obj.hlineTmpRoi = plot(obj.hAxes, 0,0);
                 obj.hlineTmpRoi.HitTest = 'off';
@@ -147,7 +134,6 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             
             set(obj.hlineTmpRoi,'XData',x, 'YData',y);
         end
-        
         
         function removeTmpRoi(obj)
         %REMOVETMPROI clear the obj.RoiTmpPos or obj.tmpImpoints.
@@ -165,13 +151,12 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             obj.selectedImpoint = [];
             
         end
-
         
         function addImpoint(obj, x, y)
-        % addImpoint adds a new tmp roi vertex to the axes.  
+        % addImpoint adds a new tmp roi vertex to the axes.
         % After the impoint is created it is also configured.
         %   addImpoint<(obj, ax, x, y)
-        %   x, y       - Coordinates in pixels. 
+        %   x, y       - Coordinates in pixels.
         %
         %   See also configImpoint, impoint
 
@@ -182,7 +167,7 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             obj.tmpRoiPosX(i) = x;
             obj.tmpRoiPosY(i) = y;
             
-            % The vertices are impoints that can be moved around. 
+            % The vertices are impoints that can be moved around.
             %tmpRoiVertex = drawpoint(obj.hAxes, 'Position', [x, y]);
             tmpRoiVertex = impoint(obj.hAxes, x, y);
             tmpRoiVertex.setColor(obj.defaultImpointColor)
@@ -193,7 +178,6 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             obj.selectImpoint(i);
             
         end
-        
         
         function selectImpoint(obj, i)
         % select/highlight roivertex at number i in list of impoints.
@@ -209,12 +193,10 @@ classdef polyDraw < uim.interface.abstractPointer & ...
                 end
                 obj.selectedImpoint = i;
             end
-
         end
         
-        
         function removeImpoint(obj)
-        % removeImpoint removes a new tmp roi vertex from the axes.      
+        % removeImpoint removes a new tmp roi vertex from the axes.
 
             i = obj.selectedImpoint;
 
@@ -234,7 +216,6 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             	obj.tmpImpoints{n}.setPositionConstraintFcn(@(pos)lockImpointInZoomMode(obj, pos, n))
             end
             
-            
             obj.selectedImpoint = [];
             
             % Select new vertex (previous point)
@@ -247,10 +228,9 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             obj.selectImpoint(i);
         end
         
-        
         function idx = isCursorOnImpoint(obj, x, y)
         %isCursorOnImpoint Check if point (x, y) is close to tmp roi vertex
-        %   idx = isCursorOnImpoint(obj, x, y) returns idx of tmproi vertex 
+        %   idx = isCursorOnImpoint(obj, x, y) returns idx of tmproi vertex
         %   if any tmproi vertex is close to point (x, y). If not idx is 0.
         
             % Get xlim of image and create a scaled vicinity measure for
@@ -274,21 +254,19 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             end
         end
         
-        
         function configImpoint(obj, impointObj, i)
-        %CONFIGIMPOINT configures an impoint. 
+        %CONFIGIMPOINT configures an impoint.
         % Sets the new position callback of impoints. They are responsible for
-        % updating the plot when a vertex is moved. 
+        % updating the plot when a vertex is moved.
         %   configImpoint(obj, ax, impointObj, i)
-        %   impointObj    - impoint to configure. 
-        %   i             - Sent to the move callback. Index of the impoint. 
+        %   impointObj    - impoint to configure.
+        %   i             - Sent to the move callback. Index of the impoint.
         %
         % See also impoint, moveTmpRoiVertex
             impointObj.addNewPositionCallback(@(pos)callbackRoiPosChanged(obj, pos));
             impointObj.setPositionConstraintFcn(@(pos)lockImpointInZoomMode(obj, pos, i))
             impointObj.Deletable = false;
         end
-        
         
         function constrained_pos = lockImpointInZoomMode(obj, new_pos, i)
         % Callback function when dragging impoint. Locks impoint in place
@@ -300,13 +278,11 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             else
                 constrained_pos = new_pos;
             end
-            
         end
         
-        
         function callbackRoiPosChanged(obj, pos)
-        % callback function of impoint. 
-        % This function is called whenever a impoint is moved (Tmp RoI vertex). 
+        % callback function of impoint.
+        % This function is called whenever a impoint is moved (Tmp RoI vertex).
         %
         % See also configImpoint, impoint, moveTmpRoiVertex
 
@@ -325,10 +301,5 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             obj.drawPolygonOutline();
             
         end
-           
-
     end
-    
-    
-    
 end

@@ -28,5 +28,4 @@ function tiffObject = getTiffObject(fileRef)
     else
         error('Unsupported input.')
     end
-
 end

@@ -10,9 +10,8 @@ classdef ImageClassifier < mclassifier.manualClassifier
 
         classificationLabels = { 'Accepted', 'Rejected', 'Unresolved' }
         guiColors = struct('Background',  [0.1020 0.1137 0.1294], ...
-                           'Foreground', [0.8196 0.8235 0.8275])       
+                           'Foreground', [0.8196 0.8235 0.8275])
     end
-
 
     % Properties holding the item data for the GUI
     properties (Dependent)
@@ -26,7 +25,6 @@ classdef ImageClassifier < mclassifier.manualClassifier
         dataFilePath            % Filepath to load/save data from
     end
 
-
     properties (SetAccess = private)
         ClassificationData
         SavePath = ''
@@ -38,15 +36,15 @@ classdef ImageClassifier < mclassifier.manualClassifier
         %ImageClassifier Construct the image classifier app
         %
         %   Syntax:
-        %       nansen.app.ImageClassifier(classificationData) opens an 
-        %       instance of the image classifier given a set of 
+        %       nansen.app.ImageClassifier(classificationData) opens an
+        %       instance of the image classifier given a set of
         %       classification data.
         %
-        %       nansen.app.ImageClassifier(filePath) opens an instance of 
+        %       nansen.app.ImageClassifier(filePath) opens an instance of
         %       the image classifier given using previously saved
         %       classification data.
         %
-        %       nansen.app.ImageClassifier(classificationData, 'SavePath', pathName) 
+        %       nansen.app.ImageClassifier(classificationData, 'SavePath', pathName)
         %       also specifies a file path for saving results.
         %
         %   See also nansen.ui.data.ClassificationData
@@ -64,7 +62,6 @@ classdef ImageClassifier < mclassifier.manualClassifier
                 clear obj
             end
         end
-
     end
 
     methods %Set/get
@@ -94,12 +91,11 @@ classdef ImageClassifier < mclassifier.manualClassifier
         function stats = get.itemStats(obj)
             stats = obj.ClassificationData.Statistics;
         end
-
     end
 
     methods
             
-        function removeItems(obj, indToRemove)
+        function removeItems(obj, indToRemove) %#ok<INUSD>
             errordlg('Removal of items is not implemented yet.')
             return
         end
@@ -154,7 +150,7 @@ classdef ImageClassifier < mclassifier.manualClassifier
             if isempty(tileNumbers); return; end
 
             imageSelection = getCurrentImageSelection(obj);
-            imageSize = obj.hTiledImageAxes.imageSize;
+            %imageSize = obj.hTiledImageAxes.imageSize;
 
             try
                 imageData = cat(3, obj.itemImages(itemIndices).(imageSelection));
@@ -166,7 +162,6 @@ classdef ImageClassifier < mclassifier.manualClassifier
 
             % Update outline color according to classification
             obj.updateTileColor(tileNumbers)
-
 
             %cellOfStr = arrayfun(@(i) num2str(i), roiInd, 'uni', 0);
             roiLabels = obj.getItemText(itemIndices);
@@ -180,11 +175,8 @@ classdef ImageClassifier < mclassifier.manualClassifier
             %obj.hTiledImageAxes.updateTilePlotLinewidth(tileNumbers, 2)
         end
         
-        
-        function onSelectedItemChanged(obj)
+        function onSelectedItemChanged(obj) %#ok<MANU>
             % Pass
         end
-        
     end
-
 end

@@ -1,8 +1,8 @@
 function imageArray = removeDynamicBackground(imageArray, varargin)
 %removeDynamicBackground Remove a dynamix background image
 %
-%   imageArray = removeDynamicBackground(imageArray) removes background 
-%   from 
+%   imageArray = removeDynamicBackground(imageArray) removes background
+%   from
 %   an image array. The background is computed as the mean of a set of
 %   sorted pixel values in a lower percentile interval. The default
 %   percentile interval is [0, 25];
@@ -12,8 +12,8 @@ function imageArray = removeDynamicBackground(imageArray, varargin)
 %
 %   Optional name/value pairs:
 %
-%   PrctileForBaseline : scalar or 2x1 vector specifying percentile 
-%       interval to use for computing static background. If value is 
+%   PrctileForBaseline : scalar or 2x1 vector specifying percentile
+%       interval to use for computing static background. If value is
 %       scalar, the interval starts at the 0th percentile.
    
     assert( ndims(imageArray) == 3, 'Image array must be 3D')

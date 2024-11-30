@@ -1,5 +1,5 @@
 classdef RoiGroupFileIoAppMixin < handle
-%RoiGroupFileIoAppMixin Class providing an app with a roigroup and methods 
+%RoiGroupFileIoAppMixin Class providing an app with a roigroup and methods
 % for loading and saving rois to file.
 
     properties (Abstract)
@@ -15,7 +15,7 @@ classdef RoiGroupFileIoAppMixin < handle
             lastwarn('')
             
              % Load roi array from selected file path.
-            if exist(loadPath, 'file')
+            if isfile(loadPath)
                 fileObj = nansen.dataio.fileadapter.roi.RoiGroup(loadPath);
                 try
                     loadedRoiGroup = fileObj.load();
@@ -26,7 +26,7 @@ classdef RoiGroupFileIoAppMixin < handle
                 
             else
                 error('File does not exist')
-            end           
+            end
         end
         
         function wasSaved = saveRois(obj, initPath)
@@ -53,7 +53,7 @@ classdef RoiGroupFileIoAppMixin < handle
                 
                 %Todo....
                 saveMsg = sprintf('Rois Saved to %s\n', savePath);
-                fprintf('%s', saveMsg) 
+                fprintf('%s', saveMsg)
                                         
                 obj.roiFilePath = savePath;
                 
@@ -65,7 +65,6 @@ classdef RoiGroupFileIoAppMixin < handle
                 clear wasSaved
             end
         end
-         
     end
 
     methods (Access = protected)
@@ -85,10 +84,9 @@ classdef RoiGroupFileIoAppMixin < handle
             if nargin < 2 || isempty(initPath)
                 initPath = obj.getRoiInitPath();
                 
-                if exist(initPath, 'file') == 2
+                if isfile(initPath)
                     [initPath, fileName, ext] = fileparts(initPath);
                 end
-
             end
             
             fileSpec = {   '*.mat', 'Mat Files (*.mat)'; ...
@@ -151,7 +149,6 @@ classdef RoiGroupFileIoAppMixin < handle
             else
                 wasAborted = false;
             end
-            
         end
 
         function doOverwrite = promptOverwriteRois(obj)
@@ -179,7 +176,5 @@ classdef RoiGroupFileIoAppMixin < handle
             
             obj.loadRois(loadPath)
         end
-
     end
-
 end

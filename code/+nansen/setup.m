@@ -6,24 +6,11 @@ versionAsNumber = strrep(matlabVersion(1:ind(2)+1), '.', '');
 nansen.addpath()
 
 if str2double(versionAsNumber) >= 960
-    nansen.setup.SetupWizardApp % Run app coded in appdesigner
+    nansen.app.setup.SetupWizard % Run app coded in appdesigner
 else
     error('Setup requires MATLAB release 2019a or later')
     %setup.App
-end 
+end
 
-
-
-% % s = settings();
-% % if ~s.hasGroup('nansen')
-% %     nansenSettingsGroup = s.addGroup('nansen');
-% % else
-% %     nansenSettingsGroup = s.nansen;
-% % end
-% % 
-% % if ~nansenSettingsGroup.hasSetting('IsPathSet')
-% %     setting_IsPathSet = nansenSettingsGroup.addSetting('IsPathSet');
-% %     setting_IsPathSet.TemporaryValue = false;
-% % else
-% %     setting_IsPathSet = nansenSettingsGroup.IsPathSet;
-% % end
+% Todo
+% if ~verLessThan('matlab','9.6') && ~isMATLABReleaseOlderThan("R2019a")

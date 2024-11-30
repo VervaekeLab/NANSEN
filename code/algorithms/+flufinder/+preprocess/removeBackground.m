@@ -11,7 +11,6 @@ function imageArray = removeBackground(imageArray, varargin)
 %   Optional name/value pairs:
 %
 %   SmoothingSigma : "Size" (standard deviation/sigma) of the gaussian kernel
-   
     
     %assert( ndims(imageArray) == 3, 'Image array must be 3D')
     assert(isa(imageArray, 'single') | isa(imageArray, 'double'), ...

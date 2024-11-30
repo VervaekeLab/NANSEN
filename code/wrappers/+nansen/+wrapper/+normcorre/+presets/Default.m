@@ -10,7 +10,5 @@ classdef Default < nansen.wrapper.normcorre.Options
         function S = getOptions()
             S = getOptions@nansen.wrapper.normcorre.Options();
         end
-        
     end
-    
 end

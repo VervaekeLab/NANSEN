@@ -10,7 +10,5 @@ classdef Soma < nansen.wrapper.quicky.Options
         function S = getOptions()
             S = getOptions@nansen.wrapper.quicky.Options();
         end
-        
     end
-    
 end

@@ -12,7 +12,6 @@ function regionLabels = mergeRegions(regionLabels)
     regionLabels = strrep(regionLabels, 'S1Sh', 'S1');
     regionLabels = strrep(regionLabels, 'S1HL', 'S1');
     regionLabels = strrep(regionLabels, 'S1FL', 'S1');
-
     
     regionLabels = strrep(regionLabels, 'V2MM', 'V2');
     regionLabels = strrep(regionLabels, 'V2ML', 'V2');

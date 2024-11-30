@@ -6,11 +6,11 @@ function varNames = getCustomTableVariableNames(tableClassName)
     end
     
     % Get folder containing custom table variables from current project:
-    rootPathTarget = nansen.localpath('Custom Metatable Variable', 'current');
+    rootPathTarget = nansen.ProjectManager().getCurrentProject().getTableVariableFolder();
     fcnTargetPath = fullfile(rootPathTarget, ['+', lower(tableClassName)]);
     
     % Add parent folder of package to path if it is not already there.
-    currentPath = path; 
+    currentPath = path;
     metaTableRootPath = fileparts(fileparts(rootPathTarget));
     if ~contains(currentPath, metaTableRootPath)
         addpath(metaTableRootPath)
@@ -19,5 +19,4 @@ function varNames = getCustomTableVariableNames(tableClassName)
     % List contents of folder and get names of all .m files:
     L = dir(fullfile(fcnTargetPath, '*.m'));
     varNames = strrep({L.name}, '.m', '');
-    
 end

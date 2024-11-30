@@ -1,7 +1,7 @@
 function createRegionIndexMap()
 %createRegionIndexMap Create an index map for map regions.
 %
-%   createRegionIndexMap() will create an indexed map of cortical regions 
+%   createRegionIndexMap() will create an indexed map of cortical regions
 %   from the polygon patches that are part of the paxinos dorsal surface map
 
     % Open the figure containing the paxinos map (each subregion is a
@@ -10,7 +10,6 @@ function createRegionIndexMap()
     tmpFig = brainmap.paxinos.open('Invisible');
     h = findobj(tmpFig, 'Type', 'Polygon');
     h(31) = []; % Ignore (This is the map borders, and should not be included)
-    
     
     ax = findobj(tmpFig, 'type', 'Axes');
     
@@ -47,13 +46,11 @@ function createRegionIndexMap()
 
     % Get area labels form the tag of the patch objects.
     regionLabels = { h.Tag };
-
     
     % Create filepath for saving file.
     rootPath = fileparts( mfilename('fullpath') );
-    fileName = 'regionIndexMap.mat'; 
+    fileName = 'regionIndexMap.mat';
     savePath = fullfile(rootPath, fileName);
-    
     
     S = struct;
     S.indexMap = indexMap;

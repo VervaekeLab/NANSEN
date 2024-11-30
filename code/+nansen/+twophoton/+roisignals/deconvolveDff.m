@@ -21,6 +21,4 @@ function [dec, den, opt] = deconvolveDff(dff, varargin)
         dec = transpose(dec);
         den = transpose(den);
     end
-    
-    
 end

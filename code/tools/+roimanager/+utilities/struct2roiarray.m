@@ -10,6 +10,11 @@ if isempty(roiStruct)
     return
 end
 
+if isa(roiStruct, 'cell') % Recursive over cell array
+    roiArray = cellfun(@(c) roimanager.utilities.struct2roiarray(c), roiStruct, 'UniformOutput', false);
+    return
+end
+
 nRois = numel(roiStruct);
 roiArray(nRois, 1) = RoI;
 
@@ -19,7 +24,7 @@ fieldnames = {  'uid', 'shape', 'coordinates', 'pixelweights', ...
                 'structure', 'layer', 'tags', 'enhancedImage'};
 
 for f = 1:numel(fieldnames)
-    if isfield(roiStruct, fieldnames{f})    
+    if isfield(roiStruct, fieldnames{f})
         [roiArray(:).(fieldnames{f})] = roiStruct.(fieldnames{f});
     end
 end
@@ -39,7 +44,6 @@ for i = 1:nRois
     if isempty(roiArray(i).boundary)
         roiArray(i) = roiArray(i).reshape(roiArray(i).shape, roiArray(i).coordinates);
     end
-    
 end
 
 for i = 1:nRois
@@ -49,5 +53,4 @@ end
 if iscolumn(roiArray)
     roiArray = roiArray';
 end
-
-end            
+end

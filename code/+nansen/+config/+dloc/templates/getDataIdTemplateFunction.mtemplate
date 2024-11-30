@@ -1,0 +1,31 @@
+function {{identifier_name}} = {{function_name}}(sessionFolderPath, dataLocationName)
+% {{function_name}} - Extract {{identifier_name}} from a session's folderpath
+%
+%   Syntax: 
+%       outputStr = {{function_name}}(sessionFolderPath, dataLocationName) 
+%           extracts the {{identifier_name}} from a session's folderpath 
+%           for a session folder of the data location with the provided 
+%           name
+%
+%   Input arguments:
+%       sessionFolderPath - The full (absolute path) to a session folder
+%       dataLocationName  - The name of the DataLocation the provided
+%                           session folder belongs to
+%
+%   Output arguments:
+%       {{identifier_name}} - The extracted value from the folder path
+
+    % Split path string into cell array of folder names
+    foldersSplit = strsplit(sessionFolderPath, filesep); %#ok<NASGU>
+
+    % Initialize output value. Note: The code below should extract this
+    % value from the provided folder path.
+    {{identifier_name}} = 'N/A'; 
+
+    switch dataLocationName
+
+{{case_blocks}}
+        otherwise
+            error('NANSEN:UnknownDataLocationName', 'Unknown datalocation "%s"', dataLocationName)
+    end
+end

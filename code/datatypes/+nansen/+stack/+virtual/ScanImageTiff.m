@@ -53,11 +53,8 @@ methods % Structors
                 close(obj.tiffInfo(i))
             end
         end
-
     end
-    
 end
-
 
 methods (Access = protected) % Implementation of abstract methods
         
@@ -119,7 +116,7 @@ methods (Access = protected) % Implementation of abstract methods
     
     function getFileInfo(obj)
         
-        % Todo: If metadata is assigned, skip 
+        % Todo: If metadata is assigned, skip
         
         if isempty( obj.tiffInfo )
             obj.tiffInfo = Tiff(obj.FilePath);
@@ -139,7 +136,7 @@ methods (Access = protected) % Implementation of abstract methods
         
         % This should already have happened in assignDataSize
         if ~isempty(obj.hTiffStack)
-           return 
+           return
         end
         
         if obj.UseTiffStack % Use Dylan Muirs TIFFStack class.
@@ -160,9 +157,7 @@ methods (Access = protected) % Implementation of abstract methods
             
             frIndMap = reshape(frIndMap, obj.NumChannels_, obj.NumPlanes_, obj.NumTimepoints_);
             obj.FrameIndexMap = squeeze(frIndMap);
-        
         end
-
     end
     
     function assignDataSizeOld(obj)
@@ -249,7 +244,6 @@ methods (Access = protected) % Implementation of abstract methods
                 error('Tiff file is not supported')
         end
     end
-    
 end
 
 methods % Implementation of VirtualArray abstract methods
@@ -279,7 +273,6 @@ methods % Implementation of VirtualArray abstract methods
         end
         
         data = obj.readData(subs);
-        
     end
     
     function data = readDataTiff(obj, subs)
@@ -330,22 +323,21 @@ methods % Implementation of VirtualArray abstract methods
                 end
             end
         end
-        
         data = obj.cropData(data, subs);
     end
     
     function writeFrames(obj, frameIndex, data)
         error('Not implemented yet')
     end
-    
 end
-
 
 methods (Access = protected) % Todo: Scan image and subclass
     
     function sIParams = getScanParameters(obj)
         
-        % Todo: 
+        import nansen.module.ophys.twophoton.utility.scanimage.getScanParameters
+
+        % Todo:
         %       Read info about channel colors...
         %import nansen.stack.utility.findNumTiffDirectories
 
@@ -354,6 +346,8 @@ methods (Access = protected) % Todo: Scan image and subclass
             'hRoiManager.scanFramePeriod', ...
             'hRoiManager.imagingFovUm', ...
             'hRoiManager.scanVolumeRate', ...
+            'hScan2D.logFramesPerFile', ...
+            'hStackManager.numSlices', ...
             'hStackManager.actualNumSlices', ...
             'hStackManager.actualNumVolumes', ...
             'hStackManager.framesPerSlice', ...
@@ -368,14 +362,29 @@ methods (Access = protected) % Todo: Scan image and subclass
         else
             numFramesPerFile = 1;
         end
+
         for i = 1:numel(obj.tiffInfo)
             scanImageTag = obj.tiffInfo(i).getTag('Software');
 
-            sIParams = ophys.twophoton.scanimage.getScanParameters(...
-                scanImageTag, paramNames);
+            sIParams = getScanParameters(scanImageTag, paramNames);
             
+            numChannels = numel( sIParams.hChannels.channelSave );
+            numPlanes = obj.resolveNumPlanes(sIParams);
+
             if sIParams.hStackManager.framesPerSlice == 1
                 numFramesPerFile(i) = sIParams.hStackManager.actualNumVolumes;
+            elseif sIParams.hStackManager.framesPerSlice == inf
+                % Try to get frames per file:
+                if i ~= numel(obj.tiffInfo)
+                    if numPlanes > 1
+                        error('ScanImageTiff has multiple planes, but loading this type of tiff stack is currently unsupported. Please report!')
+                    end
+                    numFramesPerFile(i) = sIParams.hScan2D.logFramesPerFile .* numChannels;
+                else % Last part:
+                    numFramesPerFile(i) = ...
+                        nansen.stack.utility.findNumTiffDirectories(...
+                            obj.tiffInfo(i), sIParams.hScan2D.logFramesPerFile/2);
+                end
             else
                 numFramesPerFile(i) = sIParams.hStackManager.framesPerSlice;
             end
@@ -383,18 +392,14 @@ methods (Access = protected) % Todo: Scan image and subclass
             if numFramesPerFile(i) == inf
                 numFramesPerFile(i) = nansen.stack.utility.findNumTiffDirectories(obj.tiffInfo(i), 1, 10000);
             end
-            
         end
         % Todo: Is this always true?? I.e are there files where numFrames
         % should be multiplied with number of channels, like multicolor
         % tiff stacks
         obj.FileConcatenator.NumFramesPerFile = numFramesPerFile;
 
-        numChannels = numel( sIParams.hChannels.channelSave );
-        numPlanes = sIParams.hStackManager.actualNumSlices;
-        
+        % Todo: Is this general for multichannel / multiplane files?
         obj.NumTimepoints_ = sum(numFramesPerFile) ./ numChannels ./ numPlanes;
-        
     end
     
     function assignScanImageParametersToMetadata(obj, sIParams)
@@ -410,7 +415,7 @@ methods (Access = protected) % Todo: Scan image and subclass
                 end
             end
         end
-            %obj.MetaData.PhysicalSizeY = nan;
+        %obj.MetaData.PhysicalSizeY = nan;
         %obj.MetaData.PhysicalSizeX = nan;
         
         obj.MetaData.PhysicalSizeYUnit = 'micrometer'; % Todo: Will this always be um?
@@ -420,7 +425,7 @@ methods (Access = protected) % Todo: Scan image and subclass
         obj.MetaData.SampleRate = sIParams.hRoiManager.scanVolumeRate;
 
         obj.MetaData.SizeC = numel( sIParams.hChannels.channelSave );
-        obj.MetaData.SizeZ = sIParams.hStackManager.actualNumSlices;
+        obj.MetaData.SizeZ = obj.resolveNumPlanes(sIParams);
         obj.MetaData.SizeT = obj.NumTimepoints_;
         
         obj.NumChannels_ = obj.MetaData.SizeC;
@@ -453,7 +458,7 @@ methods (Access = protected) % Todo: Scan image and subclass
     end
     
     function countNumFrames(obj)
-    %countNumFrames 
+    %countNumFrames
             
         import nansen.stack.utility.findNumTiffDirectories
 
@@ -466,7 +471,7 @@ methods (Access = protected) % Todo: Scan image and subclass
         obj.createMemoryMap()
         
         % Use the TIFFStack object and trial/error to get the correct
-        % framecount. 
+        % framecount.
         frame_low = 1;
         frame_high = obj.NumTimepoints_;
         frame_current = frame_high;
@@ -485,8 +490,14 @@ methods (Access = protected) % Todo: Scan image and subclass
         obj.NumTimepoints_ = frame_current;
     end
     
+    function numPlanes = resolveNumPlanes(~, sIParams)
+        try
+            numPlanes = sIParams.hStackManager.actualNumSlices;
+        catch
+            numPlanes = sIParams.hStackManager.numSlices;
+        end
+    end
 end
-
 
 methods (Static)
         
@@ -510,13 +521,13 @@ methods (Static)
             case {'.tif', '.tiff'}
                 
                 if isfile(pathStr)
-                    % Get tiff info, but supress a common warning
+                    % Get tiff info, but suppress a common warning
                     warning('off', 'imageio:tiffmexutils:libtiffWarning')
                     imInfo = Tiff(pathStr);
                     warning('on', 'imageio:tiffmexutils:libtiffWarning')
 
                     % Check if the tiff 'Software' tag contains SI
-                    try 
+                    try
                         softwareName = imInfo.getTag('Software');
                         if strcmp(softwareName(1:2), 'SI')
                             isValid = true;
@@ -529,7 +540,7 @@ methods (Static)
                     % Not valid
                 end
             
-            otherwise 
+            otherwise
                 % Not valid (not aware of any other file formats)
         end
     end
@@ -542,6 +553,8 @@ methods (Static)
     %   The input, tiffRef can be the absolute file path to a tiff file or
     %   a Tiff object.
 
+        import nansen.module.ophys.twophoton.utility.scanimage.getScanParameters
+
         tiffObject = nansen.stack.utility.getTiffObject(tiffRef);
         
         if numel(tiffObject) > 1
@@ -549,8 +562,7 @@ methods (Static)
                 tiffObject, 'UniformOutput', false);
 
             %   - Check light paths
-            info = cellfun( @(str) ...
-                ophys.twophoton.scanimage.getScanParameters(str, 'imagingSystem'), ...
+            info = cellfun( @(str) getScanParameters(str, 'imagingSystem'), ...
                 scanImageTag, 'UniformOutput', true);
             
             imagingSystem = {info.imagingSystem};
@@ -581,5 +593,4 @@ methods (Static)
         end
     end
 end
-
 end

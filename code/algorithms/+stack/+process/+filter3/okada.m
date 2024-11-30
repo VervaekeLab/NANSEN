@@ -22,5 +22,4 @@ for i = 2:numFrames
 end
 IM = IM(:, :, 2:end-1);
 
-
 end

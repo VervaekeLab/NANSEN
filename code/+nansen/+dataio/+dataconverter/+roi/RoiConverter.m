@@ -1,5 +1,5 @@
 classdef RoiConverter < handle
-%RoiConverter Class with methods for finding roi adapters and using them 
+%RoiConverter Class with methods for finding roi adapters and using them
 % for converting rois to the standard format used within the Nansen toolbox
 %
 %   This class is used for detecting an appropriate roi adapter for
@@ -35,7 +35,7 @@ classdef RoiConverter < handle
         end
 
         function adapterName = findRoiAdapter(obj, filepathOrig, data)
-        %findRoiAdapter Find valid roi adapter for given filepath and data                
+        %findRoiAdapter Find valid roi adapter for given filepath and data
             
             % Split filepath to get file extension
             [folderpath, name, ext] = fileparts(filepathOrig);
@@ -105,7 +105,5 @@ classdef RoiConverter < handle
                     {obj.ADAPTER_PACKAGE, fcnList{i}}, '.');
             end
         end
-        
     end
-    
 end

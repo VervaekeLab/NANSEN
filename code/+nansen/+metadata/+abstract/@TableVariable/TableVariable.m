@@ -1,6 +1,6 @@
 classdef TableVariable
 %nansen.metadata.abstract.TableVariable Implement a custom variable type to
-%display in a table cell. 
+%display in a table cell.
 %
 %   Subclasses must implement a Value and two methods, one for creating a
 %   string to be displayed within a cell and one for creating a string to
@@ -10,7 +10,7 @@ classdef TableVariable
 %   Note: Subclasses should work on vectors of objects, and return cell
 %   arrays of formatted strings with one cell for each object.
 
-%   Todo: 
+%   Todo:
 %       [ ] Static update function. Think more about this. All table
 %           variables should have an update function, but should it be static,
 %           and how to implement that in a way where it is optional for the
@@ -29,7 +29,6 @@ classdef TableVariable
 %         ValueChanged
 %     end
     
-    
     methods % Constructor
         function obj = TableVariable(S)
             
@@ -38,7 +37,7 @@ classdef TableVariable
                 return
             end
 
-            if iscell(S)                
+            if iscell(S)
                 numObjects = numel(S);
                 [obj(1:numObjects).Value] = deal( S{:} );
                 
@@ -56,7 +55,6 @@ classdef TableVariable
             else
                 obj.Value = S;
             end
-            
         end
     end
 
@@ -69,23 +67,20 @@ classdef TableVariable
             elseif numel(obj) == 1
                 str = '';
             end
-            
         end
 
         function str = getCellTooltipString(obj)
-        %getCellTooltipString Get string to display in tooltip on mouseover    
+        %getCellTooltipString Get string to display in tooltip on mouseover
             if numel(obj) > 1
                 str = repmat({''}, 1, numel(obj));
             elseif numel(obj) == 1
                 str = '';
             end
-            
         end
         
         function [] = onCellDoubleClick(obj, metaObj, varargin)
             % Do nothing. Subclass may override
         end
-        
     end
     
     methods
@@ -97,7 +92,6 @@ classdef TableVariable
             classNameSplit = strsplit(className, '.');
             varName = classNameSplit{end};
         end
-        
     end
     
     methods (Static)
@@ -105,4 +99,13 @@ classdef TableVariable
         % Subclasses should be allowed not to have the update method...
     end
     
+    methods (Static)
+        % Function in separate file
+        attributeTable = buildTableVariableTable(fileList)
+
+        S = getDefaultTableVariableAttribute()
+
+        defaultTableVariableList = getDefaultTableVariables(metadataType)
+
+    end
 end

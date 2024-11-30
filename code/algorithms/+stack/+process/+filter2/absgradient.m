@@ -1,4 +1,4 @@
-function imOut = absgradient(im)    
+function imOut = absgradient(im)
 
     if ndims(im)==3
         im = mean(im, 3);

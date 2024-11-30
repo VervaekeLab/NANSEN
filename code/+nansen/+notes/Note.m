@@ -45,15 +45,13 @@ classdef Note
             else
                 % Not implemented yet
             end
-            
         end
-        
     end
     
     methods
         
         function S = struct(obj)
-        %struct Get a struct from a note instance.    
+        %struct Get a struct from a note instance.
             warning('off', 'MATLAB:structOnObject')
             
             S = builtin('struct', obj);
@@ -65,13 +63,10 @@ classdef Note
         
         function str = getFormattedStr(obj)
             
-            
-            
         end
         
-        
         function subTitleStrArray = getSubTitleArray(obj, varargin)
-        %getSubTitleArray Get array of subtitles for notes 
+        %getSubTitleArray Get array of subtitles for notes
         %
         %   strArray = noteObj.getSubTitleArray(prop1, prop2, ..., propN)
         %   returns an array of concatenated strings for each of the
@@ -95,9 +90,7 @@ classdef Note
                 subTitleStrArray{iNote} = strjoin(tempCell,  ' | ');
 
             end
-            
         end
-        
     end
     
     methods (Access = protected)
@@ -115,18 +108,14 @@ classdef Note
                     obj(iNote).(propNames{jProp}) = S(iNote).(propNames{jProp});
                 end
             end
-
         end
-        
     end
     
     methods (Static, Access = protected)
         
-        
         function t = getTimeStamp()
             t = datetime();
         end
-        
     end
     
     methods (Static)
@@ -139,7 +128,7 @@ classdef Note
         %uiCreate Create note based on user user input.
         %
         %   noteObj = uiCreate(objectType, objectId)
-        %   
+        %
         %   Opens a user dialog to get the following fields:
         %   Author, type, title and text.
         %
@@ -185,7 +174,5 @@ classdef Note
             noteObj = nansen.notes.Note(noteStruct);
             
         end
-
     end
 end
-

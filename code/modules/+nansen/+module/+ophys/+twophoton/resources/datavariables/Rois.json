@@ -1,0 +1,19 @@
+{
+  "_type": "Nansen File Variable Specification",
+  "_version": "1.0.0",
+  "Properties": {
+    "VariableName": "Rois",
+    "DataLocation": "DEFAULT",
+    "DataLocationUuid": "",
+    "Subfolder": "roi_data",
+    "FileNameExpression": "rois",
+    "FileType": ".mat",
+    "FileAdapter": "RoiGroup",
+    "DataType": "",
+    "Alias": "",
+    "GroupName": "",
+    "IsCustom": false,
+    "IsInternal": false,
+    "IsFavorite": false
+  }
+}

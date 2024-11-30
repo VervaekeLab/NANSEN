@@ -1,5 +1,4 @@
 classdef testContainer < uix.Container
-    
    
     methods
         function obj = testContainer(hParent)
@@ -8,5 +7,4 @@ classdef testContainer < uix.Container
             
         end
     end
-    
 end

@@ -1,4 +1,4 @@
-function imOut = gradient(imArray)    
+function imOut = gradient(imArray)
 
     if ndims(imArray)==3
         im = mean(imArray, 3);

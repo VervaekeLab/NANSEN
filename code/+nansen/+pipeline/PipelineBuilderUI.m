@@ -35,7 +35,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
         dropdownOpen = false;
     end
     
-    
     methods % Constructor
         
         function obj = PipelineBuilderUI(pipelineStruct, sessionMethodCatalog)
@@ -65,21 +64,20 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             obj.onThemeChanged()
             
         end
-
     end
     
     methods (Access = protected) % Override AppWindow methods
         function assignDefaultSubclassProperties(obj)
             obj.DEFAULT_FIGURE_SIZE = [800 560];
             obj.MINIMUM_FIGURE_SIZE = [560 420];
-        end 
+        end
         
         function setComponentLayout(obj)
             
             totalWidth = obj.CanvasSize(1);
             
             % h+w of autocomplete and buttons:
-            componentHeight = [30, 22, 22]; 
+            componentHeight = [30, 22, 22];
             componentWidth = [1, 50, 60];
             
             % Calculate position:
@@ -88,33 +86,26 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
 
             % Complete ad hoc...
             y = obj.CanvasSize(2) - (componentHeight/3);
-
             
             % Set positions:
             obj.AutoCompleteWidget.Position = [x(1), y(1), w(1), componentHeight(1)];
             obj.AddTaskButton.Position = [x(2), y(2), w(2), componentHeight(2)];
             obj.BrowseTaskFunctionButton.Position = [x(3), y(3), w(3), componentHeight(3)];
-
             
             obj.UITable.Position = [obj.Margins(1:2), ...
-                totalWidth, y(1) - sum(obj.Margins([2,4])) - 10]; % Substract 10 to not interfere with button tooltips...Yeah, i know...
-            
+                totalWidth, y(1) - sum(obj.Margins([2,4])) - 10]; % Subtract 10 to not interfere with button tooltips...Yeah, i know...
             
             [~, colWidth] = uim.utility.layout.subdividePosition(1, ...
                 totalWidth, [60, 150, 1, 150], 0);
             obj.UITable.ColumnPreferredWidth = colWidth;
             %obj.UITable.ColumnWidth = [40, 100, 100, 100];
             
-            
             obj.HintTextbox.Position = [obj.Margins(1), sum(obj.UITable.Position([2,4])) + 15];
-
             
         end
-        
     end
     
     methods (Access = private)
-        
         
         function createComponents(obj)
             
@@ -169,8 +160,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             mitem.Callback = @obj.onRemoveTaskMenuItemClicked;
 
         end
-        
-
     end
     
     methods (Access = protected)
@@ -190,7 +179,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             obj.TaskTableData = newValue;
             obj.onTaskTableDataSet()
         end
-        
     end
     
     methods (Access = private) % Component and user invoked callbacks
@@ -204,7 +192,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
                         obj.removeTask(selectedRow)
                     end
             end
-            
         end
 
         function onTaskTableDataSet(obj)
@@ -224,7 +211,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
                 obj.UITable.ColumnFormatData = colFormatData;
                 obj.UITable.ColumnEditable = [true, true, false, true];
             end
-            
         end
         
         function onTableCellEdited(obj, src, evt)
@@ -237,9 +223,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
                 
                 case 4 % Column showing option presets
 
-
             end
-
         end
 
         function onTableCellClicked(obj, src, evt)
@@ -247,7 +231,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             if evt.Button == 3 || strcmp(evt.SelectionType, 'alt')
                 obj.onMouseRightClickedInTable(src, evt)
             end
-            
         end
         
         function onTableCellSelected(obj, src, evt)
@@ -261,7 +244,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
                 obj.dropdownOpen = false;
             end
             
-            
             %cellRenderer = obj.UITable.JTable.getCellRenderer(rowNum-1,colNum-1);
             
             %mPos = java.awt.Point(x,y)
@@ -274,7 +256,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
         
         function onMouseRightClickedInTable(obj, src, evt)
             
-            % Get row where mouse press ocurred.
+            % Get row where mouse press occurred.
             row = evt.Cell(1);
 
             % Select row where mouse is pressed if it is not already
@@ -287,7 +269,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             xScroll = obj.UITable.JScrollPane.getHorizontalScrollBar().getValue();
             yScroll = obj.UITable.JScrollPane.getVerticalScrollBar().getValue();
 
-            % Get position where mouseclick occured (in figure)
+            % Get position where mouseclick occurred (in figure)
             clickPosX = evt.Position(1) - xScroll;
             clickPosY = evt.Position(2) - yScroll;
 
@@ -295,7 +277,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             if ~isempty(obj.TableContextMenu)
                 obj.openTableContextMenu(clickPosX, clickPosY);
             end
-            
         end
         
         function onMouseMotionOnTable(obj, src, evt)
@@ -306,11 +287,10 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             rowNum = evt.Cell(1);
             colNum = evt.Cell(2);
 
-            if rowNum ~= previousRow && rowNum ~= 0                
+            if rowNum ~= previousRow && rowNum ~= 0
                 obj.updateOptionSelectionDropdown(rowNum)
                 previousRow = rowNum;
             end
-            
         end
         
         function onFigureClosed(obj)
@@ -342,7 +322,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
                         return
 
                 end
-                
             end
 
             delete(obj.Figure)
@@ -368,7 +347,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
         end
 
         function updateTaskOrder(obj)
-        %updateTaskOrder Update order of tasks in list. 
+        %updateTaskOrder Update order of tasks in list.
         %
         %   Useful when tasks are removed.
         
@@ -420,7 +399,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             obj.AutoCompleteWidget.Items{end+1} = S.FunctionName;
             obj.AutoCompleteWidget.Value = S.FunctionName;
             
-            
             % Store:
             %   - filepath
             %   - package+function name
@@ -430,7 +408,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             % Add to search list
             % Set as current string
             
-            
         end
         
         function onRemoveTaskMenuItemClicked(obj, src, evt)
@@ -439,9 +416,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             if ~isempty(rowNumber)
                 obj.removeTask(rowNumber)
             end
-
         end
-        
     end
     
     methods (Access = private) % Actions
@@ -470,7 +445,6 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
                 obj.TaskTableData(end+1,:) = struct2table(task, 'AsArray', true);
             end
             
-            
             if size(obj.TaskTableData, 1) == 1
                 obj.updateOptionSelectionDropdown(1)
             end
@@ -483,7 +457,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
         
         function removeTask(obj, rowIdx)
             fprintf('Removing task %s\n', obj.UITable.DataTable{rowIdx, 2}{1})
-            obj.TaskTableData(rowIdx, :) = []; 
+            obj.TaskTableData(rowIdx, :) = [];
             
             % Update task numbers
             obj.updateTaskOrder()
@@ -519,5 +493,4 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
         end
     end
 end
-
         

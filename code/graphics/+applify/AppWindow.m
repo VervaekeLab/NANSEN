@@ -3,9 +3,8 @@ classdef AppWindow < uim.handle
     % This class relies on the undocumented JavaFrame property, which will
     % be removed in a future version of Matlab. Until then....
     
-    
 %   ABSTRACT PROPERTIES:
-%       AppName (Constant,Access=protected) : Name of app    
+%       AppName (Constant,Access=protected) : Name of app
 %       MINIMUM_FIGURE_SIZE (Constant)  : Minimum size of figure
 %
 %
@@ -36,7 +35,6 @@ classdef AppWindow < uim.handle
         CanvasSize
     end
     
-    
     properties (Access = protected) % Graphical components
         jFrame              % Its disappearing any day now! =(
         jWindow
@@ -45,7 +43,6 @@ classdef AppWindow < uim.handle
     properties (Access = protected) % State
         IsConstructed = false;
     end
-    
     
     methods % Structors
         
@@ -75,13 +72,12 @@ classdef AppWindow < uim.handle
         function sz = get.CanvasSize(obj)
             sz = obj.Figure.Position(3:4) - sum( obj.Margins([1,2;3,4]) );
         end
-        
     end
     
     methods (Access = protected)
         
         function assignDefaultSubclassProperties(obj)
-            % Subclass may override. 
+            % Subclass may override.
         end
         
         function setDefaultFigureCallbacks(obj)
@@ -135,9 +131,7 @@ classdef AppWindow < uim.handle
             
             obj.setMinimumFigureSize()
             
-            
             obj.switchJavaWarnings('on')
-
             
         end
         
@@ -162,7 +156,6 @@ classdef AppWindow < uim.handle
             warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
             warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
 
-
             javaColor = javax.swing.plaf.ColorUIResource(rgb{:});
             set(obj.jWindow, 'Background', javaColor)
 
@@ -179,7 +172,6 @@ classdef AppWindow < uim.handle
             obj.switchJavaWarnings('on')
 
         end
-        
     end
     
     methods
@@ -201,7 +193,6 @@ classdef AppWindow < uim.handle
             warning(newState, 'MATLAB:ui:javaframe:PropertyToBeRemoved')
             warning(newState, 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
         end
-        
         
         function [screenSize, screenNum] = getMonitorInfo(hFigure)
         %getMonitorInfo Get size and number of monitor containing figure.
@@ -242,11 +233,6 @@ classdef AppWindow < uim.handle
             if nargout < 2
                 clear screenNum
             end
-
         end
-    
-    
-    
     end
-    
 end

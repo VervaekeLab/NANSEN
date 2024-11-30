@@ -1,17 +1,17 @@
 classdef structAdapter < utility.class.nakedhandle & matlab.mixin.SetGet
 %utility.class.structAdapter Interface for converting an object to a struct.
 %
-%   This class can also be used to initialize an object from a struct or 
+%   This class can also be used to initialize an object from a struct or
 %   cell array of name value pairs that will be assigned to properties upon
 %   instantiation.
 %
-%   Important for subclassing: 
+%   Important for subclassing:
 %       1) Use the Transient attribute of properties of subclasses to
 %       define properties that are ignored when adapting to/from struct. The
 %       methods of this class only applies to properties that are not
 %       Transient.
 %       2) All properties need to have a default value.
-%   
+%
 %
 %   Parse inputs in the form of either a) cell array of name value pairs or
 %   b) a struct of fields reflecting class properties. This class should
@@ -26,8 +26,8 @@ classdef structAdapter < utility.class.nakedhandle & matlab.mixin.SetGet
 %       3) remove point 2 from list above. if there is no default property
 %       value, this class should just assume it is empty.
 
-% NB: Need to resolve the discrepency with using transient attribute in
-% parser and hidden attribut in toStruct.
+% NB: Need to resolve the discrepancy with using transient attribute in
+% parser and hidden attribute in toStruct.
 
     methods (Access = protected)
     
@@ -36,7 +36,7 @@ classdef structAdapter < utility.class.nakedhandle & matlab.mixin.SetGet
             mc = metaclass(obj);
             
             % Get all property names
-            propertyNames = {mc.PropertyList.Name}; 
+            propertyNames = {mc.PropertyList.Name};
             isTransient = [mc.PropertyList.Transient];
             propertyNames = propertyNames(~isTransient);
             
@@ -48,7 +48,6 @@ classdef structAdapter < utility.class.nakedhandle & matlab.mixin.SetGet
             for i = 1:numel(propertyNames)
                 obj.(propertyNames{i}) = S.(propertyNames{i});
             end
-            
         end
     end
     
@@ -61,8 +60,8 @@ classdef structAdapter < utility.class.nakedhandle & matlab.mixin.SetGet
         
             mc = metaclass(obj);
 
-            % Get all property names 
-            propertyNames = {mc.PropertyList.Name}; 
+            % Get all property names
+            propertyNames = {mc.PropertyList.Name};
             isTransient = [ mc.PropertyList.Hidden ];
             propertyNames = propertyNames(~isTransient);
             
@@ -92,17 +91,13 @@ classdef structAdapter < utility.class.nakedhandle & matlab.mixin.SetGet
             
         end
         
-        
         function fromStruct(obj)
-            
             
         end
         
-        
 % % %         function saveobj()
-% % %             
+% % %
 % % %         end
         
     end
-    
 end

@@ -11,5 +11,4 @@ classdef ValueChangedEventData < event.EventData
            obj.NewValue = newValue;
        end
    end
-   
 end

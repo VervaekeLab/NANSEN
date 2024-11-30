@@ -5,7 +5,6 @@ function str = dateformat2expression(str)
 str = strrep(str, 'yyyy', '\d{4}');
 str = strrep(str, 'yy', '\d{2}');
 
-
 str = strrep(str, 'mm', '\d{2}');
 str = strrep(str, 'dd', '\d{2}');
 

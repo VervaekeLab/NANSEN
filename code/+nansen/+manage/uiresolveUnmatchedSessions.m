@@ -1,6 +1,5 @@
 function updatedFolderList = uiresolveUnmatchedSessions(...
                         matchedFolderList, unmatchedFolderList, hFigure)
-
                     
     % Prepare prompt and options for user dialog
     question = ['Some detected folders were not matched to any sessions. ', ...

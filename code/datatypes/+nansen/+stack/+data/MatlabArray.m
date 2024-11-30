@@ -23,10 +23,9 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
             obj.setDefaultDataDimensionArrangement()
             obj.setDefaultStackDimensionArrangement()
         end
-        
     end
     
-    methods 
+    methods
         function insertImageData(obj, imageData, insertInd)
             
             % Assume imageData should be inserted along last dimension
@@ -63,13 +62,11 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
                     obj.DataDimensionArrangement = 'YXT';
                 end
             end
-            
         end
         
         function removeImageData(obj, frameIdx)
             
         end
-        
     end
     
     methods (Access = protected) % Implement abstract ImageStackData methods
@@ -103,7 +100,6 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
         function data = getLinearizedData(obj)
             data = obj.DataArray(:);
         end
-        
     end
     
     methods % Implementation of matlab functions
@@ -117,9 +113,5 @@ classdef MatlabArray < nansen.stack.data.abstract.ImageStackData
                 [varargout{:}] = max(obj.DataArray, varargin{:});
             end
         end
-        
-        
     end
-        
-    
 end

@@ -5,7 +5,7 @@ function T = insertRowInTable(T, rowData, insertInd)
 
     % Concatenate tables and count rows
     T = cat(1, T, rowData);
-    numRows = size(T, 1);    
+    numRows = size(T, 1);
     
     % Determine how to reorder the rows to get them in the right order
     newRowInd = 1:numRows;

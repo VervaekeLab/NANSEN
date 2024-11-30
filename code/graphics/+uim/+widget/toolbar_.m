@@ -2,11 +2,11 @@ classdef toolbar_ < uim.abstract.Container
     
     % Check out dropbox paper toolbar.
     
-    % todo: 
+    % todo:
     %
     %   [x] add separator... I think this is done
-    %   [ ] Implement orientation functionality. See uim.widget.toolbar
-    %   [ ] Make sure button size is adapted to toolbar size + padding.
+    %   [ ] Implement orientation functionality. See uim.widget.toolbar
+    %   [ ] Make sure button size is adapted to toolbar size + padding.
     %   [x] Rename BackgroundMode to ContainerMode (move to container?)
     %   [ ] Remove DarkMode property. Use Style
     %   [ ] Move dimL_ and dimS_ to component or container??
@@ -21,7 +21,6 @@ classdef toolbar_ < uim.abstract.Container
     %   [ ] Make it clearer what shiftChildren and repositionButtons do,
     %   and how they are different...
     %   [x] Resolve how to combine backgroundmode 'wrap' and canvasMode 'private'
-    
     
     properties (Constant, Transient)
         Type = 'Toolbar'
@@ -63,7 +62,6 @@ classdef toolbar_ < uim.abstract.Container
         ButtonSizeChangedListener event.listener
     end
     
-    
     methods % Structors
                     
         function obj = toolbar_(hParent, varargin)
@@ -83,8 +81,6 @@ classdef toolbar_ < uim.abstract.Container
             delete(obj.hButtons)
             delete(obj.ButtonSizeChangedListener)
         end
-        
-
     end
     
     methods % Methods to add toolbar objects
@@ -123,10 +119,9 @@ classdef toolbar_ < uim.abstract.Container
             obj.adjustButtonPositions()
             obj.setNextButtonPosition()
             
-            if ~nargout 
+            if ~nargout
                 clear hSep
             end
-            
         end
         
         function hButton = addButton(obj, varargin)
@@ -169,9 +164,8 @@ classdef toolbar_ < uim.abstract.Container
             end
             
             if ~nargout
-                clear hButton 
+                clear hButton
             end
-            
         end
         
         function h = getHandle(obj, tagValue)
@@ -219,14 +213,13 @@ classdef toolbar_ < uim.abstract.Container
                     obj.setBarSizeToTight()
                     
             end
-            
         end
-        
     end
     
     methods (Access = protected)
 
         function setBarSizeToTight(obj)
+        % setBarSizeToTight - Make toolbar size tight around buttons.
             
             dimL = obj.DimL_;
             dimS = obj.DimS_;
@@ -241,7 +234,11 @@ classdef toolbar_ < uim.abstract.Container
 
             extent = zeros(1,2);
             extent(dimL) = maxPositionL - minPositionL + sum(obj.Padding([dimL, dimL+2]));
-            extent(dimS) = obj.CanvasPosition(dimS+2);
+            if obj.NumButtons == 0
+                extent(dimS) = obj.CanvasPosition(dimS+2);
+            else
+                extent(dimS) = max(obj.AllButtonPosition(:, dimS+2), [], 1);
+            end
 
             minPos = zeros(1,2);
             minPos(dimL) = minPositionL - obj.Padding(dimL);
@@ -268,14 +265,13 @@ classdef toolbar_ < uim.abstract.Container
             pos(j) = obj.CanvasPosition(j) + obj.Padding(j);
             pos(3:4) = obj.NewButtonSize;
             
-            
             obj.NextButtonPosition = pos;
         end
         
         function adjustButtonPositions(obj)
         %adjustButtonPositions Adjust positions of buttons
         %
-        %   Use when adding more buttons (i.e if they are centered or 
+        %   Use when adding more buttons (i.e if they are centered or
         %   right-aligned)
         
             if ~obj.IsConstructed; return; end
@@ -286,7 +282,6 @@ classdef toolbar_ < uim.abstract.Container
             dimS = obj.DimS_;
             
             shift = [0, 0];
-
             
             minPosition = min(obj.AllButtonPosition(:, dimL), [], 1);
             maxPosition = max( sum(obj.AllButtonPosition(:, [dimL, dimL+2]),2), [], 1);
@@ -313,7 +308,7 @@ classdef toolbar_ < uim.abstract.Container
             shift(dimL) = offset;
             shift(dimS) = obj.CanvasPosition(dimS) - obj.AllButtonPosition(1, dimS) + obj.Padding(dimS);
             
-            if any(shift ~= 0) 
+            if any(shift ~= 0)
                 obj.shiftChildren(shift)
             end
             
@@ -332,18 +327,16 @@ classdef toolbar_ < uim.abstract.Container
                     
                     %obj.setNextButtonPosition()
 
-                case 'private' 
+                case 'private'
                     
                     axPosition = getpixelposition(obj.CanvasAxes);
                     axPosition(1:2) = axPosition(1:2) + shift;
                     setpixelposition(obj.CanvasAxes, axPosition);
             end
-            
-            
         end
         
         function repositionButtons(obj)
-        % Use when one or more button sizes change               
+        % Use when one or more button sizes change
             if ~obj.IsConstructed; return; end
             if obj.NumButtons == 0; return; end
             
@@ -361,7 +354,6 @@ classdef toolbar_ < uim.abstract.Container
             elseif any( strcmp(obj.ComponentAlignment, {'right', 'bottom'}) )
                 anchorPoint = anchorPoint + toolbarSize - buttonExtents;
             end
-            
             
             % Start replacing buttons starting from left/top
             for i = 1:numel(obj.hButtons)
@@ -393,7 +385,6 @@ classdef toolbar_ < uim.abstract.Container
             if strcmp(obj.BackgroundMode, 'wrap')
                 obj.redrawBackground()
             end
-            
         end
         
         function shiftChildren(obj, shift)
@@ -427,7 +418,6 @@ classdef toolbar_ < uim.abstract.Container
                             maxPositionL = max( sum(obj.AllButtonPosition(:, [obj.DimL_, obj.DimL_+2]),2), [], 1);
                         end
                         
-                        
                         extent = zeros(1,2);
                         extent(obj.DimL_) = maxPositionL - minPositionL + sum(obj.Padding([obj.DimL_, obj.DimL_+2]));
                         extent(obj.DimS_) = obj.CanvasPosition(obj.DimS_+2);
@@ -446,7 +436,6 @@ classdef toolbar_ < uim.abstract.Container
                         error('This should not happen!')
                         
                 end
-                
             end
             
             %drawnow limitrate
@@ -469,7 +458,6 @@ classdef toolbar_ < uim.abstract.Container
                     obj.hButtons(i).Style = style;
                 end
             end
-            
         end
         
         function updateBackgroundAppearance(obj)
@@ -492,8 +480,7 @@ classdef toolbar_ < uim.abstract.Container
             for i = 1:obj.NumButtons
                 obj.hButtons(i).Visible = newValue;
             end
-        end    
-        
+        end
     end
     
     methods % Set/get
@@ -521,7 +508,6 @@ classdef toolbar_ < uim.abstract.Container
                 obj.onSpacingChanged(deltaSpacing);
                 obj.Spacing = newValue;
             end
-            
         end
         
         function set.ComponentAlignment(obj, newValue)
@@ -597,11 +583,10 @@ classdef toolbar_ < uim.abstract.Container
             longDim = obj.DimL_;
             if longDim == 1 % x
                 value = 'horizontal';
-            elseif longDim == 2 % y 
+            elseif longDim == 2 % y
                 value = 'vertical';
             end
         end
-        
     end
     
     methods (Static)
@@ -625,6 +610,4 @@ classdef toolbar_ < uim.abstract.Container
             S.BackgroundAlpha = 0.2;
         end
     end
-    
-    
 end

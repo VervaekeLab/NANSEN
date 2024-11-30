@@ -1,14 +1,13 @@
 classdef StorableCatalog < handle
 %StorableCatalog An storable catalog of items.
 %
-%   Abstract superclass for storable catalogs. A specific instance will 
-%   have a 1-to-1 relationship with the data stored in a file. The data in 
+%   Abstract superclass for storable catalogs. A specific instance will
+%   have a 1-to-1 relationship with the data stored in a file. The data in
 %   the catalog is a struct array representing a list of items. The catalog
 %   contains methods for inserting and removing items, by referring to the
 %   item's name. All items should be given a name, and is automatically
 %   assigned a uuid on creation. All other properties of items has to be
 %   specified in the defining subclass, using the getBlankItem method.
-
 
 %   Abstract Properties:
 %       ITEM_TYPE
@@ -20,9 +19,8 @@ classdef StorableCatalog < handle
 %
 %   Key features:
 %       Should be singleton-ish
-%       Provide api and gui (separate class?) functionality for editing. 
+%       Provide api and gui (separate class?) functionality for editing.
 %       Access and modify items by name...
-
 
 % Todo: Clearer policy for when to save changes. Inserting and removing
 % items are saved right away, but modification of items, i.e in subclasses
@@ -35,7 +33,6 @@ classdef StorableCatalog < handle
 % of items, but that unfortunately did not happen:( On the bright side,
 % using structs makes it easier to define items...
 
-
 % Todo:
 %       [ ] Inherit from singletonish
 %       [ ] addpref and removepref methods
@@ -43,17 +40,17 @@ classdef StorableCatalog < handle
 %           working with table on command line versus in app...
 %       [ ] Property flag for whether items should be assigned uuids or not
 %       [ ] AutoSave property? I.e let user decide to autosave or not when
-%           catalog changes. 
+%           catalog changes.
 
 % Questions:
 %     - Should data be a struct or a table?
 %     - Should Data be dependent, and always loaded from file..?
-%     - Should Data be observable? Or DataChanged event? 
-%           SetAccess public or protected??? 
+%     - Should Data be observable? Or DataChanged event?
+%           SetAccess public or protected???
 %
 %
 % Discussion:
-%     - Why struct and not table? 
+%     - Why struct and not table?
 %           - Because more flexibility...
 
     properties (Abstract, Constant, Hidden)
@@ -73,10 +70,13 @@ classdef StorableCatalog < handle
         FilePath char   % Filepath where current table is archived
     end
     
-    properties (Access = protected) % Might be better id this is dependent... (no need to explicity update)
+    properties (Access = protected) % Might be better id this is dependent... (no need to explicitly update)
         ItemNames       % Name of all items in archive
     end
-    
+
+    properties (Hidden)
+        SaveFormat = 'mat';
+    end
     
     events % Tentative...
         ItemAdded
@@ -94,7 +94,6 @@ classdef StorableCatalog < handle
 %     properties (Access = protected)
 %         Data
 %     end
-    
 
     methods (Abstract, Static)
     
@@ -119,7 +118,7 @@ classdef StorableCatalog < handle
         end
         
         function item = validateFieldOrder(~, item)
-        %validateFieldOrder Enforce Uuid as the first field of item struct    
+        %validateFieldOrder Enforce Uuid as the first field of item struct
             itemFields = fieldnames(item);
             
             % Make sure uuid is the first field...
@@ -129,7 +128,6 @@ classdef StorableCatalog < handle
             end
         end
     end
-    
     
     methods % Constructor
         
@@ -149,7 +147,6 @@ classdef StorableCatalog < handle
             obj.load()
             
         end
-        
     end
     
     methods % Get method
@@ -164,7 +161,7 @@ classdef StorableCatalog < handle
         %setFilePath Set fielpath of archive. %Todo: remove?
         
             folderPath = fileparts(filePath);
-            if ~exist(folderPath, 'dir'); mkdir(folderPath); end
+            if ~isfolder(folderPath); mkdir(folderPath); end
             
             obj.FilePath = filePath;
             
@@ -189,7 +186,7 @@ classdef StorableCatalog < handle
         end
         
         function S = initialize(obj)
-        %initialize Initialize file with variables    
+        %initialize Initialize file with variables
             S = struct();
             S.Data =  obj.getEmptyItem();
             S.Preferences = struct();
@@ -227,18 +224,21 @@ classdef StorableCatalog < handle
         
         function save(obj)
         %save Save data to file
-            S = obj.toStruct; %#ok<NASGU>
-            S = obj.cleanStructOnSave(S);
-            save(obj.FilePath, '-struct', 'S')
+            obj.saveas(obj.FilePath)
         end
         
         function saveas(obj, filePath)
         %save Save data to file at file path given as input
-            S = obj.toStruct; %#ok<NASGU>
+            S = obj.toStruct();
             S = obj.cleanStructOnSave(S);
-            save(filePath, '-struct', 'S')
+
+            if strcmp(obj.SaveFormat, 'mat')
+                save(filePath, '-struct', 'S')
+            elseif strcmp(obj.SaveFormat, 'json')
+                str = jsonencode(S, 'PrettyPrint', true);
+                utility.filewrite(strrep(filePath, 'mat', 'json'), str)
+            end
         end
-        
     end
     
     methods % Methods for manipulating entries
@@ -286,7 +286,7 @@ classdef StorableCatalog < handle
             
             % Todo: Should newItem replace old item if an item with the
             % name already exists? Or make separate replace method?
-            if isempty(obj.Data) 
+            if isempty(obj.Data)
                 obj.Data = newItem; % Todo: Initialize data using empty item, on first time startup...
             else
                 obj.Data(insertIdx) = newItem;
@@ -298,7 +298,6 @@ classdef StorableCatalog < handle
             if ~nargout
                 clear newItem
             end
-            
         end
         
         function newItem = replaceItem(obj, newItem)
@@ -340,11 +339,9 @@ classdef StorableCatalog < handle
             obj.assignItemNames()
             obj.save()
         end
-
     end
     
     methods % Methods for finding entries
-        
 
     end
     
@@ -380,7 +377,6 @@ classdef StorableCatalog < handle
             if nargout == 1
                 clear idx
             end
-            
         end
         
         function idx = getItemIndex(obj, itemName)
@@ -394,7 +390,6 @@ classdef StorableCatalog < handle
             else
                 idx = find(strcmp(obj.ItemNames, itemName));
             end
-            
         end
         
         function name = getItemName(obj, item)
@@ -425,14 +420,13 @@ classdef StorableCatalog < handle
         end
         
         function [Lia, Locb] = ismember(obj, itemName)
-        %ismember 
+        %ismember
             
             Lia = ismember(itemName, obj.ItemNames);
             
             if nargout == 2
                 Locb = find(Lia);
             end
-            
         end
         
         function [tf, idx] = containsItem(obj, itemName)
@@ -443,11 +437,10 @@ classdef StorableCatalog < handle
             if nargout == 2
                 idx = find(tf);
             end
-            
         end
         
         function setData(obj, dataStruct)
-            obj.Data = dataStruct; 
+            obj.Data = dataStruct;
         end
         
         function S = getBackupCatalog(obj)
@@ -471,7 +464,7 @@ classdef StorableCatalog < handle
         end
         
         function S = getEmptyItem(obj)
-        %getEmptyItem Get an empty item for the data property    
+        %getEmptyItem Get an empty item for the data property
             S = obj.getBlankItem();
             S(1) = [];
         end
@@ -494,7 +487,6 @@ classdef StorableCatalog < handle
             obj.ItemNames = {obj.Data.(idName)};
             
         end
-        
     end
     
     methods (Access = private)
@@ -520,8 +512,6 @@ classdef StorableCatalog < handle
             if ~isempty(varargin)
                 varargin = obj.checkArgsForFilePath(varargin);
             end
-            
-
         end
         
         function argList = checkArgsForFilePath(obj, argList)
@@ -534,7 +524,7 @@ classdef StorableCatalog < handle
                 if isFilePath
 
                     parentDir = fileparts(argList{1});
-                    if exist(parentDir, 'dir')
+                    if isfolder(parentDir)
                         obj.FilePath = argList{1};
                         argList = argList(2:end);
                     else
@@ -545,7 +535,7 @@ classdef StorableCatalog < handle
         end
         
         function S = addUuidIfMissing(~, S)
-            %addUuidIfMissing 
+            %addUuidIfMissing
             
             if isfield(S.Data, 'Uuid'); return; end
            
@@ -568,7 +558,7 @@ classdef StorableCatalog < handle
             folderPath = strrep(obj.FilePath, '.mat', '');
             if ~isfolder(folderPath); mkdir(folderPath); end
 
-            % Create and save a master list 
+            % Create and save a master list
             main = struct;
             main.Preferences = S;
             main.Data = utility.struct.substruct(S.Data, {'Uuid'});
@@ -590,7 +580,7 @@ classdef StorableCatalog < handle
         function S = loadFromFolder(obj)
         %loadFromFolder Load catalog from a folder with one file per item
         %
-        %   Not used yet. 
+        %   Not used yet.
         %
         %   Note: will be slower than loading from single file, but is more
         %   modular, in that its easier to add and remove items.
@@ -616,7 +606,6 @@ classdef StorableCatalog < handle
 
             S.Data = cat(2, itemArray{:});
         end
-        
     end
     
     methods (Static)
@@ -628,7 +617,6 @@ classdef StorableCatalog < handle
         function open(filePath)
             
         end
-        
     end
     
     methods (Static, Access = private)
@@ -643,58 +631,55 @@ classdef StorableCatalog < handle
             end
         end
     end
-
 end
-
-
 
 % % % Subclass Template
 % % classdef SUBCLASSNAME < utility.data.StorableCatalog
 % % %
-% % 
+% %
 % %     properties (Constant, Access = protected)
 % %         ITEM_TYPE = 'TYPE_NAME'
 % %     end
-% %     
+% %
 % %     methods (Static) % Get empty and default item
-% %         
+% %
 % %         function S = getBlankItem()
 % %             S = struct();
 % %         end
-% %         
+% %
 % %         function S = getEmptyItem()
 % %             S = struct();
 % %         end
-% %         
+% %
 % %         function S = getDefaultItem()
 % %             S = struct();
 % %         end
-% %         
-% %     end 
-% %     
-% %     methods % Constructor
-% %         
-% %         function obj = SUBCLASSNAME(varargin)
-% %             
-% %             % Superclass constructor. Loads given (or default) archive 
-% %             obj@utility.data.StorableCatalog(varargin{:})
-% %             
-% %         end
-% %         
+% %
 % %     end
-% %      
+% %
+% %     methods % Constructor
+% %
+% %         function obj = SUBCLASSNAME(varargin)
+% %
+% %             % Superclass constructor. Loads given (or default) archive
+% %             obj@utility.data.StorableCatalog(varargin{:})
+% %
+% %         end
+% %
+% %     end
+% %
 % %     methods (Access = protected)
-% %         
+% %
 % %         function item = validateItem(obj, item)
 % %             % Todo...
 % %         end
-% %         
+% %
 % %     end
-% %     
+% %
 % %     methods (Static)
-% %         
+% %
 % %         function pathString = getDefaultFilePath()
-% %         %getDefaultFilePath Get filepath for loading/saving filepath settings   
+% %         %getDefaultFilePath Get filepath for loading/saving filepath settings
 % %             fileName = 'FILE_NAME';
 % %             try
 % %                 pathString = nansen.config.project.ProjectManager.getProjectSubPath(fileName);
@@ -702,8 +687,8 @@ end
 % %                 pathString = '';
 % %             end
 % %         end
-% % 
+% %
 % %     end
-% %     
+% %
 % % end
-% % 
+% %

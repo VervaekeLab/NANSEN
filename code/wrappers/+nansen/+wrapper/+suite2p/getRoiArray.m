@@ -37,7 +37,5 @@ function roiArray = getRoiArray(stat, imsize)
             %mask(ind) = 0;
         
         end
-        
     end
-    
 end

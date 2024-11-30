@@ -16,13 +16,10 @@ function propertyNames = findproperties(obj, attributeName, attributeValue)
 %       propNames = utility.class.findproperties(obj, 'SetAccess', 'private')
 %
 
-
-
 %   set to the specified attribute value (attrValue)
 
     if nargin < 2; attributeName = ''; end
     if nargin < 3; attributeValue = true; end
-
 
     % Get the metaclass object for the input obj/classname
     if ischar(obj)
@@ -31,10 +28,8 @@ function propertyNames = findproperties(obj, attributeName, attributeValue)
       mc = metaclass(obj);
     end
     
-    
     % Get all property names
-    propertyNames = {mc.PropertyList.Name}; 
-    
+    propertyNames = {mc.PropertyList.Name};
     
     if isempty(attributeName)
         return % Return all property names
@@ -42,7 +37,6 @@ function propertyNames = findproperties(obj, attributeName, attributeValue)
         % Throw error if attribute name is invalid.
         error('%s is not a valid attribute name', attributeName)
     end
-    
     
     % Match properties with the specified. attribute.
     if islogical(mc.PropertyList(1).(attributeName) )
@@ -53,6 +47,5 @@ function propertyNames = findproperties(obj, attributeName, attributeValue)
     end
     
     propertyNames = propertyNames(isMatched);
-    
     
 end

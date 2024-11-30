@@ -6,14 +6,13 @@ function roiArray = convert2rois(extractOutput, varargin)
     
     params = utility.parsenvpairs(params, [], varargin{:});
     
-    
     spatialImages = extractOutput.spatial_weights;
     imSize = size(spatialImages);
     
     roiArray = RoI.empty;
     
     for i = 1:size(spatialImages, 3)
-        BW = spatialImages(:, :, i) > params.bwThreshold;   
+        BW = spatialImages(:, :, i) > params.bwThreshold;
         
         if params.enforceSingleSegment
             CC = bwconncomp(BW);
@@ -27,7 +26,5 @@ function roiArray = convert2rois(extractOutput, varargin)
         else
             roiArray(i) = RoI('Mask', BW, imSize(1:2));
         end
-        
     end
-
 end

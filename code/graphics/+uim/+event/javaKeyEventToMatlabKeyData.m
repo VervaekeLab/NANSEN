@@ -3,12 +3,11 @@ function mEvt = javaKeyEventToMatlabKeyData(jEvt)
 %
 %   Properties of matlab event Keydata:
 %    - Character  : Case sensitive
-%    - Modifier   : 
+%    - Modifier   :
 %    - Key        : Lower version of a letter
     
     % Todo: What about keys that are not letters
     %       What about windows?
-    
     
     %% Get the character
     mEvt.Character = get(jEvt, 'KeyChar');
@@ -18,10 +17,8 @@ function mEvt = javaKeyEventToMatlabKeyData(jEvt)
         mEvt.Character = '';
     end
     
-    
     %% Get the modifier(s)
     mEvt.Modifier = getModifiers(jEvt);
-
     
     %% Get the key name
     mEvt.Key = lower( get(jEvt, 'KeyChar') );
@@ -31,35 +28,31 @@ function mEvt = javaKeyEventToMatlabKeyData(jEvt)
         mEvt.Key = getSpecialKey(jEvt);
     end
     
-    
     %% For debugging
     if false
         get(jEvt)
     end
-    
 end
-
 
 function cellOfModifiers = getModifiers(jEvt)
 
     cellOfModifiers = cell(0,1);
     
     if get(jEvt, 'ShiftDown') == 1
-        cellOfModifiers{end+1} = 'shift'; 
+        cellOfModifiers{end+1} = 'shift';
     end
     
     if get(jEvt, 'ControlDown') == 1
-        cellOfModifiers{end+1} = 'control'; 
+        cellOfModifiers{end+1} = 'control';
     end
         
     if get(jEvt, 'AltDown') == 1
-        cellOfModifiers{end+1} = 'alt'; 
+        cellOfModifiers{end+1} = 'alt';
     end
     
     if get(jEvt, 'MetaDown') == 1
         cellOfModifiers{end+1} = 'command';
     end
-    
 end
 
 function keyName = getSpecialKey(jEvt)
@@ -81,5 +74,4 @@ function keyName = getSpecialKey(jEvt)
         otherwise
             keyName = '';
     end
-    
 end

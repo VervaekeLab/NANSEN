@@ -6,23 +6,19 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
 %
 %   Also provides method for interacting with tasks from the gui.
 
-
-
     % TODO:
     %  1 Same right click functionality as in info table. E.g. right click
     %    should select new cell and rightclick when many cells are selected
     %    should not deselect..
     %  2 Select the whole row.
     
-    
-% Resizing. 
+% Resizing.
 %
-%   Some tradeoffs with table resizing: 
-%   - if columnresizepolicy is off, columns does not stretch when 
+%   Some tradeoffs with table resizing:
+%   - if columnresizepolicy is off, columns does not stretch when
 %     table is resized, but they can be made larger than table...
 %   - if columnresizepolizy is on, columns stretches, but can not be made
 %     larger than table...
-    
 
     properties
         
@@ -34,7 +30,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         
         UIContextMenu
 %     end
-%     
+%
 %     properties (Access = private)
         Parent
         Table
@@ -45,13 +41,9 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         Position
     end
     
-    
     properties (Dependent)
         selectedRows
     end
-   
-   
-   
    
     methods % Structors
         
@@ -65,11 +57,9 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             
         end
         
-        
         function delete(obj)
             
         end
-        
     end
     
     methods % Public
@@ -86,7 +76,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                         obj.Table.Data(end+1, :) = tableRow{:,:};
                 end
             end
-            
         end
        
         function clearTable(obj)
@@ -96,7 +85,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         function selectedRows = get.selectedRows(obj)
             selectedRows = obj.Table.SelectedRows;
         end
-        
     end
     
     methods %Set/get
@@ -107,11 +95,9 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         function pos = get.Position(obj)
             pos = obj.Table.Position;
         end
-        
     end
     
     methods (Access = private)
-        
                 
         function create(obj)
             
@@ -149,10 +135,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             %obj.Table.FontName = 'Avenir New';
             %obj.Table.FontSize = 10;
             
-            
             %obj.Table.CellSelectionCallback = @obj.onCellSelection;
-
-            
             
             % Make some configurations on underlying java object
             %jScrollPane = sbutil.findjobj(obj.Table);
@@ -162,7 +145,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             %obj.jTable = handle(obj.jTable, 'CallbackProperties');
             
             %set(obj.jTable, 'MousePressedCallback', @obj.tableMousePress);
-
         
             % Specify empty data to draw the table with the numbered column
             obj.Table.Data = cell(2, numColumns);
@@ -174,7 +156,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             % Set columnwidths
             tablePixelPos = getpixelposition(obj.Table);
             width = tablePixelPos(3);
-            obj.Table.ColumnPreferredWidth = arrayfun(@(i) round(width/numColumns), 1:numColumns, 'uni', 1 ); 
+            obj.Table.ColumnPreferredWidth = arrayfun(@(i) round(width/numColumns), 1:numColumns, 'uni', 1 );
 
             obj.Table.Data = {}; % Reset Data.
         end
@@ -188,12 +170,11 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         function tableMousePress(obj, src, event)
         %tableMousePress Callback for mousepress in table.
         %
-        %   This function is primarily used for 
+        %   This function is primarily used for
         %       1) Creating an action on doubleclick
-        %       2) Selecting cell on right click    
+        %       2) Selecting cell on right click
 
             if ~exist('obj', 'var') || ~isvalid(obj); return; end
-
 
             % Get the cell which is clicked using the awt.point and
             % rowAtPoint method. NB! Indexing starts at 0 for java objects
@@ -225,12 +206,10 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                     if ~isempty(obj.MouseButtonRightPressCallbackFcn)
                         obj.MouseButtonRightPressCallbackFcn(src, event)
                     end
-
             end
-            
         end
         
-         % Cell selection callback: UITableSessionList 
+         % Cell selection callback: UITableSessionList
         function onCellSelection(obj, src, event)
             
             % Is all this necessary for getting row selection??
@@ -242,10 +221,9 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             
             isRowSelected = find(numColsSelected == numCols);
             
-            
             if all(ismember(ii, isRowSelected))
                 disp('debug')
-                return 
+                return
             end
             
 %             return
@@ -258,7 +236,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                 extend = true;
             end
             
-            
             isNew = ~ismember(ii, isRowSelected);
             
             if isempty(isNew)
@@ -266,7 +243,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             end
             
 %             isNew = true(size(ii));
-
             
             obj.selectedRows(isDeselected) = [];
 
@@ -285,7 +261,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
 %                     else
 %                         jjTmp = [numCols, jSelected+1, jSelected-1, 1];
 %                     end
-%                     
+%
 %                     jjTmp = unique(jjTmp);
 
                     if numel(jSelected) == numCols; continue; end
@@ -308,11 +284,9 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                         extend = true;
                     end
                 end
-                
             end
             
             obj.selectedRows = unique(obj.selectedRows);
-
             
         end
         
@@ -326,7 +300,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                         
             MARGINS = [10, 10];
             parentPos = getpixelposition(obj.Parent);
-                    
 
             newTablePosition = [MARGINS, parentPos(3:4) - MARGINS*2];
             obj.Table.Position = newTablePosition;
@@ -334,9 +307,5 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         end
         
     end % /methods (Access = private)
-    
-    
-    
-    
     
 end

@@ -2,9 +2,9 @@ classdef ImageStack < nansen.dataio.FileAdapter
 %IMAGESTACK File adapter for a file that can be opened as an ImageStack
 %
 %   This file adapter provides methods to load the data from files that
-%   contains multidimensional image data as virtual ImageStack objects. 
+%   contains multidimensional image data as virtual ImageStack objects.
 %
-%   Supported file formats: 
+%   Supported file formats:
 %       binary files (raw/bin)
 %       tiff files (tif/tiff)
 %       movie files (avi)
@@ -15,7 +15,6 @@ classdef ImageStack < nansen.dataio.FileAdapter
 
     % Todo: Make this more dynamic, i.e list all file adapters and use
     % fileadapter file types to determine which to use.
-
 
     properties (Constant)
         DataType = 'ImageStack'
@@ -55,7 +54,6 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 writeData@nansen.dataio.FileAdapter(obj)
             end
         end
-        
     end
     
     methods
@@ -78,7 +76,6 @@ classdef ImageStack < nansen.dataio.FileAdapter
             %obj.FileSelectionMode = 'multiple';
             uifind@nansen.dataio.FileAdapter(obj, varargin{:})
         end
-        
     end
     
     methods (Access = private)
@@ -112,7 +109,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
                     className = 'nansen.stack.virtual.MDF';
 
                 case 'tsm'
-                    className = 'ophys.macroscope.TSMVoltageSeries';
+                    className = 'nansen.stack.virtual.TSM';
 
                 otherwise
                     error('Nansen:DataIO:FileTypeNotSupported', ...
@@ -120,7 +117,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
                         obj.FileType)
             end
         end
-    end 
+    end
         
     methods (Static)
         
@@ -164,8 +161,5 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 end
             end
         end
-        
     end
-    
 end
-

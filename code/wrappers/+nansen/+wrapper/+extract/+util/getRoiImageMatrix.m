@@ -1,11 +1,10 @@
 function [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData, varargin)
-%getRoiImageMatrix Get image and alpha matrix for a set of spatial weigths
+%getRoiImageMatrix Get image and alpha matrix for a set of spatial weights
 %
 %   [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData)
 %
 %   Combine all roi spatial weights into a colorcoded image where each roi
 %   is given a unique color representation.
-
 
     % Default parameters
     params = struct();
@@ -48,5 +47,4 @@ function [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData, varargin)
     if nargout == 1
         clear alphaMatrix
     end
-
 end

@@ -7,7 +7,7 @@ function hClassifier = openRoiClassifier(varargin)
 %
 %   hClassifier = openRoiClassifier(roiGroup) is a roimanager.roiGroup
 %
-%   hClassifier = openRoiClassifier(roiArray, imageStack) 
+%   hClassifier = openRoiClassifier(roiArray, imageStack)
 
     roiData = struct.empty;
     roiGroup = [];
@@ -20,25 +20,29 @@ function hClassifier = openRoiClassifier(varargin)
         if all( ismember({'roiArray', 'roiImages', 'roiStats', 'roiClassification'}, dataFields) )
             roiData = varargin{1};
         end
+        varargin(1) = [];
        
     elseif isa(varargin{1}, 'RoI')
         
-        if isa(varargin{2}, 'nansen.stack.ImageStack') 
+        if isa(varargin{2}, 'nansen.stack.ImageStack')
             roiData = roiclassifier.prepareRoiData(varargin{1:2});
+            varargin(1:2) = [];
         end
         
     elseif isa(varargin{1}, 'roimanager.roiGroup')
-        if nargin >= 2 && ~isempty(varargin{2}) && isa(varargin{2}, 'nansen.stack.ImageStack') 
+        if nargin >= 2 && ~isempty(varargin{2}) && isa(varargin{2}, 'nansen.stack.ImageStack')
             roiData = roiclassifier.prepareRoiData(varargin{1:2});
-        
+            varargin(1:2) = [];
         else
             roiGroup = varargin{1};
+            varargin(1) = [];
         end
     end
-    
+
+    nvPairs = varargin;
     
     if ~isempty(roiData)
-        roiArray = roiData.roiArray;       
+        roiArray = roiData.roiArray;
         roiArray = roiArray.setappdata('roiImages', roiData.roiImages);
         roiArray = roiArray.setappdata('roiStats', roiData.roiStats);
         roiArray = roiArray.setappdata('roiClassification',  roiData.roiClassification);
@@ -61,6 +65,5 @@ function hClassifier = openRoiClassifier(varargin)
     end
 
     hClassifier = roiclassifier.App(roiGroup, 'tileUnits', 'scaled', nvPairs{:});
-
 
 end

@@ -6,15 +6,15 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
 %   signalArray = serialExtract(imArray, roiData, options) performs the
 %   extraction using specified optional parameters. options can be a struct
 %   of parameters, or a list of name-value pairs. See
-%   nansen.twophoton.roisignals.extract.getDefaultParameters for a list of 
+%   nansen.twophoton.roisignals.extract.getDefaultParameters for a list of
 %   available parameters
-%   
+%
 %   INPUTS:
 %       imArray  : 3D (imHeight, imWidth, numFrames) matlab array.
 %       roiMasks : array of RoI objects or a struct array of masks and
 %           other information for each roi.
 %
-%   NOTE: 
+%   NOTE:
 %       Efficient for computing signals of fewer (~100) rois. If computing
 %       signals for more rois (>100) see batchExtract
 %
@@ -54,5 +54,4 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
             imArray, roiMasks(jRoi), params.pixelComputationMethod);
 
     end
-
 end

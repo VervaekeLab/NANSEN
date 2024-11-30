@@ -14,4 +14,3 @@ function [roiArray, classification, stats, images]  = vhlab(S)
     [classification, stats, images] = deal([]);
     
 end
-

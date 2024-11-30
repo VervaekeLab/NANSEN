@@ -1,7 +1,7 @@
 classdef UserSettings < applify.mixin.UserSettings
 %nansen.mixin.UserSettings Subclass the applify.mixin.UserSettings to redefine
-%   the default saving policy for settings files. Settings will be saved to 
-%   the nansen _userdata folder instead of being saved locally next the 
+%   the default saving policy for settings files. Settings will be saved to
+%   the nansen _userdata folder instead of being saved locally next the
 %   owning class file definition.
 %
 %   Any class that inherits this class must implement the following:
@@ -28,7 +28,7 @@ classdef UserSettings < applify.mixin.UserSettings
         %   the reference for calling up the static method.
             
             className = class(obj);
-            pathStr = nansen.mixin.UserSettings.createFilePath(className); 
+            pathStr = nansen.mixin.UserSettings.createFilePath(className);
             
         end
     end
@@ -46,22 +46,20 @@ classdef UserSettings < applify.mixin.UserSettings
         end
         
         function pathStr = createFilePath(className)
-        %createSettingsPath Create filepath for settings of subclass 
+        %createSettingsPath Create filepath for settings of subclass
             
             % Save settings into the nansen/_userdata folder.
-            settingsFolderPath = fullfile(nansen.rootpath, '_userdata', 'settings');
+            settingsFolderPath = fullfile(nansen.prefdir, 'settings');
         
             % Create a filename
             className = lower( strrep(className, '.', '_') );
             settingsFileName = strcat(className, '_settings.mat');
             
             % Create folder to save settings file in if it does not exist
-            if ~exist(settingsFolderPath, 'dir'); mkdir(settingsFolderPath); end
+            if ~isfolder(settingsFolderPath); mkdir(settingsFolderPath); end
             
             % Return the filepath where to save and load settings from
             pathStr = fullfile(settingsFolderPath, settingsFileName);
         end
-        
     end
-
 end

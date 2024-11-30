@@ -10,7 +10,5 @@ classdef Default < nansen.wrapper.flowreg.Options
         function S = getOptions()
             S = getOptions@nansen.wrapper.flowreg.Options();
         end
-        
     end
-    
 end

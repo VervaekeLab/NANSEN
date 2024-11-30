@@ -1,5 +1,5 @@
 classdef AppWithPlugin < uim.handle
-%AppWithPlugin Superclass for app that supports plugins.    
+%AppWithPlugin Superclass for app that supports plugins.
     
     properties
         Plugins applify.mixin.AppPlugin
@@ -16,13 +16,12 @@ classdef AppWithPlugin < uim.handle
                 delete(obj.Plugins(i))
             end
         end
-        
     end
     
     methods
         
         function addPlugin(obj, pluginObj)
-        %addPlugin Add plugin to app    
+        %addPlugin Add plugin to app
             
             % Check that plugin is not already active on app
             if obj.isPluginActive(pluginObj)
@@ -35,8 +34,7 @@ classdef AppWithPlugin < uim.handle
                     @(s,e,str) obj.removePlugin(pluginObj.Name));
 
             end
-            
-        end 
+        end
 
         function removePlugin(obj, pluginName)
             if ~isvalid(obj); return; end
@@ -60,7 +58,7 @@ classdef AppWithPlugin < uim.handle
         end
         
         function h = getPluginHandle(obj, pluginName)
-        %getPluginHandle Get handle for plguin with given name    
+        %getPluginHandle Get handle for plguin with given name
             
             isMatch = strcmp( {obj.Plugins.Name}, pluginName);
             
@@ -86,7 +84,5 @@ classdef AppWithPlugin < uim.handle
                 end
             end
         end
-        
     end
-    
 end

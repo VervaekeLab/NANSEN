@@ -67,7 +67,6 @@ if ~iscell(Prompt)
 end
 NumQuest=numel(Prompt);
 
-
 if nargin<2,
   Title=' ';
 end
@@ -137,7 +136,6 @@ InputFig=dialog(                     ...
   'Resize'           ,Resize       ...
   );
 
-
 %%%%%%%%%%%%%%%%%%%%%
 %%% Set Positions %%%
 %%%%%%%%%%%%%%%%%%%%%
@@ -155,7 +153,6 @@ StInfo=TextInfo;
 StInfo.Style              = 'text'  ;
 StInfo.BackgroundColor    = FigColor;
 
-
 EdInfo=StInfo;
 EdInfo.FontWeight      = get(InputFig,'DefaultUicontrolFontWeight');
 EdInfo.Style           = 'edit';
@@ -169,7 +166,6 @@ BtnInfo.HorizontalAlignment = 'center';
 % Add VerticalAlignment here as it is not applicable to the above.
 TextInfo.VerticalAlignment  = 'bottom';
 TextInfo.Color              = get(0,'FactoryUicontrolForegroundColor');
-
 
 % adjust button height and width
 btnMargin=1.4;
@@ -210,7 +206,7 @@ QuestWidth =QuestPos(:,3);
 QuestHeight=QuestPos(:,4);
 if ismac % Change Edit box height to avoid clipping on mac.
     editBoxHeightScalingFactor = 1.4;
-else 
+else
     editBoxHeightScalingFactor = 1;
 end
 TxtHeight=QuestHeight(1)/size(WrapQuest{1,1},1) * editBoxHeightScalingFactor;
@@ -245,7 +241,6 @@ for lp=1:NumQuest,
     delete(InputFig);
     error(message('MATLAB:inputdlg:InvalidInput'));
   end
-
   
   EditHandle(lp)=uicontrol(InputFig    , ...
     EdInfo      , ...
@@ -272,7 +267,7 @@ for lp=1:NumQuest,
   end
   % Get the extent of the text object. See g1008152
   questExtent = get(QuestHandle(lp), 'Extent');
-  MinWidth = max(MinWidth, questExtent(3));  
+  MinWidth = max(MinWidth, questExtent(3));
   FigWidth=max(FigWidth, MinWidth+2*DefOffset);
 
 end % for lp
@@ -436,7 +431,6 @@ if ~multicolumn
   end
 end
 
-
 % the current and the target sizes are considered equal
 % if the difference is less then 1 pixel
 % (Position property values can be doubles due to other units,
@@ -489,8 +483,8 @@ if ~isempty(parentHandle)
     % If there is a parent figure
     convertData.hFig = parentHandle;
     convertData.size = get(parentHandle,'Position');
-    convertData.sourceUnits = get(parentHandle,'Units');  
-    c = []; 
+    convertData.sourceUnits = get(parentHandle,'Units');
+    c = [];
 else
     % If there is no parent figure, use the root's data
     % and create a invisible figure as parent

@@ -9,7 +9,6 @@ function defaultValue = getDefaultValue(dataType)
         case 'numeric'
             defaultValue = nan;
         case 'text'
-            defaultValue = {'N/A'}; 
+            defaultValue = {'N/A'};
     end
-    
 end

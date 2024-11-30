@@ -14,6 +14,5 @@ function pathStr = browse()
 
     pathStr = fullfile(folderPath, fileName);
 
-end                                    
-
+end
     

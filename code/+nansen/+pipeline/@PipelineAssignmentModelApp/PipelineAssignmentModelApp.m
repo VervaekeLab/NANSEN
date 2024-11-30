@@ -1,11 +1,12 @@
 classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
-    
+% PipelineAssignmentModelApp - This app is used to create a configuration
+% for automatically assigning a pipeline to sessions based one or more
+% session table variables.
     
     properties (Constant)
         AppName = 'Configure Pipeline Assignment'
         ModelName = 'Pipeline Model'
     end
-    
     
     properties
         Model
@@ -31,15 +32,11 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
 
                 obj.createUIModules()
                 
-                
                 if ~nargout
                     clear obj
                 end
             end
-            
-            
         end
-        
     end
     
     methods (Access = protected)
@@ -72,15 +69,11 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
                         return
 
                 end
-                
             end
 
             delete(obj.Figure)
-            
         end
-        
     end
-    
     
     methods (Access = private)
         
@@ -100,12 +93,11 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
             obj.Figure.Position(3:4) = obj.Figure.Position(3:4) + deltaSize;
             obj.LoadingPanel.Position(3:4) = obj.Figure.Position(3:4);
             uim.utility.layout.centerObjectInRectangle(obj.LoadingImage, obj.LoadingPanel)
-
         end
 
         function createControlPanels(obj)
             obj.ControlPanels = obj.createControlPanel( obj.Figure );
-        end 
+        end
         
         function createUIModules(obj)
             
@@ -117,8 +109,8 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
             obj.Model = pipelineModel;
             obj.ModelBackup = pipelineModel.Data;
             
-            MT = nansen.metadata.MetaTableCatalog();
-            metaTable = MT.getMasterTable('session');
+            metatableCatalog = nansen.getCurrentProject().MetaTableCatalog;
+            metaTable = metatableCatalog.getMasterTable('session');
             
             args = {'PipelineModel', pipelineModel, 'Data', pipelineModel.Data(1).SessionProperties, ...
                 'MetaTable', metaTable};
@@ -127,9 +119,6 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
             obj.UIModule{1}.createToolbar(obj.ControlPanels(1))
 
             obj.LoadingPanel.Visible = 'off';
-
         end
-        
     end
-    
 end

@@ -1,5 +1,5 @@
 function uuid = getuuid()
-%getuuid Get a universal unique identifier. 
+%getuuid Get a universal unique identifier.
 %
 %   uuid = getuuid() returns a universal unique identifier. This function
 %   uses matlab's builtin type if it is available (faster) or the Java
@@ -28,5 +28,4 @@ function uuid = getuuid()
     if useJava
         uuid = char( java.util.UUID.randomUUID() );
     end
-
 end

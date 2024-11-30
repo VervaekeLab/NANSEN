@@ -3,13 +3,13 @@ function [IM, batchSize, lineShifts] = correctLineOffsets(IM, batchSize)
 %   [IM, batchSize, lineShifts] = correctLineOffsets(IM, batchSize)
 %   corrects line by line shifts due to bidirectional offsets in the
 %   resonance line by line scanning. batchSize is number of frames to
-%   process together. 
+%   process together.
 %
-%   This function increases the batchSize automatically if the shifts does 
-%   not change between two batches. This is done because the line offsets 
-%   are typically changing more in the beginning of the recording before 
+%   This function increases the batchSize automatically if the shifts does
+%   not change between two batches. This is done because the line offsets
+%   are typically changing more in the beginning of the recording before
 %   becoming more or less stable for the rest of the recording.
-%   
+%
 %   The function also return the lineShifts that are detected. lineShifts
 %   is a vector of (nFrames x 1)
 %
@@ -21,7 +21,7 @@ function [IM, batchSize, lineShifts] = correctLineOffsets(IM, batchSize)
 % Do the bidirectional offset correction.
 nFrames = size(IM, 3);
 colShiftPrev = [];
-finished = false; 
+finished = false;
     
 lineShifts = zeros(nFrames, 1);
 
@@ -30,7 +30,6 @@ if mod(imHeight, 2) == 1
     firstRow = IM(1,:,:);
     IM = IM(2:end,:,:);
 end
-
 
 % Do it in smaller batches. Mostly relevant in the beginning of a scan
 first = 1;
@@ -62,5 +61,4 @@ end
 if mod(imHeight, 2) == 1
     IM = cat(1, firstRow, IM);
 end
-
 end

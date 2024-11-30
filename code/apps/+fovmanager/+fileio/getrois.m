@@ -19,7 +19,4 @@ function roiArray = getrois(sVar)
         roiArray = S.sData.imdata.roiArray;
         
     end
-    
-    
-
 end

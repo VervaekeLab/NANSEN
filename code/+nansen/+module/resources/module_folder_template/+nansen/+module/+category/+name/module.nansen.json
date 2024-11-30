@@ -1,0 +1,9 @@
+{
+  "_type": "NANSEN Module Specification",
+  "_description": "Contains properties for a NANSEN module",
+  "_version": "1.0.0",
+  "Properties": {
+    "Name": "<Module name>",
+    "Description": "<Module description>"
+  }
+}

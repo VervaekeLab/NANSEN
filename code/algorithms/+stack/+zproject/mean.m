@@ -1,4 +1,4 @@
-function imOut = mean(imArray, dim)    
+function imOut = mean(imArray, dim)
 
     if nargin < 2; dim = 3; end
 
@@ -7,5 +7,4 @@ function imOut = mean(imArray, dim)
     else
         imOut = imArray;
     end
-    
 end

@@ -19,7 +19,6 @@ classdef FileConcatenator < handle
         FrameIndexInfo
     end
     
-    
     methods
         
         function obj = FileConcatenator(filePathList)
@@ -47,7 +46,7 @@ classdef FileConcatenator < handle
     methods (Access = private)
         
         function createFrameIndexMap(obj)
-        %createFrameIndexMap Create a mapping from frame number to file part    
+        %createFrameIndexMap Create a mapping from frame number to file part
             
             assert( numel( obj.NumFramesPerFile ) == obj.NumFiles, ...
                 'Number of files and number of frames per file does not match')
@@ -69,7 +68,6 @@ classdef FileConcatenator < handle
                 count = count + n;
             end
         end
-        
     end
         
     methods (Static)
@@ -77,8 +75,8 @@ classdef FileConcatenator < handle
         function filepath = lookForMultipartFiles(filepath, level)
         %
         %
-        %   filepath = lookForMultipartFiles(filepath, level) returns 
-        %   
+        %   filepath = lookForMultipartFiles(filepath, level) returns
+        %
         %   level can have three values:
         %       0: Don't get any other files
         %       1: Get all files with same file extension
@@ -120,7 +118,7 @@ classdef FileConcatenator < handle
                     filepath = fullfile({L(keep).folder}, {L(keep).name});
                     
                 elseif level == 3
-                    % Remove all numbers from filenames. If all names are 
+                    % Remove all numbers from filenames. If all names are
                     % identical after, we assume folder contains multipart files.
                     referenceAlphabetic = regexprep(referenceName, '\d*', '');
                     fileNamesAlphabetic = regexprep({L.name}, '\d*', '');
@@ -134,7 +132,5 @@ classdef FileConcatenator < handle
                 filepath = transpose(filepath);
             end
         end
-        
     end
-    
 end

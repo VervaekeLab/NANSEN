@@ -1,12 +1,10 @@
 classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
     
-    
     properties
         Parent
         Callback
         CallbackRefreshRate = inf
     end
-    
   
     properties (Dependent)
         Low
@@ -27,7 +25,7 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
         Minimum_ = 0
         Maximum_ = 100
         
-        Position_ = [1,1,200,25]        
+        Position_ = [1,1,200,25]
     end
     
     properties (Access = private)
@@ -41,9 +39,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
         WindowMousePressListener
         
     end
-        
-    
-    
     
     methods
         
@@ -61,7 +56,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             
             obj.assignPVPairs(varargin{:})
             
-            
             obj.createPanel()
             obj.createRangebar()
             obj.createValueInputFields()
@@ -73,7 +67,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
         function delete(obj)
     
         end
-        
     end
     
     methods
@@ -86,7 +79,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             obj.hRangeSlidebar.Low = obj.Low_;
             obj.hRangeSlidebar.High = obj.High_;
         end
-        
     end
     
     methods % Set/get methods
@@ -104,7 +96,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             else
                 visible = obj.hPanel.Visible;
             end
-            
         end
                 
         function pos = get.Position(obj)
@@ -123,7 +114,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             obj.onMinValuePropertySet()
         end
         
-        
         function max = get.Maximum(obj)
             max = obj.Maximum_;
         end
@@ -132,17 +122,16 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             obj.onMaxValuePropertySet()
         end
         
-        
 %         function set.Low(obj, newLow)
 %             %newLow = obj.Min_;
 %             assert(newLow >= obj.Min_, 'Slider lower value must be greater than slider lower limit')
 %             assert(newLow <= obj.High_, 'Slider lower value must be smaller than slider upper value')
-%             
+%
 %             if newLow ~= obj.Low_
 %                 obj.Low_ = newLow;
 %                 obj.onValueChanged()
 %             end
-%             
+%
 %         end
         
         function low = get.Low(obj)
@@ -152,18 +141,17 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
 %         function set.High(obj, newHigh)
 %             assert(newHigh <= obj.Max_, 'Slider upper value must be smaller than slider upper limit')
 %             assert(newHigh >= obj.Low_, 'Slider upper value must be larger than slider lower value')
-%                         
+%
 %             if newHigh ~= obj.High_
 %                 obj.High_ = newHigh;
 %                 obj.onValueChanged()
 %             end
-%             
+%
 %         end
         
         function high = get.High(obj)
             high = obj.High_;
         end
-        
     end
     
     methods (Access = private) % Component creation
@@ -250,7 +238,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
                 obj.hPanel.Position = obj.Position_;
                 obj.updateComponentPositions();
             end
-            
         end
         
         function onSliderValueChanging(obj, src, evt)
@@ -271,7 +258,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             if ~isempty(obj.Callback)
                 obj.Callback(obj, evt)
             end
-            
         end
         
         function onMaxValuePropertySet(obj)
@@ -291,7 +277,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
                 obj.updateComponentPositions
             end
         end
-        
         
         function onHighValueInputChanged(obj, src, evt)
             
@@ -357,14 +342,13 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
         
         function updateLowValueField(obj, newValue)
             obj.hEditFieldLow.String = num2str( round( newValue ) ) ;
-            obj.hEditFieldHigh.UserData.PreviousValue = obj.hEditFieldLow.String; 
+            obj.hEditFieldHigh.UserData.PreviousValue = obj.hEditFieldLow.String;
         end
         
         function updateHighValueField(obj, newValue)
             obj.hEditFieldHigh.String = num2str( round( newValue ) );
             obj.hEditFieldHigh.UserData.PreviousValue = obj.hEditFieldHigh.String;
         end
-        
     end
     
     methods (Static)
@@ -379,8 +363,6 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
                h = [];
                remVarargin = varargin;
            end
-           
         end
     end
-
 end

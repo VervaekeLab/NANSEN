@@ -6,11 +6,11 @@ classdef AbstractMetadata < dynamicprops
 % different formats like json, xml, ini etc..
 
 % This is a bit of a mess because I wanted to have a preference for saving
-% files with txt extension (to support preview of files on mac without 
+% files with txt extension (to support preview of files on mac without
 % installing plugins)
 
     properties (Access = protected)
-        Filename        
+        Filename
     end
     
     properties (Dependent, Access = private)
@@ -56,10 +56,9 @@ classdef AbstractMetadata < dynamicprops
                 delete(obj.Filename)
             end
             
-            if obj.ExistAsText        
+            if obj.ExistAsText
                 delete( strcat(obj.Filename, '.txt') )
             end
-            
         end
         
         function set(obj, name, value)
@@ -94,7 +93,6 @@ classdef AbstractMetadata < dynamicprops
                 thisName = propertyNames{jProp};
                 S.(thisName) = obj.(thisName);
             end
-            
         end
         
         function fromStruct(obj, S, propertyNames)
@@ -127,7 +125,6 @@ classdef AbstractMetadata < dynamicprops
             % Subclasses can override. Usefeul for controlling which
             % propertynames are written to file.
         end
-        
     end
     
     methods (Access = private)
@@ -141,7 +138,6 @@ classdef AbstractMetadata < dynamicprops
             else
                 filepath = '';
             end
-            
         end
         
         function filepath = getFilepathWrite(obj)
@@ -156,7 +152,7 @@ classdef AbstractMetadata < dynamicprops
         function checkForDuplicateFiles(obj)
         %checkForDuplicateFiles Delete .yaml or .txt file if both exist
         
-            if obj.ExistAsYaml && obj.ExistAsText        
+            if obj.ExistAsYaml && obj.ExistAsText
                 appendTxt = getpref('nansen', 'SaveYamlAsTxt', false);
                 if appendTxt
                     delete(obj.Filename)
@@ -165,19 +161,17 @@ classdef AbstractMetadata < dynamicprops
                 end
             end
         end
-        
     end
     
     methods
         
         function tf = get.ExistAsYaml(obj)
-            tf = exist(obj.Filename, 'file')==2;
+            tf = isfile(obj.Filename);
         end
         
         function tf = get.ExistAsText(obj)
-            tf = exist([obj.Filename,'.txt'], 'file')==2;
+            txtFileName = [obj.Filename, '.txt'];
+            tf = isfile(txtFileName);
         end
-        
     end
-    
 end

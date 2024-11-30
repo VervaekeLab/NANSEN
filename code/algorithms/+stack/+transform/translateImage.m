@@ -1,7 +1,7 @@
 function imageOut = translateImage(imageIn, varargin)
 %translateImage Translate an image in x and y with subpixel resolution
 %
-%   imTranslated = translateImage(im, [dx, dy]) translates the image 
+%   imTranslated = translateImage(im, [dx, dy]) translates the image
 %
 %   imTranslated = translateImage(im, dx, dy)
 
@@ -23,5 +23,3 @@ function imageOut = translateImage(imageIn, varargin)
     imageOut = imwarp(imageIn, D, 'cubic');
     
 end
-
-

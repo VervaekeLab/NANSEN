@@ -17,8 +17,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %
 %     * <strong>NormcorreOptions</strong> : Struct with options used for registration
 %
-%     * <strong>NormcorreShifts</strong> : Struct array with frame shifts 
-
+%     * <strong>NormcorreShifts</strong> : Struct array with frame shifts
 
 %   TODO:
 %       [ ] Print command line output
@@ -26,8 +25,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 %       [ ] Option for using precalculated template. 
 %       [ ] Move shifts to results property of ImageStackProcessor
 
-
-    properties (Constant) % Attributes inherited from nansen.DataMethod
+    properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Motion Correction (NoRMCorre)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.normcorre.Processor')
@@ -51,8 +49,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 % % %         DependentPaths = nansen.wrapper.normcorre.getDependentPaths()
 % % %     end
     
-    
-    methods % Constructor 
+    methods % Constructor
         
         function obj = Processor(varargin)
         %nansen.wrapper.normcorre.Processor Construct normcorre processor
@@ -77,9 +74,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 obj.runMethod()
                 clear obj
             end
-            
         end
-        
     end
     
     methods % Set/get
@@ -124,7 +119,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
         end
         
-        
         function tf = checkIfPartIsFinished(obj, partNumber)
         %checkIfPartIsFinished Check if shift values exist for given part
             
@@ -136,7 +130,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 im = obj.DerivedStacks.AvgProjectionStackCorr.getFrameSet(partNumber);
                 tf = any(im(:) ~= 0);
             end
-            
         end
         
         function initializeShifts(obj, numFrames)
@@ -222,7 +215,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             obj.CurrentRefImage = template;
         end
-
     end
     
     methods (Access = protected) % Run the motion correction / image registration
@@ -234,7 +226,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             
             % Save original selection for drift correction. This value will
             % be adjusted during motion correction to make sure that drifts
-            % are only corrected for the reference channel (will be 
+            % are only corrected for the reference channel (will be
             % automatically applied to other channels). Note: important to
             % do this after the superclass' onInitialization method so that
             % this extra field is not added to the saved options.
@@ -243,7 +235,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % todo: get from options
             obj.StackIterator.PrimaryChannel = obj.ChannelToCorrect;
             
-            % Start parallell pool
+            % Start parallel pool
             % gcp();%parpool()
         end
         
@@ -290,7 +282,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             warnID = 'MATLAB:mir_warning_maybe_uninitialized_temporary';
             warning('on', warnID)
         end
-        
     end
     
     methods (Static)
@@ -304,7 +295,6 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 ncShifts(k).shifts_up(:,:,:,2) = ncShifts(k).shifts_up(:,:,:,2) + offset(2);
             end
         end
-        
     end
     
     methods (Static) % Method in external file.
@@ -322,5 +312,4 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             end
         end
     end
-
 end

@@ -1,7 +1,6 @@
 function metaTable = fixMetaTableDataLocations(metaTable, dataLocationModel)
-%fixMetaTableDataLocations Fix DataLocation of all entries to be in 
-% accordance with new specification    
-
+%fixMetaTableDataLocations Fix DataLocation of all entries to be in
+% accordance with new specification
 
 % This function should ensure
 %   All datalocation items has all the datalocations
@@ -38,7 +37,7 @@ function metaTable = fixMetaTableDataLocations(metaTable, dataLocationModel)
                 name = dataLocation.Name;
                 rootPaths = {dataLocation.RootPath.Value};
                 
-                % Was a session folder for this entry located in (any of) 
+                % Was a session folder for this entry located in (any of)
                 % the root datalocation directories.
                 rootIdx = [];
                 for k = 1:numel(rootPaths)
@@ -51,7 +50,6 @@ function metaTable = fixMetaTableDataLocations(metaTable, dataLocationModel)
                         end
                     end
                 end
-
                 
                 S(i).Uuid = dataLocation.Uuid;
                 if ~isempty(rootPaths) && ~isempty(rootIdx)
@@ -79,5 +77,4 @@ function metaTable = fixMetaTableDataLocations(metaTable, dataLocationModel)
 
     metaTable.replaceDataColumn('DataLocation', newDataLocation );
 end
-        
     

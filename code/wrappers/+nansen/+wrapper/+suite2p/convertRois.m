@@ -16,7 +16,6 @@ function [roiArray, classification, stats, images] = convertRois(S)
     if isa(S.stat, 'cell'); S.stat = cat(1, S.stat{:}); end
     assert(isa(S.stat, 'struct'), 'Expected suite2p "stat" to be a struct array')
     
-    
     % Initialize classification using manual classification label.
     % Todo: implement enum?
     classification = S.iscell(:,1);
@@ -31,7 +30,6 @@ function [roiArray, classification, stats, images] = convertRois(S)
     
     [stats(1:numRois).s2pCompactness] = deal( S.stat.compact );
     [stats(1:numRois).s2pSignalSkew] = deal( S.stat.skew );
-    
     
     % Todo: Make a RoI method for getting these images and more?
     images = struct.empty; % Todo: Create weight image...
@@ -52,16 +50,14 @@ function [roiArray, classification, stats, images] = convertRois(S)
     for i = 1:numRois
         images(i).SpatialWeights = imArray(:, :, i);
     end
-    
 end
-
 
 % Skew: skewedness of neuropil subtracted roi fluoresence (dF) distribution.
 % Std: standard deviation of dF
 
 % Skew:
-% Computes the skewedness of the distribution of values. 
-% Normal distributions, around 0, positive values indicate right tail. 
+% Computes the skewedness of the distribution of values.
+% Normal distributions, around 0, positive values indicate right tail.
 % That should be expected for sparsely active cells?
 % https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/reference/generated/scipy.stats.skew.html
 
@@ -83,4 +79,3 @@ end
 % % overlap:       |  which pixels overlap with other ROIs (these are excluded from fluorescence computation)
 % % ipix_neuropil: | pixels of neuropil mask for this cell
 % % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
