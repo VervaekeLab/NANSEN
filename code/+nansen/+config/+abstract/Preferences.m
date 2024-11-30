@@ -27,7 +27,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
     end
 
     methods % Methods which subclasses can override.
-        function propertyNames = getPropertiesToHide(obj)
+        function propertyNames = getPropertiesToHide(obj) %#ok<MANU>
         %getPropertiesToHide Get a list of properties to hide from display
         %
         %   propertyNames = getPropertiesToHide(obj) return a cell array of

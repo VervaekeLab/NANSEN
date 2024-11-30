@@ -1,9 +1,17 @@
 classdef MenuList < uiw.mixin.AssignPVPairs
 % Class to represent a list in a menu or a submenu.
 
+% About selection mode:
+%   none: similar to a push button, the callback is triggered, with source
+%         and event as input args
+%   single: similar to toggle button, the callback is triggered, the menu
+%         item is checked and the menus value property is updated
+%   multiple: allows multiple menu items to be selected/checked simultaneously.
+
     properties
         Items                    % Cell array of chars (names) to place in the menu list
         Value                    % Char or cell array of selected items from Items list
+        % SelectionMode - Whether menu items will be selected or not.
         SelectionMode = 'single' % none, single or multiple
         MenuSelectedFcn
     end

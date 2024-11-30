@@ -2387,7 +2387,7 @@ methods % Event/widget callbacks
         switch action
             case 'mousescroll'
                 i = event.VerticalScrollCount;
-                if obj.nFrames / obj.settings.Interaction.scrollFactor < 100% obj.settings.Interaction.scrollFactor
+                if obj.nFrames / obj.settings.Interaction.scrollFactor < 100
                     scrollFactor = 1;
                 else
                     scrollFactor = obj.settings.Interaction.scrollFactor;
@@ -4796,6 +4796,11 @@ methods (Access = protected) % Event callbacks
             case {'XScaleFactor', 'YScaleFactor'}
                 obj.settings.AppLayout.(name) = value;
                 obj.onLayoutScaleFactorChanged()
+
+            case 'correctTouchpadJitter'
+                if ~value % Reset zoom history
+                    obj.scrollHistory = zeros(5,1);
+                end
         end
     end
 
@@ -5408,12 +5413,13 @@ methods (Access = protected)
         
         if ~obj.isMouseInApp; return; end
 
-        % Use the scrollHistory to avoid "glitchy" scrolling. For small
-        % movements on a mousepad, scroll values can come in as 0, 1, 1,
-        % -1, 1, 1 even if fingers are moving in on direction.
-        
-        obj.scrollHistory = cat(1, obj.scrollHistory(2:5), event.VerticalScrollCount);
-        
+        if obj.settings.Interaction.correctTouchpadJitter 
+            % Use the scrollHistory to avoid "glitchy" scrolling. For small
+            % movements on a mousepad/touchpad, scroll values can come in as 
+            % e.g. 0, 1, 1, -1, 1 even if fingers are moving in one direction.
+            obj.scrollHistory = cat(1, obj.scrollHistory(2:5), event.VerticalScrollCount);
+        end
+
         if obj.isAltDown; return; end
         
         if obj.isMouseOnWidget('thumbnailSelector')
@@ -5427,12 +5433,24 @@ methods (Access = protected)
                 obj.changeFrame(src, event, 'mousescroll');
                    
             case 'extend'
-                
-                scrollFactor = abs(event.VerticalScrollCount )/10.*obj.settings.Interaction.scrollFactor;
-                
-                if event.VerticalScrollCount > 0 && sum(obj.scrollHistory) > 0
+                if obj.settings.Interaction.scrollFactor > 10
+                    scrollFactor = abs(event.VerticalScrollCount );
+                else
+                    scrollFactor = abs(event.VerticalScrollCount )/10.*obj.settings.Interaction.scrollFactor;
+                end
+
+                [allowZoomIn, allowZoomOut] = deal(true);
+                if obj.settings.Interaction.correctTouchpadJitter
+                    allowZoomIn = sum(obj.scrollHistory) > 0;
+                    allowZoomOut = sum(obj.scrollHistory) < 0;
+                end
+
+                % Apply zoom. If settings.Interaction.correctTouchpadJitter
+                % is true, scrollHistory will have non-zero values and will
+                % in effect smoothen scrolling and correct jitter.
+                if event.VerticalScrollCount > 0 && allowZoomIn
                     imageZoom(obj, 'in', scrollFactor);
-                elseif event.VerticalScrollCount < 0  && sum(obj.scrollHistory) < 0
+                elseif event.VerticalScrollCount < 0 && allowZoomOut
                     imageZoom(obj, 'out', scrollFactor);
                 end
         end

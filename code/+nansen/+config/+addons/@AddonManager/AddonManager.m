@@ -129,7 +129,7 @@ classdef AddonManager < handle
             S.type = 'Nansen Configuration: List of Installed Addons';
             S.description = 'This file lists all the addons that have been installed through NANSEN';
             
-            S.AddonList = obj.AddonList; %#ok<STRNU>
+            S.AddonList = obj.AddonList;
             save(obj.AddonDefinitionsPath, '-struct', 'S')
             
             jsonFilePath = strrep(obj.AddonDefinitionsPath, '.mat', '.json');
@@ -169,7 +169,7 @@ classdef AddonManager < handle
                 % IsInstalled flag
                 if ismember(exist(S(appendIdx).FunctionName), [2,8])
                     S(appendIdx).IsInstalled = true;
-                    S(appendIdx).DateInstalled = datestr(now);
+                    S(appendIdx).DateInstalled = char(datetime("now")); %todo: format?
                 else
                     S(appendIdx).IsInstalled = false;
                     S(appendIdx).DateInstalled = 'N/A';
@@ -205,7 +205,7 @@ classdef AddonManager < handle
             end
             
             obj.AddonList(addonIdx).IsInstalled = true;
-            obj.AddonList(addonIdx).DateInstalled = datestr(now);
+            obj.AddonList(addonIdx).DateInstalled = string(datetime("now"));
             obj.AddonList(addonIdx).FilePath = pkgInstallationDir;
             
             % Addon is added using this addon manager. Addon should
@@ -321,7 +321,7 @@ classdef AddonManager < handle
             end
 
             obj.AddonList(addonIdx).IsInstalled = true;
-            obj.AddonList(addonIdx).DateInstalled = datestr(now);
+            obj.AddonList(addonIdx).DateInstalled = char(datetime("now"));
         end
         
         function updateSearchPath(obj)

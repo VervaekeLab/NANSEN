@@ -91,7 +91,7 @@ classdef AbstractTabPageModule < handle
 
     methods (Access = {?nansen.App, ?nansen.AbstractTabPageModule})
         
-        function wasCaptured = onKeyPressed(obj, ~, evt) %#ok<STOUT>
+        function wasCaptured = onKeyPressed(obj, ~, evt) 
             % Subclasses may override.
             wasCaptured = false;
         end

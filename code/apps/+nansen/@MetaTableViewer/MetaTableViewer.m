@@ -982,7 +982,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             if isa(newTable, 'nansen.metadata.MetaTable')
                 T = newTable.getFormattedTableData();
-                obj.MetaTableType = newTable.getTableType();
+                obj.MetaTableType = lower( newTable.getTableType() );
                 obj.MetaTableCell = table2cell(T);
             elseif isa(newTable, 'table')
                 obj.MetaTableCell = table2cell(newTable);
@@ -1126,6 +1126,9 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         %onMousePressedInHeader Handles mouse press in the table header.
 
             buttonNum = get(evt, 'Button');
+            if get(evt,'Modifiers')==18,
+                buttonNum = 3;
+            end;            
             obj.lastMousePressTic = tic;
 
             % Need to call this to make sure filterdropdowns disappear if

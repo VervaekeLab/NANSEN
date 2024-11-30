@@ -86,7 +86,13 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
                     try
                         [obj.(propertyNames{jProp})] = S.(propertyNames{jProp});
                     catch ME
-                        warning('Could not set property %s', propertyNames{jProp})
+                        switch ME.identifier
+                            case "MATLAB:class:SetProhibited"
+                                % Silently ignore
+                                % Todo: Need a strategy/guideline for this case
+                            otherwise
+                                warning('Could not set property %s', propertyNames{jProp})
+                        end
                     end
                 else
                     P = obj.addprop(propertyNames{jProp});

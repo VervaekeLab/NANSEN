@@ -37,7 +37,7 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the method : Add you code here:
-        
+    
     filePath = sessionObj.getDataFilePath('TwoPhotonSeries_Original');
     
     if ~isfile(filePath)
@@ -50,7 +50,23 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
         imviewer(imData)
         
     else
-        imviewer(filePath)
+        imageStack = sessionObj.loadData('TwoPhotonSeries_Original');
+        numStacks = numel(imageStack);
+        
+        if numStacks > 1
+            % Let user select one or more image stacks if multiple stacks
+            % are found (i.e multi FOV (mesoscope) imaging).
+            alternatives = arrayfun(@(i) sprintf('Fov %d', i), 1:numStacks, 'uni', 0);
+            [selectionInd, ~] = listdlg(...
+                'ListString', alternatives, ...
+                'SelectionMode', 'multi'); 
+        else
+            selectionInd = 1;
+        end
+        
+        for i = selectionInd
+            imviewer(imageStack(i))
+        end
     end
 end
 
@@ -59,5 +75,4 @@ function S = getDefaultParameters()
     S.UseVirtualStack = true;
     S.FirstImage = 1;
     S.LastImage = inf;
-
 end

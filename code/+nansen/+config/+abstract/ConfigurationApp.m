@@ -128,7 +128,7 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
             app.Figure.Visible = 'off';
         end
         
-        function onFigureClosed(obj, src, evt)
+        function onFigureClosed(obj, ~, ~)
             delete(obj.Figure)
         end
 
@@ -208,7 +208,7 @@ classdef ConfigurationApp < handle & uiw.mixin.AssignPVPairs
     end
     
     methods (Access = private)
-        function onFigureSizeChanged(obj, src, evt)
+        function onFigureSizeChanged(obj, ~, ~)
             obj.resizeChildren()
         end
     end
