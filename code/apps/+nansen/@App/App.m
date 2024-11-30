@@ -283,9 +283,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     methods (Access = private) % Methods for app creation
-        
-        hContextMenu = createSessionTableContextMenu(app) % Function in file...
-        
         %% Create and configure main window and layout
         function configureWindow(app)
             
@@ -717,15 +714,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         case 'Edit Pipeline'
                             mSubItem.MenuSelectedFcn = @app.menuCallback_EditPipelines;
                         case 'Assign Pipeline'
-                            mSubItem.MenuSelectedFcn = @app.onAssignPipelinesMenuItemClicked;
+                            mSubItem.MenuSelectedFcn = @app.menuCallback_AssignPipelines;
                     end
                 end
                 
                 if strcmp(hMenu(i).Text, 'Assign Pipeline')
                     mSubItem = uimenu(hMenu(i), 'Text', 'No pipeline', 'Separator', 'on', 'Enable', 'on');
-                    mSubItem.MenuSelectedFcn = @app.onAssignPipelinesMenuItemClicked;
+                    mSubItem.MenuSelectedFcn = @app.menuCallback_AssignPipelines;
                     mSubItem = uimenu(hMenu(i), 'Text', 'Autoassign pipeline', 'Enable', 'off');
-                    mSubItem.MenuSelectedFcn = @app.onAssignPipelinesMenuItemClicked;
+                    mSubItem.MenuSelectedFcn = @app.menuCallback_AssignPipelines;
                 end
 
                 if isempty(plNames)
@@ -933,6 +930,102 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
         
+        %% Create table context menu
+        function hContextMenu = createSessionTableContextMenu(app)
+        %createSessionTableContextMenu Create a context menu for sessions in table
+            
+            hContextMenu = uicontextmenu(app.Figure);
+            % hContextMenu.ContextMenuOpeningFcn = @(s,e,m) disp('test');%onContextMenuOpening;
+        
+            % Delete context menu if it exists from before:
+            if ~isempty(app.UiMetaTableViewer.TableContextMenu)
+                delete(app.UiMetaTableViewer.TableContextMenu)
+            end
+            app.UiMetaTableViewer.TableContextMenu = hContextMenu;
+            
+            hMenuItem = gobjects(0);
+            c = 1;
+            
+            % Create a context menu
+            hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Open Session Folder');
+            
+            % Get available datalocations from a session object
+            % Todo: Why select the first item of the table? Why not use the
+            % DataLocationModel directly?
+            if contains('DataLocation', app.MetaTable.entries.Properties.VariableNames )
+                if ~isempty(app.MetaTable.entries)
+                    dataLocationItem = app.MetaTable.entries{1, 'DataLocation'};
+                    dataLocationItem = app.DataLocationModel.expandDataLocationInfo(dataLocationItem);
+                    dataLocationNames = {dataLocationItem.Name};
+                end
+
+                for i = 1:numel(dataLocationNames)
+                    mTmpI = uimenu(hMenuItem(c), 'Text', dataLocationNames{i});
+                    mTmpI.Callback = @(s, e, datatype) app.openFolder(dataLocationNames{i});
+                end
+                % % Todo: Can I use the below, I.w how to pass the data location name? Tags?
+                % % mitem = uics.MenuList(hMenuItem(c), dataLocationNames, '', 'SelectionMode', 'none');
+                % % mitem.MenuSelectedFcn = @(s, e, datatype) app.openFolder(dataLocationNames{i});
+            end
+            
+            m0 = uimenu(hContextMenu, 'Text', 'Add to Metatable', 'Tag', 'Add to Metatable');
+            app.updateRelatedInventoryLists(m0)
+            
+            c = c + 1;
+            hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Create New Note', 'Separator', 'on');
+            hMenuItem(c).Callback = @(s, e) app.contextMenuCallback_CreateNoteForItem();
+            
+            c = c + 1;
+            hMenuItem(c) = uimenu(hContextMenu, 'Text', 'View Session Notes');
+            hMenuItem(c).Callback = @(s, e) app.contextMenuCallback_ViewSessionNotes();
+           
+            c = c + 1;
+            hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Get Task List', 'Separator', 'on');
+            hSubmenuItem = uimenu(hMenuItem(c), 'Text', 'Manual');
+            hSubmenuItem.Callback = @(s, e) app.createBatchList('Manual');
+            
+            hSubmenuItem = uimenu(hMenuItem(c), 'Text', 'Queuable');
+            hSubmenuItem.Callback = @(s, e) app.createBatchList('Queuable');
+        
+            c = c + 1;
+            hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Assign Pipeline');
+            app.updateMenu_PipelineItems(hMenuItem(c))
+            
+            c = c + 1;
+            hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Update Column Variable');
+            
+            % Get names of table variables with an update function.
+            T = app.CurrentProject.getTable('TableVariable');
+            T = T(T.TableType == 'session', :);
+            columnVariableNames = T{T.HasUpdateFunction, 'Name'};
+            
+            % Todo: This needs to be updated when table type changes.
+            for iVar = 1:numel(columnVariableNames)
+                hSubmenuItem = uimenu(hMenuItem(c), 'Text', columnVariableNames{iVar});
+                hSubmenuItem.Callback = @app.updateTableVariable;
+            end
+        
+        % % %     % Todo: This should be conditional, and depend on whether a metadata
+        % % %     % model is present as extension and if any schemas are selected
+        % % %     c = c + 1;
+        % % %     hMenuItem(c) = uimenu(hContextMenu, 'Text', 'View Schema Info');
+        % % %     hMenuItem(c).Callback = @(s, e) app.viewSchemaInfo();
+        
+            c = c + 1;
+            hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy SessionID(s)', 'Separator', 'on');
+            hMenuItem(c).Callback = @(s, e) app.copySessionIdToClipboard;
+        
+            % hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Copy Value(s)');
+            % hMenuItem(c).Callback = @app.copyTableValuesToClipboard;
+        
+            c = c + 1;
+            hMenuItem(c) = uimenu(hContextMenu, 'Text', 'Remove Session', 'Separator', 'on');
+            hMenuItem(c).Callback = @(s, e) app.contextMenuCallback_RemoveSession;
+        
+            % m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
+            % m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');
+        end
+
         %% Create/initialize subcomponents and modules
         function createStatusField(app)
             
@@ -2568,54 +2661,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.MetaTable.removeEntries(selectedEntries)
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
-        
-        function onAssignPipelinesMenuItemClicked(app, src, ~)
-        %onAssignPipelinesMenuItemClicked Session context menu callback
-            sessionObj = app.getSelectedMetaObjects();
-            if strcmp(src.Text, 'No pipeline')
-                sessionObj.unassignPipeline()
-            elseif strcmp(src.Text, 'Autoassign pipeline')
-                sessionObj.assignPipeline() % No input = pipeline is autoassigned
-            else
-                sessionObj.assignPipeline(src.Text)
-            end
-        end
-        
-        function onCreateNoteSessionContextMenuClicked(app)
 
-            sessionObj = app.getSelectedMetaObjects();
-
-            sessionID = sessionObj.sessionID;
-            noteObj = nansen.notes.Note.uiCreate('session', sessionID);
-            
-            sessionObj.addNote(noteObj)
-        end
-
-        function onRemoveSessionMenuClicked(app)
-            app.removeSessionFromTable()
-        end
-        
-        function onViewSessionNotesContextMenuClicked(app)
-            
-            sessionObj = app.getSelectedMetaObjects();
-            
-            noteArray = cat(2, sessionObj.Notebook );
-            
-            if isempty(app.NotesViewer) || ~app.NotesViewer.Valid
-            % Todo: Save notesApp in nansen...
-                hApp = nansen.notes.NoteViewerApp(noteArray);
-                hApp.transferOwnership(app)
-                
-                app.NotesViewer = hApp;
-            else
-                app.NotesViewer.Visible = 'on';
-                noteBook = nansen.notes.NoteBook(noteArray);
-                app.NotesViewer.Notebook = noteBook;
-            end
-
-            % Todo: Add listeners??
-        end
-        
         function openDataLocationEditor(app)
         %openDataLocationEditor Open editor app for datalocation model.
                     
@@ -3890,6 +3936,54 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.resetMetaObjectList()
         end
         
+        function menuCallback_AssignPipelines(app, src, ~)
+        %menuCallback_AssignPipelines Session context menu callback
+            sessionObj = app.getSelectedMetaObjects();
+            if strcmp(src.Text, 'No pipeline')
+                sessionObj.unassignPipeline()
+            elseif strcmp(src.Text, 'Autoassign pipeline')
+                sessionObj.assignPipeline() % No input = pipeline is autoassigned
+            else
+                sessionObj.assignPipeline(src.Text)
+            end
+        end
+        
+        function contextMenuCallback_CreateNoteForItem(app)
+        % Lets user interactively add a note for the currently selected item
+            metaObject = app.getSelectedMetaObjects();
+            itemID = app.getObjectId(itemObject);
+
+            itemType = lower(app.CurrentItemType);
+            noteObj = nansen.notes.Note.uiCreate(itemType, itemID);
+            
+            metaObject.addNote(noteObj)
+        end
+
+        function contextMenuCallback_ViewSessionNotes(app)
+            
+            sessionObj = app.getSelectedMetaObjects();
+            
+            noteArray = cat(2, sessionObj.Notebook );
+            
+            if isempty(app.NotesViewer) || ~app.NotesViewer.Valid
+            % Todo: Save notesApp in nansen...
+                hApp = nansen.notes.NoteViewerApp(noteArray);
+                hApp.transferOwnership(app)
+                
+                app.NotesViewer = hApp;
+            else
+                app.NotesViewer.Visible = 'on';
+                noteBook = nansen.notes.NoteBook(noteArray);
+                app.NotesViewer.Notebook = noteBook;
+            end
+
+            % Todo: Add listeners??
+        end
+        
+        function contextMenuCallback_RemoveSession(app)
+            app.removeSessionFromTable()
+        end
+
         %% Menu callbacks - Other
         function menuCallback_OpenFigure(app, packageName, figureName)
             
