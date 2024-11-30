@@ -44,7 +44,9 @@ classdef TestInstallation < matlab.unittest.TestCase
         function testPrefdir(testCase)
             fprintf('Nansen prefdir: %s\n', nansen.prefdir)
         end
+    end
 
+    methods (Test, TestTags="Graphical")
         function testCase = testOpenWizard(testCase)
             %nansen.setup()
             wizardApp = nansen.app.setup.SetupWizard();
