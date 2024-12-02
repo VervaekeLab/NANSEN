@@ -1,6 +1,11 @@
 classdef EXTRACT < nansen.session.SessionMethod & nansen.wrapper.extract.Processor
-%EXTRACT Summary of this function goes here
-%   Detailed explanation goes here
+%EXTRACT Runs autosegmentation using EXTRACT on TwoPhoton_MotionCorrected
+%
+% EXTRACT is a tractable and robust automated cell extraction tool for 
+% calcium imaging. 
+% 
+% For details, check out EXTRACT on GitHub:
+% https://github.com/schnitzer-lab/EXTRACT-public
     
     properties (Constant) % SessionMethod attributes
         BatchMode = 'serial' % Move to data method?
