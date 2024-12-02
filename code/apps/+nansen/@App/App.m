@@ -3241,7 +3241,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return
             elseif strcmp(evt.Mode, 'Help')
                 help(evt.TaskAttributes.FunctionName)
-                applify.helpDialog(evt.TaskAttributes.FunctionName)
+                try
+                    titleStr = eval(sprintf('%s.MethodName', evt.TaskAttributes.FunctionName));
+                catch
+                    titleStr = strrep(evt.TaskAttributes.FunctionName, 'nansen.module.', '');
+                end
+                %applify.helpDialog(evt.TaskAttributes.FunctionName, 'Title', titleStr)
+                applify.helpDialogNansenMethod(evt.TaskAttributes.FunctionName, 'Title', titleStr)
                 return
             end
 
@@ -3275,7 +3281,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Get the function name
             functionName = evt.TaskAttributes.FunctionName;
             returnToIdle = app.setBusy(functionName); %#ok<NASGU>
-                           
+
             app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode
             drawnow
 
@@ -3430,8 +3436,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     sMethod.RedoIfCompleted = true;
                     sMethod.runMethod()
                 case 'function'
+                    warningMessage = "This method does not have reset mode";
+                    app.MessageDisplay.warn(warningMessage)
                     sessionMethod(methodArgs{:});
-                    warning('Session method does not have reset mode')
             end
         end
 
@@ -4105,6 +4112,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         %% User dialog - Display information, warning and error messages
+        function cleanupObj = displayRunningMethod(app)
+            % Todo: Make this non-modal
+            hDlg = app.MessageDisplay.inform('Method is running. Please wait...');
+            cleanupObj = onCleanup(@(h) delete(hDlg));
+        end
+        
         function throwSessionMethodFailedError(app, ME, taskName, methodName)
         % throwSessionMethodFailedError - Display error message if task fails            
             errorMessage = sprintf([...

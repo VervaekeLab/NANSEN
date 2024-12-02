@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+      <link rel="stylesheet" href="./helpwin.css">
+      <title>{{ title }}</title>
+   </head>
+   <body>
+      <!--Single-page help-->
+      <table border="0" cellspacing="0" width="100%">
+         <tr class="subheader">
+            <td class="headertitle">{{ title }}</td>
+         </tr>
+      </table>
+      <div class="title">{{ main_title }}</div>
+      <div class="helptext">
+         <!--helptext -->
+         <span class="helptopic">{{ helptopic }}</span> {{ helptext }}
+      </div>
+      <!--Description-->
+      <div class="sectiontitle">Description</div>
+      <div class="helptext">
+         <!--helptext -->
+         <span class="helptopic">{{ helptopic }}</span> {{ description }}
+      </div>
+      <!--Option Presets-->
+      <div class="sectiontitle"><a name="constructors"></a>Option Presets</div>
+      <table class="summary-list">
+         {% for preset in option_presets %}
+         <tr class="summary-item">
+            <td class="name">{{ preset.name }}</td>
+            <td class="m-help">{{ preset.description }}</td>
+         </tr>
+         {% endfor %}
+      </table>
+      <!--Parameters-->
+      <div class="sectiontitle"><a name="methods"></a>Parameters</div>
+      <table class="summary-list">
+         <tr class="summary-item">
+            <td class="name">Name</td>
+            <td class="name">Default value</td>
+            <td class="name">Description</td>
+         </tr>
+         <!-- {% for param in parameters %} -->
+         <tr class="summary-item">
+            <td class="name">{{ param.name }}</td>
+            <td class="attributes">{{ param.default_value }}</td>
+            <td class="m-help">{{ param.description }}</td>
+         </tr>
+         <!-- {% endfor %} -->
+      </table>
+   </body>
+</html>
