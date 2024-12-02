@@ -218,6 +218,7 @@ classdef SessionMethod < nansen.processing.DataMethod
             S.BatchMode = 'serial';
             S.IsQueueable = true;
             S.Alternatives = {};
+            S.MethodName = '';
 
             % Pick out default options from inputs or init to empty struct
             if ~isempty(varargin) && isstruct(varargin{1})
@@ -257,10 +258,12 @@ classdef SessionMethod < nansen.processing.DataMethod
 
             % Get name of calling function:
             % Todo: Get this from varargin if provided.
-            fcnName = nansen.session.SessionMethod.getCallingFunction();
-            fcnNameSplit = strsplit(fcnName, '.');
-            S.MethodName = utility.string.varname2label(fcnNameSplit{end});
-            
+            if isempty(S.MethodName)
+                fcnName = nansen.session.SessionMethod.getCallingFunction();
+                fcnNameSplit = strsplit(fcnName, '.');
+                S.MethodName = utility.string.varname2label(fcnNameSplit{end});
+            end
+
             attributes = S;
             
         end

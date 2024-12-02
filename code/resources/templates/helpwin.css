@@ -145,6 +145,7 @@ a.topiclink {
     border-width: 0px 0px 1px 0px;
     border-style: solid;
     border-color:#E7EBF7;
+    width: 10%;
     padding: 2px 15px 2px 5px;
     white-space: nowrap;
 }

@@ -2,7 +2,7 @@ classdef Soma < nansen.wrapper.quicky.Options
 
     properties (Constant)
         Name = 'Soma'
-        Description = 'Autosegment neuronal somas'
+        Description = 'Optimized for detecting soma-like structures'
     end
     
     methods (Static)

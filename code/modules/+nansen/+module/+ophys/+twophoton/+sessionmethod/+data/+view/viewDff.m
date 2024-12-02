@@ -1,6 +1,7 @@
-function varargout = viewRoiSignals(sessionObject, varargin)
-%VIEWROISIGNALS Summary of this function goes here
-%   Detailed explanation goes here
+function varargout = viewDff(sessionObject, varargin)
+%VIEWDFF Open dff (delta f over f) roi signals in SignalViewer app. 
+%
+%   VIEWDFF opens the delta F over F in an interactive viewer.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or

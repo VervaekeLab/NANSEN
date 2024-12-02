@@ -1,6 +1,8 @@
 function varargout = viewRoiSignals(sessionObject, varargin)
-%VIEWROISIGNALS Summary of this function goes here
-%   Detailed explanation goes here
+%VIEWROISIGNALS Open extracted (mean fluorescense) roi signals in SignalViewer app. 
+%
+%   VIEWROISIGNALS opens the extracted fluorescense signals in an
+%   interactive viewer.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
@@ -11,7 +13,7 @@ function varargout = viewRoiSignals(sessionObject, varargin)
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'batch', 'unqueueable'};
+    ATTRIBUTES = {'serial', 'unqueueable'};
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -

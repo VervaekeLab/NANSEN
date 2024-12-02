@@ -1,6 +1,8 @@
 classdef flowreg < nansen.session.SessionMethod & nansen.wrapper.flowreg.Processor
-%normcorre Summary of this function goes here
-%   Detailed explanation goes here
+%FLOWREG Runs motion correction using FLOWREG on TwoPhoton_Original
+%   Flow-Registration toolbox for 2P motion compensation
+%
+%   For details, check out FLOWREG on GitHub: https://github.com/phflot/flow_registration
 
     properties (Constant) % SessionMethod attributes
         BatchMode = 'serial' % Move to data method?

@@ -129,6 +129,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.Figure.Visible = 'on';
             end
 
+            cleanupObject = onCleanup(@app.assertInitialized);
+
             % % Start app construction
             app.switchJavaWarnings('off')
             app.configureWindow()
@@ -154,7 +156,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.createLayout()
             app.createComponents()
-            
             app.switchJavaWarnings('on')
             
             % Add this callback after every component is made
@@ -244,6 +245,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.onExit@uiw.abstract.AppWindow(h);
             % delete(app) % Not necessary, happens in superclass' onExit method
+        end
+
+        function assertInitialized(app)
+            if ~app.isInitialized()
+                app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
+                delete(app)
+            end
         end
     end
         
@@ -3244,7 +3252,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 try
                     titleStr = eval(sprintf('%s.MethodName', evt.TaskAttributes.FunctionName));
                 catch
-                    titleStr = strrep(evt.TaskAttributes.FunctionName, 'nansen.module.', '');
+                    if ~isempty(evt.TaskAttributes.MethodName)
+                        titleStr = evt.TaskAttributes.MethodName;
+                    else
+                        titleStr = strrep(evt.TaskAttributes.FunctionName, 'nansen.module.', '');
+                    end
                 end
                 %applify.helpDialog(evt.TaskAttributes.FunctionName, 'Title', titleStr)
                 applify.helpDialogNansenMethod(evt.TaskAttributes.FunctionName, 'Title', titleStr)

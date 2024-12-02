@@ -686,6 +686,26 @@ classdef OptionsManager < handle
             error('This method is not implemented yet.')
         
         end
+
+        function metadata = getPresetMetadata(obj)
+            metadata = struct('name', {}, 'description', {});
+            for i = 1:numel(obj.PresetOptions_)
+                metadata(i).name = obj.PresetOptions_(i).Name;
+                metadata(i).description = obj.PresetOptions_(i).Description;
+            end
+        end
+    
+        function optionsDescriptions = getOptionDescriptions(obj)
+
+            if obj.FunctionTypeIdx == 1 || obj.FunctionTypeIdx == 2
+                optionsDescriptions = obj.findOptionDescriptionsFromFunction();
+                
+            elseif obj.FunctionTypeIdx == 3 || obj.FunctionTypeIdx == 4
+                optionsDescriptions = [];
+            else
+                error('Something went wrong!')
+            end
+        end
     end
     
     methods % Set/get
@@ -887,7 +907,7 @@ classdef OptionsManager < handle
                 names = {optionsEntry.Name};
             end
         end
-         
+        
         function optionsEntry = findPresetsFromFunction(obj)
         %findPresetsFromFunction Find preset options from a function
         %
@@ -913,7 +933,6 @@ classdef OptionsManager < handle
             
             optionsEntry = obj.createOptionsStructForSaving(opts, name, ...
                 sprintf('Default preset options for %s', obj.FunctionName) );
-            
         end
         
         function optionsEntry = findPresetsFromOptionsMixinClass(obj)
@@ -926,13 +945,20 @@ classdef OptionsManager < handle
             fcnName = strcat(obj.FunctionName, '.getDefaultOptions');
             fcnHandle = str2func(fcnName);
 
+            methodNameFcnName = strcat(obj.FunctionName, '.MethodName');
+
             % Return as options entry (struct)
             opts = fcnHandle();
             name = 'Preset Options';
+
+            try
+                methodName = eval(methodNameFcnName);
+            catch
+                methodName = obj.FunctionName;
+            end
             
             optionsEntry = obj.createOptionsStructForSaving(opts, name, ...
-                sprintf('Default preset options for %s', obj.FunctionName) );
-
+                sprintf('Default preset options for %s', methodName) );
         end
         
         function tf = inheritOptionsFromSuperclass(obj)
@@ -1060,6 +1086,12 @@ classdef OptionsManager < handle
             isMatch = strcmp(obj.PresetOptionNames, optionsName);
             S = obj.PresetOptions_(isMatch).Options;
         end
+    
+        function descriptions = findOptionDescriptionsFromFunction(obj)
+            
+            functionFilePath = which(obj.FunctionName);
+            descriptions = extractStructDescriptions(functionFilePath);
+        end
     end
     
     methods (Access = private) % Methods for listing option set names
@@ -1110,6 +1142,7 @@ classdef OptionsManager < handle
             names(isPreferred) = obj.formatDefaultName(names(isPreferred));
             
         end
+
     end
     
     methods (Access = private) % Methods for file interaction
@@ -1529,6 +1562,59 @@ classdef OptionsManager < handle
                 errorMsg = sprintf('The provided function "%s" does not exist on path', functionName);
                 error(errorMsg)
             end
+        end
+    end
+end
+
+function descriptions = extractStructDescriptions(filePath)
+    % extractStructDescriptions - Extract descriptions for struct fields in
+    % the getDefaultParameters function from a MATLAB file.
+    %
+    % Inputs:
+    %   filePath - Path to the MATLAB file containing the getDefaultParameters function.
+    %
+    % Outputs:
+    %   descriptions - Struct array with fields 'name', 'default_value', and 'description'.
+
+    % Read the file content
+    fileContent = fileread(filePath);
+
+    % Locate the getDefaultParameters function
+    functionPattern = 'function\s+[^\=]+\=\s*getDefaultParameters\s*\(\)';
+    startIdx = regexp(fileContent, functionPattern, 'start');
+    if isempty(startIdx)
+        error('Function "getDefaultParameters" not found in the file.');
+    end
+    
+    % Extract the content of the getDefaultParameters function
+    structStart = regexp(fileContent, 'params\s*=\s*struct\(\);', 'end', 'once');
+    if isempty(structStart)
+        descriptions = struct('name', {}, 'default_value', {}, 'description', {});
+        return; % Return an empty struct if the struct is not defined
+    end
+    
+    structContent = fileContent(structStart:end);
+    structEnd = regexp(structContent, 'end', 'start', 'once');
+    if isempty(structEnd)
+        error('Function "getDefaultParameters" does not have an "end".');
+    end
+    structContent = structContent(1:structEnd - 1);
+
+    % Match struct field assignments with comments
+    pattern = 'params\.(\w+)\s*=\s*([^;]+);\s*%[^\n]*';
+    matches = regexp(structContent, pattern, 'tokens', 'lineanchors');
+
+    % Parse matched tokens into a struct array
+    descriptions = struct('name', {}, 'default_value', {}, 'description', {});
+    for i = 1:numel(matches)
+        descriptions(i).name = matches{i}{1};
+        descriptions(i).default_value = strtrim(matches{i}{2});
+        % Extract the comment (after %)
+        commentMatch = regexp(structContent, ['params\.' matches{i}{1} '.*?%\s*(.+?)\n'], 'tokens', 'once');
+        if ~isempty(commentMatch)
+            descriptions(i).description = strtrim(commentMatch{1});
+        else
+            descriptions(i).description = '';
         end
     end
 end
