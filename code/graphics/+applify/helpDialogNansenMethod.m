@@ -19,16 +19,18 @@ function helpDialogNansenMethod(functionName, options)
     data.helptopic = functionNameSplit{end};
     data.description = char(description);
     
-    data.option_presets = struct(...
-        'name', {'Option 1', 'Option 2'}, ...
-        'description', {'Description for Option 1', 'Description for Option 2'} ...
-    );
-    data.parameters = struct(...
-        'name', {'Param1', 'Param2'}, ...
-        'default_value', {'Value1', 'Value2'}, ...
-        'description', {'Description 1', 'Description 2'} ...
-    );
+    data.parameters = struct.empty;
     
+    optionsManager = nansen.OptionsManager(functionName);
+    data.option_presets = optionsManager.getPresetMetadata();
+
+    if strcmp(optionsManager.FunctionType,'Function')
+        data.parameters = optionsManager.getOptionDescriptions();
+    else
+        S = optionsManager.getDefaultOptions;
+        data.parameters = flattenNestedStruct(S);
+    end
+
     templateFile = fullfile(nansen.toolboxdir, 'resources', 'templates', 'session_method_help.html.template');
     htmlFolder = fullfile(tempdir, 'nansen-html');
     
@@ -71,3 +73,78 @@ function [summary, description] = extractDocString(filePath)
         description = strjoin(description, newline);
     end
 end
+
+function flatStruct = flattenNestedStruct(nestedStruct, parentName)
+    % Recursively flattens a nested struct into a struct with 'name' and 'default_value'
+    % where nested fields are joined with "."
+    %
+    % Inputs:
+    %   nestedStruct - The nested struct to flatten
+    %   parentName   - (Optional) The parent field name for recursion
+    %
+    % Outputs:
+    %   flatStruct   - The resulting flat struct with fields 'name' and 'default_value'
+
+    if nargin < 2
+        parentName = '';
+    end
+
+    flatStruct = struct('name', {}, 'default_value', {}, 'description', {});
+    fieldNames = fieldnames(nestedStruct);
+
+    for i = 1:numel(fieldNames)
+        if endsWith(fieldNames{i}, '_')
+            continue
+        end
+
+        fieldName = fieldNames{i};
+        fullName = fieldName;
+        if ~isempty(parentName)
+            fullName = sprintf('%s.%s', parentName, fieldName);
+        end
+
+        value = nestedStruct.(fieldName);
+        if isstruct(value)
+            % Recurse into nested structs
+            nestedFlatStruct = flattenNestedStruct(value, fullName);
+            flatStruct = [flatStruct, nestedFlatStruct];
+        else
+            if ischar(value)
+                % pass
+            elseif isempty(value)
+                value = '';
+            elseif isscalar(value)
+                value = formatValueAsString(value);
+            else
+                if iscell(value)
+                    value = cellfun(@(c) formatValueAsString(c), value, 'uni', false);
+                    value = sprintf('{%s}', strjoin(value, ', '));
+                else
+                    value = arrayfun(@(c) formatValueAsString(c), value, 'uni', false);
+                    value = sprintf('[%s]', strjoin(value, ', '));
+                end
+            end
+
+            % Add field to flatStruct
+            flatStruct(end + 1).name = fullName;
+            flatStruct(end).default_value = value;
+            flatStruct(end).description = 'not available yet.';
+        end
+    end
+end
+
+
+function value = formatValueAsString(value)
+    if isinteger(value)
+        value = sprintf('%d', value);
+    elseif isnumeric(value)
+        value = sprintf('%.2f', value);
+    elseif islogical(value)
+        if value
+            value = 'true';
+        else
+            value = 'false';
+        end
+    end
+end
+

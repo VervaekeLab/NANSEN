@@ -2,7 +2,7 @@ classdef Soma_Virus < nansen.wrapper.quicky.Options
 
     properties (Constant)
         Name = 'Soma (Virus)'
-        Description = 'Autosegment neuronal somas'
+        Description = 'Optimized for viral GCaMP expression'
     end
     
     methods (Static)

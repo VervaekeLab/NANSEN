@@ -15,13 +15,13 @@
       <div class="title">{{ main_title }}</div>
       <div class="helptext">
          <!--helptext -->
-         <span class="helptopic">{{ helptopic }}</span> {{ helptext }}
+         {{ helptext }}
       </div>
       <!--Description-->
       <div class="sectiontitle">Description</div>
       <div class="helptext">
          <!--helptext -->
-         <span class="helptopic">{{ helptopic }}</span> {{ description }}
+         {{ description }}
       </div>
       <!--Option Presets-->
       <div class="sectiontitle"><a name="constructors"></a>Option Presets</div>

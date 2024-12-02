@@ -1,7 +1,7 @@
 function varargout = backup(sessionObject, varargin)
-%backup Backup a session folder for a specific data location
+%BACKUP Backup a session folder for the specified data location
 %
-%   backup(sessionObject) backs up data for the selected data location.
+%   BACKUP backs up data for the selected data location of a session.
 
 % Todo:
 %   [ ] Add mirror mode. (I.e delete files in target that are missing )
@@ -119,10 +119,10 @@ function params = getDefaultParameters()
 %getDefaultParameters Define the default parameters for this function
     params = struct();
     
-    params.BackupMode = 'merge (no replace)';
+    params.BackupMode = 'merge (no replace)'; % Mode for backup. Options: "merge (no replace)", "only replace files if newer", "replace all files"
     params.BackupMode_ = {'merge (no replace)', 'only replace files if newer', 'replace all files'};
             
-    params.BackupLocation = '';
+    params.BackupLocation = ''; % Absolute path to folder where data should be backed up
     params.BackupLocation_ = 'uigetdir';
 end
 

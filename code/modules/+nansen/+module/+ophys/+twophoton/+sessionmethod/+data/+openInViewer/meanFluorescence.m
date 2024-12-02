@@ -1,6 +1,8 @@
 function varargout = meanFluorescence(sessionObject, varargin)
-%meanFluorescence Summary of this function goes here
-%   Detailed explanation goes here
+%meanFluorescence Open extracted (mean fluorescense) roi signals in SignalViewer app. 
+%
+%   meanFluorescence opens the extracted fluorescense signals in an
+%   interactive viewer.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
@@ -11,7 +13,7 @@ function varargout = meanFluorescence(sessionObject, varargin)
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'batch', 'unqueueable'};
+    ATTRIBUTES = {'serial', 'unqueueable'};
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -

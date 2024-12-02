@@ -1,6 +1,9 @@
 classdef normcorre < nansen.session.SessionMethod & nansen.wrapper.normcorre.Processor
-%normcorre Summary of this function goes here
-%   Detailed explanation goes here
+%NORMCORRE Runs motion correction using NORMCORRE on TwoPhoton_Original
+%   Matlab routines for online non-rigid motion correction of calcium
+%   imaging data.
+%
+%   For details, check out NORMCORRE on GitHub: https://github.com/flatironinstitute/NoRMCorre
     
     properties (Constant) % SessionMethod attributes
         BatchMode = 'serial' % Move to data method?

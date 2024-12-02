@@ -32,9 +32,26 @@ function renderedHTML = fillTemplate(templatePath, outputPath, data)
     if isfield(data, 'parameters')
         template = processForLoop(template, 'parameters', data.parameters);
     end
-    
+
     % Write the rendered HTML to the output file
     renderedHTML = template;
+    renderedHTML = replaceUrlsWithHyperlinks(renderedHTML);
+
+    pattern = upper(data.helptopic);
+    %patterns = sprintf('^%s | %s | %s\n', pattern, pattern, pattern);
+    %replacePattern = sprintf('<span class="helptopic">%s</span>', pattern);
+    %renderedHTML = regexprep(renderedHTML, patterns, replacePattern);
+
+    % Define the pattern to match the target text without removing spaces
+    patterns = sprintf('(^|\\s)%s(\\s|$)', pattern);
+    
+    % Define the replacement pattern, ensuring the match is replaced without altering spaces
+    replacePattern = sprintf('$1<span class="helptopic">%s</span>$2', pattern);
+    
+    % Perform the replacement
+    renderedHTML = regexprep(renderedHTML, patterns, replacePattern);
+
+
     fid = fopen(outputPath, 'w');
     if fid == -1
         error('Unable to open output file: %s', outputPath);
@@ -72,35 +89,58 @@ function template = processForLoop(template, sectionName, loopParams)
     if isempty(startIdx) || isempty(endIdx)
         return; % No loop section found
     end
+
+    if isempty(loopParams)
+        loopContentFinal = '<div class="helptext">No alternatives available</div>';
+    else
+        % Extract everything between the loop directives
+        loopContent = template_lines(startIdx+1:endIdx-1);
+        loopContent = strjoin(loopContent, newline);
     
-    % Extract everything between the loop directives
-    loopContent = template_lines(startIdx+1:endIdx-1);
-    loopContent = strjoin(loopContent, newline);
-
-    placeholderPattern = '\{\{\s*([a-zA-Z0-9_\.]+)\s*\}\}';
-    % Extract unique placeholders
-    tokens = regexp(loopContent, placeholderPattern, 'tokens');
-    tokens = string(tokens);
-    placeholders = compose('{{ %s }}', tokens);
-
-    loopTemplate = regexprep(loopContent, placeholders, '%s');
-
-    % Filter loopParams by detected tokens:
-    A = squeeze( split(tokens, '.') );
-    fieldNames = A(:,2);
-    allFieldNames = fieldnames(loopParams);
-    loopParams = rmfield(loopParams, setdiff(fieldNames, allFieldNames));
-    loopParams = orderfields(loopParams, fieldNames);
-
-    strValues = squeeze( string( struct2cell(loopParams) ))';
-
-    % Build array of replace values for compose
-    loopContentFinal = compose(loopTemplate, strValues);
-    loopContentFinal = strjoin(loopContentFinal, newline);
+        placeholderPattern = '\{\{\s*([a-zA-Z0-9_\.]+)\s*\}\}';
+        % Extract unique placeholders
+        tokens = regexp(loopContent, placeholderPattern, 'tokens');
+        tokens = string(tokens);
+        placeholders = compose('{{ %s }}', tokens);
+    
+        loopTemplate = regexprep(loopContent, placeholders, '%s');
+    
+        % Filter loopParams by detected tokens:
+        A = squeeze( split(tokens, '.') );
+        fieldNames = A(:,2);
+        allFieldNames = fieldnames(loopParams);
+        loopParams = rmfield(loopParams, setdiff(fieldNames, allFieldNames));
+        loopParams = orderfields(loopParams, fieldNames);
+    
+        strValues = squeeze( string( struct2cell(loopParams) ))';
+    
+        % Build array of replace values for compose
+        loopContentFinal = compose(loopTemplate, strValues);
+        loopContentFinal = strjoin(loopContentFinal, newline);
+    end
     
     % Replace the loop section in the template
     template = strjoin( cat(1, ...
         template_lines(1:startIdx-1), ...
         loopContentFinal, ...
         template_lines(endIdx+1:end)), newline );
+end
+
+function result = replaceUrlsWithHyperlinks(inputText)
+    % replaceUrlsWithHyperlinks - Detects URLs in the input text and replaces them with HTML hyperlinks
+    %
+    % Inputs:
+    %    inputText - A string containing the text with URLs
+    %
+    % Outputs:
+    %    result - The input text with URLs replaced by HTML hyperlinks
+
+    % Regular expression to detect URLs
+    urlPattern = '(https?://[^\s]+)';
+    
+    % Replacement pattern to create hyperlinks
+    replacementPattern = '<a href="$1">$1</a>';
+    
+    % Replace URLs with HTML hyperlinks
+    result = regexprep(inputText, urlPattern, replacementPattern, 'ignorecase');
 end

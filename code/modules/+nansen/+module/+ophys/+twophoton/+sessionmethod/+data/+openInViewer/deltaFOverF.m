@@ -1,6 +1,7 @@
 function varargout = deltaFOverF(sessionObject, varargin)
-%deltaFOverF Summary of this function goes here
-%   Detailed explanation goes here
+%deltaFOverF Open dff (delta f over f) roi signals in SignalViewer app. 
+%
+%   deltaFOverF opens the delta F over F in an interactive viewer.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or

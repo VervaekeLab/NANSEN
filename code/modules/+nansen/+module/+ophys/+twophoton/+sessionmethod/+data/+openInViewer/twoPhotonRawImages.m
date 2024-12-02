@@ -1,14 +1,8 @@
 function varargout = twoPhotonRawImages(sessionObj, varargin)
-%twoPhotonRawImages Open 2-photon raw recording in imviewer
+%TWOPHOTONRAWIMAGES Open 2-photon raw recording in imviewer
 %
-%   twoPhotonRawImages(sessionObj) opens the raw two-photon recording for
-%   the given session using default options.
-%
-%   twoPhotonRawImages(sessionObj, Name, Value) opens the recording using
-%   the options given as name, value pairs.
-%
-%   fcnAttributes = twoPhotonRawImages() returns a struct of attributes for
-%   the function.
+%   Opens the original (raw) two-photon recording for the given session 
+%   in imviewer using default options.
 
 %   Todo: Implement dynamic retrieval of parameters based on file adapter
 %   for opening files.
@@ -20,7 +14,7 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
 
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
-    ATTRIBUTES = {'serial', 'unqueueable'};
+    ATTRIBUTES = {'serial', 'unqueueable', 'MethodName', 'View Original (Raw) 2-Photon'};
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
@@ -70,9 +64,9 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
     end
 end
 
-function S = getDefaultParameters()
-    S = struct();
-    S.UseVirtualStack = true;
-    S.FirstImage = 1;
-    S.LastImage = inf;
+function params = getDefaultParameters()
+    params = struct();
+    params.UseVirtualStack = true; % Whether to open the stack without loading data into memory (virtual stack).
+    params.FirstImage = uint64(1); % Index of first frame to load if UseVirtualStack is false
+    params.LastImage = inf;        % Index of last frame to load if UseVirtualStack is false
 end
