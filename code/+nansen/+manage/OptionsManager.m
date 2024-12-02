@@ -689,9 +689,23 @@ classdef OptionsManager < handle
 
         function metadata = getPresetMetadata(obj)
             metadata = struct('name', {}, 'description', {});
-            for i = 1:numel(obj.PresetOptions_)
-                metadata(i).name = obj.PresetOptions_(i).Name;
-                metadata(i).description = obj.PresetOptions_(i).Description;
+
+            options = [obj.PresetOptions_, obj.CustomOptions_];
+
+            if numel(options) == 1
+                return
+            end
+
+            defaultOptionsName = obj.getReferenceOptionsName('Default');
+
+            for i = 1:numel(options)
+                if strcmp(options(i).Name, defaultOptionsName)
+                    metadata(i).name = obj.formatDefaultName(options(i).Name);
+                else
+                    metadata(i).name = options(i).Name;
+                end
+
+                metadata(i).description = options(i).Description;
             end
         end
     

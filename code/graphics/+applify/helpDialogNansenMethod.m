@@ -7,7 +7,7 @@ function helpDialogNansenMethod(functionName, options)
 
     % Extract description
 
-    titleStr = sprintf('%s - Nansen Method Help', options.Title);
+    titleStr = sprintf('%s', options.Title);
     functionNameSplit = split(functionName, '.');
 
     functionFilepath = which(functionName);
