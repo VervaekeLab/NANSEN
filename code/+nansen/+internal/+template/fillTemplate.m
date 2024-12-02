@@ -92,6 +92,9 @@ function template = processForLoop(template, sectionName, loopParams)
 
     if isempty(loopParams)
         loopContentFinal = '<div class="helptext">No alternatives available</div>';
+        if strcmp(sectionName, 'parameters')
+            startIdx = startIdx - 5;
+        end
     else
         % Extract everything between the loop directives
         loopContent = template_lines(startIdx+1:endIdx-1);
