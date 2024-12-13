@@ -53,7 +53,7 @@ classdef DffExplorer < applify.mixin.AppPlugin % signalviewer plugin
         end
         
         function assignDefaultOptions(obj)
-            functionName = 'ophys.twophoton.process.signalExtraction.computeDff';
+            functionName = 'nansen.twophoton.roisignals.computeDff';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
             obj.settings = obj.OptionsManager.getOptions;
         end
