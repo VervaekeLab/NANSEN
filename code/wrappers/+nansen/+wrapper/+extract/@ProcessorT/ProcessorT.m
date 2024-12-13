@@ -6,10 +6,12 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
 %           (numRois x numTimepoints) single matrix
     
     % Rename to ExtractT
+
+    % Todo: Run per channel and plane...
     
     properties (Constant, Hidden)
         DATA_SUBFOLDER = fullfile('roi_data', 'autosegmentation_extract')
-        VARIABLE_PREFIX = 'Extract'
+        VARIABLE_PREFIX = 'ExtractTemporal'
     end
     
     properties (Constant)
@@ -25,8 +27,8 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
     end
     
     properties (Access = private)
-        SegmentationResults
-        ExtractConfig
+        SegmentationResults cell % nPlanes x nChannels
+        ExtractConfig cell % nPlanes x nChannels
         %Results % cell array with cell for each part..
     end
     
@@ -68,24 +70,36 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
                 obj.Results = cell(1, obj.NumParts);
             end
         
-            spatialWeights = obj.SegmentationResults.spatial_weights;
-            [h, w, n] = size(spatialWeights);
+            if ~isa(obj.SegmentationResults, 'cell')
+                obj.SegmentationResults = {obj.SegmentationResults};
+            end
+            assert(isa(obj.SegmentationResults{1}, 'struct'), ...
+                'Expected segmentation results to be a cell array of structs')
+            obj.ExtractConfig = cell(size(obj.SegmentationResults));
             
-            config = obj.SegmentationResults.config;
-            config.max_iter = 0;
-            config.num_iter_stop_quality_checks=0;
-            config.S_init = reshape(spatialWeights, h * w, n);
-            config.verbose = 0;
+            for i = 1:numel(obj.SegmentationResults)
+                spatialWeights = obj.SegmentationResults{i}.spatial_weights;
+                [h, w, n] = size(spatialWeights);
+                
+                config = obj.SegmentationResults{i}.config;
+                config.max_iter = 0;
+                config.num_iter_stop_quality_checks=0;
+                config.S_init = reshape(spatialWeights, h * w, n);
+                config.verbose = 0;
             
-            obj.ExtractConfig = config;
-            
+                obj.ExtractConfig{i} = config;
+            end
         end
         
         function onCompletion(obj)
-            
+            % Todo: Fix this, need to run on a longer stack to ensure the temporal chunks are correctly merged...
+            % Todo: Adapt to work for multi-plane / multi-channel
             % Concatenate temporal signals....
-            T = cat(2, obj.Results{:});
             
+            T = cat(2, obj.Results{:});
+            signalArray = cat(3, obj.Results{:});
+
+            obj.MergedResults
             % Save temporal profiles
             obj.saveData('ExtractTemporalWeights', T, 'Subfolder', ...
                 obj.DATA_SUBFOLDER, 'IsInternal', true)
@@ -94,17 +108,18 @@ classdef ProcessorT < nansen.stack.ImageStackProcessor
     
     methods (Access = protected) % Implement methods from ImageStackProcessor
         
-        function results = processPart(obj, Y)
+        function [YOut, results] = processPart(obj, Y)
 
-            config = obj.ExtractConfig;
+            iC = obj.StackIterator.CurrentIterationC;
+            iZ = obj.StackIterator.CurrentIterationZ;
+            config = obj.ExtractConfig{iZ, iC};
             
-            [~, T, ~] = run_extract(Y, config);
+            [~, results, ~] = run_extract(Y, config);
             
-            obj.Results{obj.CurrentPart} = T;
-            obj.saveData('ExtractTemporalWeights_temp', obj.Results)
-            
-            results = [];
-            
+            YOut = [];
+            %obj.Results{obj.CurrentPart} = T;
+            %obj.saveData('ExtractTemporalWeights_temp', obj.Results)
+            %results = [];
         end
 
         function tf = checkIfPartIsFinished(obj, partNumber)

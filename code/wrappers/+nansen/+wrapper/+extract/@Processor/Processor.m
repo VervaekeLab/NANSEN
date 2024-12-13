@@ -109,19 +109,20 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     obj.mergeResults()
                 end
                 
-                if isempty(obj.OriginalStack)
-                    sourceStack = obj.SourceStack;
-                else
-                    sourceStack = obj.OriginalStack;
-                end
-                
-                % Get temporal segments %Todo: Should just be a separate method...
-                tExtracor = nansen.wrapper.extract.ProcessorT(...
-                    sourceStack, obj.Options, obj.MergedResults);
-                tExtracor.Options.Run.numFramesPerPart = 2000;
-                tExtracor.DataIoModel = obj.DataIoModel;
-
-                tExtracor.runMethod()
+                % % % Todo: The following should be a separate session method...
+                % % if isempty(obj.OriginalStack)
+                % %     sourceStack = obj.SourceStack;
+                % % else
+                % %     sourceStack = obj.OriginalStack;
+                % % end
+                % % 
+                % % % Get temporal segments 
+                % % tExtracor = nansen.wrapper.extract.ProcessorT(...
+                % %     sourceStack, obj.Options, obj.MergedResults);
+                % % tExtracor.Options.Run.numFramesPerPart = 2000;
+                % % tExtracor.DataIoModel = obj.DataIoModel;
+                % % 
+                % % tExtracor.runMethod()
             end
             
             %obj.createRoiClassificationData()
