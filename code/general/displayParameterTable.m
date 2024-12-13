@@ -1,4 +1,4 @@
-function displayParameterTable(mFilePath)
+function T = displayParameterTable(mFilePath)
 
     S = utility.convertParamsToStructArray(mFilePath);
     T = struct2table(S);
@@ -14,5 +14,8 @@ function displayParameterTable(mFilePath)
 
     fprintf('\nDefault parameters and descriptions for: %s\n\n', packageName)
     disp(T)
-    
+
+    if ~nargout
+        clear T
+    end
 end
