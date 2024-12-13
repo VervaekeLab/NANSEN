@@ -5,7 +5,6 @@
 </picture>
 
 # NANSEN - Neuro ANalysis Software ENsemble
-[![Twitter](https://img.shields.io/twitter/follow/NeuroNansen?style=social)](https://twitter.com/NeuroNansen)
 [![YouTube](https://img.shields.io/youtube/channel/views/UCKOzL-MVWgy7oOMo6x_GSkQ?style=social)](https://www.youtube.com/channel/UCKOzL-MVWgy7oOMo6x_GSkQ)
 
 [![Codespell](https://github.com/VervaekeLab/NANSEN/actions/workflows/run_codespell.yml/badge.svg?branch=add%2Fdeveloper-tools)](https://github.com/VervaekeLab/NANSEN/actions/workflows/run_codespell.yml)
