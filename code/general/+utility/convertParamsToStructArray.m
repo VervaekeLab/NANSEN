@@ -34,12 +34,26 @@ function [S, D] = convertParamsToStructArray(filepath)
         strBegin = varBeginInd(i);
         strEnd = strBegin + regexp(fSub(strBegin:end), '\n', 'once');
         thisLine = fSub(strBegin:strEnd);
-        
+          
+        if startsWith(strtrim(thisLine), '%')
+            continue
+        end
+
         % Split substring at = and % (Name = DefaltValue % Description)
         subStringB = strsplit(thisLine, '%'); % Split out comment first
         subStringA = strsplit(subStringB{1}, '='); % Split first part @ =
         
-        thisLineDivided = [subStringA, subStringB{2}];
+        if numel(subStringB) == 1
+            description = 'No description';
+        else
+            if isempty(subStringB{2})
+                description = 'No description';
+            else
+                description = subStringB{2};
+            end
+        end
+
+        thisLineDivided = [subStringA, description];
         thisLineDivided = strtrim(thisLineDivided);
         
         % Make sure that this line was divided in three parts.
