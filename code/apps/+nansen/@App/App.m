@@ -2143,6 +2143,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             metaTableName = src.Text;
             app.resetMetaObjectList()
             app.openMetaTable(metaTableName)
+            app.SessionTaskMenu.CurrentItemType = metaTableName;
         end
 
         function onTableItemSelectionChanged(app, src, evt)
@@ -3900,7 +3901,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Todo: Generalize from session to any item type
             itemType = app.CurrentItemType;
             groupNames = app.SessionTaskMenu.getRootLevelMenuNames();
-            wasSuccess = createNewSessionMethod(app, itemType, "GroupNames", groupNames);
+            windowReferencePosition = app.Figure.Position;
+            
+            wasSuccess = createNewSessionMethod(itemType, ...
+                "GroupNames", groupNames, ...
+                "WindowReferencePosition", windowReferencePosition);
             
             % Update session menu!
             if wasSuccess

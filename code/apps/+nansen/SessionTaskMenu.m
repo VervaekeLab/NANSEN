@@ -56,6 +56,7 @@ classdef SessionTaskMenu < handle
     properties
         Mode char = 'Default' % Mode for running session task. See doc
         CurrentProject
+        CurrentItemType (1,1) string
         %TitleColor = '#0072BD';
         TitleColor = '#303E48';
     end
@@ -154,6 +155,11 @@ classdef SessionTaskMenu < handle
         function set.CurrentProject(obj, project)
             obj.CurrentProject = project;
             obj.onCurrentProjectSet()
+        end
+
+        function set.CurrentItemType(obj, itemType)
+            obj.CurrentItemType = itemType;
+            obj.onCurrentItemTypeSet()
         end
 
         function set.MethodsRootPath(obj, folderPath)
@@ -487,8 +493,12 @@ classdef SessionTaskMenu < handle
     methods (Access = private) % Utility methods
         
         function onCurrentProjectSet(obj)
-
             rootDirectories = obj.CurrentProject.getSessionMethodFolder();
+            obj.MethodsRootPath = rootDirectories;
+        end
+
+        function onCurrentItemTypeSet(obj)
+            rootDirectories = obj.CurrentProject.getObjectMethodFolder(obj.CurrentItemType);
             obj.MethodsRootPath = rootDirectories;
         end
 
