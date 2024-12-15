@@ -3,6 +3,10 @@ function [dec, den, opt] = deconvolveDff(dff, varargin)
     [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
     P.deconvolutionMethod = 'caiman';
     
+    if ~nargin
+        dec = P; return
+    end
+
     params = utility.parsenvpairs(P, V, varargin{:});
     
     deconvPackage = 'nansen.twophoton.roisignals.process.deconvolve';

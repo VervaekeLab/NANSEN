@@ -61,7 +61,8 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin % signalviewer plugin
         end
         
         function assignDefaultOptions(obj)
-            functionName = 'ophys.twophoton.process.deconvolution.Caiman';
+            %functionName = 'ophys.twophoton.process.deconvolution.Caiman';
+            functionName = 'nansen.twophoton.roisignals.deconvolveDff';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
             obj.settings = obj.OptionsManager.getOptions;
         end

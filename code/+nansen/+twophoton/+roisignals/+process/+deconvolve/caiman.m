@@ -14,16 +14,12 @@ function [cia_dec, cia_den, cia_opt] = caiman(dff, varargin)
 %TODO:
     % [ ] Use hardcoded timeconstants or optimize?
     % [ ] Individual time constants per roi
+    % [ ] CVX dependency?
     
     [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
     
     % Parse potential parameters from input arguments
     opt = utility.parsenvpairs(P, V, varargin{:});
-    
-    % Turn off warning that comes when adding cvx library
-    warning('off', 'MATLAB:dispatcher:nameConflict')
-    addpath(genpath('/Users/eivinhen/PhD/Programmering/MATLAB/dependencies'));
-    warning('on', 'MATLAB:dispatcher:nameConflict')
     
     % Preallocate arrays for output
     [cia_dec, cia_den] = deal( nan(size(dff)) );
