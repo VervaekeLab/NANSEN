@@ -46,6 +46,11 @@ classdef MetaTable < handle
         MetaTableIdVarname = '';
         
         MetaTableMembers = {}
+
+        % MetaTableVariables - List of table variables. Used and updated in
+        % checkIfMetaTableComplete. Purpose: Silently add table var
+        % definitions on first time-initialization of a metatable. 
+        MetaTableVariables (:,1) string
     end
 
     properties (SetAccess = private)
@@ -77,7 +82,8 @@ classdef MetaTable < handle
         
         % These are variables that will be saved to a MetaTable mat file.
         FILEVARS = struct(  'MetaTableMembers', {{}}, ...
-                            'MetaTableEntries', {{}} );
+                            'MetaTableEntries', {{}}, ...
+                            'MetaTableVariables', {{}});
         
         % These are variables that will be saved to the MetaTableCatalog.
         CATALOG_VARIABLES = struct( ...
@@ -501,6 +507,7 @@ classdef MetaTable < handle
                     S = obj.FILEVARS;
                     f = fieldnames(obj.CATALOG_VARIABLES);
                     
+                    % Append CATALOG_VARIABLES to FILEVARS
                     for i = 1:length(f)
                         S.(f{i}) = obj.CATALOG_VARIABLES.(f{i});
                     end
@@ -689,6 +696,178 @@ classdef MetaTable < handle
             end
         end
         
+% % % %  Methods for checking MetaTable against project variables
+
+        function checkIfMetaTableComplete(obj, options)
+        %checkIfMetaTableComplete Check if user-defined variables are
+        % missing from the table.
+                    
+            arguments
+                obj
+                options.MessageDisplay = []
+            end
+
+            if isempty(obj.entries); return; end
+    
+            tableType = lower( obj.getTableType() );
+            
+            obj.addMissingVarsToMetaTable(tableType);
+        
+            nvPairs = namedargs2cell(options);
+            obj.removeMissingVarsFromMetaTable(tableType, nvPairs{:});
+        
+            obj.MetaTableVariables = obj.entries.Properties.VariableNames;
+        end
+        
+        function addMissingVarsToMetaTable(obj, metaTableType)
+        %addMissingVarsToMetaTable Add variable to table if it is missing.
+        %
+        %   If a table is present in the table variable definitions, but
+        %   missing from the table, this functions adds a new variable to
+        %   the table and initializes with the default value based on the
+        %   table variable definition.
+                    
+            if nargin < 2
+                metaTableType = 'session';
+            end
+            
+            tableVarNames = obj.entries.Properties.VariableNames;
+            
+            currentProject = nansen.getCurrentProject();
+            refVariableAttributes = currentProject.getTable('TableVariable');
+            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
+
+            isCustom = refVariableAttributes.IsCustom;
+            customVariableNames = refVariableAttributes{isCustom, 'Name'};
+            
+            % Check if any variable is present in the table variable list, but
+            % the corresponding variable is missing from the table.
+            missingVarNames = setdiff(customVariableNames, tableVarNames);
+            
+            getRowIndex = @(T, varName) find( strcmp(T.Name, varName) );
+
+            for iVarName = 1:numel(missingVarNames)
+                thisName = missingVarNames{iVarName};
+                thisRowIndex = getRowIndex(refVariableAttributes, thisName);
+
+                if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
+                    fcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
+                    fcnResult = feval(fcnName);
+                    if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
+                        defaultValue = fcnResult.DEFAULT_VALUE;
+                    else
+                        defaultValue = fcnResult;
+                    end
+                    obj.addTableVariable(thisName, defaultValue)
+                end
+            end
+        end
+        
+        function removeMissingVarsFromMetaTable(obj, metaTableType, options)
+        %removeMissingVarsFromMetaTable Remove variable from table if it is missing.
+        %
+        %   If a table variable is missing from the table variable definitions, 
+        %   but is present in the table, this functions asks the user if the 
+        %   variable should be removed from the table.
+        %
+        %   If the user selects "Yes" the variable is deleted from the
+        %   table. If the user selects no, the a non-editable dummy
+        %   variable is placed in the table variable folder for the current
+        %   project.
+        %
+        %   If the table is loaded into nansen for the first time, should
+        %   skip the step of asking user. 
+        %   
+        %   Todo: How to reliably know if this is the first time initialization?
+
+            arguments
+                obj
+                metaTableType
+                options.MessageDisplay = []
+            end
+
+            if isempty(options.MessageDisplay); return; end
+
+            import nansen.metadata.utility.createClassForCustomTableVar
+            
+            tableVarNames = obj.entries.Properties.VariableNames;
+                        
+            currentProject = nansen.getCurrentProject();
+            variableAttributes = currentProject.getTable('TableVariable');
+            variableAttributes(variableAttributes.TableType ~= metaTableType, :) = [];
+            
+            % Get custom (user-defined) and default table variables
+            isCustom = variableAttributes.IsCustom;
+            customVariableNames = variableAttributes{isCustom, 'Name'};
+            defaultVariableNames = variableAttributes{~isCustom, 'Name'};
+            
+            % Get those variables present in the table that are not default
+            customVariablesInTable = setdiff(tableVarNames, defaultVariableNames);
+            
+            % Find the difference between those and the user-defined
+            % variables, i.e if the user-defined variables were removed
+            % from the table variable folders.
+            missingVarNames = setdiff(customVariablesInTable, customVariableNames);
+
+            % Display a prompt to the user if any table variables have been
+            % removed. If user does not want to remove those variables,
+            % create a dummy function for that table variable.
+            
+            wasUpdated = false;
+
+            for iVarName = 1:numel(missingVarNames)
+                thisName = missingVarNames{iVarName};
+
+                question = sprintf( ['The tablevar definition is missing ', ...
+                    'for "%s". Do you want to delete data for this variable ', ...
+                    'from the table?'], thisName );
+                title = 'Delete Table Column?';
+                if any( strcmp(thisName, obj.MetaTableVariables))
+                    answer = options.MessageDisplay.ask(question, ...
+                        'Title', title, ...
+                        'Alternatives', ["Yes", "No"], ...
+                        'DefaultAnswer', "No");
+                else
+                    answer = 'No';
+                end
+
+                switch answer
+                    case 'Yes'
+                        obj.removeTableVariable(thisName)
+                        obj.save()
+                    case {'Cancel', 'No', ''}
+                        
+                        % Todo (Is it necessary): Maybe if the variable is
+                        % editable...(which we dont know when the definition
+                        % is removed.) Should resolve based on user
+                        % feedback/tests
+                        
+                        % Get table row as struct in order to check data
+                        % type. (Some data is within a cell array in the table)
+                        tableRow = obj.entries(1, :);
+                        rowAsStruct = table2struct(tableRow);
+                        
+                        % Create dummy function
+                        S = struct();
+                        S.VariableName = thisName;
+                        S.MetadataClass = metaTableType;
+                        S.DataType = class(rowAsStruct.(thisName));
+                        
+                        S.InputMode = '';
+                        
+                        targetFolderPath = currentProject.getTableVariableFolder();
+                        createClassForCustomTableVar(S, targetFolderPath);
+                        wasUpdated = true;
+                end
+            end
+            if wasUpdated
+                rehash
+                % Ad hoc, need to wait 1 second in order for new table variable 
+                % definitions to be registered. See nansen.module.Module/rehash
+                pause(1.1) 
+            end
+        end
+
 % % % % Methods for modifying entries
 
         function tf = isVariable(obj, varName)
@@ -748,50 +927,6 @@ classdef MetaTable < handle
             obj.sort()
             
             %obj.IsModified = true;
-        end
-        
-        function addMissingVarsToMetaTable(obj, metaTableType)
-        %addMissingVarsToMetaTable Add variable to table if it is missing.
-        %
-        %   If a table is present in the table variable definitions, but
-        %   missing from the table, this functions adds a new variable to
-        %   the table and initializes with the default value based on the
-        %   table variable definition.
-                    
-            if nargin < 2
-                metaTableType = 'session';
-            end
-            
-            tableVarNames = obj.entries.Properties.VariableNames;
-            
-            currentProject = nansen.getCurrentProject();
-            refVariableAttributes = currentProject.getTable('TableVariable');
-            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
-
-            isCustom = refVariableAttributes.IsCustom;
-            customVariableNames = refVariableAttributes{isCustom, 'Name'};
-            
-            % Check if any variable is present in the table variable list, but
-            % the corresponding variable is missing from the table.
-            missingVarNames = setdiff(customVariableNames, tableVarNames);
-            
-            getRowIndex = @(T, varName) find( strcmp(T.Name, varName) );
-
-            for iVarName = 1:numel(missingVarNames)
-                thisName = missingVarNames{iVarName};
-                thisRowIndex = getRowIndex(refVariableAttributes, thisName);
-
-                if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
-                    fcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
-                    fcnResult = feval(fcnName);
-                    if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
-                        defaultValue = fcnResult.DEFAULT_VALUE;
-                    else
-                        defaultValue = fcnResult;
-                    end
-                    obj.addTableVariable(thisName, defaultValue)
-                end
-            end
         end
 
         % Add entry/entries to MetaTable table
