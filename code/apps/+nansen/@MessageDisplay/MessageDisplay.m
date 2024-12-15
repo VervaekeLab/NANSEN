@@ -35,7 +35,7 @@ classdef MessageDisplay < handle
             arguments
                 obj (1,1) nansen.MessageDisplay
                 question (1,1) string
-                options.Title (1,1) string = ""
+                options.Title (1,1) string = "Select an Option"
                 options.Alternatives (1,:) string = ["Yes", "No", "Cancel"]
                 options.DefaultAnswer (1,1) string = "Yes"
             end
@@ -49,7 +49,8 @@ classdef MessageDisplay < handle
                 defaultAnswer = options.Alternatives{1};
             end
             dlgOptions.Default = defaultAnswer;
-            answer = questdlg(promptStr, options.Alternatives{:}, defaultAnswer, dlgOptions);
+            answer = questdlg(promptStr, options.Title, ...
+                options.Alternatives{:}, dlgOptions);
         end
 
         function warn(obj, message, options)
