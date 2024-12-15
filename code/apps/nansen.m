@@ -1,14 +1,25 @@
-function hApp = nansen(userName, varargin)
+function hApp = nansen(userName, flags)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
-    if nargin < 1; userName = ''; end
+    arguments
+        userName (1,1) string = ""
+    end
+    
+    arguments (Repeating)
+        flags (1,1) string
+    end
+
+    userName = char(userName);
+    openApp = ~any(strcmp(string(flags), '-nogui'));
 
     try
         userSession = nansen.internal.user.NansenUserSession.instance(userName);
         
-        userSession.assertProjectsAvailable()
-        hApp = nansen.App(userSession, varargin{:});
+        if openApp
+            userSession.assertProjectsAvailable()
+            hApp = nansen.App(userSession);
+        end
     catch ME
         hApp = [];
         switch ME.identifier
