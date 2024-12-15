@@ -155,30 +155,35 @@ classdef Project < nansen.module.Module
             obj.updateModules()
         end
 
-        % Todo: remove
+        
         function initializeProjectFolder(obj)
-            % Todo: Create all folders that belong to a project
-            if ~isfolder(obj.FolderPath); mkdir(obj.FolderPath); end
-            
-            % Todo: Copy a template folder
-            if ~isfolder(fullfile(obj.FolderPath, obj.METATABLE_FOLDER_NAME))
-                mkdir(fullfile(obj.FolderPath, obj.METATABLE_FOLDER_NAME))
-            end
-
-            if ~isfolder(fullfile(obj.FolderPath, obj.CONFIG_FOLDER_NAME))
-                mkdir(fullfile(obj.FolderPath, obj.CONFIG_FOLDER_NAME))
-            end
-
-            mkdir(fullfile(obj.FolderPath, 'Session Methods', obj.PackageName))
+            % Todo: implement? I.e if a project object is created
+            % programmatically
         end
         
         function folderPaths = getSessionMethodFolder(obj)
-            
-            folderPaths = cell(1, numel(obj.IncludedModules));
+            folderPaths = obj.getObjectMethodFolder('Session');
+        end
 
-            folderPaths{1} = getSessionMethodFolder@nansen.module.Module(obj);
-            for i = 1:numel(obj.IncludedModules)
-                folderPaths{i+1} = obj.IncludedModules(i).getSessionMethodFolder();
+        function folderPaths = getObjectMethodFolder(obj, objectType, options)
+
+            arguments
+                obj (1,1) nansen.module.Module
+                objectType (1,1) string
+                options.IncludeModules (1,1) logical = true
+            end
+
+            if options.IncludeModules
+                numModules = numel(obj.IncludedModules);
+            else
+                numModules = 0;
+            end
+            
+            folderPaths = cell(1, numModules+1);
+
+            folderPaths{1} = getObjectMethodFolder@nansen.module.Module(obj, objectType);
+            for i = 1:numModules
+                folderPaths{i+1} = obj.IncludedModules(i).getObjectMethodFolder(objectType);
             end
             folderPaths = cellfun(@(c) char(c), folderPaths, 'uni', 0);
         end
