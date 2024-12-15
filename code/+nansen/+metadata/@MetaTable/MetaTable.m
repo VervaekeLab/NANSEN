@@ -811,7 +811,9 @@ classdef MetaTable < handle
             % the MetaTable class property. Otherwise, need to make sure
             % that new entries are matching the class of the MetaTable
             if isempty(obj.MetaTableMembers)
-                obj.MetaTableClass = class(newEntries);
+                if isempty(obj.MetaTableClass) % Don't override if it is set
+                    obj.MetaTableClass = class(newEntries);
+                end
             else
                 msg = sprintf(['Class of entries (%s) do not match ', ...
                     'the class of the MetaTable (%s)'], class(newEntries), ...
@@ -867,7 +869,9 @@ classdef MetaTable < handle
 
         function addTable(obj, T)
             if isempty(obj.MetaTableMembers)
-                obj.MetaTableClass = 'table';
+                if isempty(obj.MetaTableClass) % Do not override
+                    obj.MetaTableClass = 'table';
+                end
             end
 
             if any(strcmp(T.Properties.VariableNames, 'id'))
