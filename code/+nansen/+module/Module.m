@@ -113,9 +113,15 @@ classdef Module < handle
         function fileAdapterFolder = getFileAdapterFolder(obj)
             fileAdapterFolder = fullfile(obj.FolderPath, '+fileadapter');
         end
-
-        function sessionMethodFolder = getSessionMethodFolder(obj)
-            sessionMethodFolder = fullfile(obj.FolderPath, '+sessionmethod');
+        
+        function objectMethodFolder = getObjectMethodFolder(obj, itemType)
+            
+            if strcmpi(itemType, 'session') % Todo: Consolidate
+                objectMethodFolder = fullfile(obj.FolderPath, '+sessionmethod');
+            else
+                itemTypeNamespace = sprintf('+%s', lower(itemType));
+                objectMethodFolder = fullfile(obj.FolderPath, '+objectmethod', itemTypeNamespace);
+            end
         end
 
         function tableVariableFolder = getTableVariableFolder(obj)

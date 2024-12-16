@@ -533,6 +533,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(hMenu, 'Text','Manage Variables...', 'Enable', 'off');
             mitem.MenuSelectedFcn = [];
 
+            % --- Section with menu items for session methods/tasks
+            mitem = uimenu(hMenu, 'Text', 'New Table Method...', 'Separator', 'on');
+            mitem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateTableMethod;
+
             % Todo: Import metatable from excel file / table file...
 % %             mitem = uimenu(m, 'Text','Import from Excel', 'Separator', 'on', 'Enable', 'on');
 % %             mitem.MenuSelectedFcn = @app.menuCallback_ImportTable;
@@ -556,7 +560,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
           % --- Section with menu items for session methods/tasks
             mitem = uimenu(hMenu, 'Text', 'New Session Method...');
-            mitem.MenuSelectedFcn = @app.menuCallback_CreateSessionMethod;
+            mitem.MenuSelectedFcn = @(s,e,type) app.menuCallback_CreateTableMethod('session');
             
             mitem = uimenu(hMenu, 'Text', 'New Data Variable...', 'Enable', 'off');
             mitem.MenuSelectedFcn = [];
@@ -1025,6 +1029,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
             % m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
             % m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');
+        end
+        
+        function enableSessionContextMenu(app)
+            app.UiMetaTableViewer.TableContextMenu = app.SessionContextMenu;
+        end
+
+        function disableSessionContextMenu(app)
+            app.UiMetaTableViewer.TableContextMenu = [];
         end
 
         %% Create/initialize subcomponents and modules
@@ -2140,9 +2152,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     methods (Access = private) % Methods for meta table loading and saving
         
         function onMetaTableTypeChanged(app, src, ~)
-            metaTableName = src.Text;
+            metaTableType = src.Text;
             app.resetMetaObjectList()
-            app.openMetaTable(metaTableName)
+            app.openMetaTable(metaTableType)
+            app.SessionTaskMenu.CurrentItemType = metaTableType;
+            if strcmpi(metaTableType, 'session')
+                app.enableSessionContextMenu()
+            else
+                app.disableSessionContextMenu()
+            end
         end
 
         function onTableItemSelectionChanged(app, src, evt)
@@ -3747,13 +3765,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             nansen.pipeline.PipelineAssignmentModelApp()
         end
 
-        function menuCallback_CreateSessionMethod(app, ~, ~)
+        function menuCallback_CreateTableMethod(app, metaTableType)
+        % Menu callback for interactively creating a new table method.
+            
             import nansen.session.methods.template.createNewSessionMethod
             
-            % Todo: Generalize from session to any item type
-            itemType = app.CurrentItemType;
+            % Get currently active table type if input is not specified
+            if nargin < 2 || isempty(metaTableType)
+                metaTableType = app.CurrentItemType;
+            end
+            
             groupNames = app.SessionTaskMenu.getRootLevelMenuNames();
-            wasSuccess = createNewSessionMethod(app, itemType, "GroupNames", groupNames);
+            windowReferencePosition = app.Figure.Position;
+            
+            wasSuccess = createNewSessionMethod(metaTableType, ...
+                "GroupNames", groupNames, ...
+                "WindowReferencePosition", windowReferencePosition);
             
             % Update session menu!
             if wasSuccess

@@ -1,12 +1,12 @@
-function wasSuccess = createNewSessionMethod(app, itemType, options)
+function wasSuccess = createNewSessionMethod(itemType, options)
 %createNewSessionMethod Let user interactively create a new session method template
 
 % Todo: generalize to apply to any item type
 
     arguments
-        app (1,1) nansen.App
-        itemType (1,1) string = "Session" %#ok<INUSA> % not implemented yet
-        options.GroupNames (1,:) string
+        itemType (1,1) string = "Session"
+        options.GroupNames (1,:) string = ["default"]
+        options.WindowReferencePosition (1,4) double = get(0, 'ScreenSize')
     end
 
     wasSuccess = false;
@@ -14,10 +14,10 @@ function wasSuccess = createNewSessionMethod(app, itemType, options)
     % Parameters to open in a dialog
     S = struct();
     S.MethodName = '';
-% %     S.BatchMode = 'serial';
-% %     S.BatchMode_ = {'serial', 'batch'};
-    S.Input = 'Single session';
-    S.Input_ = {'Single session', 'Multiple sessions'};
+    S.Input_ = {...
+        sprintf('Single %s', lower(itemType)), ...  % Ex: Single session
+        sprintf('Multiple %ss', lower(itemType)) }; % Ex: Multiple sessions
+    S.Input = S.Input_{1};
     S.Queueable = true;
     S.Type = 'Function'; % (Template type, i.e use function template or sessionmethod template)
     S.Type_ = {'Function', 'SessionMethod Class'};
@@ -26,10 +26,13 @@ function wasSuccess = createNewSessionMethod(app, itemType, options)
     S.MenuLocation_ = cellstr(options.GroupNames); % add as cell array
     
     S.MenuSubLocation = ''; % Free text...
+
+    titleStr = sprintf('Create %s Method', itemType);
+    messageStr = sprintf('Configure new %s method:', itemType);
     
-    [S, wasAborted] = tools.editStruct(S, '', 'Create Session Method', ...
-                'Prompt', 'Configure new session method:', ...
-                'ReferencePosition', app.Figure.Position, ...
+    [S, wasAborted] = tools.editStruct(S, '', titleStr, ...
+                'Prompt', messageStr, ...
+                'ReferencePosition', options.WindowReferencePosition, ...
                 'ValueChangedFcn', @onValueChanged );
     
     if wasAborted; return; end
@@ -57,7 +60,7 @@ function wasSuccess = createNewSessionMethod(app, itemType, options)
             expression = 'ATTRIBUTES = {''serial'', ''queueable''}';
             replacement = expression;
 
-            if strcmpi(S.Input, 'multiple sessions')
+            if startsWith(S.Input, 'multiple', 'IgnoreCase', true)
                 replacement = strrep(replacement, 'serial', 'batch');
             end
             if ~S.Queueable
@@ -67,13 +70,15 @@ function wasSuccess = createNewSessionMethod(app, itemType, options)
             
         case 'SessionMethod Class'
             fcnContentStr = strrep(fcnContentStr, 'MethodName = ''''', sprintf('MethodName = ''%s''', S.MethodName));
-            switch lower( S.Input )
-                case 'single session'
-                    % This is the default
-                case 'multiple sessions'
-                    expression = 'BatchMode = ''serial''';
-                    replacement = 'BatchMode = ''batch''';
-                    fcnContentStr = strrep(fcnContentStr, expression, replacement);
+            
+            
+            if startsWith(S.Input, 'single', 'IgnoreCase', true)
+                expression = 'BatchMode = ''serial''';
+                replacement = 'BatchMode = ''batch''';
+                fcnContentStr = strrep(fcnContentStr, expression, replacement);
+            
+            elseif startsWith(S.Input, 'multiple', 'IgnoreCase', true)
+                % This is the default case
             end
             
             if ~S.Queueable
@@ -81,16 +86,19 @@ function wasSuccess = createNewSessionMethod(app, itemType, options)
                 replacement = 'IsQueueable = false';
                 fcnContentStr = strrep(fcnContentStr, expression, replacement);
                 
-                % Todo: This is redeundant. Remove of fix according to
-                % intention.
+                % Todo: This is redundant. Remove or fix according to intention.
                 expression = 'IsManual = false';
                 replacement = 'IsManual = true';
                 fcnContentStr = strrep(fcnContentStr, expression, replacement);
             end
     end
+
+    if ~strcmpi(itemType, "session")
+        fcnContentStr = strrep(fcnContentStr, 'sessionObject', sprintf('%sObject', lower(itemType)));
+    end
     
     % Save template
-    sMethodDir = nansen.session.methods.getProjectsSessionMethodsDirectory();
+    sMethodDir = nansen.session.methods.getProjectsSessionMethodsDirectory(itemType);
     
     if ~isempty(S.MenuSubLocation)
         S.MenuLocation = [S.MenuLocation, strsplit(S.MenuSubLocation, ', ')];
