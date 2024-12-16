@@ -15,7 +15,7 @@ classdef Project < nansen.module.Module
     %   [ ] Create method for getting data variables.
     %   [ ] Better system for distinguishing between optional and required
     %       modules. Also, the required module should come last (?) in the
-    %       list, and that also eneds to be handled better. IndludedModules
+    %       list, and that also needs to be handled better. IncludedModules
     %       could be dependent, and there could be additional properties to
     %       store optional and base/required modules.
     
@@ -84,7 +84,19 @@ classdef Project < nansen.module.Module
     end
     
     methods
+        function addToSearchPath(obj)
+            if ~contains(path, obj.FolderPath)
+                addpath(genpath(obj.FolderPath), '-end')
+            end
+            % Todo: add dependent modules
+        end
 
+        function removeFromSearchPath(obj)
+            if contains(path, obj.FolderPath)
+                rmpath(genpath(obj.FolderPath))
+            end
+            % Todo: Remove dependent modules
+        end
         function addMetaTable(obj, metaTable)
             arguments
                 obj (1,1) nansen.config.project.Project
@@ -154,7 +166,6 @@ classdef Project < nansen.module.Module
             obj.Preferences.DataModule = newModuleNames;
             obj.updateModules()
         end
-
         
         function initializeProjectFolder(obj)
             % Todo: implement? I.e if a project object is created
@@ -251,14 +262,25 @@ classdef Project < nansen.module.Module
 
     methods (Access = ?nansen.config.project.ProjectManager)
         
-        function renameProject(obj, newName)
+        function rename(obj, newName)
             
             oldName = obj.Name;
+            oldModuleFolder = obj.getModuleFolder();
 
             % Change name property
             obj.Name = newName;
             obj.PackageName = strcat('+', obj.Name);
             
+            % Update the project.nansen.json
+            newProjectInfo = struct(...
+                'Name', newName, 'Description', obj.Description);
+            obj.updateProjectConfiguration(obj.FolderPath, newProjectInfo)
+
+            % Update namespace folder name. Important to rename this before
+            % renaming project folder
+            newModuleFolder = obj.getModuleFolder();
+            movefile(oldModuleFolder, newModuleFolder);
+
             % Change name of folder
             oldFolderpath = obj.FolderPath;
             newFolderpath = fullfile(fileparts(oldFolderpath), obj.Name);
@@ -266,7 +288,12 @@ classdef Project < nansen.module.Module
             obj.FolderPath = newFolderpath;
 
             % Rename FunctionNames in DataLocationModel
+            obj.DataLocationModel.setFilePath(obj.getCatalogPath('DataLocationModel'));
             obj.DataLocationModel.onProjectRenamed(oldName, newName);
+
+            obj.VariableModel.setFilePath(obj.getCatalogPath('VariableModel'));
+            %obj.MetaTableCatalog.setFilePath(obj.getCatalogPath('MetaTableCatalog'))
+            % todo
         end
 
         function updateProjectFolder(obj, newFolderPath)

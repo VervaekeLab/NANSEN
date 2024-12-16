@@ -231,26 +231,48 @@ classdef ProjectManager < handle
 
         function renameProject(obj, projectName, newProjectName)
         %renameProject Rename a project
-            project = obj.getProject(projectName);
+
+            arguments
+                obj (1,1) nansen.config.project.ProjectManager
+                projectName (1,1) string
+                newProjectName (1,1) string
+            end
+
+            project = obj.getProjectObject(projectName);
             if isempty(project); return; end
 
-            error('Not implemented yet')
+            assert(... % Validate new name
+                strcmp(newProjectName, matlab.lang.makeValidName(newProjectName)), ...
+                 "New project name is not valid. Must consist of " + ...
+                 "alphanumerics and underscores, and first character " + ...
+                 "must be a letter.")
+
+            assert(...
+                ~strcmp(projectName, newProjectName), ...
+                'Project name must be different than current name')
+
+            % Unselect project if current, so that we don't rename folders
+            % on MATLAB's search path             
+            currentProject = obj.CurrentProject;
+            if strcmp(projectName, currentProject)
+                obj.unselectProject(projectName)
+            end
+            
+            project.rename(newProjectName)
+            newPath = project.FolderPath;
 
             % Update name in project catalog
             IND = strcmp({obj.Catalog.Name}, projectName);
             obj.Catalog(IND).Name = newProjectName;
             obj.Catalog(IND).ShortName = newProjectName;
-
-            IND = strcmp({obj.Catalog.Name}, projectName);
             obj.Catalog(IND).Path = newPath;
-
-            if isKey(obj.ProjectCache, projectName)
-                % Update project folder in project instance.
-                project = obj.ProjectCache(projectName);
-                project.updateProjectFolder(newProjectDirectory);
-            end
             
             obj.saveCatalog()
+
+            % Select project if current
+            if strcmp(projectName, currentProject)
+                obj.changeProject(newProjectName)
+            end
         end
         
         function moveProject(obj, projectName, newLocation)
@@ -478,12 +500,7 @@ classdef ProjectManager < handle
             oldProjectName = obj.CurrentProject;
 
             if ~isempty(oldProjectName)
-                try
-                    prevProject = obj.getProjectObject(oldProjectName);
-                    obj.removeProjectFromSearchPath(prevProject.FolderPath)
-                catch ME
-                    warning('Failed to clear project "%s". Reason:\n%s', oldProjectName, ME.message)
-                end
+                obj.unselectProject(oldProjectName)
             end
 
             obj.CurrentProject = newProjectName;
@@ -543,6 +560,15 @@ classdef ProjectManager < handle
                 delete(obj.ProjectCache(keys{i}))
             end
             obj.ProjectCache = containers.Map;
+        end
+        
+        function unselectProject(obj, projectName)
+            try
+                prevProject = obj.getProjectObject(projectName);
+                prevProject.removeFromSearchPath()
+            catch ME
+                warning('Failed to clear project "%s". Reason:\n%s', projectName, ME.message)
+            end
         end
     end
 
