@@ -1026,6 +1026,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
             % m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');
         end
+        
+        function enableSessionContextMenu(app)
+            app.UiMetaTableViewer.TableContextMenu = app.SessionContextMenu;
+        end
+
+        function disableSessionContextMenu(app)
+            app.UiMetaTableViewer.TableContextMenu = [];
+        end
 
         %% Create/initialize subcomponents and modules
         function createStatusField(app)
@@ -2140,10 +2148,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     methods (Access = private) % Methods for meta table loading and saving
         
         function onMetaTableTypeChanged(app, src, ~)
-            metaTableName = src.Text;
+            metaTableType = src.Text;
             app.resetMetaObjectList()
-            app.openMetaTable(metaTableName)
-            app.SessionTaskMenu.CurrentItemType = metaTableName;
+            app.openMetaTable(metaTableType)
+            app.SessionTaskMenu.CurrentItemType = metaTableType;
+            if strcmpi(metaTableType, 'session')
+                app.enableSessionContextMenu()
+            else
+                app.disableSessionContextMenu()
+            end
         end
 
         function onTableItemSelectionChanged(app, src, evt)
