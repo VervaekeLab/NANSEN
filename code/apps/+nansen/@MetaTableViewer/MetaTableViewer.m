@@ -424,6 +424,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             
             drawnow
             if ~isempty(obj.MetaTable)
+                obj.updateMetaTableVariableAttributes()
                 obj.updateColumnLayout()
                 obj.updateTableView()
             else
@@ -432,7 +433,6 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             drawnow
             % Todo: Restore selection
             %obj.setSelectedEntries(selectedEntries);
-            
         end
         
         function replaceTable(obj, newTable)
@@ -1077,6 +1077,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             if isempty(obj.ColumnModel); return; end % On construction...
             
             colInd = obj.ColumnModel.getColumnIndices();
+        end
+
+        function updateMetaTableVariableAttributes(obj)
+            obj.MetaTableVariableAttributes = ...
+                obj.getMetaTableVariableAttributes();
         end
 
         function S = getMetaTableVariableAttributes(obj)

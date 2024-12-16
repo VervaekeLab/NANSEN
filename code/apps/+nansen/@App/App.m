@@ -2809,155 +2809,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.onNewMetaTableSet()
             if isvalid(hDlg); delete(hDlg); end
         end
-
-        function metaTable = checkIfMetaTableComplete(app, metaTable)
-        %checkIfMetaTableComplete Check if user-defined variables are
-        % missing from the table.
         
-        % Todo: Add to metatable class? Eller muligens BaseSchema??? Kan
-        % man legge inn dynamiske konstante egenskaper?
-        
-            if nargin < 2
-                metaTable = app.MetaTable;
-            end
-
-            if isempty(metaTable.entries); return; end
-    
-            tableType = lower( metaTable.getTableType() );
-            metaTable = app.addMissingVarsToMetaTable(metaTable, tableType);
-        
-            metaTable = app.removeMissingVarsFromMetaTable(metaTable, tableType);
-
-            if nargin < 2; app.MetaTable = metaTable; end
-            if ~nargout; clear metaTable; end
-        end
-        
-        function metaTable = addMissingVarsToMetaTable(app, metaTable, metaTableType)
-        %addMissingVarsToMetaTable Add variable to table if it is missing.
-        %
-        %   If a table variable is present in the table variable definitions, 
-        %   but missing from the table, this functions adds a new variable to
-        %   the table and initializes with the default value based on the
-        %   table variable definition.
-        
-            % Question: Should this be a metatable method.
-            
-            if nargin < 3
-                metaTableType = 'session';
-            end
-            
-            tableVarNames = metaTable.entries.Properties.VariableNames;
-            
-            refVariableAttributes = app.CurrentProject.getTable('TableVariable');
-            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
-
-            isCustom = refVariableAttributes.IsCustom;
-            customVariableNames = refVariableAttributes{isCustom, 'Name'};
-            
-            % Check if any variable is present in the table variable list, but
-            % the corresponding variable is missing from the table.
-            missingVarNames = setdiff(customVariableNames, tableVarNames);
-            
-            getRowIndex = @(T, varName) find( strcmp(T.Name, varName) );
-
-            for iVarName = 1:numel(missingVarNames)
-                thisName = missingVarNames{iVarName};
-                thisRowIndex = getRowIndex(refVariableAttributes, thisName);
-
-                if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
-                    fcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
-                    fcnResult = feval(fcnName);
-                    if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
-                        defaultValue = fcnResult.DEFAULT_VALUE;
-                    else
-                        defaultValue = fcnResult;
-                    end
-                    metaTable.addTableVariable(thisName, defaultValue)
-                end
-            end
-        end
-        
-        function metaTable = removeMissingVarsFromMetaTable(app, metaTable, metaTableType)
-        %removeMissingVarsFromMetaTable Remove variable from table if it is missing.
-        %
-        %   If a table variable is missing from the table variable definitions, 
-        %   but is present in the table, this functions asks the user if the 
-        %   variable should be removed from the table.
-        %
-        %   If the user selects "Yes" the variable is deleted from the
-        %   table. If the user selects no, the a non-editable dummy
-        %   variable is placed in the table variable folder for the current
-        %   project.
-        %
-        %   If the table is loaded into nansen for the first time, should
-        %   skip the step of asking user. 
-        %   
-        %   Todo: How to reliably know if this is the first time initialization?
-
-            import nansen.metadata.utility.createClassForCustomTableVar
-            
-            tableVarNames = metaTable.entries.Properties.VariableNames;
-            
-            variableAttributes = app.CurrentProject.getTable('TableVariable');
-            variableAttributes(variableAttributes.TableType ~= metaTableType, :) = [];
-            
-            % Get custom (user-defined) and default table variables
-            isCustom = variableAttributes.IsCustom;
-            customVariableNames = variableAttributes{isCustom, 'Name'};
-            defaultVariableNames = variableAttributes{~isCustom, 'Name'};
-            
-            % Get those variables present in the table that are not default
-            customVariablesInTable = setdiff(tableVarNames, defaultVariableNames);
-            
-            % Find the difference between those and the user-defined
-            % variables, i.e if the user-defined variables were removed
-            % from the table variable folders.
-            missingVarNames = setdiff(customVariablesInTable, customVariableNames);
-            
-            % Display a prompt to the user if any table variables have been
-            % removed. If user does not want to remove those variables,
-            % create a dummy function for that table var.
-            
-            for iVarName = 1:numel(missingVarNames)
-                thisName = missingVarNames{iVarName};
-
-                question = sprintf( ['The tablevar definition is missing ', ...
-                    'for "%s". Do you want to delete data for this variable ', ...
-                    'from the table?'], thisName );
-                title = 'Delete Table Data?';
-                
-                answer = app.MessageDisplay.ask(question, 'Title', title);
-
-                switch answer
-                    case 'Yes'
-                        metaTable.removeTableVariable(thisName)
-                        metaTable.save()
-                    case {'Cancel', 'No', ''}
-                        
-                        % Todo (Is it necessary): Maybe if the variable is
-                        % editable...(which we dont know when the definition
-                        % is removed.) Should resolve based on user
-                        % feedback/tests
-                        
-                        % Get table row as struct in order to check data
-                        % type. (Some data is within a cell array in the table)
-                        tableRow = metaTable.entries(1, :);
-                        rowAsStruct = table2struct(tableRow);
-                        
-                        % Create dummy function
-                        S = struct();
-                        S.VariableName = thisName;
-                        S.MetadataClass = metaTableType;
-                        S.DataType = class(rowAsStruct.(thisName));
-                        
-                        S.InputMode = '';
-                        
-                        targetFolderPath = app.CurrentProject.getTableVariableFolder();
-                        createClassForCustomTableVar(S, targetFolderPath)
-                end
-            end
-        end
-
         function onMetaTableModifiedChanged(app, ~, evt)
             if app.settings.MetadataTable.AutosaveMetaTable
                 if evt.AffectedObject.IsModified
@@ -3048,7 +2900,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
                 
                 % Checks if metatable matches with custom table variables
-                metaTable = app.checkIfMetaTableComplete(metaTable);
+                metaTable.checkIfMetaTableComplete("MessageDisplay", app.MessageDisplay)
+
                 
                 % Temp fix. Todo: remove
                 metaTable = nansen.metadata.temp.fixMetaTableDataLocations(metaTable, app.DataLocationModel);
@@ -3785,7 +3638,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Initialize a MetaTable using the given session schema and the
             % detected session folders.
             tmpMetaTable = nansen.metadata.MetaTable.new(newSessionObjects);
-            tmpMetaTable = app.addMissingVarsToMetaTable(tmpMetaTable, 'session');
+            tmpMetaTable.addMissingVarsToMetaTable('session');
             
             % Find all that are not part of existing metatable
             app.MetaTable.appendTable(tmpMetaTable.entries)
