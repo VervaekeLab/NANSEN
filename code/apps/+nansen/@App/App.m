@@ -1668,9 +1668,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %resetMetaObjectList Delete all meta objects from the list
             for i = numel(app.MetaObjectList):-1:1
                 if ismethod(app.MetaObjectList(i), 'isvalid')
-                    % It's a handle, we might need to delete it
-                    if isvalid( app.MetaObjectList(i) )
-                        delete( app.MetaObjectList(i) )
+                    if ismethod(app.MetaObjectList(i), 'delete')
+                        % It's a handle, we might need to delete it
+                        if isvalid( app.MetaObjectList(i) )
+                            delete( app.MetaObjectList(i) )
+                        end
                     end
                 end
             end
@@ -1681,16 +1683,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onMetaObjectPropertyChanged(app, src, evt)
             
             % Todo: generalize from session
-            % Todo: make method for getting table entry from sessionID
+            % Todo: make method for getting table entry from objectID
             
             if ~isvalid(src); return; end
-            
-            sessionID = src.sessionID;
-            metaTableEntryIdx = find(strcmp(app.MetaTable.members, sessionID));
+
+            objectID = app.getObjectId(src); % sessionID / itemID
+            metaTableEntryIdx = find(strcmp(app.MetaTable.members, objectID));
             
             if numel(metaTableEntryIdx) > 1
                 metaTableEntryIdx = metaTableEntryIdx(1);
-                msg = sprintf('Multiple sessions have the sessionID "%s"', sessionID);
+                msg = sprintf('Multiple sessions have the sessionID "%s"', objectID);
                 warndlg(msg)
             end
             
@@ -1702,10 +1704,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             newValue = table2cell(newValue);
             
             app.UiMetaTableViewer.updateCells(rowIdx, colIdx, newValue)
-            
-            % Update table (only data update)
-            % Todo: update specific rows and columns
-            % app.UiMetaTableViewer.replaceTable( app.MetaTable );
         end
         
         function onMetaObjectDestroyed(app, src, ~)
@@ -2457,7 +2455,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function updateTableVariable(app, src, evt, reset)
-        %updateTableVariable Update a table variable for selected sessions
+        %updateTableVariable Update a table variable for selected items/objects
         %
         %   This function is a callback for the context menu
         
@@ -2500,12 +2498,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % table variables, i.e data location.
             
             % Todo: This should be a property and it should be updated when
-            % tablevariables are created or modified...
+            % tablevariables are created or modified... (What this??)
 
-            % Todo: Support multiple table types
+            tableType = lower(app.CurrentItemType);
 
             T = app.CurrentProject.getTable('TableVariable');
-            T = T(T.TableType=='session', :);
+            T = T(T.TableType==tableType, :);
             S = table2struct(T);
             
             isMatch = strcmp({S.Name}, varName);
@@ -2604,8 +2602,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             rows(skippedRowInd) = [];
             
             if ~isempty(skippedRowInd)
-                sessionIDs = strjoin({sessionObj(skippedRowInd).sessionID}, newline);
-                messageStr = sprintf( 'Failed to update %s for the following sessions:\n\n%s\n', varName, sessionIDs);
+                objectIDs = app.getObjectId(sessionObj(skippedRowInd));
+                objectIDsAsText = strjoin(objectIDs, newline);
+                messageStr = sprintf( 'Failed to update %s for the following %ss:\n\n%s\n', varName, lower(tableType), objectIDsAsText);
                 errorMessage = sprintf('\nThe following error message was caught:\n%s', ME.message);
                 app.MessageDisplay.alert([messageStr, errorMessage], "Title", 'Update failed')
             end
@@ -3402,16 +3401,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             sessionMethod, 0, methodArgs, optsName )
         end
 
-        function taskName = createTaskName(~, sessionObjects)
+        function taskName = createTaskName(app, sessionObjects)
                 
             if numel(sessionObjects) > 1
                 taskName = 'Multisession';
             else
-                try % Todo: Use metatable class to determine variablename of id
-                    taskName = sessionObjects.sessionID;
-                catch
-                    taskName = sessionObjects.id;
-                end
+                taskName = app.getObjectId(sessionObjects);
             end
         end
 
