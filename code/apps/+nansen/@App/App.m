@@ -533,6 +533,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(hMenu, 'Text','Manage Variables...', 'Enable', 'off');
             mitem.MenuSelectedFcn = [];
 
+            % --- Section with menu items for session methods/tasks
+            mitem = uimenu(hMenu, 'Text', 'New Table Method...', 'Separator', 'on');
+            mitem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateTableMethod;
+
             % Todo: Import metatable from excel file / table file...
 % %             mitem = uimenu(m, 'Text','Import from Excel', 'Separator', 'on', 'Enable', 'on');
 % %             mitem.MenuSelectedFcn = @app.menuCallback_ImportTable;
@@ -556,7 +560,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
           % --- Section with menu items for session methods/tasks
             mitem = uimenu(hMenu, 'Text', 'New Session Method...');
-            mitem.MenuSelectedFcn = @app.menuCallback_CreateSessionMethod;
+            mitem.MenuSelectedFcn = @(s,e,type) app.menuCallback_CreateTableMethod('session');
             
             mitem = uimenu(hMenu, 'Text', 'New Data Variable...', 'Enable', 'off');
             mitem.MenuSelectedFcn = [];
@@ -3761,15 +3765,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             nansen.pipeline.PipelineAssignmentModelApp()
         end
 
-        function menuCallback_CreateSessionMethod(app, ~, ~)
+        function menuCallback_CreateTableMethod(app, metaTableType)
+        % Menu callback for interactively creating a new table method.
+            
             import nansen.session.methods.template.createNewSessionMethod
             
-            % Todo: Generalize from session to any item type
-            itemType = app.CurrentItemType;
+            % Get currently active table type if input is not specified
+            if nargin < 2 || isempty(metaTableType)
+                metaTableType = app.CurrentItemType;
+            end
+            
             groupNames = app.SessionTaskMenu.getRootLevelMenuNames();
             windowReferencePosition = app.Figure.Position;
             
-            wasSuccess = createNewSessionMethod(itemType, ...
+            wasSuccess = createNewSessionMethod(metaTableType, ...
                 "GroupNames", groupNames, ...
                 "WindowReferencePosition", windowReferencePosition);
             

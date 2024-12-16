@@ -198,6 +198,9 @@ classdef SessionTaskMenu < handle
             ignoreList = {'+abstract', '+template'};
             
            	[~, menuNames] = utility.path.listSubDir(dirPath, '', ignoreList);
+            if isempty(menuNames)
+                menuNames = obj.MenuOrder;
+            end
             menuNames = strrep(menuNames, '+', '');
             menuNames = unique(menuNames);
         end
