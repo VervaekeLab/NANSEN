@@ -158,13 +158,12 @@ classdef StorableCatalog < handle
     methods % Methods for archiving
         
         function setFilePath(obj, filePath)
-        %setFilePath Set fielpath of archive. %Todo: remove?
+        %setFilePath Set filepath of archive. %Todo: remove?
         
             folderPath = fileparts(filePath);
             if ~isfolder(folderPath); mkdir(folderPath); end
             
             obj.FilePath = filePath;
-            
         end
         
         function refreshFilePath(obj)

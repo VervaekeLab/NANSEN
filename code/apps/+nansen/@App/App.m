@@ -251,6 +251,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function set.MetaTable(app, newTable)
             app.MetaTable = newTable;
             app.onNewMetaTableSet()
+            app.updateCurrentTableType()
             app.updateTableItemCount()
         end
     
@@ -270,12 +271,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 itemType = app.UiMetaTableSelector.CurrentSelection;
                 itemType = string(itemType); % might be cell
             else
-                if isempty(app.ItemTypes)
-                    itemType = tableType;
-                else
-                    assert(numel(app.ItemTypes)==1)
-                    itemType = app.ItemTypes;
-                end
+                itemType = tableType;
+                % if isempty(app.ItemTypes)
+                %     itemType = tableType;
+                % else
+                %     assert(numel(app.ItemTypes)==1)
+                %     itemType = app.ItemTypes;
+                % end
             end
             assert(strcmpi(tableType, itemType), ...
                 'NANSEN:App:UnexpectedError', ...
@@ -695,7 +697,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if nargin < 2
                 hMenu = gobjects(0);
                 hMenu(1) = findobj(app.Figure, 'Text', 'Edit Pipeline');
-                hMenu(2) = findobj(app.Figure, 'Text', 'Assign Pipeline');
+                try
+                    hMenu(2) = findobj(app.Figure, 'Text', 'Assign Pipeline');
+                catch
+                    hMenu(2) = findobj(app.SessionContextMenu, 'Text', 'Assign Pipeline'); 
+                end
             end
             
             if nargin == 2 && ischar(hMenu)
@@ -836,7 +842,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % updateRelatedInventoryLists - Update submenus holding metatable lists   
             if nargin < 2
                 mItem(1) = findobj(app.Figure, 'Tag', 'Open Metatable');
-                mItem(2) = findobj(app.Figure, 'Tag', 'Add to Metatable');
+                try
+                    mItem(2) = findobj(app.Figure, 'Tag', 'Add to Metatable');
+                catch
+                    mItem(2) = findobj(app.SessionContextMenu, 'Tag', 'Add to Metatable');
+                end
             else
             end
 
@@ -1140,14 +1150,31 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             hTab.BackgroundColor = ones(1,3)*0.91;
 
             % Create table menu (menu for selecting tables):
+            app.initializeMetaTableSelector(hTab)
+        end
+
+        function initializeMetaTableSelector(app, hTab)
+            
             % Todo: reset and update this on project change
-            metatableTypes = app.CurrentProject.MetaTableCatalog.Table.MetaTableClass;
-            metatableTypes = unique(metatableTypes);
-            app.ItemTypes = metatableTypes;
+            
+            if ~isempty(app.UiMetaTableSelector)
+                delete(app.UiMetaTableSelector)
+            end
+
+            if nargin < 2
+                % Todo: make method or better way of retrieving this
+                hTabTitles = {app.hLayout.TabGroup.Children.Title};
+                isTableTab = strcmp(hTabTitles, 'Overview');
+                hTab = app.hLayout.TabGroup.Children(isTableTab);
+            end
+
+            app.updateAvailableTableTypes()
+
+            metatableTypes = app.ItemTypes;
             isSelected = strcmp(metatableTypes, class(app.MetaTable));
 
             if numel(unique(metatableTypes)) > 1
-                metatableTypes = utility.string.getSimpleClassName(metatableTypes);
+                metatableTypes = utility.string.getSimpleClassName(cellstr(metatableTypes));
                 metaTableTypes = unique(metatableTypes, 'stable');
 
                 buttonGroup = nansen.ui.widget.ButtonGroup(hTab, 'Items', metaTableTypes);
@@ -1158,7 +1185,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.updateMetaTableViewerPosition()
             end
         end
-        
+
         function updateMetaTableViewerPosition(app)
         % updateTablePosition - Update position of table
         %
@@ -1256,6 +1283,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             addlistener(app.DiskConnectionMonitor, 'DiskRemoved', ...
                 @(s,e) app.onAvailableDisksChanged);
+        end
+    
+        function updateAvailableTableTypes(app)
+            metatableTypes = app.CurrentProject.MetaTableCatalog.Table.MetaTableClass;
+            metatableTypes = unique(metatableTypes);
+            app.ItemTypes = metatableTypes;
+        end
+
+        function updateCurrentTableType(app)
+
         end
     end
 
@@ -1452,7 +1489,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.VariableModel = nansen.VariableModel();
 
             app.updateRelatedInventoryLists()
+
+            delete(app.UiMetaTableSelector)
+            app.UiMetaTableSelector = nansen.ui.widget.ButtonGroup.empty;
+
             app.loadMetaTable()
+
+            % Update table selector
+            app.initializeMetaTableSelector()
 
             drawnow
             currentProjectName = app.ProjectManager.CurrentProject;

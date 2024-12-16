@@ -62,6 +62,22 @@ classdef ButtonGroup < handle
             if ~isempty(obj.ParentSizeChangedListener)
                 delete(obj.ParentSizeChangedListener)
             end
+            if isfield(obj.Components, 'Group') && ~isempty(obj.Components.Group)
+                delete(obj.Components.Group)
+            end
+            if isfield(obj.Components, 'Buttons') && ~isempty(obj.Components.Buttons)
+                for i = 1:numel(obj.Components.Buttons)
+                    delete(obj.Components.Buttons(i))
+                end
+            end
+            if isfield(obj.Parent.UserData, 'Separator') ...
+                    && ~isempty(obj.Parent.UserData.Separator)
+                try
+                    delete(obj.Parent.UserData.Separator)
+                catch
+                    % todo: use isvalid instead?
+                end
+            end
         end
     end
 
