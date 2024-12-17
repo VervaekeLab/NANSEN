@@ -2388,8 +2388,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % Todo: add explanation?
                 return
             end
-
-            rootPathTarget = nansen.localpath('Custom Metatable Variable', 'current');
+            rootPathTarget = app.CurrentProject.getProjectPackagePath('Table Variables');
             fcnTargetPath = fullfile(rootPathTarget, ['+', lower(currentTableType)] );
             if ~isfolder(fcnTargetPath); mkdir(fcnTargetPath); end
 

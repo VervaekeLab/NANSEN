@@ -5,7 +5,8 @@ function createClassForCustomTableVar(S, targetFolderPath)
     % in the editor.
     
     if nargin < 2 || isempty(targetFolderPath)
-        targetFolderPath = nansen.localpath('Custom Metatable Variable', 'current');
+        project = nansen.getCurrentProject();
+        targetFolderPath = project.getProjectPackagePath('Table Variables');
     end
 
     variableName = S.VariableName;

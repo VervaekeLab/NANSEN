@@ -24,9 +24,10 @@ function createFunctionForCustomTableVar(initializationStruct)
     valueExpr = sprintf('value = %s', defaultValue);
     fcnContentStr = strrep(fcnContentStr, 'value = []', valueExpr);
     
-    % Create a target path for the function. Place it in the current
-    % project folder.
-    rootPathTarget = nansen.localpath('Custom Metatable Variable', 'current');
+    % Create a target path for the function in the current project folder.
+    project = nansen.getCurrentProject();
+    rootPathTarget = project.getProjectPackagePath('Table Variables');
+
     fcnTargetPath = fullfile(rootPathTarget, ['+', lower(tableClass)] );
     fcnFilename = [variableName, '.m'];
     

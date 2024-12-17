@@ -76,12 +76,6 @@ function pathStr = localpath(pathKeyword, projectName)
             pm = nansen.ProjectManager();
             folderPath = pm.CurrentProjectPath;
            
-        case 'Custom Metatable Variable'
-            [~, projectName] = fileparts(projectRootDir);
-
-            folderPath = fullfile(projectRootDir, 'code', ...
-                ['+', projectName], '+tablevariable');
-            
       % % Files
       
         case 'WatchFolderCatalog'
