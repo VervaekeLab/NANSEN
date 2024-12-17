@@ -760,6 +760,7 @@ classdef MetaTable < handle
                     end
                     obj.addTableVariable(thisName, defaultValue)
                 end
+                obj.save()
             end
         end
         
@@ -864,7 +865,7 @@ classdef MetaTable < handle
                 rehash
                 % Ad hoc, need to wait 1 second in order for new table variable 
                 % definitions to be registered. See nansen.module.Module/rehash
-                pause(1.1) 
+                pause(1.1)
             end
         end
 

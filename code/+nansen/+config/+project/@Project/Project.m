@@ -260,7 +260,7 @@ classdef Project < nansen.module.Module
             filePathStr = obj.getDataFilePath(varName);
             if options.LoadFromJson
                 try
-                    data = fileread(jsondecode(strcat(filePathStr, '.json')));
+                    data = jsondecode(fileread(strcat(filePathStr, '.json')));
                 catch
                     data = obj.loadData(varName);
                 end
