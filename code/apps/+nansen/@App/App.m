@@ -2456,7 +2456,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             import nansen.metadata.utility.getTableVariableUserFunctionPath
             % Todo, support multiple table types
             varName = tableVariableName;
-            filepath = getTableVariableUserFunctionPath(varName, 'session');
+            metaTableType = app.CurrentItemType;
+            filepath = getTableVariableUserFunctionPath(varName, metaTableType);
             edit(filepath)
         end
         
