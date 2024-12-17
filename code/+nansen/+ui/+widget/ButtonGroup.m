@@ -70,12 +70,14 @@ classdef ButtonGroup < handle
                     delete(obj.Components.Buttons(i))
                 end
             end
-            if isfield(obj.Parent.UserData, 'Separator') ...
-                    && ~isempty(obj.Parent.UserData.Separator)
-                try
-                    delete(obj.Parent.UserData.Separator)
-                catch
-                    % todo: use isvalid instead?
+            if isvalid(obj.Parent)
+                if isfield(obj.Parent.UserData, 'Separator') ...
+                        && ~isempty(obj.Parent.UserData.Separator)
+                    try
+                        delete(obj.Parent.UserData.Separator)
+                    catch
+                        % todo: use isvalid instead?
+                    end
                 end
             end
         end
