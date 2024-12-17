@@ -3,24 +3,29 @@ function pathStr = localpath(pathKeyword)
 %
 %   pathStr = localpath(pathKeyword)
 %
-%   See also nansen.config.addlocalpath (TODO)
-%
 %   This function provides absolute local paths for directory or filepaths
 %   of folders or files that are used within the nansen package.
 
-%   Use global variable to keep preference variables while matlab session
+%   Use persistent variable to keep preference variables while matlab session
 %   is running. Getting values using getprefs is quite slow, so this is a
 %   "work around"
 
-    global nansenPreferences
-    if isempty(nansenPreferences)
-        nansenPreferences = struct('localPath', containers.Map);
-    elseif ~isfield(nansenPreferences, 'localPath')
-        nansenPreferences.localPath = containers.Map;
+    arguments
+        pathKeyword (1,1) string
     end
     
-    if isKey(nansenPreferences.localPath, pathKeyword)
-        pathStr = nansenPreferences.localPath(pathKeyword);
+    persistent nansenLocalPathNames
+
+    if isempty(nansenLocalPathNames)
+        nansenLocalPathNames = struct('localPath', containers.Map);
+    elseif ~isfield(nansenLocalPathNames, 'localPath')
+        nansenLocalPathNames.localPath = containers.Map;
+    end
+    
+    pathKeyword = char(pathKeyword);
+
+    if isKey(nansenLocalPathNames.localPath, pathKeyword)
+        pathStr = nansenLocalPathNames.localPath(pathKeyword);
         return
     end
     
@@ -81,7 +86,7 @@ function pathStr = localpath(pathKeyword)
             
             if ispref('nansen_localpath', pathKeyword)
                 pathStr = getpref('nansen_localpath', pathKeyword);
-                nansenPreferences.localPath(pathKeyword) = pathStr;
+                nansenLocalPathNames.localPath(pathKeyword) = pathStr;
                 return
             else
                 error('No localpath found for "%s"', pathKeyword)
@@ -100,5 +105,5 @@ function pathStr = localpath(pathKeyword)
         pathStr = folderPath;
     end
     
-    nansenPreferences.localPath(pathKeyword) = pathStr;
+    nansenLocalPathNames.localPath(pathKeyword) = pathStr;
 end
