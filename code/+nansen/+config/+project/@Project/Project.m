@@ -231,16 +231,43 @@ classdef Project < nansen.module.Module
     end
     
     methods % TODO: implement a dataiomodel on project
-        function saveData(obj, varName, data)
+        function saveData(obj, varName, data, options)
+            arguments
+                obj
+                varName
+                data
+                options.SaveToJson (1,1) logical = false
+            end
+
             filePathStr = obj.getDataFilePath(varName);
-            S.(varName) = data;
-            save(filePathStr, '-struct', 'S');
+            
+            if options.SaveToJson
+                jsonStr = jsonencode(data, 'PrettyPrint', true);
+                utility.filewrite(strcat(filePathStr, '.json'), jsonStr);
+            else
+                S.(varName) = data;
+                save(filePathStr, '-struct', 'S');
+            end
         end
 
-        function data = loadData(obj, varName)
+        function data = loadData(obj, varName, options)
+            arguments
+                obj
+                varName
+                options.LoadFromJson (1,1) logical = false
+            end
+            
             filePathStr = obj.getDataFilePath(varName);
-            S = load(filePathStr, varName);
-            data = S.(varName);
+            if options.LoadFromJson
+                try
+                    data = fileread(jsondecode(strcat(filePathStr, '.json')));
+                catch
+                    data = obj.loadData(varName);
+                end
+            else
+                S = load(filePathStr, varName);
+                data = S.(varName);
+            end
         end
 
         function filePathStr = getDataFilePath(obj, varName)
@@ -482,10 +509,11 @@ classdef Project < nansen.module.Module
                 case 'MetaTableCatalog'
                     foldername = obj.METATABLE_FOLDER_NAME;
                     filename = 'metatable_catalog.mat';
-                                    
-                case 'MetatableColumnSettingsCatalog'
-                    foldername = obj.METATABLE_FOLDER_NAME;
-                    filename = 'metatable_column_settings.mat';
+                      
+                % % Todo: Should this be here?
+                % % case 'MetatableColumnSettingsCatalog'
+                % %     foldername = obj.METATABLE_FOLDER_NAME;
+                % %     filename = 'metatable_column_settings.mat';
                     
                 case 'DataLocationModel'
                     foldername = obj.CONFIG_FOLDER_NAME;

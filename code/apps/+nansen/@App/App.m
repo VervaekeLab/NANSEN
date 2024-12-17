@@ -3957,7 +3957,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             currentProjectName = app.ProjectManager.CurrentProject;
             projectObj = app.ProjectManager.getProjectObject(currentProjectName);
 
-            projectObj.saveData('MetatableColumnSettings', columnSettings)
+            projectObj.saveData('MetatableColumnSettings', columnSettings, 'SaveToJson', true)
         end
 
         function columnSettings = loadMetatableColumnSettingsFromProject(app)
@@ -3965,7 +3965,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             currentProjectName = app.ProjectManager.CurrentProject;
             projectObj = app.ProjectManager.getProjectObject(currentProjectName);
 
-            columnSettings = projectObj.loadData('MetatableColumnSettings');
+            columnSettings = projectObj.loadData('MetatableColumnSettings', "LoadFromJson", true);
         end
     end
 
