@@ -507,16 +507,6 @@ classdef ProjectManager < handle
             if ~isempty(newProjectName)
                 obj.addProjectToSearchPath( projectEntry.Path )
             end
-
-            % Todo: remove
-            global nansenPreferences
-            
-            % Reset local path variable
-            if ~isempty(nansenPreferences)
-                if isfield(nansenPreferences, 'localPath')
-                    nansenPreferences.localPath = containers.Map;
-                end
-            end
             
             eventData = CurrentProjectChangedEventData(oldProjectName, newProjectName);
             obj.notify('CurrentProjectSet', eventData)
@@ -639,14 +629,6 @@ classdef ProjectManager < handle
                     obj.removeProjectFromSearchPath(prevProject.FolderPath)
                 end
             end
-                       
-            % % Reset local path variable
-            % global nansenPreferences
-            % if ~isempty(nansenPreferences)
-            %     if isfield(nansenPreferences, 'localPath')
-            %         nansenPreferences.localPath = containers.Map;
-            %     end
-            % end
 
             eventData = CurrentProjectChangedEventData(oldProjectName, newProjectName);
             obj.notify('CurrentProjectSet', eventData)

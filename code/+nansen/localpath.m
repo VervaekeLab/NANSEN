@@ -1,4 +1,4 @@
-function pathStr = localpath(pathKeyword, projectName)
+function pathStr = localpath(pathKeyword)
 % Get (absolute) local paths for files & folders used in the nansen package
 %
 %   pathStr = localpath(pathKeyword)
@@ -7,9 +7,6 @@ function pathStr = localpath(pathKeyword, projectName)
 %
 %   This function provides absolute local paths for directory or filepaths
 %   of folders or files that are used within the nansen package.
-
-% Todo: Should not give project dependent paths. This is a task for
-% ProjectManager, or better, a Project class.
 
 %   Use global variable to keep preference variables while matlab session
 %   is running. Getting values using getprefs is quite slow, so this is a
@@ -22,28 +19,11 @@ function pathStr = localpath(pathKeyword, projectName)
         nansenPreferences.localPath = containers.Map;
     end
     
-    if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')
-        if isKey(nansenPreferences.localPath, pathKeyword)
-            pathStr = nansenPreferences.localPath(pathKeyword);
-            return
-        end
+    if isKey(nansenPreferences.localPath, pathKeyword)
+        pathStr = nansenPreferences.localPath(pathKeyword);
+        return
     end
     
-    if nargin < 2 || isempty(projectName) || strcmp(projectName, 'current')% Should it be called current?
-        
-        userSession = nansen.internal.user.NansenUserSession.instance('', 'nocreate');
-        if ~isempty(userSession)
-            projectRootDir = nansen.config.project.ProjectManager.getProjectPath();
-        else
-            projectRootDir = '';
-            warning('Calling localpath with no active user session')
-        end
-    else
-        projectRootDir = nansen.config.project.ProjectManager.getProjectPath(projectName);
-    end
-
-    projectRootDir = char(projectRootDir);
-
     % Determine path folder (and filename if relevant) based input keyword
     switch pathKeyword
         
@@ -90,29 +70,6 @@ function pathStr = localpath(pathKeyword, projectName)
             initPath = nansen.localpath('user_data');
             folderPath = fullfile(initPath, 'projects');
             fileName = 'project_catalog.mat';
-
-        case 'MetaTableCatalog'
-            folderPath = fullfile(projectRootDir, 'Metadata Tables');
-            fileName = 'metatable_catalog.mat';
-            
-        case 'ProjectConfiguration'
-            folderPath = fullfile(projectRootDir, 'Configurations');
-        
-        case {'ProjectCustomOptions', 'project_custom_options'}
-            folderPath = fullfile(projectRootDir, 'Configurations', 'custom_options');
-            
-        case 'FilePathSettings'
-            folderPath = fullfile(projectRootDir, 'Configurations');
-            fileName = 'filepath_settings.mat';
-            
-        case 'DataLocationSettings'
-            folderPath = fullfile(projectRootDir, 'Configurations');
-            fileName = 'datalocation_settings.mat';
-            
-        case 'SessionMatchMaker'
-            [~, projectName] = fileparts(projectRootDir);
-            folderPath = fullfile(projectRootDir, ['+', projectName]);
-            fileName = 'matchFolderListWithSessionID.m';
               
         otherwise
             % open dialog and save to preferences or get from preferences
@@ -144,5 +101,4 @@ function pathStr = localpath(pathKeyword, projectName)
     end
     
     nansenPreferences.localPath(pathKeyword) = pathStr;
-
 end

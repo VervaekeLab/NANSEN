@@ -84,6 +84,10 @@ classdef Project < nansen.module.Module
     end
     
     methods
+        function cd(obj)
+            cd(obj.FolderPath)
+        end
+
         function addToSearchPath(obj)
             if ~contains(path, obj.FolderPath)
                 addpath(genpath(obj.FolderPath), '-end')
@@ -97,6 +101,7 @@ classdef Project < nansen.module.Module
             end
             % Todo: Remove dependent modules
         end
+        
         function addMetaTable(obj, metaTable)
             arguments
                 obj (1,1) nansen.config.project.Project
@@ -139,6 +144,10 @@ classdef Project < nansen.module.Module
                     mkdir(folderPath)
                 end
             end
+        end
+
+        function folderPath = getCustomOptionsFolder(obj)
+            folderPath = obj.getConfigurationFolder('Subfolder', 'custom_options');
         end
 
         function folderPath = getMetadataFolder(obj)

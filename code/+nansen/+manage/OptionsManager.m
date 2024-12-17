@@ -280,7 +280,8 @@ classdef OptionsManager < handle
         
             switch location
                 case 'project'
-                    folderPath = nansen.localpath('project_custom_options');
+                    project = nansen.getCurrentProject();
+                    folderPath = project.getCustomOptionsFolder();
                 case 'local'
                     folderPath = nansen.localpath('custom_options');
             end
