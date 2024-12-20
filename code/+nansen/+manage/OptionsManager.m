@@ -1025,8 +1025,12 @@ classdef OptionsManager < handle
             
             if isempty(s) % This folder is empty... abort.
                 error('No preset package was found')
+            elseif numel(s) > 1
+                 nansen.common.tracelesswarning(...
+                     'Multiple instances of NANSEN is on MATLAB''s search path')
+                s = s(1);
             end
-            
+
             % If a presets folder exist, get the existing presets
             if ~isempty(s.packages) && contains('presets', s.packages)
                 
