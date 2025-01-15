@@ -49,6 +49,11 @@ classdef Module < handle
     properties (Access = private)
         ItemTables
         CachedFilePaths
+        % LastItemTableUpdateTime - Map where key is the name of an item
+        % table and value is a the tic count for when the table was last
+        % updated
+        LastUpdateTimeForItemTable ...
+            {mustBeA(LastUpdateTimeForItemTable, 'containers.Map')}
     end
 
     properties (Constant, Hidden)
@@ -91,6 +96,7 @@ classdef Module < handle
 
             obj.CachedFilePaths = containers.Map();
             obj.ItemTables = containers.Map();
+            obj.LastUpdateTimeForItemTable = containers.Map();
         end
     end
 
@@ -262,10 +268,15 @@ classdef Module < handle
         %rehash Check for changes to modulefiles and perform update if necessary
             if nargin < 3; forceRefresh = false; end
 
-            persistent lastTic; if isempty(lastTic); lastTic = containers.Map; end
+            if isKey(obj.LastUpdateTimeForItemTable, itemType);
+                lastTic = obj.LastUpdateTimeForItemTable(itemType);
+            else
+                lastTic = uint64(0);
+            end
+
             deltaT = 1; % Update interval in seconds for checking file system for changes.
 
-            if ~isKey(lastTic, itemType) || toc(lastTic(itemType)) > deltaT
+            if toc(lastTic) > deltaT
             
                 fileList = obj.listFiles(itemType);
     
@@ -280,7 +291,7 @@ classdef Module < handle
                     end
                 end
                 obj.CachedFilePaths(itemType) = fileList;
-                lastTic(itemType) = tic;
+                obj.LastUpdateTimeForItemTable(itemType) = tic();
             else
                 itemTable = obj.ItemTables(itemType);
             end
