@@ -245,6 +245,7 @@ classdef Binary < nansen.stack.data.VirtualArray
     methods (Static, Hidden)
         
         function iniFilepath = getIniFilepath(filepath)
+            filepath = char(filepath);
             [folder, filename, ~] = fileparts(filepath);
             iniFilepath = fullfile(folder, [filename, '.ini']);
         end
