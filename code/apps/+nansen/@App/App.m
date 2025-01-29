@@ -2561,7 +2561,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 case 'SelectedRows'
                     app.assertSessionSelected()
 
-                    sessionObj = app.getSelectedMetaObjects();
+                    metaObjects = app.getSelectedMetaObjects();
                     rows = app.UiMetaTableViewer.getSelectedEntries();
 
                 case 'AllEmptyRows'
@@ -2571,10 +2571,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 case 'AllRows' % All visible rows
                     rows = app.UiMetaTableViewer.DisplayedRows;
-                    sessionObj = app.tableEntriesToMetaObjects(app.MetaTable.entries(rows,:));
+                    metaObjects = app.tableEntriesToMetaObjects(app.MetaTable.entries(rows,:));
             end
             
-            numSessions = numel(sessionObj);
+            numSessions = numel(metaObjects);
             
             if numSessions > 5 && ~reset
                 h = waitbar(0, 'Please wait while updating values');
@@ -2611,7 +2611,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 for iSession = 1:numSessions
                     try % Todo: Use error handling here. What if some conditions can not be met...
-                        newValue = updateFcn(sessionObj(iSession));
+                        newValue = updateFcn(metaObjects(iSession));
 
                         if isa(newValue, 'nansen.metadata.abstract.TableVariable')
                             if isequal(newValue.Value, newValue.DEFAULT_VALUE)
@@ -2688,7 +2688,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             rows(skippedRowInd) = [];
             
             if ~isempty(skippedRowInd)
-                objectIDs = app.getObjectId(sessionObj(skippedRowInd));
+                objectIDs = app.getObjectId(metaObjects(skippedRowInd));
                 objectIDsAsText = strjoin(objectIDs, newline);
                 messageStr = sprintf( 'Failed to update %s for the following %ss:\n\n%s\n', varName, lower(tableType), objectIDsAsText);
                 errorMessage = sprintf('\nThe following error message was caught:\n%s', ME.message);
@@ -3592,16 +3592,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function sendToWorkspace(app)
                     
-            sessionObj = app.getSelectedMetaObjects();
+            metaObjects = app.getSelectedMetaObjects();
 
-            if ~isempty(sessionObj) % Todo: Resolve varName more flexibly
+            if ~isempty(metaObjects) % Todo: Resolve varName more flexibly
                 if strcmp( app.UiMetaTableSelector.CurrentSelection, 'Session' )
                     varName = app.settings.Session.SessionObjectWorkspaceName;
                 else
                     varName = app.UiMetaTableSelector.CurrentSelection;
                 end
 
-                assignin('base', lower(varName), sessionObj)
+                assignin('base', lower(varName), metaObjects)
             end
         end
     end
