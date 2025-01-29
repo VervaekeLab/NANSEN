@@ -122,6 +122,15 @@ classdef MetaTable < handle
     
     methods
         
+        function itemConstructor = getItemConstructor(obj)
+        % getItemConstructor - Get function handle for item constructor
+            if isempty(obj.ItemClassName)
+                itemConstructor = str2func(obj.MetaTableClass);
+            else
+                itemConstructor = str2func(obj.ItemClassName);
+            end
+        end
+
         function className = class(obj)
         %CLASS Override class method to return the class/schema type of
         %the MetaTable entries.

@@ -1656,22 +1656,26 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function metaObjects = createMetaObjects(app, tableEntries, useCache)
-        %createMetaObjects Create new meta objects from table entries
+        %createMetaObjects - Create new meta objects from table entries
             
-            if nargin < 3 || isempty(useCache); useCache = true; end
-
-            % Todo: Need to apply this fix when migrating projects
-            if isempty(app.MetaTable.ItemClassName)
-                schema = str2func(class(app.MetaTable));
-                % schema = @table2struct;
-            else
-                schema = str2func(app.MetaTable.ItemClassName);
+            arguments
+                app (1,1) nansen.App
+                tableEntries
+                useCache = true
+            end
+            
+            % Todo: Should eventually get items directly from the MetaTable object
+            try
+                itemConstructor = app.MetaTable.getItemConstructor();
+            catch
+                itemConstructor = @table2struct;
             end
 
             if isempty(tableEntries)
                 try
-                    metaObjects = schema().empty;
+                    metaObjects = itemConstructor().empty;
                 catch
+                    % Todo: Error handling
                     metaObjects = [];
                 end
                 return;
@@ -1681,22 +1685,39 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Create list of name value pairs for the current datalocation
             % model and variable model.
             if any(strcmp(tableEntries.Properties.VariableNames, 'DataLocation'))
-                nvPairs = {'DataLocationModel', app.DataLocationModel, ...
-                            'VariableModel', app.VariableModel};
+                nvPairs = {...
+                    'DataLocationModel', app.DataLocationModel, ...
+                    'VariableModel', app.VariableModel
+                    };
             else
                 nvPairs = {};
             end
 
-            metaObjects = schema(tableEntries, nvPairs{:});
+            numItems = height(tableEntries);
+            metaObjects = cell(1, numItems);
+
+            for i = 1:numItems
+                try
+                    metaObjects{i} = itemConstructor(tableEntries(i,:), nvPairs{:});
+                catch
+                    continue
+                end
+                try
+                    addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
+                    addlistener(metaObjects, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
+                catch
+                    % Todo: Either throw warning or implement interface for
+                    % easily implementing PropertyChanged on any table
+                    % class..
+                end
+            end
 
             try
-                addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
-                addlistener(metaObjects, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
+                metaObjects = [metaObjects{:}];
             catch
-                % Todo: Either throw warning or implement interface for
-                % easily implementing PropertyChanged on any table
-                % class..
+                % Pass. Todo: Error, warning or handle some way?
             end
+
 
             if useCache
                 % Add newly created metaobjects to the list
@@ -2546,6 +2567,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 case 'AllEmptyRows'
                     
                 case 'AllRows'
+                    
                     rows = 1:size(app.MetaTable.entries, 1);
                     sessionObj = app.tableEntriesToMetaObjects(app.MetaTable.entries);
             end
@@ -4025,7 +4047,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         %% User dialog - Display information, warning and error messages
         function throwSessionMethodFailedError(app, ME, taskName, methodName)
-        % throwSessionMethodFailedError - Display error message if task fails            
+        % throwSessionMethodFailedError - Display error message if task fails
+            if iscell(taskName)
+                taskName = taskName{1};
+            end
             errorMessage = sprintf([...
                 'Method ''%s'' failed for session ''%s'', with the ', ...
                 'following error:\n\n %s'], methodName, taskName, ME.message);
