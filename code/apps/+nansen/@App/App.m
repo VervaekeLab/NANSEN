@@ -2565,11 +2565,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     rows = app.UiMetaTableViewer.getSelectedEntries();
 
                 case 'AllEmptyRows'
-                    
-                case 'AllRows'
-                    
-                    rows = 1:size(app.MetaTable.entries, 1);
-                    sessionObj = app.tableEntriesToMetaObjects(app.MetaTable.entries);
+                    % Todo. Should find all rows where the value has not
+                    % been updated, i.e were the value is still the
+                    % null/default value
+
+                case 'AllRows' % All visible rows
+                    rows = app.UiMetaTableViewer.DisplayedRows;
+                    sessionObj = app.tableEntriesToMetaObjects(app.MetaTable.entries(rows,:));
             end
             
             numSessions = numel(sessionObj);
