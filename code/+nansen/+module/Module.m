@@ -52,8 +52,7 @@ classdef Module < handle
         % LastItemTableUpdateTime - Map where key is the name of an item
         % table and value is a the tic count for when the table was last
         % updated
-        LastUpdateTimeForItemTable ...
-            {mustBeA(LastUpdateTimeForItemTable, 'containers.Map')}
+        LastUpdateTimeForItemTable
     end
 
     properties (Constant, Hidden)
