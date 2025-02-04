@@ -1151,6 +1151,12 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             assert(any(strcmp({'BW', 'Grayscale', 'RGB', 'Custom'}, newValue)), msg)
             obj.ColorModel = newValue; 
         end
+
+        function set.CustomColorModel(obj, newValue)
+            obj.MetaData.ChannelColor = newValue;
+            obj.MetaData.save()
+            obj.CustomColorModel = newValue;
+        end
         
         function set.DimensionOrder(obj, newValue)
             if isempty(obj.Data); return;end
@@ -1515,6 +1521,18 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function autoAssignColorModel(obj)
         
+            if ~isempty(obj.MetaData.ChannelColor)
+                obj.ColorModel = 'Custom';
+                if isa(obj.MetaData.ChannelColor, 'cell')
+                    obj.CustomColorModel = cell2mat(obj.MetaData.ChannelColor);
+                elseif isnumeric(obj.MetaData.ChannelColor)
+                    obj.CustomColorModel = obj.MetaData.ChannelColor;
+                else
+                    warning('Unexpected type for color model')
+                end
+                return
+            end
+
             if obj.NumChannels == 1
             	obj.ColorModel = 'Grayscale';
             elseif obj.NumChannels == 3

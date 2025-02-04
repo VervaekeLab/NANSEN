@@ -33,6 +33,7 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
     properties
         ChannelDescription
         ChannelIndicator
+        ChannelColor (:,3)
     end
     
     properties
