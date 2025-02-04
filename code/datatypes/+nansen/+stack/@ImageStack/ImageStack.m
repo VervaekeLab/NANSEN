@@ -265,7 +265,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         %
         %   imArray = imageStack.getFrameSet('all') returns all available
         %   frames. For VirtualData, all available frames equals frames in
-        %   the Cache. If Caching is off, a subset of N frmaes are
+        %   the Cache. If Caching is off, a subset of N frames are
         %   retrieved.
         %
         %   NOTE: The behavior of getFrameSet is influenced by the values
