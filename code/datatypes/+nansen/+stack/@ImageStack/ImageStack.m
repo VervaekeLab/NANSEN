@@ -500,7 +500,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             if all( newImageSize < currentImageSize )
                 newImage = stack.reshape.imexpand(newImage, currentImageSize);
-            elseif all( newImageSize < currentImageSize )
+            elseif all( newImageSize > currentImageSize )
                 newImage = stack.reshape.imcropcenter(newImage, currentImageSize);
             else
                 % Expand along longest dimension and crop along shortest. 
@@ -1153,11 +1153,16 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
 
         function set.CustomColorModel(obj, newValue)
-            obj.MetaData.ChannelColor = newValue;
-            obj.MetaData.save()
             obj.CustomColorModel = newValue;
+            obj.postSetCustomColorModel()
         end
-        
+
+        function postSetCustomColorModel(obj)
+            % Todo: standardize obj.CustomColorModel...
+            obj.MetaData.ChannelColor = obj.CustomColorModel;
+            obj.MetaData.save()
+        end
+
         function set.DimensionOrder(obj, newValue)
             if isempty(obj.Data); return;end
             obj.Data.StackDimensionArrangement = newValue;
