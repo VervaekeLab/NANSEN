@@ -1009,11 +1009,10 @@ methods
                 pixelIdxList = sub2ind(imsize, Y, X);
                 
             case {'Mask', 'IMask'}
-                X = round(obj.coordinates(:,1));
                 Y = round(obj.coordinates(:,2));
+                X = round(obj.coordinates(:,1));
                 [X, Y] = obj.validateCoordinates(X, Y);
                 pixelIdxList = sub2ind(imsize, Y, X);
-
             case 'Polygon'
                 pixelIdxList = find(obj.mask);
         end
