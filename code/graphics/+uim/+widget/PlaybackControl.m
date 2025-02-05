@@ -45,13 +45,18 @@ classdef PlaybackControl < uim.mixin.assignProperties
         ActiveRangeChangedFcn = []      % Callback for when active range changes.
         
     end
-    
+
     properties % Appearance
         BackgroundColor = [0.94, 0.94, 0.94];
         ButtonColor = ones(1,3) * 0.6;
         
         BarWidth = 4;
         BarPadding = 10; % In length direction (pixel units)
+    end
+
+    % Multi-channel related properties
+    properties (Dependent, SetAccess = private)
+        ChannelIndicatorWidget
     end
     
     properties (Dependent)
@@ -247,7 +252,9 @@ classdef PlaybackControl < uim.mixin.assignProperties
         end
         
         function set.CurrentChannels(obj, newValue)
-        	obj.hChannelIndicator.CurrentChannels = newValue;
+            if ~isempty(obj.hChannelIndicator)
+        	    obj.hChannelIndicator.CurrentChannels = newValue;
+            end
         end
         
         function set.CurrentPlane(obj, newValue)
@@ -262,6 +269,10 @@ classdef PlaybackControl < uim.mixin.assignProperties
             else
                 obj.channelColors_ = newValue;
             end
+        end
+
+        function value = get.ChannelIndicatorWidget(obj)
+            value = obj.hChannelIndicator;
         end
         
         function chColors = get.ChannelColors(obj)

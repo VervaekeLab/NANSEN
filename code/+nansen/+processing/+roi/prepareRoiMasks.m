@@ -36,6 +36,10 @@ function sOut = prepareRoiMasks(roiArray, varargin)
     if strcmp(P.roiMaskFormat, 'n/a')
         sOut = roiArray; return
     end
+
+    if ischar(P.roiInd) && strcmp(P.roiInd, 'all')
+        P.roiInd = 1:numel(roiArray);
+    end
     
     % Convert roiArray to struct array of masks for better performance
     % during signal extraction...

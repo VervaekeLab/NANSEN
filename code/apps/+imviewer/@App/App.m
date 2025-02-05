@@ -291,23 +291,24 @@ methods % Structors
         if ~all(isnan(obj.DisplayedImage(:)))
             set(obj.hDropbox, 'Visible', 'off')
         end
-        
+
         if nargout == 0
             clear obj
         end
     end
     
     function delete(obj) % Destructor
-        
         if obj.isPlaying
             obj.isPlaying = false;
-            dt = 1 / obj.ImageStack.getSampleRate;
-            pause(dt*2)
+            if ~isempty(obj.ImageStack) && isvalid(obj.ImageStack)
+                dt = 1 / obj.ImageStack.getSampleRate;
+                pause(dt*2)
+            end
         end
         
         obj.unregisterApp()
         
-        if ~isempty(obj.dndObj)
+        if ~isempty(obj.dndObj) && isvalid(obj.dndObj)
             delete(obj.dndObj)
         end
         
@@ -318,7 +319,6 @@ methods % Structors
         end
         
         clear obj
-        
     end
     
     function quit(obj)
@@ -330,29 +330,21 @@ methods % Structors
         if ~isvalid(obj); return; end
         
         if obj.DeleteImageStackOnQuit
-            delete(obj.ImageStack)
-        end
-        
-        if ~isfield(obj.settings_.ImageDisplay, 'imageBrightnessLimits')
-            i = 1;
-            while true
-                newFieldName = sprintf('imageBrightnessLimitsCh%d',i);
-                if isfield(obj.settings_.ImageDisplay, newFieldName)
-                    obj.settings_.ImageDisplay = rmfield(obj.settings_.ImageDisplay, newFieldName);
-                else
-                    break
-                end
-                i = i+1;
+            if ~isempty(obj.ImageStack) && isvalid(obj.ImageStack)
+                delete(obj.ImageStack)
             end
-            obj.settings_.ImageDisplay.imageBrightnessLimits = [0,1];
         end
 
         obj.unregisterApp()
-        obj.saveSettings()
-        delete(obj.Figure)
-        delete(obj.dndObj)
+        try
+            obj.saveSettings()
+        catch ME
+            warning("IMVIEWER:Quit:SaveSettingsFailed", ...
+                "Failed to save settings. Reason:\n %s", ME.message)
+        end
+
+        delete(obj.Figure) % Todo: Is this needed here? Should perhaps be handled by superclass (ModularApp)
         delete(obj)
-        clear('obj')
         
         % Todo: Test: Do i need to delete plugins here?
     end
@@ -874,6 +866,12 @@ methods % App initialization & creation
         
         obj.uiwidgets.playback.NumChannels = obj.ImageStack.NumChannels;
         obj.uiwidgets.playback.CurrentChannels = obj.currentChannel;
+
+        % Set callback functions for ChannelIndicator sub-widget
+        if ~isempty(obj.uiwidgets.playback.ChannelIndicatorWidget)
+            obj.uiwidgets.playback.ChannelIndicatorWidget.ChangeDefaultsCallback = ...
+                @obj.onDefaultChannelColorSelectionChanged;
+        end
     end
     
     function createThumbnailViewerToggleButton(obj)
@@ -1562,6 +1560,31 @@ methods % App initialization & creation
         iptPointerManager(obj.Figure);
         iptSetPointerBehavior(obj.Figure, pointerBehavior);
     end
+    
+    function saveSettings(obj)
+    % saveSettings - Custom modification of settings before saving
+
+        % Reset value for special field. Make sure to set the settings_ to
+        % avoind triggering callbacks
+        obj.settings_.ImageDisplay.CurrentChannelColor_ = {};
+
+        % Reset multichannel image brightness limits
+        if ~isfield(obj.settings_.ImageDisplay, 'imageBrightnessLimits')
+            i = 1;
+            while true
+                newFieldName = sprintf('imageBrightnessLimitsCh%d',i);
+                if isfield(obj.settings_.ImageDisplay, newFieldName)
+                    obj.settings_.ImageDisplay = rmfield(obj.settings_.ImageDisplay, newFieldName);
+                else
+                    break
+                end
+                i = i+1;
+            end
+            obj.settings_.ImageDisplay.imageBrightnessLimits = [0,1];
+        end
+
+        saveSettings@applify.mixin.UserSettings(obj)
+    end
 end
 
 methods % Set/Get
@@ -1658,22 +1681,37 @@ methods % Set/Get
     end
     
     function channelColors = get.ChannelColors(obj)
-                
-        switch obj.ImageStack.ColorModel
-            case 'RGB'
-                channelColors = {'r', 'g', 'b'};
-            case 'Custom'
-                channelColors = obj.ImageStack.CustomColorModel;
-                
-                if ~isa(channelColors, 'cell')
-                    numCh = size(channelColors, 1);
-                    channelColors = mat2cell(channelColors, ones(1,numCh), 3);
-                end
-                
-            otherwise
-                channelColors = [];
-                
+        if isempty( obj.settings.ImageDisplay.CurrentChannelColor_ )
+            obj.updateChannelColorSelectionInSettings()
         end
+        channelColors = obj.settings.ImageDisplay.CurrentChannelColor_;
+        if ~iscell(channelColors)
+            if isnumeric(channelColors)
+                nCh = size(channelColors,1);
+                channelColors = mat2cell(channelColors, ones(1, nCh), 3);
+            else
+                error('Unexpected data type for channel colors')
+            end
+        end
+    end
+
+    function updateChannelColorSelectionInSettings(obj)
+        
+        % If there is a custom color model on the image stack, we use that.
+        if strcmp(obj.ImageStack.ColorModel, "Custom")
+            channelColors = obj.ImageStack.CustomColorModel;
+
+        else
+            numChannels = obj.ImageStack.NumChannels;
+
+            if isKey(obj.settings.ImageDisplay.DefaultChannelColors_, numChannels)
+                channelColors = obj.settings.ImageDisplay.DefaultChannelColors_(numChannels);
+            else
+                channelColors = mat2cell(hsv(numChannels), ones(1,numChannels), 3);
+                obj.settings.ImageDisplay.DefaultChannelColors_(numChannels) = channelColors;
+            end
+        end
+        obj.settings.ImageDisplay.CurrentChannelColor_ = channelColors;
     end
         
     function set.LinkedApps(obj, newValue)
@@ -1903,6 +1941,10 @@ methods % App update
         if strcmp(obj.ImageStack.ColorModel, 'RGB')
             %channelColors = {'red', 'green', 'blue'};
             channelColors = {[1,0,0], [0,1,0], [0,0,1]};
+
+        elseif strcmp(obj.ImageStack.ColorModel, 'HSV')
+            numCh = obj.ImageStack.NumChannels;
+            channelColors = mat2cell(hsv(numCh), ones(1,numCh), 3);
         
         elseif strcmp(obj.ImageStack.ColorModel, 'Custom')
             channelColors = obj.ImageStack.CustomColorModel;
@@ -1910,6 +1952,8 @@ methods % App update
                 numCh = size(channelColors, 1);
                 channelColors = mat2cell(channelColors, ones(1,numCh), 3);
             end
+        else
+            channelColors = obj.ChannelColors;
         end
         
         colorArray = cat(1, channelColors{:});
@@ -2805,6 +2849,17 @@ methods % Event/widget callbacks
         end
         obj.ImageStack.CustomColorModel(channelNumber, :) = rgbColor;
         obj.updateImageDisplay()
+    end
+
+    function onDefaultChannelColorSelectionChanged(obj, channelColorArray)
+    % Handles user selecting to use current channel colors as defaults.
+        numChannels = numel(channelColorArray);
+        
+        % Update the private settings hold the Default Channel colors for
+        % the different possible number of channels and for the current
+        % number of channels
+        obj.settings.ImageDisplay.DefaultChannelColors_(numChannels) = channelColorArray;
+        obj.settings.ImageDisplay.CurrentChannelColor_ = channelColorArray;
     end
 
     function showScalebar(obj)
@@ -5689,6 +5744,7 @@ methods (Access = private) % Methods that runs when properties are set
                 
         obj.setTempProperties()
         obj.setImageStackSettings()
+        obj.updateChannelColorSelectionInSettings()
 
         if  obj.isConstructed
             obj.setSliderExtremeLimits()
@@ -5703,6 +5759,9 @@ methods (Access = private) % Methods that runs when properties are set
             %uistack(obj.imObj, 'up')
             
             obj.uiwidgets.playback.resetRangeSelector()
+            if ~isempty(obj.uiwidgets.playback.ChannelIndicatorWidget)
+                obj.uiwidgets.playback.ChannelColors = obj.ChannelColors;
+            end
 
             if obj.ImageStack.HasStaticCache
                 cacheRange = obj.ImageStack.Data.StaticCacheRange;
