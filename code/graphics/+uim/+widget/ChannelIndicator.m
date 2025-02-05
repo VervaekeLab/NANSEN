@@ -34,6 +34,12 @@ classdef ChannelIndicator < uim.mixin.assignProperties
         
         Callback = []
         ChannelColorCallback = []
+        % ChangeDefaultsCallback - Callback function that can be attached
+        % to respond to changes in default color selection. The function
+        % should take a single input, a cell array with numChannels
+        % element, where each element is one rgb value, i.e
+        %   changeDefaultFcn(cellArrayWithRgbPerChannel)
+        ChangeDefaultsCallback = []
     end
     
     properties (Access = protected)
@@ -160,8 +166,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
                     if isempty(answer); return; end
                     lambda = str2double(answer{1});
                     rgb = spectrumRGB(lambda);
-
-                    
             end
             evtData = uiw.event.EventData('ChannelNumber', chNum, ...
                 'RgbColor', rgb);
@@ -173,6 +177,13 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             obj.ChannelColors{chNum} = rgb;
             obj.updateIndicatorColor(chNum, rgb)
 
+        end
+
+        function onChangeDefaulsMenuItemClicked(obj, ~, ~)
+            if ~isempty(obj.ChangeDefaultsCallback)
+                channelColors = obj.ChannelColors;
+                obj.ChangeDefaultsCallback(channelColors)
+            end
         end
 
         function selectChannel(obj, channelNum)
@@ -252,6 +263,8 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             mitem.MenuSelectedFcn = @obj.changeChannelColor;
             mitem = uimenu(hMenu, 'Text', 'Enter Wavelength...');
             mitem.MenuSelectedFcn = @obj.changeChannelColor;
+            mitem = uimenu(hMenu, 'Text', 'Make Default', 'Separator', 'on');
+            mitem.MenuSelectedFcn = @obj.onChangeDefaulsMenuItemClicked;
 
             obj.ContextMenu = hMenu;
         end
@@ -508,13 +521,16 @@ classdef ChannelIndicator < uim.mixin.assignProperties
         function onCurrentChannelsChanged(obj)
             
             for i = 1:obj.NumChannels
-                
-                if any(ismember(obj.CurrentChannels, i))
-                    obj.changeIndicatorAppearance(i)
-                else
-                    obj.changeIndicatorAppearance(i)
-                end
-                
+                obj.changeIndicatorAppearance(i)
+
+                % Post hoc: Commented out, do not remember why I added
+                % this conditional. Keep for future refactoring, in case I
+                % recall whether this if/else is necessary
+                % if any(ismember(obj.CurrentChannels, i))
+                %     obj.changeIndicatorAppearance(i)
+                % else
+                %     obj.changeIndicatorAppearance(i)
+                % end
             end
 
         end

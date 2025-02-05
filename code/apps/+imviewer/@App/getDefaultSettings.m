@@ -23,17 +23,20 @@ S.ImageDisplay.colorMap_     = {'Viridis', 'Magma', 'Gray', 'Copper', 'Bone', ..
                                 'Nissl', 'BuPu', 'GnBu', 'Greens', 'PuBuGn', 'YlOrRd', ...
                                 'thermal', 'haline', 'solar', 'ice', 'deep', 'dense', ...
                                 'algae','matter','turbid','speed', 'amp','tempo' }; % Colormap alternatives
-                            
+S.ImageDisplay.CurrentChannelColor_ = {};
+S.ImageDisplay.DefaultChannelColors_ = containers.Map(...
+                                        {2, 3, 4}, ...
+                                        { {[1,0,0], [0,1,1]}, {[1,0,0], [0,1,0], [0,0,1]}, {[1 0 0], [0.5000 1 0], [0 1 1], [0.5000 0 1]}} ...
+                                        ); % This needs to be revised if saving settings to json
+
 S.ImageDisplay.VolumeDisplayMode = 'Single Plane';
 S.ImageDisplay.VolumeDisplayMode_ = {'Single Plane', 'Plane Projection', 'Plane Montage'};
 %S.ImageDisplayVolumeMontageSize = [1, 1];
-
 
 % S.ImageStack.DataDimensionOrder = '';
 % S.ImageStack.PixelSize = [1, 1];
 % S.ImageStack.PixelUnits = ["um", "um"];
 % S.ImageStack.SampleRate = 1;
-
 
 % Options for loading virtual stacks..
 S.VirtualData.useDynamicCache  = true;         % Number of frames to keep in memory when working with virtual stacks.

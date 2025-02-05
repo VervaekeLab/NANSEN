@@ -81,6 +81,8 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         Panel matlab.ui.container.Panel
         
         FigureInteractionListeners
+        FigureDestroyedListener event.listener
+        ApplicationState = "Uninitialized"
         %Widgets
     end
     
@@ -131,7 +133,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             if nargin < 3; mode = 'standalone'; end
     
             app.mode = newMode;
-
         end
         
     end
@@ -147,7 +148,8 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             else
                 app.mode = 'standalone';
             end
-            
+
+            app.ApplicationState = "Initializing";
             
             % Initialize figure and panel properties based on mode
             switch app.mode
@@ -157,7 +159,6 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                 case 'standalone'
                     app.createAppWindow()
                     app.createAppPanel(app.Figure)
-
             end
             
             % Why not set this in createAppPanel?
@@ -165,7 +166,9 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             
             % Check version of matlab.
             app.matlabVersionCheck()
-            
+
+            app.FigureDestroyedListener = listener(app.Figure, ...
+                'ObjectBeingDestroyed', @app.onFigureBeingDestroyed);
         end
         
         function delete(app)
@@ -177,6 +180,11 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                 
             end
         end
+
+        function quit(app)
+            app.ApplicationState = "Quitting";
+            delete(app)
+        end
     end
     
     methods %Set/Get
@@ -186,11 +194,10 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             
             obj.isConstructed = newValue;
             obj.onConstructed()
-            
         end
     end
-    
-    methods 
+
+    methods
         function tf = isMouseInApp(app)
         
             tf = false;
@@ -483,7 +490,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             end
             
             obj.Panel.Visible = 'on';
-
+            obj.ApplicationState = "Running";
         end
         
         function onSizeChanged(app, src, evt)
@@ -510,6 +517,14 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
         
     end
     
+    methods (Access = private)
+        function onFigureBeingDestroyed(obj, ~, ~)
+            if obj.ApplicationState == "Running"
+                obj.quit()
+            end
+        end
+    end
+
     methods (Access = {?applify.ModularApp, ?applify.DashBoard} ) % Event / interactive Callbacks
 
         function onKeyPressed(obj, src, evt)

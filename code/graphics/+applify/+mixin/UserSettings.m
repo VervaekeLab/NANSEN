@@ -449,7 +449,6 @@ classdef (Abstract) UserSettings < uim.handle
             
             obj.settings = updatedSettings;
             obj.saveSettings()
-            
         end
         
     end
