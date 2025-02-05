@@ -2920,15 +2920,14 @@ methods % Event/widget callbacks
     end
 
     function onDefaultChannelColorSelectionChanged(obj, channelColorArray)
-        % Todo: Save in a structure/dictionary where there is one default
-        % value per number of channels....
-
+    % Handles user selecting to use current channel colors as defaults.
         numChannels = numel(channelColorArray);
         
-        if isKey(obj.settings.ImageDisplay.DefaultChannelColors_, numChannels)
-            obj.settings.ImageDisplay.DefaultChannelColors_(numChannels) = channelColorArray;
-            obj.settings.ImageDisplay.CurrentChannelColor_ = channelColorArray;
-        end
+        % Update the private settings hold the Default Channel colors for
+        % the different possible number of channels and for the current
+        % number of channels
+        obj.settings.ImageDisplay.DefaultChannelColors_(numChannels) = channelColorArray;
+        obj.settings.ImageDisplay.CurrentChannelColor_ = channelColorArray;
     end
 
     function showScalebar(obj)
@@ -5831,6 +5830,9 @@ methods (Access = private) % Methods that runs when properties are set
             %uistack(obj.imObj, 'up')
             
             obj.uiwidgets.playback.resetRangeSelector()
+            if ~isempty(obj.uiwidgets.playback.ChannelIndicatorWidget)
+                obj.uiwidgets.playback.ChannelColors = obj.ChannelColors;
+            end
             % Todo: Set channel color in widget...
 
             if obj.ImageStack.HasStaticCache

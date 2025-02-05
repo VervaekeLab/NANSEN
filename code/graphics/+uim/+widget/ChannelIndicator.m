@@ -140,7 +140,22 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             obj.CurrentChannels = newValue;
             obj.onCurrentChannelsChanged()
         end
-        
+
+        function set.ChannelColors(obj, value)
+            % Todo: Validate input
+            oldColors = obj.ChannelColors;
+            obj.ChannelColors = value;
+            obj.postSetChannelColors(oldColors)
+        end
+        function postSetChannelColors(obj, oldColors)
+            if ~isempty(obj.hChannelIndicators)
+                for i = 1:numel(oldColors)
+                    if ~isequal(oldColors{i}, obj.ChannelColors{i})
+                        obj.updateIndicatorColor(i, obj.ChannelColors{i})
+                    end
+                end
+            end
+        end
     end
     
     methods 
@@ -175,11 +190,10 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             end
 
             obj.ChannelColors{chNum} = rgb;
-            obj.updateIndicatorColor(chNum, rgb)
-
+            %obj.updateIndicatorColor(chNum, rgb)
         end
 
-        function onChangeDefaulsMenuItemClicked(obj, ~, ~)
+        function onChangeDefaultsMenuItemClicked(obj, ~, ~)
             if ~isempty(obj.ChangeDefaultsCallback)
                 channelColors = obj.ChannelColors;
                 obj.ChangeDefaultsCallback(channelColors)
@@ -264,7 +278,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             mitem = uimenu(hMenu, 'Text', 'Enter Wavelength...');
             mitem.MenuSelectedFcn = @obj.changeChannelColor;
             mitem = uimenu(hMenu, 'Text', 'Make Default', 'Separator', 'on');
-            mitem.MenuSelectedFcn = @obj.onChangeDefaulsMenuItemClicked;
+            mitem.MenuSelectedFcn = @obj.onChangeDefaultsMenuItemClicked;
 
             obj.ContextMenu = hMenu;
         end
