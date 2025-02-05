@@ -14,7 +14,7 @@ function roiMasksOut = removeSpatialOverlaps(roiMasksIn, roiInd)
 
     [height, width, numRois] = size(roiMasksIn);
 
-    if nargin < 2
+    if nargin < 2 || (ischar(roiInd) && strcmp(roiInd, 'all'))
         roiInd = 1:numRois;
     end
     
