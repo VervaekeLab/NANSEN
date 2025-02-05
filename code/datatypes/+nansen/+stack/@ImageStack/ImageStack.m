@@ -137,7 +137,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         CurrentChannel = 1      % Sets the current channel(s). getFrames picks data from current channels
         CurrentPlane  = 1       % Sets the current plane(s). getFrames picks data from current planes
         
-        ColorModel = ''         % Name of colormodel to use. Options: 'BW', 'Grayscale', 'RGB', 'Custom' | Should this be on the imviewer class instead?
+        % ColorModel - Name of colormodel to use. Options: 'BW', 'Grayscale', 
+        % 'RGB', 'HSV', 'Custom' | Should this be on the imviewer class instead?
+        ColorModel (1,1) string ...
+            {mustBeMember(ColorModel, ["BW", "Grayscale", "RGB", "HSV", "Custom" ""])} = ""
         DataIntensityLimits
     end
     
@@ -226,7 +229,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
 %                 obj.autoAssignDataIntensityLimits()
 %             end
             
-            if isempty(obj.ColorModel)
+            if obj.ColorModel == ""
                 obj.autoAssignColorModel()
             end
             
@@ -607,6 +610,10 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             if strcmp(obj.ColorModel, 'RGB')
                 %channelColors = {'red', 'green', 'blue'};
                 channelColors = {[1,0,0], [0,1,0], [0,0,1]};
+            
+            elseif strcmp(obj.ColorModel, 'HSV')
+                numCh = obj.NumChannels;
+                channelColors = mat2cell(hsv(numCh), ones(1,numCh), 3);
             
             elseif strcmp(obj.ColorModel, 'Custom')
                 channelColors = obj.CustomColorModel;
@@ -1146,9 +1153,6 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         end
       
         function set.ColorModel(obj, newValue)
-            %= 'RGB' % Mono, rgb, custom
-            msg = 'ColorModel must be ''BW'', ''Grayscale'', ''RGB'' or ''Custom''';
-            assert(any(strcmp({'BW', 'Grayscale', 'RGB', 'Custom'}, newValue)), msg)
             obj.ColorModel = newValue; 
         end
 
@@ -1526,6 +1530,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
         
         function autoAssignColorModel(obj)
         
+            % Set CustomColorModel, i.e custom color for each channel
             if ~isempty(obj.MetaData.ChannelColor)
                 obj.ColorModel = 'Custom';
                 if isa(obj.MetaData.ChannelColor, 'cell')
@@ -1544,21 +1549,14 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             	obj.ColorModel = 'RGB';
                 obj.CustomColorModel = [1,0,0;0,1,0;0,0,1];
             else
-                obj.ColorModel = 'Custom';
-                if isempty(obj.CustomColorModel)
-                    obj.CustomColorModel = hsv(obj.NumChannels);
-                end
+                obj.ColorModel = 'HSV';
+                obj.CustomColorModel = hsv(obj.NumChannels);
             end
-            
-            % Todo: Set CustomColorModel, i.e color for each channel
-            
-            
+
             if islogical(obj.Data)
+                % Todo: what if there are multichannel logical arrays?
                 obj.ColorModel = 'BW';
             end
-            
-            % Todo: what if there are multichannel logical arrays?
-            
         end
         
         function onCachedDataChanged(obj, src, evt)

@@ -1096,13 +1096,16 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function createTabPanel(obj)
         %createTabPanel Configure and add tab buttons to tabpanel
         
-            if contains(obj.TabMode, 'popup')
-                xPad = 10;
-                w = obj.Margins(1);
-            else
-                xPad = 10;
-                w = obj.Margins(1);
-            end
+
+            xPad = 10;
+            
+            % % if contains(obj.TabMode, 'popup')
+            % %     xPad = 10;
+            % %     w = obj.Margins(1);
+            % % else
+            % %     xPad = 10;
+            % %     w = obj.Margins(1);
+            % % end
             
             % Mis-use header text for testing size of button text...
             fontSize = obj.headerTitle.FontSize;
@@ -1457,10 +1460,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
                 currentProperty = fieldNames{p};
                 
-                % Check if current field is a configuration field
-                if obj.isConfigField(currentProperty, fieldNames)
-                    continue; 
+                if endsWith(currentProperty, "_")
+                    continue
                 end
+
+                % Check if current field is a configuration field
+                % if obj.isConfigField(currentProperty, fieldNames)
+                %     continue; 
+                % end
                 
                 % Check if current field has a configuration field
                 configInd = obj.hasConfigField(currentProperty, fieldNames);
@@ -2691,7 +2698,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             currentPanelOrig = obj.currentPanel;
             
             for i = 1:numPages
-                
                 sTmp = obj.dataEdit{i};
                 % names = fieldnamesr(sTmp);
                 
