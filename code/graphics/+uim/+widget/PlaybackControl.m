@@ -57,7 +57,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
         BarWidth = 4;
         BarPadding = 10; % In length direction (pixel units)
     end
-        
+
     % Multi-channel related properties
     properties (Dependent, SetAccess = private)
         ChannelIndicatorWidget

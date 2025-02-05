@@ -190,7 +190,6 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             end
 
             obj.ChannelColors{chNum} = rgb;
-            %obj.updateIndicatorColor(chNum, rgb)
         end
 
         function onChangeDefaultsMenuItemClicked(obj, ~, ~)
@@ -277,7 +276,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
             mitem.MenuSelectedFcn = @obj.changeChannelColor;
             mitem = uimenu(hMenu, 'Text', 'Enter Wavelength...');
             mitem.MenuSelectedFcn = @obj.changeChannelColor;
-            mitem = uimenu(hMenu, 'Text', 'Make Default', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Make Current Colors Default', 'Separator', 'on');
             mitem.MenuSelectedFcn = @obj.onChangeDefaultsMenuItemClicked;
 
             obj.ContextMenu = hMenu;
