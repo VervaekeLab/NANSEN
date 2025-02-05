@@ -293,7 +293,7 @@ methods % Structors
         if ~all(isnan(obj.DisplayedImage(:)))
             set(obj.hDropbox, 'Visible', 'off')
         end
-                
+
         if nargout == 0
             clear obj
         end
@@ -5833,7 +5833,6 @@ methods (Access = private) % Methods that runs when properties are set
             if ~isempty(obj.uiwidgets.playback.ChannelIndicatorWidget)
                 obj.uiwidgets.playback.ChannelColors = obj.ChannelColors;
             end
-            % Todo: Set channel color in widget...
 
             if obj.ImageStack.HasStaticCache
                 cacheRange = obj.ImageStack.Data.StaticCacheRange;
