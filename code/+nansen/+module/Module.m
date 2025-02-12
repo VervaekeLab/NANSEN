@@ -49,11 +49,9 @@ classdef Module < handle
     properties (Access = private)
         ItemTables
         CachedFilePaths
-        % LastItemTableUpdateTime - Map where key is the name of an item
-        % table and value is a the tic count for when the table was last
-        % updated
-        LastUpdateTimeForItemTable ...
-            {mustBeA(LastUpdateTimeForItemTable, 'containers.Map')}
+        % LastItemTableUpdateTime - Map where key is the name of an item table
+        % and value is a the tic count for when the table was last updated.
+        LastUpdateTimeForItemTable containers.Map
     end
 
     properties (Constant, Hidden)
@@ -96,6 +94,11 @@ classdef Module < handle
 
             obj.CachedFilePaths = containers.Map();
             obj.ItemTables = containers.Map();
+
+            % NB: Explicitly assigning a new containers.Map instance to 
+            % avoid the default empty value assigned by the property type 
+            % validator. This prevents multiple objects from 
+            % unintentionally sharing the same handle object.
             obj.LastUpdateTimeForItemTable = containers.Map();
         end
     end
