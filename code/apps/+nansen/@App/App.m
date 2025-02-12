@@ -3689,9 +3689,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
                     
                 case 'Add Existing...'
-                    [success, projectName] = ProjectManagerUI().addExistingProject();
+                    projectName = app.ProjectManager.importProject();
                     
-                    if success
+                    if ~isempty(projectName)
                         app.ProjectManager.loadCatalog() % reload
                         app.promptOpenProject(projectName)
                     end

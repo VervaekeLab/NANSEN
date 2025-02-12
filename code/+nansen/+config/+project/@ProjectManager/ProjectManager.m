@@ -169,8 +169,23 @@ classdef ProjectManager < handle
         %   importProject(obj, filePath) import an existing project. The
         %   filePath should point to the project_configuration file located
         %   in the existing project folder.
+            
+            arguments
+                obj (1,1) nansen.config.project.ProjectManager
+                projectDirectory (1,1) string = missing
+            end
 
-            projectName = ''; %#ok<NASGU>
+            projectName = '';
+
+            if ismissing(projectDirectory)
+                projectDirectory = uigetdir();
+                if projectDirectory == 0
+                    disp('User canceled')
+                    return
+                end
+            end
+
+            assert(isfolder(projectDirectory), 'Must provide path to an existing folder')
 
             try
                 S = nansen.config.project.Project.readConfigFile(projectDirectory);
@@ -190,13 +205,13 @@ classdef ProjectManager < handle
             % of the folder where the project file is located now
             projectInfo.Path = projectDirectory;
             nansen.config.project.Project.updateProjectConfiguration(projectDirectory, projectInfo)
-                        
+
             obj.addProject(projectInfo)
-            
+
             projectName = projectInfo.Name;
             if ~nargout; clear projectName; end
         end
-        
+
         function updateProjectDirectory(obj, projectName, newProjectDirectory)
         %updateProjectDirectory Change the directory of an existing project.
         %

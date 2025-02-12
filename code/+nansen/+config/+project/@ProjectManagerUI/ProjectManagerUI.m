@@ -92,11 +92,13 @@ classdef ProjectManagerUI < handle
                 return
             end
             
-            hFig = ancestor(obj.hParent, 'figure');
-            progressDlg = uiprogressdlg(hFig, ...
-                'Message', 'Importing project...', ...
-                'Title', 'Please wait!', ...
-                'Indeterminate', 'on');
+            if ~isempty(hFigure)
+                progressDlg = uiprogressdlg(hFigure, ...
+                    'Message', 'Importing project...', ...
+                    'Title', 'Please wait!', ...
+                    'Indeterminate', 'on');
+                progressDialogCleanup = onCleanup(@() delete(progressDlg));
+            end
 
             try
                 projectName = obj.ProjectManager.importProject(folderPath);
@@ -111,9 +113,7 @@ classdef ProjectManagerUI < handle
                 obj.ProjectManager.changeProject(projectName);
             end
             obj.updateProjectTableData()
-                      
-            delete( progressDlg )
-
+            
             if ~nargout
                 clear success projectName
             elseif nargout == 1
