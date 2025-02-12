@@ -1513,6 +1513,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateMenu_PipelineItems()
             app.updateTableVariableMenuItems()
             app.updateMenu_DatalocationRootConfiguration()
+
+            app.createMenu_Tools()
             
             % Make sure project list is displayed correctly
             % Indicating current project
