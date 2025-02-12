@@ -127,6 +127,11 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             if ~obj.AllowRowDeletion; return; end
             
+            if isempty(obj.SelectedRois)
+                disp('No rois selected')
+                return
+            end
+
             roiIdxToRemove = obj.SelectedRois;
             
             obj.UITable.HTable.Enable = 'off';

@@ -287,7 +287,11 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
         %updateImageDisplay Update the displayed image
             
             roiThumbnailImage = obj.getImage(roiObj);
-            if isempty(roiThumbnailImage); return; end
+            if isempty(roiThumbnailImage)
+                obj.updateImageText('Image not available')
+                obj.resetImageDisplay()
+                return; 
+            end
             
             obj.CurrentImage = roiThumbnailImage;
             
