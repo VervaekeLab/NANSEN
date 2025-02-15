@@ -340,6 +340,7 @@ methods % Structors
 
         obj.unregisterApp()
         try
+            obj.resetTemporarySettings()
             obj.saveSettings()
         catch ME
             warning("IMVIEWER:Quit:SaveSettingsFailed", ...
@@ -1595,9 +1596,16 @@ methods % App initialization & creation
     
     function saveSettings(obj)
     % saveSettings - Custom modification of settings before saving
+        saveSettings@applify.mixin.UserSettings(obj)
+    end
 
-        % Reset value for special field. Make sure to set the settings_ to
-        % avoind triggering callbacks
+    function resetTemporarySettings(obj)
+        % Reset value for special fields. Make sure to set the settings_ to
+        % avoid triggering callbacks
+
+        % Transient setting
+        obj.settings_.ImageDisplay.VolumeDisplayMode = 'Single Plane';
+
         obj.settings_.ImageDisplay.CurrentChannelColor_ = {};
 
         % Reset multichannel image brightness limits
@@ -1614,10 +1622,7 @@ methods % App initialization & creation
             end
             obj.settings_.ImageDisplay.imageBrightnessLimits = [0,1];
         end
-
-        saveSettings@applify.mixin.UserSettings(obj)
     end
-
 end
 
 methods % Set/Get
