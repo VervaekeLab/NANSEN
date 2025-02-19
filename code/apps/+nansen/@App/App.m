@@ -1818,7 +1818,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             catch
                 itemConstructor = @table2struct;
             end
-            
+
+            % Initialize output
+            status = false(1, height(tableEntries));
+
             if isempty(tableEntries)
                 try
                     metaObjects = itemConstructor().empty;
