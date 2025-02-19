@@ -42,7 +42,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     methods (Static) % Get empty and default item
         
         function S = getBlankItem()
-            
             S = struct(...
                 'VariableName', '', ...         % Name of variable
                 'DataLocation', '', ...         % todo: rename DataLocationName? Name of datalocation where variable is stored.
@@ -77,10 +76,8 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     methods % Constructor
         
         function obj = VariableModel(varargin)
-
             % Superclass constructor. Loads given (or default) archive
             obj@utility.data.StorableCatalog(varargin{:})
-            
             obj.updateDefaultValues() %  This should be temporary, to account for changes made during development
         end
     end
@@ -98,8 +95,8 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     
     methods
         
-        function addDataLocationModel(obj, dataLocationModel)
-            
+        function addDataLocationModelListener(obj, dataLocationModel)
+        % addDataLocationModelListener - Add listener for DataLocationModel events
             el = listener(dataLocationModel, 'DataLocationModified', ...
                 @obj.onDataLocationModelModified);
             obj.DataLocationNameChangedListener = el;
