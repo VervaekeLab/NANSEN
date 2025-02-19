@@ -48,6 +48,7 @@ classdef DataVariable < nansen.metadata.abstract.Item
             obj@nansen.metadata.abstract.Item(nameValuePairs{:})
             
             obj.updateInternals()
+            obj.Include = "DataType";
         end
     end
 

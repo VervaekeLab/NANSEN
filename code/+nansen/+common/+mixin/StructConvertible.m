@@ -63,6 +63,9 @@ classdef (Abstract) StructConvertible < handle & matlab.mixin.SetGet
         ConvertPrivate (1,1) logical = false
         ExcludeSuperclass (1,:) string = string.empty % List of names of superclasses to exclude (Todo)
     end
+    properties (Access = protected, Transient) % Preferences
+        Include (1,:) string = string.empty
+    end
 
     methods (Access = ?nansen.common.mixin.StructConvertible)
         function value = getPrivate(obj, privatePropertyName) %#ok<INUSD,STOUT>
@@ -130,6 +133,8 @@ classdef (Abstract) StructConvertible < handle & matlab.mixin.SetGet
                 skip = skip | strcmp({propList.GetAccess}, 'private') ...
                     | strcmp({propList.SetAccess}, 'private');
             end
+
+            skip( ismember({propList.Name}, obj(1).Include) ) = false;
 
             propList(skip) = [];
 
