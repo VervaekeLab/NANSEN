@@ -425,16 +425,12 @@ classdef (Abstract) UserSettings < uim.handle
                 obj.wasAborted = false;
             end
 
-            obj.saveSettings()
-            
+            % Delete hSettingsEditor before assigning updated settings. 
+            % Assigning settings may trigger callbacks in the settings editor, 
+            % but if it's figure is already closed, this would cause errors.
             delete(obj.hSettingsEditor)
             obj.hSettingsEditor = [];
-            
-            % Delete hSettingsEditor before assigning settings, because
-            % assigning settings might sometimes want to make updates to
-            % the settings editor, while the figure of settings editor is
-            % already closed so that would cause errors
-            
+
             obj.settings = updatedSettings;
             obj.saveSettings()
         end
