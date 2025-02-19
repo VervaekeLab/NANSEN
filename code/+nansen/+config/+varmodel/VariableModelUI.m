@@ -42,6 +42,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
     end
 
     properties (Access = private)
+        DataLocationNameChangedListener event.listener
         VariableAddedListener event.listener
         VariableRemovedListener event.listener
     end
@@ -58,6 +59,12 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
 
             if ~nargout
                 clear obj
+            end
+        end
+
+        function delete(obj)
+            if ~isempty(obj.DataLocationNameChangedListener)
+                delete(obj.DataLocationNameChangedListener)
             end
         end
     end
@@ -350,6 +357,8 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
                 
         function onDataLocationNameChanged(obj, src, evt)
         %onDataLocationNameChanged Callback for VariableModel event
+
+        % Todo: This should be on the model, not the UI Level
             for i = 1:numel(obj.Data)
                 obj.Data(i).DataLocation = obj.VariableModel.Data(i).DataLocation;
                 hRow = obj.RowControls(i);
@@ -435,16 +444,32 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             % Check if the current file adapter selection is supporting
             % this filetype
             newValue = evt.Value;
+            
             fileAdapterList = obj.FileAdapterList;
             isMatch = strcmp({fileAdapterList.FileAdapterName}, newValue);
             
+            isSupported = false;
+            
+            if any(isMatch)
+                supportedFileTypes = fileAdapterList(isMatch).SupportedFileTypes;
+                if any(ismember(supportedFileTypes, {fileType, ['.' fileType]}))
+                    isSupported = true;
+                end
+            end
+                
             % Reset the file adapter selection if filetype is not supported
-            if any(strcmp(fileAdapterList(isMatch).SupportedFileTypes, fileType))
-                % pass
-            else
+            if ~isSupported
                 hFig = ancestor(obj.Parent, 'figure');
-                allowedFileTypes = strcat('.', fileAdapterList(isMatch).SupportedFileTypes);
-                supportedFileTypes = strjoin(allowedFileTypes, ', ');
+                if any(isMatch)
+                    allowedFileTypes = strcat('.', fileAdapterList(isMatch).SupportedFileTypes);
+                    supportedFileTypes = strjoin(allowedFileTypes, ', ');
+                else
+                    if strcmp(newValue, 'Default') % Todo: Shouldnt Default be part of FileAdapterList
+                        supportedFileTypes = '.mat';
+                    else
+                        supportedFileTypes = 'n/a';
+                    end
+                end
                 uialert(hFig, sprintf('The file adapter "%s" supports the following file types: %s', newValue, supportedFileTypes), 'Selection Aborted')
                 src.Value = evt.PreviousValue;
             end
@@ -457,14 +482,24 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             ind = find( strcmp(hRow.DataLocSelect.Items, ...
                 hRow.DataLocSelect.Value) );
 
-            pathStr = obj.DataLocationModel.Data(ind).ExamplePath;
+            %pathStr = obj.DataLocationModel.Data(ind).ExamplePath;
+            dataLocationName = obj.DataLocationModel.DataLocationNames{ind};
+
+            dataFolders = obj.DataLocationModel.listDataFolders(dataLocationName, "FolderType", "Session");
+            pathStr = dataFolders{1};
+           
+            % Get subfolder for item...
+            variableItem = obj.VariableModel.getVariableStructure(rowNumber);
+            if ~isempty(variableItem.Subfolder)
+                pathStr = fullfile(pathStr, variableItem.Subfolder);
+            end
         end
         
         function openDataFolder(obj, src, evt)
         
             rowNumber = obj.getComponentRowNumber(src);
             folderPath = obj.getSelectedDataLocationFolderPath(rowNumber);
-            
+
             utility.system.openFolder(folderPath)
         end
         
@@ -502,9 +537,11 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         end
         
         function onVariableModelSet(obj)
-            
-            addlistener(obj.VariableModel, 'DataLocationNameChanged', ...
-                @obj.onDataLocationNameChanged);
+            if ~isempty(obj.DataLocationNameChangedListener)
+                delete(obj.DataLocationNameChangedListener)
+            end
+            obj.DataLocationNameChangedListener = addlistener(obj.VariableModel, ...
+                'DataLocationNameChanged', @obj.onDataLocationNameChanged);
 
             if ~isempty(obj.VariableAddedListener)
                 delete(obj.VariableAddedListener)
@@ -687,11 +724,9 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             
             folderPath = obj.getSelectedDataLocationFolderPath(rowNumber);
             fileNameExpression = hRow.FileNameExpr.Value;
+           
+            expression = obj.VariableModel.patternToWildcardExpression(fileNameExpression);
             
-            % Find files in folder
-            expression = ['*', fileNameExpression, '*'];
-            % Make sure we don't have two successive wildcards.
-            expression = strrep(expression, '**', '*');
             L = dir(fullfile(folderPath, expression));
             keep = ~strncmp({L.name}, '.', 1);
             L = L(keep);

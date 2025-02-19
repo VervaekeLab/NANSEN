@@ -976,7 +976,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             if isempty(S.FileNameExpression)
                 fileName = obj.createFileName(varName, S);
             else
-                fileName = obj.lookForFile(sessionFolder, S);
+                fileName = obj.VariableModel.lookForFile(sessionFolder, S);
                 if isempty(fileName) && strcmp(mode, 'write')
                     fileName = obj.getFileName(S);
                 end
@@ -1008,49 +1008,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                 end
             end
         end
-        
-        function fileName = lookForFile(obj, sessionFolder, S)
 
-            % Todo: Move this method to filepath settings editor.
-            %       or: Move to DataIOModel/DataCollection
-
-            % Todo: Add FEX:recursiveDir as dependency and ensure the
-            % following works:
-            % % nvPairs = {...
-            % %     "FileType", S.FileType, ...
-            % %     "Expression", S.FileNameExpression ...
-            % %     };
-            % %
-            % % L = recursiveDir(sessionFolder, nvPairs{:});
-
-            expression = S.FileNameExpression;
-            fileType = S.FileType;
-
-            if ~strncmp(fileType, '.', 1)
-                fileType = ['.', fileType];
-            end
-
-            if contains(expression, fileType)
-                expression = ['*', expression];
-            else
-                expression = ['*', expression, fileType]; % Todo: ['*', expression, '*', fileType] <- Is this necessary???
-            end
-
-            L = dir(fullfile(sessionFolder, expression));
-            L = L(~strncmp({L.name}, '.', 1));
-            
-            if ~isempty(L) && numel(L)==1
-                fileName = L.name;
-            elseif ~isempty(L) && numel(L)>1
-                fileName = L(1).name;
-                warning off backtrace
-                warning('Multiple files were found for variable "%s".\nSelected first file in list.', S.VariableName)
-                warning on backtrace
-            else
-                fileName = '';
-            end
-        end
-        
         function fileName = createFileName(obj, varName, parameters)
             %todo: variable model...
             sid = obj.sessionID;

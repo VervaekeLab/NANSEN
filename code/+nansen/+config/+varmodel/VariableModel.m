@@ -381,6 +381,71 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         end
     end
     
+    methods % Todo: Move to nansen.dataio.DataVariable
+        function fileName = lookForFile(obj, folderPath, variableInfo)
+
+            % Todo: Add FEX:recursiveDir as dependency and ensure the
+            % following works:
+            % % nvPairs = {...
+            % %     "FileType", S.FileType, ...
+            % %     "Expression", S.FileNameExpression ...
+            % %     };
+            % %
+            % % L = recursiveDir(sessionFolder, nvPairs{:});
+            
+            if isa(variableInfo, 'char')
+                variableInfo = obj.getVariableStructure(variableInfo);
+            end
+
+            fileType = variableInfo.FileType;
+
+            if ~strncmp(fileType, '.', 1)
+                fileType = ['.', fileType];
+            end
+
+            expression = obj.patternToWildcardExpression(variableInfo.FileNameExpression);
+
+            if ~endsWith(expression, fileType)
+                expression = [expression, '*', fileType]; % Todo: ['*', expression, '*', fileType] <- Is this necessary???
+            end
+            
+            L = dir(fullfile(folderPath, expression));
+            L = L(~strncmp({L.name}, '.', 1));
+            
+            if ~isempty(L) && numel(L)==1
+                fileName = L.name;
+            elseif ~isempty(L) && numel(L)>1
+                fileName = L(1).name;
+                warning off backtrace
+                warning('Multiple files were found for variable "%s".\nSelected first file in list.', variableInfo.VariableName)
+                warning on backtrace
+            else
+                fileName = '';
+            end
+        end
+
+        function wildCardExpression = patternToWildcardExpression(obj, pattern) %#ok<INUSD>
+            
+            wildCardExpression = pattern;
+
+            if startsWith(wildCardExpression, "^")
+                wildCardExpression = extractAfter(wildCardExpression, "^");
+            else
+                if ~startsWith(wildCardExpression, '*')
+                    wildCardExpression = ['*', wildCardExpression];
+                end
+            end
+
+            if endsWith(wildCardExpression, '$')
+                wildCardExpression = extractBefore(wildCardExpression, '$');
+            else
+                if ~endsWith(wildCardExpression, '*')
+                    wildCardExpression = [wildCardExpression, '*'];
+                end
+            end
+        end
+    end
+
     methods % Override superclass methods
         function newItem = insertItem(obj, newItem)
             import nansen.config.varmodel.event.VariableAddedEventData
