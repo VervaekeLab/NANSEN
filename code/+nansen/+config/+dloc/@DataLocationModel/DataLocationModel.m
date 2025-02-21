@@ -276,7 +276,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             elseif ispc
                 diskName = obj.resolveDiskNamePc(rootPath);
             elseif isunix
-                diskName = resolveDiskNameLinux(rootPath);
+                diskName = obj.resolveDiskNameLinux(rootPath);
                 %error('Not implemented for unix, please create github issue')
             end
         end
