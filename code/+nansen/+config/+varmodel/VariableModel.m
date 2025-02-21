@@ -403,11 +403,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 fileType = ['.', fileType];
             end
 
-            expression = obj.patternToWildcardExpression(variableInfo.FileNameExpression);
-
-            if ~endsWith(expression, fileType)
-                expression = [expression, '*', fileType]; % Todo: ['*', expression, '*', fileType] <- Is this necessary???
-            end
+            expression = obj.patternToWildcardExpression(variableInfo.FileNameExpression, fileType);
             
             L = dir(fullfile(folderPath, expression));
             L = L(~strncmp({L.name}, '.', 1));
@@ -424,23 +420,31 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             end
         end
 
-        function wildCardExpression = patternToWildcardExpression(obj, pattern) %#ok<INUSD>
+        function wildCardExpression = patternToWildcardExpression(obj, filenamePattern, fileExtension)
             
-            wildCardExpression = pattern;
+            arguments
+                obj (1,1) nansen.config.varmodel.VariableModel %#ok<INUSA>
+                filenamePattern (1,1) string
+                fileExtension (1,1) string = missing
+            end
+
+            wildCardExpression = filenamePattern;
 
             if startsWith(wildCardExpression, "^")
                 wildCardExpression = extractAfter(wildCardExpression, "^");
             else
                 if ~startsWith(wildCardExpression, '*')
-                    wildCardExpression = ['*', wildCardExpression];
+                    wildCardExpression = "*" + wildCardExpression;
                 end
             end
 
             if endsWith(wildCardExpression, '$')
                 wildCardExpression = extractBefore(wildCardExpression, '$');
             else
-                if ~endsWith(wildCardExpression, '*')
-                    wildCardExpression = [wildCardExpression, '*'];
+                if ~ismissing(fileExtension) && ~endsWith(wildCardExpression, fileExtension)
+                    wildCardExpression = wildCardExpression + "*" + fileExtension; % Todo: '*' + expression + '*' + fileType <- Is this necessary???
+                elseif ~endsWith(wildCardExpression, '*')
+                    wildCardExpression = wildCardExpression + "*";
                 end
             end
         end
