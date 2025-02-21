@@ -43,16 +43,30 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
     end
     
     try
+        if strcmp( getpref('StructEditor', 'Version', 'legacy'), 'appdesigner')
+            sEditor = structeditor.StructEditorApp(sIn);
+            sEditor.uiwait();
+    
+            switch sEditor.FinishState
+                case "Finished"
+                    sOut = sEditor.Data;
+    
+                otherwise
+                    sOut = sEditor.Data;
+                    wasAborted = true;
+            end
 
-        sEditor = structeditor(sIn, varargin{:});
-        sEditor.IsModal = true;
-        sEditor.waitfor()
-
-        if sEditor.wasCanceled
-            sOut = sEditor.dataOrig;
-            wasAborted = true;
         else
-            sOut = sEditor.dataEdit;
+            sEditor = structeditor(sIn, varargin{:});
+            sEditor.IsModal = true;
+            sEditor.waitfor()
+    
+            if sEditor.wasCanceled
+                sOut = sEditor.dataOrig;
+                wasAborted = true;
+            else
+                sOut = sEditor.dataEdit;
+            end
         end
         
         if convertOutputToStruct % See above conversion...
