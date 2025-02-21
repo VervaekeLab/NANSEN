@@ -412,7 +412,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             
             % Get the selected filetype
             fileType = hRow.FileTypeSelect.Value;
-            fileType = strrep(fileType, '.', '');
+            fileType = lower( strrep(fileType, '.', '') );
             
             fileAdapterOptions = nansen.dataio.listFileAdapters(fileType);
             fileAdapterOptions = {fileAdapterOptions.FileAdapterName};

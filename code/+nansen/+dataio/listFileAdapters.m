@@ -22,7 +22,7 @@ function fileAdapterList = listFileAdapters(fileExtension)
     if ~isempty(fileExtension); fileExtension = strrep(fileExtension, '.', ''); end
     
     if ~isempty(fileExtension)
-        validationFcn = @(extList) any(contains(extList, fileExtension));
+        validationFcn = @(extList) any(contains(extList, fileExtension, "IgnoreCase", true));
         keep = arrayfun(@(s) validationFcn(s.SupportedFileTypes), ...
             fileAdapterList);
     else
