@@ -765,11 +765,17 @@ classdef ProjectManager < handle
             if ~contains(path, projectFolderPath)
                 addpath(genpath(projectFolderPath), '-end')
             end
+            if isfile( fullfile(projectFolderPath, 'startup.m') )
+                run(fullfile(projectFolderPath, 'startup.m'))
+            end
         end
 
         function removeProjectFromSearchPath(projectFolderPath)
             if contains(path, projectFolderPath)
                 rmpath(genpath(projectFolderPath))
+            end
+            if isfile( fullfile(projectFolderPath, 'finish.m') )
+                run(fullfile(projectFolderPath, 'finish.m'))
             end
         end
     end
