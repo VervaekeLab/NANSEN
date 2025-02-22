@@ -276,7 +276,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
             elseif ispc
                 diskName = obj.resolveDiskNamePc(rootPath);
             elseif isunix
-                error('Not implemented for unix, please create github issue')
+                diskName = obj.resolveDiskNameLinux(rootPath);
+                %error('Not implemented for unix, please create github issue')
             end
         end
     end
@@ -992,6 +993,49 @@ classdef DataLocationModel < utility.data.StorableCatalog
             else
                 diskName = '';
             end
+        end
+
+        function diskName = resolveDiskNameLinux(obj, rootPath) %#ok<INUSD>
+        %resolveDiskNameLinux Resolve disk name for a given root path on Linux.
+        %
+        %   diskName = resolveDiskNameLinux(obj, rootPath)
+        %
+        %   This function uses the Linux "df" command to determine the device 
+        %   associated with rootPath, and then "lsblk" to query the device for its 
+        %   volume label. If a label exists, it is returned as the disk name.
+        %
+        %   Example:
+        %       diskName = resolveDiskNameLinux(obj, '/media/user/mydisk')
+        
+            % Use df to find the device corresponding to rootPath.
+            % The -P option forces POSIX output format.
+            [status, dfOutput] = system(sprintf('df -P "%s" | tail -1', rootPath));
+            if status ~= 0 || isempty(dfOutput)
+                diskName = '';
+                return;
+            end
+        
+            % The first token of the output is the device name.
+            tokens = strsplit(strtrim(dfOutput));
+            if isempty(tokens)
+                diskName = '';
+                return;
+            end
+            device = tokens{1};
+        
+            % Now use lsblk to get the LABEL for that device.
+            % The -n option omits the header and -o LABEL selects the label column.
+            [status, labelOutput] = system(sprintf('lsblk -no LABEL "%s"', device));
+            if status == 0 && ~contains(labelOutput, 'not a block device')
+                diskLabel = strtrim(labelOutput);
+                if ~isempty(diskLabel)
+                    diskName = diskLabel;
+                    return;
+                end
+            end
+        
+            % Fallback: if no label is available, return the device name.
+            diskName = device;
         end
     end
    

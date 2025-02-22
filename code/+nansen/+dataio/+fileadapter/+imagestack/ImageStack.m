@@ -91,7 +91,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
             if ~isempty(className); return; end
             
             % Otherwise, get a "generic" data adapter based on the filetype
-            switch obj.FileType
+            switch lower(obj.FileType)
 
                 case 'h5'
                     className = 'nansen.stack.virtual.HDF5';
