@@ -955,6 +955,30 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             
             N = min([N, obj.NumTimepoints]);
         end
+
+        function chunkSize = getChunkSize(obj, chunkSizeBytes, dim)
+                
+            if nargin < 3 || isempty(dim)
+                dim = 'T';
+            end
+
+            dataType = obj.DataType;
+            numBytesPerFrame = obj.getImageDataByteSize(obj.FrameSize, dataType);
+            N = floor( chunkSizeBytes / numBytesPerFrame );
+
+            % Adjust based on selected dimension.
+            switch dim
+                case 'T'
+                    N = N / obj.NumChannels / obj.NumPlanes;
+                case 'Z'
+                    N = N / obj.NumChannels / obj.NumTimepoints;
+                case 'C'
+                    N = N / obj.NumPlanes / obj.NumTimepoints;
+            end
+            
+            chunkSize = size(obj.Data);
+            chunkSize(obj.getDimensionNumber(dim)) = N;
+        end
         
         function [IND, numChunks] = getChunkedFrameIndices(obj, numFramesPerChunk, chunkInd, dim, firstIdx, lastIdx)
         %getChunkedFrameIndices Calculate frame indices for each subpart
