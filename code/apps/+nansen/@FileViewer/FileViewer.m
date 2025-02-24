@@ -964,7 +964,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 case 'Refresh'
                     obj.updateFolderTree()
                 
-                case {'Show in Finder', 'Show in Explorer'}
+                case {'Show in Finder', 'Show in Explorer', 'Show in File Explorer'}
                     folderPath = obj.CurrentNode.UserData.filePath;
                     utility.system.openFolder(folderPath)
 
