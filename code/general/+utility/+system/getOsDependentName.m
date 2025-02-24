@@ -24,8 +24,8 @@ function name = getOsDependentName(referenceName)
     elseif isunix
         switch referenceName
                     
-            case 'Finder';  name = 'Nautilus'; %?
-            case 'finder';  name = 'nautilus'; %?
+            case 'Finder';  name = 'File Explorer'; %?
+            case 'finder';  name = 'file explorer'; %?
                 
             otherwise
                 error('Name (%s) is not available', referenceName)

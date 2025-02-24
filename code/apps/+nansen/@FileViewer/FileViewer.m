@@ -949,7 +949,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 case 'Make Current Folder'
                     cd(folderPath)
 
-                case {'Show in Finder', 'Show in Explorer'}
+                case {'Show in Finder', 'Show in Explorer', 'Show in File Explorer'}
                     utility.system.openFolder(folderPath)
             end
         end
