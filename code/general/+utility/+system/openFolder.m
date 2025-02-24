@@ -20,7 +20,7 @@ function openFolder(folderPath)
         options = ["Nautilus", "Dolphin", "Thunar", "Nemo", "Caja"];
         for i = 1:numel(options)
             try
-                cmdStr = sprintf("%s, '%s'", options(i), folderPath);
+                cmdStr = sprintf("%s '%s'", options(i), folderPath);
                 s = unix(cmdStr);
                 if s == 0
                     return
