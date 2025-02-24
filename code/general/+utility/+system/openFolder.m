@@ -17,8 +17,20 @@ function openFolder(folderPath)
         
     elseif isunix % Todo: Test
         warning('Opening of folders on linux has not been tested.')
-        unix(sprintf('nautilus ''%s''', folderPath));
-        
+        options = ["Nautilus", "Dolphin", "Thunar", "Nemo", "Caja"];
+        for i = 1:numel(options)
+            try
+                cmdStr = sprintf("%s, '%s'", options(i), folderPath);
+                s = unix(cmdStr);
+                if s == 0
+                    return
+                end
+            catch
+                % pass
+            end
+        end
+        error('Failed to open folder in file explorer.')
+
     elseif ispc
         winopen(folderPath);
     end
