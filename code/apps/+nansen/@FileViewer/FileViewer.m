@@ -29,7 +29,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
 %   Todo
 %       [v] Create refresh button... Right click to refresh. Button better?
-%       [ ] Add preferences and
+%       []Add preferences and
 %           - MaxNumItemsToShow. Currently hardcoded to 100
 %       [ ] More efficient creation of file trees with large number of files
 %           ( Large, nested folder tree )
@@ -964,7 +964,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 case 'Refresh'
                     obj.updateFolderTree()
                 
-                case {'Show in Finder', 'Show in Explorer'}
+                case {'Show in Finder', 'Show in Explorer', 'Show in File Explorer'}
                     folderPath = obj.CurrentNode.UserData.filePath;
                     utility.system.openFolder(folderPath)
 

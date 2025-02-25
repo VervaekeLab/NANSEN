@@ -13,7 +13,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %    [ ] Do the centering when getting the cell locations.
 %    [ ] Set fontsize/bg color and other properties in batch.
 %
-%    [ ] Update DL Model whenever new values are entered. - Why???
+%    [ ]Update DL Model whenever new values are entered. - Why???
 %
 %    [ ] Fix error that will occur if several subfolders are
 %        given the same subfolder type?
@@ -309,19 +309,22 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             % Convert date/time value if date/time format is available
             if obj.isDateTimeVariable(M(rowNumber).VariableName)
-                
-                examplePath = thisDataLocation.ExamplePath;
-                try
-                    switch M(rowNumber).VariableName
-                        case 'Experiment Time'
-                            value = obj.DataLocationModel.getTime(examplePath, obj.DataLocationIndex);
-                        case 'Experiment Date'
-                            value = obj.DataLocationModel.getDate(examplePath, obj.DataLocationIndex);
+                if isa(substring, 'datetime')
+                    substring = char(substring);
+                else
+                    examplePath = thisDataLocation.ExamplePath;
+                    try
+                        switch M(rowNumber).VariableName
+                            case 'Experiment Time'
+                                value = obj.DataLocationModel.getTime(examplePath, obj.DataLocationIndex);
+                            case 'Experiment Date'
+                                value = obj.DataLocationModel.getDate(examplePath, obj.DataLocationIndex);
+                        end
+                    catch
+                        value = '';
                     end
-                catch
-                    value = '';
+                    substring = char(value);
                 end
-                substring = char(value);
             end
 
             hRow.StrfindResultEditbox.Value = substring;
@@ -335,7 +338,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             if ~isempty(obj.FunctionName{rowNumber})
                 try
-                    feval(obj.FunctionName{rowNumber})
+                    feval(obj.FunctionName{rowNumber}, '', '')
                 catch ME
                     existFunction = ~strcmp(ME.identifier, 'MATLAB:UndefinedFunction');
                 end
@@ -424,11 +427,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                     substring = regexp(folderName, strPattern, 'match', 'once');
 
                 case 'func'
-                    dlIdx = obj.DataLocationIndex;
-                    thisDataLocation = obj.DataLocationModel.Data(dlIdx);
-                    pathStr = thisDataLocation.ExamplePath;
-                    dataLocationName = thisDataLocation.Name;
-                    substring = feval(obj.FunctionName{rowNumber}, pathStr, dataLocationName);
+                    substring = obj.getSubstringFromRowFunction(rowNumber);
             end
         end
     end
@@ -611,8 +610,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             % Update values in editboxes
             substring = obj.getFolderSubString(rowNumber);
-            hRow.StrfindResultEditbox.Value = substring;
-            hRow.StrfindResultEditbox.Tooltip = substring;
+            hRow.StrfindResultEditbox.Value = char( substring );
+            hRow.StrfindResultEditbox.Tooltip = char( substring );
 
             if ~isempty( obj.StringFormat{rowNumber} )
                 dtInFormat = obj.StringFormat{rowNumber};
@@ -935,6 +934,16 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
     end
     
+    methods (Access = private)
+        function substring = getSubstringFromRowFunction(obj, rowNumber)
+            dlIdx = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            pathStr = thisDataLocation.ExamplePath;
+            dataLocationName = thisDataLocation.Name;
+            substring = feval(obj.FunctionName{rowNumber}, pathStr, dataLocationName);
+        end
+    end
+
     methods (Static, Access = private)
         
         function identifierName = getIdNameForRow(rowNumber)

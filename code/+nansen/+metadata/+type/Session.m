@@ -15,7 +15,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
 %           "Analyzed", where every time a variable is saved, it is saved with
 %           a timestamp.
 %       [ ] Spin off loadData/saveData to a separate class (superclass)
-%       [ ] Implement save method... If changes are made, they need to be
+%       []Implement save method... If changes are made, they need to be
 %           saved to file... But also table.....
 %       [ ] Add listener on DataLocationModel events... Update internal
 %           datalocation struct. Should session inherit HasDataLocationModel???
@@ -184,8 +184,11 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         function date = assignDateInfo(obj, pathStr, dataLocationIndex)
         % Extract date using DataLocationModel and assign to property
 
-            if nargin < 2
-                pathStr = fullfile(obj.DataLocation(1).Subfolders);
+            if nargin < 3 || isempty(dataLocationIndex)
+                dataLocationIndex = 1;
+            end
+            if nargin < 2 || isempty(pathStr)
+                pathStr = fullfile(obj.DataLocation(dataLocationIndex).Subfolders);
             end
                         
             if ~isempty(obj.Date); return; end
@@ -771,7 +774,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         % See also nansen.metadata.type.Session/getDataFilePath
         
             % TODO:
-            %   [ ] Implement file adapters.
+            %   [] Implement file adapters.
             
             [filePath, variableInfo] = obj.getDataFilePath(varName, '-w', varargin{:});
 
@@ -905,9 +908,9 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             % Todo:
             %   [ ] (Why) do I need mode here?
-            %   [ ] Implement load/save differences, and default datapath
+            %   []Implement load/save differences, and default datapath
             %       for variable names that are not defined.
-            %   [ ] Implement ways to grab data spread over multiple files, i.e
+            %   []Implement ways to grab data spread over multiple files, i.e
             %       if files are separate by imaging channel, imaging plane,
             %       trials or are just split into multiple parts...
 

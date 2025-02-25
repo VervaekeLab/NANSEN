@@ -676,7 +676,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             if strcmp(mode, 'func')
                 substring = feval(S.FunctionName, pathStr, dataLocationName);
-                if strcmp(substring, 'N/A'); substring = ''; end
+                % nb: substring could be datetime value
+                if ischar(substring) && strcmp(substring, 'N/A'); substring = ''; end
                 return
             end
 

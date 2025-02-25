@@ -18,7 +18,7 @@ classdef MetaTable < handle
 %
 
 % Todo:
-%   [ ] Inherit from VersionedFile
+%   []Inherit from VersionedFile
 %   [ ] Constructor access should be MetaTableCatalog...
 %   [ ] Should archive be a method on this class? Would it not be better son
 %       metatablecatalog..?
@@ -769,7 +769,9 @@ classdef MetaTable < handle
                     end
                     obj.addTableVariable(thisName, defaultValue)
                 end
-                obj.save()
+                if not( isempty(obj.filepath) )
+                    obj.save()
+                end
             end
         end
         
