@@ -3,13 +3,26 @@
 
 import scipy.io as sio
 import numpy as np
+import datetime
 import sys
 
-data = np.load(sys.argv[1], allow_pickle=True)
+source_file_path = sys.argv[1]
+target_file_path = sys.argv[2]
+
+data = np.load(source_file_path, allow_pickle=True)
+
+if source_file_path.endswith('ops.npy'):
+    # ops.py, might contain a datetime, which cant be saved to mat...
+    if data.shape == ():
+        A = data.item()
+        if isinstance(A['date_proc'], datetime.datetime):
+            A['date_proc'] = A['date_proc'].strftime('%Y-%m-%d %H:%M:%S.%f %Z')
+            data[...] = A
+
 m = dict()
 m["data"] = data
 
-sio.savemat(sys.argv[2], m)
+sio.savemat(target_file_path, m)
 
 # license.txt
 #

@@ -251,7 +251,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             if ~isempty(matchedIdx)
                 varName = obj.Data(matchedIdx).VariableName;
                 if warnMultiple
-                    warning('Multiple matching variables were detected, selected first one (%s)' )
+                    warning('Multiple matching variables were detected, selected first one (%s)', varName)
                 end
             else
                 varName = '';
