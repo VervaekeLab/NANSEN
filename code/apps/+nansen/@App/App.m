@@ -1741,7 +1741,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
     methods (Access = private)
         function [metaObjects, status] = getMetaObjects(app, tableEntries, useCache)
-            
+        % getMetaObjects - Get metadata objects for a set of table rows
+        %
+        %   Inputs:
+        %       app - instance of this app
+        %       tableEntries - a collection of table rows
+        %       useCache - (optional) - flag determining if objects can be retrieved from a cache
+        %   Outputs:
+        %       metaObjects - An array of metadata objects
+        %       status - A logical vector indicating if an object was
+        %           created. Same length as tableEntries.
+
             % Todo: Use containers.Map / dictionary for cache...
             
             arguments
@@ -1755,7 +1765,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 % Check if objects already exists
                 ids = app.getObjectId(tableEntries);
-    
                 if isnumeric(ids)
                     if isnumeric(ids) && numel(ids) == 1
                         ids = num2str(ids);
@@ -1773,18 +1782,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     
                 metaObjectsOld = app.MetaObjectList(indInMetaObjects);
                 tableEntries(indInTableEntries, :) = []; % Don't need these anymore
+                                
+                statusOld = false(1, numel(ids));
+                statusOld(indInTableEntries) = true;
                 
                 % Create meta objects for remaining entries if any
                 [metaObjectsNew, statusNew] = app.createMetaObjects(tableEntries);
             
                 % Collect outputs
-                status = true(1, numel(ids));
-
                 if isequal(matchedIds, ids)
                     metaObjects = metaObjectsOld;
+                    status = statusOld;
                 elseif ~isempty(matchedIds)
                     metaObjects = utility.insertIntoArray(metaObjectsNew, metaObjectsOld, indInTableEntries);
-                    status = utility.insertIntoArray(statusNew, status, indInTableEntries);
+                    status = utility.insertIntoArray(statusNew, true(1,numel(metaObjectsOld)), indInTableEntries);
                 else
                     metaObjects = metaObjectsNew;
                     status = statusNew;
