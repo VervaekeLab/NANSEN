@@ -30,7 +30,7 @@ classdef DiskConnectionMonitor < handle
         end
 
         function delete(obj)
-            if ~isempty(obj.Timer)
+            if ~isempty(obj.Timer) && isvalid(obj.Timer)
                 stop(obj.Timer)
                 delete(obj.Timer)
             end
