@@ -460,6 +460,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 eventData = VariableAddedEventData(newItem);
                 obj.notify('VariableAdded', eventData)
             end
+
+            if ~nargout
+                clear newItem
+            end
         end
 
         function removeItem(obj, itemName)
