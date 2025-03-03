@@ -506,15 +506,14 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             
             switch ext
                 case '.npy'
-                    filepathMat = obj.convertNumpyFile(obj.Filename);
+                    matFileName = obj.convertNumpyFile(obj.Filename, obj.DiscardConvertedMatfile);
                     
                 otherwise
                     error('Conversion is not available for files with the "%s" extension', ext)
-                        
             end
             
             if obj.DiscardConvertedMatfile
-                obj.FileCleanupList = [obj.FileCleanupList, {filepathMat}];
+                obj.FileCleanupList = [obj.FileCleanupList, {matFileName}];
             end
         end
     end
@@ -532,7 +531,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
     
     methods (Static)
         
-        function filepathMat = convertNumpyFile(filepathNpy)
+        function filepathMat = convertNumpyFile(filepathNpy, isTemporary)
         %convertNumpyFile Convert numpy to matfile
         
             thisFolderPath = fileparts(mfilename('fullpath'));
@@ -540,7 +539,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 'numpy2mat.py');
             
             % Convert file in place:
-            filepathMat = strrep(filepathNpy, '.npy', '.mat');
+            if isTemporary
+                filepathMat = [tempname, '.mat'];
+            else
+                filepathMat = strrep(filepathNpy, '.npy', '.mat');
+            end
             
             if ispc
                 commandStrTemplate = 'python.exe "%s" "%s" "%s"'; % pyFile, sourceFile, targetFile
