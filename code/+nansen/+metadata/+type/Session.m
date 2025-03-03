@@ -1084,7 +1084,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
 
             if nargin < 3
-                mode = 'create'; % 'create' or 'nocreate'
+                mode = 'nocreate'; % 'create' or 'nocreate'
             end
             
             mode = validatestring(mode, {'create', 'nocreate', 'force'});
