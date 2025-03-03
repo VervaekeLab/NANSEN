@@ -115,7 +115,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         function id = getCurrentObjectId(obj)
         %getCurrentObjectId Get ID of current session object.
             id = '';
-            if ~isempty(obj.CurrentSessionObj)
+            if ~isempty(obj.CurrentSessionObj) && isvalid(obj.CurrentSessionObj)
                 id = obj.CurrentSessionObj.sessionID;
             end
         end
@@ -464,7 +464,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         end
 
         function updateSessionListBoxSelection(obj)
-            if ~isempty(obj.CurrentSessionObj)
+            if ~isempty(obj.CurrentSessionObj) && isvalid(obj.CurrentSessionObj)
                 currentSessionID = obj.CurrentSessionObj.sessionID;
                 currentValue = find(strcmp(obj.SessionIDList, currentSessionID));
             else
