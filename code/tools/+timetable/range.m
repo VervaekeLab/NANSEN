@@ -14,11 +14,27 @@ function t_out = range(t_in,R)
 % 
 % See also: TIMETABLE
 
+sampleRateEpsilon = 0.01;
+
+sampleRate = t_in.Properties.SampleRate;
+if isnan(sampleRate)
+    tDiff = diff(t_in.Time);
+    tDiffMean = mean(tDiff);
+    
+    tDiffMax = max(tDiff);
+    tDiffMin = min(tDiff);
+
+    if abs(tDiffMean-tDiffMax) > tDiffMean*sampleRateEpsilon || ...
+        abs(tDiffMean-tDiffMin) > tDiffMean*sampleRateEpsilon
+        warning('Constant sampling rate assumption might be wrong.')
+    end
+    sampleRate = 1/seconds(tDiffMean);
+end
 
 newR = ceil(size(t_in,1)/R);
 
-t_max = retime(t_in,'regular','max','SampleRate',t_in.Properties.SampleRate/R);
-t_min = retime(t_in,'regular','min','SampleRate',t_in.Properties.SampleRate/R);
+t_max = retime(t_in,'regular','max','SampleRate',sampleRate/R);
+t_min = retime(t_in,'regular','min','SampleRate',sampleRate/R);
 
 sample = reshape(repmat(1:newR,2,1),2*newR,1);
 dataset_max = find(mod(1:2*newR,4)>1);
