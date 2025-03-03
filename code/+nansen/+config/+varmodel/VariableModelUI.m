@@ -112,6 +112,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
                 S(j).DataLocation = hRow.DataLocSelect.Value;
                 S(j).FileType = hRow.FileTypeSelect.Value;
                 S(j).FileAdapter = hRow.FileAdapterSelect.Value;
+                S(j).Subfolder = hRow.SubfolderName.Value;
                 
                 % Update data type based on fileadapter selection
                 isMatch = strcmp({fileAdapterList.FileAdapterName}, S(j).FileAdapter);
@@ -144,9 +145,9 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         function assignDefaultTablePropertyValues(obj)
 
             obj.ColumnNames = {'', 'Data variable name', 'Data location', ...
-                 'Filename expression', 'File type', 'File adapter'};
+                 'Filename expression', 'File type', 'File adapter', 'Subfolder'};
             obj.ColumnHeaderHelpFcn = @nansen.app.setup.getHelpMessage;
-            obj.ColumnWidths = [12, 200, 115, 175, 70, 125];
+            obj.ColumnWidths = [12, 200, 115, 175, 70, 125, 175];
             obj.RowSpacing = 20;
             obj.ColumnSpacing = 18;
         end
@@ -302,6 +303,23 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             end
             
             hRow.FileAdapterSelect.ValueChangedFcn = @obj.onFileAdapterChanged;
+        
+        
+            % % Create subfolder field
+            i = i+1;
+            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
+
+            hRow.SubfolderName = uieditfield(obj.TablePanel, 'text');
+            hRow.SubfolderName.FontName = 'Segoe UI';
+            hRow.SubfolderName.BackgroundColor = [1 1 1];
+            hRow.SubfolderName.Position = [xi y wi h];
+            obj.centerComponent(hRow.SubfolderName, y)
+            hRow.SubfolderName.ValueChangedFcn = @obj.onSubfolderChanged;
+            
+            if ~isempty(rowData.Subfolder)
+                hRow.SubfolderName.Value = rowData.Subfolder;
+            end
+        
         end
         
         function createToolbarComponents(obj, hPanel)
@@ -474,7 +492,27 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
                 src.Value = evt.PreviousValue;
             end
         end
-        
+
+        function onSubfolderChanged(obj, src, evt)
+            
+            rowNumber = obj.getComponentRowNumber(src);
+            hRow = obj.RowControls(rowNumber);
+            
+            rootFolderPath = obj.getSelectedDataLocationFolderPath(rowNumber);
+            
+            if ~isempty(hRow.SubfolderName.Value)
+                folderPath = fullfile(rootFolderPath, hRow.SubfolderName.Value);
+                if ~isfolder(folderPath)
+                    hFig = ancestor(obj.Parent, 'figure');
+                    uialert(hFig, sprintf('Warning: The subfolder "%s" does not exist.', src.Value), 'Folder does not exist')
+                    %src.Value = evt.OldValue;
+                end
+            end
+
+            obj.updateFileTypeDropdownItems(rowNumber)
+            obj.IsDirty = true;
+        end
+
         function pathStr = getSelectedDataLocationFolderPath(obj, rowNumber)
             
             hRow = obj.RowControls(rowNumber);
@@ -723,6 +761,10 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             hRow = obj.RowControls(rowNumber);
             
             folderPath = obj.getSelectedDataLocationFolderPath(rowNumber);
+            if ~isempty(hRow.SubfolderName.Value)
+                folderPath = fullfile(folderPath, hRow.SubfolderName.Value);
+            end
+            
             fileNameExpression = hRow.FileNameExpr.Value;
            
             expression = obj.VariableModel.patternToWildcardExpression(fileNameExpression);
