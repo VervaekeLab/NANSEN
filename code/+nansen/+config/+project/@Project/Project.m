@@ -150,8 +150,9 @@ classdef Project < nansen.module.Module
             folderPath = obj.getConfigurationFolder('Subfolder', 'custom_options');
         end
 
-        function folderPath = getMetadataFolder(obj)
+        function folderPath = getMetadataFolder(obj, varargin)
             folderPath = fullfile(obj.FolderPath, obj.METADATA_FOLDER_NAME);
+            folderPath = fullfile(folderPath, varargin{:});
         end
 
         function folderPath = getModuleFolder(obj)
