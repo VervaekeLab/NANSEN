@@ -304,6 +304,13 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         function name = getDataId(obj)
             name = obj.sessionID;
         end
+
+        function subjectInfo = getSubject(obj)
+            project = nansen.getCurrentProject();
+            subjectTable = project.MetaTableCatalog.getMetaTable('Subject');
+            subjectId = obj.subjectID;
+            subjectInfo = table2struct( subjectTable.getEntry(subjectId) );
+        end
         
         function S = toStruct(obj)
         %TOSTRUCT Convert object to a struct.
