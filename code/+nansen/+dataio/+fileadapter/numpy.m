@@ -18,9 +18,16 @@ classdef numpy < nansen.dataio.FileAdapter
     
     methods (Access = protected)
         function data = readData(obj, varargin)
-            matFileName = obj.convertToMatfile();
-            S = load(matFileName);
-            data = S.data;
+            fileInfo = dir(obj.Filename);
+            fileSize = fileInfo.bytes;
+            if fileSize < 4 * 1e9 % 4GB
+                matFileName = obj.convertToMatfile();
+                S = load(matFileName);
+                data = S.data;
+            else
+                % Can not convert files larger than 4GB to .mat
+                npObj = py.numpy.load(filePath); data = single(npObj);
+            end
         end
     end
 end
