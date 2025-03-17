@@ -94,6 +94,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % Superclass constructor. Loads given (or default) archive
             obj@utility.data.StorableCatalog(varargin{:})
             
+            obj.updateMetadataExtractorFunctionNames()
             obj.tempDevFix()
         end
         
@@ -1037,6 +1038,25 @@ classdef DataLocationModel < utility.data.StorableCatalog
         
             % Fallback: if no label is available, return the device name.
             diskName = device;
+        end
+    
+        function updateMetadataExtractorFunctionNames(obj)
+            
+            % TODO: This should not be harcoded here. Ideally users can
+            % also add their own variables.
+            variableNames = {'SubjectId', 'SessionId', 'ExperimentDate', 'ExperimentTime'};
+
+            % Todo: Is this assumtion always valid? I.e does the current
+            % datalocation model always belong to the current project?
+            project = nansen.getCurrentProject();
+
+            for i = 1:obj.NumDataLocations
+                for j = 1:numel(obj.Data(i).MetaDataDef)
+                    functionName = sprintf('%s.datalocation.get%s', project.Name, variableNames{j});
+                    obj.Data(i).MetaDataDef(j).FunctionName = functionName;
+                end
+            end
+            obj.save()
         end
     end
    
