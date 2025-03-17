@@ -755,23 +755,31 @@ classdef MetaTable < handle
             
             getRowIndex = @(T, varName) find( strcmp(T.Name, varName) );
 
+            if not(isempty(missingVarNames))
+                projectName = nansen.getCurrentProject().Name;
+            end
+
             for iVarName = 1:numel(missingVarNames)
                 thisName = missingVarNames{iVarName};
                 thisRowIndex = getRowIndex(refVariableAttributes, thisName);
 
+                fcnName = sprintf('%s.tablevariable.%s.%s', projectName, lower(metaTableType), thisName);
+                fcnResult = feval(fcnName);
+                if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
+                    defaultValue = fcnResult.DEFAULT_VALUE;
+                else
+                    defaultValue = fcnResult;
+                end
+                obj.addTableVariable(thisName, defaultValue)
+
                 if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
-                    fcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
-                    fcnResult = feval(fcnName);
-                    if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
-                        defaultValue = fcnResult.DEFAULT_VALUE;
-                    else
-                        defaultValue = fcnResult;
-                    end
-                    obj.addTableVariable(thisName, defaultValue)
+                    % Todo: update for all items of the metatable
+                    updateFcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
+                    obj.updateTableVariable(thisName, updateFcnName)
                 end
-                if not( isempty(obj.filepath) )
-                    obj.save()
-                end
+            end
+            if not( isempty(obj.filepath) )
+                obj.save()
             end
         end
         
