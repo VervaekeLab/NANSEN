@@ -5,7 +5,9 @@
 %   1) If the userpath is empty, this script will update userpath
 %   2) This script will download dependencies for NANSEN
 %   3) This script will add NANSEN and dependencies to the search path
-function install()
+
+
+function nansen_install()
 
     repoFolder = fileparts(mfilename('fullpath'));
     if isfolder( fullfile(repoFolder, 'code') )
@@ -37,6 +39,8 @@ function install()
         addpath(genpath(toolboxFolderPath))
         savepath()
     end
+
+    % Todo: Ensure installed dependencies are added to path.
     
     % Open Setup Wizard
     %fprintf('Opening NANSEN''s Setup Wizard...\n')
