@@ -441,8 +441,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(hMenu, 'Text','Refresh Data Locations');
             mitem.MenuSelectedFcn = @app.onDataLocationModelChanged;
 
-            mitem = uimenu(hMenu, 'Text','Clear Memory');
-            mitem.MenuSelectedFcn = @app.menuCallback_ClearMemory;
+            mitem = uimenu(hMenu, 'Text','Clear SessionObject Cache');
+            mitem.MenuSelectedFcn = @app.menuCallback_ClearCachedMetaObjects;
 
             % % % % % % Create EXIT menu items % % % % % %
             mitem = uimenu(hMenu, 'Text','Close All Figures', 'Separator', 'on');
@@ -3950,7 +3950,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.importTableVariable();
         end
 
-        function menuCallback_ClearMemory(app, ~, ~)
+        function menuCallback_ClearCachedMetaObjects(app, ~, ~)
             app.resetMetaObjectList()
         end
         
