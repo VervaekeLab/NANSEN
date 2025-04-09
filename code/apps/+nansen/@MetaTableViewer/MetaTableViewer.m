@@ -164,10 +164,11 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         function delete(obj)
             if ~isempty(obj.HTable) && isvalid(obj.HTable)
                 columnWidths = obj.HTable.ColumnWidth;
-                obj.ColumnModel.setColumnWidths(columnWidths);
-            
+                if ~isempty(columnWidths)
+                    obj.ColumnModel.setColumnWidths(columnWidths);
+                end
+
                 delete(obj.ColumnModel)
-                
                 delete(obj.HTable)
             end
         end
