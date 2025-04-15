@@ -76,7 +76,9 @@ classdef FileViewer < nansen.AbstractTabPageModule
         FileContextMenu
         FolderContextMenu
         nwbContextMenu
-        
+        LoadDataVariableSubMenu
+        LoadDataVariableSubMenuItems
+
         hPanelPreview
         hStatusLabel = gobjects().empty % Show status message (if no session is selected)
     end
@@ -723,8 +725,6 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     end
                 else
                     
-                    obj.FileContextMenu.Position = cMenuPosition;
-                    obj.FileContextMenu.Visible = 'on';
                     L = dir(pathName);
 
                     hMenu = findobj(obj.FileContextMenu, 'Text', 'Download File');
@@ -735,6 +735,11 @@ classdef FileViewer < nansen.AbstractTabPageModule
                             hMenu.Enable = 'off';
                         end
                     end
+    
+                    obj.createDataVariableSubMenu(pathName)
+
+                    obj.FileContextMenu.Position = cMenuPosition;
+                    obj.FileContextMenu.Visible = 'on';
                 end
             end
         end
@@ -795,15 +800,19 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
             end
 
-            mitem = uimenu(m, 'Text', 'Create New Variable from File', 'Separator', 'on');
+            mitem = uimenu(m, 'Text', 'Create New Variable from File...', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onCreateVariableMenuItemClicked();
             
-            mitem = uimenu(m, 'Text', 'Create File Adapter for File');
+            mitem = uimenu(m, 'Text', 'Create File Adapter for File...');
             mitem.Callback = @(s, e) obj.onCreateFileAdapterMenuItemClicked();
 
             mitem = uimenu(m, 'Text', 'Load Data to Workspace', 'Accelerator', 'L', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
-            
+
+            mitem = uimenu(m, 'Text', 'Load Variable to Workspace', "Enable", "off");
+            %mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
+            obj.LoadDataVariableSubMenu = mitem;
+
             mitem = uimenu(m, 'Text', 'Plot Data in Timeseries Plotter');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
         end
@@ -819,6 +828,31 @@ classdef FileViewer < nansen.AbstractTabPageModule
             
             mitem = uimenu(m, 'Text', 'Assign to Workspace');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
+        end
+
+        function createDataVariableSubMenu(obj, filePath)
+            varNames = obj.detectVariablesForFile(filePath);
+
+            if ~isempty(obj.LoadDataVariableSubMenu.Children)
+                delete(obj.LoadDataVariableSubMenu.Children)
+            end
+            if ~isempty(obj.LoadDataVariableSubMenuItems)
+                delete(obj.LoadDataVariableSubMenuItems)
+                obj.LoadDataVariableSubMenuItems = [];
+            end
+
+            if isempty(varNames)
+                obj.LoadDataVariableSubMenu.Enable = "off";
+            else
+                if ischar(varNames)
+                    varNames = {varNames};
+                end
+                obj.LoadDataVariableSubMenu.Enable = "on";
+                menuList = uics.MenuList(obj.LoadDataVariableSubMenu, varNames);
+                menuList.SelectionMode = 'none';
+                menuList.MenuSelectedFcn = @(s,e) obj.onLoadDataVariableItemClicked(s, filePath);
+                obj.LoadDataVariableSubMenuItems = menuList;
+            end
         end
 
         function handleRightClick(obj, eventData)
@@ -991,7 +1025,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     % Todo: Use the sessionObject loadData and fileAdapters
                     obj.loadFileToWorkspace( nodeHandle.UserData.filePath )
 
-                case 'Create New Variable from File'
+                case 'Create New Variable from File...'
                     
                 case 'Plot Data in Timeseries Plotter'
                     S = load(nodeHandle.UserData.filePath);
@@ -1011,6 +1045,11 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     % generalize...
                     assignin('base', nodeHandle.UserData.nwbNodeName, nodeHandle.UserData.nwbNode)
             end
+        end
+
+        function onLoadDataVariableItemClicked(obj, src, filePath)
+            variableName = src.Text;
+            obj.loadDataVariableToWorkspace(variableName)            
         end
         
         function onCreateVariableMenuItemClicked(obj)
@@ -1092,6 +1131,15 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 clear varName
             end
         end
+
+        function varNames = detectVariablesForFile(obj, filePath)
+            [~, fileName, fileExtension] = fileparts(filePath);
+
+            % Look in the data variable model for items / elements that
+            % match the filename and file extension.
+            varModel = obj.CurrentSessionObj.VariableModel;
+            varNames = varModel.findVariableByFilename([fileName, fileExtension], 'all');
+        end
         
         function openFilePreview(obj, filePath)
             % Todo
@@ -1114,6 +1162,13 @@ classdef FileViewer < nansen.AbstractTabPageModule
             else
                 obj.loadFileToWorkspaceByFileType(pathName)
             end
+        end
+
+        function loadDataVariableToWorkspace(obj, variableName)
+            fprintf('Please wait, loading data...')
+            data = obj.CurrentSessionObj.loadData(variableName);
+            assignin('base', variableName, data)
+            fprintf(' Done.\n')
         end
     end
 

@@ -68,6 +68,7 @@ classdef MenuList < uiw.mixin.AssignPVPairs
         function set.SelectionMode(obj, newMode)
             newMode = validatestring(newMode, obj.VALID_SELECTIONMODE);
             obj.SelectionMode = newMode;
+            obj.onSelectionModeSet()
         end
     end
     
@@ -138,6 +139,13 @@ classdef MenuList < uiw.mixin.AssignPVPairs
 
             [~, itemInd] = intersect(obj.Items, obj.Value);
             set(obj.MenuListItems(itemInd), 'Checked', 'on')
+        end
+
+        function onSelectionModeSet(obj)
+            if strcmp(obj.SelectionMode, 'none')
+                set(obj.MenuListItems, 'Checked', 'off')
+                obj.Value = [];
+            end
         end
     end
 end

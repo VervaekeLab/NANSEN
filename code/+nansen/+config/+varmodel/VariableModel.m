@@ -208,7 +208,13 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         
         % % Variable interaction and utility methods
 
-        function varName = findVariableByFilename(obj, filePath)
+        function varName = findVariableByFilename(obj, filePath, mode)
+
+            arguments
+                obj
+                filePath
+                mode (1,1) string {mustBeMember(mode, ["once", "all"])} = "once"
+            end
             
             [~, filename, ext] = fileparts(filePath);
 
@@ -242,19 +248,27 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 end
 
             elseif sum(isMatch) > 1
-                matchedIdx = find(isMatch, 1, 'first');
-                warnMultiple = true;
+                if mode == "once"
+                    matchedIdx = find(isMatch, 1, 'first');
+                    warnMultiple = true;
+                else
+                    matchedIdx = find(isMatch);
+                end
             else
                 matchedIdx = find(isMatch);
             end
             
             if ~isempty(matchedIdx)
-                varName = obj.Data(matchedIdx).VariableName;
+                varName = {obj.Data(matchedIdx).VariableName};
                 if warnMultiple
-                    warning('Multiple matching variables were detected, selected first one (%s)', varName)
+                    warning('Multiple matching variables were detected, selected first one (%s)', varName{1})
                 end
             else
                 varName = '';
+            end
+
+            if isscalar(varName)
+                varName = varName{1};
             end
         end
 
