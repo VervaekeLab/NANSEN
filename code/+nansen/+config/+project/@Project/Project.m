@@ -69,7 +69,12 @@ classdef Project < nansen.module.Module
     % Constructor.
     methods (Access = {?nansen.config.project.ProjectManager, ?nansen.config.project.Project})
         function obj = Project(projectName, projectFolder)
-            
+
+            arguments
+                projectName (1,1) string {nansen.config.project.mustBeValidProjectName}
+                projectFolder (1,1) string {mustBeFolder}
+            end
+
             configFileName = nansen.module.Module.MODULE_CONFIG_FILENAME;
             packageName = strcat('+', projectName); % Todo: Short name
 
