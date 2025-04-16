@@ -6,8 +6,11 @@
 %   2) This script will download dependencies for NANSEN
 %   3) This script will add NANSEN and dependencies to the search path
 
+function nansen_install(options)
 
-function nansen_install()
+    arguments
+        options.SavePath (1,1) logical = true
+    end
 
     repoFolder = fileparts(mfilename('fullpath'));
     if isfolder( fullfile(repoFolder, 'code') )
@@ -38,6 +41,9 @@ function nansen_install()
     if ~contains(path, toolboxFolderPath)
         addpath(genpath(toolboxFolderPath))
         savepath()
+    end
+    if options.SavePath
+        savepath
     end
 
     % Todo: Ensure installed dependencies are added to path.
