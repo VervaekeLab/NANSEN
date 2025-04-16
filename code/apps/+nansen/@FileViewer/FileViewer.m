@@ -1086,8 +1086,6 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             isMatch = strcmp({fileAdapterList.FileAdapterName}, fileAdapterName);
             edit(fileAdapterList(isMatch).FunctionName)
-
-            obj.loadDataVariableToWorkspace(variableName)            
         end
         
         function onCreateVariableMenuItemClicked(obj)
