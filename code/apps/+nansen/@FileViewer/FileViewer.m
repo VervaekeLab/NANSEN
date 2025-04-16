@@ -863,8 +863,8 @@ classdef FileViewer < nansen.AbstractTabPageModule
         end
 
         function createFileAdapterSubMenu(obj, filePath)
-            [fileAdapter, varName] = obj.detectFileAdapter(filePath);
-
+            [fileAdapter, varName] = obj.detectFileAdapter(filePath, "all");
+            
             if ~isempty(obj.ViewFileAdapterSubMenuItems)
                 delete(obj.ViewFileAdapterSubMenuItems)
                 obj.ViewFileAdapterSubMenuItems = [];
@@ -873,7 +873,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             if isempty(fileAdapter)
                 obj.ViewFileAdapterSubMenu.Enable = "off";
             else
-                fileAdapterName = {fileAdapter.classname};
+                fileAdapterName = cellfun(@(c) c.classname(), fileAdapter, 'uni', 0);
 
                 obj.ViewFileAdapterSubMenu.Enable = "on";
                 menuList = uics.MenuList(obj.ViewFileAdapterSubMenu, fileAdapterName);
@@ -1145,22 +1145,39 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
     methods (Access = private) % Nansen related methods
 
-        function [fileAdapter, varName] = detectFileAdapter(obj, filePath)
+        function [fileAdapter, varName] = detectFileAdapter(obj, filePath, mode)
         % detectFileAdapter - Detect if a file is associated with a file adapter
+
+            arguments
+                obj
+                filePath
+                mode (1,1) string {mustBeMember(mode, ["first", "all"])} = "first"
+            end
+
             [~, fileName, fileExtension] = fileparts(filePath);
 
             % Look in the data variable model for items / elements that
             % match the filename and file extension.
             varModel = obj.CurrentSessionObj.VariableModel;
-            varName = varModel.findVariableByFilename([fileName, fileExtension]);
+            varName = varModel.findVariableByFilename([fileName, fileExtension], mode);
             
+            % Wrap in cell to be compatible with loop below
+            if ~isempty(varName) && ischar(varName)
+                varName = {varName};
+            end
+            
+            fileAdapter = cell(1, numel(varName));
+
             % Get file adapter
-            if ~isempty( varName )
-                [variableInfo, ~] = varModel.getVariableStructure(varName);
+            for i = 1:numel( varName )
+                [variableInfo, ~] = varModel.getVariableStructure(varName{i});
                 fileAdapterFcn = varModel.getFileAdapterFcn(variableInfo);
-                fileAdapter = fileAdapterFcn(filePath);
-            else
-                fileAdapter = [];
+                fileAdapter{i} = fileAdapterFcn(filePath);
+            end
+
+            if isscalar(varName) && mode == "first"
+                fileAdapter = fileAdapter{1};
+                varName = varName{1};
             end
 
             if nargout < 2

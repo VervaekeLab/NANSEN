@@ -213,7 +213,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             arguments
                 obj
                 filePath
-                mode (1,1) string {mustBeMember(mode, ["once", "all"])} = "once"
+                mode (1,1) string {mustBeMember(mode, ["first", "all"])} = "first"
             end
             
             [~, filename, ext] = fileparts(filePath);
@@ -248,7 +248,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 end
 
             elseif sum(isMatch) > 1
-                if mode == "once"
+                if mode == "first"
                     matchedIdx = find(isMatch, 1, 'first');
                     warnMultiple = true;
                 else
