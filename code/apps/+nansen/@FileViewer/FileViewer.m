@@ -73,11 +73,14 @@ classdef FileViewer < nansen.AbstractTabPageModule
         jTree
         jVerticalScroller
         
+        % %  Menu handles
         FileContextMenu
         FolderContextMenu
         nwbContextMenu
         LoadDataVariableSubMenu
         LoadDataVariableSubMenuItems
+        ViewFileAdapterSubMenu
+        ViewFileAdapterSubMenuItems
 
         hPanelPreview
         hStatusLabel = gobjects().empty % Show status message (if no session is selected)
@@ -701,7 +704,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         % node represents a file or an NWB dataset.
             
             if nargin < 3
-                
+                % Todo: remove?
             end
         
             if ~isempty(obj.CurrentNode)
@@ -735,7 +738,8 @@ classdef FileViewer < nansen.AbstractTabPageModule
                             hMenu.Enable = 'off';
                         end
                     end
-    
+
+                    obj.createFileAdapterSubMenu(pathName)
                     obj.createDataVariableSubMenu(pathName)
 
                     obj.FileContextMenu.Position = cMenuPosition;
@@ -767,8 +771,6 @@ classdef FileViewer < nansen.AbstractTabPageModule
         function m = createFileItemContextMenu(obj)
         %createFileItemContextMenu Create contextmenu for uitree
         %
-        %
-        
         %   Note: This contextmenu is not assigned to a specific uitree
         %   because it will be reused across uitrees.
             
@@ -805,14 +807,19 @@ classdef FileViewer < nansen.AbstractTabPageModule
             
             mitem = uimenu(m, 'Text', 'Create File Adapter for File...');
             mitem.Callback = @(s, e) obj.onCreateFileAdapterMenuItemClicked();
+                     
+            mitem = uimenu(m, 'Text', 'View File Adapter', "Enable", "off");
+            obj.ViewFileAdapterSubMenu = mitem;
 
             mitem = uimenu(m, 'Text', 'Load Data to Workspace', 'Accelerator', 'L', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
 
             mitem = uimenu(m, 'Text', 'Load Variable to Workspace', "Enable", "off");
-            %mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
             obj.LoadDataVariableSubMenu = mitem;
 
+            % Todo: 
+            % 1. Submenu list with app to open in? or
+            % 2. Let file adapter decide??
             mitem = uimenu(m, 'Text', 'Plot Data in Timeseries Plotter');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
         end
@@ -852,6 +859,27 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 menuList.SelectionMode = 'none';
                 menuList.MenuSelectedFcn = @(s,e) obj.onLoadDataVariableItemClicked(s, filePath);
                 obj.LoadDataVariableSubMenuItems = menuList;
+            end
+        end
+
+        function createFileAdapterSubMenu(obj, filePath)
+            [fileAdapter, varName] = obj.detectFileAdapter(filePath);
+
+            if ~isempty(obj.ViewFileAdapterSubMenuItems)
+                delete(obj.ViewFileAdapterSubMenuItems)
+                obj.ViewFileAdapterSubMenuItems = [];
+            end
+
+            if isempty(fileAdapter)
+                obj.ViewFileAdapterSubMenu.Enable = "off";
+            else
+                fileAdapterName = {fileAdapter.classname};
+
+                obj.ViewFileAdapterSubMenu.Enable = "on";
+                menuList = uics.MenuList(obj.ViewFileAdapterSubMenu, fileAdapterName);
+                menuList.SelectionMode = 'none';
+                menuList.MenuSelectedFcn = @(s,e) obj.onViewFileAdapterItemClicked(s, filePath);
+                obj.ViewFileAdapterSubMenuItems = menuList;
             end
         end
 
@@ -1049,6 +1077,16 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
         function onLoadDataVariableItemClicked(obj, src, filePath)
             variableName = src.Text;
+            obj.loadDataVariableToWorkspace(variableName)            
+        end
+        
+        function onViewFileAdapterItemClicked(obj, src, filePath)
+            fileAdapterName = src.Text;
+            fileAdapterList = nansen.dataio.listFileAdapters();
+
+            isMatch = strcmp({fileAdapterList.FileAdapterName}, fileAdapterName);
+            edit(fileAdapterList(isMatch).FunctionName)
+
             obj.loadDataVariableToWorkspace(variableName)            
         end
         
