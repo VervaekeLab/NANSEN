@@ -1207,14 +1207,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             end
 
             if isfolder(pathName); return; end
-
-            [fileAdapter, varName] = obj.detectFileAdapter(pathName);
-            if ~isempty(fileAdapter)
-                data = fileAdapter.load();
-                assignin('base', varName, data)
-            else
-                obj.loadFileToWorkspaceByFileType(pathName)
-            end
+            obj.loadFileToWorkspaceByFileType(pathName)
         end
 
         function loadDataVariableToWorkspace(obj, variableName)
