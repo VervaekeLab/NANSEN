@@ -649,6 +649,20 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
         end
         
+        function viewDataVariable(obj, varName)
+            [filePath, variableInfo] = obj.getDataFilePath(varName, '-r');
+            
+            obj.assertValidFileAdapter(variableInfo, 'load')
+            fileAdapterFcn = obj.getFileAdapterFcn(variableInfo);
+
+            fileAdapter = fileAdapterFcn(filePath);
+            try
+                fileAdapter.view()
+            catch
+                errordlg(sprintf('The file adapter "%s" does not have a view method', fileAdapter.classname))
+            end
+        end
+
         function data = loadData(obj, varName, varargin)
         %loadData Loads data for given variable
         %
