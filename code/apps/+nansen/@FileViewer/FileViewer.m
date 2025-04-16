@@ -814,14 +814,17 @@ classdef FileViewer < nansen.AbstractTabPageModule
             mitem = uimenu(m, 'Text', 'View File Adapter', "Enable", "off");
             obj.ViewFileAdapterSubMenu = mitem;
 
-            mitem = uimenu(m, 'Text', 'Load Data to Workspace', 'Accelerator', 'L', 'Separator', 'on');
-            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
-
-            mitem = uimenu(m, 'Text', 'Load Data Variable to Workspace', "Enable", "off");
+            mitem = uimenu(m, 'Text', 'Load Data Variable to Workspace', "Enable", "off", 'Separator', 'on');
             obj.LoadDataVariableSubMenu = mitem;
             
             mitem = uimenu(m, 'Text', 'View Data Variable', "Enable", "off");
             obj.ViewDataVariableSubMenu = mitem;
+
+            mitem = uimenu(m, 'Text', 'Load File to Workspace', 'Accelerator', 'L', 'Separator', 'on');
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
+           
+            mitem = uimenu(m, 'Text', 'View File', 'Accelerator', 'V');
+            mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
 
             % mitem = uimenu(m, 'Text', 'Plot Data in Timeseries Plotter');
             % mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
@@ -1071,9 +1074,12 @@ classdef FileViewer < nansen.AbstractTabPageModule
                         msgbox(ME.message)
                     end
 
-                case 'Load Data to Workspace'
+                case 'Load File to Workspace'
                     % Todo: Use the sessionObject loadData and fileAdapters
                     obj.loadFileToWorkspace( nodeHandle.UserData.filePath )
+
+                case 'View File'
+                    obj.viewFile( nodeHandle.UserData.filePath )
 
                 case 'Create New Variable from File...'
                     
@@ -1225,6 +1231,10 @@ classdef FileViewer < nansen.AbstractTabPageModule
             % Todo
         end
 
+        function viewFile(obj, pathName)
+            obj.viewFileByFileType(pathName)
+        end
+
         function loadFileToWorkspace(obj, pathName)
             % Todo: This should probably be either a method on the session
             % class or on a data collection class.
@@ -1287,6 +1297,10 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     message = sprintf('Can not load files of type %s to workspace', fileExt);
                     errordlg(message)
             end
+        end
+
+        function viewFileByFileType(pathName)
+            errordlg('Not implemented yet')
         end
     end
 end
