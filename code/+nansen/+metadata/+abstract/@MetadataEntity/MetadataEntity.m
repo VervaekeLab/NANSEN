@@ -1,9 +1,7 @@
-classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
-%MetadataEntity Basis class for a metadata object definition.
+% MetadataEntity - Base class for a metadata entity definition.
 %
 % Properties are metadata info.
 %
-% Using a class makes it possible to use validation.
 % Convert to/from struct
 % Convert to/from table
 %
@@ -16,19 +14,17 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
 %
 %   See also MetaTable
 
+classdef MetadataEntity < ...
+        dynamicprops & ...
+        nansen.util.StructAdapter & ...
+        nansen.metadata.mixin.HasNotes
+
 %   Todo
 %       [ ] Add methods for interacting with a metatable?
 
     properties (Abstract, Constant, Hidden)
         ANCESTOR
         IDNAME
-    end
-    
-    properties (Constant, Hidden)
-    end
-    
-    properties %(Abstract)
-        Notebook = struct.empty        % struct
     end
     
     properties (Transient, SetAccess = immutable, GetAccess = protected)
@@ -60,10 +56,10 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
         %   Note: Need to return obj, because this function might change
         %   the size of obj.
         
-            % Count table rows
-            numObjects = size(metaTable,1);
-            % Use notebook field to initialize a vector of objects
-            obj(numObjects).Notebook = struct.empty;
+            % Initialize array of objects
+            numObjects = size(metaTable, 1);
+            obj(numObjects) = feval(class(obj));
+
             % Assign object properties from meta table
             obj.fromTable(metaTable)
         end
@@ -104,8 +100,7 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
         end
         
         function S = toStruct(obj)
-        %TOSTRUCT Convert object to a struct. Skip Notebook property.
-            
+        %TOSTRUCT Convert object to a struct.
             S = toStruct@nansen.util.StructAdapter(obj);
         end
 
@@ -126,38 +121,22 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
            
             S = table2struct(dataTable);
             numObjects = numel(S);
-            obj(numObjects).Notebook = struct.empty;
+            obj(numObjects) = feval(class(obj));
+            
             obj.fromStruct(S);
         end
     end
     
-    methods
-        function addNote(obj, note)
-            
-            if isa(note, 'nansen.notes.Note')
-                noteStruct = struct(note);
-            elseif isa(note, 'struct')
-                noteStruct = note;
-            else
-                error('Invalid input')
-            end
-            
-            if isempty(obj.Notebook)
-                obj.Notebook = noteStruct;
-            else
-                obj.Notebook(end+1) = noteStruct;
-            end
-            
+    methods (Access = protected)
+        function onNotebookPropertySet(obj)
             evtData = obj.getPropertyChangedEventData('Notebook');
             obj.notify('PropertyChanged', evtData)
         end
-    end
-    
-    methods (Access = protected)
         
         function evtData = getPropertyChangedEventData(obj, propertyName)
-            
             newValue = obj.(propertyName);
+            % Todo: This should either be improved, or documented, i.e why
+            % is a struct wrapped in a cell array?
             if isa(newValue, 'struct'); newValue = {newValue}; end
             
             evtData = uiw.event.EventData('Property', propertyName, ...
