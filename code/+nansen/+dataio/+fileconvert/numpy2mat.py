@@ -13,6 +13,7 @@ data = np.load(source_file_path, allow_pickle=True)
 
 if source_file_path.endswith('ops.npy'):
     # ops.py, might contain a datetime, which cant be saved to mat...
+    # Todo: should be handled in a different place...
     if data.shape == ():
         A = data.item()
         if isinstance(A['date_proc'], datetime.datetime):
