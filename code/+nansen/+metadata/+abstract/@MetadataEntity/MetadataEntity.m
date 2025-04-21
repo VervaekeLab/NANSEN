@@ -26,7 +26,7 @@ classdef MetadataEntity < ...
         ANCESTOR
         IDNAME
     end
-    
+
     properties (Transient, SetAccess = immutable, GetAccess = protected)
         IsConstructed = false
     end
@@ -37,16 +37,28 @@ classdef MetadataEntity < ...
     
     methods % Constructor
         function obj = MetadataEntity(varargin)
-            
             if ~isempty(varargin) && isa(varargin{1}, 'table')
                 obj = obj.constructFromTable(varargin{1});
                 [obj.IsConstructed] = deal(true);
             end
         end
     end
+
+    methods
+        function addDynamicTableVariables(obj)
+            error('Not implemented yet')
+        end
+    end
+
+    methods (Access = private)
+        function value = getType(obj)
+            fullClassname = class(obj);
+            splitClassName = strsplit(fullClassname, '.');
+            value = splitClassName{end};
+        end
+    end
     
     methods (Access = private)
-                      
         function obj = constructFromTable(obj, metaTable)
         %constructFromTable Construct object(s) from meta table
         %
@@ -63,38 +75,57 @@ classdef MetadataEntity < ...
             % Assign object properties from meta table
             obj.fromTable(metaTable)
         end
+    
+        function createDynamicProperty(obj, propName, S)
+        % createDynamicProperty - Helper method to create dynamic properties
+
+            arguments
+                obj nansen.metadata.abstract.MetadataEntity
+                propName (1,1) string
+                S (1,:) struct
+            end
+
+            P = obj.addprop(propName);
+            for i = 1:numel(obj)
+                obj(i).(propName) = S(i).(propName);
+            end
+            
+            % Dynamic props must only be set from within the class
+            [P.SetAccess] = deal('protected');
+        end
+    
     end
     
     methods % Methods for retyping
         
         function fromStruct(obj, S)
             
-            numObjects = numel(S);
+            assert(numel(obj) == numel(S), ...
+                'NANSEN:MetadataEntity:WrongStructLength', ...
+                'Input structure must be the same length as the object')
+            
             propertyNames = fieldnames(S);
             
             for jProp = 1:numel(propertyNames)
+                thisPropertyName = propertyNames{jProp};
+
                 if isprop(obj, propertyNames{jProp})
 % %                     for i = 1:numObjects
 % %                         obj(i).(propertyNames{jProp}) = S(i).(propertyNames{jProp});
 % %                     end
                     try
-                        [obj.(propertyNames{jProp})] = S.(propertyNames{jProp});
+                        [obj.(thisPropertyName)] = S.(thisPropertyName);
                     catch ME
                         switch ME.identifier
                             case "MATLAB:class:SetProhibited"
                                 % Silently ignore
-                                % Todo: Need a strategy/guideline for this case
+                                % Todo: Need a strategy for this case
                             otherwise
-                                warning('Could not set property %s', propertyNames{jProp})
+                                warning('Could not set property %s', thisPropertyName)
                         end
                     end
                 else
-                    P = obj.addprop(propertyNames{jProp});
-                    for i = 1:numObjects
-                        obj(i).(propertyNames{jProp}) = S(i).(propertyNames{jProp});
-                    end
-                    % Dynamic props can only be set from within the class
-                    [P.SetAccess] = deal('protected');
+                    obj.createDynamicProperty(thisPropertyName, S)
                 end
             end
         end
