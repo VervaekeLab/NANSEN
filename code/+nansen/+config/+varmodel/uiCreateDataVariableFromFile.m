@@ -1,4 +1,4 @@
-function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sessionObject)
+function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sessionObject, options)
 % uiCreateDataVariableFromFile - Open form where user can create new variable
 %
 %   Syntax
@@ -15,6 +15,13 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
 
 %   Todo:
 %       [ ] Make dataLocationName and sessionObject optional inputs?
+
+    arguments
+        filePath
+        dataLocationName
+        sessionObject
+        options.SkipFields = string.empty
+    end
 
     varItem = struct.empty;
 
@@ -35,6 +42,10 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     S.FileAdapter = fileAdapterList(1).FileAdapterName;
     S.FileAdapter_ = {fileAdapterList.FileAdapterName};
     S.Favorite = false;
+
+    if ~isempty(options.SkipFields)
+        S = rmfield(S, options.SkipFields);
+    end
     
     % Open user dialog:
     [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable');
@@ -44,14 +55,24 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     % Add other fields that are required for the variable model.
 
     % Create a new data variable item
-    varItem = variableModel.getDefaultItem(S.VariableName);
+    if isfield(S, 'VariableName')
+        varItem = variableModel.getDefaultItem(S.VariableName);
+    else
+        varItem = variableModel.getDefaultItem('Dummy');
+    end
     varItem.IsCustom = true;
-    varItem.IsFavorite = S.Favorite;
     varItem.DataLocation = dataLocationName;
-    varItem.FileNameExpression = S.FileNameExpression;
+    if isfield(S, 'FileNameExpression')
+        varItem.FileNameExpression = S.FileNameExpression;
+    end
     varItem.FileType = ext;
-    varItem.FileAdapter = S.FileAdapter;
-    
+    if isfield(S, 'FileAdapter')
+        varItem.FileAdapter = S.FileAdapter;
+    end
+    if isfield(S, 'Favorite')
+        varItem.IsFavorite = S.Favorite;
+    end
+
     % Get the data location uuid for the given data location
     dloc = sessionObject.getDataLocation(dataLocationName);
     varItem.DataLocationUuid = dloc.Uuid;
