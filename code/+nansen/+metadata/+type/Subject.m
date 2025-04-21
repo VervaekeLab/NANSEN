@@ -1,4 +1,4 @@
-classdef Subject < nansen.metadata.abstract.BaseSchema
+classdef Subject < nansen.metadata.abstract.MetadataEntity
 %Subject A metadata schema/type for an experimental subject.
 
     % Set metaObject abstract properties

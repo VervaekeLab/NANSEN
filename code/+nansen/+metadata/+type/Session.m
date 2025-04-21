@@ -1,4 +1,4 @@
-classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessionData
+classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasSessionData
 %Session A generic metadata schema for an experimental session.
 %
 %
@@ -71,7 +71,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
     methods % Constructor
         function obj = Session(varargin)
             
-            obj@nansen.metadata.abstract.BaseSchema(varargin{:})
+            obj@nansen.metadata.abstract.MetadataEntity(varargin{:})
             obj@nansen.session.HasSessionData()
 
             if isempty(varargin)
@@ -317,7 +317,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
         %
         % Override superclass method
             
-            S = toStruct@nansen.metadata.abstract.BaseSchema(obj);
+            S = toStruct@nansen.metadata.abstract.MetadataEntity(obj);
 
             % Remove properties that are objects, these should not be part
             % of the struct

@@ -1,5 +1,5 @@
-classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
-%BaseSchema Basis class for a metadata object definition.
+classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
+%MetadataEntity Basis class for a metadata object definition.
 %
 % Properties are metadata info.
 %
@@ -8,7 +8,7 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
 % Convert to/from table
 %
 % A MetaTable is a table of metadata objects which must derive from this
-% BaseSchema class.
+% MetadataEntity class.
 %
 % Todo: Clarify this..
 % When a metadata object is picked from the table it is transformed to an
@@ -41,7 +41,7 @@ classdef BaseSchema < nansen.util.StructAdapter & dynamicprops
     end
     
     methods % Constructor
-        function obj = BaseSchema(varargin)
+        function obj = MetadataEntity(varargin)
             
             if ~isempty(varargin) && isa(varargin{1}, 'table')
                 obj = obj.constructFromTable(varargin{1});

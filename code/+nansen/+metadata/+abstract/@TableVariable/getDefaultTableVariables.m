@@ -7,7 +7,7 @@ function defaultTableVariableList = getDefaultTableVariables(className)
     simpleClassName = utility.string.getSimpleClassName(className);
 
     mc = meta.class.fromName(className);
-    % Todo: Check whether the BaseSchema is a superclass?
+    % Todo: Check whether the MetadataEntity is a superclass?
     
     isStatic = [mc.PropertyList.Constant];
     isTransient = [mc.PropertyList.Transient];

@@ -954,9 +954,9 @@ classdef MetaTable < handle
         function addEntries(obj, newEntries)
         %addEntries Add entries to the MetaTable
         
-            % Make sure entries are based on the BaseSchema class.
-            isValid = isa(newEntries, 'nansen.metadata.abstract.BaseSchema');
-            message = 'MetaTable entries must inherit from the BaseSchema class';
+            % Make sure entries are based on the MetadataEntity class.
+            isValid = isa(newEntries, 'nansen.metadata.abstract.MetadataEntity');
+            message = 'MetaTable entries must inherit from the MetadataEntity class';
             assert(isValid, message)
         
             %schemaIdName = obj.MetaTableIdVarname; % todo...Support other
@@ -1532,7 +1532,7 @@ classdef MetaTable < handle
                 return
                 
             % If entries are provided, add them to MetaTable:
-            elseif isa(varargin{1}, 'nansen.metadata.abstract.BaseSchema')
+            elseif isa(varargin{1}, 'nansen.metadata.abstract.MetadataEntity')
                 metaTable.addEntries(varargin{1})
                 
             elseif isa(varargin{1}, 'table')

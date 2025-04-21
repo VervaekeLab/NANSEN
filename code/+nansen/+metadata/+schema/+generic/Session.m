@@ -1,4 +1,4 @@
-classdef Session < nansen.metadata.abstract.BaseSchema
+classdef Session < nansen.metadata.abstract.MetadataEntity
 %Session A generic metadata schema for an experimental session.
 %
 %
@@ -157,7 +157,7 @@ classdef Session < nansen.metadata.abstract.BaseSchema
         %
         % Override superclass method
             
-            S = toStruct@nansen.metadata.abstract.BaseSchema(obj);
+            S = toStruct@nansen.metadata.abstract.MetadataEntity(obj);
             S = rmfield(S, 'DataLocationModel');
         end
     end
