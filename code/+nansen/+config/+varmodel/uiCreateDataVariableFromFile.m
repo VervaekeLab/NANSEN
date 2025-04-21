@@ -1,8 +1,8 @@
-function wasCreated = uiCreateDataVariableFromFile(filePath, dataLocationName, sessionObject)
+function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sessionObject)
 % uiCreateDataVariableFromFile - Open form where user can create new variable
 %
 %   Syntax
-%       uiCreateDataVariableFromFile(filePath, dataLocationName, sessionObject)
+%       varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sessionObject)
 %
 %   Input Arguments:
 %       filePath         : Absolute pathname for a file to create variable for
@@ -11,13 +11,12 @@ function wasCreated = uiCreateDataVariableFromFile(filePath, dataLocationName, s
 %                          belongs to
 %
 %   Output Arguments:
-%       wasCreated       : Boolean flag indicating if a new variable was
-%                          created
+%       varItem          : Structure with specifications for new data variable
 
 %   Todo:
 %       [ ] Make dataLocationName and sessionObject optional inputs?
 
-    wasCreated = false;
+    varItem = struct.empty;
 
     [folder, fileName, ext] = fileparts(filePath);
 
@@ -67,12 +66,4 @@ function wasCreated = uiCreateDataVariableFromFile(filePath, dataLocationName, s
     % Get data type from file adapter
     fileAdapterIdx = strcmp({fileAdapterList.FileAdapterName}, S.FileAdapter);
     varItem.DataType = fileAdapterList(fileAdapterIdx).DataType;
-    
-    % Add the new item to the current variable model.
-    variableModel.insertItem(varItem)
-
-    wasCreated = true;
-    if ~nargout
-        clear wasCreated
-    end
 end
