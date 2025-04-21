@@ -1130,12 +1130,16 @@ classdef FileViewer < nansen.AbstractTabPageModule
             import nansen.config.varmodel.uiCreateDataVariableFromFile
         
             filePath = obj.CurrentNode.UserData.filePath;
-            sessionOject = obj.CurrentSessionObj;
+            sessionObject = obj.CurrentSessionObj;
             currentDataLocation = obj.TabGroup.SelectedTab.Title;
         
             try
-                wasCreated = uiCreateDataVariableFromFile(...
-                    filePath, currentDataLocation, sessionOject);
+                newDataVariable = uiCreateDataVariableFromFile(...
+                    filePath, currentDataLocation, sessionObject);
+                if ~isempty(newDataVariable)
+                    variableModel = sessionObject.VariableModel;
+                    variableModel.insertItem(newDataVariable)
+                end
             catch ME
                 % Display error message if something went wrong.
                 errordlg(ME.message)
