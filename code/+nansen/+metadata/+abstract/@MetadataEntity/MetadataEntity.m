@@ -25,7 +25,6 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
     end
     
     properties (Constant, Hidden)
-        
     end
     
     properties %(Abstract)
@@ -67,7 +66,6 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
             obj(numObjects).Notebook = struct.empty;
             % Assign object properties from meta table
             obj.fromTable(metaTable)
-            
         end
     end
     
@@ -101,7 +99,6 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
                     end
                     % Dynamic props can only be set from within the class
                     [P.SetAccess] = deal('protected');
-                    
                 end
             end
         end
@@ -123,7 +120,6 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
             end
             
             T = struct2table(S, 'AsArray', true);
-            
         end
         
         function fromTable(obj, dataTable)
@@ -132,7 +128,6 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
             numObjects = numel(S);
             obj(numObjects).Notebook = struct.empty;
             obj.fromStruct(S);
-            
         end
     end
     
@@ -167,7 +162,6 @@ classdef MetadataEntity < nansen.util.StructAdapter & dynamicprops
             
             evtData = uiw.event.EventData('Property', propertyName, ...
                 'NewValue', newValue);
-            
         end
     end
 end
