@@ -1,4 +1,4 @@
-% Unused. Consider removing
+% Unused. Todo: Consider removing
 
 function sessionID = validateSessionObject(sessionID, mode)
 %validateSessionID Validate a sessionObject or list of sessionObjects
