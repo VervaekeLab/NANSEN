@@ -588,10 +588,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(hMenu, 'Text','Detect New Sessions', 'Separator', 'on');
             mitem.Callback = @(src, event) app.menuCallback_DetectSessions;
 
-% %             mitem = uimenu(hMenu, 'Text','Remove Table Variable...');
+% %             mitem = uimenu(hMenu, 'Text', 'Remove Table Variable...');
 % %
-% %             varNames = nansen.metadata.utility.getCustomTableVariableNames();
-% %             mc = ?nansen.metadata.schema.generic.Session;
+% %             % Todo. Metadata type is not always default session
+% %             varNames = nansen.metadata.utility.getCustomTableVariableNames('session');
+% %             mc = ?nansen.metadata.type.Session;
 % %             varNames = setdiff(varNames, {mc.PropertyList.Name});
 % %
 % %             for iVar = 1:numel(varNames)

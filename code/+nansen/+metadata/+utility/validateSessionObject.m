@@ -1,3 +1,5 @@
+% Unused. Consider removing
+
 function sessionID = validateSessionObject(sessionID, mode)
 %validateSessionID Validate a sessionObject or list of sessionObjects
 %
@@ -23,7 +25,7 @@ switch mode
             sessionID = sessionID{1};
         end
         
-        isSessionObj = isa(sessionID, 'nansen.metadata.schema.generic.Session');
+        isSessionObj = isa(sessionID, 'nansen.metadata.type.Session');
         isValid = true; %contains(sessionID, strfindsid(sessionID));
                 
         if ~(isSessionObj && isValid)
@@ -37,7 +39,7 @@ switch mode
             sessionID = [sessionID{:}];
         end
         
-        isSessionObj = isa(sessionID, 'nansen.metadata.schema.generic.Session');
+        isSessionObj = isa(sessionID, 'nansen.metadata.type.Session');
         isMulti = numel(sessionID) > 1;
         
         if ~(isSessionObj && isMulti)
