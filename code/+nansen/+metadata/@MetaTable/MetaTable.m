@@ -31,7 +31,8 @@ classdef MetaTable < handle
 %       Methods for adding/removing columns
 %       Master/dummy
 %       PartOfCatalog
-    
+
+
     properties (SetAccess=private, SetObservable)
         IsModified = false;
     end
@@ -782,7 +783,7 @@ classdef MetaTable < handle
                 obj.save()
             end
         end
-        
+
         function removeMissingVarsFromMetaTable(obj, metaTableType, options)
         %removeMissingVarsFromMetaTable Remove variable from table if it is missing.
         %
@@ -975,10 +976,10 @@ classdef MetaTable < handle
                     obj.MetaTableClass);
                 assert(isa(newEntries, obj.MetaTableClass), msg)
             end
-            
+
             % Convert entries to a table before adding to the MetaTable
             newEntries = newEntries.makeTable();
-            
+
             % Get to entry IDs.
             newEntryIds = newEntries.(schemaIdName);
             
@@ -1350,8 +1351,114 @@ classdef MetaTable < handle
             % Sort names alphabetically..
             names(~MT.IsMaster) = sort(names(~MT.IsMaster));
         end
+    
+        function wasUpdated = updateTableVariable(obj, variableName, tableRowIndices, options)
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                variableName (1,1) string
+                tableRowIndices (1,:) uint32
+                options.ProgressMonitor = [] % Todo: waitbar class?
+                options.MessageDisplay = [] % Constrain to message display
+            end
+            
+            wasUpdated = false(1, numel(tableRowIndices));
+            hasWarned = false;
+
+            updateFunction = obj.getTableVariableUpdateFunction(variableName);
+            defaultValue = updateFunction();
+
+            % Character vectors should be in a scalar cell
+            if isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}) 
+                expectedDataType = 'character vector or a scalar cell containing a character vector';
+            else
+                expectedDataType = class(defaultValue);
+            end
+
+            metaObjects = obj.getMetaObjects(tableRowIndices);
+
+            numItems = numel(metaObjects);
+            updatedValues = cell(numItems, 1);
+
+            for iItem = 1:numItems
+                try % Todo: Use error handling here. What if some conditions can not be met...
+                    newValue = updateFcn(metaObjects(iItem));
+
+                    if isa(newValue, 'nansen.metadata.abstract.TableVariable')
+                        % Need to extract data value if the newValue is a
+                        % TableVariable object
+                        if isequal(newValue.Value, newValue.DEFAULT_VALUE)
+                            continue % Skip
+                        else
+                            newValue = newValue.Value; % Unpack value from class object
+                        end
+                    end
+
+                    [isValid, newValue] = obj.validateVariableValue(defaultValue, newValue);
+
+                    if isValid
+                        wasUpdated(iItem) = true;
+                        updatedValues{iItem} = newValue;
+                    else
+                        if ~hasWarned
+                            warningMessage = sprintf('The table variable function returned something unexpected.\nPlease make sure that the table variable function for "%s" returns a %s.', varName, expectedDataType);
+                            if ~isempty(options.MessageDisplay)
+                                options.MessageDisplay.warn(warningMessage, 'Title', 'Update failed')
+                            end
+                            hasWarned = true;
+                            ME = MException('Nansen:TableVar:WrongType', warningMessage);
+                        end
+                    end
+                catch ME
+                    
+                end
+
+                if ~isempty(options.Waitbar)
+                    waitbar(iItem/numItems, options.Waitbar)
+                end
+            end
+
+            % Update values in the metatable..
+            updatedRowIndices = tableRowIndices(wasUpdated);
+            updatedValues = updatedValues(wasUpdated);
+            obj.editEntries(updatedRowIndices, variableName, updatedValues);
+        end
+    end
+
+    methods (Access = private) % Methods related to updating table variables
+        function updateFcn = getTableVariableUpdateFunction(variableName)
+        % getTableVariableUpdateFunction - Get function name of table variable update function
+            
+            % Todo: Think about whether we always want to get tables from 
+            % the current project, or if we also want to be able to specify
+            % which project to use.
+            currentProject = nansen.getCurrentProject();
+            refVariableAttributes = currentProject.getTable('TableVariable');
+            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
+            
+            tableType = lower(obj.MetaTableClass);
+
+            isVariableEntry = refVariableAttributes.TableType == tableType && ...
+                                strcmp(refVariableAttributes.Name, variableName);
+            updateFcnName = refVariableAttributes{isVariableEntry, 'UpdateFunctionName'}{1};
+            updateFcn = str2func(updateFcnName);
+        end
     end
     
+    methods (Access = private)
+        function assertValidClass(obj, items)
+            msgTemplate = sprintf(['Class of entries (%s) do not match ', ...
+                'the class of the MetaTable (%%s)'], class(items));
+            if ~isempty(obj.ItemClassName)
+                assert(isa(items, obj.ItemClassName), ...
+                    sprintf(msgTemplate, obj.ItemClassName))
+
+            else
+                assert(isa(items, obj.MetaTableClass), ...
+                    sprintf(msgTemplate, obj.MetaTableClass))
+            end
+        end
+    end
+
     methods (Hidden)
         function removeDuplicates(obj)
             varName = obj.SchemaIdName;
@@ -1364,7 +1471,7 @@ classdef MetaTable < handle
         end
     end
 
-    methods (Access = private, Hidden)
+    methods (Access = private) % Static??
        
         function openMetaTableSelectionDialog(obj)
             % Todo:
@@ -1492,6 +1599,53 @@ classdef MetaTable < handle
             columnValues = repmat(initValue, numTableRows, 1);
             
             T{:, variableName} = columnValues;
+        end
+    end
+
+    methods (Static, Access = private)
+        function [isValid, newValue] = validateVariableValue(defaultValue, newValue)
+        % validateVariableValue - Validate a table variable value
+            arguments
+                defaultValue 
+                newValue 
+            end
+
+            % Todo: 
+            % Maintain a list of valid types and if the value is
+            % valid, just check that the defaultValue and the newValue is
+            % of same class instead of having an if check for each type
+
+            % String values need to be converted to char as the table
+            % currently does not support string type.
+            if isa(newValue, 'string')
+                newValue = char(newValue); 
+            end
+
+            isValid = false;
+
+            if isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}) % Character vectors should be in a scalar cell
+                if iscell(newValue) && numel(newValue)==1 && ischar(newValue{1})
+                    newValue = newValue{1};
+                    isValid = true;
+                elseif isa(newValue, 'char')
+                    isValid = true;
+                end
+
+            elseif isa(defaultValue, 'double')
+                isValid = isnumeric(newValue);
+
+            elseif isa(defaultValue, 'logical')
+                isValid = islogical(newValue);
+                
+            elseif isa(defaultValue, 'struct')
+                isValid = isstruct(newValue);
+
+            elseif isa(defaultValue, 'categorical')
+                isValid = isa(newValue, 'categorical');
+
+            else
+                % Invalid;
+            end
         end
     end
 end
