@@ -1,7 +1,12 @@
-function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, uiWaitbar, hFigure)
-
-    if nargin < 3; uiWaitbar = struct(); end  % create dummy waitbar
-    if nargin < 4; hFigure = []; end
+function wasAborted = initializeSessionTable(dataLocationModel, sessionConstructorFcn, uiWaitbar, hFigure, options)
+% initializeSessionTable - Initialize a session table from a DataLocationModel
+    arguments
+        dataLocationModel (1,1) nansen.config.dloc.DataLocationModel
+        sessionConstructorFcn (1,1) function_handle
+        uiWaitbar = struct() % Defaults to a dummy waitbar
+        hFigure = [] % Defaults to no figure
+        options.SkipInteractiveSteps (1,1) logical = false
+    end
     
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
@@ -29,8 +34,10 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
     
         % Let user manually check and match unmatched session folders
         if dataLocationModel.NumDataLocations > 1 && ~isempty(sessionFoldersUnmatched)
-            [sessionFolders] = nansen.manage.uiresolveUnmatchedSessions(...
-                sessionFolders, sessionFoldersUnmatched, hFigure);
+            if ~options.SkipInteractiveSteps
+                [sessionFolders] = nansen.manage.uiresolveUnmatchedSessions(...
+                    sessionFolders, sessionFoldersUnmatched, hFigure);
+            end
         end
     else
         dataLocationNames = fieldnames( sessionFolders );
@@ -49,21 +56,23 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionSchema, u
     numSessions = numel(sessionFolders);
     sessionArray = cell(numSessions, 1);
     for i = 1:numSessions
-        sessionArray{i} = sessionSchema(sessionFolders(i), 'DataLocationModel', dataLocationModel);
+        sessionArray{i} = sessionConstructorFcn(sessionFolders(i), 'DataLocationModel', dataLocationModel);
     end
     
     sessionArray = cat(1, sessionArray{:});
     
-    % Check for duplicate session IDs
-    sessionIDs = {sessionArray.sessionID};
-    if numel(sessionIDs) ~= numel(unique(sessionIDs))
-        [sessionArray, wasAborted] = nansen.manage.uiresolveDuplicateSessions(sessionArray, hFigure);
-        % Todo: Rerun initialization from here if sessions were resolved
-        if wasAborted
-            return
+    if ~options.SkipInteractiveSteps
+        % Check for duplicate session IDs
+        sessionIDs = {sessionArray.sessionID};
+        if numel(sessionIDs) ~= numel(unique(sessionIDs))
+            [sessionArray, wasAborted] = nansen.manage.uiresolveDuplicateSessions(sessionArray, hFigure);
+            % Todo: Rerun initialization from here if sessions were resolved
+            if wasAborted
+                return
+            end
         end
     end
-    
+
     uiWaitbar.Message = 'Creating session table...';
     
     % Initialize a MetaTable using the given session schema and the
