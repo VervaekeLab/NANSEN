@@ -223,7 +223,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             dataLocationUuid = dataLocationItem.Uuid;
             
             obj.Preferences.DefaultDataLocation = dataLocationUuid;
-            
         end
     end
     
@@ -429,6 +428,44 @@ classdef DataLocationModel < utility.data.StorableCatalog
             evtData = uiw.event.EventData(...
                 'NewValue', newDataLocation);
             obj.notify('DataLocationAdded', evtData)
+        end
+
+        function addDataLocationFromTemplateName(obj, templateName, options)
+            arguments
+                obj (1,1) nansen.config.dloc.DataLocationModel
+                templateName (1,1) string
+                options.Name (1,1) string = missing
+                options.Type (1,1) string = missing
+                options.RootDirectory (1,1) string = missing
+            end
+            
+            project = nansen.getCurrentProject();
+            templates = project.getTable('DataLocations');
+            
+            isMatch = templates.Name == templateName;
+            if any(isMatch)
+                dataLocation = table2struct(templates(isMatch, :));
+                if ~ismissing(options.Name)
+                    dataLocation.Name = char(options.Name);
+                end
+                if ~ismissing(options.Type)
+                    dataLocation.Type = nansen.config.dloc.DataLocationType(options.Type);
+                else
+                    dataLocation.Type = nansen.config.dloc.DataLocationType(dataLocation.DataType);
+                end
+                % Remove template props
+                dataLocation = rmfield(dataLocation, ["x_type", "x_version", "DataType"]);
+                dataLocation.RootPath = struct(...
+                        'Key', nansen.util.getuuid(), ...
+                        'Value', options.RootDirectory );
+                dataLocation.ExamplePath = '';
+                dataLocation.DataSubfolders = {};
+                
+                obj.addDataLocation(dataLocation);
+            else
+                error('NANSEN:DataLocationModel:TemplateNotFound', ...
+                    'No data location templates matching name "%s"', templateName)
+            end
         end
         
         function removeDataLocation(obj, dataLocationName)
