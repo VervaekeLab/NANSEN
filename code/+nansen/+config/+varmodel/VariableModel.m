@@ -56,7 +56,8 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 'GroupName', '', ...            % Placeholder...
                 'IsCustom', false, ...          % Is variable custom, i.e user made?
                 'IsInternal', false, ...        % Flag for internal variables
-                'IsFavorite', false );          % Flag for favorited variables
+                'IsFavorite', false, ...        % Flag for favorited variables
+                'PathInFile', '');              % Path for variable in file if it is located within a container file, like .mat or .h5
         end
         
         function S = getDefaultItem(varName)
@@ -203,6 +204,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             
             if ~isfield(obj.Data, 'IsFavorite')
                 [obj.Data(:).IsFavorite] = deal(false);
+            end
+                       
+            if ~isfield(obj.Data, 'PathInFile')
+                [obj.Data(:).PathInFile] = deal('');
             end
         end
         

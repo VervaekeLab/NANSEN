@@ -70,8 +70,9 @@ classdef BatchDatavariableSelector < handle
         function onFinishButtonPushed(app)
             import nansen.config.varmodel.uiCreateDataVariableFromFile
 
-            % Get selected variables from tree.
+            % Get selected variable names and nodedata from tree.
             variableNames = app.DataTree.CheckedNodeNames;
+            nodeData = {app.DataTree.UITree.CheckedNodes.NodeData};
 
             % Run the ui create data variable...
             newDataVariable = uiCreateDataVariableFromFile(...
@@ -85,9 +86,11 @@ classdef BatchDatavariableSelector < handle
                     % Replace name in variable structure
                     thisItem = newDataVariable;
                     thisItem.VariableName = char(variableNames(i));
+                    thisItem.PathInFile = nodeData{i}.Path;
                     variableModel.insertItem(thisItem)
                 end
                 variableModel.save()
+                nansen.config.varmodel.VariableModelApp('VariableModel', variableModel);
             end
             delete(app)
         end
