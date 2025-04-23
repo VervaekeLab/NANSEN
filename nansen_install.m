@@ -26,16 +26,20 @@ function nansen_install(options)
     end
     
     % Install required (FEX) dependencies
-    fprintf('Installing FileExchange dependencies...\n')
+    % fprintf('Installing FileExchange dependencies...\n')
     %nansen.internal.setup.installDependencies()
     
     warnState = warning('off', 'MATLAB:javaclasspath:jarAlreadySpecified');
-    cleanUpObj = onCleanup(@(state) warning(warnState));
+    warningCleanup = onCleanup(@(state) warning(warnState));
     
-    nansen.internal.setup.installSetupTools()
+    downloadAndInstallMatBox();
+
+    %nansen.internal.setup.installSetupTools()
     toolboxFolder = fileparts(mfilename('fullpath'));
-    setuptools.installRequirements(toolboxFolder)
-    
+    %setuptools.installRequirements(toolboxFolder)
+    installationFolder = fullfile(userpath, 'NANSEN', 'Add-Ons-Temp');
+    matbox.installRequirements(toolboxFolder, 'InstallationLocation', installationFolder)
+
     % Add folder to path if it was not added already
     toolboxFolderPath = fileparts(mfilename('fullpath'));
     if ~contains(path, toolboxFolderPath)
@@ -43,7 +47,7 @@ function nansen_install(options)
         savepath()
     end
     if options.SavePath
-        savepath
+        savepath()
     end
 
     % Todo: Ensure installed dependencies are added to path.
@@ -51,4 +55,12 @@ function nansen_install(options)
     % Open Setup Wizard
     %fprintf('Opening NANSEN''s Setup Wizard...\n')
     %nansen.setup()
+end
+
+function downloadAndInstallMatBox()
+    sourceFile = 'https://raw.githubusercontent.com/ehennestad/Matlab-Toolbox-Template/refs/heads/main/tools/tasks/installMatBox.m';
+    filePath = websave('installMatBox.m', sourceFile);
+    installMatBox('release')
+    rehash()
+    delete(filePath);
 end
