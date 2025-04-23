@@ -114,7 +114,6 @@ classdef StorableCatalog < handle
 
             assertMessage = 'Item does not match the item type of this catalog';
             assert(all(ismember(requiredFields, itemFields)), assertMessage)
-            
         end
         
         function item = validateFieldOrder(~, item)

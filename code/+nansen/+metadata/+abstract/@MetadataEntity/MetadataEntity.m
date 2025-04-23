@@ -41,12 +41,61 @@ classdef MetadataEntity < ...
                 obj = obj.constructFromTable(varargin{1});
                 [obj.IsConstructed] = deal(true);
             end
+
+            % Todo: scalar vs non-scalar construction...
         end
     end
 
     methods
-        function addDynamicTableVariables(obj)
-            error('Not implemented yet')
+        function addDynamicTableVariables(obj, options)
+        % addDynamicTableVariables - Add dynamic variable to entity object(s)
+
+            arguments
+                obj nansen.metadata.abstract.MetadataEntity
+                options.UpdateValue (1,1) logical = true
+            end
+
+            dynamicVariables = obj.getDynamicVariables();
+            dynamicVariableNames = string( dynamicVariables.Name );
+
+            for iVar = 1:numel(dynamicVariableNames)
+                thisVariableName = dynamicVariableNames(iVar);
+
+                if all( isprop(obj, thisVariableName{1}) ); continue; end
+
+                needsProp = ~isprop(obj, thisVariableName);
+                if options.UpdateValue && dynamicVariables.HasUpdateFunction(iVar)
+                    
+                    % Todo: update for all items of the metatable
+                    updateFcnName = dynamicVariables.UpdateFunctionName{iVar};
+                    
+                    [propertyValue, wasFound] = obj.getDynamicVariableValue(updateFcnName);
+                    [propertyValue{~wasFound}] = deal( dynamicVariables.NullValue{iVar} );
+                else
+                    propertyValue = dynamicVariables.NullValue{iVar};
+                end
+
+                obj(needsProp).createDynamicProperty(thisVariableName, propertyValue)
+            end
+        end
+
+        function updateDynamicVariable(obj, variableName)
+            dynamicVariables = obj.getDynamicVariables();
+            dynamicVariableNames = string( dynamicVariables.Name );
+
+            iVar = find(strcmpi(dynamicVariableNames, variableName));
+            assert(~isempty(iVar))
+
+            if dynamicVariables.HasUpdateFunction(iVar)
+                    
+                % Todo: update for all items of the metatable
+                updateFcnName = dynamicVariables.UpdateFunctionName{iVar};
+                
+                [propertyValue, wasFound] = obj.getDynamicVariableValue(updateFcnName);
+                obj.(variableName) = propertyValue;
+            else
+                error('Variable does not have update function')
+            end
         end
     end
 
@@ -55,6 +104,86 @@ classdef MetadataEntity < ...
             fullClassname = class(obj);
             splitClassName = strsplit(fullClassname, '.');
             value = splitClassName{end};
+        end
+
+        function dynamicVariables = getDynamicVariables(obj)
+        % getDynamicVariables - Get dynamic variables for entity type
+            entityType = obj.getType();
+
+            currentProject = nansen.getCurrentProject();
+            variableAttributes = currentProject.getTable('TableVariable');
+            
+            keep = variableAttributes.TableType == lower(entityType) ...
+                & variableAttributes.IsCustom;
+
+            dynamicVariables = variableAttributes(keep, :);
+        end
+    
+        function [result, hasResult] = getDynamicVariableValue(obj, functionName, options)
+            
+            arguments
+                obj nansen.metadata.abstract.MetadataEntity
+                functionName (1,1) string
+                options.ProgressMonitor = [] % Todo: waitbar class?
+                options.MessageDisplay = [] % Constrain to message display
+            end
+        
+            hasResult = false(1, numel(obj));
+            hasWarned = false;
+
+            % Todo: Should be a function in the the tablevar function
+            %updateFunction = obj.getTableVariableUpdateFunction(variableName);
+            
+            updateFunction = str2func(functionName);
+            defaultValue = updateFunction();
+
+            % Character vectors should be in a scalar cell
+            if isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}) 
+                expectedDataType = 'character vector or a scalar cell containing a character vector';
+            else
+                expectedDataType = class(defaultValue);
+            end
+            
+            numEntities = numel(obj);
+            result = cell(numEntities, 1);
+
+            for iEntity = 1:numEntities
+                try % Todo: Use error handling here. What if some conditions can not be met...
+                    newValue = updateFunction(obj(iEntity));
+
+                    if isa(newValue, 'nansen.metadata.abstract.TableVariable')
+                        newValue = newValue.Value; % Unpack value from class object
+                    end
+
+                    [isValid, newValue] = ...
+                        nansen.metadata.tablevar.validateVariableValue(...
+                            defaultValue, newValue);
+                    
+                    if isValid
+                        hasResult(iEntity) = true;
+                        result{iEntity} = newValue;
+                    else
+                        if ~hasWarned
+                            warningMessage = sprintf(...
+                                ['The table variable function returned ', ...
+                                'something unexpected.\nPlease make sure ', ...
+                                'that the table variable function for "%s" ', ...
+                                'returns a %s.'], varName, expectedDataType);
+                            if ~isempty(options.MessageDisplay)
+                                options.MessageDisplay.warn(warningMessage, 'Title', 'Update failed')
+                            end
+                            hasWarned = true;
+                            ME = MException('Nansen:TableVar:WrongType', warningMessage);
+                        end
+                    end
+                catch ME
+                    % Todo: Error handling
+                end
+
+                if ~isempty(options.ProgressMonitor)
+                    waitbar(iEntity/numEntities, options.ProgressMonitor)
+                end
+            end
         end
     end
     
@@ -73,29 +202,59 @@ classdef MetadataEntity < ...
             obj(numObjects) = feval(class(obj));
 
             % Assign object properties from meta table
-            obj.fromTable(metaTable)
+            obj = obj.fromTable(metaTable);
         end
     
-        function createDynamicProperty(obj, propName, S)
+        function initializeDynamicProperty(obj, propName, nullValue)
+        % initializeDynamicProperty - Method for initializing a dynamic property
+            P = obj.addprop(propName);
+            assert(isscalar(nullValue), 'Expected null value to be scalar.')
+            [obj(:).(propName)] = deal(nullValue);
+
+            % Dynamic props must only be set from within the class
+            [P.SetAccess] = deal('protected');
+        end
+
+        function createDynamicProperty(obj, propName, propertyValues)
         % createDynamicProperty - Helper method to create dynamic properties
 
             arguments
                 obj nansen.metadata.abstract.MetadataEntity
                 propName (1,1) string
-                S (1,:) struct
+                propertyValues (1,:) cell
             end
+            
+            if ~isscalar(obj) && isscalar(propertyValues)
+                % Expand if value is scalar
+                propertyValues = repmat(propertyValues, 1, numel(obj));
+            end
+
+            assert(numel(obj) == numel(propertyValues), ...
+                'Property values must be same length as array of entity objects.')
 
             P = obj.addprop(propName);
             for i = 1:numel(obj)
-                obj(i).(propName) = S(i).(propName);
+                obj(i).(propName) = propertyValues{i};
             end
             
             % Dynamic props must only be set from within the class
             [P.SetAccess] = deal('protected');
         end
-    
     end
     
+    methods (Abstract, Access = protected)
+        % SetAccess of dynamic properties can only be public, protected or 
+        % private, and so if a dynamic property is added to a subclass of
+        % this base class, with SetAccess = protected, methods of this base
+        % class are not allowed to update the value. However, it makes sens
+        % to have a shared superclass method for calling the update of
+        % dynamic variables. The following abstract method must be
+        % implemented on subclasses to allow delegation to that class of
+        % setting the property.
+        
+        setDynamicProperty(obj)
+    end
+
     methods % Methods for retyping
         
         function fromStruct(obj, S)
@@ -125,7 +284,8 @@ classdef MetadataEntity < ...
                         end
                     end
                 else
-                    obj.createDynamicProperty(thisPropertyName, S)
+                    propertyValues = {S.(thisPropertyName)};
+                    obj.createDynamicProperty(thisPropertyName, propertyValues)
                 end
             end
         end
@@ -148,7 +308,7 @@ classdef MetadataEntity < ...
             T = struct2table(S, 'AsArray', true);
         end
         
-        function fromTable(obj, dataTable)
+        function obj = fromTable(obj, dataTable)
            
             S = table2struct(dataTable);
             numObjects = numel(S);
