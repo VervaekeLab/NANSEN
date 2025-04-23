@@ -77,7 +77,8 @@ classdef BatchDatavariableSelector < handle
             % Run the ui create data variable...
             newDataVariable = uiCreateDataVariableFromFile(...
                 char(app.PathName), app.DataLocationName, app.SessionObject, ...
-                "SkipFields", "VariableName");
+                "SkipFields", "VariableName", ...
+                "Prompt", "Select initial options to apply for all new variables:");
             
             if ~isempty(newDataVariable)
                 variableModel = app.SessionObject.VariableModel;
@@ -90,7 +91,9 @@ classdef BatchDatavariableSelector < handle
                     variableModel.insertItem(thisItem)
                 end
                 variableModel.save()
-                nansen.config.varmodel.VariableModelApp('VariableModel', variableModel);
+
+                varModelApp = nansen.config.varmodel.VariableModelApp('VariableModel', variableModel);
+                varModelApp.showPage("Custom")
             end
             delete(app)
         end

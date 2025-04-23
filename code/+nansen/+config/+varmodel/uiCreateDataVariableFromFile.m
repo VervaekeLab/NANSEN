@@ -20,7 +20,8 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
         filePath
         dataLocationName
         sessionObject
-        options.SkipFields = string.empty
+        options.SkipFields (1,:) string = string.empty
+        options.Prompt (1,1) string = missing
     end
 
     varItem = struct.empty;
@@ -47,8 +48,14 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
         S = rmfield(S, options.SkipFields);
     end
     
+    if ismissing(options.Prompt)
+        nvPairs = {};
+    else
+        nvPairs = {'Prompt', options.Prompt};
+    end
+
     % Open user dialog:
-    [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable');
+    [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable', nvPairs{:});
     S = rmfield(S, 'FileAdapter_');
     if wasAborted; return; end
     
