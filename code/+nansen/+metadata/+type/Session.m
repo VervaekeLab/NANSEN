@@ -736,9 +736,12 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                         end
                         
                     otherwise
-                        data = fileAdapterFcn(filePath).load(varName);
-                        % data = fileAdapterFcn(filePath).load(varName); %Todo
-
+                        if ~isempty(variableInfo.PathInFile)
+                            nvPairs = {'PathInFile', variableInfo.PathInFile};
+                        else
+                            nvPairs = {};
+                        end
+                        data = fileAdapterFcn(filePath).load(varName, nvPairs{:});
                 end
                 
 % % %                 [~, ~, ext] = fileparts(filePath);
