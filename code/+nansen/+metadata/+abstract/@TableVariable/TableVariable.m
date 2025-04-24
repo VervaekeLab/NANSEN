@@ -18,7 +18,7 @@ classdef TableVariable
 
     properties (Constant, Abstract)
         IS_EDITABLE
-        DEFAULT_VALUE
+        DEFAULT_VALUE % Todo: rename to BLANK_VALUE or NULL_VALUE to clearly indicate that this is an unset value
     end
     
     properties

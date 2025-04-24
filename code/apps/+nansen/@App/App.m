@@ -1871,7 +1871,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 try
                     metaObjects{i} = itemConstructor(tableEntries(i,:), nvPairs{:});
                     status(i) = true;
-                catch
+                catch ME
+                    fprintf('Could not create meta object. Reason:\n%s\n', ME.message)
                     continue
                 end
                 try
@@ -2652,6 +2653,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if numSessions > 5 && ~reset
                 h = waitbar(0, 'Please wait while updating values');
+                waitbarCleanup = onCleanup(@() delete(h));
             end
             
             % Todo: This function call is different for preprogrammed
@@ -2682,7 +2684,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 
                 wasWarned = false;
-
                 for iSession = 1:numSessions
                     try % Todo: Use error handling here. What if some conditions can not be met...
                         newValue = updateFcn(metaObjects(iSession));
@@ -2795,7 +2796,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             if numSessions > 5 && ~reset
-                delete(h)
+                clear waitbarCleanup
             end
         end
 

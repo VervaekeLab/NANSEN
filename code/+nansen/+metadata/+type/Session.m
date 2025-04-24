@@ -139,12 +139,14 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             
             if ~isempty(obj.DataLocationModel)
                 for i = 1:numel(fieldNames)
+                    dataLocationName = fieldNames{i};
+                    dataLocationIndex = obj.DataLocationModel.getItemIndex(dataLocationName);
                     pathStr = obj.DataLocation.(fieldNames{i});
                     if isempty(pathStr); continue; end
-                    obj.assignSubjectID(pathStr, i)
-                    obj.assignSessionID(pathStr, i)
-                    obj.assignDateInfo(pathStr, i)
-                    obj.assignTimeInfo(pathStr, i)
+                    obj.assignSubjectID(pathStr, dataLocationIndex)
+                    obj.assignSessionID(pathStr, dataLocationIndex)
+                    obj.assignDateInfo(pathStr, dataLocationIndex)
+                    obj.assignTimeInfo(pathStr, dataLocationIndex)
                 end
             end
             
