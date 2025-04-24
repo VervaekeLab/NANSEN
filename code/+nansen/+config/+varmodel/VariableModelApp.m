@@ -51,7 +51,14 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
     end
 
     methods % Public
-        
+        function showPage(obj, pageName)
+            arguments
+                obj
+                pageName (1,1) string {mustBeMember(pageName, ["Preset", "Custom", "Internal"])} = "Preset"
+            end
+            obj.UIModule{1}.showPage(pageName);
+        end
+
         function doCancel = promptSaveChanges(obj)
         %promptSaveChanges Prompt user if UI changes should be saved.
         

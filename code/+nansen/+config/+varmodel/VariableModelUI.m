@@ -140,6 +140,21 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         end
     end
 
+    methods (Access = ?nansen.config.varmodel.VariableModelApp)
+        function showPage(obj, pageName)
+            arguments
+                obj
+                pageName (1,1) string {mustBeMember(pageName, ["Preset", "Custom", "Internal"])} = "Preset"
+            end
+            
+            validPages = ["Preset", "Custom", "Internal"];
+            pageIdx = find( strcmp(validPages, pageName) );
+            
+            obj.ToolbarButtons(pageIdx).Value = true;
+            obj.onShowVariablesToggleButtonValueChanged()
+        end
+    end
+
     methods (Access = protected) % Implement parent class methods
 
         function assignDefaultTablePropertyValues(obj)
@@ -561,6 +576,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
         
         function onShowVariablesToggleButtonValueChanged(obj, src, event)
             
+            % Only enable "Add Variable" button when showing custom variables
             obj.UIButton_AddVariable.Enable = obj.ToolbarButtons(2).Value;
             if obj.ToolbarButtons(2).Value
                 obj.UIButton_AddVariable.Tooltip = 'Add New Variable';

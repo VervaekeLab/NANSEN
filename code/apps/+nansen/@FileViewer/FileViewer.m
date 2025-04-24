@@ -1128,8 +1128,11 @@ classdef FileViewer < nansen.AbstractTabPageModule
         %   file to the variable model.
         
             import nansen.config.varmodel.uiCreateDataVariableFromFile
-        
             filePath = obj.CurrentNode.UserData.filePath;
+
+            if endsWith(filePath, '.mat')
+                obj.createDataVariableBatch(); return
+            end
             sessionObject = obj.CurrentSessionObj;
             currentDataLocation = obj.TabGroup.SelectedTab.Title;
         
@@ -1140,6 +1143,24 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     variableModel = sessionObject.VariableModel;
                     variableModel.insertItem(newDataVariable)
                 end
+            catch ME
+                % Display error message if something went wrong.
+                errordlg(ME.message)
+                disp(getReport(ME, 'extended'))
+                return
+            end
+        end
+
+        function createDataVariableBatch(obj)
+            import nansen.ui.fileviewer.BatchDatavariableSelector
+        
+            filePath = obj.CurrentNode.UserData.filePath;
+            sessionObject = obj.CurrentSessionObj;
+            currentDataLocation = obj.TabGroup.SelectedTab.Title;
+
+            try
+                nansen.ui.fileviewer.BatchDatavariableSelector(...
+                    filePath, currentDataLocation, sessionObject);
             catch ME
                 % Display error message if something went wrong.
                 errordlg(ME.message)
