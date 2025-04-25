@@ -936,6 +936,17 @@ classdef ProjectManager < handle
     methods (Access = ?nansen.internal.user.NansenUserSession)
         % Note: These methods will be removed in a future version (todo).
         
+        function checkProjectsExist(obj)
+        % checkProjectsExist - Check if project folders exists.
+            for i = 1:numel(obj.Catalog)
+                thisProjectDir = obj.Catalog(i).Path;
+                if ~isfolder(thisProjectDir)
+                    thisProjectName = obj.Catalog(i).Name;
+                    showProjectMissingWarning(thisProjectName, thisProjectDir)
+                end
+            end
+        end
+
         function tf = hasUnversionedProjects(obj)
         % hasUnversionedProjects - Check if any projects are unversioned
             configFileName = nansen.common.constant.ProjectConfigFilename;
@@ -944,7 +955,11 @@ classdef ProjectManager < handle
 
             for i = 1:numel(obj.Catalog)
                 thisProjectDir = obj.Catalog(i).Path;
-                TF(i) = ~isfile( fullfile(thisProjectDir, configFileName) );
+                if isfolder(thisProjectDir)
+                    TF(i) = ~isfile( fullfile(thisProjectDir, configFileName) );
+                else
+                    TF(i) = false; % Folder missing, no project to check
+                end
             end
             tf = any(TF);
         end
@@ -994,6 +1009,14 @@ classdef ProjectManager < handle
             % Todo: Reorder catalog to original order?
         end
     end
+end
+
+function showProjectMissingWarning(projectName, projectFolder)
+    nansen.common.tracelesswarning(...
+        'NANSEN:ProjectManager:ProjectMissing', ...
+        ['Project "%s" was not found at expected location:\n%s\nRun ', ...
+        'nansen.ProjectManager to remove the project or update it''s location.'], ...
+        projectName, projectFolder)
 end
 
 % Change log

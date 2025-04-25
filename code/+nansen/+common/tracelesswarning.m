@@ -1,6 +1,5 @@
 function tracelesswarning(varargin)
-    warningState = warning();
+    warningState = warning('off', 'backtrace');
     cleanupObj = onCleanup(@(ws) warning(warningState));
-    warning('off', 'backtrace');
     warning(varargin{:})
 end
