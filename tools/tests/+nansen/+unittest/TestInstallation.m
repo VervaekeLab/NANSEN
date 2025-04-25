@@ -34,11 +34,12 @@ classdef TestInstallation < matlab.unittest.TestCase
         end
 
         function testInstallDependencies(testCase)
-            nansen.internal.setup.installDependencies("SaveUpdatedPath", true)
-        end
+            projectDir = nansentools.projectdir();
+            matbox.installRequirements(projectDir, "AgreeToLicenses", true)
 
-        function testCreateCatalog(testCase)
-            C = Catalog();
+            % Verify that a couple of the requirements are installed
+            testCase.verifyTrue( logical(exist('Catalog', 'file')) )
+            testCase.verifyTrue( logical(exist('downloadFile', 'file')) )
         end
 
         function testPrefdir(testCase)
@@ -62,9 +63,4 @@ classdef TestInstallation < matlab.unittest.TestCase
             % wizardApp.changePage()
         end
     end
-end
-
-function restorePreferences(originalPathName, backupPathName)
-
-
 end
