@@ -19,7 +19,7 @@ function configureProject(flags)
 %   nansen.configureProject("v") 
 
     arguments (Repeating)
-        flags (1,1) string {mustBeMember(flags, ["d", "depenencies", "v", "variables"])}
+        flags (1,1) string {mustBeMember(flags, ["d", "dependencies", "v", "variables"])}
     end
     flags = string(flags);
 
@@ -35,7 +35,7 @@ function configureProject(flags)
         pagesToShow(end+1) = "VariablesTab";
     end
 
-    if any(flags == "d") || any(flags == "depenencies")
+    if any(flags == "d") || any(flags == "dependencies")
         pagesToShow = [pagesToShow(1:2), "AddonsTab", pagesToShow(3:end)];
     end
 

@@ -497,7 +497,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
                     allowedFileTypes = strcat('.', fileAdapterList(isMatch).SupportedFileTypes);
                     supportedFileTypes = strjoin(allowedFileTypes, ', ');
                 else
-                    if strcmp(newValue, 'Default') % Todo: Shouldnt Default be part of FileAdapterList
+                    if strcmp(newValue, 'Default') % Todo: Should not "Default" be part of FileAdapterList?
                         supportedFileTypes = '.mat';
                     else
                         supportedFileTypes = 'n/a';

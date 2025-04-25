@@ -1042,11 +1042,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
     
         function updateMetadataExtractorFunctionNames(obj)
             
-            % TODO: This should not be harcoded here. Ideally users can
+            % TODO: This should not be hardcoded here. Ideally users can
             % also add their own variables.
             variableNames = {'SubjectId', 'SessionId', 'ExperimentDate', 'ExperimentTime'};
 
-            % Todo: Is this assumtion always valid? I.e does the current
+            % Todo: Is this assumption always valid? I.e does the current
             % datalocation model always belong to the current project?
             project = nansen.getCurrentProject();
 
