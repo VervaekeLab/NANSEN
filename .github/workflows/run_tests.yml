@@ -1,17 +1,24 @@
 name: Run tests
 
 on:
-  # Triggers the workflow on push or pull request events for the "main" branch
+  # Triggers the workflow on push or pull request events for the "main" & "dev "branch
   push:
-    branches:
+    branches: 
       - main
-      - add/developer-tools
+      - dev
     paths-ignore:
-      - '*md'
+      - '*.md'
       - '.github/**'
       - 'docs/reports/**'
+
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - dev
+    paths-ignore:
+      - '*.md'
+      - '.github/**'
+      - 'docs/reports/**'
 
   # Allows for manually running this workflow from the Actions tab
   workflow_dispatch:
