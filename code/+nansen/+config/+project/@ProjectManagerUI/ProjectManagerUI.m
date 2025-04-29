@@ -380,13 +380,15 @@ classdef ProjectManagerUI < handle
                 'Remove project', ...
                 'Delete project', ...
                 'Update project folder location', ...
-                'Open project folder' };
+                'Open project folder', ...
+                'Open project folder in MATLAB'};
             
             hMenuItem = gobjects(numel(contextMenuItemNames), 1);
             for i = 1:numel(contextMenuItemNames)
                 hMenuItem(i) = uimenu(cMenu, 'Text', contextMenuItemNames{i});
                 hMenuItem(i).Callback = @obj.onContextMenuItemClicked;
             end
+            set(hMenuItem([2,5]), 'Separator', 'on')
             
             obj.UIControls.ProjectTable.UIContextMenu = cMenu;
         end
@@ -485,8 +487,14 @@ classdef ProjectManagerUI < handle
         
         function openProjectFolder(obj, rowIdx)
         % Open project folder in operating system i.e Finder or Explorer
-            folderPath = obj.UIControls.ProjectTable.Data{rowIdx, 4};
+
+            folderPath = obj.UIControls.ProjectTable.Data{rowIdx, 'Path'};
             utility.system.openFolder(folderPath{1})
+        end
+
+        function openProjectFolderInMatlab(obj, rowIdx)
+            folderPath = obj.UIControls.ProjectTable.Data{rowIdx, 'Path'};
+            cd(folderPath{1})
         end
 
         function uiLocateProjectFolder(obj, rowIdx)
@@ -526,7 +534,7 @@ classdef ProjectManagerUI < handle
         %getNameFromRowIndex Get name of project from row index
             
             try
-                name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 2};    % Name column index = 2
+                name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 'Name'};    % Name column index = 2
                 if iscell(name)
                     name = name{1};
                 end
@@ -693,7 +701,10 @@ classdef ProjectManagerUI < handle
                     
                 case 'Open project folder'
                     obj.openProjectFolder(obj.SelectedRow)
-                    
+
+                case 'Open project folder in MATLAB'
+                    obj.openProjectFolderInMatlab(obj.SelectedRow)
+
                 case 'Update project folder location'
                     obj.uiLocateProjectFolder(obj.SelectedRow)
             end
