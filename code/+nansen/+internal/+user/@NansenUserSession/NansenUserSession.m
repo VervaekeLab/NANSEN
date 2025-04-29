@@ -272,6 +272,8 @@ classdef NansenUserSession < handle
             if obj.AddonManager.existExternalToolboxInRepository()
                 obj.AddonManager.moveExternalToolboxes() % Todo: Remove
             end
+
+            obj.ProjectManager.checkProjectsExist()
             
             if obj.ProjectManager.hasUnversionedProjects()
                 obj.ProjectManager.upgradeProjects()
