@@ -20,7 +20,7 @@ classdef ProjectManagerUI < handle
     
     properties (Access = protected) % UI Components
         hParent
-        
+        MainGridLayout
         TabGroup
         TabList = gobjects(0)
         UIControls struct = struct
@@ -206,14 +206,15 @@ classdef ProjectManagerUI < handle
     methods (Access = protected) % Component creation
         
         function createTabGroup(obj)
-    
-            parentSize = getpixelposition(obj.hParent);
-            
+            obj.MainGridLayout = uigridlayout(obj.hParent);
+            obj.MainGridLayout.ColumnWidth = {'1x'};
+            obj.MainGridLayout.RowHeight = {'1x'};
+            obj.MainGridLayout.Padding = 0;
+
             tabNames = {'Create New Project', 'Add Existing Project', 'Manage Projects'};
             
-            obj.TabGroup = uitabgroup(obj.hParent);
+            obj.TabGroup = uitabgroup(obj.MainGridLayout);
             obj.TabGroup.SelectionChangedFcn = @obj.TabGroupSelectionChanged;
-            obj.TabGroup.Position = [0 0 parentSize(3:4)];
             
             for i = 1:numel(tabNames)
                 obj.TabList(i) = uitab(obj.TabGroup);
@@ -225,51 +226,63 @@ classdef ProjectManagerUI < handle
         
         function createUiControls(obj)
             
+            % Use gridlayout for better positioning of components
+            uigrid = uigridlayout(obj.TabList(1));
+            uigrid.ColumnWidth = {'1x',170, '1x'};
+            uigrid.RowHeight = {120, '1x', 34, '3x'};
+            uigrid.RowSpacing = 10;
+            uigrid.BackgroundColor = "white";
+
+            controlPanel = uipanel(uigrid, "BorderType", "none");
+            controlPanel.Layout.Column = [1,3];
+            controlPanel.Layout.Row = 1;
+            controlPanel.BackgroundColor = "white";
+
             % Create ChangeProjectFolderButton
-            obj.UIControls.BrowseButton = uibutton(obj.TabList(1), 'push');
+            obj.UIControls.BrowseButton = uibutton(controlPanel, 'push');
             obj.UIControls.BrowseButton.ButtonPushedFcn = @obj.ChangeProjectFolderButtonPushed;
             obj.UIControls.BrowseButton.BackgroundColor = [1 1 1];
             obj.UIControls.BrowseButton.FontName = 'Segoe UI';
             obj.UIControls.BrowseButton.FontWeight = 'bold';
-            obj.UIControls.BrowseButton.Position = [565 89 100 25];
+            obj.UIControls.BrowseButton.Position = [525 89 100 25];
             obj.UIControls.BrowseButton.Text = 'Change Folder';
             
             % Create label and input field for the project name
-            obj.UILabels.ProjectName = uilabel(obj.TabList(1));
+            obj.UILabels.ProjectName = uilabel(controlPanel);
             obj.UILabels.ProjectName.FontName = 'Segoe UI';
             obj.UILabels.ProjectName.FontWeight = 'bold';
             obj.UILabels.ProjectName.Visible = 'off';
             obj.UILabels.ProjectName.Position = [332 163 174 22];
             obj.UILabels.ProjectName.Text = 'Give the project a description';
 
-            obj.UIControls.ProjectName = uieditfield(obj.TabList(1), 'text');
+            obj.UIControls.ProjectName = uieditfield(controlPanel, 'text');
             obj.UIControls.ProjectName.Visible = 'off';
             obj.UIControls.ProjectName.Position = [336 141 279 22];
             
             % Create label for the project path input field
-            obj.UILabels.ProjectPathInput = uilabel(obj.TabList(1));
+            obj.UILabels.ProjectPathInput = uilabel(controlPanel);
             obj.UILabels.ProjectPathInput.FontName = 'Segoe UI';
             obj.UILabels.ProjectPathInput.FontWeight = 'bold';
-            obj.UILabels.ProjectPathInput.Position = [51 112 250 22];
+            obj.UILabels.ProjectPathInput.Position = [31 112 250 22];
             obj.UILabels.ProjectPathInput.Text = 'Local path (to save project configurations)';
 
             % Create control for the project path input field
-            obj.UIControls.ProjectPathInput = uieditfield(obj.TabList(1), 'text');
-            obj.UIControls.ProjectPathInput.Position = [49 90 489 22];
+            obj.UIControls.ProjectPathInput = uieditfield(controlPanel, 'text');
+            obj.UIControls.ProjectPathInput.Position = [29 90 489 22];
             
             % Create label and input field for the project short name
-            hLabel = uilabel(obj.TabList(1));
+            hLabel = uilabel(controlPanel);
             hLabel.FontName = 'Segoe UI';
             hLabel.FontWeight = 'bold';
-            hLabel.Position = [51 163 158 22];
+            hLabel.Position = [31 163 158 22];
             hLabel.Text = 'Enter a short project name';
             
-            hEditField = uieditfield(obj.TabList(1), 'text');
+            hEditField = uieditfield(controlPanel, 'text');
             hEditField.ValueChangedFcn = @obj.ProjectLabelEditFieldValueChanged;
             hEditField.ValueChangingFcn = @obj.ProjectLabelEditFieldValueChanging;
             hEditField.FontName = 'Segoe UI';
             hEditField.FontWeight = 'bold';
-            hEditField.Position = [49 141 169 22];
+            hEditField.Position = [29 141 169 22];
             
             % Set tooltips (no tooltip prop in older versions of matlab)
             try
@@ -281,27 +294,36 @@ classdef ProjectManagerUI < handle
             obj.UIControls.ProjectShortNameInput = hEditField;
             
             % Create CreateNewProjectButton
-            obj.UIControls.CreateNewProjectButton = uibutton(obj.TabList(1), 'push');
+            obj.UIControls.CreateNewProjectButton = uibutton(uigrid, 'push');
             obj.UIControls.CreateNewProjectButton.ButtonPushedFcn = @obj.CreateNewProjectButtonValueChanged;
             obj.UIControls.CreateNewProjectButton.FontSize = 14;
             obj.UIControls.CreateNewProjectButton.FontWeight = 'bold';
-            obj.UIControls.CreateNewProjectButton.Position = [265 27 170 34];
+            obj.UIControls.CreateNewProjectButton.Layout.Column = 2;
+            obj.UIControls.CreateNewProjectButton.Layout.Row = 3;
+            %obj.UIControls.CreateNewProjectButton.Position = [265 27 170 34];
             obj.UIControls.CreateNewProjectButton.Text = 'Create New Project';
 
             % Create controls on the Add Existing Project tab page
-            taxIdx = strcmp({obj.TabList.Title}, 'Add Existing Project');
-            hButton = uibutton(obj.TabList(taxIdx), 'push');
+            tabIdx = strcmp({obj.TabList.Title}, 'Add Existing Project');
+            
+            uigrid = uigridlayout(obj.TabList(tabIdx));
+            uigrid.ColumnWidth = {'1x', 170, '1x'};
+            uigrid.RowHeight = {'2x', 34, '3x'};
+            uigrid.BackgroundColor = "white";
+
+            hButton = uibutton(uigrid, 'push');
+            hButton.Layout.Row = 2;
+            hButton.Layout.Column = 2;
             hButton.Text = 'Add Existing Project';
             hButton.ButtonPushedFcn = @obj.onAddExistingProjectButtonPushed;
-            hButton.Position(3:4) = [170 34];
             hButton.FontWeight = 'bold';
             
             obj.UIControls.AddExistingButton = hButton;
-            uim.utility.layout.centerObjectInRectangle(hButton, obj.TabList(taxIdx))
+            %uim.utility.layout.centerObjectInRectangle(hButton, obj.TabList(tabIdx))
             
-            taxIdx = strcmp({obj.TabList.Title}, 'Manage Projects');
+            tabIdx = strcmp({obj.TabList.Title}, 'Manage Projects');
             
-            obj.UIControls.ProjectTable = uitable(obj.TabList(taxIdx));
+            obj.UIControls.ProjectTable = uitable(obj.TabList(tabIdx));
             obj.UIControls.ProjectTable.Position = [10,10,530,200];
         end
         
@@ -309,9 +331,8 @@ classdef ProjectManagerUI < handle
             
             obj.updateProjectTableData()
             
-            obj.UIControls.ProjectTable.ColumnWidth = {65, 100, 300, 500};
-            obj.UIControls.ProjectTable.ColumnEditable = [true, false,true,false];
-            
+            obj.UIControls.ProjectTable.ColumnWidth = {65, 100, 100, 200, 500};
+            obj.UIControls.ProjectTable.ColumnEditable = [true,false,false,true,false];
             obj.UIControls.ProjectTable.CellEditCallback = @obj.onTableCellEdited;
 
             obj.setProjectTablePosition()
@@ -405,6 +426,13 @@ classdef ProjectManagerUI < handle
             obj.UIControls.CreateNewProjectButton.Text = 'Project Created!';
             obj.UIControls.CreateNewProjectButton.BackgroundColor = [0.47,0.87,0.19];
             obj.UIControls.CreateNewProjectButton.Enable = 'off';
+        end
+    end
+
+    methods (Access = ?nansen.config.project.ProjectManagerApp)
+        function resizeComponents(obj)
+            
+
         end
     end
     
@@ -713,8 +741,8 @@ classdef ProjectManagerUI < handle
         function onAddExistingProjectButtonPushed(obj, src, evt)
             try
                 obj.addExistingProject()
-            catch
-
+            catch ME
+                obj.uialert(ME.message, "Failed to add project", 'error')
             end
         end
     end

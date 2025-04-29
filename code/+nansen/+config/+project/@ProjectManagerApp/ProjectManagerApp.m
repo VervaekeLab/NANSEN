@@ -14,6 +14,7 @@ classdef ProjectManagerApp < nansen.config.abstract.ConfigurationApp
             
             obj.createFigure();
             obj.Figure.Visible = 'on';
+            obj.AllowResize = 'on';
             obj.UIModule{1} = nansen.config.project.ProjectManagerUI(obj.Figure);
             %obj.Figure.Resize = 'on';
             if ~nargout; clear obj; end
@@ -21,6 +22,10 @@ classdef ProjectManagerApp < nansen.config.abstract.ConfigurationApp
             %obj@applify.ModularApp
             % Create tabs
             %obj.isConstructed = true;
+        end
+
+        function resizeControlPanel(obj)
+            obj.UIModule{1}.resizeComponents()
         end
     end
 end
