@@ -238,13 +238,15 @@ classdef ProjectManagerUI < handle
             controlPanel.Layout.Row = 1;
             controlPanel.BackgroundColor = "white";
 
+            y0 = 20;
+
             % Create ChangeProjectFolderButton
             obj.UIControls.BrowseButton = uibutton(controlPanel, 'push');
             obj.UIControls.BrowseButton.ButtonPushedFcn = @obj.ChangeProjectFolderButtonPushed;
             obj.UIControls.BrowseButton.BackgroundColor = [1 1 1];
             obj.UIControls.BrowseButton.FontName = 'Segoe UI';
             obj.UIControls.BrowseButton.FontWeight = 'bold';
-            obj.UIControls.BrowseButton.Position = [525 89 100 25];
+            obj.UIControls.BrowseButton.Position = [525 y0 100 25];
             obj.UIControls.BrowseButton.Text = 'Change Folder';
             
             % Create label and input field for the project name
@@ -263,18 +265,20 @@ classdef ProjectManagerUI < handle
             obj.UILabels.ProjectPathInput = uilabel(controlPanel);
             obj.UILabels.ProjectPathInput.FontName = 'Segoe UI';
             obj.UILabels.ProjectPathInput.FontWeight = 'bold';
-            obj.UILabels.ProjectPathInput.Position = [31 112 250 22];
+            obj.UILabels.ProjectPathInput.Position = [31 y0+22 250 22];
             obj.UILabels.ProjectPathInput.Text = 'Local path (to save project configurations)';
 
             % Create control for the project path input field
             obj.UIControls.ProjectPathInput = uieditfield(controlPanel, 'text');
-            obj.UIControls.ProjectPathInput.Position = [29 90 489 22];
+            obj.UIControls.ProjectPathInput.Position = [29 y0+1 489 22];
+            
+            y0 = 72;
             
             % Create label and input field for the project short name
             hLabel = uilabel(controlPanel);
             hLabel.FontName = 'Segoe UI';
             hLabel.FontWeight = 'bold';
-            hLabel.Position = [31 163 158 22];
+            hLabel.Position = [31 y0+22 158 22];
             hLabel.Text = 'Enter a short project name';
             
             hEditField = uieditfield(controlPanel, 'text');
@@ -282,7 +286,7 @@ classdef ProjectManagerUI < handle
             hEditField.ValueChangingFcn = @obj.ProjectLabelEditFieldValueChanging;
             hEditField.FontName = 'Segoe UI';
             hEditField.FontWeight = 'bold';
-            hEditField.Position = [29 141 169 22];
+            hEditField.Position = [29 y0 169 22];
             
             % Set tooltips (no tooltip prop in older versions of matlab)
             try
@@ -388,8 +392,8 @@ classdef ProjectManagerUI < handle
             pause(0.05)
 
             parentPosition = obj.TabList(2).InnerPosition;
-            tablePosition = parentPosition + [1, 1, -2, -2] * margin;
-            obj.UIControls.ProjectTable.Position = tablePosition;
+            %tablePosition = parentPosition + [1, 1, -2, -2] * margin;
+            %obj.UIControls.ProjectTable.Position = tablePosition;
         end
         
         function createTableContextMenu(obj)
