@@ -75,6 +75,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
     properties (Access = private)
         FolderOrganizationFilterListener
         DataLocationTemplates
+        IsActive (1,1) logical = false
     end
     
     events
@@ -496,7 +497,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         function setActive(obj)
         %setActive Execute actions needed for ui activation
         % Use if UI is part of an app with tabs, and the tab is selected
-        
+            obj.IsActive = true;
             if obj.FolderListViewerActive
                 obj.showFolderListViewer()
             end
@@ -505,11 +506,10 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         function setInactive(obj)
         %setInactive Execute actions needed for ui inactivation
         % Use if UI is part of an app with tabs, and the tab is unselected
-            
+            obj.IsActive = false;
             if obj.FolderListViewerActive
                 obj.hideFolderListViewer()
             end
-            
             obj.updateDataLocationModel()
         end
         
@@ -729,7 +729,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             if ~isempty(obj.CurrentDataLocation.RootPath)
                 parentPath = obj.CurrentDataLocation.RootPath(1).Value;
             else
-                errordlg('Parent folder not found')
+                if obj.IsActive
+                    obj.uialert('Datalocation root folder was not found.')
+                end
                 return
             end
 
