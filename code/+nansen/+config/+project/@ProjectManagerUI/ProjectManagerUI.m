@@ -745,6 +745,7 @@ classdef ProjectManagerUI < handle
         function onAddExistingProjectButtonPushed(obj, src, evt)
             try
                 obj.addExistingProject()
+                obj.uialert('Project successfully added', 'info')
             catch ME
                 obj.uialert(ME.message, "Failed to add project", 'error')
             end
