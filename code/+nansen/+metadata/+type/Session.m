@@ -1001,11 +1001,18 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
                     mkdir(sessionFolder)
                 end
             end
-            
+
+            isVirtualFolder = obj.isVirtualSessionFolder(dataLocationName);
+            if isVirtualFolder
+                nvPairs = {'FilterFcn', @(names) contains(names, obj.sessionID)};
+            else
+                nvPairs = {};
+            end
+
             if isempty(S.FileNameExpression)
                 fileName = obj.createFileName(varName, S);
             else
-                fileName = obj.VariableModel.lookForFile(sessionFolder, S);
+                fileName = obj.VariableModel.lookForFile(sessionFolder, S, nvPairs{:});
                 if isempty(fileName) && strcmp(mode, 'write')
                     fileName = obj.getFileName(S);
                 end
@@ -1115,6 +1122,12 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             if ~isempty(S.Subfolders)
                 folderPath = fullfile(S.RootPath, S.Subfolders);
             end
+            
+            % Ad hoc addition to support adding files as their own
+            % "subfolder" level
+            if isfile(folderPath) 
+                folderPath = fileparts(folderPath);
+            end
 
             if ~isfolder(folderPath)
                 if (strcmp(S.Type.Permission, 'write') && strcmp(mode, 'create')) || strcmp(mode, 'force')
@@ -1130,6 +1143,28 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
         end
         
+        function tf = isVirtualSessionFolder(obj, dataLocationName)
+            if nargin < 2
+                dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+            end
+            
+            S = obj.getDataLocation(dataLocationName);
+            
+            if ~isempty(S.Subfolders)
+                folderPath = fullfile(S.RootPath, S.Subfolders);
+            else
+                folderPath = S.RootPath;
+            end
+
+            if isfolder(folderPath)
+                tf = false;
+            elseif isfile(folderPath) % todo: check file extension?
+                tf = true;
+            else
+                tf = false;
+            end
+        end
+
         function folderPath = createSessionFolder(obj, dataLocationName, mode)
         %createSessionFolder Create a session folder if it does not exist
         

@@ -938,12 +938,20 @@ classdef ProjectManager < handle
         
         function checkProjectsExist(obj)
         % checkProjectsExist - Check if project folders exists.
+            missingProjectNames = string.empty;
+            missingProjectPaths = string.empty;
+
             for i = 1:numel(obj.Catalog)
                 thisProjectDir = obj.Catalog(i).Path;
                 if ~isfolder(thisProjectDir)
                     thisProjectName = obj.Catalog(i).Name;
-                    showProjectMissingWarning(thisProjectName, thisProjectDir)
+                    missingProjectNames(end+1) = obj.Catalog(i).Name; %#ok<AGROW>
+                    missingProjectPaths(end+1) = obj.Catalog(i).Path; %#ok<AGROW>
+                    %showProjectMissingWarning(thisProjectName, thisProjectDir)
                 end
+            end
+            if ~isempty(missingProjectNames)
+                showProjectMissingWarning2(missingProjectNames, missingProjectPaths)
             end
         end
 
@@ -1015,8 +1023,29 @@ function showProjectMissingWarning(projectName, projectFolder)
     nansen.common.tracelesswarning(...
         'NANSEN:ProjectManager:ProjectMissing', ...
         ['Project "%s" was not found at expected location:\n%s\nRun ', ...
-        'nansen.ProjectManager to remove the project or update it''s location.'], ...
+        'nansen.ProjectManager to remove the project or update it''s location.\n'], ...
         projectName, projectFolder)
+end
+
+function showProjectMissingWarning2(projectNames, projectFolders)
+    
+    projectList = compose("  %s -> %s", projectNames', projectFolders');
+    projectList = strjoin(projectList, newline);
+    
+    if numel(projectNames) == 1
+        warningMessage = sprintf(...
+            ['The following project was not found:\n%s\nRun ', ...
+            'nansen.ProjectManager to remove the project or update it''s ', ...
+            'location.\n'], projectList);
+    else
+        warningMessage = sprintf(...
+            ['The following projects were not found:\n%s\nRun ', ...
+            'nansen.ProjectManager to remove the projects or update their ', ...
+            'locations.\n'], projectList);
+    end
+
+    nansen.common.tracelesswarning(...
+        'NANSEN:ProjectManager:ProjectMissing', warningMessage)
 end
 
 % Change log

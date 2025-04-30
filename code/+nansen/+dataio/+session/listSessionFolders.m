@@ -53,7 +53,17 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
         for j = 1:numel(S) % Loop through each subfolder level
             expression = S(j).Expression;
             ignoreList = S(j).IgnoreList;
-            [rootPath, ~] = utility.path.listSubDir(rootPath, expression, ignoreList, 1);
+            if S(j).IsFolder
+                [rootPath, ~] = utility.path.listSubDir(rootPath, expression, ignoreList, 1);
+            else
+                %[rootPath, ~] = utility.path.listFiles(rootPath);
+                rootPath = recursiveDir(rootPath, ...
+                    "Expression", expression, ...
+                    "IgnoreList", ignoreList, ...
+                    "RecursionDepth", 1, ...
+                    "Type", "file", ...
+                    "OutputType", "FilePath");
+            end
         end
                 
         fieldName = dataLocationModel.Data(i).Name;

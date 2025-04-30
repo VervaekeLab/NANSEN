@@ -401,7 +401,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     end
     
     methods % Todo: Move to nansen.dataio.DataVariable
-        function fileName = lookForFile(obj, folderPath, variableInfo)
+        function fileName = lookForFile(obj, folderPath, variableInfo, options)
 
             % Todo: Add FEX:recursiveDir as dependency and ensure the
             % following works:
@@ -412,6 +412,13 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             % %
             % % L = recursiveDir(sessionFolder, nvPairs{:});
             
+            arguments
+                obj
+                folderPath (1,1) string
+                variableInfo
+                options.FilterFcn = []
+            end
+
             if isa(variableInfo, 'char')
                 variableInfo = obj.getVariableStructure(variableInfo);
             end
@@ -426,6 +433,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             
             L = dir(fullfile(folderPath, expression));
             L = L(~strncmp({L.name}, '.', 1));
+
+            if ~isempty(options.FilterFcn)
+                L = L(options.FilterFcn({L.name}));
+            end
             
             if ~isempty(L) && numel(L)==1
                 fileName = L.name;

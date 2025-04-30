@@ -73,7 +73,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 'VariableName', varNames, ...
                 'SubfolderLevel', {[]}, ...
                 'StringDetectMode', repmat({'ind'}, 1, numVars), ...
-                'StringDetectInput', repmat({''}, 1, numVars), ...
+                'StringDetectInput', repmat({'1:end'}, 1, numVars), ...
                 'StringFormat', repmat({''}, 1, numVars), ...
                 'FunctionName', repmat({''}, 1, numVars) );
         end
@@ -84,7 +84,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 'Name', '', ... % FolderName
                 'Type', '', ...
                 'Expression', '', ...
-                'IgnoreList', {{}} );
+                'IgnoreList', {{}}, ...
+                'IsFolder', true);
             % Todo: Add ShortName, i.e sub / ses (ref BIDS)
         end
     end
@@ -167,6 +168,10 @@ classdef DataLocationModel < utility.data.StorableCatalog
                         dirty = true;
                     elseif isstring(obj.Data(i).SubfolderStructure(j).Type)
                         obj.Data(i).SubfolderStructure(j).Type = char(obj.Data(i).SubfolderStructure(j).Type);
+                        dirty = true;
+                    end
+                    if ~isfield(obj.Data(i).SubfolderStructure, 'IsFolder')
+                        [obj.Data(i).SubfolderStructure(:).IsFolder] = deal(true);
                         dirty = true;
                     end
                 end
