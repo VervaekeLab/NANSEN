@@ -145,7 +145,9 @@ function sessionIds = getSessionIDsForPaths(dataLocationModel, sessionFolderList
 end
 
 function uniqueSessionIds = getUniqueSessionIds(sessionIds)
-    
+    arguments
+        sessionIds struct
+    end
     % Ensure all cells are row vectors
     dlNames = fieldnames(sessionIds);
     for i = 1:numel(dlNames)
