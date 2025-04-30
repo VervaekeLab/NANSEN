@@ -730,7 +730,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 parentPath = obj.CurrentDataLocation.RootPath(1).Value;
             else
                 if obj.IsActive
-                    obj.uialert('Datalocation root folder was not found.')
+                    hFigure = ancestor(obj.Parent, 'figure');
+                    uialert(hFigure, 'Datalocation root folder was not found.', 'Error')
                 end
                 return
             end

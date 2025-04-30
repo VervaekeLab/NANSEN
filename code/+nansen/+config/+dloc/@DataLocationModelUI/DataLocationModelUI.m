@@ -608,8 +608,11 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
                 initPath = obj.LastUigetdirFolder;
             end
             
+            hFigure = ancestor(obj.Parent, 'figure');
+            hFigure.Visible = 'off';
             folderPath = uigetdir(initPath);
-            
+            hFigure.Visible = 'on';
+
             % Call this to take care of bug in matlab where uifigures loose
             % focus when a uigetdir dialog opens and closes.
             hParentFigure = ancestor(obj.Parent, 'figure');
