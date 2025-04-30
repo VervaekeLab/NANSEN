@@ -145,6 +145,12 @@ function sessionIds = getSessionIDsForPaths(dataLocationModel, sessionFolderList
 end
 
 function uniqueSessionIds = getUniqueSessionIds(sessionIds)
+    % Ensure all cells are row vectors
+    for i = 1:numel(sessionIds)
+        if ~isrow(sessionIds{i})
+            sessionIds{i} = sessionIds{i}';
+        end
+    end
     sessionIds = struct2cell(sessionIds);
     uniqueSessionIds = unique( [sessionIds{:}] );
     uniqueSessionIds(strcmp(uniqueSessionIds, ''))=[];
