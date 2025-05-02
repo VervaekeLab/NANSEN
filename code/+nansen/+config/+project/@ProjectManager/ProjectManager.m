@@ -549,6 +549,9 @@ classdef ProjectManager < handle
             
             projectName = projectNames{ind};
             obj.changeProject(projectName);
+            if ~nargout
+                clear tf
+            end
         end
         
         function updateProjectItem(obj, projectName, name, value)
