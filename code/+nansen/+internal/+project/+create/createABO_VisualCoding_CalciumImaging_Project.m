@@ -11,7 +11,7 @@ function createABO_VisualCoding_CalciumImaging_Project()
     projectDirectory = fullfile( userpath, 'Nansen', 'New Projects', 'ABO-VisualCoding-TwoPhoton-Test');
     
     % Create a project
-    project = nansen.createProject(projectName, projectDescription, projectDirectory);
+    project = nansen.config.project.Project.new(projectName, projectDescription, projectDirectory);
 
     % Create a session metatable and add to project
     sessionTable = bot.listSessions("VisualCoding", "Ophys");

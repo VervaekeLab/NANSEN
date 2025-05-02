@@ -1,4 +1,4 @@
-function configureProject(flags)
+function configureProject(flags, options)
 % configureProject - Runs the project setup wizard.
 %
 % Syntax:
@@ -21,22 +21,45 @@ function configureProject(flags)
     arguments (Repeating)
         flags (1,1) string {mustBeMember(flags, ["d", "dependencies", "v", "variables"])}
     end
+    arguments
+        options.CreateNew (1,1) logical = false;
+    end
+
     flags = string(flags);
+    
+    if options.CreateNew
+        pagesToShow = "ProjectTab";
+    else
+        pagesToShow = string.empty();
+
+        % Make sure there is a project to configure
+        if isempty(nansen.getCurrentProject)
+            projectManager = nansen.ProjectManager();
+            if projectManager.NumProjects == 0
+                ME = MException('NANSEN:Projects:NoAvailableProject', ...
+                    'There are no available projects to configure. Please run nansen.createProject()');
+                throwAsCaller(ME)
+            else
+                projectManager.uiSelectProject()
+            end
+        end
+    end
+
+    pagesToShow = [pagesToShow, "ModulesTab"];
+
+    if any(flags == "d") || any(flags == "dependencies")
+        pagesToShow = [pagesToShow, "AddonsTab"];
+    end
 
     pagesToShow = [...
-        "ProjectTab", ...
-        "ModulesTab", ...
+        pagesToShow, ...
         "DataLocationsTab", ...
         "FolderHierarchyTab", ...
         "MetadataTab" ...
-        ];
+    ];
 
     if any(flags == "v") || any(flags == "variables")
         pagesToShow(end+1) = "VariablesTab";
-    end
-
-    if any(flags == "d") || any(flags == "dependencies")
-        pagesToShow = [pagesToShow(1:2), "AddonsTab", pagesToShow(3:end)];
     end
 
     nansen.app.setup.SetupWizard(pagesToShow)
