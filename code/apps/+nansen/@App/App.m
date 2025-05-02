@@ -199,11 +199,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Save column view settings to project
             app.saveMetatableColumnSettingsToProject()
-            
-            if isempty(app.MetaTable)
-                return
-            end
-            
+
             isdeletable = @(x) ~isempty(x) && isvalid(x);
             
             if isdeletable(app.UiMetaTableViewer)
@@ -213,29 +209,34 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isdeletable(app.BatchProcessor)
                 delete(app.BatchProcessor)
             end
-            
-            if app.settings.MetadataTable.AllowTableEdits
-                app.saveMetaTable()
+
+            if ~isempty(app.MetaTable)
+                if app.settings.MetadataTable.AllowTableEdits
+                    app.saveMetaTable()
+                end
             end
             
             if ~isempty(app.Figure) && isvalid(app.Figure)
                 app.saveFigurePreferences()
-                % delete(app.Figure) % This will trigger onExit again...
             end
         end
         
         function onExit(app, h)
             
-            if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
-                doExit = app.BatchProcessor.promptQuit();
-                if ~doExit; return; end
+            if app.isShuttingDown()
+                % Skip check for whether app is busy.
+            else
+                if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                    doExit = app.BatchProcessor.promptQuit();
+                    if ~doExit; return; end
+                end
+                
+                if ~app.isIdle() && ~app.isShuttingDown()
+                    doExit = app.promptQuitIfBusy();
+                    if ~doExit; return; end
+                end
+                app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
             end
-            
-            if ~app.isIdle() && ~app.isShuttingDown()
-                doExit = app.promptQuitIfBusy();
-                if ~doExit; return; end
-            end
-            app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
 
             % This function is called twice if the figure's close button is 
             % pressed. First when pressing the close button, and then when the 
@@ -244,6 +245,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.onExit@uiw.abstract.AppWindow(h);
             % delete(app) % Not necessary, happens in superclass' onExit method
+        end
+    
+        function forceQuit(app, message)
+            C = onCleanup(@() delete(app));
+            app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
+            errorId = 'NANSEN:App:ForceQuit';
+            ME = MException(errorId, message);
+            throwAsCaller(ME)
         end
     end
         
@@ -3012,6 +3021,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 MTC = app.CurrentProject.MetaTableCatalog;
                 loadPath = MTC.getDefaultMetaTablePath();
 
+                if isempty(loadPath)
+                    errorMessage = sprintf([...
+                        'This project (%s) does not have any metatables yet. ', ...
+                        'You might see this message if you have not finished ', ...
+                        'setting up the project. Please run nansen.setup to ', ...
+                        'complete the project setup or use ', ...
+                        'nansen.ProjectManager to change the current project.'], ...
+                        app.CurrentProject.Name);
+                    errordlg(errorMessage)
+                    app.forceQuit(errorMessage)
+                end
+
                 subjectTableExists = app.checkIfSubjectTableExists(MTC);
                 if ~subjectTableExists
                     nansen.config.initializeSubjectTable(MTC)
@@ -4192,7 +4213,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
-        function quit()
+        function quit(options)
+
+            arguments
+                options.ForceQuit (1,1) logical = false
+            end
+
             openFigures = findall(0, 'Type', 'Figure');
             if isempty(openFigures)
                 return
