@@ -18,6 +18,13 @@ function setup(userName)
     
     nansen.addpath()
     
+    % Check that the current project is valid.
+    project = nansen.getCurrentProject();
+    if ~isempty(project)
+        assert(isfolder(project.Path), ...
+            'Could not find the project folder for the current project. Please run nansen.ProjectManager to manage project or nansen.createProject to create a new project.')
+    end
+    
     if str2double(versionAsNumber) >= 960
         nansen.app.setup.SetupWizard % Run app coded in appdesigner
     else
