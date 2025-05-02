@@ -916,7 +916,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 obj.ViewFileAdapterSubMenu.Enable = "off";
             else
                 fileAdapterName = cellfun(@(c) c.classname(), fileAdapter, 'uni', 0);
-
+                fileAdapterName = unique(fileAdapterName);
                 obj.ViewFileAdapterSubMenu.Enable = "on";
                 menuList = uics.MenuList(obj.ViewFileAdapterSubMenu, fileAdapterName);
                 menuList.SelectionMode = 'none';
