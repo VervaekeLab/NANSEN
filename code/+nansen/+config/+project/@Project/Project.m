@@ -634,13 +634,20 @@ classdef Project < nansen.module.Module
         end
     
         function S = readConfigFile(projectFolderPath)
+            % Check if project folder exists
+            if ~isfolder(projectFolderPath)
+                error('NANSEN:Project:ConfigurationFileMissing', ...
+                    'No project folder was found with name: %s', projectFolderPath)
+            end
+
             fileName = nansen.config.project.Project.PROJECT_CONFIG_FILENAME;
             filePath = fullfile(projectFolderPath, fileName);
 
+            % Check if project configuration file exists
             if isfile(filePath)
                 S = jsondecode(fileread(filePath));
             else
-                error('Nansen:ProjectConfigurationFileMissing', ...
+                error('NANSEN:Project:ConfigurationFileMissing', ...
                     'No project configuration file was found in folder: %s', projectFolderPath)
             end
         end
@@ -651,7 +658,8 @@ classdef Project < nansen.module.Module
             if isfile(filePath)
                 S = load(filePath, 'ProjectConfiguration');
             else
-                error('Project configuration file was not found')
+                error('NANSEN:Project:ConfigurationFileMissing', ...
+                    'Project configuration file was not found')
             end
         end
     end
