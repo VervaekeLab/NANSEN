@@ -4,7 +4,7 @@ function createProject(flags)
     end
     % Make sure we don't have a current project selection
     pm = nansen.ProjectManager();
-    message = pm.changeProject(''); %#ok<NASGU> % Captures message. Todo: Make verbose option instead
+    pm.changeProject('', "Verbose", false);
     
     nansen.configureProject(flags{:}, "CreateNew", true)
 end

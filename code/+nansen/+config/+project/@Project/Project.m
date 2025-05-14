@@ -94,17 +94,11 @@ classdef Project < nansen.module.Module
         end
 
         function addToSearchPath(obj)
-            if ~contains(path, obj.FolderPath)
-                addpath(genpath(obj.FolderPath), '-end')
-            end
-            % Todo: add dependent modules
+            obj.addProjectToSearchPath(obj.FolderPath) % delegate to static
         end
 
         function removeFromSearchPath(obj)
-            if contains(path, obj.FolderPath)
-                rmpath(genpath(obj.FolderPath))
-            end
-            % Todo: Remove dependent modules
+            obj.removeProjectFromSearchPath(obj.FolderPath) % delegate to static
         end
         
         function addMetaTable(obj, metaTable)
@@ -551,8 +545,7 @@ classdef Project < nansen.module.Module
     end
     
     methods (Static)
-        
-        function project = new(name, description, folderpath)
+        function project = new(name, description, projectRootFolder)
             
             % Todo: Just add these as arguments to the project constructor...
             
@@ -560,25 +553,46 @@ classdef Project < nansen.module.Module
             projectInfo.Name = name; % Todo: This should be different from short name...
             projectInfo.ShortName = name;
             projectInfo.Description = description;
-            projectInfo.Path = folderpath;
+            projectInfo.Path = projectRootFolder;
             
             nansen.config.project.Project.initializeProjectDirectory(projectInfo)
 
             % Todo: Why is this here and not in the initialization function?
-            nansen.config.project.Project.updateProjectConfiguration(folderpath, projectInfo)
-            nansen.config.project.Project.updateModuleConfiguration(folderpath, projectInfo)
+            nansen.config.project.Project.updateProjectConfiguration(projectRootFolder, projectInfo)
+            nansen.config.project.Project.updateModuleConfiguration(projectRootFolder, projectInfo)
 
             % Create a project instance and initialize the project
             try
-                project = nansen.config.project.Project(name, folderpath);
+                project = nansen.config.project.Project(name, projectRootFolder);
                 project.initializeProject()
             catch MECause
-                rmdir(projectRootDir, "s")
+                rmdir(projectRootFolder, "s")
                 ME = MException('Nansen:CreateProjectFailed', ...
                     'Failed to create project with name "%s"', name);
                 ME = ME.addCause(MECause);
                 throw(ME)
             end
+        end
+    end
+
+    methods (Static, Access = {?nansen.config.project.Project, ?nansen.config.project.ProjectManager})
+        function addProjectToSearchPath(projectFolderPath)
+            if ~contains(path, projectFolderPath)
+                addpath(genpath(projectFolderPath), '-end')
+            end
+            if isfile( fullfile(projectFolderPath, 'startup.m') )
+                run(fullfile(projectFolderPath, 'startup.m'))
+            end
+        end
+
+         function removeProjectFromSearchPath(projectFolderPath)
+            if contains(path, projectFolderPath)
+                rmpath(genpath(projectFolderPath))
+            end
+            if isfile(fullfile(projectFolderPath, 'finish.m'))
+                run(fullfile(projectFolderPath, 'finish.m'))
+            end
+            % Todo: Remove dependent modules
         end
     end
 

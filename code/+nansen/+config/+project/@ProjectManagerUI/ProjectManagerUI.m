@@ -446,10 +446,14 @@ classdef ProjectManagerUI < handle
         % changeProject - Changes the current project
             projectName = obj.getNameFromRowIndex(rowIdx);
             
-            msg = obj.ProjectManager.changeProject(projectName);
-                        
-            % Todo: What if something failed
-            obj.uialert(msg, 'Changed Project', 'success')
+            try
+                obj.ProjectManager.changeProject(projectName);
+                msg = sprintf('Current NANSEN project was changed to "%s".', projectName);
+                obj.uialert(msg, 'Changed Project', 'success')
+            catch ME
+                obj.uialert(ME.message, 'Failed to Change Project')
+                return
+            end
             
             try % Note: Does not work in older versions of matlab
                 obj.setRowStyle('Current Project', rowIdx)
