@@ -1135,7 +1135,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             fileAdapterList = nansen.dataio.listFileAdapters();
 
             isMatch = strcmp({fileAdapterList.FileAdapterName}, fileAdapterName);
-            edit(fileAdapterList(isMatch).FunctionName)
+            edit( sprintf('%s/read', fileAdapterList(isMatch).FunctionName) );
         end
         
         function onCreateVariableMenuItemClicked(obj)
