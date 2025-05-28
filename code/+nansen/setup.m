@@ -21,7 +21,7 @@ function setup(userName)
     % Check that the current project is valid.
     project = nansen.getCurrentProject();
     if ~isempty(project)
-        assert(isfolder(project.Path), ...
+        assert(isfolder(project.FolderPath), ...
             'Could not find the project folder for the current project. Please run nansen.ProjectManager to manage project or nansen.createProject to create a new project.')
     end
     
