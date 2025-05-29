@@ -525,8 +525,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 obj.setRowDisplayMode(rowNum, false)
             end
             
-            % Todo: should refactor this so that first, we check if folders
-            % are available, then add row if confirmed...
+            % Todo: Should migrate towards using errors and error handling 
+            % instead of relying on a binary wasSuccess flag.
             wasSuccess = obj.updateSubfolderItems(rowNum);
             if ~wasSuccess
                 obj.removeRow()
@@ -565,7 +565,18 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             if ~wasSuccess
                 % Show message if this failed....
-                message = 'No subfolders were found at the selected location';
+
+                rowNum = obj.getComponentRowNumber(src) + 1;
+                parentPath = obj.getParentFolderAtLevel(rowNum);
+                if isfile(parentPath)
+                    message = ['Cannot add a subfolder level because the ', ...
+                        'current selection is a file. To add subfolders ', ...
+                        'or files at this level in the hierarchy, please ', ...
+                        'create a new DataLocation in the same root directory.'];
+                else
+                    message = 'No subfolders were found at the selected location';
+                end
+
                 hFigure = ancestor(obj.Parent, 'figure');
                 uialert(hFigure, message, 'Aborting')
             end
@@ -656,12 +667,9 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             [~, dirName] = utility.path.listSubDir(parentPath, ...
                 S(iRow).Expression, S(iRow).IgnoreList);
             
-            % Todo: Add something like this if implementing virtual folders
-            % in a datalocation
-            if isempty(dirName)
-                % show message...
-                [~, dirName] = utility.path.listFiles(parentPath);
-            end
+            % Look for files and concatenate files and folders
+            [~, filesName] = utility.path.listFiles(parentPath);
+            dirName = [dirName, filesName];
             
             % Get handle to dropdown control
             hSubfolderDropdown = obj.RowControls(iRow).SubfolderDropdown;
@@ -676,11 +684,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 if ~nargout; clear success; end
                 return
             elseif isempty(dirName) % && iRow > 1
-% %                 message = 'No subfolders were found within the selected folder';
-% %                 hFigure = ancestor(obj.Parent, 'figure');
-% %                 uialert(hFigure, message, 'Aborting')
                 success = false;
-                hSubfolderDropdown.Items = {'No subfolders were found'};
+                hSubfolderDropdown.Items = {'No subfolders or files were found in the current location'};
                 if ~nargout; clear success; end
                 return
             end
