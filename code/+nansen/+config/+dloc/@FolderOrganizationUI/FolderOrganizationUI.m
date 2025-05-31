@@ -668,8 +668,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 S(iRow).Expression, S(iRow).IgnoreList);
             
             % Look for files and concatenate files and folders
-            [~, filesName] = utility.path.listFiles(parentPath);
-            dirName = [dirName, filesName];
+            [~, fileName] = utility.path.listFiles(parentPath);
+            dirName = [dirName, fileName];
             
             % Get handle to dropdown control
             hSubfolderDropdown = obj.RowControls(iRow).SubfolderDropdown;
