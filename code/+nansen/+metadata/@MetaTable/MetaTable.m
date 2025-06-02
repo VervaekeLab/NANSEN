@@ -1630,6 +1630,13 @@ classdef MetaTable < handle
             end
         end
 
+        function entryIndex = getIndexById(obj, objectId)
+            idName = obj.SchemaIdName;
+            allIds = obj.entries.(idName);
+
+            entryIndex = find( strcmp(allIds, objectId) );
+        end
+
         function updateMetaObjectCacheMembers(obj)
         %updateMetaObjectCacheMembers Update list of ids for members of the
         % metaobject cache
