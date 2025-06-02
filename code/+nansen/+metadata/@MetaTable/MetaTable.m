@@ -426,12 +426,22 @@ classdef MetaTable < handle
             obj.VersionNumber = versionNumber + 1;
             S.VersionNumber = obj.VersionNumber;
 
-            % Save metatable variables to file
-            save(obj.filepath, '-struct', 'S')
-            fprintf('MetaTable saved to %s\n', obj.filepath)
-                            
-            wasSaved = true;
-            obj.IsModified = false;
+            tempPath = strrep(obj.filepath, '.mat', '.tempsave.mat');
+            save(tempPath, '-struct', 'S');
+
+            try
+                verifiedS = load(tempPath); %#ok<NASGU>
+                copyfile(tempPath, obj.filepath)
+                % Save metatable variables to file
+                % save(obj.filepath, '-struct', 'S')
+                fprintf('MetaTable saved to %s\n', obj.filepath)
+                                
+                wasSaved = true;
+                obj.IsModified = false;
+            catch ME
+                error('Something went wrong during saving.')
+            end
+
             if ~nargout; clear wasSaved; end
         end
         
