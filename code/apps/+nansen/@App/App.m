@@ -1743,19 +1743,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.ActiveTabModule = app.UiMetaTableViewer;
                     
                 case 'File Viewer'
+
+                    try
+                        nansen.FileViewer.assertFileViewerSupported(app.MetaTable)
+                    catch ME
+                        msgbox(ME.message, 'FileViewer Is Disabled')
+                        app.hLayout.TabGroup.SelectedTab = evt.OldValue;
+                        return
+                    end
+                    
                     if isempty(app.UiFileViewer) % Create file viewer
                     	thisTab = evt.NewValue;
                         app.initializeFileViewer(thisTab)
                     end
-                    
-                    % Todo: Remove this when MetaTable is a map with one
-                    % key for each table type.
-                    if ~strcmpi(app.MetaTable.getTableType, 'session')
-                        msgbox('File viewer is only available when viewing the session table', 'Not supported')
-                        app.hLayout.TabGroup.SelectedTab = evt.OldValue;
-                        return
-                    end
-                                   
+        
                     app.ActiveTabModule = app.UiFileViewer;
 
                     rowInd = app.UiMetaTableViewer.DisplayedRows;

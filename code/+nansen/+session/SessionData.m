@@ -264,11 +264,11 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             end
             
             msg = 'Select a data variable:';
-            [indx, tf] = listdlg('ListString', varNames, ...
+            [selectedIndex, tf] = listdlg('ListString', varNames, ...
                 'PromptString', msg, 'SelectionMode', selectionMode);
             
             if tf
-                varNames = varNames(indx);
+                varNames = varNames(selectedIndex);
             else
                 varNames = {};
             end

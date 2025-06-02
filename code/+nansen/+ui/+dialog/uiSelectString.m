@@ -21,11 +21,11 @@ function selectedItem = uiSelectString(listOfItems, selectionMode, itemName)
 
     msg = sprintf('Select %s %s:', indefArticle, itemName);
     
-    [indx, tf] = listdlg('ListString', listOfItems, 'Name', titleStr,...
+    [selectedIndex, tf] = listdlg('ListString', listOfItems, 'Name', titleStr,...
         'PromptString', msg, 'SelectionMode', selectionMode );
     
     if tf
-        selectedItem = listOfItems(indx);
+        selectedItem = listOfItems(selectedIndex);
     else
         selectedItem = {};
     end

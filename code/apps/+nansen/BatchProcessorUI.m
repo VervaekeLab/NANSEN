@@ -698,7 +698,9 @@ classdef BatchProcessorUI < handle
         function displayDiary(items)
             
             for i = 1:numel(items)
-                fprintf('\n# # # Diary for session %s, method "%s":\n', items(i).name, func2str(items(i).method))
+                itemName = items(i).name;
+                if iscell(itemName); itemName = itemName{1}; end
+                fprintf('\n# # # Diary for session %s, method "%s":\n', itemName, func2str(items(i).method))
                 if isempty(items(i).Diary)
                     disp('<EMPTY>')
                 else
@@ -710,7 +712,9 @@ classdef BatchProcessorUI < handle
         function displayErrors(items)
             
             for i = 1:numel(items)
-                fprintf('\n# # # Errors for session %s, method "%s":\n', items(i).name, func2str(items(i).method))
+                itemName = items(i).name;
+                if iscell(itemName); itemName = itemName{1}; end
+                fprintf('\n# # # Errors for session %s, method "%s":\n', itemName, func2str(items(i).method))
                 if isempty(items(i).ErrorStack)
                     disp('<NO ERROR>')
                 else

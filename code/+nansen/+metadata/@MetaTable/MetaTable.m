@@ -924,7 +924,7 @@ classdef MetaTable < handle
         %   variable to the table and initializes all column values to the
         %   initValue.
         
-        % Todo: Make method for adding multiple variable ine one go, i.e
+        % Todo: Make method for adding multiple variable in one go, i.e
         % allow variableName and initValue to be cell arrays.
 
             if ~obj.IsMaster % Add to master metatable
