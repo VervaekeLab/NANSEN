@@ -1,5 +1,5 @@
 classdef MetaTable < handle
-%MetaTable Class interface for creating and working with MetaTables
+% MetaTable Class interface for creating and working with MetaTables
 %
 %   MetaTables can be either master or dummy MetaTables. A master
 %   MetaTable contains all the actual data entries whereas a dummy
@@ -18,11 +18,13 @@ classdef MetaTable < handle
 %
 
 % Todo:
-%   []Inherit from VersionedFile
+%   [ ]Inherit from VersionedFile
 %   [ ] Constructor access should be MetaTableCatalog...
-%   [ ] Should archive be a method on this class? Would it not be better son
-%       metatablecatalog..?
+%   [ ] Should archive be a method on this class? Would it not be better on
+%       MetatableCatalog..?
 %   [ ] openMetaTableFromName should be a metatable catalog method...
+
+%   [ ] Todo: Meta object listeners??
 
 % Features: Should think about grouping this better.
 %       Catalog/Collection, ie adding, removing and modifying entries
@@ -52,6 +54,12 @@ classdef MetaTable < handle
         % checkIfMetaTableComplete. Purpose: Silently add table var
         % definitions on first time-initialization of a metatable. 
         MetaTableVariables (:,1) string
+    end
+
+    % MetaObject caching properties
+    properties (Access = private)
+        MetaObjectCache = []  % Cache of metadata objects | Todo: Make this a dictionary/containers.Map
+        MetaObjectCacheMembers = {}  % IDs for cached metadata objects
     end
 
     properties (SetAccess = private)
@@ -100,6 +108,10 @@ classdef MetaTable < handle
             );
     end
 
+    events
+        TableEntryChanged
+    end
+
     methods % Structor
         
         function obj = MetaTable(metadata, propValues)
@@ -123,7 +135,7 @@ classdef MetaTable < handle
     
     methods
         
-        function itemConstructor = getItemConstructor(obj)
+        function itemConstructor = getItemConstructor(obj) % Todo: private?
         % getItemConstructor - Get function handle for item constructor
             if isempty(obj.ItemClassName)
                 itemConstructor = str2func(obj.MetaTableClass);
@@ -1424,20 +1436,266 @@ classdef MetaTable < handle
         end
     end
 
+    methods % MetaObject caching methods
+        function [metaObjects, status] = getMetaObjects(obj, rowIndices, ...
+                objectPropertyName, objectPropertyValue, options)
+        % getMetaObjects - Get metadata objects for a set of table rows
+        %
+        %   Inputs:
+        %     - obj - instance of this MetaTable
+        %     - tableEntries - a collection of table rows
+        %     - options (name-value pairs)
+        %         - UseCache - (logical) - flag determining if objects can be 
+        %                                  retrieved from a cache
+        %     - objectNameValueArgs (name-value pairs)
+        %
+        %   Outputs:
+        %       metaObjects - An array of metadata objects
+        %       status - A logical vector indicating if an object was
+        %           created. Same length as tableEntries.
+
+            % Todo: Use containers.Map / dictionary for cache...
+            
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                rowIndices (1,:) {mustBeA(rowIndices, ["logical", "double"])}
+            end
+            arguments (Repeating)
+                objectPropertyName string
+                objectPropertyValue
+            end
+            arguments
+                options.UseCache (1,1) logical = true
+            end
+
+            tableEntries = obj.entries(rowIndices, :);
+            propertyArgs = cat(1, objectPropertyName, objectPropertyValue);
+
+            if isempty(tableEntries) || ~options.UseCache
+                [metaObjects, status] = obj.createMetaObjects(tableEntries, propertyArgs{:});
+            else
+                % Check if objects already exists in cache
+                ids = obj.getObjectId(tableEntries);
+                if isnumeric(ids)
+                    if isnumeric(ids) && numel(ids) == 1
+                        ids = num2str(ids);
+                        ids = {ids};
+                    elseif isnumeric(ids) && numel(ids) > 1
+                        ids = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
+                    end
+                    allCachedIds = cellfun(@num2str, obj.MetaObjectCacheMembers, 'UniformOutput', false);
+                else
+                    allCachedIds = obj.MetaObjectCacheMembers;
+                end
+                
+                [matchedIds, indInTableEntries, indInMetaObjects] = ...
+                    intersect(ids, allCachedIds, 'stable');
+    
+                metaObjectsCached = obj.MetaObjectCache(indInMetaObjects);
+                tableEntries(indInTableEntries, :) = []; % Don't need these anymore
+                                
+                statusOld = false(1, numel(ids));
+                statusOld(indInTableEntries) = true;
+                
+                % Create meta objects for remaining entries if any
+                [metaObjectsNew, statusNew] = obj.createMetaObjects(tableEntries, propertyArgs{:});
+            
+                % Collect outputs
+                if isequal(matchedIds, ids)
+                    metaObjects = metaObjectsCached;
+                    status = statusOld;
+                elseif ~isempty(matchedIds)
+                    metaObjects = utility.insertIntoArray(metaObjectsNew, metaObjectsCached, indInTableEntries);
+                    status = utility.insertIntoArray(statusNew, true(1,numel(metaObjectsCached)), indInTableEntries);
+                else
+                    metaObjects = metaObjectsNew;
+                    status = statusNew;
+                end
+
+                % Add newly created metaobjects to the cache
+                if isempty(obj.MetaObjectCache)
+                    obj.MetaObjectCache = metaObjectsNew;
+                else
+                    obj.MetaObjectCache = [obj.MetaObjectCache, metaObjectsNew];
+                end
+                obj.updateMetaObjectCacheMembers();
+            end
+
+            if nargout == 1
+                clear status
+            end
+        end
+        
+        function resetMetaObjectCache(obj)
+        %resetMetaObjectCache Delete all meta objects from the cache
+            for i = numel(obj.MetaObjectCache):-1:1
+                if ismethod(obj.MetaObjectCache(i), 'isvalid')
+                    if ismethod(obj.MetaObjectCache(i), 'delete')
+                        % It's a handle, we might need to delete it
+                        if isvalid( obj.MetaObjectCache(i) )
+                            delete( obj.MetaObjectCache(i) )
+                        end
+                    end
+                end
+            end
+            obj.MetaObjectCache = [];
+            obj.MetaObjectCacheMembers = {};
+        end
+    end
+
+    methods (Access = private)
+        function [metaObjects, status] = createMetaObjects(obj, tableEntries, ...
+                objectPropertyName, objectPropertyValue)
+        % createMetaObjects - Create new meta objects from table entries
+        
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                tableEntries
+            end
+            arguments (Repeating)
+                objectPropertyName string
+                objectPropertyValue
+            end
+            
+            % Relevant for meta objects that have datalocations:
+            if any(strcmp(tableEntries.Properties.VariableNames, 'DataLocation'))
+                % Filter out DataLocationModel and VariableModel from
+                % property args
+                propertyArgs = obj.filterMetaObjectPropertyArgs(...
+                    objectPropertyName, objectPropertyValue, ...
+                    ["DataLocationModel", "VariableModel"]);
+            else
+                propertyArgs = {};
+            end
+
+            try
+                itemConstructor = obj.getItemConstructor();
+            catch
+                itemConstructor = @table2struct;
+            end
+
+            % Initialize output
+            status = false(1, height(tableEntries));
+
+            if isempty(tableEntries)
+                try
+                    metaObjects = itemConstructor().empty;
+                catch
+                    % Todo: Error handling
+                    metaObjects = [];
+                end
+                return;
+            end
+
+            % Create items one by one
+            numItems = height(tableEntries);
+            metaObjects = cell(1, numItems);
+            status = false(1, numItems);
+
+            for i = 1:numItems
+                try
+                    metaObjects{i} = itemConstructor(tableEntries(i,:), propertyArgs{:});
+                    status(i) = true;
+                catch ME
+                    fprintf('Could not create meta object. Reason:\n%s\n', ME.message)
+                    continue
+                end
+                try
+                    addlistener(metaObjects{i}, 'PropertyChanged', @obj.onMetaObjectPropertyChanged);
+                    addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @obj.onMetaObjectDestroyed);
+                catch
+                    % Todo: Either throw warning or implement interface for
+                    % easily implementing PropertyChanged on any table
+                    % class..
+                end
+            end
+
+            try
+                metaObjects = [metaObjects{:}];
+            catch
+                % Pass for now. Todo: Error, warning or handle some way?
+            end
+
+            if nargout == 1
+                clear status
+            end
+        end
+
+        function ids = getObjectId(obj, object)
+            idName = obj.SchemaIdName;
+            if isa(object, 'table')
+                ids = object.(idName);
+            else
+                ids = {object.(idName)};
+            end
+        end
+
+        function updateMetaObjectCacheMembers(obj)
+        %updateMetaObjectCacheMembers Update list of ids for members of the
+        % metaobject cache
+            idName = obj.SchemaIdName;
+            obj.MetaObjectCacheMembers = {obj.MetaObjectCache.(idName)};
+
+            if isnumeric(obj.MetaObjectCacheMembers)
+                obj.MetaObjectCacheMembers = cellfun(@num2str, obj.MetaObjectCacheMembers, 'UniformOutput', false);
+            end
+        end
+        
+        function onMetaObjectPropertyChanged(obj, src, evt)
+            
+            % Todo: make method for getting table entry from objectID
+            
+            if ~isvalid(src); return; end
+
+            objectID = obj.getObjectId(src); % sessionID / itemID
+            metaTableEntryIdx = find(strcmp(obj.members, objectID));
+            
+            if numel(metaTableEntryIdx) > 1
+                metaTableEntryIdx = metaTableEntryIdx(1);
+                warning('Multiple entries have the ID "%s"', objectID)
+            end
+            
+            obj.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
+
+            rowIdx = metaTableEntryIdx;
+            colIdx = find(strcmp(obj.entries.Properties.VariableNames, evt.Property));
+            newValue = obj.getFormattedTableData(colIdx, rowIdx);
+            newValue = table2cell(newValue);
+
+            evtData = nansen.metadata.event.MetaTableCellChangedEventData(...
+                "RowIndex", rowIdx, ...
+                "ColumnIndex", colIdx, ...
+                "NewValue", newValue);
+            obj.notify('TableEntryChanged', evtData)
+        end
+        
+        function onMetaObjectDestroyed(obj, src, ~)
+            if ~isvalid(obj); return; end
+            
+            idName = obj.SchemaIdName;
+            objectID = src.(idName);
+            
+            [~, ~, iC] = intersect(objectID, obj.MetaObjectCacheMembers);
+            obj.MetaObjectCache(iC) = [];
+
+            obj.updateMetaObjectCacheMembers();
+        end
+    end
+
     methods (Access = private) % Methods related to updating table variables
-        function updateFcn = getTableVariableUpdateFunction(variableName)
+        function updateFcn = getTableVariableUpdateFunction(obj, variableName)
         % getTableVariableUpdateFunction - Get function name of table variable update function
+        
+            tableType = lower(obj.MetaTableClass);
             
             % Todo: Think about whether we always want to get tables from 
             % the current project, or if we also want to be able to specify
             % which project to use.
             currentProject = nansen.getCurrentProject();
             refVariableAttributes = currentProject.getTable('TableVariable');
-            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
+            refVariableAttributes(refVariableAttributes.TableType ~= tableType, :) = [];
             
-            tableType = lower(obj.MetaTableClass);
-
-            isVariableEntry = refVariableAttributes.TableType == tableType && ...
+            isVariableEntry = refVariableAttributes.TableType == tableType & ...
                                 strcmp(refVariableAttributes.Name, variableName);
             updateFcnName = refVariableAttributes{isVariableEntry, 'UpdateFunctionName'}{1};
             updateFcn = str2func(updateFcnName);
@@ -1603,6 +1861,23 @@ classdef MetaTable < handle
     end
 
     methods (Static, Access = private)
+        function propertyArgs = filterMetaObjectPropertyArgs( ...
+                objectPropertyName, objectPropertyValue, keepNames)
+                
+            arguments
+                objectPropertyName (1,:) string
+                objectPropertyValue (1,:) cell
+                keepNames (1,:) string
+            end
+
+            objectPropertyName = string(objectPropertyName);
+
+            [keepNames, keepIndex] = intersect(objectPropertyName, keepNames, 'stable');
+            keepValues = objectPropertyValue(keepIndex);
+
+            propertyArgs = cat(1, cellstr(keepNames), keepValues);
+        end
+        
         function [isValid, newValue] = validateVariableValue(defaultValue, newValue)
         % validateVariableValue - Validate a table variable value
             arguments
