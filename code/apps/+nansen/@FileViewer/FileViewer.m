@@ -1345,4 +1345,8 @@ classdef FileViewer < nansen.AbstractTabPageModule
             errordlg('Not implemented yet')
         end
     end
+
+    methods (Static)
+        assertFileViewerSupported(metaTable) % function in separate file 
+    end
 end

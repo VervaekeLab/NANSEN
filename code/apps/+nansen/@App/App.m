@@ -1950,7 +1950,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     try
                         nansen.FileViewer.assertFileViewerSupported(app.MetaTable)
                     catch ME
-                        msgbox(ME.message, 'Not supported')
+                        msgbox(ME.message, 'FileViewer Is Disabled')
                         app.hLayout.TabGroup.SelectedTab = evt.OldValue;
                         return
                     end
