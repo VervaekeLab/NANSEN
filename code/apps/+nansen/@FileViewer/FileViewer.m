@@ -1083,7 +1083,8 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
                 case 'Download File'
                     project = nansen.getCurrentProject;
-                    functionName = strjoin({project.Name, 'filemethod', 'downloadFile'}, '.');
+                    functionName = sprintf('%s.filemethod.downloadFile', project.Name);
+
                     try
                         rootPath = obj.CurrentSessionObj.getDataLocationRootDir(obj.CurrentDataLocationName);
                         feval(functionName, nodeHandle.UserData.filePath, rootPath)
