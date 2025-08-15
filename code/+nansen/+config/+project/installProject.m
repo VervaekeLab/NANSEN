@@ -30,7 +30,9 @@ function installProject(projectRootFolder, dataRootFolder, options)
         end
     end
 
+    projectManager.changeProject(projectName)
     project = projectManager.getProjectObject(projectName);
+
     dlm = project.DataLocationModel;
 
     if isfield(projectMeta.Preferences, 'OriginalRootPath')
