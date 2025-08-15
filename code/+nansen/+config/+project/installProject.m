@@ -33,7 +33,7 @@ function installProject(projectRootFolder, dataRootFolder, options)
     project = projectManager.getProjectObject(projectName);
     dlm = project.DataLocationModel;
 
-    if isfield(projectMeta.Properties, 'OriginalRootPath')
-        dlm.configureLocalRootpath(dataRootFolder, projectMeta.Properties.OriginalRootPath)
+    if isfield(projectMeta.Preferences, 'OriginalRootPath')
+        dlm.configureLocalRootpath(dataRootFolder, projectMeta.Preferences.OriginalRootPath)
     end
 end
