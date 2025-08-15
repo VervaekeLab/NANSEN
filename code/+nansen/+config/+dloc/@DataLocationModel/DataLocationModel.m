@@ -749,7 +749,12 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % Import local root paths using LocalRootPathManager
             if isempty(obj.LocalRootPathManager)
                 obj.initializeLocalRootPathManager();
+                if isempty(obj.LocalRootPathManager)
+                    % If it is still empty, 
+                    return
+                end
             end
+
             S.Data = obj.LocalRootPathManager.importLocalRootPaths(S.Data, S.Preferences);
 
             % Update root paths from disk names using LocalRootPathManager
@@ -795,7 +800,9 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function initializeLocalRootPathManager(obj)
             import nansen.config.project.ProjectManager
             localProjectFolder = string(ProjectManager.getProjectPath('current', 'local'));
-            obj.LocalRootPathManager = nansen.config.dloc.LocalRootPathManager(localProjectFolder);
+            if localProjectFolder ~= ""
+                obj.LocalRootPathManager = nansen.config.dloc.LocalRootPathManager(localProjectFolder);
+            end
         end
     end
    
