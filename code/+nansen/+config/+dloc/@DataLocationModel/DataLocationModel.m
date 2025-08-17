@@ -760,7 +760,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % Update root paths from disk names using LocalRootPathManager
             S.Data = obj.LocalRootPathManager.updateRootPathFromDiskName(S.Data);
         end
-        
     end
     
     methods (Access = private)
@@ -838,56 +837,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             error('NANSEN:DefaultDataLocationNotImplemented', ...
                 ['Please specify a file path for a data location model. ' ...
                 'There is currently no default data location model.'])
-        end
-        
-        function platformName = pathIsWhichPlatform(pathStr)
-        %pathIsWhichPlatform Determine platform which a path is native to
-            
-            % Todo: get pattern for unix from preferences?
-
-            platformNameList = {'mac', 'pc', 'unix'};
-            strPattern = {'^/Volumes', '^\w{1}\:', '^n/a'};
-            
-            for i = 1:numel(platformNameList)
-                if ~isempty(regexp(pathStr, strPattern{i}, 'match'))
-                    platformName = platformNameList{i};
-                    return
-                end
-            end
-            platformName = 'N/A';
-        end
-        
-        function pathStr = replaceDiskMountInPath(pathStr, mount, conversionType)
-            
-           switch conversionType
-                case 'mac2pc'
-                    splitPath = strsplit(pathStr, '/');
-                    oldStr = ['/', strjoin(splitPath(2:3), '/')];
-                    %oldStr = regexp(pathStr, '^/Volumes/.*/', 'match'); %todo...
-                    newStr = char(mount);
-
-                case 'mac2mac'
-                    splitPath = strsplit(pathStr, '/');
-                    oldStr = splitPath{3};
-                    newStr = mount;
-                    
-                case 'pc2mac'
-                    oldStr = regexp(currentRoot, '^\w{1}\:', 'match', 'once');
-                    newStr = sprintf('/Volumes/%s', mount);
-                   
-                case 'pc2pc'
-                    oldStr = pathStr(1:2);
-                    newStr = char(mount);
-           end
-           
-           pathStr = char( strrep(pathStr, oldStr, newStr) );
-          
-           switch conversionType
-               case 'mac2pc'
-                   pathStr = strrep(pathStr, '/', '\');
-               case 'pc2mac'
-                   pathStr = strrep(pathStr, '\', '/');
-           end
         end
     end
 
