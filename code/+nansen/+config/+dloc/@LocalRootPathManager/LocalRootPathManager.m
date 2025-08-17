@@ -6,102 +6,52 @@ classdef LocalRootPathManager < handle
 %   - Resolving disk names across different platforms
 %   - Converting paths between different operating systems
 %   - Managing volume information for dynamic drive mounting
-%
-%   This functionality was refactored out of DataLocationModel to improve
-%   separation of concerns and maintainability.
 
     properties (Access = private)
+        % SettingsFolder - Path to a folder for saving and loading settings file
+        SettingsFolder string
+        
+        % VolumeInfo - A table of volume information
         VolumeInfo table
+
+        % RootPathListOriginal - A list of original root paths that are
+        % temporarily replaced by the local root paths managed by this class
         RootPathListOriginal
-        ProjectPath string
+    end
+
+    properties (Access = private)
+        SettingsFilePath (1,1) string
     end
     
+    properties (Constant, Access = private)
+        SETTINGS_FILE_BASE_NAME = "datalocation_local_rootpath_settings"
+    end
+    
+    % Constructor
     methods
-        function obj = LocalRootPathManager(projectPath)
+        function obj = LocalRootPathManager(settingsFolder)
         %LocalRootPathManager Constructor
         %
         %   obj = LocalRootPathManager(projectPath) creates a new manager
         %   instance for the specified project path.
 
             arguments
-                projectPath (1,1) string {mustBeFolder}
+                settingsFolder (1,1) string {mustBeFolder}
             end
-
-            obj.ProjectPath = projectPath;
+            obj.SettingsFolder = settingsFolder;
         end
-        
+    end
+
+    methods
         function configureLocalRootPath(obj, localRootPath, originalRootPath)
             % Todo: Should be checking and update storage backends for rootpaths as well
-            fp = obj.getLocalSettingsFile("json");
+            fp = obj.createSettingsFilepath("json");
             fileStr = fileread(fp);
 
             fileStr = strrep(fileStr, originalRootPath, localRootPath);
             utility.filewrite(fp, fileStr)
         end
 
-        function filePath = getLocalSettingsFile(obj, fileType)
-        %getLocalSettingsFile Get file path for local root path settings
-        %
-        %   filePath = getLocalSettingsFile(obj) returns the default .mat
-        %   file path for local root path settings.
-        %
-        %   filePath = getLocalSettingsFile(obj, fileType) specifies the
-        %   file type ('mat' or 'json').
-            
-            arguments
-                obj
-                fileType (1,1) string = 'mat'
-            end
-            
-            fileName = "datalocation_local_rootpath_settings" + "." + fileType;
-            filePath = fullfile(obj.ProjectPath, fileName);
-        end
-        
-        function tf = hasLocalSettingsFile(obj)
-        %hasLocalSettingsFile Check if local settings file exists
-        %
-        %   tf = hasLocalSettingsFile(obj) returns true if a local root
-        %   path settings file exists (either .mat or .json format).
-            
-            filePath = obj.getLocalSettingsFile();
-            
-            if isfile(filePath)
-                tf = true;
-            elseif isfile(strrep(filePath, '.mat', '.json'))
-                tf = true;
-            else
-                tf = false;
-            end
-        end
-        
-        function S = loadLocalSettings(obj)
-        %loadLocalSettings Load local root path settings from file
-        %
-        %   S = loadLocalSettings(obj) loads and returns the local root
-        %   path settings structure from file.
-            
-            filePath = obj.getLocalSettingsFile();
-            
-            if isfile(filePath)
-                S = load(filePath);
-            elseif isfile(strrep(filePath, '.mat', '.json'))
-                S = jsondecode(fileread(strrep(filePath, '.mat', '.json')));
-            else
-                error('File with local datalocation root paths were not found.')
-            end
-        end
-        
-        function saveLocalSettings(obj, rootPathList)
-        %saveLocalSettings Save local root path settings to file
-        %
-        %   saveLocalSettings(obj, rootPathList) saves the provided root
-        %   path list to the local settings file in JSON format.
-            
-            S_.RootPathListLocal = rootPathList;
-            filePath = obj.getLocalSettingsFile('json');
-            utility.filewrite(filePath, jsonencode(S_, 'PrettyPrint', true));
-        end
-        
         function data = importLocalRootPaths(obj, data, preferences)
         %importLocalRootPaths Import local root paths and replace in data
         %
@@ -260,7 +210,7 @@ classdef LocalRootPathManager < handle
                         data(i).RootPath(j).Value = updatedPath;
                         
                         if ~isfolder( data(i).RootPath(j).Value )
-                            %warning('Root not available')
+                            % warning('Root not available')
                         end
                     end
                 end
@@ -297,61 +247,94 @@ classdef LocalRootPathManager < handle
             end
             obj.VolumeInfo = volumeInfo;
         end
+    end
+       
+    % Methods to handle settings file
+    methods (Access = private)
+        function filePath = createSettingsFilepath(obj, fileType)
+        % createSettingsFilepath - Get file path for local root path settings
+        %
+        %   filePath = createSettingsFilepath(obj) returns the default .mat
+        %   file path for local root path settings.
+        %
+        %   filePath = createSettingsFilepath(obj, fileType) specifies the
+        %   file type ('mat' or 'json').
+            
+            arguments
+                obj
+                fileType (1,1) string = 'mat'
+            end
+            
+            fileName = obj.SETTINGS_FILE_BASE_NAME + "." + fileType;
+            filePath = fullfile(obj.SettingsFolder, fileName);
+        end
+           
+        function tf = hasLocalSettingsFile(obj)
+        %hasLocalSettingsFile Check if local settings file exists
+        %
+        %   tf = hasLocalSettingsFile(obj) returns true if a local root
+        %   path settings file exists (either .mat or .json format).
+            
+            filePath = obj.createSettingsFilepath();
+            
+            if isfile(filePath)
+                tf = true;
+            elseif isfile(strrep(filePath, '.mat', '.json'))
+                tf = true;
+            else
+                tf = false;
+            end
+        end
         
-        function platformName = pathIsWhichPlatform(obj, pathStr)
+        function S = loadLocalSettings(obj)
+        %loadLocalSettings Load local root path settings from file
+        %
+        %   S = loadLocalSettings(obj) loads and returns the local root
+        %   path settings structure from file.
+            
+            filePath = obj.createSettingsFilepath();
+            
+            if isfile(filePath)
+                S = load(filePath);
+            elseif isfile(strrep(filePath, '.mat', '.json'))
+                S = jsondecode(fileread(strrep(filePath, '.mat', '.json')));
+            else
+                error('File with local datalocation root paths were not found.')
+            end
+        end
+        
+        function saveLocalSettings(obj, rootPathList)
+        %saveLocalSettings Save local root path settings to file
+        %
+        %   saveLocalSettings(obj, rootPathList) saves the provided root
+        %   path list to the local settings file in JSON format.
+            
+            S_.RootPathListLocal = rootPathList;
+            filePath = obj.createSettingsFilepath('json');
+            utility.filewrite(filePath, jsonencode(S_, 'PrettyPrint', true));
+        end
+    end
+
+    % Cross-platform path name utility methods
+    methods (Static)
+        function platformName = pathIsWhichPlatform(pathStr)
         %pathIsWhichPlatform Determine platform which a path is native to
         %
         %   platformName = pathIsWhichPlatform(obj, pathStr) returns the
-        %   platform name ('mac', 'pc', 'unix', or 'N/A') based on the
-        %   path string format.
-            
-            platformNameList = {'mac', 'pc', 'unix'};
-            strPattern = {'^/Volumes', '^\w{1}\:', '^n/a'};
-            
-            for i = 1:numel(platformNameList)
-                if ~isempty(regexp(pathStr, strPattern{i}, 'match'))
-                    platformName = platformNameList{i};
-                    return
-                end
-            end
-            platformName = 'N/A';
+        %   platform name ('mac', 'pc', 'unix', or 'unknown') based on the
+        %   path string format/composition.
+
+            platformName = nansen.util.path.detectPlatform(pathStr);
         end
-        
-        function pathStr = replaceDiskMountInPath(obj, pathStr, mount, conversionType)
+
+        function pathStr = replaceDiskMountInPath(pathStr, mount, conversionType)
         %replaceDiskMountInPath Convert paths between platforms
         %
         %   pathStr = replaceDiskMountInPath(obj, pathStr, mount, conversionType)
         %   converts a path string from one platform format to another,
         %   replacing the disk mount point appropriately.
-            
-            switch conversionType
-                case 'mac2pc'
-                    splitPath = strsplit(pathStr, '/');
-                    oldStr = ['/', strjoin(splitPath(2:3), '/')];
-                    newStr = char(mount);
-                    
-                case 'mac2mac'
-                    splitPath = strsplit(pathStr, '/');
-                    oldStr = splitPath{3};
-                    newStr = mount;
-                    
-                case 'pc2mac'
-                    oldStr = regexp(pathStr, '^\w{1}\:', 'match', 'once');
-                    newStr = sprintf('/Volumes/%s', mount);
-                    
-                case 'pc2pc'
-                    oldStr = pathStr(1:2);
-                    newStr = char(mount);
-            end
-            
-            pathStr = char( strrep(pathStr, oldStr, newStr) );
-            
-            switch conversionType
-                case 'mac2pc'
-                    pathStr = strrep(pathStr, '/', '\');
-                case 'pc2mac'
-                    pathStr = strrep(pathStr, '\', '/');
-            end
+
+            pathStr = nansen.util.path.convertPlatformPath(pathStr, mount, conversionType);
         end
     end
     
