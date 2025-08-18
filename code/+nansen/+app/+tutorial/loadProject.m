@@ -42,6 +42,11 @@ if startsWith(S(selection), 'Allen Brain Observatory')
         addonManager.addAddonToMatlabPath(S.Name)
         fprintf('Finished.\n')
     end
+elseif startsWith(S(selection), 'Nansen - Two-photon Quickstart')
+    warnState = warning('off', 'MATLAB:RMDIR:RemovedFromPath');
+    warnCleanup = onCleanup(@() warning(warnState));
+    disp('Installing two-photon addons...')
+    nansen.internal.setup.installAddons()
 end
 
 % Check if project is already in the catalog
@@ -53,7 +58,7 @@ if ~projectManager.containsProject(projectName)
     repositoryUrl = sprintf('https://github.com/NansenProjects/%s', repositoryName);
     installationLocation = fullfile(userpath, 'Nansen-Tutorial');
     fprintf("Downloading project ""%s""...\n", S(selection))
-    repoTargetFolder = setuptools.internal.installGithubRepository(repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
+    repoTargetFolder = matbox.setup.internal.installGithubRepository(repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
     
     L = dir(fullfile(repoTargetFolder, '*', 'project.nansen.json'));
     fprintf("Adding project ""%s"" to NANSEN...\n", S(selection))

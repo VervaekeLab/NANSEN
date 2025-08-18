@@ -156,7 +156,7 @@ function S = getDefaultAddonList()
     %S(i).DownloadUrl = 'https://github.com/NeurodataWithoutBorders/matnwb/archive/refs/heads/master.zip';
     S(i).DownloadUrl = 'https://github.com/ehennestad/matnwb/archive/refs/heads/master.zip';
     S(i).HasSetupFile = true;
-    S(i).SetupFileName = 'generateCore';
+    S(i).SetupFileName = '';
     S(i).FunctionName = 'nwbRead.m';
 
     i = i + 1;

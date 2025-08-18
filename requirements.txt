@@ -11,4 +11,5 @@ fex://15830-getjframe-retrieves-a-figure-s-underlying-java-frame
 fex://50111-undecoratefig-remove-restore-figure-border-and-title-bar
 fex://158241-catalog
 fex://118460-file-downloader-uploader-with-progress-monitor
+fex://180185-matbox
 https://github.com/ehennestad/hierarchical-data-tree-matlab
