@@ -37,4 +37,9 @@ function fileAdapterList = listFileAdapters(fileExtension)
         fileAdapterList(1).SupportedFileTypes = {};
         fileAdapterList(1).DataType = '';
     end
+
+    if ~nargout
+        fileAdapterList = struct2table(fileAdapterList);
+    end
+
 end
