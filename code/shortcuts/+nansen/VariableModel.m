@@ -7,5 +7,9 @@ function hModel = VariableModel(varargin)
 
     pm = nansen.ProjectManager;
     project = pm.getCurrentProject();
-    hModel = project.VariableModel;
+    if isempty(project)
+        hModel = [];
+    else
+        hModel = project.VariableModel;
+    end
 end
