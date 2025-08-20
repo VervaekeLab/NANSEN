@@ -12,7 +12,15 @@ function dataLocationModel = DataLocationModel()
 
     pm = nansen.ProjectManager;
     project = pm.getCurrentProject();
-    dataLocationModel = project.DataLocationModel;
+    if isempty(project)
+        dataLocationModel = [];
+        if ~nargout
+            error('There is no active project.')
+        end
+        return
+    else
+        dataLocationModel = project.DataLocationModel;
+    end
 
     if ~nargout
         nansen.config.dloc.DataLocationModelApp('DataLocationModel', dataLocationModel);
