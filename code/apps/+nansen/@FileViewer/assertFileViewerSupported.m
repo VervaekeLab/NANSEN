@@ -22,7 +22,7 @@ function assertFileViewerSupported(metaTable)
             'Current table type: %s'], metaTable.getTableType);
     end
 
-    % Todo: remove this contraint
+    % Todo: Remove this constraint
     if ~any(strcmp(tableProperties, 'sessionID'))
         error('NANSEN:FileViewer:MissingSessionID', ...
             ['The metatable does not contain a sessionID column. ', ...

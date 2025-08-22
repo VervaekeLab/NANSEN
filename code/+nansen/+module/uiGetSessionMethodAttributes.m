@@ -2,7 +2,7 @@ function S = uiGetSessionMethodAttributes()
     
 %     Work in progress
 %
-%     Create function in the same way as nansen.module.uigetFileAdapterAttributes.
+%     Create function in the same way as nansen.plugin.fileadapter.uigetFileAdapterAttributes.
 %     Adapted from nansen.session.methods.template.createNewSessionMethod
     
     wasSuccess = false;
