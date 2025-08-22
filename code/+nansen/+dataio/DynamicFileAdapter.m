@@ -53,7 +53,7 @@ classdef DynamicFileAdapter < nansen.dataio.FileAdapter
 
         function writeData(obj, data)
             if ~isempty(obj.WriteFunction)
-                obj.WriteFunction(data)
+                obj.WriteFunction(obj.Filename, data)
             else
                 error('File adapter is read only') % Todo: Reuse superclass exception
             end
@@ -67,6 +67,13 @@ classdef DynamicFileAdapter < nansen.dataio.FileAdapter
             else
                 error('File adapter does not have a viewer') % Todo: Reuse superclass exception
             end
+        end
+    end
+
+    methods (Access = protected) % Internal methods
+        function assertIsWritable(obj)
+            assertMsg = 'This file adapter does not have write permission';
+            assert(~isempty(obj.WriteFunction), assertMsg)
         end
     end
     

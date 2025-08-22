@@ -10,7 +10,7 @@
         "DataType": "struct",
         "IsGeneral": true,
         "ReadFunction": "load",
-        "WriteFunction": "save",
+        "WriteFunction": "",
         "ViewFunction": ""
     }
 }
