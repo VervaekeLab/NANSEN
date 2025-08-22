@@ -240,6 +240,9 @@ classdef Module < handle
             switch itemType
                 case {'SessionMethod', 'TableVariable', 'FileAdapter'}
                     fileList = obj.listMFiles(rootFolder);
+                    if strcmp(itemType, 'FileAdapter')
+                        fileList = [fileList; obj.listJsonFiles(rootFolder, 'fileadapter')];
+                    end
                 case {'DataVariables', 'Pipeline', 'DataLocations'}
                     fileList = obj.listJsonFiles(rootFolder);
                 otherwise
@@ -394,15 +397,25 @@ classdef Module < handle
             %     'OutputType', 'FilePath');
             
             fileListB = utility.dir.recursiveDir(rootFolder, ...
-                'IgnoreList', ["@", 'deprecated'], 'Type', 'file', 'FileType', 'm');
+                'IgnoreList', ["@", "+", 'deprecated'], 'Type', 'file', 'FileType', 'm');
             
             fileList = cat(1, fileListA, fileListB);
         end
 
-        function fileList = listJsonFiles(rootFolder)
+        function fileList = listJsonFiles(rootFolder, expression)
             % List all json-files in a folder hierarchy
+
+            arguments
+                rootFolder (1,1) string
+                expression (1,1) string = ""
+            end
+
             import utility.dir.recursiveDir
-            fileList = recursiveDir(rootFolder, 'Type', 'file', 'FileType', 'json');
+
+            fileList = recursiveDir(rootFolder, ...
+                'Type', 'file', ...
+                'FileType', 'json', ...
+                'Expression', expression);
         end
         
         function tf = isFileListModified(oldFileList, newFileList)

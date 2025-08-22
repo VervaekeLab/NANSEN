@@ -4,10 +4,10 @@ function createFileAdapter()
         error('Need an active project to create a file adapter.')
     end
     targetPath = currentProject.getFileAdapterFolder();
-    [S, wasAborted] = nansen.module.uigetFileAdapterAttributes();
+    [S, wasAborted] = nansen.plugin.fileadapter.uigetFileAdapterAttributes();
     if wasAborted
         return
     else
-        nansen.module.createFileAdapter(targetPath, S)
+        nansen.plugin.fileadapter.createFileAdapter(targetPath, S)
     end
 end

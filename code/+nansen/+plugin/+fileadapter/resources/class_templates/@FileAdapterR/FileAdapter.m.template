@@ -5,7 +5,7 @@ classdef {{Name}} < nansen.dataio.FileAdapter
     end
 
     properties (Constant)
-        DataType = {{DataType}}
+        DataType = "{{DataType}}"
     end
     
     methods (Access = protected)
@@ -19,5 +19,4 @@ classdef {{Name}} < nansen.dataio.FileAdapter
         data = read(filePath, varargin)
     
     end
-
 end
