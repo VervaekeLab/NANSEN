@@ -27,7 +27,7 @@ function createFileAdapter(targetPath, fileAdapterAttributes, implementationType
     
     % Get path for template
     rootPath = fileparts(mfilename('fullpath'));
-    templateFolder = fullfile( rootPath, 'resources', 'class_templates');
+    templateFolder = fullfile( rootPath, 'resources');
 
     if implementationType == "Function"
         templateTargetPath = ...
@@ -47,9 +47,10 @@ function createFileAdapter(targetPath, fileAdapterAttributes, implementationType
     end
 
     % Finally, open the function in the matlab editor.
+    cd(templateTargetPath)
     edit(fullfile(templateTargetPath, 'read.m'))
     
-    if strcmp( fileAdapterAttributes.AccessMode, 'RW' )
+    if isfile(fullfile(templateTargetPath, 'write.m'))
         edit(fullfile(templateTargetPath, 'write.m'))
     end
 end

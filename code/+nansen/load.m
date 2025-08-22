@@ -8,39 +8,22 @@ function data = load(filePath, options)
     fileAdapterList = nansen.dataio.listFileAdapters();
 
     if ismissing(options.FileAdapter)
-        % todo: locate file adapter
-        [~, ~, fileExtension] = fileparts(filePath);
+        [fileAdapterName, isDynamic] = ...
+            nansen.plugin.fileadapter.internal.detectFileAdapterForFilepath(filePath);
 
-        supportsFile = false(1, numel(fileAdapterList));
-        % Find matching file type
-        for i = 1:numel(fileAdapterList)
-            currentFileAdapterInfo = fileAdapterList(i);
-
-            if ismember(fileExtension, currentFileAdapterInfo.SupportedFileTypes) || ...
-                ismember(extractAfter(fileExtension, '.'), currentFileAdapterInfo.SupportedFileTypes)
-                supportsFile(i) = true;
-            end
-        end
-        fileAdapterList = fileAdapterList(supportsFile);
-
-        if isempty(fileAdapterList)
-            error('No file adapters exist that can open files of type "%s"', fileExtension)
-        elseif numel(fileAdapterList) > 1
-            fileAdapterNames = {fileAdapterList.FunctionName};
-            fileAdapterNames = " - " + string(fileAdapterNames);
-            fileAdapterNames = strjoin(fileAdapterNames, newline);
-            % warning(...
-            %     ['Multiple matching file adapters: \n%s\n Using first one. ', ...
-            %     'To use another file adapter, please specify the file ', ...
-            %     'adapter using the "FileAdapter" input'], fileAdapterNames)
-        end
-        fileAdapterName = fileAdapterList(1).FunctionName;
-        isDynamic = fileAdapterList(1).IsDynamic;
     else
         fileAdapterName = options.FileAdapter;
-        isMatch = strcmp(fileAdapterName, {fileAdapterList.FunctionName});
+        if contains(fileAdapterName, 'fileadapter.')
+            isMatch = strcmp(fileAdapterName, {fileAdapterList.FunctionName});
+        elseif ~contains(fileAdapterName, '.')
+            isMatch = strcmp(fileAdapterName, {fileAdapterList.FileAdapterName});
+            fileAdapterName = fileAdapterList(isMatch).FunctionName;
+        else
+            error('"%s" is not the name of a file adapter', fileAdapterName)
+        end
         isDynamic = fileAdapterList(isMatch).IsDynamic;
     end
+
 
     if isDynamic
         data = nansen.dataio.DynamicFileAdapter(fileAdapterName, filePath).load();

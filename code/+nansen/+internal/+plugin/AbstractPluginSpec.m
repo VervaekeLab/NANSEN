@@ -1,7 +1,16 @@
-classdef AbstractPluginSpec < matlab.mixin.SetGet
+classdef AbstractPluginSpec < matlab.mixin.SetGet % Todo: Inherit from StructAdapter
 
     properties
         ImplementationType (1,1) nansen.internal.plugin.enum.ImplementationType = "Function"
+    end
+
+    properties (Abstract, Constant)
+        TYPE
+        VERSION
+    end
+       
+    properties (Abstract, Access = protected)
+        RequiredProperties (1,:) string;
     end
 
     methods
@@ -17,6 +26,7 @@ classdef AbstractPluginSpec < matlab.mixin.SetGet
                 options (1,1) struct = struct
             end
             obj.set(options)
+            obj.checkRequired()
         end
     end
 
@@ -36,6 +46,50 @@ classdef AbstractPluginSpec < matlab.mixin.SetGet
             propValues = obj.get(propNames);
             nvPairs = cell(1, numel(propNames)*2);
             [nvPairs(:)] = [propNames, propValues']';
+        end
+
+        function S = toStruct(obj)
+            C = obj.toCell();
+            props = struct(C{:});
+            props = rmfield(props, 'ImplementationType');
+            props = rmfield(props, {'TYPE', 'VERSION'});
+
+            S = struct();
+            S.x_type = obj.TYPE;
+            S.x_version = obj.VERSION;
+            S.Properties = props;
+        end
+
+        function jsonStr = toJson(obj)
+            S = obj.toStruct();
+            jsonStr = jsonencode(S, 'PrettyPrint', true);
+            jsonStr = obj.fixCustomJsonPropNames(jsonStr);
+        end
+    end
+
+    methods (Access = protected)
+        function jsonStr = fixCustomJsonPropNames(~, jsonStr)
+            jsonStr = strrep(jsonStr, '"x_type"', '"_type"');
+            jsonStr = strrep(jsonStr, '"x_version"', '"_version"');
+        end
+    end
+
+    methods (Access = private)
+        function checkRequired(obj)
+            isPresent = false(1, numel(obj.RequiredProperties));
+            for i = 1:numel(obj.RequiredProperties)
+                currentProp = obj.RequiredProperties(i);
+                isPresent(i) = ~ismissing(obj.(currentProp));
+            end
+            if any(~isPresent)
+                missingProps = obj.RequiredProperties(~isPresent);
+                ME = MException(...
+                    'NANSEN:Plugin:MissingRequiredProperties', ...
+                    ['The following required properties are missing for ', ...
+                    'plugin of type %s:\n%s'], obj.TYPE, ...
+                    nansen.util.text.strArrayToBulletList( missingProps ) );
+                throwAsCaller(ME)
+            end
         end
     end
 end

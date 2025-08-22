@@ -1,9 +1,9 @@
-function results = createFileAdapter(options)
+function createFileAdapter(options)
 
     arguments
-        options.?nansen.dataio.fileadapter.FileAdapterMeta
+        options.?nansen.plugin.fileadapter.FileAdapterMeta
     end
 
     nvPairs = namedargs2cell(options);
-    results = nansen.plugin.fileadapter.createFileAdapter(nvPairs{:});
+    nansen.plugin.createFileAdapter(nvPairs{:});
 end

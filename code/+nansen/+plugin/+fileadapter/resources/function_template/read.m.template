@@ -1,6 +1,5 @@
 function data = read(filePath, varargin)
 %Read data from file given its file path
     
-    % Fill in code to read data from given filePath:
     
 end

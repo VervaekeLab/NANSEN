@@ -1,6 +1,6 @@
 function targetFolder = createFunctionBasedFileAdapter(templateFolder, targetFolder, fileAdapterAttributes)
 
-    targetFolder = fullfile(targetFolder, ['+' fileAdapterAttributes.Name]);
+    targetFolder = fullfile(targetFolder, "+" + fileAdapterAttributes.Name);
     if ~isfolder(targetFolder)
         mkdir(targetFolder);
     end
@@ -11,5 +11,10 @@ function targetFolder = createFunctionBasedFileAdapter(templateFolder, targetFol
     readTemplateFile = fullfile(templateFolder, 'read.m.template');
     readTargetFile = fullfile(targetFolder, 'read.m');
 
-    movefile(readTemplateFile, readTargetFile)
+    copyfile(readTemplateFile, readTargetFile)
+
+    jsonStr =fileAdapterAttributes.toJson();
+    targetFile = fullfile(targetFolder, 'fileadapter.json');
+
+    utility.filewrite(targetFile, jsonStr)
 end
