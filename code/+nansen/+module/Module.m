@@ -239,7 +239,7 @@ classdef Module < handle
             rootFolder = obj.getItemRootFolder(itemType);
             switch itemType
                 case {'SessionMethod', 'TableVariable', 'FileAdapter'}
-                    fileList = obj.listMFiles(rootFolder);
+                    fileList = obj.listMFiles(rootFolder, ["read.m", "write.m", "view.m"]);
                     if strcmp(itemType, 'FileAdapter')
                         fileList = [fileList; obj.listJsonFiles(rootFolder, 'fileadapter')];
                     end
@@ -383,9 +383,13 @@ classdef Module < handle
             end
         end
 
-        function fileList = listMFiles(rootFolder)
+        function fileList = listMFiles(rootFolder, ignoreList)
             
             import utility.dir.listClassdefFilesInClassFolder
+
+            if nargin < 2
+                ignoreList = string.empty;
+            end
 
             % List all class definition files that are located in a class folder
             fileListA = listClassdefFilesInClassFolder(rootFolder);
@@ -397,7 +401,7 @@ classdef Module < handle
             %     'OutputType', 'FilePath');
             
             fileListB = utility.dir.recursiveDir(rootFolder, ...
-                'IgnoreList', ["@", "+", 'deprecated'], 'Type', 'file', 'FileType', 'm');
+                'IgnoreList', ["@", "deprecated", ignoreList], 'Type', 'file', 'FileType', 'm');
             
             fileList = cat(1, fileListA, fileListB);
         end
