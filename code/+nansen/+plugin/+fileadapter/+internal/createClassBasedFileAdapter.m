@@ -1,24 +1,24 @@
-function templateTargetPath = createClassBasedFileAdapter(templateFolder, targetFolder, fileAdapterAttributes)
+function templateTargetPath = createClassBasedFileAdapter(templateFolder, targetFolder, fileAdapterInfo, adapterType)
 
     templateFolder = fullfile( templateFolder, 'class_templates');
 
-    if strcmp( fileAdapterAttributes.AccessMode, 'R' )
+    if strcmp( adapterType, 'R' )
         sourceFolderName = '@FileAdapterR';
-    elseif strcmp( fileAdapterAttributes.AccessMode, 'RW' )
+    elseif strcmp( adapterType, 'RW' )
         sourceFolderName = '@FileAdapterRW';
     else
         error('Expected fileAdapterAttributes.AccessMode to be "R" or "RW". Instead it was %s', ...
-            fileAdapterAttributes.AccessMode)
+            adapterType)
     end
 
     % Copy template to target folder
     templateSourcePath = fullfile(templateFolder, sourceFolderName);
-    templateTargetPath = fullfile(targetFolder, ['@' fileAdapterAttributes.Name]);
+    templateTargetPath = fullfile(targetFolder, ['@' fileAdapterInfo.Name]);
     copyfile(templateSourcePath, templateTargetPath)
 
     % Rename classdef file
     oldFilePath = fullfile(templateTargetPath, 'FileAdapter.m.template');
-    newFilepath = fullfile(templateTargetPath, [fileAdapterAttributes.Name '.m']);
+    newFilepath = fullfile(templateTargetPath, [fileAdapterInfo.Name '.m']);
     movefile(oldFilePath, newFilepath)
 
     % Also rename read (and write) template files
@@ -29,11 +29,14 @@ function templateTargetPath = createClassBasedFileAdapter(templateFolder, target
          movefile(oldTemplateFiles{i}, newTemplateFiles{i})
     end
     
+    fileAdapterInfo = fileAdapterInfo.toStruct();
+    fileAdapterInfo = fileAdapterInfo.Properties;
+
     % Read file contents
     classdefStr = fileread(newFilepath);
     
     classdefStr = nansen.internal.templating.fillTemplate(...
-        classdefStr, fileAdapterAttributes);
+        classdefStr, fileAdapterInfo);
 
     % Create a new m-file and add the function template to the file.
     fid = fopen(newFilepath, 'w');

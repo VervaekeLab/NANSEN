@@ -1,6 +1,6 @@
-function targetFolder = createFunctionBasedFileAdapter(templateFolder, targetFolder, fileAdapterAttributes)
+function targetFolder = createFunctionBasedFileAdapter(templateFolder, targetFolder, fileAdapterInfo, adapterType)
 
-    targetFolder = fullfile(targetFolder, "+" + fileAdapterAttributes.Name);
+    targetFolder = fullfile(targetFolder, "+" + fileAdapterInfo.Name);
     if ~isfolder(targetFolder)
         mkdir(targetFolder);
     end
@@ -8,12 +8,18 @@ function targetFolder = createFunctionBasedFileAdapter(templateFolder, targetFol
     templateFolder = fullfile( templateFolder, 'function_template');
 
     % Also rename read (and write) template files
-    readTemplateFile = fullfile(templateFolder, 'read.m.template');
-    readTargetFile = fullfile(targetFolder, 'read.m');
+    if strcmp(fileAdapterInfo.ReadFunction, "")
+        readTemplateFile = fullfile(templateFolder, 'read.m.template');
+        readTargetFile = fullfile(targetFolder, 'read.m');
+        copyfile(readTemplateFile, readTargetFile)
+    end
+    if strcmp(fileAdapterInfo.WriteFunction, "") && adapterType == "RW"
+        writeTemplateFile = fullfile(templateFolder, 'write.m.template');
+        writeTargetFile = fullfile(targetFolder, 'write.m');
+        copyfile(writeTemplateFile, writeTargetFile)
+    end
 
-    copyfile(readTemplateFile, readTargetFile)
-
-    jsonStr =fileAdapterAttributes.toJson();
+    jsonStr = fileAdapterInfo.toJson();
     targetFile = fullfile(targetFolder, 'fileadapter.json');
 
     utility.filewrite(targetFile, jsonStr)

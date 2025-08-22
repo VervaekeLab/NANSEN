@@ -13,26 +13,30 @@ function [S, wasAborted] = uigetFileAdapterAttributes(varargin)
 
     S = struct();
     S.Name = '';
+    S.Description = '';
     S.SupportedFileTypes = '';
     S.DataType = '';
-    S.AccessMode = 'Read';
+    S.AdapterType = 'Read only';
 
     S = utility.parsenvpairs(S, [], varargin{:});
 
     % Add configuration flags
-    S.AccessMode_ = {'Read', 'Read/Write'};
+    S.AdapterType_ = {'Read only', 'Read and write'};
 
     [S, wasAborted] = tools.editStruct(S, '', 'Create File Adapter', ...
         'Prompt', 'Configure new file adapter:');
 
     if wasAborted; S = struct.empty; return; end
     
+    % Postprocess output
     S.SupportedFileTypes = strsplit(S.SupportedFileTypes, ',');
-    if strcmp(S.AccessMode, 'Read')
-        S.AccessMode = 'R';
-    elseif strcmp(S.AccessMode, 'Read/Write')
-        S.AccessMode = 'RW';
+    if strcmp(S.AdapterType, 'Read only')
+        S.AdapterType = 'R';
+    elseif strcmp(S.AdapterType, 'Read and write')
+        S.AdapterType = 'RW';
     end
+
+    S = rmfield(S, "AdapterType_");
 end
 
 % Todo:

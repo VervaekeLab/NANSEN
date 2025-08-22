@@ -79,7 +79,7 @@ classdef AbstractPluginSpec < matlab.mixin.SetGet % Todo: Inherit from StructAda
             isPresent = false(1, numel(obj.RequiredProperties));
             for i = 1:numel(obj.RequiredProperties)
                 currentProp = obj.RequiredProperties(i);
-                isPresent(i) = ~ismissing(obj.(currentProp));
+                isPresent(i) = all( ~ismissing(obj.(currentProp)) );
             end
             if any(~isPresent)
                 missingProps = obj.RequiredProperties(~isPresent);

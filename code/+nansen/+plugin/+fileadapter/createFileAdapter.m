@@ -1,49 +1,41 @@
-function createFileAdapter(targetPath, fileAdapterAttributes, implementationType)
+function createFileAdapter(targetPath, fileAdapterMeta, adapterType)
 %createFileAdapter Create a new file adapter definition
 %
-%   createFileAdapter(targetPath, fileAdapterAttributes) creates a new file
-%   adapter class based on a template and saves it to the targetPath.
-%   targetPath is the absolute path to a folder. fileAdapterAttributes is a
-%   struct containing the following fields:
-%       Name : Name of file adapter
-%       SupportedFileTypes : Cell array of file extensions for files which this
-%           file adapter can be used with
-%       DataType : Expected output data type
-%       AccessMode : Whether file adapter supports read only (R) or read and write (RW)
+%   createFileAdapter(targetPath, fileAdapterMeta) creates a new file
+%   adapter definition based on a template and saves it to the targetPath.
+%   targetPath is the absolute path to a folder. fileAdapterMeta is an
+%   object of nansen.plugin.fileadapter.FileAdapterMeta
 %
 %   Input Arguments:
 %       targetPath : Pathname of folder to save file adapter in.
-%       fileAdapterAttributes Struct with file adapter attributes
+%       fileAdapterMeta : Object with file adapter metadata 
 
-%     arguments
-%         targetPath (1,1) string : Folder to save file adapter in.
-%         fileAdapterAttributes (1,1) struct Struct with file adapter
-%         attributes
-%     end
-
-    if nargin < 3 || isempty(implementationType)
-        implementationType = "Function";
+    arguments
+        targetPath (1,1) string % Folder to save file adapter in.
+        fileAdapterMeta (1,1) nansen.plugin.fileadapter.FileAdapterMeta % Fileadapter metadata 
+        adapterType (1,1) string = "R"
     end
+
     
     % Get path for template
     rootPath = fileparts(mfilename('fullpath'));
     templateFolder = fullfile( rootPath, 'resources');
 
-    if implementationType == "Function"
+    if fileAdapterMeta.ImplementationType == "Function"
         templateTargetPath = ...
             nansen.plugin.fileadapter.internal.createFunctionBasedFileAdapter(...
-                templateFolder, targetPath, fileAdapterAttributes ...
+                templateFolder, targetPath, fileAdapterMeta, adapterType ...
             );
 
-    elseif implementationType == "Class"
+    elseif fileAdapterMeta.ImplementationType == "Class"
         templateTargetPath = ...
             nansen.plugin.fileadapter.internal.createClassBasedFileAdapter(...
-                templateFolder, targetPath, fileAdapterAttributes ...
+                templateFolder, targetPath, fileAdapterMeta, adapterType ...
             );
     else
         error('NANSEN:CreateFileAdapter:UnsupportedArgument', ...
             'Expected implementationType to be "Function" or "Class" but got "%s"', ...
-            implementationType)
+            fileAdapterMeta.ImplementationType)
     end
 
     % Finally, open the function in the matlab editor.
