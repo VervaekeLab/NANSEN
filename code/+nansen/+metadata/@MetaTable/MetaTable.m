@@ -1425,7 +1425,7 @@ classdef MetaTable < handle
     end
 
     methods (Access = private) % Methods related to updating table variables
-        function updateFcn = getTableVariableUpdateFunction(variableName)
+        function updateFcn = getTableVariableUpdateFunction(obj, variableName)
         % getTableVariableUpdateFunction - Get function name of table variable update function
             
             % Todo: Think about whether we always want to get tables from 
@@ -1433,11 +1433,12 @@ classdef MetaTable < handle
             % which project to use.
             currentProject = nansen.getCurrentProject();
             refVariableAttributes = currentProject.getTable('TableVariable');
-            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
-            
+                         
             tableType = lower(obj.MetaTableClass);
 
-            isVariableEntry = refVariableAttributes.TableType == tableType && ...
+            refVariableAttributes(refVariableAttributes.TableType ~= tableType, :) = [];
+            
+            isVariableEntry = refVariableAttributes.TableType == tableType & ...
                                 strcmp(refVariableAttributes.Name, variableName);
             updateFcnName = refVariableAttributes{isVariableEntry, 'UpdateFunctionName'}{1};
             updateFcn = str2func(updateFcnName);
