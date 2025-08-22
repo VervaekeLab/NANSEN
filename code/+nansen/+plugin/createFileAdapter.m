@@ -9,13 +9,9 @@ function createFileAdapter(options)
     catch ME
         throwAsCaller(ME)
     end
-
-    if strcmpi(options.ImplementationType, 'class')
-        error('Not implemented yet.')
-    end
-
+    
     fileAdapterTargetFolder = nansen.plugin.getPluginTargetFolder('fileadapter');
 
     nansen.plugin.fileadapter.createFileAdapter(...
-        fileAdapterTargetFolder, options, "Function")
+        fileAdapterTargetFolder, options)
 end

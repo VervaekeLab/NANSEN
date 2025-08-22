@@ -13,12 +13,12 @@ function templateTargetPath = createClassBasedFileAdapter(templateFolder, target
 
     % Copy template to target folder
     templateSourcePath = fullfile(templateFolder, sourceFolderName);
-    templateTargetPath = fullfile(targetFolder, ['@' fileAdapterInfo.Name]);
+    templateTargetPath = fullfile(targetFolder, sprintf("@%s", fileAdapterInfo.Name));
     copyfile(templateSourcePath, templateTargetPath)
 
     % Rename classdef file
     oldFilePath = fullfile(templateTargetPath, 'FileAdapter.m.template');
-    newFilepath = fullfile(templateTargetPath, [fileAdapterInfo.Name '.m']);
+    newFilepath = fullfile(templateTargetPath, fileAdapterInfo.Name + ".m");
     movefile(oldFilePath, newFilepath)
 
     % Also rename read (and write) template files
@@ -31,6 +31,8 @@ function templateTargetPath = createClassBasedFileAdapter(templateFolder, target
     
     fileAdapterInfo = fileAdapterInfo.toStruct();
     fileAdapterInfo = fileAdapterInfo.Properties;
+
+    fileAdapterInfo.SupportedFileTypes = cellstr(fileAdapterInfo.SupportedFileTypes);
 
     % Read file contents
     classdefStr = fileread(newFilepath);

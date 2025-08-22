@@ -1,4 +1,4 @@
-function fillTemplate(templateString, templateVariables)
+function templateString = fillTemplate(templateString, templateVariables)
 % fillTemplate - Fill in template variables in a template
 
     arguments

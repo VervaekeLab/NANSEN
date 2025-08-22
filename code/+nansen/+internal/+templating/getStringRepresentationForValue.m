@@ -1,10 +1,16 @@
-function strValue = getStringRepresentationForValue(value)
+function strValue = getStringRepresentationForValue(value, wrapString)
 % getStringRepresentationForValue - Get a value formatted as a string
 
     import nansen.internal.templating.getStringRepresentationForValue
+
+    if nargin < 2 || isempty(wrapString); wrapString = false; end
     
     if isa(value, 'char') || isa(value, 'string')
-        strValue = value;
+        if wrapString
+            strValue = sprintf('''%s''', value);
+        else
+            strValue = value;
+        end
     elseif isnumeric(value)
         strValue = num2str(value);
     elseif islogical(value)
@@ -14,7 +20,7 @@ function strValue = getStringRepresentationForValue(value)
             strValue = 'false';
         end
     elseif isa(value, 'cell')
-        value = cellfun(@(v) getStringRepresentationForValue(v), value, 'uni', 0);
+        value = cellfun(@(v) getStringRepresentationForValue(v, true), value, 'uni', 0);
         strValue = cellArrayToTextString(value);
     else
         error('Value of type %s is not supported', class(value));
