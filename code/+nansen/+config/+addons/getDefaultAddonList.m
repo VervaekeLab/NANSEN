@@ -13,35 +13,7 @@ function S = getDefaultAddonList()
 % Use git instead of downloading zipped versions of repositories...
 
     i = 1;
-    S(i).Name = 'Widgets Toolbox';
-    S(i).Description = 'Additional app building components';
-    S(i).IsRequired = true;
-    S(i).Type = 'General';
-    S(i).Source = 'FileExchange';
-    S(i).WebUrl = 'https://se.mathworks.com/matlabcentral/fileexchange/66235-widgets-toolbox-compatibility-support?s_tid=srchtitle';
-    % Newest version is commented out because it has some bugs. Use a
-    % previous version that works.
-    %S(i).DownloadUrl = 'https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/b0bebf59-856a-4068-9d9c-0ed8968ac9e6/a22b68d6-b5aa-48cb-87fa-1f4a763578e0/packages/zip';
-    S(i).DownloadUrl = 'https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/b0bebf59-856a-4068-9d9c-0ed8968ac9e6/099f0a4d-9837-4e5f-b3df-aa7d4ec9c9c9/packages/zip';
-    %S(i).DownloadUrl = 'https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/78895307-cc36-4970-8b66-0697da8f9352/4ae5c052-7f28-4fcf-9383-0d6ce4622d22/packages/mltbx'; % MATLAB TOOLBOX
-    S(i).HasSetupFile = false;
-    S(i).SetupFileName = 'nansen.config.path.addUiwidgetsJarToJavaClassPath';
-    S(i).FunctionName = 'uiw.abstract.AppWindow';
-    
-% %     i = i + 1; % Comment out because its not used.
-% %     S(i).Name = 'GUI Layout Toolbox';
-% %     S(i).Description = 'Layout manager for MATLAB graphical user interfaces';
-% %     S(i).IsRequired = true;
-% %     S(i).Type = 'General';
-% %     S(i).Source = 'FileExchange';
-% %     S(i).WebUrl = 'https://www.mathworks.com/matlabcentral/fileexchange/47982-gui-layout-toolbox';
-% %     S(i).DownloadUrl = 'https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5af5a78-4a80-11e4-9553-005056977bd0/df368ddb-983a-439f-86cb-04e375916c75/packages/zip';
-% %     %S(i).DownloadUrl = 'https://se.mathworks.com/matlabcentral/mlc-downloads/downloads/e5af5a78-4a80-11e4-9553-005056977bd0/2.3.5/packages/mltbx'; % MATLAB TOOLBOX
-% %     S(i).HasSetupFile = false;
-% %     S(i).SetupFileName = '';
-% %     S(i).FunctionName = 'uix.BoxPanel';
-    
-    i = i + 1;
+
     S(i).Name = 'YAML-Matlab';
     S(i).Description = 'Reading in and writing out a yaml file.';
     S(i).IsRequired = true;
