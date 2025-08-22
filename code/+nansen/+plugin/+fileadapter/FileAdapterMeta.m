@@ -15,7 +15,7 @@ classdef FileAdapterMeta < nansen.internal.plugin.AbstractPluginSpec
         SupportedFileTypes (1,:) string = missing
         FileExpression (1,1) string = ""
         DataType (1,1) string = missing
-        IsGeneral (1,1) logical = false          % Whether file adaper is general and can open all files of a file format.
+        IsGeneral (1,1) logical = false          % Whether file adapter is general and can open all files of a file format.
         ReadFunction (1,1) string = ""
         WriteFunction (1,1) string = ""
         ViewFunction (1,1) string = ""
