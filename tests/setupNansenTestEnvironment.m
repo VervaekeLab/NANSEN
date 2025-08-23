@@ -44,8 +44,13 @@ function [status, teardownObjects] = setupNansenTestEnvironment(options)
         userpath(temporaryUserpath)
         fprintf('New userpath is "%s"\n', userpath)
 
-        teardownObjects(end+1) = onCleanup(...
-            @(pathName) resetUserPath(currentUserpath) );
+        if isempty(currentUserpath)
+            teardownObjects(end+1) = onCleanup(...
+                @() userpath('reset') );
+        else
+            teardownObjects(end+1) = onCleanup(...
+                @(pathName) resetUserPath(currentUserpath) );
+        end
     
         %% Create a "test" UserSession
         nansen.internal.user.NansenUserSession.instance("", "reset");
