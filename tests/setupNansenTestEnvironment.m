@@ -25,6 +25,7 @@ function [status, teardownObjects] = setupNansenTestEnvironment(options)
     try
         %% Get the rootpath of NANSEN
         nansenRootPath = nansen.rootpath();
+        matboxPath = matbox.toolboxdir();
 
         %% Get the current search path
         searchPathStr = path;
@@ -63,8 +64,9 @@ function [status, teardownObjects] = setupNansenTestEnvironment(options)
         restoredefaultpath()
         teardownObjects(end+1) = onCleanup( @(str) path(searchPathStr) );
         
-        %% Re-add nansen to path
+        %% Re-add nansen and matbox to path
         addpath(genpath(nansenRootPath))
+        addpath(genpath(matboxPath))
 
     catch ME
         disp(getReport(ME, 'extended'))
