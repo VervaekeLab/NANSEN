@@ -8,5 +8,6 @@ function nansen_packageToolbox(releaseType, versionString)
 
     projectRootDirectory = nansentools.projectdir();
     matbox.tasks.packageToolbox(projectRootDirectory, releaseType, versionString, ...
-        "ToolboxShortName", "NANSEN" )
+        "ToolboxShortName", "NANSEN", ...
+        "SourceFolderName", "code")
 end
