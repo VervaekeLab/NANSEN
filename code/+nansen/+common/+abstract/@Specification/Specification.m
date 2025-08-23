@@ -76,7 +76,8 @@ classdef (Abstract) Specification < matlab.mixin.SetGet % Todo: Inherit from Str
             isPresent = false(1, numel(obj.RequiredProperties));
             for i = 1:numel(obj.RequiredProperties)
                 currentProp = obj.RequiredProperties(i);
-                isPresent(i) = all( ~ismissing(obj.(currentProp)) );
+                currentValue = obj.(currentProp);
+                isPresent(i) = ~isempty(currentValue) && any( ~ismissing(currentValue) );
             end
             if any(~isPresent)
                 missingProps = obj.RequiredProperties(~isPresent);
