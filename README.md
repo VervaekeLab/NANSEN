@@ -8,7 +8,7 @@
 [![YouTube](https://img.shields.io/youtube/channel/views/UCKOzL-MVWgy7oOMo6x_GSkQ?style=social)](https://www.youtube.com/channel/UCKOzL-MVWgy7oOMo6x_GSkQ)
 
 [![Codespell](https://github.com/VervaekeLab/NANSEN/actions/workflows/run-codespell.yml/badge.svg?branch=dev)](https://github.com/VervaekeLab/NANSEN/actions/workflows/run-codespell.yml)
-[![Run tests](https://github.com/VervaekeLab/NANSEN/actions/workflows/run-tests.yml/badge.svg?branch=dev)](https://github.com/VervaekeLab/NANSEN/actions/workflows/run-tests.yml)
+[![Run tests](https://github.com/VervaekeLab/NANSEN/actions/workflows/test-code.yml/badge.svg?branch=dev)](https://github.com/VervaekeLab/NANSEN/actions/workflows/test-code.yml)
 [![codecov](https://codecov.io/github/VervaekeLab/NANSEN/graph/badge.svg?token=4B2A694WZ2)](https://codecov.io/github/VervaekeLab/NANSEN)
 [![MATLAB Code Issues](.github/badges/code_issues.svg)](https://github.com/VervaekeLab/NANSEN/security/code-scanning)
 
