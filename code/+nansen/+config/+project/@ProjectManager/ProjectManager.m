@@ -130,6 +130,10 @@ classdef ProjectManager < handle
                 setAsCurrentProject = true;
             end
 
+            if ~isempty( obj.getProject(name) )
+                error('Project with name "%s" already exists', name)
+            end
+
             % Temporarily disable current project
             currentProject = obj.CurrentProject;
             if ~setAsCurrentProject
