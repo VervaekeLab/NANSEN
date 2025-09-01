@@ -101,10 +101,16 @@ classdef Project < nansen.module.Module
             obj.removeProjectFromSearchPath(obj.FolderPath) % delegate to static
         end
         
-        function addMetaTable(obj, metaTable)
+        function addMetaTable(obj, metaTable, metaTableType)
             arguments
                 obj (1,1) nansen.config.project.Project
                 metaTable (1,1) nansen.metadata.MetaTable
+                % Todo: Add support for passing a standard MATLAB table,
+                % and specifying a type manually using the metaTableType arg
+                metaTableType (1,1) string = missing % Only relevant if we are adding a MATLAB table. 
+            end
+            if ~ismissing(metaTableType)
+                warning('Passing a metatable type is not supported yet.')
             end
 
             MTC = obj.MetaTableCatalog();
