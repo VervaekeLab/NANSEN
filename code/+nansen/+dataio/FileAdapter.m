@@ -451,8 +451,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             
             S = struct();
             S.File = struct;
-            
-            S.File.Description = obj.Description;
+            if isprop(obj, 'Description')
+                S.File.Description = obj.Description;
+            else
+                S.File.Description = '';
+            end
             S.File.FileAdapter = builtin('class', obj);
             S.File.Filepath = filepath;
             S.File.Filename = strcat(name, ext);
