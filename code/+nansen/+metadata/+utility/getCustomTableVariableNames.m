@@ -1,13 +1,21 @@
 function varNames = getCustomTableVariableNames(tableClassName)
 %getCustomTableVariableNames Get names of custom tablevars for current project
 
-    if nargin < 1
-        tableClassName = 'session';
+    arguments
+        tableClassName (1,1) string = 'session';
     end
     
+    varNames = string.empty;
+
     % Get folder containing custom table variables from current project:
-    rootPathTarget = nansen.ProjectManager().getCurrentProject().getTableVariableFolder();
-    fcnTargetPath = fullfile(rootPathTarget, ['+', lower(tableClassName)]);
+    project = nansen.getCurrentProject();
+    if isempty(project)
+        return
+    else
+        rootPathTarget = project.getTableVariableFolder();
+    end
+
+    fcnTargetPath = fullfile(rootPathTarget, sprintf('+%s', lower(tableClassName)));
     
     % Add parent folder of package to path if it is not already there.
     currentPath = path;
