@@ -630,6 +630,9 @@ classdef MetaTable < handle
             isStruct = cellfun(@(c) isstruct(c), firstRowData);
             formattingFcn(isStruct) = {'dispStruct'};
 
+            isDatetime = cellfun(@(c) isdatetime(c), firstRowData);
+            formattingFcn(isDatetime) = {'datetime'};
+
             % Step 2: Get nansen table variables formatters.
             tableClass = lower( obj.getTableType() );
             [fcnHandles, names] = getColumnFormatter(variableNames, tableClass);
@@ -668,7 +671,11 @@ classdef MetaTable < handle
                 if isa( thisFormatter, 'char' )
                     tmpFcn = str2func( thisFormatter );
                     formattedValue = cellfun(@(s) tmpFcn(s), jColumnValues, 'uni', 0);
-
+                    if strcmp(thisFormatter, 'datetime')
+                        isEmpty = cellfun(@isempty, formattedValue);
+                        [formattedValue{isEmpty}] = deal(NaT);
+                    end
+              
                 elseif isa( thisFormatter, 'function_handle')
                     try
                         tmpObj = thisFormatter( jColumnValues );
