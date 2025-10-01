@@ -60,6 +60,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         NotesViewer
         DLModelApp
         VariableModelApp
+        MenuCustomizationDialogApp
     end
 
     properties (Access = private) % App / gui components
@@ -1588,6 +1589,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             if ~isempty( app.VariableModelApp )
                 delete(app.VariableModelApp); app.VariableModelApp = [];
+            end
+            
+            % Close Menu Customization Dialog if it is open:
+            if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
+                delete(app.MenuCustomizationDialogApp); 
+                app.MenuCustomizationDialogApp = [];
             end
 
             app.TableIsUpdating = false;
@@ -3814,9 +3821,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function menuCallback_CustomizeMenus(app, ~, ~)
         % menuCallback_CustomizeMenus - Open menu customization dialog
             
-            % Create and show the menu customization dialog
-            dialog = nansen.config.MenuCustomizationDialog(app);
-            dialog.show();
+            % Close existing dialog if open
+            if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
+                % pass
+            else
+                % Create new dialog
+                app.MenuCustomizationDialogApp = nansen.config.MenuCustomizationDialog(app);
+            end
+            
+            % Show the menu customization dialog
+            app.MenuCustomizationDialogApp.show();
         end
         
         function menuCallback_OpenProjectFolder(app, ~, ~)
