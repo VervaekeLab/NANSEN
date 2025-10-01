@@ -12,7 +12,6 @@ classdef MenuCustomizationDialog < handle
         ScopeButtonGroup matlab.ui.container.ButtonGroup
         UserButton matlab.ui.control.RadioButton
         ProjectButton matlab.ui.control.RadioButton
-        ApplyButton matlab.ui.control.Button
         CancelButton matlab.ui.control.Button
         ResetButton matlab.ui.control.Button
         
@@ -115,8 +114,8 @@ classdef MenuCustomizationDialog < handle
             % Button panel
             buttonPanel = uipanel(mainGrid);
             buttonPanel.Layout.Row = 4;
-            buttonGrid = uigridlayout(buttonPanel, [1 5]);
-            buttonGrid.ColumnWidth = {100, '1x', 100, 100, 100};
+            buttonGrid = uigridlayout(buttonPanel, [1 4]);
+            buttonGrid.ColumnWidth = {100, '1x', 100, 100};
             buttonGrid.Padding = [10 5 10 5];
             
             % Cleanup button
@@ -130,15 +129,12 @@ classdef MenuCustomizationDialog < handle
             
             obj.ResetButton = uibutton(buttonGrid, ...
                 'Text', 'Reset', ...
+                'Tooltip', 'Show all menu items', ...
                 'ButtonPushedFcn', @obj.onResetButtonPushed);
             
             obj.CancelButton = uibutton(buttonGrid, ...
                 'Text', 'Close', ...
                 'ButtonPushedFcn', @obj.onCancelButtonPushed);
-            
-            obj.ApplyButton = uibutton(buttonGrid, ...
-                'Text', 'Apply', ...
-                'ButtonPushedFcn', @obj.onApplyButtonPushed);
         end
         
         function loadMenuStructure(obj)
@@ -311,13 +307,8 @@ classdef MenuCustomizationDialog < handle
             manager.applyVisibility();
         end
         
-        function onApplyButtonPushed(obj, ~, ~)
-            % Apply button callback
-            obj.applyChanges();
-        end
-        
         function onCancelButtonPushed(obj, ~, ~)
-            % Cancel button callback
+            % Close button callback
             delete(obj);
         end
         
