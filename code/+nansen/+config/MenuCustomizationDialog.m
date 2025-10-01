@@ -149,8 +149,8 @@ classdef MenuCustomizationDialog < handle
             % Build hierarchical tree from tags
             % Each tag like 'core.nansen.configure.datalocations' becomes a nested structure
             
-            % Sort tags to ensure consistent ordering
-            sortedTags = sort(obj.MenuTags);
+            % Sort tags to match menu order in the app
+            sortedTags = obj.sortMenuTags(obj.MenuTags);
             
             % Track created nodes to avoid duplicates
             createdPaths = containers.Map();
@@ -214,7 +214,13 @@ classdef MenuCustomizationDialog < handle
                 end
             end
             
-            expand(obj.Tree, 'all');
+            % Collapse all nodes initially, then expand Core
+            collapse(obj.Tree, 'all');
+            
+            % Find and expand the Core node
+            if isKey(createdPaths, 'core')
+                expand(createdPaths('core'));
+            end
         end
         
         function updateTreeSelection(obj)
@@ -242,6 +248,25 @@ classdef MenuCustomizationDialog < handle
             
             % Update tree checked nodes all at once
             obj.Tree.CheckedNodes = checkedNodesList;
+        end
+        
+        function sortedTags = sortMenuTags(~, tags)
+            % Sort tags to match menu order in the app
+            % Order: core.nansen, core.metatable, core.session, core.apps, core.help, plugin.*
+            
+            menuOrder = {'core.nansen', 'core.metatable', 'core.session', ...
+                         'core.apps', 'core.help', 'plugin'};
+            
+            % Group tags by their prefix
+            groups = cell(numel(menuOrder), 1);
+            for i = 1:numel(menuOrder)
+                prefix = menuOrder{i};
+                groups{i} = tags(startsWith(tags, prefix));
+                groups{i} = sort(groups{i}); % Sort within group
+            end
+            
+            % Concatenate all groups
+            sortedTags = [groups{:}];
         end
         
         function label = formatLabel(~, text)
