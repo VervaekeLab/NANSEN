@@ -88,6 +88,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         SessionContextMenu matlab.ui.container.ContextMenu
     end
 
+    properties (Access = {?nansen.App, ?nansen.config.MenuCustomizationDialog})
+        % MenuVisibilityManager - Manages visibility of menu items based on
+        % user and project preferences
+        MenuVisibilityManager nansen.config.MenuVisibilityManager
+    end
+
     properties (Access = private)
         ActiveTabModule = [] % Will eventually be an AbstractTabPageModule
         ItemTypes (1,:) string
@@ -151,6 +157,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             warning('off', 'Nansen:OptionsManager:PresetChanged')
             app.createMenu()
             warning('on', 'Nansen:OptionsManager:PresetChanged')
+
+            % Initialize and apply menu visibility manager
+            app.MenuVisibilityManager = nansen.config.MenuVisibilityManager(app.Figure);
+            app.MenuVisibilityManager.loadPreferences();
+            app.MenuVisibilityManager.applyVisibility();
 
             app.createLayout()
             app.createComponents()
@@ -396,68 +407,71 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function createMenu_Nansen(app, hMenu)
             % % % % % % Create PROJECTS menu items  % % % % % %
-            mitem = uimenu(hMenu, 'Text','New Project');
-            menuSubItem = uimenu( mitem, 'Text', 'Create...');
+            mitem = uimenu(hMenu, 'Text','New Project', 'Tag', 'core.nansen.new_project');
+            menuSubItem = uimenu( mitem, 'Text', 'Create...', 'Tag', 'core.nansen.new_project.create');
             menuSubItem.MenuSelectedFcn = @app.menuCallback_NewProject;
 
-            menuSubItem = uimenu( mitem, 'Text', 'Add Existing...');
+            menuSubItem = uimenu( mitem, 'Text', 'Add Existing...', 'Tag', 'core.nansen.new_project.add_existing');
             menuSubItem.MenuSelectedFcn = @app.menuCallback_NewProject;
             
-            app.Menu.ChangeProject = uimenu(hMenu, 'Text','Change Project');
+            app.Menu.ChangeProject = uimenu(hMenu, 'Text','Change Project', 'Tag', 'core.nansen.change_project');
             app.updateProjectList()
             
-            mitem = uimenu(hMenu, 'Text','Manage Projects...');
+            mitem = uimenu(hMenu, 'Text','Manage Projects...', 'Tag', 'core.nansen.manage_projects');
             mitem.MenuSelectedFcn = @app.menuCallback_ManageProjects;
             
-            mitem = uimenu(hMenu, 'Text','Open Project Folder', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text','Open Project Folder', 'Separator', 'on', 'Tag', 'core.nansen.open_project_folder');
             mitem.MenuSelectedFcn = @app.menuCallback_OpenProjectFolder;
 
-            mitem = uimenu(hMenu, 'Text','Change Current Folder');
+            mitem = uimenu(hMenu, 'Text','Change Current Folder', 'Tag', 'core.nansen.change_current_folder');
             mitem = uics.MenuList(mitem, {'Nansen', 'Current Project'}, '', 'SelectionMode', 'none');
             mitem.MenuSelectedFcn = @app.menuCallback_ChangeCurrentFolder;
 
             % % % % % % CONFIGURATION menu items % % % % % %
-            mitem = uimenu(hMenu, 'Text','Configure', 'Separator', 'on', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text','Configure', 'Separator', 'on', 'Enable', 'on', 'Tag', 'core.nansen.configure');
             
-            menuSubItem = uimenu( mitem, 'Text', 'Datalocations...');
+            menuSubItem = uimenu( mitem, 'Text', 'Datalocations...', 'Tag', 'core.nansen.configure.datalocations');
             menuSubItem.MenuSelectedFcn = @(s,e) app.openDataLocationEditor;
             
             % Todo: Update this on project change
-            uiSubMenu = uimenu( mitem, 'Text', 'Data Location Roots' );
+            uiSubMenu = uimenu( mitem, 'Text', 'Data Location Roots', 'Tag', 'core.nansen.configure.data_location_roots' );
             app.updateMenu_DatalocationRootConfiguration(uiSubMenu)
 
-            menuSubItem = uimenu(mitem, 'Text', 'Variables...');
+            menuSubItem = uimenu(mitem, 'Text', 'Variables...', 'Tag', 'core.nansen.configure.variables');
             menuSubItem.MenuSelectedFcn = @(s,e) app.openVariableModelEditor;
             
-            menuSubItem = uimenu(mitem, 'Text', 'Modules...');
+            menuSubItem = uimenu(mitem, 'Text', 'Modules...', 'Tag', 'core.nansen.configure.modules');
             menuSubItem.MenuSelectedFcn = @(s,e) app.openModuleManager;
         
-            menuSubItem = uimenu(mitem, 'Text', 'Create File Adapter...');
+            menuSubItem = uimenu(mitem, 'Text', 'Create File Adapter...', 'Tag', 'core.nansen.configure.file_adapter');
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateFileAdapter;
 
-            menuSubItem = uimenu(mitem, 'Text', 'Watch Folders...', 'Enable', 'off');
+            menuSubItem = uimenu(mitem, 'Text', 'Watch Folders...', 'Enable', 'off', 'Tag', 'core.nansen.configure.watch_folders');
             menuSubItem.MenuSelectedFcn = @(s,e) nansen.config.watchfolder.WatchFolderManagerApp;
 
-            mitem = uimenu(hMenu, 'Text', 'Preferences...');
+            mitem = uimenu(hMenu, 'Text', 'Preferences...', 'Tag', 'core.nansen.preferences');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;
             
-            mitem = uimenu(hMenu, 'Text', 'Refresh Menu', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Customize Menus...', 'Tag', 'core.nansen.customize_menus');
+            mitem.MenuSelectedFcn = @(s,e) app.menuCallback_CustomizeMenus();
+            
+            mitem = uimenu(hMenu, 'Text', 'Refresh Menu', 'Separator', 'on', 'Tag', 'core.nansen.refresh_menu');
             mitem.MenuSelectedFcn = @(s,e) app.menuCallback_RefreshSessionMethod;
             
-            mitem = uimenu(hMenu, 'Text','Refresh Table');
+            mitem = uimenu(hMenu, 'Text','Refresh Table', 'Tag', 'core.nansen.refresh_table');
             mitem.MenuSelectedFcn = @(s,e) app.menuCallback_RefreshTable;
             
-            mitem = uimenu(hMenu, 'Text','Refresh Data Locations');
+            mitem = uimenu(hMenu, 'Text','Refresh Data Locations', 'Tag', 'core.nansen.refresh_data_locations');
             mitem.MenuSelectedFcn = @app.onDataLocationModelChanged;
 
-            mitem = uimenu(hMenu, 'Text','Clear SessionObject Cache');
+            mitem = uimenu(hMenu, 'Text','Clear SessionObject Cache', 'Tag', 'core.nansen.clear_cache');
             mitem.MenuSelectedFcn = @app.menuCallback_ClearCachedMetaObjects;
 
             % % % % % % Create EXIT menu items % % % % % %
-            mitem = uimenu(hMenu, 'Text','Close All Figures', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text','Close All Figures', 'Separator', 'on', 'Tag', 'core.nansen.close_all');
             mitem.MenuSelectedFcn = @app.menuCallback_CloseAll;
             
-            mitem = uimenu(hMenu, 'Text', 'Quit');
+            mitem = uimenu(hMenu, 'Text', 'Quit', 'Tag', 'core.nansen.quit');
             mitem.MenuSelectedFcn = @(s, e) app.delete;
         end
 
@@ -610,13 +624,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function createMenu_Apps(~, hMenu)
-            mitem = uimenu(hMenu, 'Text', 'Imviewer');
+            mitem = uimenu(hMenu, 'Text', 'Imviewer', 'Tag', 'core.apps.imviewer');
             mitem.MenuSelectedFcn = @(s,e) imviewer();
 
-            mitem = uimenu(hMenu, 'Text', 'FovManager');
+            mitem = uimenu(hMenu, 'Text', 'FovManager', 'Tag', 'core.apps.fovmanager');
             mitem.MenuSelectedFcn = @(s,e) fovmanager.App();
 
-            mitem = uimenu(hMenu, 'Text', 'RoiManager');
+            mitem = uimenu(hMenu, 'Text', 'RoiManager', 'Tag', 'core.apps.roimanager');
             mitem.MenuSelectedFcn = @(s,e) roimanager.RoimanagerDashboard();
         end
 
@@ -643,17 +657,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             m = uimenu(app.Figure, 'Text', 'Help', 'Tag', 'Help');
 
             helpDoc = fullfile(nansen.rootpath, 'code', 'resources', 'docs', 'nansen_app', 'keyboard_shortcuts.html');
-            mitem = uimenu(m, 'Text','Show Keyboard Shortcuts');
+            mitem = uimenu(m, 'Text','Show Keyboard Shortcuts', 'Tag', 'core.help.keyboard_shortcuts');
             mitem.MenuSelectedFcn = @(src, event) applify.SimpleHelp(helpDoc);
             
-            mitem = uimenu(m, 'Text','Reactivate All Popup Tips');
+            mitem = uimenu(m, 'Text','Reactivate All Popup Tips', 'Tag', 'core.help.reactivate_popup_tips');
             mitem.Enable = 'off';
             % mitem.MenuSelectedFcn = @(src, event) nansen.internal.reactivatePopupTips;
 
-            mitem = uimenu(m, 'Text','Go to NANSEN Wiki Page', 'Separator', 'on');
+            mitem = uimenu(m, 'Text','Go to NANSEN Wiki Page', 'Separator', 'on', 'Tag', 'core.help.wiki');
             mitem.MenuSelectedFcn = @(s, e) web('https://github.com/VervaekeLab/NANSEN/wiki');
 
-            mitem = uimenu(m, 'Text','Create a GitHub Issue...');
+            mitem = uimenu(m, 'Text','Create a GitHub Issue...', 'Tag', 'core.help.github_issue');
             mitem.MenuSelectedFcn = @(s, e) web('https://github.com/VervaekeLab/NANSEN/issues/new');
         end
         
@@ -907,7 +921,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         continue
                     end
 
-                    iMenu = uimenu(hParent, 'Text', menuName);
+                    % Create tag from package hierarchy
+                    splitFolders = strsplit(L(i).folder, filesep);
+                    isPackage = strncmp(splitFolders, '+', 1);
+                    packageParts = splitFolders(isPackage);
+                    packageParts = cellfun(@(x) strrep(x, '+', ''), packageParts, 'UniformOutput', false);
+                    packageParts{end+1} = strrep(L(i).name, '+', '');
+                    menuTag = ['plugin.tools.', strjoin(packageParts, '.')];
+
+                    iMenu = uimenu(hParent, 'Text', menuName, 'Tag', menuTag);
                     app.createMenuFromDir(iMenu, fullfile(L(i).folder, L(i).name))
 
                 else
@@ -926,6 +948,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     packageName = strrep(packageName, '+', '');
                     
                     functionName = strjoin({packageName, fileName}, '.');
+                    
+                    % Create tag from function name
+                    menuTag = ['plugin.tools.', strrep(functionName, '.', '_')];
                     
                     % Following is too slow: % But the idea was to bundle
                     % functions as static methods in a class instead of
@@ -947,7 +972,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     % % % else
                     hfun = str2func(sprintf( '@(s,e) %s', functionName) );
                     
-                    iMitem = uimenu(hParent, 'Text', name);
+                    iMitem = uimenu(hParent, 'Text', name, 'Tag', menuTag);
                     iMitem.MenuSelectedFcn = hfun;
                     % % % end
                 end
@@ -1524,6 +1549,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateMenu_DatalocationRootConfiguration()
 
             app.createMenu_Tools()
+            
+            % Reload and apply menu visibility for new project
+            app.MenuVisibilityManager.loadPreferences('project');
+            app.MenuVisibilityManager.applyVisibility();
             
             % Make sure project list is displayed correctly
             % Indicating current project
@@ -3755,13 +3784,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uim.utility.layout.centerObjectInRectangle(hFigure, app.Figure)
             
             hProjectManagerUI = ProjectManagerUI(hFigure); %#ok<NASGU>
-            
+
             listener(app.ProjectManager, 'CurrentProjectSet', @app.onProjectChanged);
             hFigure.WindowStyle = 'modal';
             uiwait(hFigure)
             
             % Note: Change to addlistener if not using uiwait.
             app.updateProjectList()
+        end
+
+        function menuCallback_CustomizeMenus(app, ~, ~)
+        % menuCallback_CustomizeMenus - Open menu customization dialog
+            
+            % Create and show the menu customization dialog
+            dialog = nansen.config.MenuCustomizationDialog(app);
+            dialog.show();
         end
         
         function menuCallback_OpenProjectFolder(app, ~, ~)
