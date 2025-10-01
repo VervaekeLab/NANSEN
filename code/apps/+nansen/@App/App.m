@@ -927,7 +927,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     packageParts = splitFolders(isPackage);
                     packageParts = cellfun(@(x) strrep(x, '+', ''), packageParts, 'UniformOutput', false);
                     packageParts{end+1} = strrep(L(i).name, '+', '');
-                    menuTag = ['plugin.tools.', strjoin(packageParts, '.')];
+                    
+                    % Extract only the part after 'mixin.tool' or 'tool'
+                    fullPath = strjoin(packageParts, '.');
+                    if contains(fullPath, 'mixin.tool.')
+                        simplifiedPath = extractAfter(fullPath, 'mixin.tool.');
+                    elseif contains(fullPath, 'tool.')
+                        simplifiedPath = extractAfter(fullPath, 'tool.');
+                    else
+                        simplifiedPath = fullPath;
+                    end
+                    menuTag = ['plugin.tools.', simplifiedPath];
 
                     iMenu = uimenu(hParent, 'Text', menuName, 'Tag', menuTag);
                     app.createMenuFromDir(iMenu, fullfile(L(i).folder, L(i).name))
@@ -949,8 +959,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     
                     functionName = strjoin({packageName, fileName}, '.');
                     
-                    % Create tag from function name
-                    menuTag = ['plugin.tools.', strrep(functionName, '.', '_')];
+                    % Create tag from function name, extracting only the part after 'mixin.tool' or 'tool'
+                    if contains(functionName, 'mixin.tool.')
+                        simplifiedPath = extractAfter(functionName, 'mixin.tool.');
+                    elseif contains(functionName, 'tool.')
+                        simplifiedPath = extractAfter(functionName, 'tool.');
+                    else
+                        simplifiedPath = functionName;
+                    end
+                    % Keep dots for hierarchical nesting in the customization dialog
+                    menuTag = ['plugin.tools.', simplifiedPath];
                     
                     % Following is too slow: % But the idea was to bundle
                     % functions as static methods in a class instead of
