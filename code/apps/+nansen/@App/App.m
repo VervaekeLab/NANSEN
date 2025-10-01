@@ -477,23 +477,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function createMenu_MetaTable(app, hMenu)
             
-            mitem = uimenu(hMenu, 'Text', 'New Metatable...', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text', 'New Metatable...', 'Enable', 'on', 'Tag', 'core.metatable.new');
             mitem.MenuSelectedFcn = @app.menuCallback_CreateMetaTable;
             
-            mitem = uimenu(hMenu, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Metatable', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'core.metatable.open', 'Enable', 'on');
             app.updateRelatedInventoryLists(mitem)
             app.updateMetaTableMenu(mitem);
 
-            mitem = uimenu(hMenu, 'Text','Make Current Metatable Default');
+            mitem = uimenu(hMenu, 'Text','Make Current Metatable Default', 'Tag', 'core.metatable.set_default');
             mitem.MenuSelectedFcn = @app.menuCallback_SetDefaultMetaTable;
             
-            mitem = uimenu(hMenu, 'Text','Reload Metatable');
+            mitem = uimenu(hMenu, 'Text','Reload Metatable', 'Tag', 'core.metatable.reload');
             mitem.MenuSelectedFcn = @(src, event) app.reloadMetaTable;
             
-            mitem = uimenu(hMenu, 'Text','Save Metatable', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text','Save Metatable', 'Enable', 'on', 'Tag', 'core.metatable.save');
             mitem.MenuSelectedFcn = @(src, event, forceSave) app.saveMetaTable(src, event, true);
             
-            mitem = uimenu(hMenu, 'Text','Manage Metatables...', 'Enable', 'off');
+            mitem = uimenu(hMenu, 'Text','Manage Metatables...', 'Enable', 'off', 'Tag', 'core.metatable.manage');
             mitem.MenuSelectedFcn = [];
             
             % % % Create menu items for METATABLE loading and saving % % %
@@ -509,15 +509,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
             % % Section with menu items for creating table variables
 
-            mitem = uimenu(hMenu, 'Text','New Table Variable', 'Separator', 'on');
-            menuSubItem = uimenu( mitem, 'Text', 'Create...');
+            mitem = uimenu(hMenu, 'Text','New Table Variable', 'Separator', 'on', 'Tag', 'core.metatable.new_variable');
+            menuSubItem = uimenu( mitem, 'Text', 'Create...', 'Tag', 'core.metatable.new_variable.create');
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateTableVariable;
             
-            menuSubItem = uimenu( mitem, 'Text', 'Import...'); 
+            menuSubItem = uimenu( mitem, 'Text', 'Import...', 'Tag', 'core.metatable.new_variable.import'); 
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_ImportTableVariable;
             
             % Menu with submenus for editing table variable definition:
-            mitem = uimenu(hMenu, 'Text', 'Edit Table Variable Definition');
+            mitem = uimenu(hMenu, 'Text', 'Edit Table Variable Definition', 'Tag', 'core.metatable.edit_variable');
             app.updateTableVariableMenuItems(mitem)
 
             % TODO: Include table variables from a metadata model.
@@ -555,11 +555,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %                 hSubmenuItem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
 % %             end
             
-            mitem = uimenu(hMenu, 'Text','Manage Variables...', 'Enable', 'off');
+            mitem = uimenu(hMenu, 'Text','Manage Variables...', 'Enable', 'off', 'Tag', 'core.metatable.manage_variables');
             mitem.MenuSelectedFcn = [];
 
             % --- Section with menu items for session methods/tasks
-            mitem = uimenu(hMenu, 'Text', 'New Table Method...', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'New Table Method...', 'Separator', 'on', 'Tag', 'core.metatable.new_method');
             mitem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateTableMethod;
 
             % Todo: Import metatable from excel file / table file...
@@ -584,31 +584,31 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
           % --- Section with menu items for session methods/tasks
-            mitem = uimenu(hMenu, 'Text', 'New Session Method...');
+            mitem = uimenu(hMenu, 'Text', 'New Session Method...', 'Tag', 'core.session.new_method');
             mitem.MenuSelectedFcn = @(s,e,type) app.menuCallback_CreateTableMethod('session');
             
-            mitem = uimenu(hMenu, 'Text', 'New Data Variable...', 'Enable', 'off');
+            mitem = uimenu(hMenu, 'Text', 'New Data Variable...', 'Enable', 'off', 'Tag', 'core.session.new_variable');
             mitem.MenuSelectedFcn = [];
             
           % --- Section with menu items for creating pipeline
-            mitem = uimenu(hMenu, 'Text', 'New Pipeline...', 'Enable', 'on', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'New Pipeline...', 'Enable', 'on', 'Separator', 'on', 'Tag', 'core.session.new_pipeline');
             mitem.MenuSelectedFcn = @app.menuCallback_CreateNewPipeline;
 
-            mitem = uimenu(hMenu, 'Text', 'Edit Pipeline', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Edit Pipeline', 'Enable', 'on', 'Tag', 'core.session.edit_pipeline');
             app.updateMenu_PipelineItems(mitem)
         
-            mitem = uimenu(hMenu, 'Text', 'Configure Pipeline Assignment...', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Configure Pipeline Assignment...', 'Enable', 'on', 'Tag', 'core.session.configure_pipeline');
             mitem.MenuSelectedFcn = @app.menuCallback_ConfigurePipelineAssignment;
 
           % --- Section with menu items for creating task lists
-            mitem = uimenu(hMenu, 'Text', 'Get Queueable Task List', 'Enable', 'on', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Get Queueable Task List', 'Enable', 'on', 'Separator', 'on', 'Tag', 'core.session.queueable_tasks');
             mitem.MenuSelectedFcn = @(s, e, mode) app.createBatchList('Queuable');
 
-            mitem = uimenu(hMenu, 'Text', 'Get Manual Task List', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Get Manual Task List', 'Enable', 'on', 'Tag', 'core.session.manual_tasks');
             mitem.MenuSelectedFcn = @(s, e, mode) app.createBatchList('Manual');
             
           % --- Section with menu item for detecting sessions
-            mitem = uimenu(hMenu, 'Text','Detect New Sessions', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text','Detect New Sessions', 'Separator', 'on', 'Tag', 'core.session.detect_sessions');
             mitem.Callback = @(src, event) app.menuCallback_DetectSessions;
 
 % %             mitem = uimenu(hMenu, 'Text','Remove Table Variable...');
@@ -864,7 +864,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function updateRelatedInventoryLists(app, mItem)
         % updateRelatedInventoryLists - Update submenus holding metatable lists   
             if nargin < 2
-                mItem(1) = findobj(app.Figure, 'Tag', 'Open Metatable');
+                mItem = findobj(app.Figure, 'Tag', 'core.metatable.open');
                 try
                     mItem(2) = findobj(app.Figure, 'Tag', 'Add to Metatable');
                 catch
@@ -879,7 +879,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 delete(mItem(i).Children)
                 
                 switch mItem(i).Tag
-                    case 'Open Metatable'
+                    case 'core.metatable.open'
                         for j = 1:numel(names)
                             uimenu(mItem(i), 'Text', names{j}, 'Callback', @app.menuCallback_OpenMetaTable)
                         end
