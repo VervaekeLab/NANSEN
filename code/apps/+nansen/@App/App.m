@@ -4165,7 +4165,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             entryIdx = app.UiMetaTableViewer.getSelectedEntries();
             
             if isempty(entryIdx)
-                message = 'No sessions are selected. Select one or more sessions for this operation.';                                
+                itemName = lower(app.CurrentItemType);
+                itemName = itemName + "s"; % plural
+
+                message = sprintf('No %s are selected. Select one or more %s for this operation.', itemName, itemName);                                
                 app.MessageDisplay.inform(message, 'Title', 'Session Selection Required')
             end
         end
