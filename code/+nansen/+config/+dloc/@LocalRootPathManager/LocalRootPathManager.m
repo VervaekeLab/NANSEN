@@ -118,6 +118,10 @@ classdef LocalRootPathManager < handle
                     
                     iSource = source(iDloc);
                     iTarget = target(targetIdx);
+
+                    if ~isempty(iSource)
+                        continue
+                    end
                     
                     referenceKeys = {iSource.RootPath.Key};
                     
