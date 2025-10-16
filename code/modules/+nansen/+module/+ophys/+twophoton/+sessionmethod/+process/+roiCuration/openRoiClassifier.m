@@ -33,7 +33,7 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     sessionData = nansen.session.SessionData( sessionObject );
     sessionData.updateDataVariables()
     
-    varName = sessionData.uiSelectVariableName('roiArray');
+    varName = sessionData.uiSelectVariableName('roiArray', 'single');
 
     if ~isempty(varName)
         roiData = sessionData.(varName{1});
