@@ -1646,7 +1646,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             newValue = src.Value;
 
-            xLimRange = range(obj.ax.XLim);
+            xLimRange = nansen.util.range(obj.ax.XLim);
             xLimExtreme = [1, obj.nSamples];
             
             newXLimStart = diff( xLimExtreme ) .* newValue;
@@ -1665,7 +1665,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             
             newValue = src.Value;
             
-            yLimRange = range(obj.ax.YLim);
+            yLimRange = nansen.util.range(obj.ax.YLim);
             
             switch obj.ActiveYAxis
                 case 'left'
@@ -1848,7 +1848,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             deltaY = currentPoint(2) - obj.PreviousMousePoint(2);
             deltaY = deltaY / obj.ax.Position(4);
             
-            yLimRange = range(obj.ax.YLim);
+            yLimRange = nansen.util.range(obj.ax.YLim);
             yLimDiff = yLimRange .* deltaY;
 
 % %             if deltaY < 0
@@ -1875,7 +1875,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             deltaX = currentPoint(1) - obj.PreviousMousePoint(1);
             deltaX = deltaX / obj.ax.Position(3);
 
-            xLimRange = range(obj.ax.XLim);
+            xLimRange = nansen.util.range(obj.ax.XLim);
             xLimDiff = xLimRange .* deltaX;
 
             newXLim = [obj.ax.XLim(1)-xLimDiff, obj.ax.XLim(2)+xLimDiff];
@@ -2063,7 +2063,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                 
                 case 'leftarrow'
                     if contains(event.Modifier, 'shift')
-                        xRange = range(obj.ax.XLim);
+                        xRange = nansen.util.range(obj.ax.XLim);
                         goto = obj.currentFrameNo - xRange;
                         if goto < 1; goto = 1; end
                         obj.interactiveFrameChangeRequest(struct('String', goto), [], 'jumptoframe')
@@ -2073,7 +2073,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
                     end
                 case 'rightarrow'
                     if contains(event.Modifier, 'shift')
-                        xRange = range(obj.ax.XLim);
+                        xRange = nansen.util.range(obj.ax.XLim);
                         goto = obj.currentFrameNo + xRange;
                         obj.interactiveFrameChangeRequest(struct('String', goto), [], 'jumptoframe')
 %                         setNewXLims(obj, obj.ax.XLim + xRange)

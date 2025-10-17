@@ -84,7 +84,7 @@ classdef (Abstract) BaseObject < handle
         end
         
         function pos = getInfoPosition(obj)
-            rad = range(obj.edge) / 2;
+            rad = nansen.util.range(obj.edge) / 2;
             pos(1) = obj.center(1);
             pos(2) = obj.center(2)+rad(2)+range(obj.guiHandle.Parent.Parent.YLim)*0.07;
         end
@@ -252,7 +252,7 @@ classdef (Abstract) BaseObject < handle
             infoText = obj.getInfoText();
             if ~isempty(infoText)
                 hTxt.String = infoText;
-                radius = range(obj.edge) / 2;
+                radius = nansen.util.range(obj.edge) / 2;
                 
                 hAx = ancestor(obj.guiHandle, 'Axes');
                 hTxt.Position(2) = obj.center(2)+radius(2)+range(hAx.YLim)*0.07;
@@ -447,7 +447,7 @@ classdef (Abstract) BaseObject < handle
             
             if obj.orientation.theta ~= 0
                 
-                xExtent = range(xCoords); yExtent = range(yCoords);
+                xExtent = nansen.util.range(xCoords); yExtent = nansen.util.range(yCoords);
                 
                 % Make sure image is same aspect ratio as edge coords
                 % before rotating it... Otherwise it does not work to set
@@ -549,7 +549,7 @@ classdef (Abstract) BaseObject < handle
         end
         
         function plotInfo(obj)
-            rad = range(obj.edge) / 2;
+            rad = nansen.util.range(obj.edge) / 2;
             
             hTxt = text(obj.guiHandle, obj.center(1), obj.center(2)+rad(2)+0.1, '');
             

@@ -2157,13 +2157,13 @@ classdef App < handle & applify.mixin.UserSettings
            
             % Create an imrect object
 % %             rcc = thisFov.edge;
-% %             fovPosition = [ min(rcc), range(rcc) ];
+% %             fovPosition = [ min(rcc), nansen.util.range(rcc) ];
             
             % Find coordinates from the plotted outline, since this can
             % vary from the actual coordinates. Why the fuck...
             h = findobj(thisFov.guiHandle, '-regexp', 'Tag', 'Outline');
             xCoords = h.XData; yCoords = h.YData;
-            objPosition = [min(xCoords), min(yCoords), range(xCoords), range(yCoords)];
+            objPosition = [min(xCoords), min(yCoords), nansen.util.range(xCoords), nansen.util.range(yCoords)];
             
             obj.resizeRectHandle = imrect(obj.hAxes, objPosition);
             obj.resizeRectHandle.addNewPositionCallback(@(pos) thisFov.resize(pos));
@@ -2198,20 +2198,20 @@ classdef App < handle & applify.mixin.UserSettings
                 yLim = obj.hAxes.YLim;
                    
                 % Calculate aspect ratio of axes and object
-                arAxes = range(xLim) / range(yLim);
-                arObject = range(hTmp.XData) / range(hTmp.YData);
+                arAxes = nansen.util.range(xLim) / nansen.util.range(yLim);
+                arObject = nansen.util.range(hTmp.XData) / nansen.util.range(hTmp.YData);
                 
                 % Get center of object
-                centerX = min(hTmp.XData) + range(hTmp.XData)/2;
-                centerY = min(hTmp.YData) + range(hTmp.YData)/2;
+                centerX = min(hTmp.XData) + nansen.util.range(hTmp.XData)/2;
+                centerY = min(hTmp.YData) + nansen.util.range(hTmp.YData)/2;
                 
                 % Zoom Factor. @ 1, the object will occupy the whole zoomed
                 % in view. @ 2, the object will occupy the half of the
                 % zoomed in view.
                 zF = 1.1; zF = zF/2;
                 
-                objectZoomXLim = centerX + [-zF, zF] .* range(hTmp.XData);
-                objectZoomYLim = centerY + [-zF, zF] .* range(hTmp.YData);
+                objectZoomXLim = centerX + [-zF, zF] .* nansen.util.range(hTmp.XData);
+                objectZoomYLim = centerY + [-zF, zF] .* nansen.util.range(hTmp.YData);
 
                 if objectZoomYLim(1) < -9 || objectZoomYLim(2) > 7
                     obj.resetZoom(); return
@@ -2236,7 +2236,7 @@ classdef App < handle & applify.mixin.UserSettings
                     else % zoom in
                         
                         obj.hAxes.XLim = objectZoomXLim; % [min(hTmp.XData), max(hTmp.XData)].*1.5;
-                        newYrange = range(objectZoomXLim)./arAxes;
+                        newYrange = nansen.util.range(objectZoomXLim)./arAxes;
                         obj.hAxes.YLim = centerY + [-0.5, 0.5] .* newYrange;
                         %obj.hAxes.GridAlpha = 0;
                         obj.hAxes.Layer = 'top';
@@ -2253,7 +2253,7 @@ classdef App < handle & applify.mixin.UserSettings
                         end
                     else % zoom in
                         obj.hAxes.YLim = objectZoomYLim;
-                        newXrange = range(objectZoomYLim).*arAxes;
+                        newXrange = nansen.util.range(objectZoomYLim).*arAxes;
                         obj.hAxes.XLim = centerX + [-0.5, 0.5] .* newXrange;
                         %obj.hAxes.GridAlpha = 0;
                         obj.hAxes.Layer = 'top';
@@ -2786,8 +2786,8 @@ classdef App < handle & applify.mixin.UserSettings
             ax = findobj(tmpFig, 'type', 'Axes');
             xMin = ax.XLim(1);
             yMin = ax.YLim(1);
-            xRange = range(ax.XLim);
-            yRange = range(ax.YLim);
+            xRange = nansen.util.range(ax.XLim);
+            yRange = nansen.util.range(ax.YLim);
             m = 100;
             
             for iSession = 1:numSessions
@@ -3090,7 +3090,7 @@ classdef App < handle & applify.mixin.UserSettings
                 yCoords = thisFov.edge(:, 2);
                 
                 if strcmp( opt.FovShape, 'circle' )
-                    rho = mean([range(xCoords), range(yCoords) ]) ./ 2;
+                    rho = mean([range(xCoords), nansen.util.range(yCoords) ]) ./ 2;
                     theta = deg2rad(1:360);
                     rho = ones(size(theta)) * rho;
                     [xCoords, yCoords] = pol2cart(theta, rho);
@@ -3113,8 +3113,8 @@ classdef App < handle & applify.mixin.UserSettings
             origXLim = ax.XLim;
             origYLim = ax.YLim;
             
-            ax.XLim = origXLim + range(origXLim) .* [-0.1, 0.1];
-            ax.YLim = origYLim + range(origYLim) .* [-0.1, 0.1];
+            ax.XLim = origXLim + nansen.util.range(origXLim) .* [-0.1, 0.1];
+            ax.YLim = origYLim + nansen.util.range(origYLim) .* [-0.1, 0.1];
 
             imageVertices = [ax.XLim([1,1,2,2]); ax.YLim([2,1,1,2])];
             imageVertices = imageVertices';
@@ -3137,8 +3137,8 @@ classdef App < handle & applify.mixin.UserSettings
             ax.XLim = origXLim;
             ax.YLim = origYLim;
             
-            ax.XLim = origXLim + range(origXLim) .* [-0.01, 0.01];
-            ax.YLim = origYLim + range(origYLim) .* [-0.01, 0.01];
+            ax.XLim = origXLim + nansen.util.range(origXLim) .* [-0.01, 0.01];
+            ax.YLim = origYLim + nansen.util.range(origYLim) .* [-0.01, 0.01];
             
         end
     end

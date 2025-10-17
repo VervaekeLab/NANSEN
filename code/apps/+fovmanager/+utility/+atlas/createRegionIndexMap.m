@@ -16,8 +16,8 @@ function createRegionIndexMap()
     % Get the map limits and range
     xMin = ax.XLim(1);
     yMin = ax.YLim(1);
-    xRange = range(ax.XLim);
-    yRange = range(ax.YLim);
+    xRange = nansen.util.range(ax.XLim);
+    yRange = nansen.util.range(ax.YLim);
     
     m = 100;    % magnification factor...
 

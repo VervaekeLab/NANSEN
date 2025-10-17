@@ -895,7 +895,7 @@ methods % App initialization & creation
 % %         pathstr = '/Users/eivinhen/PhD/Programmering/MATLAB/ExternalLabs/LettenCenter/imviewer/landing.png';
 % %         [im, ~, ALPHA] = imread(pathstr);
 % %         im = mean(im, 3);
-% %         im = (im-min(im(:))) ./ range(im(:));
+% %         im = (im-min(im(:))) ./ nansen.util.range(im(:));
 % %         im = stack.reshape.imexpand(im, [1500,1500]);
 % %         im = imcomplement(im);
 % %         ALPHA = stack.reshape.imexpand(ALPHA, [1500,1500]);
@@ -922,8 +922,8 @@ methods % App initialization & creation
         rectSize = [250, 60]; cornerRadius = 10;
         [X, Y] = uim.shape.rectangle( rectSize, cornerRadius );
         
-        X = X + axesXLim(1) + (range(axesXLim) - range(X))/2;
-        Y = Y + axesYLim(1) + (range(axesYLim) - range(Y))/2;
+        X = X + axesXLim(1) + (range(axesXLim) - nansen.util.range(X))/2;
+        Y = Y + axesYLim(1) + (range(axesYLim) - nansen.util.range(Y))/2;
         
         h = plot(obj.uiaxes.imdisplay, X, Y, '--', 'Color', obj.Theme.FigureFgColor, 'LineWidth', 1);
         h2 = text(obj.uiaxes.imdisplay, mean(X), mean(Y), 'Drag & Drop Here');
@@ -1920,7 +1920,7 @@ methods % App update
         obj.ImageStack.DataXLim = xLim;
         obj.ImageStack.DataYLim = yLim;
 
-        n = range(yLim) / obj.Axes.Position(4);
+        n = nansen.util.range(yLim) / obj.Axes.Position(4);
 
         im = obj.ImageStack.getFrameSet(obj.currentFrameNo, n);
 
@@ -2026,7 +2026,7 @@ methods % App update
                 case 'int16' %#%&$#
                     lowhigh_in = (bLimAbs+2^15) /2^16;
                 case {'single', 'double'}
-                    lowhigh_in = (bLimAbs - min(bLimAbs)) ./ range(bLimAbs);
+                    lowhigh_in = (bLimAbs - min(bLimAbs)) ./ nansen.util.range(bLimAbs);
             end
     
             %im = imadjust(im, lowhigh_in);
@@ -3659,8 +3659,8 @@ methods % Misc, most can be outsourced
         xlim = get(obj.uiaxes.imdisplay, 'XLim');
         ylim = get(obj.uiaxes.imdisplay, 'YLim');
 
-        xRange = range(xlim);
-        yRange = range(ylim);
+        xRange = nansen.util.range(xlim);
+        yRange = nansen.util.range(ylim);
         
         axpos = getpixelposition(obj.uiaxes.imdisplay);
                   
@@ -3698,8 +3698,8 @@ methods % Misc, most can be outsourced
             return
         end
         
-        xRange = range(xLimNew);
-        yRange = range(yLimNew);
+        xRange = nansen.util.range(xLimNew);
+        yRange = nansen.util.range(yLimNew);
         
         axpos = getpixelposition(obj.uiaxes.imdisplay);
         

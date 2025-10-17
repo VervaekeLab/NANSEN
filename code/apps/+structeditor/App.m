@@ -1061,7 +1061,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 % %                     range = @(x) max(x) - min(x);
 % %                 end
                 
-                edgeCoords = [xPos(i), yPos] + edgeCoords - range(edgeCoords)/2;
+                edgeCoords = [xPos(i), yPos] + edgeCoords - nansen.util.range(edgeCoords)/2;
 
                 hBtn(i) = patch(edgeCoords(:,1), edgeCoords(:,2), 'w');
                 hBtn(i).Parent = obj.header.hAxes;

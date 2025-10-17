@@ -117,7 +117,7 @@ classdef axisZoom < uim.interface.abstractPointer
             deltaY = currentPoint(2) - obj.PreviousMousePoint(2);
             deltaY = deltaY / obj.ax.Position(4);
 
-            yLimRange = range(obj.ax.YLim);
+            yLimRange = nansen.util.range(obj.ax.YLim);
             yLimDiff = yLimRange .* deltaY;
 
             newYLim = [obj.ax.YLim(1)-yLimDiff, obj.ax.YLim(2)+yLimDiff];
@@ -136,7 +136,7 @@ classdef axisZoom < uim.interface.abstractPointer
             deltaX = currentPoint(1) - obj.PreviousMousePoint(1);
             deltaX = deltaX / obj.hAxes.Position(3);
 
-            xLimRange = range(obj.hAxes.XLim);
+            xLimRange = nansen.util.range(obj.hAxes.XLim);
             xLimDiff = xLimRange .* deltaX;
 
             newXLim = [obj.hAxes.XLim(1)-xLimDiff, obj.hAxes.XLim(2)+xLimDiff];

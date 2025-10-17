@@ -22,8 +22,8 @@ yLimOrig = getappdata(hAxes, 'YLimOrig');
 xMin = xLimOrig(1);
 yMin = yLimOrig(1);
 
-xRange = range( xLimOrig );
-yRange = range( yLimOrig );
+xRange = nansen.util.range( xLimOrig );
+yRange = nansen.util.range( yLimOrig );
 
 m = 100; % Magnification?
 regionAreaMax = 40675;

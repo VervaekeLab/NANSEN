@@ -207,7 +207,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                     
                 case {'Trapezoidal 3x5mm'}
                     
-                    rcc = [min(coords), range(coords)];
+                    rcc = [min(coords), nansen.util.range(coords)];
                     
                     % Shift coordinates to upper right corner (1,1)
                     coords = coords - rcc(1:2) + [1,1];
@@ -224,7 +224,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                
                 case 'Custom Trapezoid'
                     
-                    rcc = [min(coords), range(coords)];
+                    rcc = [min(coords), nansen.util.range(coords)];
 
                     % Shift coordinates to upper right corner (1,1)
                     coords = coords - rcc(1:2) + [1,1];
@@ -330,7 +330,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             axH = hImviewer.Axes;
             xLim = axH.XLim;
             yLim = axH.YLim;
-            xRange = range(xLim); yRange = range(yLim);
+            xRange = nansen.util.range(xLim); yRange = nansen.util.range(yLim);
             imSize = [yRange, xRange];
 
             % Set coordinates for roi initialization
@@ -481,9 +481,9 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                 innerBBox([2,3], 1) = innerBBox([1,4],1);
                 outerBBox([1,4], 1) = outerBBox([2,3],1);
                 
-                origH = range(innerBBox(:,2));
-                origA = range(innerBBox(:,1));
-                origB = range(outerBBox(:,1));
+                origH = nansen.util.range(innerBBox(:,2));
+                origA = nansen.util.range(innerBBox(:,1));
+                origB = nansen.util.range(outerBBox(:,1));
                 
                 % Find max allowed resize for each of the corners           % [minSize, maxSize]
                 if ci == 1
@@ -800,7 +800,7 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
             
             if obj.orientation.theta ~= 0
                 
-                xExtent = range(xCoords); yExtent = range(yCoords);
+                xExtent = nansen.util.range(xCoords); yExtent = nansen.util.range(yCoords);
                 
                 % Make sure image is same aspect ratio as edge coords
                 % before rotating it... Otherwise it does not work to set
