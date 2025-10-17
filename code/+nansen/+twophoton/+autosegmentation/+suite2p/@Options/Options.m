@@ -1,4 +1,4 @@
-classdef Options < nansen.wrapper.OptionsAdapter
+classdef Options < nansen.wrapper.abstract.OptionsAdapter
     
     properties (Constant)
         ToolboxName = 'Suite2p'
@@ -26,7 +26,7 @@ classdef Options < nansen.wrapper.OptionsAdapter
             end
             
             nameMap = nansen.twophoton.autosegmentation.suite2p.Options.getOptionsConversionMap;
-            S = nansen.wrapper.OptionsAdapter.rename(S, nameMap);
+            S = nansen.wrapper.abstract.OptionsAdapter.rename(S, nameMap);
             
         end
     end
