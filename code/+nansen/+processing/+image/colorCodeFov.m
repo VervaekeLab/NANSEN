@@ -97,6 +97,9 @@ end
 for i = 1:numParts
     
     imdata = imageStack.getFrameSet(IND{i});
+    
+    iFirst = IND{i}(1);
+    iLast = IND{i}(end);
 
     % Bin images in projection stacks based on the binning vector
     for j = 1:nOutputs
