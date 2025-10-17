@@ -10,7 +10,7 @@ function metadata = getScanParameters( fileReference )
 
     if ischar(fileReference)
         mfileObj = actxserver('MCSX.Data',[0 0 0 0]);
-        if mfileObj.invoke('OpenMCSFile', input_file)
+        if mfileObj.invoke('OpenMCSFile', fileReference)
             error('Only one MDF file instance can be opened at once! E.g. close the MDF Viewer and clear the Matlab workspace.');
         end
 
