@@ -132,6 +132,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % Start app construction
             app.switchJavaWarnings('off')
             app.configureWindow()
+            app.lockWindowPosition()
            
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
@@ -155,6 +156,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createLayout()
             app.createComponents()
             
+            app.unlockWindowPosition()
+
             app.switchJavaWarnings('on')
             
             % Add this callback after every component is made
@@ -315,6 +318,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             LimitFigSize(app.Figure, 'min', minimumFigureSize) % FEX
         end
         
+        function lockWindowPosition(app)
+            % Todo
+        end
+
+        function unlockWindowPosition(app)
+            % Todo
+        end
+
         function configFigureCallbacks(app)
             
             app.Figure.WindowButtonDownFcn = @app.onMousePressed;
@@ -1884,13 +1895,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     fprintf('Could not create meta object. Reason:\n%s\n', ME.message)
                     continue
                 end
+
                 try
-                    addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
-                    addlistener(metaObjects, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
-                catch
-                    % Todo: Either throw warning or implement interface for
-                    % easily implementing PropertyChanged on any table
-                    % class..
+                    addlistener(metaObjects{i}, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
+                    addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
+                catch ME
+                    if isa(metaObjects{i}, 'nansen.metadata.abstract.BaseSchema')
+                        warning(ME.identifier, "%s", ME.message)
+                    else
+                        % Todo: should this fail silently?
+                    end
                 end
             end
 
