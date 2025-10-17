@@ -68,27 +68,27 @@ classdef axisZoom < uim.interface.abstractPointer
         function onButtonMotion(obj, ~, ~)
             
             persistent isBusy
-            if isempty(isBusy); isBusy=false; end
+            if isempty(isBusy); isBusy = false; end
             
             if obj.isButtonDown
                 if isBusy
                     return
                 end
-                isBusy = true;
+                isBusy = true; %#ok<NASGU>
                 currentPoint = obj.hFigure.CurrentPoint;
                 shift = currentPoint - obj.previousPoint;
                 
                 if ~isempty(obj.buttonMotionCallback)
                     obj.buttonMotionCallback(shift)
                 else
-                    moveAxes(obj, shift)
+                    isBusy = false;
+                    error('Not implemented')
+                    % moveAxes(obj, shift) Possibly referring to method in
+                    % uim.interface.pointerTool.pan?
                 end
                 
-                %moveAxes(obj, shift)
-
                 obj.previousPoint = currentPoint;
                 isBusy = false;
-
             end
         end
         
