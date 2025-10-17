@@ -138,7 +138,7 @@ for l = 1:nOutputs
 
     % Get the average of each color channel.
     colorcodedImage{l} = squeeze(nanmean(projectionStackRGB, 3));
-    colorcodedImage{l} = makeuint8(colorcodedImage{l}, opt.BLim);
+    colorcodedImage{l} = stack.makeuint8(colorcodedImage{l}, opt.BLim);
 
 end
 
