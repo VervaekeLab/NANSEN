@@ -44,6 +44,7 @@ MATLAB Release 2020b or later
  - Image Processing Toolbox
  - Statistics and Machine Learning Toolbox
  - Parallel Computing Toolbox
+ - Signal Processing Toolbox
 
 To check if these toolboxes are already installed, use the `ver` command. 
 Typing `ver` in matlab's command window will display all installed toolboxes. 
