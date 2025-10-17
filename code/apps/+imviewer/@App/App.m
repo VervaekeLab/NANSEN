@@ -706,7 +706,7 @@ methods % App initialization & creation
     
 % % Methods for creating / configuring figure..
 
-    function createFigure(obj, figurePosition)
+    function createFigure(obj, figurePosition) % Deprecated?
 
         %hFig = figure('Visible', 'off');
         %obj.Figure = hFig;
@@ -720,7 +720,7 @@ methods % App initialization & creation
         %obj.Figure.Resize = 'off';
         obj.Figure.CloseRequestFcn = @obj.quitImviewer;
         
-        obj.Panel = uipanel(hFig);
+        obj.Panel = uipanel(obj.Figure);
         obj.Panel.BackgroundColor = obj.Figure.Color;
         obj.Panel.BorderType = 'none';
         obj.Panel.Position = [0,0,1,1];
@@ -1761,7 +1761,7 @@ methods % App update
         
         obj.Axes.UIContextMenu.Parent = hFig;
         
-        % TEMP SHIT!
+        % TEMPORARY. Todo: should make separate method for this!
         % Get handle for pointerManager interface
         isMatch = contains({obj.plugins.pluginName}, 'pointerManager');
         pifHandle = obj.plugins(isMatch).pluginHandle;
@@ -4179,7 +4179,7 @@ methods % Misc, most can be outsourced
 
             case 'Replace Stack'
                 filePath = obj.ImageStack.FileName;
-                obj.replaceStack(imviewer.ImageStack(imData), false)
+                obj.replaceStack(nansen.stack.ImageStack(imData), false)
                 obj.ImageStack.FileName = filePath;
         end
     end
@@ -4326,7 +4326,7 @@ methods % Misc, most can be outsourced
         color = obj.Theme.FigureFgColor;
         set(hTxt, 'FontSize', 14, 'Color', color, 'VerticalAlignment', 'top')
 
-        hTxt(end).ButtonDownFcn = @(s,e) fovmanager.openWiki;
+        hTxt(end).ButtonDownFcn = @(s,e) fovmanager.App.openWiki;
 
         % Adjust size of figure to wrap around text.
         % txtUnits = get(hTxt(1), 'Units');
@@ -4462,7 +4462,7 @@ methods % Misc, most can be outsourced
                     obj.tmpHandles = rmfield(obj.tmpHandles, 'grid');
                 else
                     n = obj.settings.gridSize;
-                    obj.tmpHandles.grid = imviewer.tools.plotgrid(obj.uiaxes.imdisplay, n);
+                    obj.tmpHandles.grid = imviewer.tool.plotgrid(obj.uiaxes.imdisplay, n);
                 end
         end
     end
