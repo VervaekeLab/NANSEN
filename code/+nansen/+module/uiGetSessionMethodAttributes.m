@@ -1,11 +1,13 @@
-function S = uiGetSessionMethodAttributes()
+function [S, wasAborted] = uiGetSessionMethodAttributes(app)
     
 %     Work in progress
 %
 %     Create function in the same way as nansen.plugin.fileadapter.uigetFileAdapterAttributes.
 %     Adapted from nansen.session.methods.template.createNewSessionMethod
-    
-    wasSuccess = false;
+
+    arguments
+        app = []
+    end
     
     % Parameters to open in a dialog
 
@@ -32,8 +34,6 @@ function S = uiGetSessionMethodAttributes()
     
     if wasAborted; return; end
     if isempty(S.MethodName); return; end
-    wasSuccess = true;
-
 end
 
 % Todo:
