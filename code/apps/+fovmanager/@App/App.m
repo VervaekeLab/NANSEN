@@ -3090,7 +3090,7 @@ classdef App < handle & applify.mixin.UserSettings
                 yCoords = thisFov.edge(:, 2);
                 
                 if strcmp( opt.FovShape, 'circle' )
-                    rho = mean([range(xCoords), nansen.util.range(yCoords) ]) ./ 2;
+                    rho = mean([nansen.util.range(xCoords), nansen.util.range(yCoords) ]) ./ 2;
                     theta = deg2rad(1:360);
                     rho = ones(size(theta)) * rho;
                     [xCoords, yCoords] = pol2cart(theta, rho);

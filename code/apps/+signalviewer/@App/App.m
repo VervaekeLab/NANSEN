@@ -1245,7 +1245,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             isInsideLimits = newLim(1) >= oldLim(1) && newLim(2) <= oldLim(2);
 
             % Calculate limits that are larger than the current view...
-            newLim = newLim + [-1, 1].*range(newLim)*0.5;
+            newLim = newLim + [-1, 1] .* nansen.util.range(newLim)*0.5;
             newLim(1) = max(1, newLim(1));
             newLim(2) = min(obj.nSamples, newLim(2));
             

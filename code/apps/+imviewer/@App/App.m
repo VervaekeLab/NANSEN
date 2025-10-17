@@ -922,8 +922,8 @@ methods % App initialization & creation
         rectSize = [250, 60]; cornerRadius = 10;
         [X, Y] = uim.shape.rectangle( rectSize, cornerRadius );
         
-        X = X + axesXLim(1) + (range(axesXLim) - nansen.util.range(X))/2;
-        Y = Y + axesYLim(1) + (range(axesYLim) - nansen.util.range(Y))/2;
+        X = X + axesXLim(1) + (nansen.util.range(axesXLim) - nansen.util.range(X))/2;
+        Y = Y + axesYLim(1) + (nansen.util.range(axesYLim) - nansen.util.range(Y))/2;
         
         h = plot(obj.uiaxes.imdisplay, X, Y, '--', 'Color', obj.Theme.FigureFgColor, 'LineWidth', 1);
         h2 = text(obj.uiaxes.imdisplay, mean(X), mean(Y), 'Drag & Drop Here');

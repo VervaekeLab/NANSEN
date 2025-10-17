@@ -138,7 +138,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             [xCoords, yCoords] = obj.getBoundaryCoords();
             
             % Radius is in micrometer, so multiply with 1000
-            obj.radius = [range(xCoords)/2, nansen.util.range(yCoords)/2] * 1000;
+            obj.radius = [nansen.util.range(xCoords)/2, nansen.util.range(yCoords)/2] * 1000;
 
         end
         

@@ -291,7 +291,7 @@ methods (Access = private) % Methods for setting up gui
         end
         
         % Update axesRange property.
-        obj.axesRange = [range(obj.hAxes.XLim), nansen.util.range(obj.hAxes.YLim)];
+        obj.axesRange = [nansen.util.range(obj.hAxes.XLim), nansen.util.range(obj.hAxes.YLim)];
         
     end
     

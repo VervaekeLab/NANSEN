@@ -393,7 +393,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
             centerCoords = centerCoords - [0.5, 0.5];
             
             % Scale coordinates to have same units as image.
-            centerCoords = centerCoords .* [range(obj.edge(:,1)), nansen.util.range(obj.edge(:,2))];
+            centerCoords = centerCoords .* [nansen.util.range(obj.edge(:,1)), nansen.util.range(obj.edge(:,2))];
             
             % Mirror and rotate if necessary
             if obj.orientation.isMirroredX
@@ -523,7 +523,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
             xCoords = obj.edge(:, 1); yCoords = obj.edge(:, 2);
             
             if strcmp( obj.shape, 'circle' )
-                rho = min([range(xCoords), nansen.util.range(yCoords) ]) ./ 2;
+                rho = min([nansen.util.range(xCoords), nansen.util.range(yCoords) ]) ./ 2;
                 theta = deg2rad(1:360);
                 rho = ones(size(theta)) * rho;
                 [xCoords, yCoords] = pol2cart(theta, rho);
