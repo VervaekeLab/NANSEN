@@ -3787,7 +3787,7 @@ methods % Misc, most can be outsourced
         % Todo: Fix bug when this function is called many times in a short
         % time.
         
-        % Todo: Adjust increment if figsize is approacing screen size.
+        % Todo: Adjust increment if figsize is approaching screen size.
         % Todo: Fix so that window does not jump to screen 1 when resized.
         % Todo: Make this quicker. Reduce number of axes?
         

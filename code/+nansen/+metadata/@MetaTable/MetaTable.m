@@ -630,6 +630,9 @@ classdef MetaTable < handle
             isStruct = cellfun(@(c) isstruct(c), firstRowData);
             formattingFcn(isStruct) = {'dispStruct'};
 
+            isDatetime = cellfun(@(c) isdatetime(c), firstRowData);
+            formattingFcn(isDatetime) = {'datetime'};
+
             % Step 2: Get nansen table variables formatters.
             tableClass = lower( obj.getTableType() );
             [fcnHandles, names] = getColumnFormatter(variableNames, tableClass);
@@ -668,7 +671,11 @@ classdef MetaTable < handle
                 if isa( thisFormatter, 'char' )
                     tmpFcn = str2func( thisFormatter );
                     formattedValue = cellfun(@(s) tmpFcn(s), jColumnValues, 'uni', 0);
-
+                    if strcmp(thisFormatter, 'datetime')
+                        isEmpty = cellfun(@isempty, formattedValue);
+                        [formattedValue{isEmpty}] = deal(NaT);
+                    end
+              
                 elseif isa( thisFormatter, 'function_handle')
                     try
                         tmpObj = thisFormatter( jColumnValues );
@@ -902,7 +909,7 @@ classdef MetaTable < handle
         %   variable to the table and initializes all column values to the
         %   initValue.
         
-        % Todo: Make method for adding multiple variable ine one go, i.e
+        % Todo: Make method for adding multiple variable in one go, i.e
         % allow variableName and initValue to be cell arrays.
 
             if ~obj.IsMaster % Add to master metatable
@@ -1427,7 +1434,7 @@ classdef MetaTable < handle
     end
 
     methods (Access = private) % Methods related to updating table variables
-        function updateFcn = getTableVariableUpdateFunction(variableName)
+        function updateFcn = getTableVariableUpdateFunction(obj, variableName)
         % getTableVariableUpdateFunction - Get function name of table variable update function
             
             % Todo: Think about whether we always want to get tables from 
@@ -1435,11 +1442,12 @@ classdef MetaTable < handle
             % which project to use.
             currentProject = nansen.getCurrentProject();
             refVariableAttributes = currentProject.getTable('TableVariable');
-            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
-            
+                         
             tableType = lower(obj.MetaTableClass);
 
-            isVariableEntry = refVariableAttributes.TableType == tableType && ...
+            refVariableAttributes(refVariableAttributes.TableType ~= tableType, :) = [];
+            
+            isVariableEntry = refVariableAttributes.TableType == tableType & ...
                                 strcmp(refVariableAttributes.Name, variableName);
             updateFcnName = refVariableAttributes{isVariableEntry, 'UpdateFunctionName'}{1};
             updateFcn = str2func(updateFcnName);

@@ -66,6 +66,15 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                         rootPath = obj(i).Value.(dataLocationNames{j});
                         subFolder = rootPath;
                     end
+
+                    % Subfolder might be a file, if using "virtual" folder
+                    % mode where a folder level is actually consisting of
+                    % files and not subfolders.
+                    if ~isempty(rootPath)
+                        if isfile(fullfile(rootPath, subFolder))
+                            subFolder = fileparts(subFolder);
+                        end
+                    end
                     
                     if isempty(rootPath)
                         tmpStr = obj.getIconHtmlString('dot_off');

@@ -1,10 +1,10 @@
-function project = createProject(projectName, projectDescription, projectFolder)
-    
-    arguments
-        projectName (1,1) string
-        projectDescription (1,1) string
-        projectFolder (1,1) string
+function createProject(flags)
+    arguments (Repeating)
+        flags (1,1) string {mustBeMember(flags, ["d", "dependencies", "v", "variables"])}
     end
+    % Make sure we don't have a current project selection
+    pm = nansen.ProjectManager();
+    pm.changeProject('', "Verbose", false);
     
-    project = nansen.config.project.Project.new(projectName, projectDescription, projectFolder);
+    nansen.configureProject(flags{:}, "CreateNew", true)
 end

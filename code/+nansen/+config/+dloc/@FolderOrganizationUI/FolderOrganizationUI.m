@@ -75,6 +75,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
     properties (Access = private)
         FolderOrganizationFilterListener
         DataLocationTemplates
+        IsActive (1,1) logical = false
     end
     
     events
@@ -496,7 +497,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         function setActive(obj)
         %setActive Execute actions needed for ui activation
         % Use if UI is part of an app with tabs, and the tab is selected
-        
+            obj.IsActive = true;
             if obj.FolderListViewerActive
                 obj.showFolderListViewer()
             end
@@ -505,11 +506,10 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         function setInactive(obj)
         %setInactive Execute actions needed for ui inactivation
         % Use if UI is part of an app with tabs, and the tab is unselected
-            
+            obj.IsActive = false;
             if obj.FolderListViewerActive
                 obj.hideFolderListViewer()
             end
-            
             obj.updateDataLocationModel()
         end
         
@@ -525,8 +525,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 obj.setRowDisplayMode(rowNum, false)
             end
             
-            % Todo: should refactor this so that first, we check if folders
-            % are available, then add row if confirmed...
+            % Todo: Should migrate towards using errors and error handling 
+            % instead of relying on a binary wasSuccess flag.
             wasSuccess = obj.updateSubfolderItems(rowNum);
             if ~wasSuccess
                 obj.removeRow()
@@ -565,7 +565,18 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             
             if ~wasSuccess
                 % Show message if this failed....
-                message = 'No subfolders were found within the selected folder';
+
+                rowNum = obj.getComponentRowNumber(src) + 1;
+                parentPath = obj.getParentFolderAtLevel(rowNum);
+                if isfile(parentPath)
+                    message = ['Cannot add a subfolder level because the ', ...
+                        'current selection is a file. To add subfolders ', ...
+                        'or files at this level in the hierarchy, please ', ...
+                        'create a new DataLocation in the same root directory.'];
+                else
+                    message = 'No subfolders were found at the selected location';
+                end
+
                 hFigure = ancestor(obj.Parent, 'figure');
                 uialert(hFigure, message, 'Aborting')
             end
@@ -636,33 +647,29 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.updateSubfolderItems(iRow); % suppress output
         end
         
-        function success = updateSubfolderItems(obj, iRow, folderPath)
+        function success = updateSubfolderItems(obj, iRow)
         %updateSubfolderItems Update values in controls...
             
             success = true;
             
-            if iRow >= 1 && ~isempty(obj.CurrentDataLocation.RootPath)
-                folderPath = obj.CurrentDataLocation.RootPath(1).Value;
-
-                for jRow = 1:iRow-1 % Get folderpath from data struct...
-                    folderPath = fullfile(folderPath, obj.Data(jRow).Name);
-                end
-            else
-                folderPath = '';
+            parentPath = obj.getParentFolderAtLevel(iRow);
+            if isfile(parentPath)
+                success = false;
+                if ~nargout; clear success; end
+                return
             end
             
             S = obj.getSubfolderStructure();
+
+            if isempty(S); return; end
             
             % Look for subfolders in the folderpath
-            [~, dirName] = utility.path.listSubDir(folderPath, ...
+            [~, dirName] = utility.path.listSubDir(parentPath, ...
                 S(iRow).Expression, S(iRow).IgnoreList);
             
-            % Todo: Add something like this if implementing virtual folders
-            % in a datalocation
-% % %             if isempty(dirName)
-% % %                 % show message...
-% % %                 [~, dirName] = utility.path.listFiles(folderPath);
-% % %             end
+            % Look for files and concatenate files and folders
+            [~, fileName] = utility.path.listFiles(parentPath);
+            dirName = [dirName, fileName];
             
             % Get handle to dropdown control
             hSubfolderDropdown = obj.RowControls(iRow).SubfolderDropdown;
@@ -677,11 +684,8 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 if ~nargout; clear success; end
                 return
             elseif isempty(dirName) % && iRow > 1
-% %                 message = 'No subfolders were found within the selected folder';
-% %                 hFigure = ancestor(obj.Parent, 'figure');
-% %                 uialert(hFigure, message, 'Aborting')
                 success = false;
-                hSubfolderDropdown.Items = {'No subfolders were found'};
+                hSubfolderDropdown.Items = {'No subfolders or files were found in the current location'};
                 if ~nargout; clear success; end
                 return
             end
@@ -723,9 +727,21 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         
         function S = getSubfolderStructure(obj)
             
-            S = struct('Name', {}, 'Type', {}, 'Expression', {}, 'IgnoreList', {{}});
-            
-            for j= 1:numel(obj.RowControls)
+            %S = struct('Name', {}, 'Type', {}, 'Expression', {}, 'IgnoreList', {{}});
+            S = nansen.config.dloc.DataLocationModel.getDefaultSubfolderStructure();
+            S(1) = [];
+
+            if ~isempty(obj.CurrentDataLocation.RootPath)
+                parentPath = obj.CurrentDataLocation.RootPath(1).Value;
+            else
+                if obj.IsActive
+                    hFigure = ancestor(obj.Parent, 'figure');
+                    uialert(hFigure, 'Datalocation root folder was not found.', 'Error')
+                end
+                return
+            end
+
+            for j = 1:numel(obj.RowControls)
                 
                 S(j).Name = obj.RowControls(j).SubfolderDropdown.Value;
                 S(j).Type = obj.RowControls(j).SubfolderTypeDropdown.Value;
@@ -757,6 +773,12 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                         S(j).IgnoreList(end) = [];
                     end
                 end
+
+                absolutePathName = fullfile(parentPath, S(j).Name);
+                S(j).IsFolder = isfolder(absolutePathName);
+
+                % Update for next iteration
+                parentPath = absolutePathName;
             end
         end
     end
@@ -982,7 +1004,18 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
     end
     
     methods
-        
+        function parentFolder = getParentFolderAtLevel(obj, level)
+            if level >= 1 && ~isempty(obj.CurrentDataLocation.RootPath)
+                parentFolder = obj.CurrentDataLocation.RootPath(1).Value;
+
+                for jLevel = 1:level-1 % Get folderpath from data struct...
+                    parentFolder = fullfile(parentFolder, obj.Data(jLevel).Name);
+                end
+            else
+                parentFolder = '';
+            end
+        end
+
         function updateFolderList(obj)
         
             % Todo...

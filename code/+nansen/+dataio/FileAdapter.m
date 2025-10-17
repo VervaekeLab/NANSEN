@@ -135,8 +135,8 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             try
                 obj.Filename = varargin{1};
                 varargin(1) = [];
-            catch
-                % Pass
+            catch ME
+                warning(ME.identifier, '%s', ME.message)
             end
             
             % Todo: Accept name/value pairs specifying property values
@@ -252,17 +252,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 'Nansen:FileIO:InvalidInput', ...
                 'Filename must be a character vector')
             
-            % Todo: Loosen this?
-            if ~obj.Writable
-                assert(isfile(newValue), ...
-                    'Nansen:FileIO:FileDoesNotExist', ...
-                    'Filename must point to an existing file')
-            else
-                [~, filename, ext] = fileparts(newValue);
-                assert(~isempty(filename) && ~isempty(ext), ...
-                    'Nansen:FileIO:InvalidFilename', ...
-                    'Filename must be a valid filename' )
-            end
+            % Make sure it looks like a file path
+            [~, filename, ext] = fileparts(newValue);
+            assert(~isempty(filename) && ~isempty(ext), ...
+                'Nansen:FileIO:InvalidFilename', ...
+                'Filename must be a valid filename' )
             
             % Todo: Assert that file is a supported filetype
             
@@ -395,7 +389,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             
             switch action
                 case 'load'
-                    if ~isfile(obj.Filename)
+                    if ~isfile(obj.Filename) && ~exist(obj.Filename, 'file')
                         error('Nansen:FileIO:FilenameDoesNotExist', ...
                             'Can not %s data because file does not exist.', action)
                     end
@@ -457,8 +451,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             
             S = struct();
             S.File = struct;
-            
-            S.File.Description = obj.Description;
+            if isprop(obj, 'Description')
+                S.File.Description = obj.Description;
+            else
+                S.File.Description = '';
+            end
             S.File.FileAdapter = builtin('class', obj);
             S.File.Filepath = filepath;
             S.File.Filename = strcat(name, ext);
@@ -591,37 +588,88 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 'FileAdapterName', {},...
                 'FunctionName', {}, ...
                 'SupportedFileTypes', {}, ...
-                'DataType', {});
-
-            count = 1;
+                'DataType', {}, ...
+                'IsDynamic', {});
                         
             % Loop through m-files and add to file adapter list if this
             for i = 1:numel(fileList)
 
-                thisFilePath = utility.dir.abspath(fileList(i));
-                thisFilePath = thisFilePath{1};
-                thisFcnName = utility.path.abspath2funcname(thisFilePath);
-                try
-                    mc = meta.class.fromName(thisFcnName);
+                currentFilePath = utility.dir.abspath(fileList(i));
+                currentFilePath = currentFilePath{1};
                 
-                    if ~isempty(mc) && isa(mc, 'meta.class') && isFileAdapterClass(mc)
-                    
-                        [~, fileName] = fileparts(thisFilePath);
-                    
-                        fileAdapterList(count).FileAdapterName = fileName;
-                        fileAdapterList(count).FunctionName = thisFcnName;
-                        isProp = strcmp({mc.PropertyList.Name}, 'SUPPORTED_FILE_TYPES');
-                        fileAdapterList(count).SupportedFileTypes = mc.PropertyList(isProp).DefaultValue;
-                        isProp = strcmp({mc.PropertyList.Name}, 'DataType');
-                        fileAdapterList(count).DataType = mc.PropertyList(isProp).DefaultValue;
-                        count = count + 1;
+                try
+                    if endsWith(currentFilePath, '.m')
+                        fileAdapterMeta = nansen.dataio.FileAdapter.parseClassBasedFileAdapter(currentFilePath);
+                    elseif endsWith(currentFilePath, '.json')
+                        fileAdapterMeta = nansen.dataio.FileAdapter.parseFunctionBasedFileAdapter(currentFilePath);
+                    else
+                        error('NANSEN:FileAdapter:InternalError', ...
+                            'Detected file adapter in unsupported format')
                     end
                 catch ME
+                    fileAdapterMeta = struct.empty;
                     warning(ME.message)
+                end
+
+                if ~isempty(fileAdapterMeta)
+                    fileAdapterList(end+1) = fileAdapterMeta; %#ok<AGROW>
                 end
             end
 
             fileAdapterTable = struct2table(fileAdapterList);
+        end
+
+        function result = parseFunctionBasedFileAdapter(filePath)
+            result = struct.empty;
+            fileAdapterInfo = jsondecode(fileread(filePath));
+            [~, fileAdapterName] = fileparts(fileparts(filePath));
+            fileAdapterName = strrep(fileAdapterName, '+', '');
+            
+            assert(isfield(fileAdapterInfo, 'x_type'), ...
+                'NANSEN:FileAdapter:InvalidFileAdapterJson', ...
+                ['Expected fileadapter.json in location "%s" ', ...
+                'to have a "_type" field.'], fileparts(filePath))
+
+            if strcmp(fileAdapterInfo.x_type, 'FileAdapter')
+                % Todo: Assert Name matches name in FilePath
+                assert( strcmp(fileAdapterName, fileAdapterInfo.Properties.Name), ...
+                    'Name of file adapter does not match its file location')
+                    % Todo: Improve error message
+                result = struct();
+                result.FileAdapterName = fileAdapterInfo.Properties.Name;
+                thisFcnName = utility.path.pathstr2packagename(fileparts(filePath));
+                result.FunctionName = thisFcnName;
+                result.SupportedFileTypes = fileAdapterInfo.Properties.SupportedFileTypes;
+                result.DataType = fileAdapterInfo.Properties.DataType;
+                result.IsDynamic = true;
+            else
+                error('NANSEN:FileAdapter:InvalidFileAdapterJson', ...
+                    ['Detected an invalid function-based file adapter ', ...
+                    'definition. Expected fileadapter.json in location "%s" ', ...
+                    'to be of type "FileAdapter, but got "%s"'], ...
+                    fileparts(filePath), fileAdapterInfo.x_type)
+            end
+        end
+
+        function result = parseClassBasedFileAdapter(filePath)
+            result = struct.empty;
+
+            thisFcnName = utility.path.abspath2funcname(filePath);
+            mc = meta.class.fromName(thisFcnName);
+
+            if ~isempty(mc) && isa(mc, 'meta.class') && isFileAdapterClass(mc)
+            
+                [~, fileName] = fileparts(filePath);
+                      
+                result = struct();
+                result.FileAdapterName = fileName;
+                result.FunctionName = thisFcnName;
+                isProp = strcmp({mc.PropertyList.Name}, 'SUPPORTED_FILE_TYPES');
+                result.SupportedFileTypes = mc.PropertyList(isProp).DefaultValue;
+                isProp = strcmp({mc.PropertyList.Name}, 'DataType');
+                result.DataType = mc.PropertyList(isProp).DefaultValue;
+                result.IsDynamic = false;
+            end
 
             function tf = isFileAdapterClass(mc)
                 if isempty(mc.SuperclassList)
@@ -629,8 +677,8 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 else
                     % Recursive checking of superclasses
                     tf = contains('nansen.dataio.FileAdapter', {mc.SuperclassList.Name});
-                    for i = 1:numel(mc.SuperclassList)
-                        tf = tf || isFileAdapterClass(mc.SuperclassList(i));
+                    for ii = 1:numel(mc.SuperclassList)
+                        tf = tf || isFileAdapterClass(mc.SuperclassList(ii));
                     end
                 end
             end

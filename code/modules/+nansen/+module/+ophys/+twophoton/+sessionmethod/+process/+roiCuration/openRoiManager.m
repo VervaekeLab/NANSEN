@@ -51,7 +51,7 @@ function varargout = openRoiManager(sessionObj, varargin)
 % %         roiFilePath = sessionObj.getDataFilePath('RoiArray');
 % %         if ~isfile(roiFilePath)
             
-        varName = sessionData.uiSelectVariableName('roiArray');
+        varName = sessionData.uiSelectVariableName('roiArray', 'single');
         if ~isempty(varName)
             if isa(varName, 'cell'); varName = varName{1}; end
             roiFilePath = sessionObj.getDataFilePath(varName);

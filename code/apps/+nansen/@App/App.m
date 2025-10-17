@@ -132,6 +132,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % Start app construction
             app.switchJavaWarnings('off')
             app.configureWindow()
+            app.lockWindowPosition()
            
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
@@ -155,6 +156,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createLayout()
             app.createComponents()
             
+            app.unlockWindowPosition()
+
             app.switchJavaWarnings('on')
             
             % Add this callback after every component is made
@@ -199,11 +202,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Save column view settings to project
             app.saveMetatableColumnSettingsToProject()
-            
-            if isempty(app.MetaTable)
-                return
-            end
-            
+
             isdeletable = @(x) ~isempty(x) && isvalid(x);
             
             if isdeletable(app.UiMetaTableViewer)
@@ -213,29 +212,34 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isdeletable(app.BatchProcessor)
                 delete(app.BatchProcessor)
             end
-            
-            if app.settings.MetadataTable.AllowTableEdits
-                app.saveMetaTable()
+
+            if ~isempty(app.MetaTable)
+                if app.settings.MetadataTable.AllowTableEdits
+                    app.saveMetaTable()
+                end
             end
             
             if ~isempty(app.Figure) && isvalid(app.Figure)
                 app.saveFigurePreferences()
-                % delete(app.Figure) % This will trigger onExit again...
             end
         end
         
         function onExit(app, h)
             
-            if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
-                doExit = app.BatchProcessor.promptQuit();
-                if ~doExit; return; end
+            if app.isShuttingDown()
+                % Skip check for whether app is busy.
+            else
+                if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                    doExit = app.BatchProcessor.promptQuit();
+                    if ~doExit; return; end
+                end
+                
+                if ~app.isIdle() && ~app.isShuttingDown()
+                    doExit = app.promptQuitIfBusy();
+                    if ~doExit; return; end
+                end
+                app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
             end
-            
-            if ~app.isIdle() && ~app.isShuttingDown()
-                doExit = app.promptQuitIfBusy();
-                if ~doExit; return; end
-            end
-            app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
 
             % This function is called twice if the figure's close button is 
             % pressed. First when pressing the close button, and then when the 
@@ -244,6 +248,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.onExit@uiw.abstract.AppWindow(h);
             % delete(app) % Not necessary, happens in superclass' onExit method
+        end
+    
+        function forceQuit(app, message)
+            C = onCleanup(@() delete(app));
+            app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
+            errorId = 'NANSEN:App:ForceQuit';
+            ME = MException(errorId, message);
+            throwAsCaller(ME)
         end
     end
         
@@ -306,6 +318,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             LimitFigSize(app.Figure, 'min', minimumFigureSize) % FEX
         end
         
+        function lockWindowPosition(app)
+            % Todo
+        end
+
+        function unlockWindowPosition(app)
+            % Todo
+        end
+
         function configFigureCallbacks(app)
             
             app.Figure.WindowButtonDownFcn = @app.onMousePressed;
@@ -1876,13 +1896,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     fprintf('Could not create meta object. Reason:\n%s\n', ME.message)
                     continue
                 end
+
                 try
-                    addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
-                    addlistener(metaObjects, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
-                catch
-                    % Todo: Either throw warning or implement interface for
-                    % easily implementing PropertyChanged on any table
-                    % class..
+                    addlistener(metaObjects{i}, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
+                    addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
+                catch ME
+                    if isa(metaObjects{i}, 'nansen.metadata.abstract.BaseSchema')
+                        warning(ME.identifier, "%s", ME.message)
+                    else
+                        % Todo: should this fail silently?
+                    end
                 end
             end
 
@@ -1938,19 +1961,20 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.ActiveTabModule = app.UiMetaTableViewer;
                     
                 case 'File Viewer'
+
+                    try
+                        nansen.FileViewer.assertFileViewerSupported(app.MetaTable)
+                    catch ME
+                        msgbox(ME.message, 'FileViewer Is Disabled')
+                        app.hLayout.TabGroup.SelectedTab = evt.OldValue;
+                        return
+                    end
+                    
                     if isempty(app.UiFileViewer) % Create file viewer
                     	thisTab = evt.NewValue;
                         app.initializeFileViewer(thisTab)
                     end
-                    
-                    % Todo: Remove this when MetaTable is a map with one
-                    % key for each table type.
-                    if ~strcmpi(app.MetaTable.getTableType, 'session')
-                        msgbox('File viewer is only available when viewing the session table', 'Not supported')
-                        app.hLayout.TabGroup.SelectedTab = evt.OldValue;
-                        return
-                    end
-                                   
+        
                     app.ActiveTabModule = app.UiFileViewer;
 
                     rowInd = app.UiMetaTableViewer.DisplayedRows;
@@ -3013,6 +3037,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 MTC = app.CurrentProject.MetaTableCatalog;
                 loadPath = MTC.getDefaultMetaTablePath();
 
+                if isempty(loadPath)
+                    errorMessage = sprintf([...
+                        'This project (%s) does not have any metatables yet. ', ...
+                        'You might see this message if you have not finished ', ...
+                        'setting up the project. Please run nansen.setup to ', ...
+                        'complete the project setup or use ', ...
+                        'nansen.ProjectManager to change the current project.'], ...
+                        app.CurrentProject.Name);
+                    errordlg(errorMessage)
+                    app.forceQuit(errorMessage)
+                end
+
                 subjectTableExists = app.checkIfSubjectTableExists(MTC);
                 if ~subjectTableExists
                     nansen.config.initializeSubjectTable(MTC)
@@ -3931,11 +3967,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             currentProject = app.ProjectManager.getCurrentProject();
             targetPath = currentProject.getFileAdapterFolder();
             
-            [S, wasAborted] = nansen.module.uigetFileAdapterAttributes();
+            [S, wasAborted] = nansen.plugin.fileadapter.uigetFileAdapterAttributes();
             if wasAborted
                 return
             else
-                nansen.module.createFileAdapter(targetPath, S)
+                nansen.plugin.fileadapter.createFileAdapter(targetPath, S)
             end
             % Todo: Trigger update?
         end
@@ -4144,7 +4180,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             entryIdx = app.UiMetaTableViewer.getSelectedEntries();
             
             if isempty(entryIdx)
-                message = 'No sessions are selected. Select one or more sessions for this operation.';                                
+                itemName = lower(app.CurrentItemType);
+                itemName = itemName + "s"; % plural
+
+                message = sprintf('No %s are selected. Select one or more %s for this operation.', itemName, itemName);                                
                 app.MessageDisplay.inform(message, 'Title', 'Session Selection Required')
             end
         end
@@ -4193,7 +4232,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
-        function quit()
+        function quit(options)
+
+            arguments
+                options.ForceQuit (1,1) logical = false
+            end
+
             openFigures = findall(0, 'Type', 'Figure');
             if isempty(openFigures)
                 return

@@ -12,9 +12,10 @@ function nansen_install(options)
         options.SavePath (1,1) logical = true
     end
 
-    repoFolder = fileparts(mfilename('fullpath'));
-    if isfolder( fullfile(repoFolder, 'code') )
-        addpath(genpath(fullfile(repoFolder, 'code')))
+    nansenProjectFolder = fileparts(mfilename('fullpath')); % Path to nansen codebase
+    nansenToolboxFolder = fullfile(nansenProjectFolder, 'code');
+    if isfolder(nansenToolboxFolder)
+        addpath( genpath(nansenToolboxFolder) )
     else
         error('NANSEN:Setup:CodeFolderNotFound', ...
               'Could not find folder with code for Nansen')
@@ -24,31 +25,33 @@ function nansen_install(options)
     if isempty(userpath)
         nansen.internal.setup.resolveEmptyUserpath()
     end
-    
-    % Install required (FEX) dependencies
-    fprintf('Installing FileExchange dependencies...\n')
-    %nansen.internal.setup.installDependencies()
-    
+        
     warnState = warning('off', 'MATLAB:javaclasspath:jarAlreadySpecified');
-    cleanUpObj = onCleanup(@(state) warning(warnState));
+    warningCleanup = onCleanup(@(state) warning(warnState));
     
-    nansen.internal.setup.installSetupTools()
-    toolboxFolder = fileparts(mfilename('fullpath'));
-    setuptools.installRequirements(toolboxFolder)
-    
-    % Add folder to path if it was not added already
-    toolboxFolderPath = fileparts(mfilename('fullpath'));
-    if ~contains(path, toolboxFolderPath)
-        addpath(genpath(toolboxFolderPath))
+    % Use MatBox to install dependencies/requirements
+    downloadAndInstallMatBox();
+
+    requirementsInstallationFolder = fullfile(userpath, 'NANSEN', 'Requirements');
+    matbox.installRequirements(nansenProjectFolder, 'u', ...
+        'InstallationLocation', requirementsInstallationFolder)
+
+    % Add NANSEN toolbox folder to path if it was not added already 
+    if ~contains(path(), nansenToolboxFolder)
+        addpath(genpath(nansenToolboxFolder))
         savepath()
     end
     if options.SavePath
-        savepath
+        savepath()
     end
+end
 
-    % Todo: Ensure installed dependencies are added to path.
-    
-    % Open Setup Wizard
-    %fprintf('Opening NANSEN''s Setup Wizard...\n')
-    %nansen.setup()
+function downloadAndInstallMatBox()
+    if ~exist('+matbox/installRequirements', 'file')
+        sourceFile = 'https://raw.githubusercontent.com/ehennestad/matbox-actions/refs/heads/main/install-matbox/installMatBox.m';
+        filePath = websave('installMatBox.m', sourceFile);
+        installMatBox('commit')
+        rehash()
+        delete(filePath);
+    end
 end

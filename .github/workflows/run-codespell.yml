@@ -1,0 +1,24 @@
+name: Run Codespell
+
+# NB: Will only process "skip" and "ignore-words-list" from the codespell 
+# config file if provided
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+    
+  pull_request:
+    branches: [ "main", "dev" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reuse-workflow-run-codespell:
+    name: Run Codespell
+    uses: ehennestad/matbox-actions/.github/workflows/codespell-workflow.yml@v1
+    with:
+      # Specify the path of a codespell config file relative to the repository 
+      # root directory
+      config_file: tools/.codespellrc

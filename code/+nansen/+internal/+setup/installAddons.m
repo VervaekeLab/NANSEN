@@ -1,5 +1,5 @@
 function installAddons()
-% installAddons - Install addons
+% installAddons - Install addons using nansen's addon manager
 
     addonManager = nansen.AddonManager();
     

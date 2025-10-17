@@ -738,9 +738,12 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                         end
                         
                     otherwise
-                        data = fileAdapterFcn(filePath).load(varName);
-                        % data = fileAdapterFcn(filePath).load(varName); %Todo
-
+                        if ~isempty(variableInfo.PathInFile)
+                            nvPairs = {'PathInFile', variableInfo.PathInFile};
+                        else
+                            nvPairs = {};
+                        end
+                        data = fileAdapterFcn(filePath).load(varName, nvPairs{:});
                 end
                 
 % % %                 [~, ~, ext] = fileparts(filePath);
@@ -998,11 +1001,18 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                     mkdir(sessionFolder)
                 end
             end
-            
+
+            isVirtualFolder = obj.isVirtualSessionFolder(dataLocationName);
+            if isVirtualFolder
+                nvPairs = {'FilterFcn', @(names) contains(names, obj.sessionID)};
+            else
+                nvPairs = {};
+            end
+
             if isempty(S.FileNameExpression)
                 fileName = obj.createFileName(varName, S);
             else
-                fileName = obj.VariableModel.lookForFile(sessionFolder, S);
+                fileName = obj.VariableModel.lookForFile(sessionFolder, S, nvPairs{:});
                 if isempty(fileName) && strcmp(mode, 'write')
                     fileName = obj.getFileName(S);
                 end
@@ -1112,6 +1122,12 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             if ~isempty(S.Subfolders)
                 folderPath = fullfile(S.RootPath, S.Subfolders);
             end
+            
+            % Ad hoc addition to support adding files as their own
+            % "subfolder" level
+            if isfile(folderPath) 
+                folderPath = fileparts(folderPath);
+            end
 
             if ~isfolder(folderPath)
                 if (strcmp(S.Type.Permission, 'write') && strcmp(mode, 'create')) || strcmp(mode, 'force')
@@ -1127,11 +1143,37 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             end
         end
         
-        function folderPath = createSessionFolder(obj, dataLocationName, mode)
+        function tf = isVirtualSessionFolder(obj, dataLocationName)
+            if nargin < 2
+                dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+            end
+            
+            S = obj.getDataLocation(dataLocationName);
+            
+            if ~isempty(S.Subfolders)
+                folderPath = fullfile(S.RootPath, S.Subfolders);
+            else
+                folderPath = S.RootPath;
+            end
+
+            if isfolder(folderPath)
+                tf = false;
+            elseif isfile(folderPath) % todo: check file extension?
+                tf = true;
+            else
+                tf = false;
+            end
+        end
+
+        function folderPath = createSessionFolder(obj, dataLocationName, mode, useDLModelSubfolders)
         %createSessionFolder Create a session folder if it does not exist
         
             if nargin < 2
                 dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+            end
+
+            if nargin < 4 || isempty(useDLModelSubfolders)
+                useDLModelSubfolders = false;
             end
         
             [~, dlIdx] = obj.DataLocationModel.containsItem(dataLocationName);
@@ -1163,17 +1205,22 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             % subfolders already exist in any of the roots and select the
             % root based on that.
 
-            folderPath = rootPath;
-            subfolders = '';
-            
-            % Include subfolders in the folder path
-            for i = 1:numel(dlModel.SubfolderStructure)
-                iSubfolderStruct = dlModel.SubfolderStructure(i);
-                folderName = obj.generateFolderName(iSubfolderStruct);
-                folderPath = fullfile(folderPath, folderName);
-                subfolders = fullfile(subfolders, folderName);
+            if useDLModelSubfolders
+                subfolders = dlSession.Subfolders;
+                folderPath = fullfile(rootPath, subfolders);
+            else
+                subfolders = '';
+                folderPath = rootPath;
+                
+                % Include subfolders in the folder path
+                for i = 1:numel(dlModel.SubfolderStructure)
+                    iSubfolderStruct = dlModel.SubfolderStructure(i);
+                    folderName = obj.generateFolderName(iSubfolderStruct);
+                    folderPath = fullfile(folderPath, folderName);
+                    subfolders = fullfile(subfolders, folderName);
+                end
             end
-            
+
             if ~isfolder(folderPath)
                 mkdir(folderPath)
             end

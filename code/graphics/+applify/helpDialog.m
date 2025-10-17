@@ -78,10 +78,13 @@ function helpDialog(functionName)
     % Adjust size of figure to wrap around text.
     % txtUnits = get(hTxt(1), 'Units');
     set(hTxt, 'Units', 'pixel')
-    extent = cell2mat(get(hTxt, 'Extent'));
+    textExtent = get(hTxt, 'Extent');
+    if iscell(textExtent)
+        textExtent = cell2mat(textExtent);
+    end
     % set(hTxt, 'Units', txtUnits)
 
-    maxWidth = max(sum(extent(:, [1,3]),2));
+    maxWidth = max(sum(textExtent(:, [1,3]),2));
     helpfig.Position(3) = max([550, maxWidth./0.9]); %helpfig.Position(3)*0.1 + maxWidth;
     helpfig.Position(4) = helpfig.Position(4) - (1-y)*helpfig.Position(4);
     uim.utility.centerFigureOnScreen(helpfig)

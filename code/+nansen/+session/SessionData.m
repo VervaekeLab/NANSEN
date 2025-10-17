@@ -246,29 +246,33 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         %
         %   OUTPUT:
         %       varNames : cell array of variable name(s)
-        
-            if nargin < 2
+
+            arguments
+                obj nansen.session.SessionData
+                dataType (1,1) string = ""
+                selectionMode (1,1) string {mustBeMember(selectionMode, ["single", "multiple"])} = "multiple"
+            end
+
+            if dataType == ""
                 varNames = obj.VariableNames;
             else
-                varNames = obj.getDataType(dataType);
+                varNames = obj.getDataType(char(dataType));
             end
-            
-            if nargin < 3; selectionMode = 'multi'; end
-            
+                        
             if isempty(varNames)
                 if exist('dataType', 'var')
-                    error('No variable is available for data type "%s"', dataType)
+                    error('No variables are available for data type "%s"', dataType)
                 else
-                    error('No variable is available')
+                    error('No variables are available')
                 end
             end
             
             msg = 'Select a data variable:';
-            [indx, tf] = listdlg('ListString', varNames, ...
+            [selectedIndex, tf] = listdlg('ListString', varNames, ...
                 'PromptString', msg, 'SelectionMode', selectionMode);
             
             if tf
-                varNames = varNames(indx);
+                varNames = varNames(selectedIndex);
             else
                 varNames = {};
             end

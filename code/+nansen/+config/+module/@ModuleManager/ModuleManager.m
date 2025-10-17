@@ -75,9 +75,19 @@ classdef ModuleManager < handle
             
             % Look for all packages on path with nansen.module prefix
             s = what(fullfile('+nansen', '+module'));
-            moduleSpecFiles = utility.dir.recursiveDir({s.path}, 'Expression', 'module.nansen', ...
-                'Ignore', 'module_folder_template', 'OutputType', 'FilePath', 'FileType', 'json');
-            
+
+            % Need to filter out the template here, as it will be detected if 
+            % the content of the +nansen/+module/resources folder is on 
+            % MATLAB's search path
+            moduleFolders = {s.path};
+            moduleFolders(contains(moduleFolders, 'module_folder_template')) = [];
+
+            moduleSpecFiles = recursiveDir(moduleFolders, ...
+                'Expression', 'module.nansen', ...
+                'IgnoreList', 'module_folder_template', ...
+                'OutputType', 'FilePath', ...
+                'FileType', 'json');
+
             numModules = numel(moduleSpecFiles);
             modules = cell(1, numModules);
 

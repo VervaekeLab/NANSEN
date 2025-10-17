@@ -14,10 +14,6 @@ classdef ProjectManager < handle
 %   [-] Implement as subclass of StorableCatalog,
 %   [+] or make a ProjectCatalog as a property of the projectmanager.
 %   [ ] or make a HasCatalog superclass...
-%   [ ] Have methods that are called from the UI class return messages,
-%       and only call the fprintf on those messages whenever those methods
-%       are called without outputs. something like (status, tf] = method()
-%       This way the UI can catch info, warning, errors.
 %   [ ] Move methods from projectmanager to project
 %   [ ] Add method for renaming project.
 %   [ ] Add standard preferences
@@ -42,7 +38,7 @@ classdef ProjectManager < handle
     end
 
     properties (SetAccess = private)
-        CurrentProject char
+        CurrentProject char % Name of current project
     end
 
     properties (Dependent)
@@ -134,6 +130,17 @@ classdef ProjectManager < handle
                 setAsCurrentProject = true;
             end
 
+            if ~isempty( obj.getProject(name) )
+                error('Project with name "%s" already exists', name)
+            end
+
+            % Temporarily disable current project
+            currentProject = obj.CurrentProject;
+            if ~setAsCurrentProject
+                setCurrentProjectCleanup = onCleanup(@() obj.changeProject(currentProject));
+            end
+            obj.changeProject('', "Verbose", false)
+
             % Add project to project manager.
             projectInfo = obj.createProjectInfo(name, description, projectRootDir);
             
@@ -148,6 +155,7 @@ classdef ProjectManager < handle
                 newProject.initializeProject()
             catch MECause
                 rmdir(projectRootDir, "s")
+                obj.changeProject(currentProject)
                 ME = MException('Nansen:CreateProjectFailed', ...
                     'Failed to create project with name "%s"', name);
                 ME = ME.addCause(MECause);
@@ -253,6 +261,10 @@ classdef ProjectManager < handle
                 newProjectName (1,1) string
             end
 
+            assert(...
+                ~strcmp(projectName, newProjectName), ...
+                'Project name must be different than current name')
+
             project = obj.getProjectObject(projectName);
             if isempty(project); return; end
 
@@ -262,12 +274,8 @@ classdef ProjectManager < handle
                  "alphanumerics and underscores, and first character " + ...
                  "must be a letter.")
 
-            assert(...
-                ~strcmp(projectName, newProjectName), ...
-                'Project name must be different than current name')
-
             % Unselect project if current, so that we don't rename folders
-            % on MATLAB's search path             
+            % on MATLAB's search path
             currentProject = obj.CurrentProject;
             if strcmp(projectName, currentProject)
                 obj.unselectProject(projectName)
@@ -307,16 +315,16 @@ classdef ProjectManager < handle
             if isempty(project); return; end
             
             currentLocation = fileparts(project.Path);
-            newPath = strrep(project.Path, currentLocation, newLocation);
+            newProjectDirectory = strrep(project.Path, currentLocation, newLocation);
             
             if contains(path, project.Path)
                 rmpath(genpath(project.Path))
             end
             
-            movefile(project.Path, newPath)
+            movefile(project.Path, newProjectDirectory)
             
             IND = strcmp({obj.Catalog.Name}, projectName);
-            obj.Catalog(IND).Path = newPath;
+            obj.Catalog(IND).Path = newProjectDirectory;
 
             if isKey(obj.ProjectCache, projectName)
                 % Update project folder in project instance.
@@ -393,9 +401,12 @@ classdef ProjectManager < handle
             end
             
             IND = obj.getProjectIndex(name);
+            if numel(IND) == 0
+                throwProjectNotFoundError(name)
+            end
+            assert( numel(IND)==1, 'Multiple projects were matched. Aborting...')
+            
             projectName = obj.Catalog(IND).Name;
-
-            assert( sum(IND)>=1, 'Multiple projects were matched. Aborting...')
             
             % Check if project is current project and take appropriate
             % action
@@ -484,12 +495,18 @@ classdef ProjectManager < handle
             projectObj = obj.getProjectObject(obj.CurrentProject);
         end
         
-        function msg = changeProject(obj, nameOrIndex)
+        function changeProject(obj, nameOrIndex, options)
         %changeProject Change the current project
         %
         %   changeProject(obj, name) changes the current project to project
         %   with given name
-                        
+
+            arguments
+                obj (1,1) nansen.config.project.ProjectManager
+                nameOrIndex
+                options.Verbose (1,1) logical = true
+            end
+
             import nansen.config.project.event.CurrentProjectChangedEventData
             
             if ~isempty(nameOrIndex)
@@ -497,17 +514,11 @@ classdef ProjectManager < handle
                 projectEntry = obj.getProject(nameOrIndex);
 
                 if isempty(projectEntry)
-                    newProjectName = nameOrIndex;
+                    errMsg = sprintf('Project with name "%s" does not exist', nameOrIndex);
+                    error('Nansen:ProjectManager:ProjectDoesNotExist', errMsg) %#ok<SPERR>
                 else
                     newProjectName = projectEntry.Name;
                 end
-
-                if isempty(projectEntry)
-                    errMsg = sprintf('Project with name "%s" does not exist', newProjectName);
-                    error('Nansen:ProjectNonExistent', errMsg) %#ok<SPERR>
-                end
-                newProjectName = projectEntry.Name;
-
             else
                 newProjectName = '';
             end
@@ -520,16 +531,15 @@ classdef ProjectManager < handle
 
             obj.CurrentProject = newProjectName;
             if ~isempty(newProjectName)
-                obj.addProjectToSearchPath( projectEntry.Path )
+                nansen.config.project.Project.addProjectToSearchPath(projectEntry.Path)
             end
             
             eventData = CurrentProjectChangedEventData(oldProjectName, newProjectName);
             obj.notify('CurrentProjectSet', eventData)
             obj.notify('CurrentProjectChanged', eventData)
-
-            msg = sprintf('Current NANSEN project was changed to "%s"\n', newProjectName);
-            if ~nargout
-                fprintf(msg); clear msg
+            
+            if options.Verbose
+                fprintf('Current NANSEN project was changed to "%s"\n', newProjectName);
             end
         end
         
@@ -549,6 +559,9 @@ classdef ProjectManager < handle
             
             projectName = projectNames{ind};
             obj.changeProject(projectName);
+            if ~nargout
+                clear tf
+            end
         end
         
         function updateProjectItem(obj, projectName, name, value)
@@ -568,6 +581,7 @@ classdef ProjectManager < handle
         end
         
         function unselectProject(obj, projectName)
+            % Todo: How is this different from changeProject
             try
                 prevProject = obj.getProjectObject(projectName);
                 prevProject.removeFromSearchPath()
@@ -585,7 +599,12 @@ classdef ProjectManager < handle
                 newCatalog = obj.getEmptyProjectStruct();
                 S.projectCatalog = newCatalog;
             else
-                S = load(obj.CatalogPath, 'projectCatalog');
+                try
+                    S = load(obj.CatalogPath, 'projectCatalog');
+                catch ME
+                    error('Nansen:ProjectManager:CatalogLoadError', ...
+                        'Failed to load project catalog. Reason:\n%s', ME.message)
+                end
             end
             
             % Ensure name and short name are char types.
@@ -606,7 +625,7 @@ classdef ProjectManager < handle
             elseif obj.CatalogSaveFormat == "json"
                 jsonStr = jsonencode(projectCatalog, 'PrettyPrint', true);
                 jsonPath = replace(obj.CatalogPath, '.mat', '.json');
-                fid=fopen(jsonPath, 'w');
+                fid = fopen(jsonPath, 'w');
                 fwrite(fid, jsonStr);
                 fclose(fid);
             else
@@ -637,11 +656,10 @@ classdef ProjectManager < handle
             else
                 obj.CurrentProject = newProjectName;
                 p = obj.getCurrentProject();
-                obj.addProjectToSearchPath(p.FolderPath)
+                nansen.config.project.Project.addProjectToSearchPath(p.FolderPath)
 
                 if ~isempty(oldProjectName)
-                    prevProject = obj.getProjectObject(oldProjectName);
-                    obj.removeProjectFromSearchPath(prevProject.FolderPath)
+                    obj.unselectProject(oldProjectName)
                 end
             end
 
@@ -679,8 +697,13 @@ classdef ProjectManager < handle
 
             if isnumeric(projectName) % Assume index was given instead of name
                 idx = projectName;
-            else
+                assert(idx >= 1 && idx <= obj.NumProjects, ...
+                    'NANSEN:ProjectManager:IndexOutOfBounds', ...
+                    'Index out of bounds. Must be between 1 and %d', obj.NumProjects)
+            elseif ischar(projectName) || isstring(projectName)
                 idx = find(strcmp({obj.Catalog.Name}, projectName));
+            else
+                error('Project name must be a string or char array')
             end
         end
     end
@@ -756,26 +779,6 @@ classdef ProjectManager < handle
                 n = builtin('numArgumentsFromSubscript', projectInstance, s(2:end), indexingContext);
             else
                 n = builtin('numArgumentsFromSubscript', obj, s, indexingContext);
-            end
-        end
-    end
-
-    methods (Static, Access = private)
-        function addProjectToSearchPath(projectFolderPath)
-            if ~contains(path, projectFolderPath)
-                addpath(genpath(projectFolderPath), '-end')
-            end
-            if isfile( fullfile(projectFolderPath, 'startup.m') )
-                run(fullfile(projectFolderPath, 'startup.m'))
-            end
-        end
-
-        function removeProjectFromSearchPath(projectFolderPath)
-            if contains(path, projectFolderPath)
-                rmpath(genpath(projectFolderPath))
-            end
-            if isfile( fullfile(projectFolderPath, 'finish.m') )
-                run(fullfile(projectFolderPath, 'finish.m'))
             end
         end
     end
@@ -936,6 +939,25 @@ classdef ProjectManager < handle
     methods (Access = ?nansen.internal.user.NansenUserSession)
         % Note: These methods will be removed in a future version (todo).
         
+        function checkProjectsExist(obj)
+        % checkProjectsExist - Check if project folders exists.
+            missingProjectNames = string.empty;
+            missingProjectPaths = string.empty;
+
+            for i = 1:numel(obj.Catalog)
+                thisProjectDir = obj.Catalog(i).Path;
+                if ~isfolder(thisProjectDir)
+                    thisProjectName = obj.Catalog(i).Name;
+                    missingProjectNames(end+1) = obj.Catalog(i).Name; %#ok<AGROW>
+                    missingProjectPaths(end+1) = obj.Catalog(i).Path; %#ok<AGROW>
+                    %showProjectMissingWarning(thisProjectName, thisProjectDir)
+                end
+            end
+            if ~isempty(missingProjectNames)
+                showProjectMissingWarning2(missingProjectNames, missingProjectPaths)
+            end
+        end
+
         function tf = hasUnversionedProjects(obj)
         % hasUnversionedProjects - Check if any projects are unversioned
             configFileName = nansen.common.constant.ProjectConfigFilename;
@@ -944,7 +966,11 @@ classdef ProjectManager < handle
 
             for i = 1:numel(obj.Catalog)
                 thisProjectDir = obj.Catalog(i).Path;
-                TF(i) = ~isfile( fullfile(thisProjectDir, configFileName) );
+                if isfolder(thisProjectDir)
+                    TF(i) = ~isfile( fullfile(thisProjectDir, configFileName) );
+                else
+                    TF(i) = false; % Folder missing, no project to check
+                end
             end
             tf = any(TF);
         end
@@ -994,6 +1020,40 @@ classdef ProjectManager < handle
             % Todo: Reorder catalog to original order?
         end
     end
+end
+
+function throwProjectNotFoundError(projectName)
+    error('NANSEN:ProjectManager:ProjectNotFound', ...
+        'Project with name "%s" does not exist.', projectName)
+end
+
+function showProjectMissingWarning(projectName, projectFolder)
+    nansen.common.tracelesswarning(...
+        'NANSEN:ProjectManager:ProjectMissing', ...
+        ['Project "%s" was not found at expected location:\n%s\nRun ', ...
+        'nansen.ProjectManager to remove the project or update it''s location.\n'], ...
+        projectName, projectFolder)
+end
+
+function showProjectMissingWarning2(projectNames, projectFolders)
+    
+    projectList = compose("  %s -> %s", projectNames', projectFolders');
+    projectList = strjoin(projectList, newline);
+    
+    if numel(projectNames) == 1
+        warningMessage = sprintf(...
+            ['The following project was not found:\n%s\nRun ', ...
+            'nansen.ProjectManager to remove the project or update it''s ', ...
+            'location.\n'], projectList);
+    else
+        warningMessage = sprintf(...
+            ['The following projects were not found:\n%s\nRun ', ...
+            'nansen.ProjectManager to remove the projects or update their ', ...
+            'locations.\n'], projectList);
+    end
+
+    nansen.common.tracelesswarning(...
+        'NANSEN:ProjectManager:ProjectMissing', warningMessage)
 end
 
 % Change log
