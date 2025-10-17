@@ -125,7 +125,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             
             obj.radius = [1, 1/imageAr] .* obj.radius;
             [xCoords, yCoords] = obj.getBoundaryCoords('resetEdge', true);
-            newPos = [min(xCoords), min(yCoords), range(xCoords), range(yCoords)];
+            newPos = [min(xCoords), min(yCoords), nansen.util.range(xCoords), nansen.util.range(yCoords)];
             obj.resize(newPos);
             obj.updateImage();
         end
@@ -138,7 +138,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             [xCoords, yCoords] = obj.getBoundaryCoords();
             
             % Radius is in micrometer, so multiply with 1000
-            obj.radius = [range(xCoords)/2, range(yCoords)/2] * 1000;
+            obj.radius = [nansen.util.range(xCoords)/2, nansen.util.range(yCoords)/2] * 1000;
 
         end
         
@@ -166,7 +166,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             % Should implement something more general across all objects...
             
             opt = struct('resetEdge', false);
-            opt = parsenvpairs(opt, [], varargin);
+            opt = utility.parsenvpairs(opt, [], varargin);
             
             if opt.resetEdge
                 obj.edge = [];
@@ -175,7 +175,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             if isempty(obj.edge)
                 radiusMapCoords = obj.radius / 1000;
             else
-                radiusMapCoords = range(obj.edge) / 2;
+                radiusMapCoords = nansen.util.range(obj.edge) / 2;
             end
             
             switch obj.shape

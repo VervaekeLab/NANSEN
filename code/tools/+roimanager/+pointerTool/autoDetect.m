@@ -391,8 +391,8 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             
             if nargin < 2 && ~obj.isPointerInsideAxes()
                 if isempty(obj.circleToolCoords)
-                    x = obj.hAxes.XLim(1) + range(obj.hAxes.XLim)/2;
-                    y = obj.hAxes.YLim(1) + range(obj.hAxes.YLim)/2;
+                    x = obj.hAxes.XLim(1) + nansen.util.range(obj.hAxes.XLim)/2;
+                    y = obj.hAxes.YLim(1) + nansen.util.range(obj.hAxes.YLim)/2;
                     r = obj.defaultRadius;
                     obj.circleToolCoords = [x, y, r];
                 else
@@ -458,7 +458,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             % Todo: Have these sizes as internal property?
 % %             axLimOrig = [1,obj.RoiDisplay.displayApp.imWidth; ...
 % %                 1,obj.RoiDisplay.displayApp.imHeight];
-% %             ps = 10 / axLimOrig(2a) * range(hAx.XLim);
+% %             ps = 10 / axLimOrig(2a) * nansen.util.range(hAx.XLim);
             
             axLimOrig = [obj.xLimOrig; obj.yLimOrig];
             

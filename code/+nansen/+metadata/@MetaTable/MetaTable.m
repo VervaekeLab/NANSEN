@@ -1115,14 +1115,12 @@ classdef MetaTable < handle
             idName = obj.SchemaIdName;
 
             if isa(listOfEntryIds, 'cell')
-                assert( ~isempty( strfindsid(listOfEntryIds{1}) ), 'Cells should contain IDs' )
                 IND = contains( obj.entries.(idName), listOfEntryIds);
                 
             elseif isa(listOfEntryIds, 'numeric')
                 IND = listOfEntryIds;
                 
             elseif isa(listOfEntryIds, 'char')
-                assert( ~isempty( strfindsid(listOfEntryIds) ), 'Char should contain ID' )
                 IND = contains( obj.entries.(idName), listOfEntryIds);
             end
 
@@ -1388,7 +1386,7 @@ classdef MetaTable < handle
 
             for iItem = 1:numItems
                 try % Todo: Use error handling here. What if some conditions can not be met...
-                    newValue = updateFcn(metaObjects(iItem));
+                    newValue = updateFunction(metaObjects(iItem));
 
                     if isa(newValue, 'nansen.metadata.abstract.TableVariable')
                         % Need to extract data value if the newValue is a
@@ -1409,7 +1407,7 @@ classdef MetaTable < handle
                         updatedValues{iItem} = newValue;
                     else
                         if ~hasWarned
-                            warningMessage = sprintf('The table variable function returned something unexpected.\nPlease make sure that the table variable function for "%s" returns a %s.', varName, expectedDataType);
+                            warningMessage = sprintf('The table variable function returned something unexpected.\nPlease make sure that the table variable function for "%s" returns a %s.', variableName, expectedDataType);
                             if ~isempty(options.MessageDisplay)
                                 options.MessageDisplay.warn(warningMessage, 'Title', 'Update failed')
                             end

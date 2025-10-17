@@ -10,7 +10,7 @@ function imOut = std(imArray, dim)
         imOut = imArray;
     end
     
-    imOut = imOut .* range(P) + P(1);
+    imOut = imOut .* nansen.util.range(P) + P(1);
     imOut = cast(imOut, class(imArray));
     
 end

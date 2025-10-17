@@ -226,12 +226,7 @@ classdef pointerManager < handle
                 obj.currentPointerTool.onButtonUp(src, event)
             end
         end
-        
-        function keyPressCallbackFunction(varargin)
-            wasCaptured = obj.onKeyPress(src, event);
-            clear wasCaptured
-        end
-        
+
         function wasCaptured = onKeyPress(obj, src, event)
             
             % Todo: Make a system for having unique key shortcuts and

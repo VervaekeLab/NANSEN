@@ -76,9 +76,7 @@ classdef App < handle & applify.mixin.UserSettings
     methods % Structors
         
         function obj = App(mode)
-            
-            obj.checkDependencies()
-            
+                        
 %             if obj.isOpen()
 %                 clear obj; return
 %             end
@@ -349,7 +347,7 @@ classdef App < handle & applify.mixin.UserSettings
         
         function initializeGuiSimple(obj)
             
-            [obj.hFigure, obj.hAxes] = fovmanager.showMap();
+            [obj.hFigure, obj.hAxes] = fovmanager.App.showMap();
             obj.hFigure.Name = 'Cortex Dorsal Map';
             obj.hFigure.MenuBar             = 'none';
 
@@ -1394,7 +1392,7 @@ classdef App < handle & applify.mixin.UserSettings
             
             % Todo: Sort by valid string.
             
-            isValid = cellfun(@(sid) strcmp(strfindsid(sid), sid), sessionIDs);
+            isValid = cellfun(@(sid) strcmp(fovmanager.utility.strfindsid(sid), sid), sessionIDs);
             
             if any(~isValid)
                 msg = sprintf( ['%d/%d of the sessionIDs were not \n',...
@@ -2157,13 +2155,13 @@ classdef App < handle & applify.mixin.UserSettings
            
             % Create an imrect object
 % %             rcc = thisFov.edge;
-% %             fovPosition = [ min(rcc), range(rcc) ];
+% %             fovPosition = [ min(rcc), nansen.util.range(rcc) ];
             
             % Find coordinates from the plotted outline, since this can
             % vary from the actual coordinates. Why the fuck...
             h = findobj(thisFov.guiHandle, '-regexp', 'Tag', 'Outline');
             xCoords = h.XData; yCoords = h.YData;
-            objPosition = [min(xCoords), min(yCoords), range(xCoords), range(yCoords)];
+            objPosition = [min(xCoords), min(yCoords), nansen.util.range(xCoords), nansen.util.range(yCoords)];
             
             obj.resizeRectHandle = imrect(obj.hAxes, objPosition);
             obj.resizeRectHandle.addNewPositionCallback(@(pos) thisFov.resize(pos));
@@ -2198,20 +2196,20 @@ classdef App < handle & applify.mixin.UserSettings
                 yLim = obj.hAxes.YLim;
                    
                 % Calculate aspect ratio of axes and object
-                arAxes = range(xLim) / range(yLim);
-                arObject = range(hTmp.XData) / range(hTmp.YData);
+                arAxes = nansen.util.range(xLim) / nansen.util.range(yLim);
+                arObject = nansen.util.range(hTmp.XData) / nansen.util.range(hTmp.YData);
                 
                 % Get center of object
-                centerX = min(hTmp.XData) + range(hTmp.XData)/2;
-                centerY = min(hTmp.YData) + range(hTmp.YData)/2;
+                centerX = min(hTmp.XData) + nansen.util.range(hTmp.XData)/2;
+                centerY = min(hTmp.YData) + nansen.util.range(hTmp.YData)/2;
                 
                 % Zoom Factor. @ 1, the object will occupy the whole zoomed
                 % in view. @ 2, the object will occupy the half of the
                 % zoomed in view.
                 zF = 1.1; zF = zF/2;
                 
-                objectZoomXLim = centerX + [-zF, zF] .* range(hTmp.XData);
-                objectZoomYLim = centerY + [-zF, zF] .* range(hTmp.YData);
+                objectZoomXLim = centerX + [-zF, zF] .* nansen.util.range(hTmp.XData);
+                objectZoomYLim = centerY + [-zF, zF] .* nansen.util.range(hTmp.YData);
 
                 if objectZoomYLim(1) < -9 || objectZoomYLim(2) > 7
                     obj.resetZoom(); return
@@ -2236,7 +2234,7 @@ classdef App < handle & applify.mixin.UserSettings
                     else % zoom in
                         
                         obj.hAxes.XLim = objectZoomXLim; % [min(hTmp.XData), max(hTmp.XData)].*1.5;
-                        newYrange = range(objectZoomXLim)./arAxes;
+                        newYrange = nansen.util.range(objectZoomXLim)./arAxes;
                         obj.hAxes.YLim = centerY + [-0.5, 0.5] .* newYrange;
                         %obj.hAxes.GridAlpha = 0;
                         obj.hAxes.Layer = 'top';
@@ -2253,7 +2251,7 @@ classdef App < handle & applify.mixin.UserSettings
                         end
                     else % zoom in
                         obj.hAxes.YLim = objectZoomYLim;
-                        newXrange = range(objectZoomYLim).*arAxes;
+                        newXrange = nansen.util.range(objectZoomYLim).*arAxes;
                         obj.hAxes.XLim = centerX + [-0.5, 0.5] .* newXrange;
                         %obj.hAxes.GridAlpha = 0;
                         obj.hAxes.Layer = 'top';
@@ -2569,22 +2567,6 @@ classdef App < handle & applify.mixin.UserSettings
     end
     
     methods (Static)
-        
-        function checkDependencies(obj)
-            
-            try
-                uimVersion = uim.version();
-            catch
-                uimVersion = 0;
-            end
-            
-%             if uimVersion < 738130
-%                 errordlg('Functions-Library (branch, eivind-mess-in-progress) is not up to date.')
-%                 error('vlab:fovmanager:oldversion', 'Functions-Library has updates which are required')
-%             end
-            
-        end
-        
         function tf = isOpen()
             openFigures = findall(0, 'Type', 'Figure');
             if isempty(openFigures)
@@ -2671,7 +2653,7 @@ classdef App < handle & applify.mixin.UserSettings
         % % % Methods to get things out of the default database
         
         function Db = getDefaultDatabase()
-            S = fovmanager.getSettings();
+            S = fovmanager.App.getSettings();
             if ~isempty(S)
                 if ~isempty(S.defaultFilePath) && isfile(S.defaultFilePath)
                     S2 = load(S.defaultFilePath);
@@ -2691,7 +2673,7 @@ classdef App < handle & applify.mixin.UserSettings
 %            fovArray = fovmanager.mapobject.FoV.empty(numel(sessionIDs), 0);
             % Load settings file and get default fov database
             if nargin < 2 || isempty(database)
-                database = fovmanager.getDefaultDatabase;
+                database = fovmanager.App.getDefaultDatabase;
             end
             
             if isa(database, 'struct'); database = {database}; end
@@ -2740,11 +2722,11 @@ classdef App < handle & applify.mixin.UserSettings
         
         function mapCoords = getRoiMapCoordinates(sessionID, fovDb)
 
-            thisFov = fovmanager.findFovFromSession(sessionID(1:end-4), fovDb);
+            thisFov = fovmanager.App.findFovFromSession(sessionID(1:end-4), fovDb);
             
             % Turn into object
             if ~isa(thisFov, 'fovmanager.mapobject.FoV')
-                thisFov = FoV(thisFov);
+                thisFov = fovmanager.mapobject.FoV(thisFov);
             end
             
             % Call FoVs getRoiPosition method
@@ -2754,12 +2736,13 @@ classdef App < handle & applify.mixin.UserSettings
         
         function fovCenter = getFovCenter(sessionID)
             
-            sessionID = validateSessionID(sessionID, 'any');
+            % sessionID = validateSessionID(sessionID, 'any'); Non-existent
+            % function. Todo: Find function or remove
             numSessions = numel(sessionID);
             
             fovCenter = nan(numSessions, 2);
             
-            thisFov = fovmanager.findFovFromSession(sessionID);
+            thisFov = fovmanager.App.findFovFromSession(sessionID);
             if isempty(thisFov); return; end
             
             fovCenter = cat(1, thisFov.center);
@@ -2770,15 +2753,16 @@ classdef App < handle & applify.mixin.UserSettings
             
             % Todo: Merge this with another function.
             
-            sessionID = validateSessionID(sessionID, 'any');
+            % sessionID = validateSessionID(sessionID, 'any'); Non-existent
+            % function. Find function or remove
             numSessions = numel(sessionID);
             
             fovLabel = cell(numSessions, 1);
 
-            allFovs = fovmanager.findFovFromSession(sessionID);
+            allFovs = fovmanager.App.findFovFromSession(sessionID);
             if isempty(allFovs); return; end
             
-            tmpFig = brainmap.paxinos.open('invisible');
+            tmpFig = fovmanager.view.openAtlas("paxinos", "Visibility", "invisible");
 
             h = findobj(tmpFig, 'Type', 'Polygon');
             h(31) = [];
@@ -2786,8 +2770,8 @@ classdef App < handle & applify.mixin.UserSettings
             ax = findobj(tmpFig, 'type', 'Axes');
             xMin = ax.XLim(1);
             yMin = ax.YLim(1);
-            xRange = range(ax.XLim);
-            yRange = range(ax.YLim);
+            xRange = nansen.util.range(ax.XLim);
+            yRange = nansen.util.range(ax.YLim);
             m = 100;
             
             for iSession = 1:numSessions
@@ -2844,12 +2828,12 @@ classdef App < handle & applify.mixin.UserSettings
         function thisWindow = getWindow(sessionID, varargin)
             
             param = struct('dbPath', 'default');
-            param = parsenvpairs(param, [], varargin);
+            param = utility.parsenvpairs(param, [], varargin);
             
             if strcmp(param.dbPath, 'default')
-                fovDb = fovmanager.getDefaultDatabase;
+                fovDb = fovmanager.App.getDefaultDatabase;
             else
-                fovDb = fovmanager.getDatabase(param.dbPath);
+                fovDb = fovmanager.App.getDatabase(param.dbPath);
             end
             
             currentMId = sessionID(2:5);
@@ -2864,7 +2848,7 @@ classdef App < handle & applify.mixin.UserSettings
         end
         
         function windowCoords = getWindowCoords(sessionID)
-            thisWindow = fovmanager.getWindow(sessionID);
+            thisWindow = fovmanager.App.getWindow(sessionID);
             windowCoords = thisWindow.edge;
         end
         
@@ -2962,15 +2946,15 @@ classdef App < handle & applify.mixin.UserSettings
         % Methods to plot the brain map and
         
         function [fig, ax] = showMap(varargin)
-        %fovmanager.App.showMap Plot the paxinos dorsal surface map
+        % showMap - Plot the paxinos dorsal surface map
         %
-        %   fovmanager.showMap() open a new figure with the dorsal brain
+        %   fovmanager.App.showMap() open a new figure with the dorsal brain
         %   surface map.
         %
-        %   fovmanager.showMap(ax) creates the map in the in the axes
+        %   fovmanager.App.showMap(ax) creates the map in the in the axes
         %   specified by ax
         %
-        %   fovmanager.showMap(ax, Name, Value, ...) creates the map with
+        %   fovmanager.App.showMap(ax, Name, Value, ...) creates the map with
         %   additional name value pair arguments:
         %
         %   Name, Value pair arguments:
@@ -2985,7 +2969,7 @@ classdef App < handle & applify.mixin.UserSettings
                 'LabelHemisphere', 'right' );
             
             % Open the figure with the brain map
-            fig = brainmap.paxinos.open('Invisible');
+            fig = fovmanager.view.openAtlas("paxinos", "Visibility", "invisible");
             ax = findobj(fig, 'Type', 'axes');
             
             % Check if axes is given as input and make figure and axes if not.
@@ -3014,7 +2998,7 @@ classdef App < handle & applify.mixin.UserSettings
             end
             
             % Get parameters given as input
-            opt = parsenvpairs(def, [], varargin);
+            opt = utility.parsenvpairs(def, [], varargin);
 
             ax.GridAlpha = 0.15;
             ax.Layer = 'top';
@@ -3043,10 +3027,10 @@ classdef App < handle & applify.mixin.UserSettings
         function hWin = plotWindow(ax, sessionID, varargin)
         
             def = struct('MakeMapOpaque', false, 'Opaqueness', 0, 'ShowImage', false);
-            opt = parsenvpairs(def, [], varargin);
+            opt = utility.parsenvpairs(def, [], varargin);
             
             % Plot window
-            thisWindow = fovmanager.getWindow(sessionID);
+            thisWindow = fovmanager.App.getWindow(sessionID);
             
             hold(ax, 'on')
             hWin = fovmanager.mapobject.CranialWindow(ax, thisWindow);
@@ -3069,7 +3053,7 @@ classdef App < handle & applify.mixin.UserSettings
         function h = plotFov(ax, sessionID, varargin)
             
             def = struct('FovShape', 'square');
-            opt = parsenvpairs(def, [], varargin);
+            opt = utility.parsenvpairs(def, [], varargin);
             
             % Plot window
             if isa(sessionID, 'char')
@@ -3084,13 +3068,13 @@ classdef App < handle & applify.mixin.UserSettings
             
             for i = 1:numSessions
                 
-                thisFov = fovmanager.findFovFromSession(sessionID{i}(1:end-4)); % Todo: might exclude last part of sessionID
+                thisFov = fovmanager.App.findFovFromSession(sessionID{i}(1:end-4)); % Todo: might exclude last part of sessionID
 
                 xCoords = thisFov.edge(:, 1);
                 yCoords = thisFov.edge(:, 2);
                 
                 if strcmp( opt.FovShape, 'circle' )
-                    rho = mean([range(xCoords), range(yCoords) ]) ./ 2;
+                    rho = mean([nansen.util.range(xCoords), nansen.util.range(yCoords) ]) ./ 2;
                     theta = deg2rad(1:360);
                     rho = ones(size(theta)) * rho;
                     [xCoords, yCoords] = pol2cart(theta, rho);
@@ -3113,8 +3097,8 @@ classdef App < handle & applify.mixin.UserSettings
             origXLim = ax.XLim;
             origYLim = ax.YLim;
             
-            ax.XLim = origXLim + range(origXLim) .* [-0.1, 0.1];
-            ax.YLim = origYLim + range(origYLim) .* [-0.1, 0.1];
+            ax.XLim = origXLim + nansen.util.range(origXLim) .* [-0.1, 0.1];
+            ax.YLim = origYLim + nansen.util.range(origYLim) .* [-0.1, 0.1];
 
             imageVertices = [ax.XLim([1,1,2,2]); ax.YLim([2,1,1,2])];
             imageVertices = imageVertices';
@@ -3137,8 +3121,8 @@ classdef App < handle & applify.mixin.UserSettings
             ax.XLim = origXLim;
             ax.YLim = origYLim;
             
-            ax.XLim = origXLim + range(origXLim) .* [-0.01, 0.01];
-            ax.YLim = origYLim + range(origYLim) .* [-0.01, 0.01];
+            ax.XLim = origXLim + nansen.util.range(origXLim) .* [-0.01, 0.01];
+            ax.YLim = origYLim + nansen.util.range(origYLim) .* [-0.01, 0.01];
             
         end
     end

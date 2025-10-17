@@ -491,7 +491,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 %                     continue
 %                 end
 %
-%                 thisDataLocation = dataLocationModel.Data(i);
+                thisDataLocation = obj.DataLocationModel.Data(i);
                 
                 pathString = obj.detectSessionFolder(thisDataLocation);
                 

@@ -393,7 +393,7 @@ classdef MetaTableCatalog < uim.handle
             
             % Add a callback upon closing figure and pass on the jTable
             % handle
-            f.CloseRequestFcn = @(s,e,jH)MetaTableCatalog.closeTableView(s,e,jTable);
+            f.CloseRequestFcn = @(s,e,jH) nansen.metadata.MetaTableCatalog.closeTableView(s,e,jTable);
             
         end
         

@@ -314,7 +314,7 @@ classdef imageVector < handle
             
 %             shapes = cat(1, [obj.hPolygon.Shape] );
 %             coords = cat(1, shapes.Vertices);
-%             width = range(coords(:, 1));
+%             width = nansen.util.range(coords(:, 1));
             
         end
         
@@ -340,7 +340,7 @@ classdef imageVector < handle
             
 %             shapes = cat(1, [obj.hPolygon.Shape] );
 %             coords = cat(1, shapes.Vertices);
-%             height = range(coords(:, 2));
+%             height = nansen.util.range(coords(:, 2));
             
         end
         
