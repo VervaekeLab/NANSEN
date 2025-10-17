@@ -166,7 +166,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             % Should implement something more general across all objects...
             
             opt = struct('resetEdge', false);
-            opt = parsenvpairs(opt, [], varargin);
+            opt = utility.parsenvpairs(opt, [], varargin);
             
             if opt.resetEdge
                 obj.edge = [];
