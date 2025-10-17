@@ -223,7 +223,7 @@ classdef FoV < fovmanager.mapobject.BaseObject
                 end
                 
                 % Skip session if it is not a valid sessionID
-                if ~isequal(strfindsid(sessionIDs{i}), sessionIDs{i})
+                if ~isequal(fovmanager.utility.strfindsid(sessionIDs{i}), sessionIDs{i})
                     warning('Invalid sessionID; %s. Session not added.', sessionIDs{i});
                     continue;
                 end

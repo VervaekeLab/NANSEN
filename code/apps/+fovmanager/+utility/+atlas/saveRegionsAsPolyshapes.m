@@ -27,6 +27,7 @@ save(savePath, 'mapRegions', 'mapBoundary')
 return
 
 % Create patchdata (This is just for the record)
+numShapes = numel(polyShape);
 [xData, yData] = deal( cell(numShapes, 1) );
 
 for i = 1:numel(polyShape)
