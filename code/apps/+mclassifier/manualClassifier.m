@@ -1690,3 +1690,21 @@ methods (Static, Access = private)
     end
 end
 end
+
+function str = pval2str(pval, numSignificantValues)
+    %pval2str Format a pvalue as a string 
+    
+    if nargin < 2; numSignificantValues=2; end
+    
+    if pval < 0.001
+        str = num2str(pval, sprintf('%%.%de**', numSignificantValues));
+    elseif pval < 0.01
+        str = num2str(pval, sprintf('%%.%df**', numSignificantValues));
+    elseif pval < 0.05
+        str = num2str(pval, sprintf('%%.%df*', numSignificantValues));
+    else
+        str = num2str(pval, sprintf('%%.%df', numSignificantValues));
+    end
+    
+    % str = sprintf('p = %s', str);
+end
