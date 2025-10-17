@@ -8,6 +8,8 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
 %   here: https://github.com/AllenInstitute/deepinterpolation
 %
 %   (1) https://github.com/MATLAB-Community-Toolboxes-at-INCF/DeepInterpolation-MATLAB
+
+%   Requires DeepLearningToolbox
     
     properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Deep Interpolation (Denoise Stack)'
@@ -58,6 +60,8 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
     methods % Constructor
         
         function obj = Denoiser(sourceStack, varargin)
+            
+            % Todo: Ensure DeepLearningToolbox is installed
 
             obj@nansen.stack.ImageStackProcessor(sourceStack, varargin{:})
             
