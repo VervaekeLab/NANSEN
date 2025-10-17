@@ -1165,11 +1165,15 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
         end
 
-        function folderPath = createSessionFolder(obj, dataLocationName, mode)
+        function folderPath = createSessionFolder(obj, dataLocationName, mode, useDLModelSubfolders)
         %createSessionFolder Create a session folder if it does not exist
         
             if nargin < 2
                 dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+            end
+
+            if nargin < 4 || isempty(useDLModelSubfolders)
+                useDLModelSubfolders = false;
             end
         
             [~, dlIdx] = obj.DataLocationModel.containsItem(dataLocationName);
@@ -1201,17 +1205,22 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             % subfolders already exist in any of the roots and select the
             % root based on that.
 
-            folderPath = rootPath;
-            subfolders = '';
-            
-            % Include subfolders in the folder path
-            for i = 1:numel(dlModel.SubfolderStructure)
-                iSubfolderStruct = dlModel.SubfolderStructure(i);
-                folderName = obj.generateFolderName(iSubfolderStruct);
-                folderPath = fullfile(folderPath, folderName);
-                subfolders = fullfile(subfolders, folderName);
+            if useDLModelSubfolders
+                subfolders = dlSession.Subfolders;
+                folderPath = fullfile(rootPath, subfolders);
+            else
+                subfolders = '';
+                folderPath = rootPath;
+                
+                % Include subfolders in the folder path
+                for i = 1:numel(dlModel.SubfolderStructure)
+                    iSubfolderStruct = dlModel.SubfolderStructure(i);
+                    folderName = obj.generateFolderName(iSubfolderStruct);
+                    folderPath = fullfile(folderPath, folderName);
+                    subfolders = fullfile(subfolders, folderName);
+                end
             end
-            
+
             if ~isfolder(folderPath)
                 mkdir(folderPath)
             end
