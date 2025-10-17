@@ -410,7 +410,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             
             if isempty(obj.hBackground); return; end
             
-            if isa(obj.hForeground, 'clib.imageVector')
+            if isa(obj.hForeground, 'uim.graphics.imageVector')
                 %obj.hForeground.Position(1:2) = newPosition + obj.Padding(1:2);
                 obj.hForeground.Position(1:2) = obj.Position(1:2) + (obj.Position(3:4)-[obj.hForeground.Width, obj.hForeground.Height]) / 2;
 
@@ -704,7 +704,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
                         pixelWidth = obj.hForeground.Extent(3);% .* axPosPix(3);
                         aR = (pixelWidth + sum(obj.Padding([1,3]))) ./ obj.Toolbar.Height;
 
-                    case 'clib.imageVector'
+                    case 'uim.graphics.imageVector'
 %                         axPosPix = getpixelposition(obj.Toolbar.Axes);
 %                         aR = obj.hForeground.Width*axPosPix(3) ./ (obj.hForeground.Height*axPosPix(4));
 

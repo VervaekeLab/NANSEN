@@ -28,7 +28,7 @@ function saveIcon(iconName)
         V = struct('Shape', polyShape, 'Color', colors); %#ok<NASGU>
         delete(hP)
 
-        hV = clib.imageVector(ax, V);
+        hV = uim.graphics.imageVector(ax, V);
 
         hV.Height = hV.Height/hV.Height;
 
