@@ -1,4 +1,4 @@
-function t_out = nansen.util.range(t_in,R)
+function t_out = range(t_in,R)
 % RANGE - downsample a timetable and let the Y values reflect the range
 %
 % T_OUT = RANGE(T_IN, R)
