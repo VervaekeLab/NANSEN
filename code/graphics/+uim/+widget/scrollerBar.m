@@ -615,7 +615,7 @@ classdef scrollerBar < uim.handle
             coords = coords - min(coords);
             
             % Center on shortest dimension
-            coords = coords + (1-range(coords(:, :)))/2 .* isDim;
+            coords = coords + (1-nansen.util.range(coords(:, :)))/2 .* isDim;
             
             % Set new coordinates of scrollbar patch
             set(obj.hScrollbar(2), 'XData', coords(:,1), 'YData', coords(:,2));
