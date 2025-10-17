@@ -5,7 +5,7 @@ function hText = showBrainMapLabels(hAxes, leftOrRight, varargin)
 % % param = parsenvpairs(param, [], varargin);
 
 if nargin < 1
-    tmpFig = brainmap.paxinos.open();
+    tmpFig = fovmanager.view.openAtlas("paxinos");
     hAxes = gca;
     leftOrRight = 'both';
     h = findobj(tmpFig, 'Type', 'Polygon');

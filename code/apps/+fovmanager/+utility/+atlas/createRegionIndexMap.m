@@ -7,7 +7,7 @@ function createRegionIndexMap()
     % Open the figure containing the paxinos map (each subregion is a
     % patched object / polygon object)
 
-    tmpFig = brainmap.paxinos.open('Invisible');
+    tmpFig = fovmanager.view.openAtlas("paxinos", "Visibility", "invisible");
     h = findobj(tmpFig, 'Type', 'Polygon');
     h(31) = []; % Ignore (This is the map borders, and should not be included)
     

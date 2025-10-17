@@ -1,6 +1,7 @@
 function saveRegionsAsPolyshapes()
 
-tmpFig = brainmap.paxinos.open('invisible');
+tmpFig = fovmanager.view.openAtlas("paxinos", "Visibility", "invisible");
+
 hAx = findobj(tmpFig, 'type', 'axes');
 hPoly = findall(hAx, 'type', 'polygon');
 
