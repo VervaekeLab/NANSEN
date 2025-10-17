@@ -88,7 +88,8 @@ classdef DataIoModel < handle
             obj.FilePathModel = dataFilePathModel;
 
             if isempty(dataLocationModel)
-                dataLocationModel = nansen.dataio.DataLocations();
+                % dataLocationModel = nansen.dataio.DataLocations(); Todo?
+                dataLocationModel = nansen.config.dloc.DataLocationModel();
             end
             
             obj.DataLocationModel = dataLocationModel;
