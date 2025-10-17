@@ -20,7 +20,7 @@ function saveIcon(iconName)
         ax = axes;
         axis equal
 
-        hP = utilities.patchLineDrawing(ax, im, 'cropImage', true);
+        hP = uim.graphics.patchLineDrawing(ax, im, 'cropImage', true);
         % Get the shape and the colors and save to a mat-file
         polyShape = arrayfun(@(h) h.Shape, hP, 'uni', 0);
         colors = arrayfun(@(h) h.FaceColor, hP, 'uni', 0);
