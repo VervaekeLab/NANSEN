@@ -1365,7 +1365,7 @@ methods(Static)
                     obj.(propertyNames{fNo}) = s.(propertyNames{fNo});
                 end
             else
-                obj = utilities.struct2roiarray(s);
+                obj = roimanager.utilities.struct2roiarray(s);
 
             end
 
