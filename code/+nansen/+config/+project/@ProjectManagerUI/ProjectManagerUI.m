@@ -336,7 +336,8 @@ classdef ProjectManagerUI < handle
             obj.UIControls.ProjectTable = uitable(obj.TabList(tabIdx));
             obj.UIControls.ProjectTable.Position = [10,10,530,200];
 
-            addlistener(obj.UIControls.ProjectTable, "SizeChanged", @(s,e) obj.setProjectTablePosition)
+            addlistener(obj.UIControls.ProjectTable, ...
+                "SizeChanged", @(s,e) obj.setProjectTablePosition);
         end
         
         function createProjectTable(obj)
