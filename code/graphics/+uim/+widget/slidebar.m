@@ -245,8 +245,8 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
                 yrangepx = axPosition(4);
 
                 % Get axes size in data units.
-                xrangedu = range(obj.hAxes.XLim);
-                yrangedu = range(obj.hAxes.YLim);
+                xrangedu = nansen.util.range(obj.hAxes.XLim);
+                yrangedu = nansen.util.range(obj.hAxes.YLim);
 
                 % Expand axes limits to account for slider moving to the
                 % limits..
@@ -256,8 +256,8 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
 % %                             [-1, 1] .* yrangedu .* (sliderSize / yrangepx);
 
                 % Get new x-dim axes size in data units.
-                xrangedu = range(obj.hAxes.XLim);
-                yrangedu = range(obj.hAxes.YLim);
+                xrangedu = nansen.util.range(obj.hAxes.XLim);
+                yrangedu = nansen.util.range(obj.hAxes.YLim);
                 
                 rho = ones(size(theta)).*0.5;
                 
@@ -425,7 +425,7 @@ classdef slidebar < handle % & uiw.mixin.AssignPVPairs
         
         function onBarColorSet(obj)
             if ~isempty(obj.hBar)
-                obj.hBar.FaceColor = newColor;
+                obj.hBar.FaceColor = obj.BarColor;
             end
         end
     end

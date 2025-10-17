@@ -48,7 +48,7 @@ end
 cIm = stack.reshape.imsplit(tmpC, false, [d1,d2,1], 'numRows', numRows, 'numCols', numCols);
 
 % cast...
-cIm = cIm .* range(P) + P(1);
+cIm = cIm .* nansen.util.range(P) + P(1);
 cIm = cast(cIm, class(IM));
 
 %cIm = stack.makeuint8(cIm);

@@ -831,9 +831,9 @@ classdef ImageStack < handle & uim.mixin.assignProperties
                     P = double( prctile(single(tmpStack(:)), [0.5, 99.5]) );
                     projectionImage = std(single(tmpStack), 0, dim);
                     projectionImage = (projectionImage - (min(projectionImage(:)))) ./ ...
-                        range(projectionImage(:));
+                        nansen.util.range(projectionImage(:));
                     
-                    projectionImage = projectionImage .* range(P) + P(1);
+                    projectionImage = projectionImage .* nansen.util.range(P) + P(1);
                     projectionImage = cast(projectionImage, class(tmpStack));
                     %projectionImage = stack.makeuint8(projectionImage);
                 case {'max', 'maximum'}

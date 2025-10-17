@@ -631,7 +631,8 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         end
 
         function foundRois = runInternalAutosegmentation(obj, Y, options)
-                        
+            % Todo: Deprecate?
+
             % Get imageStack from viewer
             hImageStack = obj.PrimaryApp.ImageStack;
             
@@ -644,6 +645,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
 
             [im, stat] = deal([]);
 
+            % NB: Function is missing.
             [foundRois, im, stat] = roimanager.autosegment.autosegmentSoma(Y, mean(Y, 3));
 
             mask = hImageStack.getProjection('mean') == 0;
@@ -1111,7 +1113,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             end
             
             % NB: Do this last
-            utilities.toggleUicontrolLabel(mItem, 'Show', 'Hide');
+            uim.utility.toggleUicontrolLabel(mItem, 'Show', 'Hide');
         end
         
         function onShowRoiOutlinesMenuItemClicked(obj, src)

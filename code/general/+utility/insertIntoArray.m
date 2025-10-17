@@ -87,7 +87,7 @@ function arrayOut = insertIntoArray(arrayIn, arrayToInsert, ind, dim)
     
     % Reshape and inverse permute result to match the dimensions of the
     % input.
-    arrayOut = reshape(arrayOut2, [szA(1)+szB(1), szA(2:end)] );
+    arrayOut = reshape(arrayOut, [szA(1)+szB(1), szA(2:end)] );
     arrayOut = ipermute(arrayOut, dimOrder);
     
 end

@@ -706,7 +706,7 @@ methods % App initialization & creation
     
 % % Methods for creating / configuring figure..
 
-    function createFigure(obj, figurePosition)
+    function createFigure(obj, figurePosition) % Deprecated?
 
         %hFig = figure('Visible', 'off');
         %obj.Figure = hFig;
@@ -720,7 +720,7 @@ methods % App initialization & creation
         %obj.Figure.Resize = 'off';
         obj.Figure.CloseRequestFcn = @obj.quitImviewer;
         
-        obj.Panel = uipanel(hFig);
+        obj.Panel = uipanel(obj.Figure);
         obj.Panel.BackgroundColor = obj.Figure.Color;
         obj.Panel.BorderType = 'none';
         obj.Panel.Position = [0,0,1,1];
@@ -895,7 +895,7 @@ methods % App initialization & creation
 % %         pathstr = '/Users/eivinhen/PhD/Programmering/MATLAB/ExternalLabs/LettenCenter/imviewer/landing.png';
 % %         [im, ~, ALPHA] = imread(pathstr);
 % %         im = mean(im, 3);
-% %         im = (im-min(im(:))) ./ range(im(:));
+% %         im = (im-min(im(:))) ./ nansen.util.range(im(:));
 % %         im = stack.reshape.imexpand(im, [1500,1500]);
 % %         im = imcomplement(im);
 % %         ALPHA = stack.reshape.imexpand(ALPHA, [1500,1500]);
@@ -922,8 +922,8 @@ methods % App initialization & creation
         rectSize = [250, 60]; cornerRadius = 10;
         [X, Y] = uim.shape.rectangle( rectSize, cornerRadius );
         
-        X = X + axesXLim(1) + (range(axesXLim) - range(X))/2;
-        Y = Y + axesYLim(1) + (range(axesYLim) - range(Y))/2;
+        X = X + axesXLim(1) + (nansen.util.range(axesXLim) - nansen.util.range(X))/2;
+        Y = Y + axesYLim(1) + (nansen.util.range(axesYLim) - nansen.util.range(Y))/2;
         
         h = plot(obj.uiaxes.imdisplay, X, Y, '--', 'Color', obj.Theme.FigureFgColor, 'LineWidth', 1);
         h2 = text(obj.uiaxes.imdisplay, mean(X), mean(Y), 'Drag & Drop Here');
@@ -1761,7 +1761,7 @@ methods % App update
         
         obj.Axes.UIContextMenu.Parent = hFig;
         
-        % TEMP SHIT!
+        % TEMPORARY. Todo: should make separate method for this!
         % Get handle for pointerManager interface
         isMatch = contains({obj.plugins.pluginName}, 'pointerManager');
         pifHandle = obj.plugins(isMatch).pluginHandle;
@@ -1920,7 +1920,7 @@ methods % App update
         obj.ImageStack.DataXLim = xLim;
         obj.ImageStack.DataYLim = yLim;
 
-        n = range(yLim) / obj.Axes.Position(4);
+        n = nansen.util.range(yLim) / obj.Axes.Position(4);
 
         im = obj.ImageStack.getFrameSet(obj.currentFrameNo, n);
 
@@ -2026,7 +2026,7 @@ methods % App update
                 case 'int16' %#%&$#
                     lowhigh_in = (bLimAbs+2^15) /2^16;
                 case {'single', 'double'}
-                    lowhigh_in = (bLimAbs - min(bLimAbs)) ./ range(bLimAbs);
+                    lowhigh_in = (bLimAbs - min(bLimAbs)) ./ nansen.util.range(bLimAbs);
             end
     
             %im = imadjust(im, lowhigh_in);
@@ -3659,8 +3659,8 @@ methods % Misc, most can be outsourced
         xlim = get(obj.uiaxes.imdisplay, 'XLim');
         ylim = get(obj.uiaxes.imdisplay, 'YLim');
 
-        xRange = range(xlim);
-        yRange = range(ylim);
+        xRange = nansen.util.range(xlim);
+        yRange = nansen.util.range(ylim);
         
         axpos = getpixelposition(obj.uiaxes.imdisplay);
                   
@@ -3698,8 +3698,8 @@ methods % Misc, most can be outsourced
             return
         end
         
-        xRange = range(xLimNew);
-        yRange = range(yLimNew);
+        xRange = nansen.util.range(xLimNew);
+        yRange = nansen.util.range(yLimNew);
         
         axpos = getpixelposition(obj.uiaxes.imdisplay);
         
@@ -4179,7 +4179,7 @@ methods % Misc, most can be outsourced
 
             case 'Replace Stack'
                 filePath = obj.ImageStack.FileName;
-                obj.replaceStack(imviewer.ImageStack(imData), false)
+                obj.replaceStack(nansen.stack.ImageStack(imData), false)
                 obj.ImageStack.FileName = filePath;
         end
     end
@@ -4326,7 +4326,7 @@ methods % Misc, most can be outsourced
         color = obj.Theme.FigureFgColor;
         set(hTxt, 'FontSize', 14, 'Color', color, 'VerticalAlignment', 'top')
 
-        hTxt(end).ButtonDownFcn = @(s,e) fovmanager.openWiki;
+        hTxt(end).ButtonDownFcn = @(s,e) fovmanager.App.openWiki;
 
         % Adjust size of figure to wrap around text.
         % txtUnits = get(hTxt(1), 'Units');
@@ -4462,7 +4462,7 @@ methods % Misc, most can be outsourced
                     obj.tmpHandles = rmfield(obj.tmpHandles, 'grid');
                 else
                     n = obj.settings.gridSize;
-                    obj.tmpHandles.grid = imviewer.tools.plotgrid(obj.uiaxes.imdisplay, n);
+                    obj.tmpHandles.grid = imviewer.tool.plotgrid(obj.uiaxes.imdisplay, n);
                 end
         end
     end
@@ -5915,7 +5915,7 @@ methods (Static)
     end
     
     function S = getSettings()
-        S = getSettings@clib.hasSettings('imviewer');
+        S = getSettings@applify.mixin.UserSettings('imviewer');
     end
     
     function pathStr = getIconPath()

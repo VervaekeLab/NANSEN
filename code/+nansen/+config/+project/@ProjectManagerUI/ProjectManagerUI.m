@@ -33,6 +33,10 @@ classdef ProjectManagerUI < handle
         SelectedRowBgColor = [74,86,99]/255
         SelectedRowFgColor = [234,236,237]/255
     end
+
+    properties (Constant, Access = private)
+        DefaultColumnWidth = {65, 100, 100, 200, 500};
+    end
     
     methods % Constructor
         
@@ -108,7 +112,7 @@ classdef ProjectManagerUI < handle
                 throw(ME)
             end
 
-            % Todo: If there is no current project, make current project...
+            % If there is no current project, make new project current.
             if isempty( obj.ProjectManager.CurrentProject )
                 obj.ProjectManager.changeProject(projectName);
             end
@@ -288,10 +292,12 @@ classdef ProjectManagerUI < handle
             hEditField.FontWeight = 'bold';
             hEditField.Position = [29 y0 169 22];
             
-            % Set tooltips (no tooltip prop in older versions of matlab)
             try
                 hLabel.Tooltip = {'(a-z, A-Z, 1-9, _)'};
                 hEditField.Tooltip = {'(a-z, A-Z, 1-9, _)'};
+            catch
+                % Skip setting tooltips, there was no tooltip prop in older 
+                % releases of matlab
             end
             
             obj.UILabels.ProjectShortNameInput = hLabel;
@@ -319,7 +325,7 @@ classdef ProjectManagerUI < handle
             hButton.Layout.Row = 2;
             hButton.Layout.Column = 2;
             hButton.Text = 'Add Existing Project';
-            hButton.ButtonPushedFcn = @obj.onAddExistingProjectButtonPushed;
+            hButton.ButtonPushedFcn = @(s, e) obj.onAddExistingProjectButtonPushed;
             hButton.FontWeight = 'bold';
             
             obj.UIControls.AddExistingButton = hButton;
@@ -329,13 +335,16 @@ classdef ProjectManagerUI < handle
             
             obj.UIControls.ProjectTable = uitable(obj.TabList(tabIdx));
             obj.UIControls.ProjectTable.Position = [10,10,530,200];
+
+            addlistener(obj.UIControls.ProjectTable, ...
+                "SizeChanged", @(s,e) obj.setProjectTablePosition);
         end
         
         function createProjectTable(obj)
             
             obj.updateProjectTableData()
             
-            obj.UIControls.ProjectTable.ColumnWidth = {65, 100, 100, 200, 500};
+            obj.UIControls.ProjectTable.ColumnWidth = obj.DefaultColumnWidth;
             obj.UIControls.ProjectTable.ColumnEditable = [true,false,false,true,false];
             obj.UIControls.ProjectTable.CellEditCallback = @obj.onTableCellEdited;
 
@@ -392,8 +401,16 @@ classdef ProjectManagerUI < handle
             pause(0.05)
 
             parentPosition = obj.TabList(2).InnerPosition;
-            %tablePosition = parentPosition + [1, 1, -2, -2] * margin;
-            %obj.UIControls.ProjectTable.Position = tablePosition;
+            tablePosition = parentPosition + [1, 1, -2, -2] * margin;
+            obj.UIControls.ProjectTable.Position = tablePosition;
+
+            maxTableWidth = sum( [obj.DefaultColumnWidth{:}] );
+            
+            if tablePosition(3) > maxTableWidth
+                obj.UIControls.ProjectTable.ColumnWidth = [obj.DefaultColumnWidth(1:end-1), '1x'];
+            else
+                obj.UIControls.ProjectTable.ColumnWidth = obj.DefaultColumnWidth;
+            end
         end
         
         function createTableContextMenu(obj)
@@ -434,9 +451,8 @@ classdef ProjectManagerUI < handle
     end
 
     methods (Access = ?nansen.config.project.ProjectManagerApp)
-        function resizeComponents(obj)
-            
-
+        function resizeComponents(~)
+            % not implemented
         end
     end
     
@@ -513,7 +529,8 @@ classdef ProjectManagerUI < handle
             % Remove project before removing table row
             % (In case project can not be removed)
             try
-                obj.ProjectManager.removeProject(projectName, deleteFolder);
+                allowRemoveCurrentProject = true;
+                obj.ProjectManager.removeProject(projectName, deleteFolder, allowRemoveCurrentProject);
                 % Remove row in uitable
                 obj.UIControls.ProjectTable.Data(rowIdx, :) = [];
             catch ME
@@ -693,8 +710,10 @@ classdef ProjectManagerUI < handle
             end
         
             obj.SelectedRow = displayIndices(1);
-            try % Does not work for older MATLAB version
+            try
                 obj.setRowStyle('Selected Row', displayIndices(1))
+            catch
+                % Skip: Does not work for older MATLAB releases
             end
         end
         
@@ -746,7 +765,7 @@ classdef ProjectManagerUI < handle
             end
         end
        
-        function onAddExistingProjectButtonPushed(obj, src, evt)
+        function onAddExistingProjectButtonPushed(obj)
             try
                 obj.addExistingProject()
                 obj.uialert('Project successfully added', 'info')

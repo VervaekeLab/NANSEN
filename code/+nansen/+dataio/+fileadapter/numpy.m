@@ -26,7 +26,7 @@ classdef numpy < nansen.dataio.FileAdapter
                 data = S.data;
             else
                 % Can not convert files larger than 4GB to .mat
-                npObj = py.numpy.load(filePath); data = single(npObj);
+                npObj = py.numpy.load(obj.Filename); data = single(npObj);
             end
         end
     end

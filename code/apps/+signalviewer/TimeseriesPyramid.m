@@ -95,7 +95,7 @@ classdef TimeseriesPyramid < handle
         %   given x limits. The ideal level is determined based on the
         %   screen resolution and the datapoints per pixel preference.
         
-            numSamplesRequested = range(xLim);
+            numSamplesRequested = nansen.util.range(xLim);
             numSamplesDisplay = obj.ScreenResolution(1) * obj.DataPointPerPixel;
             
             dsFactor = numSamplesRequested / numSamplesDisplay;

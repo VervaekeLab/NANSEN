@@ -85,7 +85,6 @@ methods (Access = protected) % Implementation of abstract methods
         obj.ImageInfo = imfinfo(obj.FilePathList{1});
         warning('on', 'imageio:tifftagsread:badTagValueDivisionByZero')
         
-       % S = obj.getPrairieViewRecordingInfo();
         S = obj.getThorlabsRecordingInfo();
 
         obj.BitDepth = 12; % Todo: Make sure this is correct.
@@ -357,12 +356,6 @@ methods (Access = protected)
         metadata = nansen.module.ophys.twophoton.utility.thorlabs.getScanParameters( dataFolderPath );
     end
 
-    function metadata = getPrairieViewRecordingInfo(obj)
-    %getPrairieViewRecordingInfo Get recording info from prairieview xml file
-        tSeriesPath = fileparts(obj.FilePath);
-        metadata = ophys.twophoton.prairieview.getPrairieMetaData( tSeriesPath );
-    end
-    
     function numChannels = detectNumberOfChannels(obj)
        
         if numel(obj.FilePathList) > 1

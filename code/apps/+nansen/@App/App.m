@@ -139,6 +139,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % Start app construction
             app.switchJavaWarnings('off')
             app.configureWindow()
+            app.lockWindowPosition()
            
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
@@ -167,6 +168,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createLayout()
             app.createComponents()
             
+            app.unlockWindowPosition()
+
             app.switchJavaWarnings('on')
             
             % Add this callback after every component is made
@@ -327,6 +330,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             LimitFigSize(app.Figure, 'min', minimumFigureSize) % FEX
         end
         
+        function lockWindowPosition(app)
+            % Todo
+        end
+
+        function unlockWindowPosition(app)
+            % Todo
+        end
+
         function configFigureCallbacks(app)
             
             app.Figure.WindowButtonDownFcn = @app.onMousePressed;
@@ -1938,13 +1949,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     fprintf('Could not create meta object. Reason:\n%s\n', ME.message)
                     continue
                 end
+
                 try
-                    addlistener(metaObjects, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
-                    addlistener(metaObjects, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
-                catch
-                    % Todo: Either throw warning or implement interface for
-                    % easily implementing PropertyChanged on any table
-                    % class..
+                    addlistener(metaObjects{i}, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
+                    addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
+                catch ME
+                    if isa(metaObjects{i}, 'nansen.metadata.abstract.BaseSchema')
+                        warning(ME.identifier, "%s", ME.message)
+                    else
+                        % Todo: should this fail silently?
+                    end
                 end
             end
 
@@ -3648,48 +3662,48 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function createBatchList2(app, mode)
-            
-            figName = sprintf( 'List of %s Tasks', mode);
-            f = figure('MenuBar', 'none', 'Name', figName, 'NumberTitle', 'off', 'Visible', 'off');
-            % h = nansen.TaskProcessor('Parent', f)
-            
-            h = nansen.uiwTaskTable('Parent', f, ...
-                'ColumnNames', {'SessionID', 'MethodName', 'Parameters', 'Comment'}, ...
-                'ColumnEditable', [false, false, false, true] );
-            
-            sessionObjects = app.getSelectedMetaObjects();
-            count = 0;
-            
-            for i = 1:numel(sessionObjects)
-                
-                pipelineObj = nansen.pipeline.Pipeline(sessionObjects(i).Progress);
-                
-                taskList = pipelineObj.getTaskList(mode);
-                
-                for j = 1:numel(taskList)
-                    
-                    newTaskDisplay = struct();
-                    newTaskDisplay.SessionID = sessionObjects(i).sessionID;
-                    newTaskDisplay.MethodName = taskList(j).TaskName;
-                    newTaskDisplay.Parameters = taskList.OptionsName;
-                    newTaskDisplay.Comment = '';
-                    newTaskDisplay = struct2table(newTaskDisplay, 'AsArray', true);
-                    
-                    % Add the task to the uitable.
-                    h.addTask(newTaskDisplay, 'end')
-                    
-                    count = count+1;
-                    if count == 1
-                        f.Visible = 'on';
-                    end
-                end
-            end
-            
-            if count == 0
-                close(f)
-                message = 'No tasks were found';
-                app.MessageDisplay.inform(message)
-            end
+            error('Not implemented')
+            % % figName = sprintf( 'List of %s Tasks', mode);
+            % % f = figure('MenuBar', 'none', 'Name', figName, 'NumberTitle', 'off', 'Visible', 'off');
+            % % % h = nansen.TaskProcessor('Parent', f)
+            % % 
+            % % h = nansen.uiwTaskTable('Parent', f, ...
+            % %     'ColumnNames', {'SessionID', 'MethodName', 'Parameters', 'Comment'}, ...
+            % %     'ColumnEditable', [false, false, false, true] );
+            % % 
+            % % sessionObjects = app.getSelectedMetaObjects();
+            % % count = 0;
+            % % 
+            % % for i = 1:numel(sessionObjects)
+            % % 
+            % %     pipelineObj = nansen.pipeline.Pipeline(sessionObjects(i).Progress); % Class does not exist
+            % % 
+            % %     taskList = pipelineObj.getTaskList(mode);
+            % % 
+            % %     for j = 1:numel(taskList)
+            % % 
+            % %         newTaskDisplay = struct();
+            % %         newTaskDisplay.SessionID = sessionObjects(i).sessionID;
+            % %         newTaskDisplay.MethodName = taskList(j).TaskName;
+            % %         newTaskDisplay.Parameters = taskList.OptionsName;
+            % %         newTaskDisplay.Comment = '';
+            % %         newTaskDisplay = struct2table(newTaskDisplay, 'AsArray', true);
+            % % 
+            % %         % Add the task to the uitable.
+            % %         h.addTask(newTaskDisplay, 'end')
+            % % 
+            % %         count = count+1;
+            % %         if count == 1
+            % %             f.Visible = 'on';
+            % %         end
+            % %     end
+            % % end
+            % % 
+            % % if count == 0
+            % %     close(f)
+            % %     message = 'No tasks were found';
+            % %     app.MessageDisplay.inform(message)
+            % % end
         end
         
         function createBatchList(app, mode)
@@ -4060,10 +4074,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function contextMenuCallback_CreateNoteForItem(app)
         % Lets user interactively add a note for the currently selected item
-            metaObject = app.getSelectedMetaObjects();
-            itemID = app.getObjectId(itemObject);
-
             itemType = lower(app.CurrentItemType);
+
+            metaObject = app.getSelectedMetaObjects();
+            itemID = app.getObjectId(metaObject);
+            
             noteObj = nansen.notes.Note.uiCreate(itemType, itemID);
             
             metaObject.addNote(noteObj)
@@ -4096,14 +4111,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         %% Menu callbacks - Other
         function menuCallback_OpenFigure(app, packageName, figureName)
-            
-            % Create function call...
-            fcn = figurePackage2Function(packageName, figureName);
-            hFigure = fcn();
-            
-            tabNames = {app.hLayout.TabGroup.Children.Title};
-            isFigureTab = strcmp(tabNames, 'Figures');
-            hFigure.reparent(app.hLayout.TabGroup.Children(isFigureTab))
+            error('Not implemented')
+
+            % % % Create function call...
+            % % fcn = figurePackage2Function(packageName, figureName); Is this function part
+            % of the multipart figure package?
+            % % hFigure = fcn();
+            % % 
+            % % tabNames = {app.hLayout.TabGroup.Children.Title};
+            % % isFigureTab = strcmp(tabNames, 'Figures');
+            % % hFigure.reparent(app.hLayout.TabGroup.Children(isFigureTab))
         end
     end
     

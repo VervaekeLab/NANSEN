@@ -137,8 +137,8 @@ classdef circleSelect < uim.interface.abstractPointer & ...
             
             if nargin < 2 && ~obj.isPointerInsideAxes()
                 if isempty(obj.circleToolCoords)
-                    x = obj.hAxes.XLim(1) + range(obj.hAxes.XLim)/2;
-                    y = obj.hAxes.YLim(1) + range(obj.hAxes.YLim)/2;
+                    x = obj.hAxes.XLim(1) + nansen.util.range(obj.hAxes.XLim)/2;
+                    y = obj.hAxes.YLim(1) + nansen.util.range(obj.hAxes.YLim)/2;
                     r = obj.defaultRadius;
                     obj.circleToolCoords = [x, y, r];
                 else

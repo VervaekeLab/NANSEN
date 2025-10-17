@@ -197,8 +197,8 @@ for i = 1:nRois
             case 'diff surround'
                 % NB : can show signal when there is none
                 f = nansen.twophoton.roisignals.extractF(imArray, roiArray(i));
-                froi = smooth(f(:,1));
-                fpil = smooth(f(:,2));
+                froi = smoothdata(f(:,1));
+                fpil = smoothdata(f(:,2));
                 
                 fdiff = froi - fpil;
                 fdiff = (fdiff - min(fdiff)) ./ (max(fdiff)-min(fdiff));

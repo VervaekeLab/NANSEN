@@ -48,7 +48,7 @@ function im = localCorrelation(imArray, dim)
     cIm = getChunkedData(tmpC, false, [d1,d2,1], 'numRows', numRows, 'numCols', numCols);
     %cIm = stack.makeuint8(cIm);
     
-    cIm = cIm .* range(P) + P(1);
+    cIm = cIm .* nansen.util.range(P) + P(1);
     cIm = cast(cIm, class(imArray));
     
         if showWaitbar
