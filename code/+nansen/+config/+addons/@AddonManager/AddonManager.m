@@ -393,31 +393,20 @@ classdef AddonManager < handle
             
         end
         
-        % Not implemented:
         function TF = isAddonInstalled(obj, addonName)
-            
-            % Find addon in list of addons.
-            
-            % Add a switch block to handle different addons.
+        % isAddonInstalled - Check if addon is installed    
+            TF = any(strcmp({obj.AddonList.Name}, addonName)); 
         
-            % Todo Question:
+            % Todo/Question:
             %   Should we look for whether name of package is present?
             %   Or, look for a function in the package and check if it is
             %   on path...?
-            
-            switch obj.AddonList(ind).AddonName
-                
-            end
         end
         
-        % Not implemented:
+        % Not implemented (Not urgent):
         function TF = isAddonUpToDate(obj)
         %isAddonRecent
-        
             % Check if version is latest...?
-        
-            % Not urgent
-            
         end
         
         function markDirty(obj)

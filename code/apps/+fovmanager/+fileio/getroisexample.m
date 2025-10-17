@@ -3,7 +3,7 @@ function roiArray = getrois(sVar)
     
     % Will be replaced by getdata in a future version
     
-    if strcmp(sVar, fovmanager.utility.atlas.strfindsid(sVar)) % sVar is a session Id
+    if strcmp(sVar, fovmanager.utility.strfindsid(sVar)) % sVar is a session Id
         
         % Insert/replace code here:
         roiArray = loaddata(sVar, 'roi_arr'); % Eivind's example

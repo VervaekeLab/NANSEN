@@ -40,7 +40,7 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
             obj@utility.data.StorableCatalog(varargin{:})
             
             if ~nargout
-                utility.data.StorableCatalogApp(obj)
+                % utility.data.StorableCatalogApp(obj) % Todo: create this class?
                 clear obj
             end
         end

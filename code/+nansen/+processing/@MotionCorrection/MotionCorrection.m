@@ -847,25 +847,24 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             
         end
         
-        function saveAverageProjections(obj)
-            
+        function saveAverageProjections(obj, cropAmount)
             % Todo:
             % 1: Save fov image per channel and plane
-            % 2:
             
+            if nargin < 2; cropAmount = 0; end
+
             imArray = obj.DerivedStacks.AvgProjectionStackCorr.getFrameSet(1:obj.NumParts);
             
-            imArray = stack.makeuint8(imArray, [], [], crop); % todo: Generalize this function / add tolerance as input
+            imArray = stack.makeuint8(imArray, [], [], cropAmount); % todo: Generalize this function / add tolerance as input
             obj.saveTiffStack('AverageProjectionsCorrected8bit', imArray)
 
             % Save average projection image of full stack
             imArray = obj.DerivedStacks.AvgProjectionStackCorr.getFrameSet(1:obj.NumParts);
             fovAverageProjection = mean(imArray, 3);
-            fovAverageProjection = stack.makeuint8(fovAverageProjection, [], [], crop);
+            fovAverageProjection = stack.makeuint8(fovAverageProjection, [], [], cropAmount);
             obj.saveData('FovAverageProjection', fovAverageProjection, ...
                 'Subfolder', 'fov_images', 'FileType', 'tif', ...
                 'FileAdapter', 'ImageStack' );
-
         end
         
         % Todo: this should be done using save data method of iomodel

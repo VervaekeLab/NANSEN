@@ -7,7 +7,7 @@ function createRegionIndexMap()
     % Open the figure containing the paxinos map (each subregion is a
     % patched object / polygon object)
 
-    tmpFig = brainmap.paxinos.open('Invisible');
+    tmpFig = fovmanager.view.openAtlas("paxinos", "Visibility", "invisible");
     h = findobj(tmpFig, 'Type', 'Polygon');
     h(31) = []; % Ignore (This is the map borders, and should not be included)
     
@@ -16,8 +16,8 @@ function createRegionIndexMap()
     % Get the map limits and range
     xMin = ax.XLim(1);
     yMin = ax.YLim(1);
-    xRange = range(ax.XLim);
-    yRange = range(ax.YLim);
+    xRange = nansen.util.range(ax.XLim);
+    yRange = nansen.util.range(ax.YLim);
     
     m = 100;    % magnification factor...
 

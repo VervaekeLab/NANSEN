@@ -209,8 +209,8 @@ classdef messageBox < uim.mixin.isResizable
             obj.hAxes.XLim = [0,1];
             obj.hAxes.YLim = [0,1];
 
-            xPos = obj.hAxes.XLim(1) + range(obj.hAxes.XLim)/2;
-            yPos = obj.hAxes.YLim(1) + range(obj.hAxes.YLim)/2;
+            xPos = obj.hAxes.XLim(1) + nansen.util.range(obj.hAxes.XLim)/2;
+            yPos = obj.hAxes.YLim(1) + nansen.util.range(obj.hAxes.YLim)/2;
 
             obj.hText = text(obj.hAxes, xPos, yPos, '');
             obj.hText.Visible = 'off';

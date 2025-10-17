@@ -234,7 +234,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
         end
         
         function plotRoisAndSignals(obj)
-            [hl, ~] = drawRoiOutlines(obj.hAxImageDisplay, obj.roiArray);
+            [hl, ~] = imviewer.plot.plotRoiArray(obj.hAxImageDisplay, obj.roiArray);
             %set(hl, 'LineWidth', 1)
             
             obj.hRoiArray = hl;
@@ -392,9 +392,9 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             % Todo: Implement export dir
             
             savePath = obj.settings.exportFolder;
-            fileName = sprintf('%s_roi_demo_video.avi', datestr(now, 'yyyy_mm_dd_HHMMSS'));
+            fileName = sprintf('%s_roi_demo_video.avi', datetime("now", "Format", 'yyyy_MM_dd_HHmmss'));
             savePath = fullfile(savePath, fileName);
-            stack2movie( savePath, obj.imageArray, 31 )
+            nansen.stack.utility.stack2movie( savePath, obj.imageArray, 31 )
             
         end
         
@@ -405,7 +405,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
     end
     
     methods (Access = protected)
-        function onSettingsChanged(obj, name, value)
+        function onSettingsChanged(~, ~, ~)
             
         end
     end

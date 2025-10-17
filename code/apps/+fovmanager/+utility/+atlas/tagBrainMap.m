@@ -1,6 +1,7 @@
 function tagBrainMap()
 
-tmpFig = brainmap.paxinos.open();
+tmpFig = fovmanager.view.openAtlas("paxinos");
+
 h = findobj(tmpFig, 'Type', 'Polygon');
 
 set(h, 'ButtonDownFcn', @addTag);

@@ -2,7 +2,7 @@ function im = openimg(filePath)
     
     im = [];
     
-    if ~nargin || isempty(filepath)
+    if ~nargin || isempty(filePath)
 
         [fileName, filePath] = uigetfile({ '*.tif;*.tiff;*.png;*.jpg;*.jpeg;*.JPG', ...
                                             'Image Files (*.tif, *.tiff, *.png, *.jpg, *.jpeg, *.JPG)'; ...
@@ -13,5 +13,4 @@ function im = openimg(filePath)
     end
     
     im = imread(filePath);
-
 end

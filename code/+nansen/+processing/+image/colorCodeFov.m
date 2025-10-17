@@ -97,6 +97,9 @@ end
 for i = 1:numParts
     
     imdata = imageStack.getFrameSet(IND{i});
+    
+    iFirst = IND{i}(1);
+    iLast = IND{i}(end);
 
     % Bin images in projection stacks based on the binning vector
     for j = 1:nOutputs
@@ -138,7 +141,7 @@ for l = 1:nOutputs
 
     % Get the average of each color channel.
     colorcodedImage{l} = squeeze(nanmean(projectionStackRGB, 3));
-    colorcodedImage{l} = makeuint8(colorcodedImage{l}, opt.BLim);
+    colorcodedImage{l} = stack.makeuint8(colorcodedImage{l}, opt.BLim);
 
 end
 

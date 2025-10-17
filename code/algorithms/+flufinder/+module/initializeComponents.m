@@ -38,7 +38,7 @@ function results = initializeComponents(imageStack, params)
         if iPart == 1
             results = S;
         else
-            results = cat(1, Results, S);
+            results = cat(1, results, S);
         end
     end
 end

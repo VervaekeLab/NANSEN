@@ -270,11 +270,10 @@ classdef SessionMethod < nansen.processing.DataMethod
         end
         
         function attributes = getAttributesFromClass(className)
+            % Todo: is this method used?
+            hfun = str2func(className);
             
-            hfun = str2func(functionName);
-            functionName
-            
-            mc = meta.class.fromName(functionName);
+            mc = meta.class.fromName(className);
             if ~isempty(mc)
                 tic
                 allPropertyNames = {mc.PropertyList.Name};
@@ -289,7 +288,7 @@ classdef SessionMethod < nansen.processing.DataMethod
             end
             
             try
-                tic;mConfig = hfun();toc % Call with no input should give configs
+                tic; mConfig = hfun(); toc % Call with no input should give configs
             catch % Get defaults it there are no config:
                 mConfig = nansen.session.SessionMethod.setAttributes();
             end

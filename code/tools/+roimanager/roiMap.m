@@ -405,7 +405,7 @@ classdef roiMap < roimanager.roiDisplay
             if ~isempty(obj.roiTextHandles) % Remove roi text labels
                 h = obj.roiTextHandles(roiIndices);
                 obj.TextProvider.recycle(h);
-                obj.roiTextHandles(evt.roiIndices) = [];
+                obj.roiTextHandles(roiIndices) = [];
             end
 
             obj.updateRoiIndexMap()

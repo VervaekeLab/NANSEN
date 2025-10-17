@@ -16,7 +16,7 @@ classdef TimeSeries < nansen.dataio.FileAdapter
             % Todo: Varargin might specify variables...
             
             S = load(obj.Filename, varargin{:});
-            varNames = fieldnames(dataS);
+            varNames = fieldnames(S);
             
             if isempty(varNames)
                 error('No variables were loaded for file "%s"', obj.Name)
@@ -54,7 +54,7 @@ classdef TimeSeries < nansen.dataio.FileAdapter
         end
         
         function view(obj)
-            signalviewer.App(ts);
+            signalviewer.App(obj.load());
         end
     end
     

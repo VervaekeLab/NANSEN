@@ -51,6 +51,6 @@ function project = importProjectFromGitHub(repositoryUrl, options)
 
     % Add project to nansen
     L = dir(fullfile(repoTargetFolder, '*', 'project.nansen.json'));
-    projectManager.importProject(L.folder);
+    projectName = projectManager.importProject(L.folder);
     projectManager.changeProject(projectName);
 end
