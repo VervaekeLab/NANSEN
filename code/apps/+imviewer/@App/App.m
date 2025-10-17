@@ -5915,7 +5915,7 @@ methods (Static)
     end
     
     function S = getSettings()
-        S = getSettings@clib.hasSettings('imviewer');
+        S = getSettings@applify.mixin.UserSettings('imviewer');
     end
     
     function pathStr = getIconPath()

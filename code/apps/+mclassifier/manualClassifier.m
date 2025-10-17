@@ -1660,7 +1660,7 @@ end
 methods (Static)
     
     function S = getSettings()
-        S = getSettings@clib.hasSettings('manualClassifier');
+        S = getSettings@applify.mixin.UserSettings('manualClassifier');
     end
     
     function removeFocusFromControl(h)

@@ -1,12 +1,12 @@
 classdef scrollerBar < uim.handle
 %scrollerBar A very simple scrollerbar that can be made to look awesome.
 %
-%   h = clib.widgets.scrollerBar(hParent) creates a scrollbar in hParent.
+%   h = uim.widget.scrollerBar(hParent) creates a scrollbar in hParent.
 %   hParent should be a panel exclusively made for the scrollerbar. The
 %   scrollerbar will fill the panel, so the panel position determines the
 %   size and location of the scrollerbar.
 %
-%   h = clib.widgets.scrollerBar(hParent, Name, Value) creates the
+%   h = uim.widget.scrollerBar(hParent, Name, Value) creates the
 %   scrollbar and specifies one or more scrollbar property names and
 %   corresponding values. All properties of the scrollbar can be set.
 %
