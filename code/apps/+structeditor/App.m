@@ -3024,7 +3024,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             %fractionMoved = (scroller.Value - obj.lastScrollValue) / 100;
             obj.lastScrollValue = scroller.Value;
 
-            % Get textsfields of panel
+            % Get text fields of panel
             %hUicTmp = findobj(obj.main.hPanel(panelNum), 'Type', 'UIControl');
 
             % Calculate the shift of components in pixels %Todo: remove,
@@ -3042,15 +3042,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             return
             
-            % Move all fields up or down in panel.
-            for i = 1:length(hUicTmp)
-                fieldPos = get(hUicTmp(i), 'Position');
-                fieldPos(2) = fieldPos(2) + pixelShiftY;
-                set(hUicTmp(i), 'Position', fieldPos)
-            end
-            
-            obj.main.hAxes(panelNum).YLim = obj.main.hAxes(panelNum).YLim - pixelShiftY;
-
+            % % % OLD implementation: Keep for reference. Todo: remove
+            % % % Move all fields up or down in panel.
+            % % for i = 1:length(hUicTmp)
+            % %     fieldPos = get(hUicTmp(i), 'Position');
+            % %     fieldPos(2) = fieldPos(2) + pixelShiftY;
+            % %     set(hUicTmp(i), 'Position', fieldPos)
+            % % end
+            % % 
+            % % obj.main.hAxes(panelNum).YLim = obj.main.hAxes(panelNum).YLim - pixelShiftY;
         end
         
         function waitfor(obj)
