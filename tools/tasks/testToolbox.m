@@ -8,13 +8,7 @@ function testToolbox(varargin)
    
     % Prepare
     projectRootDirectory = nansentools.projectdir();
-
     disp(projectRootDirectory)
-
-    pstr = which( 'matbox.installRequirements' );
-    disp(pstr)
-
-    disp(fileread(pstr))
 
     matbox.installRequirements(projectRootDirectory, "AgreeToLicenses", true)
 
@@ -26,4 +20,3 @@ function testToolbox(varargin)
         varargin{:} ...
         )
 end
-
