@@ -30,6 +30,10 @@ classdef MenuCustomizationDialog < handle
             %       app - Reference to main NANSEN App instance
             
             obj.App = app;
+
+            % Initialize tree structure
+            obj.TreeNodes = containers.Map();
+
             obj.createUI();
             obj.loadMenuStructure();
             obj.updateTreeSelection();
@@ -143,9 +147,9 @@ classdef MenuCustomizationDialog < handle
             manager = obj.App.MenuVisibilityManager;
             obj.MenuTags = manager.getAllMenuTags();
             
-            % Build tree structure
-            obj.TreeNodes = containers.Map();
-            
+            assert(obj.TreeNodes.Count == 0, ...
+                'Expected TreeNodes to have 0 entries.')
+
             % Build hierarchical tree from tags
             % Each tag like 'core.nansen.configure.datalocations' becomes a nested structure
             
@@ -367,7 +371,7 @@ classdef MenuCustomizationDialog < handle
             
             % Refresh the tree to show cleaned list
             delete(obj.Tree.Children);
-            obj.TreeNodes = containers.Map();
+            obj.TreeNodes = containers.Map(); % Reset tree nodes
             obj.loadMenuStructure();
             obj.updateTreeSelection();
             
