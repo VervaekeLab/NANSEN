@@ -934,11 +934,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
 
                     % Create tag from package hierarchy
-                    splitFolders = strsplit(L(i).folder, filesep);
+                    splitFolders = strsplit(fullfile(L(i).folder, L(i).name), filesep);
                     isPackage = strncmp(splitFolders, '+', 1);
                     packageParts = splitFolders(isPackage);
                     packageParts = cellfun(@(x) strrep(x, '+', ''), packageParts, 'UniformOutput', false);
-                    packageParts{end+1} = strrep(L(i).name, '+', '');
                     
                     % Extract only the part after 'mixin.tool' or 'tool'
                     fullPath = strjoin(packageParts, '.');

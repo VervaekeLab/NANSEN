@@ -354,7 +354,7 @@ classdef MenuVisibilityManager < handle
             
             try
                 prefsFile = fullfile(prefdir, 'nansen_menu_visibility.mat');
-                hiddenMenusUser = prefs; %#ok<NASGU>
+                hiddenMenusUser = prefs;
                 save(prefsFile, 'hiddenMenusUser');
             catch ME
                 warning('MenuVisibilityManager:SaveFailed', ...

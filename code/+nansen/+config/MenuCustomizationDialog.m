@@ -12,6 +12,7 @@ classdef MenuCustomizationDialog < handle
         ScopeButtonGroup matlab.ui.container.ButtonGroup
         UserButton matlab.ui.control.RadioButton
         ProjectButton matlab.ui.control.RadioButton
+        CleanupButton matlab.ui.control.Button
         CancelButton matlab.ui.control.Button
         ResetButton matlab.ui.control.Button
         
@@ -123,7 +124,7 @@ classdef MenuCustomizationDialog < handle
             buttonGrid.Padding = [10 5 10 5];
             
             % Cleanup button
-            cleanupButton = uibutton(buttonGrid, ...
+            obj.CleanupButton = uibutton(buttonGrid, ...
                 'Text', 'Cleanup', ...
                 'Tooltip', 'Remove preferences for menus that no longer exist', ...
                 'ButtonPushedFcn', @obj.onCleanupButtonPushed);
@@ -176,7 +177,7 @@ classdef MenuCustomizationDialog < handle
                     if isempty(currentPath)
                         currentPath = parts{j};
                     else
-                        currentPath = [currentPath, '.', parts{j}];
+                        currentPath = [currentPath, '.', parts{j}]; %#ok<AGROW>
                     end
                     
                     % Check if this node already exists
