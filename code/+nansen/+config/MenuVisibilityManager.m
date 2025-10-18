@@ -105,6 +105,9 @@ classdef MenuVisibilityManager < handle
             % Get all menu items with tags
             allMenus = obj.getAllTaggedMenus();
             
+            % Also get parent menus (root menus without tags but with children)
+            allRootMenus = findall(obj.FigureHandle, 'Type', 'uimenu', '-depth', 1);
+            
             asRow = @(x) reshape(x, 1, []);
 
             % Combine user and project hidden menus
@@ -132,14 +135,39 @@ classdef MenuVisibilityManager < handle
             
             % Second pass: Make parent menus visible if any children are visible
             % This ensures that if you show a child menu, its parent becomes visible too
-            for i = 1:numel(allMenus)
-                menuItem = allMenus(i);
+            % Check both tagged menus and root menus
+            menusToCheck = unique([allMenus; allRootMenus]);
+            
+            for i = 1:numel(menusToCheck)
+                menuItem = menusToCheck(i);
                 
                 % Check if this menu has visible children
                 if ~isempty(menuItem.Children)
                     hasVisibleChildren = any(strcmp({menuItem.Children.Visible}, 'on'));
                     if hasVisibleChildren
                         menuItem.Visible = 'on';
+                    end
+                end
+            end
+            
+            % Third pass: Hide parent menus if ALL children are hidden
+            % This ensures that if you hide all items under a root menu, the root is hidden too
+            % Check both tagged menus and root menus
+            menusToCheck = unique([allMenus; allRootMenus]);
+            
+            for i = 1:numel(menusToCheck)
+                menuItem = menusToCheck(i);
+                
+                % Skip Tools menu - it should always be visible
+                if strcmp(menuItem.Text, 'Tools')
+                    continue;
+                end
+                
+                % Check if this menu has children and they're all hidden
+                if ~isempty(menuItem.Children)
+                    allChildrenHidden = all(strcmp({menuItem.Children.Visible}, 'off'));
+                    if allChildrenHidden
+                        menuItem.Visible = 'off';
                     end
                 end
             end
