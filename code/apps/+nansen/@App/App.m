@@ -1954,7 +1954,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     addlistener(metaObjects{i}, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
                     addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
                 catch ME
-                    if isa(metaObjects{i}, 'nansen.metadata.abstract.BaseSchema')
+                    if isa(metaObjects{i}, 'nansen.metadata.abstract.MetadataEntity')
                         warning(ME.identifier, "%s", ME.message)
                     else
                         % Todo: should this fail silently?
