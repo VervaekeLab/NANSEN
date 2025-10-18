@@ -71,7 +71,7 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
                 end
             end
         else
-            rootPath = {''};
+            rootPath = {};
         end
                 
         fieldName = dataLocationModel.Data(i).Name;
