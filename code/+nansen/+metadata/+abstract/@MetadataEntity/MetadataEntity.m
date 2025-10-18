@@ -91,7 +91,7 @@ classdef MetadataEntity < ...
                 % Todo: update for all items of the metatable
                 updateFcnName = dynamicVariables.UpdateFunctionName{iVar};
                 
-                [propertyValue, wasFound] = obj.getDynamicVariableValue(updateFcnName);
+                [propertyValue, ~] = obj.getDynamicVariableValue(updateFcnName);
                 obj.(variableName) = propertyValue;
             else
                 error('Variable does not have update function')
