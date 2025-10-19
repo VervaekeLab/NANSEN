@@ -952,99 +952,59 @@ classdef MetaTable < handle
             obj.entries(:, variableName) = [];
         end
 
-        function appendTable(obj, newTableRows)
-        %appendTable append a metatable to the current metatable
-        
-            % Todo: Add validations to make sure there are no duplicate
-            % entries
-            % Todo: Extract separate methods for the code which is
-            % duplicated in addEntries.
-        
-            schemaIdName = obj.SchemaIdName;
-
-            try
-                obj.entries = [obj.entries; newTableRows];
-            catch
-                obj.entries = struct2table( [table2struct(obj.entries); table2struct(newTableRows)] );
-            end
-
-            obj.MetaTableMembers = obj.entries.(schemaIdName);
-            % Todo: normalize ids
-            
-            % Synch entries from master, e.g. if some entries were added
-            % that are already in master.
-            if ~obj.IsMaster %&& ~isempty(obj.filepath)
-                obj.synchFromMaster()
-            end
-            
-            obj.sort()
-            
-            %obj.IsModified = true;
+        function appendTable(obj, T)
+            warning('appendTable is deprecated and will be removed, use addTable instead.')
+            obj.addTable(T)
         end
 
         function addTable(obj, T)
-
+        %addTable Add table rows to the MetaTable
+        %
+        %   addTable(obj, T) adds rows from a table directly to the
+        %   MetaTable. If the table is missing ID values, UUIDs will be
+        %   generated automatically. This is useful for importing data
+        %   from external sources or merging MetaTables.
+        
+            % Set MetaTable class if this is the first time entries are added
             if isempty(obj.MetaTableMembers)
-                if isempty(obj.MetaTableClass) % Do not override
+                if isempty(obj.MetaTableClass) % Don't override if already set
                     obj.MetaTableClass = 'table';
                 end
             end
 
             idName = obj.SchemaIdName;
 
+            % Check if table has ID column, generate UUIDs if missing
             if any(strcmp(T.Properties.VariableNames, idName))
-                newEntryIds = T.(idName);
+                % IDs exist, no action needed
             else
+                % Generate UUIDs for all rows
                 newEntryIds = arrayfun(@(i) nansen.util.getuuid, 1:height(T), 'uni', 0);
                 T.(idName) = newEntryIds';
             end
-
-            % Check that entry/entries are not already present in the
-            % Metatable.
-            if iscell(newEntryIds) && ischar(newEntryIds{1})
-                iA = contains(newEntryIds, obj.MetaTableMembers);
-            elseif isnumeric(newEntryIds)
-                if isempty(obj.MetaTableMembers)
-                    obj.MetaTableMembers = [];
-                end
-                iA = ismember(newEntryIds, obj.MetaTableMembers);
-            end
             
-            newEntryIds(iA) = [];
-            
-            if isempty(newEntryIds); return; end
-            
-            % Skip entries that are already present in the MetaTable.
-            T(iA, :) = [];
-            
-            % Add new entries to the MetaTable.
-            if isempty(obj.entries)
-                obj.entries = T;
-            else
-                obj.entries = [obj.entries; T];
-            end
-            
-            % % obj.updateEntries(listOfEntryIds)
-            
-            obj.MetaTableMembers = obj.entries.(idName);
+            % Use common append logic
+            obj.appendTableRows(T);
         end
 
         % Add entry/entries to MetaTable table
         function addEntries(obj, newEntries)
-        %addEntries Add entries to the MetaTable
+        %addEntries Add schema object entries to the MetaTable
+        %
+        %   addEntries(obj, newEntries) adds one or more schema objects
+        %   to the MetaTable. The schema objects are validated to ensure
+        %   they inherit from BaseSchema and match the MetaTable's class,
+        %   then converted to a table and appended.
         
-            % Make sure entries are based on the BaseSchema class.
+            % Validate that entries are based on the BaseSchema class
             isValid = isa(newEntries, 'nansen.metadata.abstract.BaseSchema');
             message = 'MetaTable entries must inherit from the BaseSchema class';
             assert(isValid, message)
-
-            schemaIdName = obj.SchemaIdName;
             
-            % If this is the first time entries are added, we need to set
-            % the MetaTable class property. Otherwise, need to make sure
-            % that new entries are matching the class of the MetaTable
+            % If this is the first time entries are added, set the
+            % MetaTable class property. Otherwise, validate class match.
             if isempty(obj.MetaTableMembers)
-                if isempty(obj.MetaTableClass) % Don't override if it is set
+                if isempty(obj.MetaTableClass) % Don't override if already set
                     obj.MetaTableClass = class(newEntries);
                 end
             else
@@ -1054,50 +1014,11 @@ classdef MetaTable < handle
                 assert(isa(newEntries, obj.MetaTableClass), msg)
             end
 
-            % Convert entries to a table before adding to the MetaTable
-            newEntries = newEntries.makeTable();
-
-            % Get the entry IDs.
-            newEntryIds = newEntries.(schemaIdName);
+            % Convert schema objects to a table
+            newTableRows = newEntries.makeTable();
             
-            % Check that entry/entries are not already present in the
-            % Metatable.
-            if iscell(newEntryIds) && ischar(newEntryIds{1})
-                iA = contains(newEntryIds, obj.MetaTableMembers); % Todo: Use setdiff
-            elseif isnumeric(newEntryIds)
-                if isempty(obj.MetaTableMembers)
-                    obj.MetaTableMembers = [];
-                end
-                iA = ismember(newEntryIds, obj.MetaTableMembers);
-            end
-            
-            newEntryIds(iA) = [];
-            
-            if isempty(newEntryIds); return; end
-            
-            % Skip entries that are already present in the MetaTable.
-            newEntries(iA, :) = [];
-            
-            % Add new entries to the MetaTable.
-            if isempty(obj.entries)
-                obj.entries = newEntries;
-            else
-                obj.entries = [obj.entries; newEntries];
-            end
-            
-% %             obj.updateEntries(listOfEntryIds)
-            
-            obj.MetaTableMembers = obj.entries.(schemaIdName);
-            
-            % Synch entries from master, e.g. if some entries were added
-            % that are already in master.
-            if ~obj.IsMaster %&& ~isempty(obj.filepath)
-                obj.synchFromMaster()
-            end
-            
-            obj.sort()
-            
-            %obj.IsModified = true;
+            % Use common append logic
+            obj.appendTableRows(newTableRows);
         end
 
         function entries = getEntry(obj, listOfEntryIds)
@@ -1577,6 +1498,71 @@ classdef MetaTable < handle
             else
                 itemConstructor = str2func(obj.ItemClassName);
             end
+        end
+
+        function appendTableRows(obj, newTableRows)
+        %appendTableRows Append table rows to MetaTable with duplicate checking
+        %
+        %   This is a private helper method that consolidates the common
+        %   logic for appending new table rows. It handles:
+        %     - Duplicate detection and removal
+        %     - Table concatenation with error handling
+        %     - Member list updates with ID normalization
+        %     - Master MetaTable synchronization (for dummy MetaTables)
+        %     - Sorting by ID
+        %
+        %   This method is called by both addEntries and addTable.
+        
+            if isempty(newTableRows)
+                return
+            end
+
+            schemaIdName = obj.SchemaIdName;
+            
+            % Get new entry IDs and normalize them
+            newEntryIds = newTableRows.(schemaIdName);
+            newEntryIds = nansen.metadata.MetaTable.normalizeIdentifier(newEntryIds);
+            
+            % Get existing member IDs and normalize them
+            existingIds = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaTableMembers);
+            
+            % Find duplicates
+            [~, iA] = intersect(newEntryIds, existingIds, 'stable');
+            
+            if ~isempty(iA)
+                % Skip entries that are already present in the MetaTable
+                newTableRows(iA, :) = [];
+                newEntryIds(iA) = [];
+            end
+            
+            if isempty(newEntryIds)
+                return; % Nothing to add
+            end
+            
+            % Todo:
+            % - expand entries if table has dynamic table variables
+            % % updateEntries(obj, listOfEntryIds) [Not implemented]
+
+            % Concatenate tables
+            try
+                % Try direct concatenation
+                obj.entries = [obj.entries; newTableRows];
+            catch
+                % Fallback: convert to struct, concatenate, then back to table
+                obj.entries = struct2table([table2struct(obj.entries); ...
+                                            table2struct(newTableRows)]);
+            end
+            
+            % Update member list
+            obj.MetaTableMembers = obj.entries.(schemaIdName);
+            
+            % Synchronize from master if this is a dummy MetaTable
+            if ~obj.IsMaster
+                obj.synchFromMaster()
+            end
+            
+            % Sort entries by ID
+            obj.sort()
         end
 
         function [metaObjects, status] = createMetaObjects(obj, tableEntries, ...

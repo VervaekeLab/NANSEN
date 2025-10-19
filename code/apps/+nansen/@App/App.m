@@ -3688,7 +3688,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             tmpMetaTable.addMissingVarsToMetaTable('session');
             
             % Find all that are not part of existing metatable
-            app.MetaTable.appendTable(tmpMetaTable.entries)
+            app.MetaTable.addTable(tmpMetaTable.entries)
             app.MetaTable.save()
             
             app.UiMetaTableViewer.refreshTable(app.MetaTable)

@@ -33,6 +33,6 @@ function updateSubjectTable(metatableCatalog, subjectSchema)
     newSubjectTable.addMissingVarsToMetaTable('subject');
     
     % Find all that are not part of existing metatable
-    subjectTable.appendTable(newSubjectTable.entries)
+    subjectTable.addTable(newSubjectTable.entries)
     subjectTable.save()
 end
