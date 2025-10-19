@@ -1023,7 +1023,8 @@ classdef MetaTable < handle
 
         function entries = getEntry(obj, listOfEntryIds)
         %getEntry Get entry/entries from the entry IDs.
-            IND = contains(obj.members, listOfEntryIds); % Todo: use ismember, contains can do partial match
+            listOfEntryIds = obj.normalizeIdentifier(listOfEntryIds);
+            [~, IND, ~] = intersect(obj.members, listOfEntryIds);
             entries = obj.entries(IND, :);
         end
         
