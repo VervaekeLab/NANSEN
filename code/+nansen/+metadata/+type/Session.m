@@ -447,8 +447,13 @@ classdef Session < nansen.metadata.abstract.BaseSchema & nansen.session.HasSessi
             end
                 
             if isempty(idx)
-                error(['Data location type ("%s") is not valid. Please use one of the following:\n', ...
-                           '%s'], dataLocationName, strjoin(obj.DataLocationModel.DataLocationNames, ', ') )
+                if ~isempty(obj.DataLocationModel)
+                    validDataLocationNames = obj.DataLocationModel.DataLocationNames;
+                else
+                    validDataLocationNames = {obj.DataLocation.Name};
+                end
+                error(['Data location type "%s" is not valid. Please use one of the following:\n', ...
+                           '%s'], dataLocationName, strjoin(validDataLocationNames, ', ') )
             end
             
             S = obj.DataLocation(idx);
