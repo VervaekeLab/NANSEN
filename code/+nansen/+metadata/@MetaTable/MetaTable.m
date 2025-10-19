@@ -48,7 +48,9 @@ classdef MetaTable < handle
         MetaTableClass = '';
         MetaTableIdVarname = '';
         
-        MetaTableMembers = {}
+        % MetaTableMembers - cell array of character vectors representing
+        % unique identifiers for all entries of the table
+        MetaTableMembers = {} % Todo: enforce cell of char
 
         % MetaTableVariables - List of table variables. Used and updated in
         % checkIfMetaTableComplete. Purpose: Silently add table var
@@ -59,7 +61,7 @@ classdef MetaTable < handle
     % MetaObject caching properties
     properties (Access = private)
         MetaObjectCache = []  % Cache of metadata objects | Todo: Make this a dictionary/containers.Map
-        MetaObjectCacheMembers = {}  % IDs for cached metadata objects
+        MetaObjectCacheMembers = {}  % IDs for cached metadata objects % Todo: enforce cell of char
     end
 
     properties (SetAccess = private)
@@ -932,8 +934,8 @@ classdef MetaTable < handle
         %   variable to the table and initializes all column values to the
         %   initValue.
         
-        % Todo: Make method for adding multiple variable in one go, i.e
-        % allow variableName and initValue to be cell arrays.
+        % Todo: Make method for adding multiple variables in one go, i.e
+        % allow "variableName" and "initValue" to be cell arrays.
 
             if ~obj.IsMaster % Add to master metatable
                 % Get filepath to master MetaTable file and load MetaTable
@@ -953,14 +955,13 @@ classdef MetaTable < handle
         function appendTable(obj, newTableRows)
         %appendTable append a metatable to the current metatable
         
-            % Todo: Add validations to make sure there are not duplicate
+            % Todo: Add validations to make sure there are no duplicate
             % entries
             % Todo: Extract separate methods for the code which is
             % duplicated in addEntries.
         
-            % Todo; what if the id is not the 1st variable.
-            schemaIdName = newTableRows.Properties.VariableNames{1};
-            
+            schemaIdName = obj.SchemaIdName;
+
             try
                 obj.entries = [obj.entries; newTableRows];
             catch
@@ -968,6 +969,7 @@ classdef MetaTable < handle
             end
 
             obj.MetaTableMembers = obj.entries.(schemaIdName);
+            % Todo: normalize ids
             
             % Synch entries from master, e.g. if some entries were added
             % that are already in master.
@@ -980,6 +982,53 @@ classdef MetaTable < handle
             %obj.IsModified = true;
         end
 
+        function addTable(obj, T)
+
+            if isempty(obj.MetaTableMembers)
+                if isempty(obj.MetaTableClass) % Do not override
+                    obj.MetaTableClass = 'table';
+                end
+            end
+
+            idName = obj.SchemaIdName;
+
+            if any(strcmp(T.Properties.VariableNames, idName))
+                newEntryIds = T.(idName);
+            else
+                newEntryIds = arrayfun(@(i) nansen.util.getuuid, 1:height(T), 'uni', 0);
+                T.(idName) = newEntryIds';
+            end
+
+            % Check that entry/entries are not already present in the
+            % Metatable.
+            if iscell(newEntryIds) && ischar(newEntryIds{1})
+                iA = contains(newEntryIds, obj.MetaTableMembers);
+            elseif isnumeric(newEntryIds)
+                if isempty(obj.MetaTableMembers)
+                    obj.MetaTableMembers = [];
+                end
+                iA = ismember(newEntryIds, obj.MetaTableMembers);
+            end
+            
+            newEntryIds(iA) = [];
+            
+            if isempty(newEntryIds); return; end
+            
+            % Skip entries that are already present in the MetaTable.
+            T(iA, :) = [];
+            
+            % Add new entries to the MetaTable.
+            if isempty(obj.entries)
+                obj.entries = T;
+            else
+                obj.entries = [obj.entries; T];
+            end
+            
+            % % obj.updateEntries(listOfEntryIds)
+            
+            obj.MetaTableMembers = obj.entries.(idName);
+        end
+
         % Add entry/entries to MetaTable table
         function addEntries(obj, newEntries)
         %addEntries Add entries to the MetaTable
@@ -988,10 +1037,8 @@ classdef MetaTable < handle
             isValid = isa(newEntries, 'nansen.metadata.abstract.BaseSchema');
             message = 'MetaTable entries must inherit from the BaseSchema class';
             assert(isValid, message)
-        
-            %schemaIdName = obj.MetaTableIdVarname; % todo...Support other
-            %sessions, i.e bot sessions.
-            schemaIdName = newEntries(1).IDNAME;
+
+            schemaIdName = obj.SchemaIdName;
             
             % If this is the first time entries are added, we need to set
             % the MetaTable class property. Otherwise, need to make sure
@@ -1010,13 +1057,13 @@ classdef MetaTable < handle
             % Convert entries to a table before adding to the MetaTable
             newEntries = newEntries.makeTable();
 
-            % Get to entry IDs.
+            % Get the entry IDs.
             newEntryIds = newEntries.(schemaIdName);
             
             % Check that entry/entries are not already present in the
             % Metatable.
             if iscell(newEntryIds) && ischar(newEntryIds{1})
-                iA = contains(newEntryIds, obj.MetaTableMembers);
+                iA = contains(newEntryIds, obj.MetaTableMembers); % Todo: Use setdiff
             elseif isnumeric(newEntryIds)
                 if isempty(obj.MetaTableMembers)
                     obj.MetaTableMembers = [];
@@ -1051,50 +1098,6 @@ classdef MetaTable < handle
             obj.sort()
             
             %obj.IsModified = true;
-        end
-
-        function addTable(obj, T)
-            if isempty(obj.MetaTableMembers)
-                if isempty(obj.MetaTableClass) % Do not override
-                    obj.MetaTableClass = 'table';
-                end
-            end
-
-            if any(strcmp(T.Properties.VariableNames, 'id'))
-                newEntryIds = T.id;
-            else
-                newEntryIds = arrayfun(@(i) nansen.util.getuuid, 1:height(T), 'uni', 0);
-                T.id = newEntryIds';
-            end
-
-            % Check that entry/entries are not already present in the
-            % Metatable.
-            if iscell(newEntryIds) && ischar(newEntryIds{1})
-                iA = contains(newEntryIds, obj.MetaTableMembers);
-            elseif isnumeric(newEntryIds)
-                if isempty(obj.MetaTableMembers)
-                    obj.MetaTableMembers = [];
-                end
-                iA = ismember(newEntryIds, obj.MetaTableMembers);
-            end
-            
-            newEntryIds(iA) = [];
-            
-            if isempty(newEntryIds); return; end
-            
-            % Skip entries that are already present in the MetaTable.
-            T(iA, :) = [];
-            
-            % Add new entries to the MetaTable.
-            if isempty(obj.entries)
-                obj.entries = T;
-            else
-                obj.entries = [obj.entries; T];
-            end
-            
-% %             obj.updateEntries(listOfEntryIds)
-            
-            obj.MetaTableMembers = obj.entries.id;
         end
 
         function entries = getEntry(obj, listOfEntryIds)
@@ -1479,16 +1482,8 @@ classdef MetaTable < handle
             else
                 % Check if objects already exists in cache
                 ids = obj.getObjectId(tableEntries);
-                if isnumeric(ids)
-                    if isscalar(ids)
-                        ids = { num2str(ids) }; % Scalar cell array
-                    else
-                        ids = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
-                    end
-                    allCachedIds = cellfun(@num2str, obj.MetaObjectCacheMembers, 'UniformOutput', false);
-                else
-                    allCachedIds = obj.MetaObjectCacheMembers;
-                end
+                ids = nansen.metadata.MetaTable.normalizeIdentifier(ids);
+                allCachedIds = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaObjectCacheMembers);
                 
                 [matchedIds, indInTableEntries, indInMetaObjects] = ...
                     intersect(ids, allCachedIds, 'stable');
@@ -1621,7 +1616,8 @@ classdef MetaTable < handle
                 try
                     metaObjects = itemConstructor().empty;
                 catch
-                    % Todo: Error handling
+                    % Todo: Error handling ! Important
+
                     metaObjects = [];
                 end
                 return;
@@ -1672,9 +1668,7 @@ classdef MetaTable < handle
                 ids = {object.(idName)};
             end
 
-            if isnumeric(ids{1}) % Todo: method for identifier normalization (to string)
-                ids = cellfun(@num2str, ids, 'UniformOutput', false);
-            end
+            ids = nansen.metadata.MetaTable.normalizeIdentifier(ids);
         end
 
         function entryIndex = getIndexById(obj, objectId)
@@ -1689,17 +1683,11 @@ classdef MetaTable < handle
         % metaobject cache
             idName = obj.SchemaIdName;
             obj.MetaObjectCacheMembers = {obj.MetaObjectCache.(idName)};
-
-            if isnumeric(obj.MetaObjectCacheMembers{1})
-                % Todo: Add a normalizeIdentifier method
-                obj.MetaObjectCacheMembers = cellfun(@num2str, obj.MetaObjectCacheMembers, 'UniformOutput', false);
-            end
+            obj.MetaObjectCacheMembers = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaObjectCacheMembers);
         end
         
         function onMetaObjectPropertyChanged(obj, src, evt)
-            
-            % Todo: make method for getting table entry from objectID
-            
+        % onMetaObjectPropertyChanged - Callback to handle value change of meta object
             if ~isvalid(src); return; end
 
             objectID = obj.getObjectId(src); % sessionID / itemID
@@ -1922,6 +1910,67 @@ classdef MetaTable < handle
     end
 
     methods (Static, Access = private)
+        function normalizedIds = normalizeIdentifier(ids)
+        %normalizeIdentifier Normalize identifiers to string cell array
+        %
+        %   normalizedIds = normalizeIdentifier(ids) converts any type of
+        %   identifier (numeric, char, string, cell array) to a cell array
+        %   of character vectors for consistent comparison and storage.
+        %
+        %   Inputs:
+        %       ids - Identifiers in various formats:
+        %             - Numeric scalar or vector
+        %             - Character vector
+        %             - String scalar or vector
+        %             - Cell array of any of the above
+        %
+        %   Outputs:
+        %       normalizedIds - Cell array of character vectors
+
+        % Todo: Future: Represent ids as string arrays
+        
+            if isempty(ids)
+                normalizedIds = {};
+                return
+            end
+            
+            % Handle numeric inputs
+            if isnumeric(ids)
+                normalizedIds = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
+                return
+            end
+            
+            % Handle string inputs
+            if isstring(ids)
+                normalizedIds = cellstr(ids);
+                return
+            end
+            
+            % Handle character vector
+            if ischar(ids) && height(ids)
+                normalizedIds = {ids};
+                return
+            end
+            
+            % Handle cell array inputs
+            if iscell(ids)
+                % Check if cells contain numeric values
+                if ~isempty(ids) && isnumeric(ids{1})
+                    normalizedIds = cellfun(@num2str, ids, 'UniformOutput', false);
+                % Check if cells contain strings
+                elseif ~isempty(ids) && isstring(ids{1})
+                    normalizedIds = cellfun(@char, ids, 'UniformOutput', false);
+                else
+                    % Already character cells
+                    normalizedIds = ids;
+                end
+                return
+            end
+            
+            % Fallback: convert to string
+            normalizedIds = {char(string(ids))};
+        end
+        
         function propertyArgs = filterMetaObjectPropertyArgs( ...
                 objectPropertyName, objectPropertyValue, keepNames)
                 
