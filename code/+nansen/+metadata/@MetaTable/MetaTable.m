@@ -264,6 +264,10 @@ classdef MetaTable < handle
         %   Todo: Find better function name... Confusing that it loads, but
         %   does not overwrite.
 
+            LOAD_NEWER_VERSION = 'Load newer version';
+            LOAD_NEWER_VERSION_AND_DROP = 'Load newer version and drop unsaved changes';
+            KEEP_CURRENT_VERSION = 'Keep current version';
+
             titleStr = 'Newer version exists';
 
             msg = ['The metatable has been updated outside this instance of Nansen. ' ...
@@ -272,14 +276,14 @@ classdef MetaTable < handle
                 'version which is currently open. \n\n\\bfNote: Selecting "Keep ', ...
                 'current version" will overwrite the newer version for all', ...
                 'nansen instances.'];
-            
+
             if obj.isClean()
-                choices = {'Load newer version'};
+                choices = {LOAD_NEWER_VERSION};
             else
-                choices = {'Load newer version and drop unsaved changes'};
+                choices = {LOAD_NEWER_VERSION_AND_DROP};
             end
 
-            choices{end+1} = 'Keep current version';
+            choices{end+1} = KEEP_CURRENT_VERSION;
             %choices = strcat('<html><font size="4">', choices);
 
             options = struct('Default', choices{1}, 'Interpreter', 'tex');
@@ -288,11 +292,11 @@ classdef MetaTable < handle
             answer = questdlg(formattedMessage, titleStr, choices{:}, options);
 
             switch lower(answer)
-                case 'keep current version'
+                case KEEP_CURRENT_VERSION
                     tf = false;
-                case 'load newer version and drop recent changes'
+                case LOAD_NEWER_VERSION_AND_DROP
                     tf = true;
-                case 'load newer version'
+                case LOAD_NEWER_VERSION
                     tf = true;
                 otherwise
                     tf = [];
@@ -309,7 +313,8 @@ classdef MetaTable < handle
             
             % If a filepath does not exist, throw error.
             if ~isfile(obj.filepath)
-                error('File "%s" does not exist.')
+                error('NANSEN:Metatable:FileNotFound', ...
+                    'File "%s" does not exist.', obj.filepath)
             end
             
             % Load variables from MetaTable file.
@@ -1094,7 +1099,7 @@ classdef MetaTable < handle
 
         function entries = getEntry(obj, listOfEntryIds)
         %getEntry Get entry/entries from the entry IDs.
-            IND = contains(obj.members, listOfEntryIds);
+            IND = contains(obj.members, listOfEntryIds); % Todo: use ismember, contains can do partial match
             entries = obj.entries(IND, :);
         end
         
@@ -1475,10 +1480,9 @@ classdef MetaTable < handle
                 % Check if objects already exists in cache
                 ids = obj.getObjectId(tableEntries);
                 if isnumeric(ids)
-                    if isnumeric(ids) && numel(ids) == 1
-                        ids = num2str(ids);
-                        ids = {ids};
-                    elseif isnumeric(ids) && numel(ids) > 1
+                    if isscalar(ids)
+                        ids = { num2str(ids) }; % Scalar cell array
+                    else
                         ids = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
                     end
                     allCachedIds = cellfun(@num2str, obj.MetaObjectCacheMembers, 'UniformOutput', false);
@@ -1667,6 +1671,10 @@ classdef MetaTable < handle
             else
                 ids = {object.(idName)};
             end
+
+            if isnumeric(ids{1}) % Todo: method for identifier normalization (to string)
+                ids = cellfun(@num2str, ids, 'UniformOutput', false);
+            end
         end
 
         function entryIndex = getIndexById(obj, objectId)
@@ -1682,7 +1690,8 @@ classdef MetaTable < handle
             idName = obj.SchemaIdName;
             obj.MetaObjectCacheMembers = {obj.MetaObjectCache.(idName)};
 
-            if isnumeric(obj.MetaObjectCacheMembers)
+            if isnumeric(obj.MetaObjectCacheMembers{1})
+                % Todo: Add a normalizeIdentifier method
                 obj.MetaObjectCacheMembers = cellfun(@num2str, obj.MetaObjectCacheMembers, 'UniformOutput', false);
             end
         end
@@ -1694,11 +1703,14 @@ classdef MetaTable < handle
             if ~isvalid(src); return; end
 
             objectID = obj.getObjectId(src); % sessionID / itemID
+
+            % Todo: Use getEntry
             metaTableEntryIdx = find(strcmp(obj.members, objectID));
             
             if numel(metaTableEntryIdx) > 1
-                metaTableEntryIdx = metaTableEntryIdx(1);
-                warning('Multiple entries have the ID "%s"', objectID)
+                % metaTableEntryIdx = metaTableEntryIdx(1);
+                error('NANSEN:Metatable:DuplicateEntries', ...
+                    'Multiple entries have the ID "%s"', objectID)
             end
             
             obj.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
@@ -1718,10 +1730,12 @@ classdef MetaTable < handle
         function onMetaObjectDestroyed(obj, src, ~)
             if ~isvalid(obj); return; end
             
-            idName = obj.SchemaIdName;
-            objectID = src.(idName);
-            
+            objectID = obj.getObjectId(src);
+                        
             [~, ~, iC] = intersect(objectID, obj.MetaObjectCacheMembers);
+            if isempty(iC)
+                warning('Object was not found in cache member registry. Object will not be removed.')
+            end
             obj.MetaObjectCache(iC) = [];
 
             obj.updateMetaObjectCacheMembers();
@@ -1778,7 +1792,7 @@ classdef MetaTable < handle
     methods (Access = private) % Static??
        
         function openMetaTableSelectionDialog(~)
-            error('Noe implemented yet')
+            error('Not implemented yet')
             % Todo:
             
             % Open a quest dialog to ask if user wants to open a metatable
