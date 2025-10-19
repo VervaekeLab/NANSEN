@@ -765,6 +765,9 @@ classdef MetaTable < handle
             
             currentProject = nansen.getCurrentProject();
             refVariableAttributes = currentProject.getTable('TableVariable');
+
+            % Todo: Create method for getting table variable info given a
+            % type, a name an potentially other attributes like "isCustom"
             refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
 
             isCustom = refVariableAttributes.IsCustom;
@@ -794,9 +797,11 @@ classdef MetaTable < handle
                 obj.addTableVariable(thisName, defaultValue)
 
                 if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
-                    % Todo: update for all items of the metatable
+                    % Update for all items of the metatable
+                    tableRowInd = 1:height(obj.entries);
                     updateFcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
-                    obj.updateTableVariable(thisName, updateFcnName)
+                    wasUpdated = obj.updateTableVariable(thisName, tableRowInd, str2func(updateFcnName)); %#ok<NASGU>
+                    % Todo: Show warning if any fails to update?
                 end
             end
             if not( isempty(obj.filepath) )
@@ -1142,31 +1147,7 @@ classdef MetaTable < handle
             
             %obj.IsModified = true;
         end
-        
-        function updateEntries(obj, listOfEntryIds)
-            
-            % Note: not implemented
 
-            if nargin < 2 % Update all...
-                listOfEntryIds = obj.members;
-            end
-            
-            for i = 1:numel(listOfEntryIds)
-                try
-                    % Todo: need to convert to instance of schema and invoke
-                    % update method.
-                catch
-                    fprintf( 'Failed for session %s\n', listOfEntryIds{i})
-                end
-            end
-
-            % Synch changes to master
-            if ~obj.IsMaster && ~isempty(obj.filepath)
-                S = obj.toStruct('metatable_file');
-                obj.synchToMaster(S)
-            end
-        end
-        
         function onEntriesChanged(obj)
             obj.IsModified = true;
         end
@@ -1233,10 +1214,10 @@ classdef MetaTable < handle
 
             assert(~isempty(MT), 'MetaTable Catalog is empty')
             
-            isMaster = MT.IsMaster; %#ok<PROP>
+            isMaster = MT.IsMaster;
             isClass = contains(MT.MetaTableClass, class(obj));
             
-            mtTmp = MT(isMaster & isClass, :); %#ok<PROP>
+            mtTmp = MT(isMaster & isClass, :);
             assert(~isempty(mtTmp), 'No master MetaTable for this MetaTable class')
 
             MetaTableNames = mtTmp.MetaTableName;
@@ -1370,19 +1351,22 @@ classdef MetaTable < handle
             names(~MT.IsMaster) = sort(names(~MT.IsMaster));
         end
     
-        function wasUpdated = updateTableVariable(obj, variableName, tableRowIndices, options)
+        function wasUpdated = updateTableVariable(obj, variableName, tableRowIndices, updateFunction, options)
             arguments
                 obj (1,1) nansen.metadata.MetaTable
                 variableName (1,1) string
-                tableRowIndices (1,:) uint32
+                tableRowIndices (1,:) double {mustBeInteger} = 1:height(obj.entries) % Default: update all
+                updateFunction function_handle = function_handle.empty()
                 options.ProgressMonitor = [] % Todo: waitbar class?
                 options.MessageDisplay = [] % Constrain to message display
             end
             
             wasUpdated = false(1, numel(tableRowIndices));
             hasWarned = false;
-
-            updateFunction = obj.getTableVariableUpdateFunction(variableName);
+            
+            if isempty(updateFunction) % Retrieve update function if not given
+                updateFunction = obj.getTableVariableUpdateFunction(variableName);
+            end
             defaultValue = updateFunction();
 
             % Character vectors should be in a scalar cell
@@ -1392,7 +1376,10 @@ classdef MetaTable < handle
                 expectedDataType = class(defaultValue);
             end
 
-            metaObjects = obj.getMetaObjects(tableRowIndices);
+            metaObjects = obj.getMetaObjects(tableRowIndices); % Todo: Do we need to pass DataLocationModel/VariableModel here?
+
+            warnState = warning('backtrace', 'off');
+            warningCleanup = onCleanup(@() warning(warnState));
 
             numItems = numel(metaObjects);
             updatedValues = cell(numItems, 1);
@@ -1423,15 +1410,20 @@ classdef MetaTable < handle
                                 options.MessageDisplay.warn(warningMessage, 'Title', 'Update failed')
                             end
                             hasWarned = true;
-                            ME = MException('Nansen:TableVar:WrongType', warningMessage);
+                            % Todo: consider to throw this as error after
+                            % processing all items. Make sure current
+                            % callers can handle error
+                            % ME = MException('Nansen:TableVar:WrongType', warningMessage);
                         end
                     end
                 catch ME
-                    
+                    warning(ME.identifier, ...
+                        'Failed to update variable "%s". Reason:\n%s\n', ...
+                        variableName, ME.message)
                 end
 
-                if ~isempty(options.Waitbar)
-                    waitbar(iItem/numItems, options.Waitbar)
+                if ~isempty(options.ProgressMonitor)
+                    waitbar(iItem/numItems, options.ProgressMonitor)
                 end
             end
 
@@ -1546,6 +1538,35 @@ classdef MetaTable < handle
             end
             obj.MetaObjectCache = [];
             obj.MetaObjectCacheMembers = {};
+        end
+    end
+
+    methods (Access = private) % Not implemented yet
+        function updateEntries(obj, listOfEntryIds)
+            
+            % Note: not implemented
+            arguments
+                obj (1,1) nansen.metadata.MetaTable %#ok<INUSA>
+                listOfEntryIds = obj.members %#ok<INUSA> % Default: update all
+            end
+
+            error('Not implemented yet')
+
+            % % for i = 1:numel(listOfEntryIds)
+            % %     try
+            % %         % Todo: need to convert to instance of metadata entity 
+            % %         % and invoke update method.
+            % %         % Note: Assumes this class has an update method.
+            % %     catch
+            % %         fprintf( 'Failed for session %s\n', listOfEntryIds{i})
+            % %     end
+            % % end
+
+            % % % Synch changes to master
+            % % if ~obj.IsMaster && ~isempty(obj.filepath)
+            % %     S = obj.toStruct('metatable_file');
+            % %     obj.synchToMaster(S)
+            % % end
         end
     end
 
@@ -1717,7 +1738,7 @@ classdef MetaTable < handle
             currentProject = nansen.getCurrentProject();
             refVariableAttributes = currentProject.getTable('TableVariable');
          
-            tableType = lower(obj.MetaTableClass);
+            tableType = lower(obj.getTableType());
             refVariableAttributes(refVariableAttributes.TableType ~= tableType, :) = [];
             
             isVariableEntry = refVariableAttributes.TableType == tableType & ...
@@ -1756,7 +1777,8 @@ classdef MetaTable < handle
 
     methods (Access = private) % Static??
        
-        function openMetaTableSelectionDialog(obj)
+        function openMetaTableSelectionDialog(~)
+            error('Noe implemented yet')
             % Todo:
             
             % Open a quest dialog to ask if user wants to open a metatable
@@ -1824,7 +1846,7 @@ classdef MetaTable < handle
             % If keyword is provided, use this:
             elseif any( strcmp(varargin{1}, {'master', 'dummy'} ) )
                 error('Not implemented yet.')
-                metaTable.setMaster(varargin{1})
+                % Todo: metaTable.setMaster(varargin{1})
             end
         end
         
