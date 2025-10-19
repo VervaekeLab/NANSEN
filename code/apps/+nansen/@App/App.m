@@ -3560,12 +3560,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             metaObjects = app.getSelectedMetaObjects();
 
             if ~isempty(metaObjects) % Todo: Resolve varName more flexibly
-                if strcmp( app.UiMetaTableSelector.CurrentSelection, 'Session' )
-                    varName = app.settings.Session.SessionObjectWorkspaceName;
+                if ~isempty(app.UiMetaTableSelector)
+                    if strcmp( app.UiMetaTableSelector.CurrentSelection, 'Session' )
+                        varName = app.settings.Session.SessionObjectWorkspaceName;
+                    else
+                        varName = app.UiMetaTableSelector.CurrentSelection;
+                    end
                 else
-                    varName = app.UiMetaTableSelector.CurrentSelection;
+                    varName = app.settings.Session.SessionObjectWorkspaceName;
                 end
-
                 assignin('base', lower(varName), metaObjects)
             end
         end
