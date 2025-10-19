@@ -7,7 +7,7 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
     
     properties
         
-        anchorPoint = [nan, nan]        	% defined in clib.hasDraggableRectangle
+        anchorPoint = [nan, nan]
         previousPoint = [nan, nan]
 
         isButtonDown = false

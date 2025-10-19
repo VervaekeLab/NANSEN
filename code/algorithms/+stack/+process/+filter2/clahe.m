@@ -51,9 +51,9 @@ end
 % % %     case  {'uint8', 'uint16'}
 % % %
 % % %         meanProjection = mean(imdata, 3);
-% % %         origRange = range(meanProjection(:));
+% % %         origRange = nansen.util.range(meanProjection(:));
 % % %
-% % %         normalize = @(im) (im-min(im(:))) ./ range(im(:));
+% % %         normalize = @(im) (im-min(im(:))) ./ nansen.util.range(im(:));
 % % %         meanProjection = normalize(meanProjection);
 % % %
 % % %         % Do imadjust to make surefull bitdepth is used...

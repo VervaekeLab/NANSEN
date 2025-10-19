@@ -643,6 +643,9 @@ classdef MetaTable < handle
             isStruct = cellfun(@(c) isstruct(c), firstRowData);
             formattingFcn(isStruct) = {'dispStruct'};
 
+            isDatetime = cellfun(@(c) isdatetime(c), firstRowData);
+            formattingFcn(isDatetime) = {'datetime'};
+
             % Step 2: Get nansen table variables formatters.
             tableClass = lower( obj.getTableType() );
             [fcnHandles, names] = getColumnFormatter(variableNames, tableClass);
@@ -681,7 +684,11 @@ classdef MetaTable < handle
                 if isa( thisFormatter, 'char' )
                     tmpFcn = str2func( thisFormatter );
                     formattedValue = cellfun(@(s) tmpFcn(s), jColumnValues, 'uni', 0);
-
+                    if strcmp(thisFormatter, 'datetime')
+                        isEmpty = cellfun(@isempty, formattedValue);
+                        [formattedValue{isEmpty}] = deal(NaT);
+                    end
+              
                 elseif isa( thisFormatter, 'function_handle')
                     try
                         tmpObj = thisFormatter( jColumnValues );
@@ -1121,14 +1128,12 @@ classdef MetaTable < handle
             idName = obj.SchemaIdName;
 
             if isa(listOfEntryIds, 'cell')
-                assert( ~isempty( strfindsid(listOfEntryIds{1}) ), 'Cells should contain IDs' )
                 IND = contains( obj.entries.(idName), listOfEntryIds);
                 
             elseif isa(listOfEntryIds, 'numeric')
                 IND = listOfEntryIds;
                 
             elseif isa(listOfEntryIds, 'char')
-                assert( ~isempty( strfindsid(listOfEntryIds) ), 'Char should contain ID' )
                 IND = contains( obj.entries.(idName), listOfEntryIds);
             end
 
@@ -1394,7 +1399,7 @@ classdef MetaTable < handle
 
             for iItem = 1:numItems
                 try % Todo: Use error handling here. What if some conditions can not be met...
-                    newValue = updateFcn(metaObjects(iItem));
+                    newValue = updateFunction(metaObjects(iItem));
 
                     if isa(newValue, 'nansen.metadata.abstract.TableVariable')
                         % Need to extract data value if the newValue is a
@@ -1413,7 +1418,7 @@ classdef MetaTable < handle
                         updatedValues{iItem} = newValue;
                     else
                         if ~hasWarned
-                            warningMessage = sprintf('The table variable function returned something unexpected.\nPlease make sure that the table variable function for "%s" returns a %s.', varName, expectedDataType);
+                            warningMessage = sprintf('The table variable function returned something unexpected.\nPlease make sure that the table variable function for "%s" returns a %s.', variableName, expectedDataType);
                             if ~isempty(options.MessageDisplay)
                                 options.MessageDisplay.warn(warningMessage, 'Title', 'Update failed')
                             end
@@ -1613,7 +1618,10 @@ classdef MetaTable < handle
                 try
                     addlistener(metaObjects{i}, 'PropertyChanged', @obj.onMetaObjectPropertyChanged);
                     addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @obj.onMetaObjectDestroyed);
-                catch
+                catch MEForListener
+                    if isa(metaObjects{i}, 'nansen.metadata.abstract.BaseSchema')
+                        warning(MEForListener.identifier, 'Failed to add listener to meta object. Reason:\n%s\n', MEForListener.message)
+                    end
                     % Todo: Either throw warning or implement interface for
                     % easily implementing PropertyChanged on any table
                     % class..
@@ -1702,14 +1710,14 @@ classdef MetaTable < handle
     methods (Access = private) % Methods related to updating table variables
         function updateFcn = getTableVariableUpdateFunction(obj, variableName)
         % getTableVariableUpdateFunction - Get function name of table variable update function
-        
-            tableType = lower(obj.MetaTableClass);
-            
+                    
             % Todo: Think about whether we always want to get tables from 
             % the current project, or if we also want to be able to specify
             % which project to use.
             currentProject = nansen.getCurrentProject();
             refVariableAttributes = currentProject.getTable('TableVariable');
+         
+            tableType = lower(obj.MetaTableClass);
             refVariableAttributes(refVariableAttributes.TableType ~= tableType, :) = [];
             
             isVariableEntry = refVariableAttributes.TableType == tableType & ...

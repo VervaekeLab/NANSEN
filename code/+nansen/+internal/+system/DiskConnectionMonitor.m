@@ -31,7 +31,7 @@ classdef DiskConnectionMonitor < handle
 
         function delete(obj)
             if ~isempty(obj.Timer) && isvalid(obj.Timer)
-                stop(obj.Timer)
+                obj.Timer.stop()
                 delete(obj.Timer)
             end
         end
@@ -39,11 +39,11 @@ classdef DiskConnectionMonitor < handle
 
     methods
         function pause(obj)
-            stop(obj.Timer)
+            obj.Timer.stop()
         end
 
         function resume(obj)
-            start(obj.Timer)
+            obj.Timer.start()
         end
     end
 
@@ -74,7 +74,7 @@ classdef DiskConnectionMonitor < handle
             obj.Timer.ExecutionMode = 'fixedRate';
             obj.Timer.Period = obj.TimerUpdateInterval_;
             obj.Timer.TimerFcn = updateFcn;
-            start(obj.Timer)
+            obj.Timer.start()
         end
         
         function updateDiskList(obj, updatedVolumeList)

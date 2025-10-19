@@ -477,6 +477,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                     wildCardExpression = wildCardExpression + "*";
                 end
             end
+
+            while contains(wildCardExpression, '**') % Ensure we dont have doubles
+                wildCardExpression = strrep(wildCardExpression, '**', '*');
+            end
         end
     end
 

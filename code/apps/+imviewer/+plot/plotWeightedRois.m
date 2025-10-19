@@ -21,8 +21,8 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
     if isa(hAxes, 'imviewer.App'); hAxes = hAxes.Axes; end
 
     if isa(spatialWeights, 'struct')
-        if isfield(dataStruct, 'spatial_weights') % extract format...
-            roiImageArray = dataStruct.spatial_weights;
+        if isfield(spatialWeights, 'spatial_weights') % extract format...
+            roiImageArray = spatialWeights.spatial_weights;
             % Todo: What if sparse...
         end
     elseif isnumeric(spatialWeights) && ndims(spatialWeights) == 3

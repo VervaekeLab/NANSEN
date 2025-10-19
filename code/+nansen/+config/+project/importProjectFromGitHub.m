@@ -27,7 +27,7 @@ function project = importProjectFromGitHub(repositoryUrl, options)
 %   importProjectFromGitHub("https://github.com/username/project-repo")
 %
 % See also:
-%   setuptools.internal.installGithubRepository, projectManager.importProject
+%   matbox.setup.internal.installGithubRepository, projectManager.importProject
 
 
     arguments
@@ -40,8 +40,7 @@ function project = importProjectFromGitHub(repositoryUrl, options)
 
     % Download target repository folder 
     installationLocation = fullfile(userpath, 'Nansen', 'Projects');
-    repoTargetFolder = setuptools.internal.installGithubRepository(repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
-    
+    repoTargetFolder = matbox.setup.internal.installGithubRepository(repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
     if ismissing(options.NansenUserName)
         nansen.common.assertion.assertUserSessionActive()
         userSession = NansenUserSession.instance("", "nocreate");
@@ -52,6 +51,6 @@ function project = importProjectFromGitHub(repositoryUrl, options)
 
     % Add project to nansen
     L = dir(fullfile(repoTargetFolder, '*', 'project.nansen.json'));
-    projectManager.importProject(L.folder);
+    projectName = projectManager.importProject(L.folder);
     projectManager.changeProject(projectName);
 end

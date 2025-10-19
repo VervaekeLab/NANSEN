@@ -57,6 +57,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         NotesViewer
         DLModelApp
         VariableModelApp
+        MenuCustomizationDialogApp
     end
 
     properties (Access = private) % App / gui components
@@ -83,6 +84,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % Context menu for session table. Todo: Need to generalize this to
         % flexibly update when tables are changed.
         SessionContextMenu matlab.ui.container.ContextMenu
+    end
+
+    properties (Access = {?nansen.App, ?nansen.config.MenuCustomizationDialog})
+        % MenuVisibilityManager - Manages visibility of menu items based on
+        % user and project preferences
+        MenuVisibilityManager nansen.config.MenuVisibilityManager
     end
 
     properties (Access = private)
@@ -129,6 +136,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % Start app construction
             app.switchJavaWarnings('off')
             app.configureWindow()
+            app.lockWindowPosition()
            
             app.UserSession = userSession;
             app.ProjectManager = app.UserSession.getProjectManager();
@@ -149,9 +157,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createMenu()
             warning('on', 'Nansen:OptionsManager:PresetChanged')
 
+            % Initialize and apply menu visibility manager
+            app.MenuVisibilityManager = nansen.config.MenuVisibilityManager(app.Figure);
+            app.MenuVisibilityManager.loadPreferences();
+            app.MenuVisibilityManager.applyVisibility();
+
             app.createLayout()
             app.createComponents()
             
+            app.unlockWindowPosition()
+
             app.switchJavaWarnings('on')
             
             % Add this callback after every component is made
@@ -312,6 +327,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             LimitFigSize(app.Figure, 'min', minimumFigureSize) % FEX
         end
         
+        function lockWindowPosition(app)
+            % Todo
+        end
+
+        function unlockWindowPosition(app)
+            % Todo
+        end
+
         function configFigureCallbacks(app)
             
             app.Figure.WindowButtonDownFcn = @app.onMousePressed;
@@ -393,90 +416,93 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function createMenu_Nansen(app, hMenu)
             % % % % % % Create PROJECTS menu items  % % % % % %
-            mitem = uimenu(hMenu, 'Text','New Project');
-            menuSubItem = uimenu( mitem, 'Text', 'Create...');
+            mitem = uimenu(hMenu, 'Text','New Project', 'Tag', 'core.nansen.new_project');
+            menuSubItem = uimenu( mitem, 'Text', 'Create...', 'Tag', 'core.nansen.new_project.create');
             menuSubItem.MenuSelectedFcn = @app.menuCallback_NewProject;
 
-            menuSubItem = uimenu( mitem, 'Text', 'Add Existing...');
+            menuSubItem = uimenu( mitem, 'Text', 'Add Existing...', 'Tag', 'core.nansen.new_project.add_existing');
             menuSubItem.MenuSelectedFcn = @app.menuCallback_NewProject;
             
-            app.Menu.ChangeProject = uimenu(hMenu, 'Text','Change Project');
+            app.Menu.ChangeProject = uimenu(hMenu, 'Text','Change Project', 'Tag', 'core.nansen.change_project');
             app.updateProjectList()
             
-            mitem = uimenu(hMenu, 'Text','Manage Projects...');
+            mitem = uimenu(hMenu, 'Text','Manage Projects...', 'Tag', 'core.nansen.manage_projects');
             mitem.MenuSelectedFcn = @app.menuCallback_ManageProjects;
             
-            mitem = uimenu(hMenu, 'Text','Open Project Folder', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text','Open Project Folder', 'Separator', 'on', 'Tag', 'core.nansen.open_project_folder');
             mitem.MenuSelectedFcn = @app.menuCallback_OpenProjectFolder;
 
-            mitem = uimenu(hMenu, 'Text','Change Current Folder');
+            mitem = uimenu(hMenu, 'Text','Change Current Folder', 'Tag', 'core.nansen.change_current_folder');
             mitem = uics.MenuList(mitem, {'Nansen', 'Current Project'}, '', 'SelectionMode', 'none');
             mitem.MenuSelectedFcn = @app.menuCallback_ChangeCurrentFolder;
 
             % % % % % % CONFIGURATION menu items % % % % % %
-            mitem = uimenu(hMenu, 'Text','Configure', 'Separator', 'on', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text','Configure', 'Separator', 'on', 'Enable', 'on', 'Tag', 'core.nansen.configure');
             
-            menuSubItem = uimenu( mitem, 'Text', 'Datalocations...');
+            menuSubItem = uimenu( mitem, 'Text', 'Datalocations...', 'Tag', 'core.nansen.configure.datalocations');
             menuSubItem.MenuSelectedFcn = @(s,e) app.openDataLocationEditor;
             
             % Todo: Update this on project change
-            uiSubMenu = uimenu( mitem, 'Text', 'Data Location Roots' );
+            uiSubMenu = uimenu( mitem, 'Text', 'Data Location Roots', 'Tag', 'core.nansen.configure.data_location_roots' );
             app.updateMenu_DatalocationRootConfiguration(uiSubMenu)
 
-            menuSubItem = uimenu(mitem, 'Text', 'Variables...');
+            menuSubItem = uimenu(mitem, 'Text', 'Variables...', 'Tag', 'core.nansen.configure.variables');
             menuSubItem.MenuSelectedFcn = @(s,e) app.openVariableModelEditor;
             
-            menuSubItem = uimenu(mitem, 'Text', 'Modules...');
+            menuSubItem = uimenu(mitem, 'Text', 'Modules...', 'Tag', 'core.nansen.configure.modules');
             menuSubItem.MenuSelectedFcn = @(s,e) app.openModuleManager;
         
-            menuSubItem = uimenu(mitem, 'Text', 'Create File Adapter...');
+            menuSubItem = uimenu(mitem, 'Text', 'Create File Adapter...', 'Tag', 'core.nansen.configure.file_adapter');
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateFileAdapter;
 
-            menuSubItem = uimenu(mitem, 'Text', 'Watch Folders...', 'Enable', 'off');
+            menuSubItem = uimenu(mitem, 'Text', 'Watch Folders...', 'Enable', 'off', 'Tag', 'core.nansen.configure.watch_folders');
             menuSubItem.MenuSelectedFcn = @(s,e) nansen.config.watchfolder.WatchFolderManagerApp;
 
-            mitem = uimenu(hMenu, 'Text', 'Preferences...');
+            mitem = uimenu(hMenu, 'Text', 'Preferences...', 'Tag', 'core.nansen.preferences');
             mitem.MenuSelectedFcn = @(s,e) app.editSettings;
             
-            mitem = uimenu(hMenu, 'Text', 'Refresh Menu', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Customize Menus...', 'Tag', 'core.nansen.customize_menus');
+            mitem.MenuSelectedFcn = @(s,e) app.menuCallback_CustomizeMenus();
+            
+            mitem = uimenu(hMenu, 'Text', 'Refresh Menu', 'Separator', 'on', 'Tag', 'core.nansen.refresh_menu');
             mitem.MenuSelectedFcn = @(s,e) app.menuCallback_RefreshSessionMethod;
             
-            mitem = uimenu(hMenu, 'Text','Refresh Table');
+            mitem = uimenu(hMenu, 'Text','Refresh Table', 'Tag', 'core.nansen.refresh_table');
             mitem.MenuSelectedFcn = @(s,e) app.menuCallback_RefreshTable;
             
-            mitem = uimenu(hMenu, 'Text','Refresh Data Locations');
+            mitem = uimenu(hMenu, 'Text','Refresh Data Locations', 'Tag', 'core.nansen.refresh_data_locations');
             mitem.MenuSelectedFcn = @app.onDataLocationModelChanged;
 
-            mitem = uimenu(hMenu, 'Text','Clear SessionObject Cache');
+            mitem = uimenu(hMenu, 'Text','Clear SessionObject Cache', 'Tag', 'core.nansen.clear_cache');
             mitem.MenuSelectedFcn = @app.menuCallback_ClearCachedMetaObjects;
 
             % % % % % % Create EXIT menu items % % % % % %
-            mitem = uimenu(hMenu, 'Text','Close All Figures', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text','Close All Figures', 'Separator', 'on', 'Tag', 'core.nansen.close_all');
             mitem.MenuSelectedFcn = @app.menuCallback_CloseAll;
             
-            mitem = uimenu(hMenu, 'Text', 'Quit');
+            mitem = uimenu(hMenu, 'Text', 'Quit', 'Tag', 'core.nansen.quit');
             mitem.MenuSelectedFcn = @(s, e) app.delete;
         end
 
         function createMenu_MetaTable(app, hMenu)
             
-            mitem = uimenu(hMenu, 'Text', 'New Metatable...', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text', 'New Metatable...', 'Enable', 'on', 'Tag', 'core.metatable.new');
             mitem.MenuSelectedFcn = @app.menuCallback_CreateMetaTable;
             
-            mitem = uimenu(hMenu, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'Open Metatable', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text','Open Metatable', 'Separator', 'on', 'Tag', 'core.metatable.open', 'Enable', 'on');
             app.updateRelatedInventoryLists(mitem)
             app.updateMetaTableMenu(mitem);
 
-            mitem = uimenu(hMenu, 'Text','Make Current Metatable Default');
+            mitem = uimenu(hMenu, 'Text','Make Current Metatable Default', 'Tag', 'core.metatable.set_default');
             mitem.MenuSelectedFcn = @app.menuCallback_SetDefaultMetaTable;
             
-            mitem = uimenu(hMenu, 'Text','Reload Metatable');
+            mitem = uimenu(hMenu, 'Text','Reload Metatable', 'Tag', 'core.metatable.reload');
             mitem.MenuSelectedFcn = @(src, event) app.reloadMetaTable;
             
-            mitem = uimenu(hMenu, 'Text','Save Metatable', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text','Save Metatable', 'Enable', 'on', 'Tag', 'core.metatable.save');
             mitem.MenuSelectedFcn = @(src, event, forceSave) app.saveMetaTable(src, event, true);
             
-            mitem = uimenu(hMenu, 'Text','Manage Metatables...', 'Enable', 'off');
+            mitem = uimenu(hMenu, 'Text','Manage Metatables...', 'Enable', 'off', 'Tag', 'core.metatable.manage');
             mitem.MenuSelectedFcn = [];
             
             % % % Create menu items for METATABLE loading and saving % % %
@@ -492,15 +518,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
             % % Section with menu items for creating table variables
 
-            mitem = uimenu(hMenu, 'Text','New Table Variable', 'Separator', 'on');
-            menuSubItem = uimenu( mitem, 'Text', 'Create...');
+            mitem = uimenu(hMenu, 'Text','New Table Variable', 'Separator', 'on', 'Tag', 'core.metatable.new_variable');
+            menuSubItem = uimenu( mitem, 'Text', 'Create...', 'Tag', 'core.metatable.new_variable.create');
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateTableVariable;
             
-            menuSubItem = uimenu( mitem, 'Text', 'Import...'); 
+            menuSubItem = uimenu( mitem, 'Text', 'Import...', 'Tag', 'core.metatable.new_variable.import'); 
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_ImportTableVariable;
             
             % Menu with submenus for editing table variable definition:
-            mitem = uimenu(hMenu, 'Text', 'Edit Table Variable Definition');
+            mitem = uimenu(hMenu, 'Text', 'Edit Table Variable Definition', 'Tag', 'core.metatable.edit_variable');
             app.updateTableVariableMenuItems(mitem)
 
             % TODO: Include table variables from a metadata model.
@@ -538,11 +564,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % %                 hSubmenuItem.MenuSelectedFcn = @(s,e, cls) app.addTableVariable('session');
 % %             end
             
-            mitem = uimenu(hMenu, 'Text','Manage Variables...', 'Enable', 'off');
+            mitem = uimenu(hMenu, 'Text','Manage Variables...', 'Enable', 'off', 'Tag', 'core.metatable.manage_variables');
             mitem.MenuSelectedFcn = [];
 
             % --- Section with menu items for session methods/tasks
-            mitem = uimenu(hMenu, 'Text', 'New Table Method...', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'New Table Method...', 'Separator', 'on', 'Tag', 'core.metatable.new_method');
             mitem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateTableMethod;
 
             % Todo: Import metatable from excel file / table file...
@@ -567,31 +593,31 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
           % --- Section with menu items for session methods/tasks
-            mitem = uimenu(hMenu, 'Text', 'New Session Method...');
+            mitem = uimenu(hMenu, 'Text', 'New Session Method...', 'Tag', 'core.session.new_method');
             mitem.MenuSelectedFcn = @(s,e,type) app.menuCallback_CreateTableMethod('session');
             
-            mitem = uimenu(hMenu, 'Text', 'New Data Variable...', 'Enable', 'off');
+            mitem = uimenu(hMenu, 'Text', 'New Data Variable...', 'Enable', 'off', 'Tag', 'core.session.new_variable');
             mitem.MenuSelectedFcn = [];
             
           % --- Section with menu items for creating pipeline
-            mitem = uimenu(hMenu, 'Text', 'New Pipeline...', 'Enable', 'on', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'New Pipeline...', 'Enable', 'on', 'Separator', 'on', 'Tag', 'core.session.new_pipeline');
             mitem.MenuSelectedFcn = @app.menuCallback_CreateNewPipeline;
 
-            mitem = uimenu(hMenu, 'Text', 'Edit Pipeline', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Edit Pipeline', 'Enable', 'on', 'Tag', 'core.session.edit_pipeline');
             app.updateMenu_PipelineItems(mitem)
         
-            mitem = uimenu(hMenu, 'Text', 'Configure Pipeline Assignment...', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Configure Pipeline Assignment...', 'Enable', 'on', 'Tag', 'core.session.configure_pipeline');
             mitem.MenuSelectedFcn = @app.menuCallback_ConfigurePipelineAssignment;
 
           % --- Section with menu items for creating task lists
-            mitem = uimenu(hMenu, 'Text', 'Get Queueable Task List', 'Enable', 'on', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Get Queueable Task List', 'Enable', 'on', 'Separator', 'on', 'Tag', 'core.session.queueable_tasks');
             mitem.MenuSelectedFcn = @(s, e, mode) app.createBatchList('Queuable');
 
-            mitem = uimenu(hMenu, 'Text', 'Get Manual Task List', 'Enable', 'on');
+            mitem = uimenu(hMenu, 'Text', 'Get Manual Task List', 'Enable', 'on', 'Tag', 'core.session.manual_tasks');
             mitem.MenuSelectedFcn = @(s, e, mode) app.createBatchList('Manual');
             
           % --- Section with menu item for detecting sessions
-            mitem = uimenu(hMenu, 'Text','Detect New Sessions', 'Separator', 'on');
+            mitem = uimenu(hMenu, 'Text','Detect New Sessions', 'Separator', 'on', 'Tag', 'core.session.detect_sessions');
             mitem.Callback = @(src, event) app.menuCallback_DetectSessions;
 
 % %             mitem = uimenu(hMenu, 'Text','Remove Table Variable...');
@@ -607,13 +633,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function createMenu_Apps(~, hMenu)
-            mitem = uimenu(hMenu, 'Text', 'Imviewer');
+            mitem = uimenu(hMenu, 'Text', 'Imviewer', 'Tag', 'core.apps.imviewer');
             mitem.MenuSelectedFcn = @(s,e) imviewer();
 
-            mitem = uimenu(hMenu, 'Text', 'FovManager');
+            mitem = uimenu(hMenu, 'Text', 'FovManager', 'Tag', 'core.apps.fovmanager');
             mitem.MenuSelectedFcn = @(s,e) fovmanager.App();
 
-            mitem = uimenu(hMenu, 'Text', 'RoiManager');
+            mitem = uimenu(hMenu, 'Text', 'RoiManager', 'Tag', 'core.apps.roimanager');
             mitem.MenuSelectedFcn = @(s,e) roimanager.RoimanagerDashboard();
         end
 
@@ -640,17 +666,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             m = uimenu(app.Figure, 'Text', 'Help', 'Tag', 'Help');
 
             helpDoc = fullfile(nansen.rootpath, 'code', 'resources', 'docs', 'nansen_app', 'keyboard_shortcuts.html');
-            mitem = uimenu(m, 'Text','Show Keyboard Shortcuts');
+            mitem = uimenu(m, 'Text','Show Keyboard Shortcuts', 'Tag', 'core.help.keyboard_shortcuts');
             mitem.MenuSelectedFcn = @(src, event) applify.SimpleHelp(helpDoc);
             
-            mitem = uimenu(m, 'Text','Reactivate All Popup Tips');
+            mitem = uimenu(m, 'Text','Reactivate All Popup Tips', 'Tag', 'core.help.reactivate_popup_tips');
             mitem.Enable = 'off';
             % mitem.MenuSelectedFcn = @(src, event) nansen.internal.reactivatePopupTips;
 
-            mitem = uimenu(m, 'Text','Go to NANSEN Wiki Page', 'Separator', 'on');
+            mitem = uimenu(m, 'Text','Go to NANSEN Wiki Page', 'Separator', 'on', 'Tag', 'core.help.wiki');
             mitem.MenuSelectedFcn = @(s, e) web('https://github.com/VervaekeLab/NANSEN/wiki');
 
-            mitem = uimenu(m, 'Text','Create a GitHub Issue...');
+            mitem = uimenu(m, 'Text','Create a GitHub Issue...', 'Tag', 'core.help.github_issue');
             mitem.MenuSelectedFcn = @(s, e) web('https://github.com/VervaekeLab/NANSEN/issues/new');
         end
         
@@ -847,7 +873,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function updateRelatedInventoryLists(app, mItem)
         % updateRelatedInventoryLists - Update submenus holding metatable lists   
             if nargin < 2
-                mItem(1) = findobj(app.Figure, 'Tag', 'Open Metatable');
+                mItem = findobj(app.Figure, 'Tag', 'core.metatable.open');
                 try
                     mItem(2) = findobj(app.Figure, 'Tag', 'Add to Metatable');
                 catch
@@ -862,7 +888,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 delete(mItem(i).Children)
                 
                 switch mItem(i).Tag
-                    case 'Open Metatable'
+                    case 'core.metatable.open'
                         for j = 1:numel(names)
                             uimenu(mItem(i), 'Text', names{j}, 'Callback', @app.menuCallback_OpenMetaTable)
                         end
@@ -904,7 +930,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         continue
                     end
 
-                    iMenu = uimenu(hParent, 'Text', menuName);
+                    % Create tag from package hierarchy
+                    splitFolders = strsplit(fullfile(L(i).folder, L(i).name), filesep);
+                    isPackage = strncmp(splitFolders, '+', 1);
+                    packageParts = splitFolders(isPackage);
+                    packageParts = cellfun(@(x) strrep(x, '+', ''), packageParts, 'UniformOutput', false);
+                    
+                    % Extract only the part after 'mixin.tool' or 'tool'
+                    fullPath = strjoin(packageParts, '.');
+                    if contains(fullPath, 'mixin.tool.')
+                        simplifiedPath = extractAfter(fullPath, 'mixin.tool.');
+                    elseif contains(fullPath, 'tool.')
+                        simplifiedPath = extractAfter(fullPath, 'tool.');
+                    else
+                        simplifiedPath = fullPath;
+                    end
+                    menuTag = ['plugin.tools.', simplifiedPath];
+
+                    iMenu = uimenu(hParent, 'Text', menuName, 'Tag', menuTag);
                     app.createMenuFromDir(iMenu, fullfile(L(i).folder, L(i).name))
 
                 else
@@ -923,6 +966,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     packageName = strrep(packageName, '+', '');
                     
                     functionName = strjoin({packageName, fileName}, '.');
+                    
+                    % Create tag from function name, extracting only the part after 'mixin.tool' or 'tool'
+                    if contains(functionName, 'mixin.tool.')
+                        simplifiedPath = extractAfter(functionName, 'mixin.tool.');
+                    elseif contains(functionName, 'tool.')
+                        simplifiedPath = extractAfter(functionName, 'tool.');
+                    else
+                        simplifiedPath = functionName;
+                    end
+                    % Keep dots for hierarchical nesting in the customization dialog
+                    menuTag = ['plugin.tools.', simplifiedPath];
                     
                     % Following is too slow: % But the idea was to bundle
                     % functions as static methods in a class instead of
@@ -944,7 +998,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     % % % else
                     hfun = str2func(sprintf( '@(s,e) %s', functionName) );
                     
-                    iMitem = uimenu(hParent, 'Text', name);
+                    iMitem = uimenu(hParent, 'Text', name, 'Tag', menuTag);
                     iMitem.MenuSelectedFcn = hfun;
                     % % % end
                 end
@@ -1522,6 +1576,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.createMenu_Tools()
             
+            % Reload and apply menu visibility for new project
+            app.MenuVisibilityManager.loadPreferences('project');
+            app.MenuVisibilityManager.applyVisibility();
+            
             % Make sure project list is displayed correctly
             % Indicating current project
             app.updateProjectList()
@@ -1538,6 +1596,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             if ~isempty( app.VariableModelApp )
                 delete(app.VariableModelApp); app.VariableModelApp = [];
+            end
+            
+            % Close Menu Customization Dialog if it is open:
+            if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
+                delete(app.MenuCustomizationDialogApp); 
+                app.MenuCustomizationDialogApp = [];
             end
 
             app.TableIsUpdating = false;
@@ -3398,48 +3462,48 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function createBatchList2(app, mode)
-            
-            figName = sprintf( 'List of %s Tasks', mode);
-            f = figure('MenuBar', 'none', 'Name', figName, 'NumberTitle', 'off', 'Visible', 'off');
-            % h = nansen.TaskProcessor('Parent', f)
-            
-            h = nansen.uiwTaskTable('Parent', f, ...
-                'ColumnNames', {'SessionID', 'MethodName', 'Parameters', 'Comment'}, ...
-                'ColumnEditable', [false, false, false, true] );
-            
-            sessionObjects = app.getSelectedMetaObjects();
-            count = 0;
-            
-            for i = 1:numel(sessionObjects)
-                
-                pipelineObj = nansen.pipeline.Pipeline(sessionObjects(i).Progress);
-                
-                taskList = pipelineObj.getTaskList(mode);
-                
-                for j = 1:numel(taskList)
-                    
-                    newTaskDisplay = struct();
-                    newTaskDisplay.SessionID = sessionObjects(i).sessionID;
-                    newTaskDisplay.MethodName = taskList(j).TaskName;
-                    newTaskDisplay.Parameters = taskList.OptionsName;
-                    newTaskDisplay.Comment = '';
-                    newTaskDisplay = struct2table(newTaskDisplay, 'AsArray', true);
-                    
-                    % Add the task to the uitable.
-                    h.addTask(newTaskDisplay, 'end')
-                    
-                    count = count+1;
-                    if count == 1
-                        f.Visible = 'on';
-                    end
-                end
-            end
-            
-            if count == 0
-                close(f)
-                message = 'No tasks were found';
-                app.MessageDisplay.inform(message)
-            end
+            error('Not implemented')
+            % % figName = sprintf( 'List of %s Tasks', mode);
+            % % f = figure('MenuBar', 'none', 'Name', figName, 'NumberTitle', 'off', 'Visible', 'off');
+            % % % h = nansen.TaskProcessor('Parent', f)
+            % % 
+            % % h = nansen.uiwTaskTable('Parent', f, ...
+            % %     'ColumnNames', {'SessionID', 'MethodName', 'Parameters', 'Comment'}, ...
+            % %     'ColumnEditable', [false, false, false, true] );
+            % % 
+            % % sessionObjects = app.getSelectedMetaObjects();
+            % % count = 0;
+            % % 
+            % % for i = 1:numel(sessionObjects)
+            % % 
+            % %     pipelineObj = nansen.pipeline.Pipeline(sessionObjects(i).Progress); % Class does not exist
+            % % 
+            % %     taskList = pipelineObj.getTaskList(mode);
+            % % 
+            % %     for j = 1:numel(taskList)
+            % % 
+            % %         newTaskDisplay = struct();
+            % %         newTaskDisplay.SessionID = sessionObjects(i).sessionID;
+            % %         newTaskDisplay.MethodName = taskList(j).TaskName;
+            % %         newTaskDisplay.Parameters = taskList.OptionsName;
+            % %         newTaskDisplay.Comment = '';
+            % %         newTaskDisplay = struct2table(newTaskDisplay, 'AsArray', true);
+            % % 
+            % %         % Add the task to the uitable.
+            % %         h.addTask(newTaskDisplay, 'end')
+            % % 
+            % %         count = count+1;
+            % %         if count == 1
+            % %             f.Visible = 'on';
+            % %         end
+            % %     end
+            % % end
+            % % 
+            % % if count == 0
+            % %     close(f)
+            % %     message = 'No tasks were found';
+            % %     app.MessageDisplay.inform(message)
+            % % end
         end
         
         function createBatchList(app, mode)
@@ -3559,13 +3623,28 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uim.utility.layout.centerObjectInRectangle(hFigure, app.Figure)
             
             hProjectManagerUI = ProjectManagerUI(hFigure); %#ok<NASGU>
-            
+
             listener(app.ProjectManager, 'CurrentProjectSet', @app.onProjectChanged);
             hFigure.WindowStyle = 'modal';
             uiwait(hFigure)
             
             % Note: Change to addlistener if not using uiwait.
             app.updateProjectList()
+        end
+
+        function menuCallback_CustomizeMenus(app, ~, ~)
+        % menuCallback_CustomizeMenus - Open menu customization dialog
+            
+            % Close existing dialog if open
+            if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
+                % pass
+            else
+                % Create new dialog
+                app.MenuCustomizationDialogApp = nansen.config.MenuCustomizationDialog(app);
+            end
+            
+            % Show the menu customization dialog
+            app.MenuCustomizationDialogApp.show();
         end
         
         function menuCallback_OpenProjectFolder(app, ~, ~)
@@ -3756,11 +3835,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             currentProject = app.ProjectManager.getCurrentProject();
             targetPath = currentProject.getFileAdapterFolder();
             
-            [S, wasAborted] = nansen.module.uigetFileAdapterAttributes();
+            [S, wasAborted] = nansen.plugin.fileadapter.uigetFileAdapterAttributes();
             if wasAborted
                 return
             else
-                nansen.module.createFileAdapter(targetPath, S)
+                nansen.plugin.fileadapter.createFileAdapter(targetPath, S)
             end
             % Todo: Trigger update?
         end
@@ -3799,10 +3878,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function contextMenuCallback_CreateNoteForItem(app)
         % Lets user interactively add a note for the currently selected item
-            metaObject = app.getSelectedMetaObjects();
-            itemID = app.getObjectId(itemObject);
-
             itemType = lower(app.CurrentItemType);
+
+            metaObject = app.getSelectedMetaObjects();
+            itemID = app.getObjectId(metaObject);
+            
             noteObj = nansen.notes.Note.uiCreate(itemType, itemID);
             
             metaObject.addNote(noteObj)
@@ -3835,14 +3915,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         %% Menu callbacks - Other
         function menuCallback_OpenFigure(app, packageName, figureName)
-            
-            % Create function call...
-            fcn = figurePackage2Function(packageName, figureName);
-            hFigure = fcn();
-            
-            tabNames = {app.hLayout.TabGroup.Children.Title};
-            isFigureTab = strcmp(tabNames, 'Figures');
-            hFigure.reparent(app.hLayout.TabGroup.Children(isFigureTab))
+            error('Not implemented')
+
+            % % % Create function call...
+            % % fcn = figurePackage2Function(packageName, figureName); Is this function part
+            % of the multipart figure package?
+            % % hFigure = fcn();
+            % % 
+            % % tabNames = {app.hLayout.TabGroup.Children.Title};
+            % % isFigureTab = strcmp(tabNames, 'Figures');
+            % % hFigure.reparent(app.hLayout.TabGroup.Children(isFigureTab))
         end
     end
     
@@ -3973,7 +4055,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             entryIdx = app.UiMetaTableViewer.getSelectedEntries();
             
             if isempty(entryIdx)
-                message = 'No sessions are selected. Select one or more sessions for this operation.';                                
+                itemName = lower(app.CurrentItemType);
+                itemName = itemName + "s"; % plural
+
+                message = sprintf('No %s are selected. Select one or more %s for this operation.', itemName, itemName);                                
                 app.MessageDisplay.inform(message, 'Title', 'Session Selection Required')
             end
         end

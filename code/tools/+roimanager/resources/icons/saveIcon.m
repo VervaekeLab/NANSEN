@@ -20,7 +20,7 @@ function saveIcon(iconName)
         ax = axes;
         axis equal
 
-        hP = utilities.patchLineDrawing(ax, im, 'cropImage', true);
+        hP = uim.graphics.patchLineDrawing(ax, im, 'cropImage', true);
         % Get the shape and the colors and save to a mat-file
         polyShape = arrayfun(@(h) h.Shape, hP, 'uni', 0);
         colors = arrayfun(@(h) h.FaceColor, hP, 'uni', 0);
@@ -28,7 +28,7 @@ function saveIcon(iconName)
         V = struct('Shape', polyShape, 'Color', colors); %#ok<NASGU>
         delete(hP)
 
-        hV = clib.imageVector(ax, V);
+        hV = uim.graphics.imageVector(ax, V);
 
         hV.Height = hV.Height/hV.Height;
 

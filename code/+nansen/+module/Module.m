@@ -239,7 +239,10 @@ classdef Module < handle
             rootFolder = obj.getItemRootFolder(itemType);
             switch itemType
                 case {'SessionMethod', 'TableVariable', 'FileAdapter'}
-                    fileList = obj.listMFiles(rootFolder);
+                    fileList = obj.listMFiles(rootFolder, ["read.m", "write.m", "view.m"]);
+                    if strcmp(itemType, 'FileAdapter')
+                        fileList = [fileList; obj.listJsonFiles(rootFolder, 'fileadapter')];
+                    end
                 case {'DataVariables', 'Pipeline', 'DataLocations'}
                     fileList = obj.listJsonFiles(rootFolder);
                 otherwise
@@ -380,9 +383,13 @@ classdef Module < handle
             end
         end
 
-        function fileList = listMFiles(rootFolder)
+        function fileList = listMFiles(rootFolder, ignoreList)
             
             import utility.dir.listClassdefFilesInClassFolder
+
+            if nargin < 2
+                ignoreList = string.empty;
+            end
 
             % List all class definition files that are located in a class folder
             fileListA = listClassdefFilesInClassFolder(rootFolder);
@@ -394,15 +401,25 @@ classdef Module < handle
             %     'OutputType', 'FilePath');
             
             fileListB = utility.dir.recursiveDir(rootFolder, ...
-                'IgnoreList', ["@", 'deprecated'], 'Type', 'file', 'FileType', 'm');
+                'IgnoreList', ["@", "deprecated", ignoreList], 'Type', 'file', 'FileType', 'm');
             
             fileList = cat(1, fileListA, fileListB);
         end
 
-        function fileList = listJsonFiles(rootFolder)
+        function fileList = listJsonFiles(rootFolder, expression)
             % List all json-files in a folder hierarchy
+
+            arguments
+                rootFolder (1,1) string
+                expression (1,1) string = ""
+            end
+
             import utility.dir.recursiveDir
-            fileList = recursiveDir(rootFolder, 'Type', 'file', 'FileType', 'json');
+
+            fileList = recursiveDir(rootFolder, ...
+                'Type', 'file', ...
+                'FileType', 'json', ...
+                'Expression', expression);
         end
         
         function tf = isFileListModified(oldFileList, newFileList)

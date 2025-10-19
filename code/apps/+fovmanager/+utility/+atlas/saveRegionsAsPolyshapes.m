@@ -1,6 +1,7 @@
 function saveRegionsAsPolyshapes()
 
-tmpFig = brainmap.paxinos.open('invisible');
+tmpFig = fovmanager.view.openAtlas("paxinos", "Visibility", "invisible");
+
 hAx = findobj(tmpFig, 'type', 'axes');
 hPoly = findall(hAx, 'type', 'polygon');
 
@@ -27,6 +28,7 @@ save(savePath, 'mapRegions', 'mapBoundary')
 return
 
 % Create patchdata (This is just for the record)
+numShapes = numel(polyShape);
 [xData, yData] = deal( cell(numShapes, 1) );
 
 for i = 1:numel(polyShape)

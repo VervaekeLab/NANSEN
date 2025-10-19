@@ -1316,6 +1316,8 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         %   Check if the currently selected column has an associated table
         %   variable definition with a double click callback function.
 
+        % Note: currently not used
+
             thisRow = evt.Cell(1); % Clicked row index
             thisCol = evt.Cell(2); % Clicked column index
             

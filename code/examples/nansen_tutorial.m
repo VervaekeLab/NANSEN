@@ -8,5 +8,8 @@ catch
     nansen.internal.setup.installWidgetsToolbox();
 end
 
+% Check whether required Mathworks products are installed.
+nansen.internal.setup.checkRequiredMathworksProducts('error')
+
 % Run the tutorial initialization
 nansen.app.tutorial.loadProject()

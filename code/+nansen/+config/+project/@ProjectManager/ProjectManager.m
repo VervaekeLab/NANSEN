@@ -130,6 +130,10 @@ classdef ProjectManager < handle
                 setAsCurrentProject = true;
             end
 
+            if ~isempty( obj.getProject(name) )
+                error('Project with name "%s" already exists', name)
+            end
+
             % Temporarily disable current project
             currentProject = obj.CurrentProject;
             if ~setAsCurrentProject
@@ -397,7 +401,10 @@ classdef ProjectManager < handle
             end
             
             IND = obj.getProjectIndex(name);
-            assert( sum(IND)==1, 'Multiple projects were matched. Aborting...')
+            if numel(IND) == 0
+                throwProjectNotFoundError(name)
+            end
+            assert( numel(IND)==1, 'Multiple projects were matched. Aborting...')
             
             projectName = obj.Catalog(IND).Name;
             
@@ -1013,6 +1020,11 @@ classdef ProjectManager < handle
             % Todo: Reorder catalog to original order?
         end
     end
+end
+
+function throwProjectNotFoundError(projectName)
+    error('NANSEN:ProjectManager:ProjectNotFound', ...
+        'Project with name "%s" does not exist.', projectName)
 end
 
 function showProjectMissingWarning(projectName, projectFolder)

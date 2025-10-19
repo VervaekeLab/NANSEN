@@ -1,5 +1,6 @@
 fex://66235-widgets-toolbox-compatibility-support/1.3.330
 fex://160058-recursively-list-files-and-folders
+fex://109114-scalebar-for-images-and-plots
 fex://38527-limit-figure-size
 fex://57773-cmocean-perceptually-uniform-colormaps
 fex://7021-spectral-and-xyz-color-functions
@@ -11,4 +12,5 @@ fex://15830-getjframe-retrieves-a-figure-s-underlying-java-frame
 fex://50111-undecoratefig-remove-restore-figure-border-and-title-bar
 fex://158241-catalog
 fex://118460-file-downloader-uploader-with-progress-monitor
+fex://180185-matbox
 https://github.com/ehennestad/hierarchical-data-tree-matlab

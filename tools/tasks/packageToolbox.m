@@ -1,4 +1,4 @@
-function nansen_packageToolbox(releaseType, versionString)
+function [newVersion, mltbxPath] = nansen_packageToolbox(releaseType, versionString)
     arguments
         releaseType {mustBeTextScalar,mustBeMember(releaseType,["build","major","minor","patch","specific"])} = "build"
         versionString {mustBeTextScalar} = "";
@@ -7,6 +7,7 @@ function nansen_packageToolbox(releaseType, versionString)
     nansentools.installMatBox("commit")
 
     projectRootDirectory = nansentools.projectdir();
-    matbox.tasks.packageToolbox(projectRootDirectory, releaseType, versionString, ...
-        "ToolboxShortName", "NANSEN" )
+    [newVersion, mltbxPath] = matbox.tasks.packageToolbox(projectRootDirectory, releaseType, versionString, ...
+        "ToolboxShortName", "NANSEN", ...
+        "SourceFolderName", "code")
 end

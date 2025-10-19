@@ -5,7 +5,7 @@ function hText = showBrainMapLabels(hAxes, leftOrRight, varargin)
 % % param = parsenvpairs(param, [], varargin);
 
 if nargin < 1
-    tmpFig = brainmap.paxinos.open();
+    tmpFig = fovmanager.view.openAtlas("paxinos");
     hAxes = gca;
     leftOrRight = 'both';
     h = findobj(tmpFig, 'Type', 'Polygon');
@@ -22,8 +22,8 @@ yLimOrig = getappdata(hAxes, 'YLimOrig');
 xMin = xLimOrig(1);
 yMin = yLimOrig(1);
 
-xRange = range( xLimOrig );
-yRange = range( yLimOrig );
+xRange = nansen.util.range( xLimOrig );
+yRange = nansen.util.range( yLimOrig );
 
 m = 100; % Magnification?
 regionAreaMax = 40675;

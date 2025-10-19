@@ -137,8 +137,13 @@ function sessionIds = getSessionIDsForPaths(dataLocationModel, sessionFolderList
         
         % Try to extract sessionID
         for jPath = 1:numel(pathStrList)
-            sessionIDList{jPath} = dataLocationModel.getSessionID(...
-                pathStrList{jPath}, currentDataLocationIdx);
+            currentPathStr = pathStrList{jPath};
+            if ~isempty(currentPathStr)
+                sessionIDList{jPath} = dataLocationModel.getSessionID(...
+                    currentPathStr, currentDataLocationIdx);
+            else
+                sessionIDList{jPath} = '';
+            end
         end
         sessionIds.(currentDataLocationName) = sessionIDList;
     end
@@ -156,6 +161,7 @@ function uniqueSessionIds = getUniqueSessionIds(sessionIds)
         end
     end
     sessionIds = struct2cell(sessionIds);
+    sessionIds(cellfun('isempty', sessionIds)) = []; % Remove empty cells
     uniqueSessionIds = unique( [sessionIds{:}] );
     uniqueSessionIds(strcmp(uniqueSessionIds, ''))=[];
 end

@@ -1,12 +1,12 @@
 classdef scrollerBar < uim.handle
 %scrollerBar A very simple scrollerbar that can be made to look awesome.
 %
-%   h = clib.widgets.scrollerBar(hParent) creates a scrollbar in hParent.
+%   h = uim.widget.scrollerBar(hParent) creates a scrollbar in hParent.
 %   hParent should be a panel exclusively made for the scrollerbar. The
 %   scrollerbar will fill the panel, so the panel position determines the
 %   size and location of the scrollerbar.
 %
-%   h = clib.widgets.scrollerBar(hParent, Name, Value) creates the
+%   h = uim.widget.scrollerBar(hParent, Name, Value) creates the
 %   scrollbar and specifies one or more scrollbar property names and
 %   corresponding values. All properties of the scrollbar can be set.
 %
@@ -615,7 +615,7 @@ classdef scrollerBar < uim.handle
             coords = coords - min(coords);
             
             % Center on shortest dimension
-            coords = coords + (1-range(coords(:, :)))/2 .* isDim;
+            coords = coords + (1-nansen.util.range(coords(:, :)))/2 .* isDim;
             
             % Set new coordinates of scrollbar patch
             set(obj.hScrollbar(2), 'XData', coords(:,1), 'YData', coords(:,2));

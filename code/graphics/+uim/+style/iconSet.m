@@ -235,7 +235,7 @@ classdef iconSet < uim.handle
                             'FaceColor', {hP.FaceColor}, 'EdgeColor', {'none'});
                         delete(hP)
                         
-                        hV = imageVector(ax, V);
+                        hV = uim.graphics.imageVector(ax, V);
                         hV.center()
                 end
 

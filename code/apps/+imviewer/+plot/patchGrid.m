@@ -31,12 +31,11 @@ function hPatches = patchGrid(hImviewer, numRows, numCols, gridWidth, gridHeight
     yDataH(3:4, :) = yDataH(3:4, :) + gridHeight/2;
            
     % Patch vertical grid lines
-    hV = patch(obj.imviewerRef.Axes, xDataV, yDataV, 'w');
+    hV = patch(hImviewer.Axes, xDataV, yDataV, 'w');
     
     % Patch horizontal grid lines
-    hH = patch(obj.imviewerRef.Axes, xDataH, yDataH, 'w');
+    hH = patch(hImviewer.Axes, xDataH, yDataH, 'w');
     
     hPatches = [hV, hH];
     set(hPatches, 'HitTest', 'off', 'PickableParts', 'none')
-
 end

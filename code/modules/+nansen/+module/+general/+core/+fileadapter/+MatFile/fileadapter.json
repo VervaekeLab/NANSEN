@@ -1,0 +1,16 @@
+{
+    "_type": "FileAdapter",
+    "_description": "Defines a file adapter",
+    "_version": "1.0.0",
+    "Properties": {
+        "Name": "MatFile",
+        "Description": "Reads and write .mat files",
+        "SupportedFileTypes": [".mat"],
+        "FileExpression": "",
+        "DataType": "struct",
+        "IsGeneral": true,
+        "ReadFunction": "load",
+        "WriteFunction": "",
+        "ViewFunction": ""
+    }
+}

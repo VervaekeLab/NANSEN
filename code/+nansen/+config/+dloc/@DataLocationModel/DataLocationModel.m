@@ -25,12 +25,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
     end
 
     properties (Access = private)
-        VolumeInfo table
-    end
-    
-    properties (Access = private)
         DataBackup % Todo: assign this on construction and when model is marked as clean(?)
-        RootPathListOriginal % Original rootpaths. Will be replaced with root-paths of local computer on load.
+        LocalRootPathManager nansen.config.dloc.LocalRootPathManager
     end
     
     events
@@ -94,6 +90,9 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function obj = DataLocationModel(varargin)
             % Superclass constructor. Loads given (or default) archive
             obj@utility.data.StorableCatalog(varargin{:})
+            
+            % Initialize the local root path manager
+            obj.initializeLocalRootPathManager();
             
             obj.updateMetadataExtractorFunctionNames()
             obj.tempDevFix()
@@ -253,6 +252,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
     
     methods
         
+        function configureLocalRootpath(obj, localRootPath, originalRootPath)
+            obj.LocalRootPathManager.configureLocalRootPath(localRootPath, originalRootPath)
+            obj.load()
+        end
+
         function validateRootPath(obj, dataLocIdx)
         %validateRootPath Check if root path exists
         
@@ -277,14 +281,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
         
         function diskName = resolveDiskName(obj, rootPath)
-            if ismac
-                diskName = obj.resolveDiskNameMac(rootPath);
-            elseif ispc
-                diskName = obj.resolveDiskNamePc(rootPath);
-            elseif isunix
-                diskName = obj.resolveDiskNameLinux(rootPath);
-                %error('Not implemented for unix, please create github issue')
-            end
+            diskName = obj.LocalRootPathManager.resolveDiskName(rootPath);
         end
     end
     
@@ -408,14 +405,10 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
         end
         
-        function updateVolumeInfo(obj, volumeInfo)
+        function updateVolumeInfo(obj)
         %updateVolumeInfo Update the volume info table
-            import nansen.external.fex.sysutil.listPhysicalDrives
-            if nargin < 2
-                volumeInfo = listPhysicalDrives();
-            end
-            obj.VolumeInfo = volumeInfo;
-            obj.updateRootPathFromDiskName()
+            obj.LocalRootPathManager.updateVolumeInfo();
+            obj.Data = obj.LocalRootPathManager.updateRootPathFromDiskName(obj.Data);
         end
     end
     
@@ -729,8 +722,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 S.Data(i).Type = S.Data(i).Type.Name;
             end
             
-            % Export local paths and restore original paths.
-            S = obj.exportLocalRootPaths(S);
+            % Export local paths and restore original paths using LocalRootPathManager
+            [S.Data, ~] = obj.LocalRootPathManager.exportLocalRootPaths(S.Data, S.Preferences);
 
         end
         
@@ -753,207 +746,19 @@ classdef DataLocationModel < utility.data.StorableCatalog
             
             S = obj.updateRootPathDataType(S); % Todo_ temp: remove before release
             
-            % Get local root paths...
-            S = obj.importLocalRootPaths(S);
-
-            S.Data = obj.updateRootPathFromDiskName(S.Data);
-        end
-        
-        function filePath = getLocalRootPathSettingsFile(obj)
-            
-            import nansen.config.project.ProjectManager
-            dirPath = ProjectManager.getProjectPath('current', 'local');
-            
-            fileName = 'datalocation_local_rootpath_settings.mat';
-            filePath = fullfile(dirPath, fileName);
-            
-        end
-        
-        function S = importLocalRootPaths(obj, S)
-            
-            % Load local settings for datalocation model root paths and
-            % replace those that are in the struct S with the local ones.
-            
-            % Keep the originals stored in the RootPathListOriginal
-            % property.
-
-            filePath = obj.getLocalRootPathSettingsFile();
-            
-            %obj.RootPathListOriginal = struct;
-            n = numel(S.Data);
-            [obj.RootPathListOriginal(1:n).Uuid] = S.Data.Uuid;
-            [obj.RootPathListOriginal(1:n).RootPath] = S.Data.RootPath;
-            
-            % Todo: Can not just replace, what if root paths were
-            % created somewhere else since last session. Loop through those
-            % data locations and rootkeys that values exist for...
-            
-            computerID = utility.system.getComputerName(true);
-            isSource = isequal(S.Preferences.SourceID, computerID);
-            
-            if isfile(filePath) && ~isSource
-                S_ = load(filePath);
-                reference = S_.RootPathListLocal;
-                S.Data = obj.updateRootPathFromReference(S.Data, reference);
-            end
-        end
-        
-        function S = exportLocalRootPaths(obj, S)
-            
-            % Save the local root paths and restore the originals in the
-            % datalocation model.
-
-            % Restore original root path list
-            computerID = utility.system.getComputerName(true);
-            if ~isequal(S.Preferences.SourceID, computerID)
-                
-                % 1) Save current root path list to local file
-                n = numel(S.Data);
-                [S_.RootPathListLocal(1:n).Uuid] = S.Data.Uuid;
-                [S_.RootPathListLocal(1:n).RootPath] = S.Data.RootPath;
-
-                filePath = obj.getLocalRootPathSettingsFile();
-                save(filePath, '-struct', 'S_')
-
-                % 2) Restore originals
-                reference = obj.RootPathListOriginal; % struct array
-                S.Data = obj.updateRootPathFromReference(S.Data, reference);
-            end
-        end
-        
-        function target = updateRootPathFromReference(obj, target, source)
-        %updateRootPathFromReference Update rootpath struct from reference
-        %
-        %   Reference can refer to the local settings for root paths or the
-        %   original ones.
-        %
-        %   This method updates the rootpath struct based on the reference.
-        %   If mode is mirror, the struct is copied, otherwise, the
-        %   diskname is only copied if the disktype is local.
-        %
-        %   This is in order to be able to switch between drives that
-        %   should be equal across different systems and drives that should
-        %   not (i.e local drives)
-        
-            for iDloc = 1:numel(source)
-
-                thisUuid = source(iDloc).Uuid;
-                targetIdx = find(strcmp( {target.Uuid}, thisUuid));
-
-                if ~isempty(targetIdx) % Original rootpath list must exist
-
-                    iSource = source(iDloc);
-                    iTarget = target(targetIdx);
-                    
-                    referenceKeys = {iSource.RootPath.Key};
-
-                    for jKey = 1:numel(referenceKeys)
-
-                        thisKey = iSource.RootPath(jKey).Key;
-                        keyIdx = find(strcmp( {iTarget.RootPath.Key}, thisKey ));
-                        
-                        if isempty(keyIdx)
-                            continue;
-                        else
-                            iTarget.RootPath(keyIdx).Value = iSource.RootPath(jKey).Value;
-                            
-                            if isfield(iTarget.RootPath, 'DiskType')
-                                % Do nothing, this should always be kept
-                                % based on the current selection.
-                            end
-
-                            if isfield(iSource.RootPath, 'DiskName')
-                                if isfield(iTarget.RootPath, 'DiskType') && ...
-                                        strcmp(iTarget.RootPath(keyIdx).DiskType, 'Local')
-                                    iTarget.RootPath(keyIdx).DiskName = iSource.RootPath(jKey).DiskName;
-                                end
-                            end
-                        end
-                    end
-                    
-                    target(targetIdx) = iTarget;
+            % Import local root paths using LocalRootPathManager
+            if isempty(obj.LocalRootPathManager)
+                obj.initializeLocalRootPathManager();
+                if isempty(obj.LocalRootPathManager)
+                    % If it is still empty, 
+                    return
                 end
             end
-        end
-        
-        function S = updateRootPathFromDiskName(obj, S)
-        %updateRootPathFromDiskName Ensure path matches diskname for root
-        %
-        %   On windows, drive mounts for external drives are dynamic, and a
-        %   drive might be mounted with different letter from time to time.
-        %   Here the root path is updated based on the name of the disk and
-        %   the current letter assignment of that disk (if it is present)
 
-            if nargin < 2
-                S = obj.Data;
-            end
+            S.Data = obj.LocalRootPathManager.importLocalRootPaths(S.Data, S.Preferences);
 
-            if ispc
-                volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
-                
-                for i = 1:numel(S) % Loop through DataLocations
-                    if ~isfield(S(i), 'RootPath')
-                        continue
-                    end
-
-                    if ~isfield(S(i).RootPath, 'DiskName')
-                        S(i).RootPath = obj.addDiskNameToRootPathStruct(S(i).RootPath);
-                    end
-
-                    for j = 1:numel(S(i).RootPath) % Loop through root folders
-                        jDiskName = S(i).RootPath(j).DiskName;
-                        
-                        % If not assigned previously, diskName defaults to
-                        % an empty double, but here, change it to a string.
-                        if isempty(jDiskName) && isa(jDiskName, 'double')
-                            jDiskName = "";
-                        end
-
-                        isMatch = volumeInfo.VolumeName == jDiskName;
-                        
-                        if any(isMatch)
-                            if sum(isMatch) > 1
-                                warning('Multiple disks have the same name (%s)', jDiskName);
-                            end
-                            diskLetter = volumeInfo.DeviceID(isMatch);
-                        else
-                            diskLetter = sprintf('%d:', j);
-                        end
-                        
-                        % Todo: Remove:
-                        % Replace symbol that was meant to indicate drive
-                        % is not connected, which turned out to be
-                        % troublesome:
-                        if strncmp(S(i).RootPath(j).Value, '~', 1)
-                            S(i).RootPath(j).Value(1)=num2str(i);
-                        end
-                         
-                        platformName = obj.pathIsWhichPlatform(S(i).RootPath(j).Value);
-                        conversion = [platformName, '2', 'pc'];
-
-                        try
-                            updatedPath = obj.replaceDiskMountInPath(S(i).RootPath(j).Value, diskLetter, conversion);
-                        catch
-                            updatedPath = S(i).RootPath(j).Value;
-                        end
-                        S(i).RootPath(j).Value = updatedPath;
-
-                        if ~isfolder( S(i).RootPath(j).Value )
-                            %warning('Root not available')
-                        end
-                    end
-                end
-            else
-                % Pass
-                % Todo: root path was created in windows
-            end
-
-            if nargin < 2
-                obj.Data = S;
-                if ~nargout
-                    clear S
-                end
-            end
+            % Update root paths from disk names using LocalRootPathManager
+            S.Data = obj.LocalRootPathManager.updateRootPathFromDiskName(S.Data);
         end
     end
     
@@ -971,80 +776,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
     end
  
     methods (Access = private) % Internal
-        % Todo: these should not be methods of this class
-        function diskName = resolveDiskNamePc(obj, rootPath)
-        %resolveDiskName Resolve disk name given disk letter
-            
-            if isempty(obj.VolumeInfo)
-                obj.updateVolumeInfo()
-            end
-            
-            diskLetter = string(regexp(rootPath, '.*:', 'match'));
-            try
-                matchedIdx = find( obj.VolumeInfo.DeviceID == diskLetter );
-            catch
-                matchedIdx = [];
-            end
-            if ~isempty(matchedIdx)
-                diskName = obj.VolumeInfo.VolumeName(matchedIdx);
-            else
-                diskName = '';
-            end
-        end
-
-        function diskName = resolveDiskNameMac(obj, rootPath)
-            splitPath = strsplit(rootPath, '/');
-            matchedIdx = find( strcmp(splitPath, 'Volumes') ) + 1;
-            if ~isempty(matchedIdx)
-                diskName = splitPath{matchedIdx};
-            else
-                diskName = '';
-            end
-        end
-
-        function diskName = resolveDiskNameLinux(obj, rootPath) %#ok<INUSD>
-        %resolveDiskNameLinux Resolve disk name for a given root path on Linux.
-        %
-        %   diskName = resolveDiskNameLinux(obj, rootPath)
-        %
-        %   This function uses the Linux "df" command to determine the device 
-        %   associated with rootPath, and then "lsblk" to query the device for its 
-        %   volume label. If a label exists, it is returned as the disk name.
-        %
-        %   Example:
-        %       diskName = resolveDiskNameLinux(obj, '/media/user/mydisk')
         
-            % Use df to find the device corresponding to rootPath.
-            % The -P option forces POSIX output format.
-            [status, dfOutput] = system(sprintf('df -P "%s" | tail -1', rootPath));
-            if status ~= 0 || isempty(dfOutput)
-                diskName = '';
-                return;
-            end
-        
-            % The first token of the output is the device name.
-            tokens = strsplit(strtrim(dfOutput));
-            if isempty(tokens)
-                diskName = '';
-                return;
-            end
-            device = tokens{1};
-        
-            % Now use lsblk to get the LABEL for that device.
-            % The -n option omits the header and -o LABEL selects the label column.
-            [status, labelOutput] = system(sprintf('lsblk -no LABEL "%s"', device));
-            if status == 0 && ~contains(labelOutput, 'not a block device')
-                diskLabel = strtrim(labelOutput);
-                if ~isempty(diskLabel)
-                    diskName = diskLabel;
-                    return;
-                end
-            end
-        
-            % Fallback: if no label is available, return the device name.
-            diskName = device;
-        end
-    
         function updateMetadataExtractorFunctionNames(obj)
             
             % TODO: This should not be hardcoded here. Ideally users can
@@ -1062,6 +794,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 end
             end
             obj.save()
+        end
+    
+        function initializeLocalRootPathManager(obj)
+            import nansen.config.project.ProjectManager
+            localProjectFolder = string(ProjectManager.getProjectPath('current', 'local'));
+            if localProjectFolder ~= ""
+                obj.LocalRootPathManager = nansen.config.dloc.LocalRootPathManager(localProjectFolder);
+            end
         end
     end
    
@@ -1097,56 +837,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             error('NANSEN:DefaultDataLocationNotImplemented', ...
                 ['Please specify a file path for a data location model. ' ...
                 'There is currently no default data location model.'])
-        end
-        
-        function platformName = pathIsWhichPlatform(pathStr)
-        %pathIsWhichPlatform Determine platform which a path is native to
-            
-            % Todo: get pattern for unix from preferences?
-
-            platformNameList = {'mac', 'pc', 'unix'};
-            strPattern = {'^/Volumes', '^\w{1}\:', '^n/a'};
-            
-            for i = 1:numel(platformNameList)
-                if ~isempty(regexp(pathStr, strPattern{i}, 'match'))
-                    platformName = platformNameList{i};
-                    return
-                end
-            end
-            platformName = 'N/A';
-        end
-        
-        function pathStr = replaceDiskMountInPath(pathStr, mount, conversionType)
-            
-           switch conversionType
-                case 'mac2pc'
-                    splitPath = strsplit(pathStr, '/');
-                    oldStr = ['/', strjoin(splitPath(2:3), '/')];
-                    %oldStr = regexp(pathStr, '^/Volumes/.*/', 'match'); %todo...
-                    newStr = char(mount);
-
-                case 'mac2mac'
-                    splitPath = strsplit(pathStr, '/');
-                    oldStr = splitPath{3};
-                    newStr = mount;
-                    
-                case 'pc2mac'
-                    oldStr = regexp(currentRoot, '^\w{1}\:', 'match', 'once');
-                    newStr = sprintf('/Volumes/%s', mount);
-                   
-                case 'pc2pc'
-                    oldStr = pathStr(1:2);
-                    newStr = char(mount);
-           end
-           
-           pathStr = char( strrep(pathStr, oldStr, newStr) );
-          
-           switch conversionType
-               case 'mac2pc'
-                   pathStr = strrep(pathStr, '/', '\');
-               case 'pc2mac'
-                   pathStr = strrep(pathStr, '\', '/');
-           end
         end
     end
 

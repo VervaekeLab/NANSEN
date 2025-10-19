@@ -357,7 +357,10 @@ methods (Static)
 
         if ~isempty(ind1)
 
-            varline=inistring(ind1(1):(ind2(ind2>ind1(1))));
+            startIdx = ind1(1);
+            endIdx = ind2( find(ind2>startIdx,1,'first') );
+
+            varline=inistring(startIdx:endIdx);
 
             s2=regexp(varline,'\=|\"','split');
 

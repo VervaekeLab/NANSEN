@@ -48,7 +48,7 @@ end
 
 function downloadAndInstallMatBox()
     if ~exist('+matbox/installRequirements', 'file')
-        sourceFile = 'https://raw.githubusercontent.com/ehennestad/Matlab-Toolbox-Template/refs/heads/main/tools/tasks/installMatBox.m';
+        sourceFile = 'https://raw.githubusercontent.com/ehennestad/matbox-actions/refs/heads/main/install-matbox/installMatBox.m';
         filePath = websave('installMatBox.m', sourceFile);
         installMatBox('commit')
         rehash()

@@ -244,8 +244,7 @@ methods (Static) % H5 specific methods
                 dataType = 'double';
                 
             otherwise
-                fprintf('%s\n', datatype.Type);
-        
+                error('Could not resolve MATLAB type for H5 type "%s"', S.Type)
         end
     end
     

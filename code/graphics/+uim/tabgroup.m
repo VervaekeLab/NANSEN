@@ -195,7 +195,7 @@ classdef tabgroup < uim.abstract.virtualContainer & uim.mixin.assignProperties
                  % Create components
                 obj.addComponents(panelNum)
 
-                if exist('clib.uicontrolSchemer', 'class')==8
+                if exist('applify.uicontrolSchemer', 'class')==8
                     obj.styleControls(panelNum)
                 end
                 

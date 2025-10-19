@@ -1083,7 +1083,8 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
                 case 'Download File'
                     project = nansen.getCurrentProject;
-                    functionName = strjoin({project.Name, 'filemethod', 'downloadFile'}, '.');
+                    functionName = sprintf('%s.filemethod.downloadFile', project.Name);
+
                     try
                         rootPath = obj.CurrentSessionObj.getDataLocationRootDir(obj.CurrentDataLocationName);
                         feval(functionName, nodeHandle.UserData.filePath, rootPath)
@@ -1192,14 +1193,14 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             % Get information about file's path and data location
             [~, ~, fileExtension] = fileparts(nodeHandle.UserData.filePath);
-            fileAdapterAttributes = nansen.module.uigetFileAdapterAttributes(...
+            fileAdapterAttributes = nansen.plugin.fileadapter.uigetFileAdapterAttributes(...
                 'SupportedFileTypes', fileExtension);
 
             if isempty(fileAdapterAttributes); return; end
 
             project = nansen.getCurrentProject();
             targetPath = project.getFileAdapterFolder();
-            nansen.module.createFileAdapter(targetPath, fileAdapterAttributes)
+            nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterAttributes)
         end
 
         function tf = isNodeExpanded(obj, treeNode)
