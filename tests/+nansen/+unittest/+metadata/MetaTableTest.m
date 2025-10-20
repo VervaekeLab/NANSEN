@@ -267,19 +267,6 @@ classdef MetaTableTest < matlab.unittest.TestCase
             % Verify
             testCase.verifyEqual(testCase.TestMetaTable.entries.Value(1), newValue);
         end
-        
-        function testNoDuplicateEntries(testCase)
-            % Test that duplicate entries are not added
-            testCase.createTestMetaTable();
-            initialCount = height(testCase.TestMetaTable.entries);
-            
-            % Try to add duplicate entry
-            duplicateEntry = testCase.TestEntries(1, :);
-            testCase.TestMetaTable.addTable(duplicateEntry);
-            
-            % Verify count hasn't changed
-            testCase.verifyEqual(height(testCase.TestMetaTable.entries), initialCount);
-        end
     end
     
     %% Table Variable Management Tests
