@@ -141,6 +141,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 for i = 1:numel(fieldNames)
                     dataLocationName = fieldNames{i};
                     dataLocationIndex = obj.DataLocationModel.getItemIndex(dataLocationName);
+                    if isempty(dataLocationIndex); continue; end % Skip if not found
                     pathStr = obj.DataLocation.(fieldNames{i});
                     if isempty(pathStr); continue; end
                     obj.assignSubjectID(pathStr, dataLocationIndex)
@@ -398,6 +399,15 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                     name = dataLocation.Name;
                     rootPaths = {dataLocation.RootPath.Value};
                     
+                    isMatched = false; % Initialize to false
+                    root = '';
+                    rootIdx = [];
+                    
+                    % Check if the field exists before accessing it
+                    if ~isfield(obj(j).DataLocation, name)
+                        continue
+                    end
+                    
                     for k = 1:numel(rootPaths)
                         isMatched = contains( obj(j).DataLocation.(name), rootPaths{k} );
                         if isMatched
@@ -602,26 +612,37 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 try
                     thisDataLocName = obj.DataLocation(i).Name;
                     
-                    oldRootDir = obj.DataLocation(i).RootPath;
-                    newRootDir = rootdirStruct.(thisDataLocName).RootPath;
-                    if ~strcmp( oldRootDir, newRootDir )
-                        thisModel = obj.DataLocationModel.getItem(i);
-                        
-                        % Find the uid of the new root directory
-                        rootIdx = strcmp({thisModel.RootPath.Value}, newRootDir);
-                        obj.DataLocation(i).RootUid = thisModel.RootPath(rootIdx).Key;
-                        obj.DataLocation(i).RootPath = newRootDir;
-                        obj.DataLocation(i).RootIdx = rootIdx;
-                        obj.DataLocation(i).Diskname = thisModel.RootPath(rootIdx).DiskName;
-                        
-                        wasModified = true;
+                    % Check if the data location exists in the struct
+                    if ~isfield(rootdirStruct, thisDataLocName)
+                        continue % todo: warn?
                     end
                     
-                    oldSubfolder = obj.DataLocation(i).Subfolders;
-                    newSubfolder = rootdirStruct.(thisDataLocName).Subfolder;
-                    if ~strcmp( oldSubfolder, newSubfolder )
-                        obj.DataLocation(i).Subfolders = newSubfolder;
-                        wasModified = true;
+                    % Check RootPath field exists
+                    if isfield(rootdirStruct.(thisDataLocName), 'RootPath')
+                        oldRootDir = obj.DataLocation(i).RootPath;
+                        newRootDir = rootdirStruct.(thisDataLocName).RootPath;
+                        if ~strcmp( oldRootDir, newRootDir )
+                            thisModel = obj.DataLocationModel.getItem(i);
+                            
+                            % Find the uid of the new root directory
+                            rootIdx = strcmp({thisModel.RootPath.Value}, newRootDir);
+                            obj.DataLocation(i).RootUid = thisModel.RootPath(rootIdx).Key;
+                            obj.DataLocation(i).RootPath = newRootDir;
+                            obj.DataLocation(i).RootIdx = rootIdx;
+                            obj.DataLocation(i).Diskname = thisModel.RootPath(rootIdx).DiskName;
+                            
+                            wasModified = true;
+                        end
+                    end
+                    
+                    % Check Subfolder field exists
+                    if isfield(rootdirStruct.(thisDataLocName), 'Subfolder')
+                        oldSubfolder = obj.DataLocation(i).Subfolders;
+                        newSubfolder = rootdirStruct.(thisDataLocName).Subfolder;
+                        if ~strcmp( oldSubfolder, newSubfolder )
+                            obj.DataLocation(i).Subfolders = newSubfolder;
+                            wasModified = true;
+                        end
                     end
                 catch
                     %fprintf('Failed to set data location root for %s\n', thisDataLocName)
@@ -639,12 +660,13 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             end
         end
         
-        function updateSessionFolder(obj, dataLocationName, folderPath)
-
+        function updateSessionFolder(obj, dataLocationName, folderPath) %#ok<INUSD>
+            % TODO: Implement this method
             % Update root path
 
             % Update subfolders
-
+            error('NANSEN:Session:NotImplemented', ...
+                'updateSessionFolder method is not yet implemented')
         end
     end
     
@@ -822,7 +844,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
             switch variableInfo.FileAdapter
                 case 'N/A'
-                    error('NANSEN:Session:SaveData:FileAdapterMissing', ...
+                    error('NANSEN:Session:SaveDataNoFileAdapter', ...
                             'No file adapter is available for variable "%s"', varName)
                 case 'Default'
                     S.(varName) = data;
@@ -1294,7 +1316,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             %   b) no subfolder structure is defined for this datalocation
             
             if isempty(subfolderStruct)
-                
+                error('NANSEN:Session:EmptySubfolderStruct', ...
+                    'Subfolder structure is empty. Cannot generate folder name.')
             end
         
             switch subfolderStruct.Type
@@ -1346,7 +1369,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         end
         
         function S = getMetaDataVariables()
-            
+            % TODO: Implement this method
+            S = struct.empty;
         end
     end
 end
