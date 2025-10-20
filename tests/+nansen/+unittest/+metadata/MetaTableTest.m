@@ -13,6 +13,10 @@ classdef MetaTableTest < matlab.unittest.TestCase
     %   Run tests:
     %       runtests('nansen.unittest.metadata.MetaTableTest')
     
+    % Todo (project dependent - future): 
+    % [ ] Adding entries with expansion (custom table variables exist)
+    % [ ] Remove variables (if it was removed from project)
+
     properties
         TestDir char
         TestMetaTable nansen.unittest.metadata.TestableMetaTable
