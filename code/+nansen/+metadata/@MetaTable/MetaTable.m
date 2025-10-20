@@ -1964,7 +1964,7 @@ classdef MetaTable < handle
             end
             
             % Handle character vector
-            if ischar(ids) && height(ids)
+            if ischar(ids) && isrow(ids)
                 normalizedIds = {ids};
                 return
             end
