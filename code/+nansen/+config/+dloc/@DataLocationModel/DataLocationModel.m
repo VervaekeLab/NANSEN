@@ -1,13 +1,8 @@
 classdef DataLocationModel < utility.data.StorableCatalog
 %DataLocationModel Interface for detecting path of data/session folders
     
-     % TODOS:
-    %   [x] Combine code from getSubjectId and getSessionId into separate
-    %       methods.
-    
-    %   Todo: when resolving disk name, need to cross check different
-    %   platforms...
-    
+    % TODOS:
+
     % QUESTIONS:
     
     properties (Constant, Hidden)
@@ -429,6 +424,20 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
 
         function addDataLocationFromTemplateName(obj, templateName, options)
+        % addDataLocationFromTemplateName - Adds a data location from a specified template.
+        %
+        % Syntax:
+        %   obj.addDataLocationFromTemplateName(templateName, options)
+        %
+        % Input Arguments:
+        %   templateName (string) - The name of the template to use for the
+        %                            data location.
+        %   options (struct) - Options for the data location, including:
+        %       Name (string) - The name to assign to the new data location.
+        %       Type (string) - The type of the data location.
+        %       RootDirectory (string) - The root directory for the data
+        %                                 location.
+
             arguments
                 obj (1,1) nansen.config.dloc.DataLocationModel
                 templateName (1,1) string
@@ -437,12 +446,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 options.RootDirectory (1,1) string = missing
             end
             
+            % Will look for template in project and included modules
             project = nansen.getCurrentProject();
             templates = project.getTable('DataLocations');
             
             isMatch = templates.Name == templateName;
             if any(isMatch)
                 dataLocation = table2struct(templates(isMatch, :));
+                
                 if ~ismissing(options.Name)
                     dataLocation.Name = char(options.Name);
                 end
@@ -451,20 +462,26 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 else
                     dataLocation.Type = nansen.config.dloc.DataLocationType(dataLocation.DataType);
                 end
-                % Remove template props
-                dataLocation = rmfield(dataLocation, ["x_type", "x_version", "DataType"]);
-                dataLocation.RootPath = struct(...
-                        'Key', nansen.util.getuuid(), ...
-                        'Value', options.RootDirectory );
+                if ~ismissing(options.RootDirectory)
+                    dataLocation.RootPath = struct(...
+                            'Key', nansen.util.getuuid(), ...
+                            'Value', options.RootDirectory );
+                else
+                    dataLocation.RootPath = struct('Key', {}, 'Value', {});
+                end
                 dataLocation.ExamplePath = '';
                 dataLocation.DataSubfolders = {};
                 
+                % Remove template props
+                dataLocation = rmfield(dataLocation, ["x_type", "x_version", "DataType"]);
+
                 obj.addDataLocation(dataLocation);
             else
                 error('NANSEN:DataLocationModel:TemplateNotFound', ...
                     'No data location templates matching name "%s"', templateName)
             end
         end
+
         
         function removeDataLocation(obj, dataLocationName)
         %removeDataLocation Remove data location item from data
