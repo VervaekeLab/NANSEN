@@ -315,7 +315,7 @@ classdef MetaTable < handle
             
             % If a filepath does not exist, throw error.
             if ~isfile(obj.filepath)
-                error('NANSEN:Metatable:FileNotFound', ...
+                error('NANSEN:MetaTable:FileNotFound', ...
                     'File "%s" does not exist.', obj.filepath)
             end
             
@@ -437,7 +437,9 @@ classdef MetaTable < handle
                 wasSaved = true;
                 obj.IsModified = false;
             catch ME
-                error('Something went wrong during saving.')
+                error("NANSEN:MetaTable:Save:UnknownError", ...
+                    "Something went wrong when saving the MetaTable. " + ...
+                    "A backup of the MetaTable should exist with a '.tempsave' postfix")
             end
 
             if ~nargout; clear wasSaved; end
@@ -478,9 +480,15 @@ classdef MetaTable < handle
                 end
             end
             
-            if isempty(S.MetaTableName) || ~isfolder(S.SavePath)
-                error('Not enough info provided to create a new entry')
+            if isempty(S.MetaTableName)
+                error("NANSEN:MetaTable:Save:MissingName", ...
+                    'Can not save MetaTable because the Name is not set.')
             end
+            if ~isfolder(S.SavePath)
+                error("NANSEN:MetaTable:Save:FolderNotFound", ...
+                    'Can not save MetaTable because the folder (for saving) does not exist.')
+            end
+            
             
             % Update properties of object from user input
             obj.fromStruct(S)
@@ -597,7 +605,8 @@ classdef MetaTable < handle
             if any(isMatch)
                 columnIndex = find(isMatch);
             else
-                error('Column with name "%s" does not exist in table', columnName)
+                error('NANSEN:MetaTable:ColumnNotFound', ...
+                    'Column with name "%s" does not exist in table', columnName)
             end
         end
         
@@ -1155,11 +1164,12 @@ classdef MetaTable < handle
             promptString = sprintf('Select a master MetaTable');
             
             [ind, ~] = listdlg( 'ListString', MetaTableNames, ...
-                                'SelectionMode', 'multiple', ...
+                                'SelectionMode', 'single', ...
                                 'Name', 'Select Table', ...
                                 'PromptString', promptString);
 
-            if isempty(ind); error('You need link to a master MetaTable'); end
+            if isempty(ind); error("NANSEN:MetaTable:OperationCanceled", ...
+                    'You need link to a master MetaTable'); end
             
             obj.MetaTableKey = mtTmp.('MetaTableKey'){ind};
             obj.save()
@@ -1684,7 +1694,7 @@ classdef MetaTable < handle
             
             if numel(metaTableEntryIdx) > 1
                 % metaTableEntryIdx = metaTableEntryIdx(1);
-                error('NANSEN:Metatable:DuplicateEntries', ...
+                error('NANSEN:MetaTable:DuplicateEntries', ...
                     'Multiple entries have the ID "%s"', objectID)
             end
             
@@ -1796,7 +1806,8 @@ classdef MetaTable < handle
                 entry = MT(isClassMatch & MT.IsMaster, :);
                 obj.filepath = fullfile(entry.SavePath{:}, entry.FileName{:});
             else
-                error('No MetaTable found matching the given name ("%s")', inputName)
+                error("NANSEN:MetaTable:MetaTableNotFound", ...
+                    'No MetaTable found matching the given name ("%s")', inputName)
             end
             
             obj.load()
@@ -1834,35 +1845,49 @@ classdef MetaTable < handle
             
             % If keyword is provided, use this:
             elseif any( strcmp(varargin{1}, {'master', 'dummy'} ) )
-                error('Not implemented yet.')
+                throw(nansen.common.exception.NotImplemented("New MetaTable from keywords."))
                 % Todo: metaTable.setMaster(varargin{1})
             end
         end
         
-        function metaTable = open(varargin)
-            
+        function metaTable = open(nameOrFilepath)
+        % open - Open a MetaTable from a specified file or name
+        %
+        % Syntax:
+        %   metaTable = nansen.metadata.MetaTable.open(nameOrFilepath) Opens 
+        %   a MetaTable using the given name or file path.
+        %
+        % Input Arguments:
+        %   nameOrFilepath (string) - The name or file path of the MetaTable 
+        %   to open.
+        %
+        % Output Arguments:
+        %   metaTable - An instance of the MetaTable class containing the 
+        %   loaded data.
+
+            arguments
+                nameOrFilepath (1,1) string {mustBeNonzeroLengthText}
+            end
+
             metaTable = nansen.metadata.MetaTable();
-            
+
+            % NOT IMPLEMENTED:
             % If no input is provided, open a list selection and let user
             % select a MetaTable to open from the MetaTableCatalog
-            if isempty( varargin )
-                metaTable.openMetaTableSelectionDialog()
-                
-            % If varargin is a filepath, open file
-            elseif ischar( varargin{1} ) && isfile( varargin{1} )
-                metaTable.openMetaTableFromFilepath(varargin{1})
-                
-            % If varargin is a char, but not a file, assume it is the name
-            % of a MetaTable and open using the name
-            elseif ischar(varargin{1})
-                metaTable.openMetaTableFromName(varargin{1})
-                
+            % % if isempty( nameOrFilepath )
+            % %     metaTable.openMetaTableSelectionDialog()
+            % % end
+
+            if isfile( nameOrFilepath )
+                % If input is a filepath, open file
+                metaTable.openMetaTableFromFilepath(nameOrFilepath)
             else
-                message = 'Can not open MetaTable based on current input';
-                error(message)
+                % If input is not a file, assume it is the name
+                % of a MetaTable and open using the name
+                metaTable.openMetaTableFromName(nameOrFilepath)
             end
         end
-        
+
         function filename = createFileName(S)
         %CREATEFILENAME Create filename (add extension) for metatable file
         %
@@ -1896,7 +1921,7 @@ classdef MetaTable < handle
         end
     end
 
-    methods (Static, Access = private)
+    methods (Static, Hidden) % Hidden instead of private to allow testing
         function normalizedIds = normalizeIdentifier(ids)
         %normalizeIdentifier Normalize identifiers to string cell array
         %
