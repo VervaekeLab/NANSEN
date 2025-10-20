@@ -22,6 +22,11 @@ function [formatterFcnHandle, varNames] = getColumnFormatter(varNames, tableClas
     if nargin < 2 || isempty(tableClass); tableClass = 'session'; end
     
     currentNansenProject = nansen.ProjectManager().getCurrentProject();
+    if isempty(currentNansenProject)
+        formatterFcnHandle = function_handle.empty;
+        varNames = string.empty;
+        return
+    end
     tableVariablesAttributes = currentNansenProject.getTable('TableVariable');
 
     keep = true(height(tableVariablesAttributes), 1);

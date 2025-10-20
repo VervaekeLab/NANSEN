@@ -51,9 +51,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         DataLocationModel nansen.config.dloc.DataLocationModel % From Project
         VariableModel nansen.config.varmodel.VariableModel % From Project
         MetaTable nansen.metadata.MetaTable % From Project
-        
-        MetaObjectMembers = {}
-        MetaObjectList % Todo: should be map/dictionary with a key per table type. File viewer should be available independent of which table is currently active
     end
        
     properties (Access = private) % Auxiliary apps that we need to keep track of
@@ -1391,8 +1388,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 tableValue = app.MetaTable.entries{tableRowIdx, thisColumnName};
                 tableVariableObj = feval(tableVariableFunctionName, tableValue);
                 
-                tableRowData = app.MetaTable.entries(tableRowIdx,:);
-                metaObj = app.getMetaObjects( tableRowData );
+                metaObj = app.getMetaObjects( tableRowIdx );
                 tableVariableObj.onCellDoubleClick( metaObj );
             end
         end
@@ -1542,9 +1538,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 warning('Could not update column settings from project')
             end
 
-            % Todo: Need system on task processor to create session
-            % objects..
-            app.resetMetaObjectList()
+            % Reset metatable's object cache
+            app.MetaTable.resetMetaObjectCache()
+
+            % Todo: Need mechanism on task processor to create metadata objects..
             
             % Need to reassign data location model before loading metatable
             % Todo: Explicitly get models for this project.
@@ -1648,50 +1645,28 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
     %% Get meta objects from table selections
-        function [rowEntries, rowIndices] = getSelectedMetaTableEntries(app)
-        %getSelectedMetaTableEntries Get currently selected meta-entries
-        
-            % Get indices of selected entries from the table viewer.
-            rowIndices = app.UiMetaTableViewer.getSelectedEntries();
-            if isempty(rowIndices)
-                rowEntries = [];
-            else            
-                % Get selected entries from the metatable.
-                rowEntries = app.MetaTable.entries(rowIndices, :);
-            end
-            if nargout == 1
-                clear rowIndices
-            end
-        end
-        
-        % % Todo: The following methods could become its own class
-        % MetaObjectCache
         function [metaObjects, rowIndices] = getSelectedMetaObjects(app, useCache)
-        %getSelectedMetaObjects Get session objects for the selected table rows
+        %getSelectedMetaObjects Get metadata objects for the selected table rows
             if nargin < 2; useCache = true; end
             
-            [tableRowData, rowIndices] = app.getSelectedMetaTableEntries();
-            [metaObjects, status] = app.getMetaObjects(tableRowData, useCache);
+            selectedTableRows = app.UiMetaTableViewer.getSelectedEntries();
+
+            [metaObjects, status] = app.getMetaObjects(selectedTableRows, ...
+                "UseCache", useCache);
         
             if nargout == 2
-                rowIndices = rowIndices(status);
-            else
-                clear rowIndices
+                rowIndices = selectedTableRows(status);
             end
         end
 
         function [metaObjects, rowIndices] = getVisibleMetaObjects(app, useCache)
             if nargin < 2; useCache = true; end
 
-            rowIndices = app.UiMetaTableViewer.DisplayedRows;
-            tableRowData = app.MetaTable.entries(rowIndices, :);
-            
-            [metaObjects, status] = app.getMetaObjects(tableRowData, useCache);
+            visibleTableRows = app.UiMetaTableViewer.DisplayedRows;            
+            [metaObjects, status] = app.getMetaObjects(visibleTableRows, useCache);
             
             if nargout == 2
-                rowIndices = rowIndices(status);
-            else
-                clear rowIndices
+                rowIndices = visibleTableRows(status);
             end
         end
         
@@ -1699,8 +1674,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if nargin < 2; useCache = true; end
             
             rowIndices = 1:height(app.MetaTable.entries);
-            tableRowData = app.MetaTable.entries;
-            [metaObjects, status] = app.getMetaObjects(tableRowData, useCache);
+            [metaObjects, status] = app.getMetaObjects(rowIndices, useCache);
         
             if nargout == 2
                 rowIndices = rowIndices(status);
@@ -1717,70 +1691,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 ids = {object.(idName)};
             end
         end
-
-        function updateMetaObjectMembers(app)
-        %updateMetaObjectMembers Update list of ids for members of the
-        % metaobject list
-            idName = app.MetaTable.SchemaIdName;
-            app.MetaObjectMembers = {app.MetaObjectList.(idName)};
-
-            if isnumeric(app.MetaObjectMembers)
-                app.MetaObjectMembers = cellfun(@num2str, app.MetaObjectMembers, 'UniformOutput', false);
-            end
-        end
         
-        function resetMetaObjectList(app)
-        %resetMetaObjectList Delete all meta objects from the list
-            for i = numel(app.MetaObjectList):-1:1
-                if ismethod(app.MetaObjectList(i), 'isvalid')
-                    if ismethod(app.MetaObjectList(i), 'delete')
-                        % It's a handle, we might need to delete it
-                        if isvalid( app.MetaObjectList(i) )
-                            delete( app.MetaObjectList(i) )
-                        end
-                    end
-                end
-            end
-            app.MetaObjectList = [];
-            app.MetaObjectMembers = {};
-        end
-
-        function onMetaObjectPropertyChanged(app, src, evt)
-            
-            % Todo: generalize from session
-            % Todo: make method for getting table entry from objectID
-            
-            if ~isvalid(src); return; end
-
-            objectID = app.getObjectId(src); % sessionID / itemID
-            metaTableEntryIdx = find(strcmp(app.MetaTable.members, objectID));
-            
-            if numel(metaTableEntryIdx) > 1
-                metaTableEntryIdx = metaTableEntryIdx(1);
-                msg = sprintf('Multiple sessions have the sessionID "%s"', objectID);
-                warndlg(msg)
-            end
-            
-            app.MetaTable.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
-            
-            rowIdx = metaTableEntryIdx;
-            colIdx = find(strcmp(app.MetaTable.entries.Properties.VariableNames, evt.Property));
-            newValue = app.MetaTable.getFormattedTableData(colIdx, rowIdx);
-            newValue = table2cell(newValue);
-            
-            app.UiMetaTableViewer.updateCells(rowIdx, colIdx, newValue)
-        end
-        
-        function onMetaObjectDestroyed(app, src, ~)
-            if ~isvalid(app); return; end
-            
-            idName = app.MetaTable.SchemaIdName;
-            objectID = src.(idName);
-            
-            [~, ~, iC] = intersect(objectID, app.MetaObjectMembers);
-            app.MetaObjectList(iC) = [];
-
-            app.updateMetaObjectMembers()
+        function onMetaTableEntryChanged(app, ~, evt)
+            app.UiMetaTableViewer.updateCells(...
+                evt.RowIndex, evt.ColumnIndex, evt.NewValue)
         end
 
         function onTaskAddedEventTriggered(app, ~, evt) %#ok<INUSD>
@@ -1813,163 +1727,43 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     methods (Access = private)
-        function [metaObjects, status] = getMetaObjects(app, tableEntries, useCache)
+        function [metaObjects, status] = getMetaObjects(app, tableRowIndices, options)
         % getMetaObjects - Get metadata objects for a set of table rows
         %
         %   Inputs:
         %       app - instance of this app
-        %       tableEntries - a collection of table rows
-        %       useCache - (optional) - flag determining if objects can be retrieved from a cache
+        %       tableRowIndices - Indices (or logical mask) for table rows to get objects for
+        %       options (name-value pairs) 
+        %           - useCache - (optional) - flag determining if objects should 
+        %                                     be retrieved from a cache
         %   Outputs:
         %       metaObjects - An array of metadata objects
         %       status - A logical vector indicating if an object was
         %           created. Same length as tableEntries.
-
-            % Todo: Use containers.Map / dictionary for cache...
             
             arguments
                 app (1,1) nansen.App
-                tableEntries
-                useCache (1,1) logical = true
+                tableRowIndices (1,:) double
+                options.UseCache (1,1) logical = true
             end
 
-            if isempty(tableEntries) || ~useCache
-                [metaObjects, status] = app.createMetaObjects(tableEntries);
+            itemName = lower(app.CurrentItemType);
+            if isscalar(tableRowIndices)
+                message = sprintf('Retrieving %s object...', itemName);
             else
-                % Check if objects already exists
-                ids = app.getObjectId(tableEntries);
-                if isnumeric(ids)
-                    if isnumeric(ids) && numel(ids) == 1
-                        ids = num2str(ids);
-                        ids = {ids};
-                    elseif isnumeric(ids) && numel(ids) > 1
-                        ids = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
-                    end
-                    allIds = cellfun(@num2str, app.MetaObjectMembers, 'UniformOutput', false);
-                else
-                    allIds = app.MetaObjectMembers;
-                end
-                
-                [matchedIds, indInTableEntries, indInMetaObjects] = ...
-                    intersect(ids, allIds, 'stable');
-    
-                metaObjectsOld = app.MetaObjectList(indInMetaObjects);
-                tableEntries(indInTableEntries, :) = []; % Don't need these anymore
-                                
-                statusOld = false(1, numel(ids));
-                statusOld(indInTableEntries) = true;
-                
-                % Create meta objects for remaining entries if any
-                [metaObjectsNew, statusNew] = app.createMetaObjects(tableEntries);
-            
-                % Collect outputs
-                if isequal(matchedIds, ids)
-                    metaObjects = metaObjectsOld;
-                    status = statusOld;
-                elseif ~isempty(matchedIds)
-                    metaObjects = utility.insertIntoArray(metaObjectsNew, metaObjectsOld, indInTableEntries);
-                    status = utility.insertIntoArray(statusNew, true(1,numel(metaObjectsOld)), indInTableEntries);
-                else
-                    metaObjects = metaObjectsNew;
-                    status = statusNew;
-                end
-
-                % Add newly created metaobjects to the cache
-                if isempty(app.MetaObjectList)
-                    app.MetaObjectList = metaObjectsNew;
-                else
-                    app.MetaObjectList = [app.MetaObjectList, metaObjectsNew];
-                end
-                app.updateMetaObjectMembers()
+                message = sprintf('Retrieving %s objects...', itemName);
             end
+            returnToIdle = app.setBusy(message); %#ok<NASGU>
 
-            if nargout == 1
-                clear status
-            end
-        end
-
-        function [metaObjects, status] = createMetaObjects(app, tableEntries)
-        %createMetaObjects - Create new meta objects from table entries
-            
-            arguments
-                app (1,1) nansen.App
-                tableEntries
-            end
-            
-            % Todo: Should eventually get items directly from the MetaTable object
-            try
-                itemConstructor = app.MetaTable.getItemConstructor();
-            catch
-                itemConstructor = @table2struct;
-            end
-
-            % Initialize output
-            status = false(1, height(tableEntries));
-
-            if isempty(tableEntries)
-                try
-                    metaObjects = itemConstructor().empty;
-                catch
-                    % Todo: Error handling
-                    metaObjects = [];
-                end
-                return;
-            end
-
-            % Relevant for meta objects that have datalocations:
-            % Create list of name value pairs for the current datalocation
-            % model and variable model.
-            if any(strcmp(tableEntries.Properties.VariableNames, 'DataLocation'))
-                nvPairs = {...
+            % Need to pass on DataLocationModel and VariableModel, as they
+            % might be required dependencies for some meta objects (i.e session)
+            nvPairs = {...
                     'DataLocationModel', app.DataLocationModel, ...
                     'VariableModel', app.VariableModel
                     };
-            else
-                nvPairs = {};
-            end
 
-            % Update status text
-            numItems = height(tableEntries);
-            itemName = lower(app.CurrentItemType);
-            if numItems > 1 
-                itemName = itemName + "s"; % plural
-            end
-            returnToIdle = app.setBusy(sprintf('Creating %s objects...', itemName)); %#ok<NASGU>
-
-            % Create items one by one
-            metaObjects = cell(1, numItems);
-            status = false(1, numItems);
-
-            for i = 1:numItems
-                try
-                    metaObjects{i} = itemConstructor(tableEntries(i,:), nvPairs{:});
-                    status(i) = true;
-                catch ME
-                    fprintf('Could not create meta object. Reason:\n%s\n', ME.message)
-                    continue
-                end
-
-                try
-                    addlistener(metaObjects{i}, 'PropertyChanged', @app.onMetaObjectPropertyChanged);
-                    addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @app.onMetaObjectDestroyed);
-                catch ME
-                    if isa(metaObjects{i}, 'nansen.metadata.abstract.BaseSchema')
-                        warning(ME.identifier, "%s", ME.message)
-                    else
-                        % Todo: should this fail silently?
-                    end
-                end
-            end
-
-            try
-                metaObjects = [metaObjects{:}];
-            catch
-                % Pass for now. Todo: Error, warning or handle some way?
-            end
-
-            if nargout == 1
-                clear status
-            end
+            [metaObjects, status] = app.MetaTable.getMetaObjects(tableRowIndices, ...
+                nvPairs{:}, "UseCache", options.UseCache);
         end
     end
 
@@ -2032,11 +1826,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     rowInd = app.UiMetaTableViewer.DisplayedRows;
                     sessionIDs = app.MetaTable.entries{rowInd, 'sessionID'};
                     app.UiFileViewer.SessionIDList = sessionIDs;
+                                        
+                    selectedRows = app.UiMetaTableViewer.getSelectedEntries();
+                    if isempty(selectedRows); return; end
                     
-                    entries = app.getSelectedMetaTableEntries();
-                    if isempty(entries); return; end
-                    
-                    metaObj = app.getMetaObjects(entries(1,:));
+                    metaObj = app.getMetaObjects( selectedRows(1) );
                     
                     try
                         currentSessionID = app.UiFileViewer.getCurrentObjectId();
@@ -2053,7 +1847,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         return
                     else
                         % Note, select first one
-                        if size(entries, 1) > 1
+                        if numel(selectedRows) > 1
                             warning('Multiple sessions are selected, selecting the first item')
                         end
 
@@ -2366,7 +2160,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onMetaTableTypeChanged(app, src, ~)
             metaTableType = src.Text;
-            app.resetMetaObjectList()
+            app.MetaTable.resetMetaObjectCache()
             app.openMetaTable(metaTableType)
             app.SessionTaskMenu.CurrentItemType = metaTableType;
             if strcmpi(metaTableType, 'session')
@@ -2707,8 +2501,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Todo: Add case for all rows that are empty
             % Todo: Add case for all visible rows...
             
-            %[metaObjects, rowIndices] = getMetaObjects("Mode", "Selected");
-
             switch updateMode
                 case 'SelectedRows'
                     app.assertSessionSelected()
@@ -2723,7 +2515,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 case 'AllRows' % All visible rows
                     rows = app.UiMetaTableViewer.DisplayedRows;
-                    metaObjects = app.getMetaObjects(app.MetaTable.entries(rows,:));
+                    metaObjects = app.getMetaObjects(rows);
             end
             
             numSessions = numel(metaObjects);
@@ -3097,7 +2889,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         'complete the project setup or use ', ...
                         'nansen.ProjectManager to change the current project.'], ...
                         app.CurrentProject.Name);
-                    errordlg(errorMessage)
+                    answer = questdlg(errorMessage, "Project Setup Incomplete", ...
+                        'Run setup', 'Open ProjectManager', 'Cancel', 'Run setup');
+                    switch answer
+                        case 'Run setup'
+                            nansen.setup()
+                        case 'Open ProjectManager'
+                            nansen.ProjectManager()
+                        otherwise
+                            % pass
+                    end                    
                     app.forceQuit(errorMessage)
                 end
 
@@ -3156,6 +2957,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
                     @app.onMetaTableModifiedChanged);
+
+                % todo: do we need to store listener?
+                addlistener(app.MetaTable, 'TableEntryChanged', ...
+                    @app.onMetaTableEntryChanged);
                                 
 % %                 if app.isInitialized() % Todo: implement this
 % %                     app.updateRelatedInventoryLists()
@@ -3307,14 +3112,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
         
-        function onFileViewerSessionChanged(app, sessionID)
-            
-            % Row index for session.
-
-            isRow = strcmp( app.MetaTable.entries.sessionID, sessionID);
-            
-            entry =  app.MetaTable.entries(isRow, :);
-            metaObj = app.getMetaObjects(entry);
+        function onFileViewerSessionChanged(app, metaObjectID)
+        % onFileViewerSessionChanged - Handle change of object by id in FileViewer
+            rowIndex = app.MetaTable.getIndexById(metaObjectID);
+            metaObj = app.getMetaObjects(rowIndex);
             app.UiFileViewer.update(metaObj)
         end
 
@@ -3759,12 +3560,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             metaObjects = app.getSelectedMetaObjects();
 
             if ~isempty(metaObjects) % Todo: Resolve varName more flexibly
-                if strcmp( app.UiMetaTableSelector.CurrentSelection, 'Session' )
-                    varName = app.settings.Session.SessionObjectWorkspaceName;
+                if ~isempty(app.UiMetaTableSelector)
+                    if strcmp( app.UiMetaTableSelector.CurrentSelection, 'Session' )
+                        varName = app.settings.Session.SessionObjectWorkspaceName;
+                    else
+                        varName = app.UiMetaTableSelector.CurrentSelection;
+                    end
                 else
-                    varName = app.UiMetaTableSelector.CurrentSelection;
+                    varName = app.settings.Session.SessionObjectWorkspaceName;
                 end
-
                 assignin('base', lower(varName), metaObjects)
             end
         end
@@ -3887,7 +3691,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             tmpMetaTable.addMissingVarsToMetaTable('session');
             
             % Find all that are not part of existing metatable
-            app.MetaTable.appendTable(tmpMetaTable.entries)
+            app.MetaTable.addTable(tmpMetaTable.entries)
             app.MetaTable.save()
             
             app.UiMetaTableViewer.refreshTable(app.MetaTable)
@@ -4056,7 +3860,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function menuCallback_ClearCachedMetaObjects(app, ~, ~)
-            app.resetMetaObjectList()
+            if ~isempty(app.MetaTable)
+                app.MetaTable.resetMetaObjectCache()
+            else
+                errordlg('No MetaTable is active.')
+            end
         end
         
         function menuCallback_AssignPipelines(app, src, ~)
