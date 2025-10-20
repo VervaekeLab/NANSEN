@@ -1002,7 +1002,7 @@ classdef MetaTable < handle
         %
         %   addEntries(obj, newEntries) adds one or more schema objects
         %   to the MetaTable. The schema objects are validated to ensure
-        %   they inherit from BaseSchema and match the MetaTable's class,
+        %   they inherit from MetadataEntity and match the MetaTable's class,
         %   then converted to a table and appended.
         
             % Make sure entries are based on the MetadataEntity class.
@@ -1640,7 +1640,7 @@ classdef MetaTable < handle
                     addlistener(metaObjects{i}, 'PropertyChanged', @obj.onMetaObjectPropertyChanged);
                     addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @obj.onMetaObjectDestroyed);
                 catch MEForListener
-                    if isa(metaObjects{i}, 'nansen.metadata.abstract.BaseSchema')
+                    if isa(metaObjects{i}, 'nansen.metadata.abstract.MetadataEntity')
                         warning(MEForListener.identifier, 'Failed to add listener to meta object. Reason:\n%s\n', MEForListener.message)
                     end
                     % Todo: Either throw warning or implement interface for
