@@ -442,8 +442,10 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             % Get index for datalocation which is provided...
             if ~isempty(obj.DataLocationModel)
                 [~, idx] = obj.DataLocationModel.getItem(dataLocationName);
-            else
+            elseif ~isempty(obj.DataLocation)
                 idx = find(strcmp({obj.DataLocation.Name}, dataLocationName));
+            else
+                error('Failed to get DataLocation. Session does not have DataLocation or a DataLocationModel.')
             end
                 
             if isempty(idx)
@@ -1331,14 +1333,6 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
         function errorMsg = getErrorMessage(obj, errorId, varargin)
             % Todo?
-        end
-    end
-
-    methods (Access = protected)
-        function setDynamicProperty(obj, propName, propValue)
-            % Delegate property assignment from base class
-            % This method has the necessary access rights to set protected properties
-            obj.(propName) = propValue;
         end
     end
     

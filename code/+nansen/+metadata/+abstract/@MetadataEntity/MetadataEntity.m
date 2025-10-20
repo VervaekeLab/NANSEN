@@ -84,18 +84,22 @@ classdef MetadataEntity < ...
             dynamicVariableNames = string( dynamicVariables.Name );
 
             iVar = find(strcmpi(dynamicVariableNames, variableName));
-            assert(~isempty(iVar))
+            assert(~isempty(iVar), ...
+                'NANSEN:MetadataEntity:DynamicVariableNotFound', ...
+                ['This object does not have a dynamic variable with name ' ...
+                '"%s". Available variables:\n%s\n'], ...
+                variableName, ...
+                strjoin(" - " + dynamicVariableNames, newline))
 
             if dynamicVariables.HasUpdateFunction(iVar)
                     
-                % Todo: update for all items of the metatable
                 updateFcnName = dynamicVariables.UpdateFunctionName{iVar};
                 
                 [propertyValue, ~] = obj.getDynamicVariableValue(updateFcnName);
-                % Use delegation instead of direct assignment
+                
                 for i = 1:numel(obj)
-                    obj(i).setDynamicProperty(variableName, propertyValue{i});
-                    %obj.(variableName) = propertyValue;
+                    % Use private setter to bypass protected SetAccess
+                    obj.setDynamicPropertyValue(variableName, propertyValue)
                 end
             else
                 error('Variable does not have update function')
@@ -189,6 +193,16 @@ classdef MetadataEntity < ...
                 end
             end
         end
+    
+        function setDynamicPropertyValue(obj, variableName, propertyValue)
+            % Need to temporarily make SetAccess public, because a super
+            % class does not have access to set properties of subclasses
+            % with properties that has SetAccess = protected.
+            P = obj.findprop(variableName);
+            P.SetAccess = 'public';
+            accessCleanup = onCleanup(@() resetPropertySetAccess(P)); 
+            obj.(variableName) = propertyValue;
+        end
     end
     
     methods (Access = private)
@@ -244,19 +258,6 @@ classdef MetadataEntity < ...
             % Dynamic props must only be set from within the class
             [P.SetAccess] = deal('protected');
         end
-    end
-    
-    methods (Abstract, Access = protected)
-        % SetAccess of dynamic properties can only be public, protected or 
-        % private, and so if a dynamic property is added to a subclass of
-        % this base class, with SetAccess = protected, methods of this base
-        % class are not allowed to update the value. However, it makes sens
-        % to have a shared superclass method for calling the update of
-        % dynamic variables. The following abstract method must be
-        % implemented on subclasses to allow delegation to that class of
-        % setting the property.
-        
-        setDynamicProperty(obj)
     end
 
     methods % Methods for retyping
@@ -338,4 +339,8 @@ classdef MetadataEntity < ...
                 'NewValue', newValue);
         end
     end
+end
+
+function resetPropertySetAccess(dynamicMetaProp)
+    dynamicMetaProp.SetAccess = 'protected';
 end
