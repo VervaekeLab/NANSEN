@@ -92,12 +92,14 @@ function configureDataLocationModel(project, datasetDirectory)
     dataLocation.SubfolderStructure(1).Type = 'Subject';
     dataLocation.SubfolderStructure(1).Expression = 'sub-\d+';
     dataLocation.SubfolderStructure(1).IgnoreList = {};
+    dataLocation.SubfolderStructure(1).IsFolder = true;
     
     % Level 2: Session folder
     dataLocation.SubfolderStructure(2).Name = 'ses-*';
     dataLocation.SubfolderStructure(2).Type = 'Session';
-    dataLocation.SubfolderStructure(2).Expression = 'ses-\d+';
+    dataLocation.SubfolderStructure(2).Expression = 'sub-\d+_ses-\d+';
     dataLocation.SubfolderStructure(2).IgnoreList = {};
+    dataLocation.SubfolderStructure(2).IsFolder = true;
     
     % Configure metadata extraction
     % Subject ID
