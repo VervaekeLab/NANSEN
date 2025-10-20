@@ -88,7 +88,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 if isa(varargin{1}, 'struct')
                     obj.constructFromDataLocationStruct(varargin{1})
                 elseif isa(varargin{1}, 'char')
-                    obj.contructFromFolderPath(varargin{1})
+                    obj.constructFromFolderPath(varargin{1})
                 end
             end
             
@@ -124,9 +124,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             end
         end
         
-        function contructFromFolderPath(obj, folderPath)
-        %contructFromFolderPath Construct object(s)
-        %
+        function constructFromFolderPath(obj, folderPath)
+        %constructFromFolderPath Construct object(s) for a folder path
         
         % Todo: Support vector of objects.
             obj.DataLocation(1).UnNamed = folderPath;
