@@ -1748,7 +1748,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             itemName = lower(app.CurrentItemType);
-            if numel(tableRowIndices) == 1
+            if isscalar(tableRowIndices)
                 message = sprintf('Retrieving %s object...', itemName);
             else
                 message = sprintf('Retrieving %s objects...', itemName);
