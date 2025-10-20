@@ -69,7 +69,7 @@ classdef MetadataEntity < ...
                     % Todo: update for all items of the metatable
                     updateFcnName = dynamicVariables.UpdateFunctionName{iVar};
                     
-                    [propertyValue, wasFound] = obj.getDynamicVariableValue(updateFcnName);
+                    [propertyValue, wasFound] = obj.getDynamicVariableValue(thisVariableName, updateFcnName);
                     [propertyValue{~wasFound}] = deal( dynamicVariables.NullValue{iVar} );
                 else
                     propertyValue = dynamicVariables.NullValue{iVar};
@@ -95,14 +95,16 @@ classdef MetadataEntity < ...
                     
                 updateFcnName = dynamicVariables.UpdateFunctionName{iVar};
                 
-                [propertyValue, ~] = obj.getDynamicVariableValue(updateFcnName);
+                [propertyValue, ~] = obj.getDynamicVariableValue(variableName, updateFcnName);
                 
                 for i = 1:numel(obj)
                     % Use private setter to bypass protected SetAccess
                     obj.setDynamicPropertyValue(variableName, propertyValue)
                 end
             else
-                error('Variable does not have update function')
+                error('NANSEN:MetadataEntity:UpdateFunctionMissing', ...
+                    'The variable "%s" does not have an update function', ...
+                    variableName)
             end
         end
     end
@@ -127,10 +129,11 @@ classdef MetadataEntity < ...
             dynamicVariables = variableAttributes(keep, :);
         end
     
-        function [result, hasResult] = getDynamicVariableValue(obj, functionName, options)
+        function [result, hasResult] = getDynamicVariableValue(obj, variableName, functionName, options)
             
             arguments
                 obj nansen.metadata.abstract.MetadataEntity
+                variableName (1,1) string
                 functionName (1,1) string
                 options.ProgressMonitor = [] % Todo: waitbar class?
                 options.MessageDisplay = [] % Constrain to message display
@@ -139,7 +142,7 @@ classdef MetadataEntity < ...
             hasResult = false(1, numel(obj));
             hasWarned = false;
 
-            % Todo: Should be a function in the the tablevar function
+            % Todo: Should be a function in the tablevar function
             %updateFunction = obj.getTableVariableUpdateFunction(variableName);
             
             updateFunction = str2func(functionName);
@@ -151,12 +154,15 @@ classdef MetadataEntity < ...
             else
                 expectedDataType = class(defaultValue);
             end
+
+            warnState = warning('backtrace', 'off');
+            warningCleanup = onCleanup(@() warning(warnState));
             
             numEntities = numel(obj);
             result = cell(numEntities, 1);
 
             for iEntity = 1:numEntities
-                try % Todo: Use error handling here. What if some conditions can not be met...
+                try
                     newValue = updateFunction(obj(iEntity));
 
                     if isa(newValue, 'nansen.metadata.abstract.TableVariable')
@@ -181,11 +187,13 @@ classdef MetadataEntity < ...
                                 options.MessageDisplay.warn(warningMessage, 'Title', 'Update failed')
                             end
                             hasWarned = true;
-                            ME = MException('Nansen:TableVar:WrongType', warningMessage);
+                            %MEInvalid = MException('Nansen:TableVar:WrongType', warningMessage);
                         end
                     end
                 catch ME
-                    % Todo: Error handling
+                    warning(ME.identifier, ...
+                        'Failed to update variable "%s". Reason:\n%s\n', ...
+                        variableName, ME.message)
                 end
 
                 if ~isempty(options.ProgressMonitor)
