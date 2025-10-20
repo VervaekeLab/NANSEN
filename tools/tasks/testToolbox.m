@@ -12,7 +12,7 @@ function testToolbox(varargin)
 
     matbox.installRequirements(projectRootDirectory, "AgreeToLicenses", true)
 
-    codecoverageFileList = getCodeCoverageFileList(codeFolder); % local function
+    codecoverageFileList = getCodeCoverageFileList(fullfile(projectRootDirectory, "code")); % local function
 
     matbox.tasks.testToolbox(...
         projectRootDirectory, ...
