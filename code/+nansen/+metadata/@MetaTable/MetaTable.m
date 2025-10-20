@@ -449,7 +449,7 @@ classdef MetaTable < handle
         %saveCopy Save a copy of the metatable to the given filePath
             originalPath = obj.filepath;
             obj.filepath = savePath;
-            obj.save();
+            obj.save(true); % force save (table might be clean)
             obj.filepath = originalPath;
         end
         
@@ -1770,7 +1770,9 @@ classdef MetaTable < handle
             obj.entries = obj.entries(iA,:);
             obj.MetaTableMembers = obj.entries.(varName);
             obj.sort()
-            obj.save()
+            if ~isempty(obj.filepath)
+                obj.save()
+            end
         end
     end
 
