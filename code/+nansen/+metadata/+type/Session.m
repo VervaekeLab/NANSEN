@@ -430,16 +430,22 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         %
         %   Note: DataLocation should be a private property. Then this
         %   method might be useful
-            
-            if nargin < 2
-                dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+
+            arguments
+                obj (1,1) nansen.metadata.type.Session
+                dataLocationName (1,1) string = missing
             end
-            
-            if isempty(dataLocationName)
-                error('NANSEN:Session', 'Data location name is required')
+
+            if ismissing(dataLocationName)
+                if ~isempty(obj.DataLocationModel)
+                    dataLocationName = obj.DataLocationModel.DefaultDataLocation;
+                else
+                    error('NANSEN:Session:DataLocationNameRequired', ...
+                        'Data location name is required')
+                end
             end
         
-            % Get index for datalocation which is provided...
+            % Get index for the given data location name.
             if ~isempty(obj.DataLocationModel)
                 [~, idx] = obj.DataLocationModel.getItem(dataLocationName);
             elseif ~isempty(obj.DataLocation)
@@ -539,19 +545,35 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         end
     
         function updateRootDirPath(obj, dataLocationName, newRootPath)
-        %updateRootDirPath Update root directory path for a data location
+        % updateRootDirPath - Update root directory path for a data location
+        %
+        % Syntax:
+        %   updateRootDirPath(obj, dataLocationName, newRootPath)
+        %   Update the root path for a specified data location if the new 
+        %   root path differs from the current one.
+        %
+        % Input Arguments:
+        %   obj                 - The object instance containing data locations.
+        %   dataLocationName    - The name of the data location to be updated.
+        %   newRootPath         - The new root path to be set for the data location.
+        %
+        % Note: 
+        %   The new root path must be a root path which is defined in the 
+        %   DataLocationModel. To register a new root path that does not
+        %   exist, this needs to be done directly on a DataLocationModel
         
             i = strcmp({obj.DataLocation.Name}, dataLocationName);
             dlItem = obj.DataLocationModel.getItem(dataLocationName);
             
             oldRootPath = obj.DataLocation(i).RootPath;
-
+        
             if ~strcmp(oldRootPath, newRootPath)
                 
                 % Find the uid of the new root directory
                 isMatch = strcmp({dlItem.RootPath.Value}, newRootPath);
                 if ~any(isMatch)
-                    error('NANSEN:Session', 'The specified rootpath does not match any rootpaths in the data location model')
+                    error('NANSEN:Session:InvalidRootPath', ...
+                        'The specified rootpath does not match any rootpaths in the data location model')
                 end
                 obj.DataLocation(i).RootUid = dlItem.RootPath(isMatch).Key;
                 obj.DataLocation(i).RootPath = newRootPath;
@@ -562,6 +584,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 obj.notify('PropertyChanged', eventData)
             end
         end
+        
         
         function updateRootDir(obj, rootdirStruct)
         %updateRootDir Updates the root directories based on input struct
@@ -645,7 +668,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
             fileAdapterList = nansen.dataio.listFileAdapters();
 
-            if ischar(variableInfo)
+            if ischar(variableInfo) % Variable name was given
                 [~, variableInfo] = obj.getDataFilePath(variableInfo);
             end
             
@@ -653,9 +676,9 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
             
             if ~any(isMatch)
-                error('NANSEN:Session', 'File adapter was not found')
+                error('NANSEN:Session:FileAdapterNotFound', 'File adapter was not found')
             elseif sum(isMatch) > 1
-                error('NANSEN:Session', 'This is a bug. Please report')
+                error('NANSEN:Session:MultipleFileAdapters', 'This is a bug. Please report')
             end
             
             fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
@@ -724,13 +747,14 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 L = dir(filePath);
                 if L.bytes==0
                     error('NANSEN:Session:EmptyFile', ...
-                        'Can not load data for "%s" because file is empty (0 bytes)', varName)
+                        ['Can not load data for "%s" because file is ', ...
+                        'empty (0 bytes)'], varName)
                 end
                 
                 switch variableInfo.FileAdapter
                     
                     case 'N/A'
-                        error('NANSEN:Session:LoadData', ...
+                        error('NANSEN:Session:LoadData:FileAdapterMissing', ...
                             'No file adapter is available for variable "%s"', varName) %strjoin(varName, ', ')
                     
                     case 'Default'
@@ -756,7 +780,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                         data = fileAdapterFcn(filePath).load(varName, nvPairs{:});
                 end
             else
-                error('NANSEN:Session', 'Variable ''%s'' was not found.', varName)
+                error('NANSEN:Session:VariableNotFound', 'Variable ''%s'' was not found.', varName)
             end
         end
         
@@ -798,7 +822,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
             switch variableInfo.FileAdapter
                 case 'N/A'
-                    error('NANSEN:Session:SaveData', ...
+                    error('NANSEN:Session:SaveData:FileAdapterMissing', ...
                             'No file adapter is available for variable "%s"', varName)
                 case 'Default'
                     S.(varName) = data;
@@ -873,7 +897,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             [S, isExistingEntry] = variableModel.getVariableStructure(varName);
         
             if isExistingEntry
-                error('NANSEN:Session', 'Variable "%s" already exists', varName)
+                error('NANSEN:Session:VariableAlreadyExists', ...
+                    'Variable "%s" already exists', varName)
             end
 
             parameters = struct(varargin{:});
@@ -927,9 +952,11 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             % for each variable.
             if isa(varName, 'cell')
                 if nargout == 1
-                    error('NANSEN:Session', 'Please provide a variable name as a character vector.')
+                    error('NANSEN:Session:InvalidVariableNameType', ...
+                        'Please provide a variable name as a character vector.')
                 else
-                    error('NANSEN:Session:NotImplementedYet', 'Can not retrieve variable info for multiple variables.')
+                    error('NANSEN:Session:NotImplementedYet', ...
+                        'Can not retrieve variable info for multiple variables.')
                 end
             end
             
@@ -1002,7 +1029,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             end
             
             if isempty(fileName)
-                error('NANSEN:Session', 'File not found for %s', varName)
+                error('NANSEN:Session:FileNotFound', 'File not found for %s', varName)
             end
             pathStr = fullfile(sessionFolder, fileName);
             
@@ -1239,7 +1266,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             L = dir(sessionFolder);
             L(startsWith({L.name}, '.'))=[];
             if ~isempty(L)
-                error('NANSEN:Session', 'Session folder is not empty')
+                error('NANSEN:Session:SessionFolderNotEmpty', 'Session folder is not empty')
             end
 
             rmdir(sessionFolder, "s")
@@ -1296,7 +1323,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                     folderName = subfolderStruct.Name;
 
                     if isempty(folderName)
-                        error('NANSEN:Session', 'Can not create session folder because foldername is not specified')
+                        error('NANSEN:Session:MissingFolderName', ...
+                            'Can not create session folder because foldername is not specified')
                     end
             end
 
