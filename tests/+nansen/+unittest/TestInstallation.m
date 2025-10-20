@@ -25,22 +25,19 @@ classdef TestInstallation < matlab.unittest.TestCase
             assert(~isempty(s), 'Expected NANSEN to be on MATLAB''s search path during testing')
         end
 
-        function testSearchPath(testCase)
-            fprintf('SearchPath: %s\n', path)
-        end
-
         function testUserPath(testCase)
             fprintf('Userpath: %s\n', userpath)
         end
 
-        function testInstallDependencies(testCase)
-            projectDir = nansentools.projectdir();
-            matbox.installRequirements(projectDir, "AgreeToLicenses", true)
-
-            % Verify that a couple of the requirements are installed
-            testCase.verifyTrue( logical(exist('Catalog', 'file')) )
-            testCase.verifyTrue( logical(exist('downloadFile', 'file')) )
-        end
+        % % Should not be a unit test...
+        % % function testInstallDependencies(testCase)
+        % %     projectDir = nansentools.projectdir();
+        % %     matbox.installRequirements(projectDir, "AgreeToLicenses", true)
+        % % 
+        % %     % Verify that a couple of the requirements are installed
+        % %     testCase.verifyTrue( logical(exist('Catalog', 'file')) )
+        % %     testCase.verifyTrue( logical(exist('downloadFile', 'file')) )
+        % % end
 
         function testPrefdir(testCase)
             fprintf('Nansen prefdir: %s\n', nansen.prefdir)
