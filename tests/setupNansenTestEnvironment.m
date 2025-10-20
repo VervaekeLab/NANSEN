@@ -83,6 +83,7 @@ function resetUserPath(pathName)
 end
 
 function deleteTemporaryUserPath(pathName)
+    rmpath(genpath(pathName)) % remove from path
     rmdir(pathName, "s")
     fprintf('Deleted temporary folder: "%s"\n', pathName)
 end
