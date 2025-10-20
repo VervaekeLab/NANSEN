@@ -9,7 +9,7 @@ function S = subject_session()
     S.x_type = 'Nansen Data Location Template Specification';
     S.x_version = '1.0.0';
 
-    S.Name = 'Subject-Session';
+    S.Name = 'Subject-Session'; % Todo: rename to template name
     S.DataType = 'Processed';
     
   % % Assign subfolder structure 

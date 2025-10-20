@@ -10,6 +10,7 @@ function attributeTable = buildTableVariableTable(fileList)
 %   The attributeTable contains the following variables:
 %       - Name : Name of the table variable. (Todo: Should this be of the form TableType.Name, see next line).
 %       - TableType : Name of table type this variable is defined for
+%       - NullValue : Value of uninitialized variable
 %       - IsCustom : Whether table variable is custom. Consider removing
 %       - IsEditable: Whether table variable is editable
 %       - HasClassDefinition: Whether table variable is defined by a class.
@@ -100,6 +101,8 @@ function attributeTable = buildTableVariableTable(fileList)
                 S(idx).IsEditable = true;
             end
 
+            S(idx).NullValue = fcnResult.DEFAULT_VALUE;
+
             if isprop(fcnResult, 'LIST_ALTERNATIVES')
                 S(idx).HasOptions = true;
                 S(idx).OptionsList = {fcnResult.LIST_ALTERNATIVES};
@@ -119,6 +122,7 @@ function attributeTable = buildTableVariableTable(fileList)
         else
             S(idx).HasUpdateFunction = true;
             S(idx).UpdateFunctionName = thisFcnName;
+            S(idx).NullValue = fcnResult;
         end
 
         if isa(fcnResult, 'nansen.metadata.abstract.TableColumnFormatter')

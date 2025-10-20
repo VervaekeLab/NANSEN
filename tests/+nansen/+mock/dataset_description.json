@@ -1,0 +1,9 @@
+{
+  "Name": "NANSEN Mock Dataset",
+  "BIDSVersion": "1.6.0",
+  "Description": "Mock dataset for testing NANSEN toolbox",
+  "Authors": [
+    "NANSEN Test Suite"
+  ],
+  "DatasetType": "raw"
+}

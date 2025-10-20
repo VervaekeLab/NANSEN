@@ -41,7 +41,7 @@ classdef TableVariable
                 numObjects = numel(S);
                 [obj(1:numObjects).Value] = deal( S{:} );
                 
-            elseif isa(S, 'nansen.metadata.abstract.BaseSchema')
+            elseif isa(S, 'nansen.metadata.abstract.MetadataEntity')
                 varName = obj.getVariableName;
                 
                 % Todo: Should retrieve value from dynamic prop if prop is

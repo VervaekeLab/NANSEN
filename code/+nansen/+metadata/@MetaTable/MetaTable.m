@@ -1002,12 +1002,13 @@ classdef MetaTable < handle
         %
         %   addEntries(obj, newEntries) adds one or more schema objects
         %   to the MetaTable. The schema objects are validated to ensure
-        %   they inherit from BaseSchema and match the MetaTable's class,
+        %   they inherit from MetadataEntity and match the MetaTable's class,
         %   then converted to a table and appended.
         
-            % Validate that entries are based on the BaseSchema class
-            isValid = isa(newEntries, 'nansen.metadata.abstract.BaseSchema');
-            message = 'MetaTable entries must inherit from the BaseSchema class';
+            % Make sure entries are based on the MetadataEntity class.
+            isValid = isa(newEntries, 'nansen.metadata.abstract.MetadataEntity');
+            message = 'MetaTable entries must inherit from the MetadataEntity class';
+
             assert(isValid, message)
             
             % If this is the first time entries are added, set the
@@ -1338,8 +1339,10 @@ classdef MetaTable < handle
                         end
                     end
 
-                    [isValid, newValue] = obj.validateVariableValue(defaultValue, newValue);
-
+                    [isValid, newValue] = ...
+                        nansen.metadata.tablevar.validateVariableValue(...
+                            defaultValue, newValue);
+                    
                     if isValid
                         wasUpdated(iItem) = true;
                         updatedValues{iItem} = newValue;
@@ -1637,7 +1640,7 @@ classdef MetaTable < handle
                     addlistener(metaObjects{i}, 'PropertyChanged', @obj.onMetaObjectPropertyChanged);
                     addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @obj.onMetaObjectDestroyed);
                 catch MEForListener
-                    if isa(metaObjects{i}, 'nansen.metadata.abstract.BaseSchema')
+                    if isa(metaObjects{i}, 'nansen.metadata.abstract.MetadataEntity')
                         warning(MEForListener.identifier, 'Failed to add listener to meta object. Reason:\n%s\n', MEForListener.message)
                     end
                     % Todo: Either throw warning or implement interface for
@@ -1839,7 +1842,7 @@ classdef MetaTable < handle
                 return
                 
             % If entries are provided, add them to MetaTable:
-            elseif isa(varargin{1}, 'nansen.metadata.abstract.BaseSchema')
+            elseif isa(varargin{1}, 'nansen.metadata.abstract.MetadataEntity')
                 metaTable.addEntries(varargin{1})
                 
             elseif isa(varargin{1}, 'table')
