@@ -1,5 +1,5 @@
 classdef MetaTable < handle
-%MetaTable Class interface for creating and working with MetaTables
+% MetaTable Class interface for creating and working with MetaTables
 %
 %   MetaTables can be either master or dummy MetaTables. A master
 %   MetaTable contains all the actual data entries whereas a dummy
@@ -18,11 +18,13 @@ classdef MetaTable < handle
 %
 
 % Todo:
-%   []Inherit from VersionedFile
+%   [ ]Inherit from VersionedFile
 %   [ ] Constructor access should be MetaTableCatalog...
-%   [ ] Should archive be a method on this class? Would it not be better son
-%       metatablecatalog..?
+%   [ ] Should archive be a method on this class? Would it not be better on
+%       MetatableCatalog..?
 %   [ ] openMetaTableFromName should be a metatable catalog method...
+
+%   [ ] Todo: Meta object listeners??
 
 % Features: Should think about grouping this better.
 %       Catalog/Collection, ie adding, removing and modifying entries
@@ -46,12 +48,20 @@ classdef MetaTable < handle
         MetaTableClass = '';
         MetaTableIdVarname = '';
         
-        MetaTableMembers = {}
+        % MetaTableMembers - cell array of character vectors representing
+        % unique identifiers for all entries of the table
+        MetaTableMembers = {} % Todo: enforce cell of char
 
         % MetaTableVariables - List of table variables. Used and updated in
         % checkIfMetaTableComplete. Purpose: Silently add table var
         % definitions on first time-initialization of a metatable. 
         MetaTableVariables (:,1) string
+    end
+
+    % MetaObject caching properties
+    properties (Access = private)
+        MetaObjectCache = []  % Cache of metadata objects | Todo: Make this a dictionary/containers.Map
+        MetaObjectCacheMembers = {}  % IDs for cached metadata objects % Todo: enforce cell of char
     end
 
     properties (SetAccess = private)
@@ -100,6 +110,10 @@ classdef MetaTable < handle
             );
     end
 
+    events
+        TableEntryChanged
+    end
+
     methods % Structor
         
         function obj = MetaTable(metadata, propValues)
@@ -123,15 +137,6 @@ classdef MetaTable < handle
     
     methods
         
-        function itemConstructor = getItemConstructor(obj)
-        % getItemConstructor - Get function handle for item constructor
-            if isempty(obj.ItemClassName)
-                itemConstructor = str2func(obj.MetaTableClass);
-            else
-                itemConstructor = str2func(obj.ItemClassName);
-            end
-        end
-
         function className = class(obj)
         %CLASS Override class method to return the class/schema type of
         %the MetaTable entries.
@@ -261,6 +266,10 @@ classdef MetaTable < handle
         %   Todo: Find better function name... Confusing that it loads, but
         %   does not overwrite.
 
+            LOAD_NEWER_VERSION = 'Load newer version';
+            LOAD_NEWER_VERSION_AND_DROP = 'Load newer version and drop unsaved changes';
+            KEEP_CURRENT_VERSION = 'Keep current version';
+
             titleStr = 'Newer version exists';
 
             msg = ['The metatable has been updated outside this instance of Nansen. ' ...
@@ -269,14 +278,14 @@ classdef MetaTable < handle
                 'version which is currently open. \n\n\\bfNote: Selecting "Keep ', ...
                 'current version" will overwrite the newer version for all', ...
                 'nansen instances.'];
-            
+
             if obj.isClean()
-                choices = {'Load newer version'};
+                choices = {LOAD_NEWER_VERSION};
             else
-                choices = {'Load newer version and drop unsaved changes'};
+                choices = {LOAD_NEWER_VERSION_AND_DROP};
             end
 
-            choices{end+1} = 'Keep current version';
+            choices{end+1} = KEEP_CURRENT_VERSION;
             %choices = strcat('<html><font size="4">', choices);
 
             options = struct('Default', choices{1}, 'Interpreter', 'tex');
@@ -285,11 +294,11 @@ classdef MetaTable < handle
             answer = questdlg(formattedMessage, titleStr, choices{:}, options);
 
             switch lower(answer)
-                case 'keep current version'
+                case KEEP_CURRENT_VERSION
                     tf = false;
-                case 'load newer version and drop recent changes'
+                case LOAD_NEWER_VERSION_AND_DROP
                     tf = true;
-                case 'load newer version'
+                case LOAD_NEWER_VERSION
                     tf = true;
                 otherwise
                     tf = [];
@@ -306,7 +315,8 @@ classdef MetaTable < handle
             
             % If a filepath does not exist, throw error.
             if ~isfile(obj.filepath)
-                error('File "%s" does not exist.')
+                error('NANSEN:MetaTable:FileNotFound', ...
+                    'File "%s" does not exist.', obj.filepath)
             end
             
             % Load variables from MetaTable file.
@@ -414,12 +424,24 @@ classdef MetaTable < handle
             obj.VersionNumber = versionNumber + 1;
             S.VersionNumber = obj.VersionNumber;
 
-            % Save metatable variables to file
-            save(obj.filepath, '-struct', 'S')
-            fprintf('MetaTable saved to %s\n', obj.filepath)
-                            
-            wasSaved = true;
-            obj.IsModified = false;
+            tempPath = strrep(obj.filepath, '.mat', '.tempsave.mat');
+            save(tempPath, '-struct', 'S');
+
+            try
+                verifiedS = load(tempPath); %#ok<NASGU>
+                copyfile(tempPath, obj.filepath)
+                % Save metatable variables to file
+                % save(obj.filepath, '-struct', 'S')
+                fprintf('MetaTable saved to %s\n', obj.filepath)
+                                
+                wasSaved = true;
+                obj.IsModified = false;
+            catch ME
+                error("NANSEN:MetaTable:Save:UnknownError", ...
+                    "Something went wrong when saving the MetaTable. " + ...
+                    "A backup of the MetaTable should exist with a '.tempsave' postfix")
+            end
+
             if ~nargout; clear wasSaved; end
         end
         
@@ -427,7 +449,7 @@ classdef MetaTable < handle
         %saveCopy Save a copy of the metatable to the given filePath
             originalPath = obj.filepath;
             obj.filepath = savePath;
-            obj.save();
+            obj.save(true); % force save (table might be clean)
             obj.filepath = originalPath;
         end
         
@@ -458,9 +480,15 @@ classdef MetaTable < handle
                 end
             end
             
-            if isempty(S.MetaTableName) || ~isfolder(S.SavePath)
-                error('Not enough info provided to create a new entry')
+            if isempty(S.MetaTableName)
+                error("NANSEN:MetaTable:Save:MissingName", ...
+                    'Can not save MetaTable because the Name is not set.')
             end
+            if ~isfolder(S.SavePath)
+                error("NANSEN:MetaTable:Save:FolderNotFound", ...
+                    'Can not save MetaTable because the folder (for saving) does not exist.')
+            end
+            
             
             % Update properties of object from user input
             obj.fromStruct(S)
@@ -577,7 +605,8 @@ classdef MetaTable < handle
             if any(isMatch)
                 columnIndex = find(isMatch);
             else
-                error('Column with name "%s" does not exist in table', columnName)
+                error('NANSEN:MetaTable:ColumnNotFound', ...
+                    'Column with name "%s" does not exist in table', columnName)
             end
         end
         
@@ -752,6 +781,9 @@ classdef MetaTable < handle
             
             currentProject = nansen.getCurrentProject();
             refVariableAttributes = currentProject.getTable('TableVariable');
+
+            % Todo: Create method for getting table variable info given a
+            % type, a name an potentially other attributes like "isCustom"
             refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
 
             isCustom = refVariableAttributes.IsCustom;
@@ -781,9 +813,11 @@ classdef MetaTable < handle
                 obj.addTableVariable(thisName, defaultValue)
 
                 if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
-                    % Todo: update for all items of the metatable
+                    % Update for all items of the metatable
+                    tableRowInd = 1:height(obj.entries);
                     updateFcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
-                    obj.updateTableVariable(thisName, updateFcnName)
+                    wasUpdated = obj.updateTableVariable(thisName, tableRowInd, str2func(updateFcnName)); %#ok<NASGU>
+                    % Todo: Show warning if any fails to update?
                 end
             end
             if not( isempty(obj.filepath) )
@@ -909,8 +943,8 @@ classdef MetaTable < handle
         %   variable to the table and initializes all column values to the
         %   initValue.
         
-        % Todo: Make method for adding multiple variable in one go, i.e
-        % allow variableName and initValue to be cell arrays.
+        % Todo: Make method for adding multiple variables in one go, i.e
+        % allow "variableName" and "initValue" to be cell arrays.
 
             if ~obj.IsMaster % Add to master metatable
                 % Get filepath to master MetaTable file and load MetaTable
@@ -927,54 +961,60 @@ classdef MetaTable < handle
             obj.entries(:, variableName) = [];
         end
 
-        function appendTable(obj, newTableRows)
-        %appendTable append a metatable to the current metatable
+        function appendTable(obj, T)
+            warning('appendTable is deprecated and will be removed, use addTable instead.')
+            obj.addTable(T)
+        end
+
+        function addTable(obj, T)
+        %addTable Add table rows to the MetaTable
+        %
+        %   addTable(obj, T) adds rows from a table directly to the
+        %   MetaTable. If the table is missing ID values, UUIDs will be
+        %   generated automatically. This is useful for importing data
+        %   from external sources or merging MetaTables.
         
-            % Todo: Add validations to make sure there are not duplicate
-            % entries
-            % Todo: Extract separate methods for the code which is
-            % duplicated in addEntries.
-        
-            % Todo; what if the id is not the 1st variable.
-            schemaIdName = newTableRows.Properties.VariableNames{1};
-            
-            try
-                obj.entries = [obj.entries; newTableRows];
-            catch
-                obj.entries = struct2table( [table2struct(obj.entries); table2struct(newTableRows)] );
+            % Set MetaTable class if this is the first time entries are added
+            if isempty(obj.MetaTableMembers)
+                if isempty(obj.MetaTableClass) % Don't override if already set
+                    obj.MetaTableClass = 'table';
+                end
             end
 
-            obj.MetaTableMembers = obj.entries.(schemaIdName);
-            
-            % Synch entries from master, e.g. if some entries were added
-            % that are already in master.
-            if ~obj.IsMaster %&& ~isempty(obj.filepath)
-                obj.synchFromMaster()
+            idName = obj.SchemaIdName;
+
+            % Check if table has ID column, generate UUIDs if missing
+            if any(strcmp(T.Properties.VariableNames, idName))
+                % IDs exist, no action needed
+            else
+                % Generate UUIDs for all rows
+                newEntryIds = arrayfun(@(i) nansen.util.getuuid, 1:height(T), 'uni', 0);
+                T.(idName) = newEntryIds';
             end
             
-            obj.sort()
-            
-            %obj.IsModified = true;
+            % Use common append logic
+            obj.appendTableRows(T);
         end
 
         % Add entry/entries to MetaTable table
         function addEntries(obj, newEntries)
-        %addEntries Add entries to the MetaTable
+        %addEntries Add schema object entries to the MetaTable
+        %
+        %   addEntries(obj, newEntries) adds one or more schema objects
+        %   to the MetaTable. The schema objects are validated to ensure
+        %   they inherit from BaseSchema and match the MetaTable's class,
+        %   then converted to a table and appended.
         
             % Make sure entries are based on the MetadataEntity class.
             isValid = isa(newEntries, 'nansen.metadata.abstract.MetadataEntity');
             message = 'MetaTable entries must inherit from the MetadataEntity class';
+
             assert(isValid, message)
-        
-            %schemaIdName = obj.MetaTableIdVarname; % todo...Support other
-            %sessions, i.e bot sessions.
-            schemaIdName = newEntries(1).IDNAME;
             
-            % If this is the first time entries are added, we need to set
-            % the MetaTable class property. Otherwise, need to make sure
-            % that new entries are matching the class of the MetaTable
+            % If this is the first time entries are added, set the
+            % MetaTable class property. Otherwise, validate class match.
             if isempty(obj.MetaTableMembers)
-                if isempty(obj.MetaTableClass) % Don't override if it is set
+                if isempty(obj.MetaTableClass) % Don't override if already set
                     obj.MetaTableClass = class(newEntries);
                 end
             else
@@ -984,99 +1024,17 @@ classdef MetaTable < handle
                 assert(isa(newEntries, obj.MetaTableClass), msg)
             end
 
-            % Convert entries to a table before adding to the MetaTable
-            newEntries = newEntries.makeTable();
-
-            % Get to entry IDs.
-            newEntryIds = newEntries.(schemaIdName);
+            % Convert schema objects to a table
+            newTableRows = newEntries.makeTable();
             
-            % Check that entry/entries are not already present in the
-            % Metatable.
-            if iscell(newEntryIds) && ischar(newEntryIds{1})
-                iA = contains(newEntryIds, obj.MetaTableMembers);
-            elseif isnumeric(newEntryIds)
-                if isempty(obj.MetaTableMembers)
-                    obj.MetaTableMembers = [];
-                end
-                iA = ismember(newEntryIds, obj.MetaTableMembers);
-            end
-            
-            newEntryIds(iA) = [];
-            
-            if isempty(newEntryIds); return; end
-            
-            % Skip entries that are already present in the MetaTable.
-            newEntries(iA, :) = [];
-            
-            % Add new entries to the MetaTable.
-            if isempty(obj.entries)
-                obj.entries = newEntries;
-            else
-                obj.entries = [obj.entries; newEntries];
-            end
-            
-% %             obj.updateEntries(listOfEntryIds)
-            
-            obj.MetaTableMembers = obj.entries.(schemaIdName);
-            
-            % Synch entries from master, e.g. if some entries were added
-            % that are already in master.
-            if ~obj.IsMaster %&& ~isempty(obj.filepath)
-                obj.synchFromMaster()
-            end
-            
-            obj.sort()
-            
-            %obj.IsModified = true;
-        end
-
-        function addTable(obj, T)
-            if isempty(obj.MetaTableMembers)
-                if isempty(obj.MetaTableClass) % Do not override
-                    obj.MetaTableClass = 'table';
-                end
-            end
-
-            if any(strcmp(T.Properties.VariableNames, 'id'))
-                newEntryIds = T.id;
-            else
-                newEntryIds = arrayfun(@(i) nansen.util.getuuid, 1:height(T), 'uni', 0);
-                T.id = newEntryIds';
-            end
-
-            % Check that entry/entries are not already present in the
-            % Metatable.
-            if iscell(newEntryIds) && ischar(newEntryIds{1})
-                iA = contains(newEntryIds, obj.MetaTableMembers);
-            elseif isnumeric(newEntryIds)
-                if isempty(obj.MetaTableMembers)
-                    obj.MetaTableMembers = [];
-                end
-                iA = ismember(newEntryIds, obj.MetaTableMembers);
-            end
-            
-            newEntryIds(iA) = [];
-            
-            if isempty(newEntryIds); return; end
-            
-            % Skip entries that are already present in the MetaTable.
-            T(iA, :) = [];
-            
-            % Add new entries to the MetaTable.
-            if isempty(obj.entries)
-                obj.entries = T;
-            else
-                obj.entries = [obj.entries; T];
-            end
-            
-% %             obj.updateEntries(listOfEntryIds)
-            
-            obj.MetaTableMembers = obj.entries.id;
+            % Use common append logic
+            obj.appendTableRows(newTableRows);
         end
 
         function entries = getEntry(obj, listOfEntryIds)
         %getEntry Get entry/entries from the entry IDs.
-            IND = contains(obj.members, listOfEntryIds);
+            listOfEntryIds = obj.normalizeIdentifier(listOfEntryIds);
+            [~, IND, ~] = intersect(obj.members, listOfEntryIds);
             entries = obj.entries(IND, :);
         end
         
@@ -1129,31 +1087,7 @@ classdef MetaTable < handle
             
             %obj.IsModified = true;
         end
-        
-        function updateEntries(obj, listOfEntryIds)
-            
-            % Note: not implemented
 
-            if nargin < 2 % Update all...
-                listOfEntryIds = obj.members;
-            end
-            
-            for i = 1:numel(listOfEntryIds)
-                try
-                    % Todo: need to convert to instance of schema and invoke
-                    % update method.
-                catch
-                    fprintf( 'Failed for session %s\n', listOfEntryIds{i})
-                end
-            end
-
-            % Synch changes to master
-            if ~obj.IsMaster && ~isempty(obj.filepath)
-                S = obj.toStruct('metatable_file');
-                obj.synchToMaster(S)
-            end
-        end
-        
         function onEntriesChanged(obj)
             obj.IsModified = true;
         end
@@ -1220,10 +1154,10 @@ classdef MetaTable < handle
 
             assert(~isempty(MT), 'MetaTable Catalog is empty')
             
-            isMaster = MT.IsMaster; %#ok<PROP>
+            isMaster = MT.IsMaster;
             isClass = contains(MT.MetaTableClass, class(obj));
             
-            mtTmp = MT(isMaster & isClass, :); %#ok<PROP>
+            mtTmp = MT(isMaster & isClass, :);
             assert(~isempty(mtTmp), 'No master MetaTable for this MetaTable class')
 
             MetaTableNames = mtTmp.MetaTableName;
@@ -1231,11 +1165,12 @@ classdef MetaTable < handle
             promptString = sprintf('Select a master MetaTable');
             
             [ind, ~] = listdlg( 'ListString', MetaTableNames, ...
-                                'SelectionMode', 'multiple', ...
+                                'SelectionMode', 'single', ...
                                 'Name', 'Select Table', ...
                                 'PromptString', promptString);
 
-            if isempty(ind); error('You need link to a master MetaTable'); end
+            if isempty(ind); error("NANSEN:MetaTable:OperationCanceled", ...
+                    'You need link to a master MetaTable'); end
             
             obj.MetaTableKey = mtTmp.('MetaTableKey'){ind};
             obj.save()
@@ -1357,19 +1292,22 @@ classdef MetaTable < handle
             names(~MT.IsMaster) = sort(names(~MT.IsMaster));
         end
     
-        function wasUpdated = updateTableVariable(obj, variableName, tableRowIndices, options)
+        function wasUpdated = updateTableVariable(obj, variableName, tableRowIndices, updateFunction, options)
             arguments
                 obj (1,1) nansen.metadata.MetaTable
                 variableName (1,1) string
-                tableRowIndices (1,:) uint32
+                tableRowIndices (1,:) double {mustBeInteger} = 1:height(obj.entries) % Default: update all
+                updateFunction function_handle = function_handle.empty()
                 options.ProgressMonitor = [] % Todo: waitbar class?
                 options.MessageDisplay = [] % Constrain to message display
             end
             
             wasUpdated = false(1, numel(tableRowIndices));
             hasWarned = false;
-
-            updateFunction = obj.getTableVariableUpdateFunction(variableName);
+            
+            if isempty(updateFunction) % Retrieve update function if not given
+                updateFunction = obj.getTableVariableUpdateFunction(variableName);
+            end
             defaultValue = updateFunction();
 
             % Character vectors should be in a scalar cell
@@ -1379,7 +1317,10 @@ classdef MetaTable < handle
                 expectedDataType = class(defaultValue);
             end
 
-            metaObjects = obj.getMetaObjects(tableRowIndices);
+            metaObjects = obj.getMetaObjects(tableRowIndices); % Todo: Do we need to pass DataLocationModel/VariableModel here?
+
+            warnState = warning('backtrace', 'off');
+            warningCleanup = onCleanup(@() warning(warnState));
 
             numItems = numel(metaObjects);
             updatedValues = cell(numItems, 1);
@@ -1412,15 +1353,20 @@ classdef MetaTable < handle
                                 options.MessageDisplay.warn(warningMessage, 'Title', 'Update failed')
                             end
                             hasWarned = true;
-                            ME = MException('Nansen:TableVar:WrongType', warningMessage);
+                            % Todo: consider to throw this as error after
+                            % processing all items. Make sure current
+                            % callers can handle error
+                            % ME = MException('Nansen:TableVar:WrongType', warningMessage);
                         end
                     end
                 catch ME
-                    
+                    warning(ME.identifier, ...
+                        'Failed to update variable "%s". Reason:\n%s\n', ...
+                        variableName, ME.message)
                 end
 
-                if ~isempty(options.Waitbar)
-                    waitbar(iItem/numItems, options.Waitbar)
+                if ~isempty(options.ProgressMonitor)
+                    waitbar(iItem/numItems, options.ProgressMonitor)
                 end
             end
 
@@ -1431,18 +1377,370 @@ classdef MetaTable < handle
         end
     end
 
+    methods % MetaObject caching methods
+        function [metaObjects, status] = getMetaObjects(obj, rowIndices, ...
+                objectPropertyName, objectPropertyValue, options)
+        % getMetaObjects - Get metadata objects for a set of table rows
+        %
+        %   Inputs:
+        %     - obj - instance of this MetaTable
+        %     - tableEntries - a collection of table rows
+        %     - options (name-value pairs)
+        %         - UseCache - (logical) - flag determining if objects can be 
+        %                                  retrieved from a cache
+        %     - objectNameValueArgs (name-value pairs)
+        %
+        %   Outputs:
+        %       metaObjects - An array of metadata objects
+        %       status - A logical vector indicating if an object was
+        %           created. Same length as tableEntries.
+
+            % Todo: Use containers.Map / dictionary for cache...
+            
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                rowIndices (1,:) {mustBeA(rowIndices, ["logical", "double"])}
+            end
+            arguments (Repeating)
+                objectPropertyName string
+                objectPropertyValue
+            end
+            arguments
+                options.UseCache (1,1) logical = true
+            end
+
+            tableEntries = obj.entries(rowIndices, :);
+            propertyArgs = cat(1, objectPropertyName, objectPropertyValue);
+
+            if isempty(tableEntries) || ~options.UseCache
+                [metaObjects, status] = obj.createMetaObjects(tableEntries, propertyArgs{:});
+            else
+                % Check if objects already exists in cache
+                ids = obj.getObjectId(tableEntries);
+                ids = nansen.metadata.MetaTable.normalizeIdentifier(ids);
+                allCachedIds = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaObjectCacheMembers);
+                
+                [matchedIds, indInTableEntries, indInMetaObjects] = ...
+                    intersect(ids, allCachedIds, 'stable');
+    
+                metaObjectsCached = obj.MetaObjectCache(indInMetaObjects);
+                tableEntries(indInTableEntries, :) = []; % Don't need these anymore
+                                
+                statusOld = false(1, numel(ids));
+                statusOld(indInTableEntries) = true;
+                
+                % Create meta objects for remaining entries if any
+                [metaObjectsNew, statusNew] = obj.createMetaObjects(tableEntries, propertyArgs{:});
+            
+                % Collect outputs
+                if isequal(matchedIds, ids)
+                    metaObjects = metaObjectsCached;
+                    status = statusOld;
+                elseif ~isempty(matchedIds)
+                    metaObjects = utility.insertIntoArray(metaObjectsNew, metaObjectsCached, indInTableEntries);
+                    status = utility.insertIntoArray(statusNew, true(1,numel(metaObjectsCached)), indInTableEntries);
+                else
+                    metaObjects = metaObjectsNew;
+                    status = statusNew;
+                end
+
+                % Add newly created metaobjects to the cache
+                if isempty(obj.MetaObjectCache)
+                    obj.MetaObjectCache = metaObjectsNew;
+                else
+                    obj.MetaObjectCache = [obj.MetaObjectCache, metaObjectsNew];
+                end
+                obj.updateMetaObjectCacheMembers();
+            end
+
+            if nargout == 1
+                clear status
+            end
+        end
+        
+        function resetMetaObjectCache(obj)
+        %resetMetaObjectCache Delete all meta objects from the cache
+            for i = numel(obj.MetaObjectCache):-1:1
+                if ismethod(obj.MetaObjectCache(i), 'isvalid')
+                    if ismethod(obj.MetaObjectCache(i), 'delete')
+                        % It's a handle, we might need to delete it
+                        if isvalid( obj.MetaObjectCache(i) )
+                            delete( obj.MetaObjectCache(i) )
+                        end
+                    end
+                end
+            end
+            obj.MetaObjectCache = [];
+            obj.MetaObjectCacheMembers = {};
+        end
+    end
+
+    methods (Access = private) % Not implemented yet
+        function updateEntries(obj, listOfEntryIds)
+            
+            % Note: not implemented
+            arguments
+                obj (1,1) nansen.metadata.MetaTable %#ok<INUSA>
+                listOfEntryIds = obj.members %#ok<INUSA> % Default: update all
+            end
+
+            error('Not implemented yet')
+
+            % % for i = 1:numel(listOfEntryIds)
+            % %     try
+            % %         % Todo: need to convert to instance of metadata entity 
+            % %         % and invoke update method.
+            % %         % Note: Assumes this class has an update method.
+            % %     catch
+            % %         fprintf( 'Failed for session %s\n', listOfEntryIds{i})
+            % %     end
+            % % end
+
+            % % % Synch changes to master
+            % % if ~obj.IsMaster && ~isempty(obj.filepath)
+            % %     S = obj.toStruct('metatable_file');
+            % %     obj.synchToMaster(S)
+            % % end
+        end
+    end
+
+    methods (Access = private)
+        function itemConstructor = getItemConstructor(obj)
+        % getItemConstructor - Get function handle for item constructor
+            if isempty(obj.ItemClassName)
+                itemConstructor = str2func(obj.MetaTableClass);
+            else
+                itemConstructor = str2func(obj.ItemClassName);
+            end
+        end
+
+        function appendTableRows(obj, newTableRows)
+        %appendTableRows Append table rows to MetaTable with duplicate checking
+        %
+        %   This is a private helper method that consolidates the common
+        %   logic for appending new table rows. It handles:
+        %     - Duplicate detection and removal
+        %     - Table concatenation with error handling
+        %     - Member list updates with ID normalization
+        %     - Master MetaTable synchronization (for dummy MetaTables)
+        %     - Sorting by ID
+        %
+        %   This method is called by both addEntries and addTable.
+        
+            if isempty(newTableRows)
+                return
+            end
+
+            schemaIdName = obj.SchemaIdName;
+            
+            % Get new entry IDs and normalize them
+            newEntryIds = newTableRows.(schemaIdName);
+            newEntryIds = nansen.metadata.MetaTable.normalizeIdentifier(newEntryIds);
+            
+            % Get existing member IDs and normalize them
+            existingIds = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaTableMembers);
+            
+            % Find duplicates
+            [~, iA] = intersect(newEntryIds, existingIds, 'stable');
+            
+            if ~isempty(iA)
+                % Skip entries that are already present in the MetaTable
+                newTableRows(iA, :) = [];
+                newEntryIds(iA) = [];
+            end
+            
+            if isempty(newEntryIds)
+                return; % Nothing to add
+            end
+            
+            % Todo:
+            % - expand entries if table has dynamic table variables
+            % % updateEntries(obj, listOfEntryIds) [Not implemented]
+
+            % Concatenate tables
+            try
+                % Try direct concatenation
+                obj.entries = [obj.entries; newTableRows];
+            catch
+                % Fallback: convert to struct, concatenate, then back to table
+                obj.entries = struct2table([table2struct(obj.entries); ...
+                                            table2struct(newTableRows)]);
+            end
+            
+            % Update member list
+            obj.MetaTableMembers = obj.entries.(schemaIdName);
+            
+            % Synchronize from master if this is a dummy MetaTable
+            if ~obj.IsMaster
+                obj.synchFromMaster()
+            end
+            
+            % Sort entries by ID
+            obj.sort()
+        end
+
+        function [metaObjects, status] = createMetaObjects(obj, tableEntries, ...
+                objectPropertyName, objectPropertyValue)
+        % createMetaObjects - Create new meta objects from table entries
+        
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                tableEntries
+            end
+            arguments (Repeating)
+                objectPropertyName string
+                objectPropertyValue
+            end
+            
+            % Relevant for meta objects that have datalocations:
+            if any(strcmp(tableEntries.Properties.VariableNames, 'DataLocation'))
+                % Filter out DataLocationModel and VariableModel from
+                % property args
+                propertyArgs = obj.filterMetaObjectPropertyArgs(...
+                    objectPropertyName, objectPropertyValue, ...
+                    ["DataLocationModel", "VariableModel"]);
+            else
+                propertyArgs = {};
+            end
+
+            try
+                itemConstructor = obj.getItemConstructor();
+            catch
+                itemConstructor = @table2struct;
+            end
+
+            % Initialize output
+            status = false(1, height(tableEntries));
+
+            if isempty(tableEntries)
+                try
+                    metaObjects = itemConstructor().empty;
+                catch
+                    % Todo: Error handling ! Important
+
+                    metaObjects = [];
+                end
+                return;
+            end
+
+            % Create items one by one
+            numItems = height(tableEntries);
+            metaObjects = cell(1, numItems);
+            status = false(1, numItems);
+
+            for i = 1:numItems
+                try
+                    metaObjects{i} = itemConstructor(tableEntries(i,:), propertyArgs{:});
+                    status(i) = true;
+                catch ME
+                    fprintf('Could not create meta object. Reason:\n%s\n', ME.message)
+                    continue
+                end
+                try
+                    addlistener(metaObjects{i}, 'PropertyChanged', @obj.onMetaObjectPropertyChanged);
+                    addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @obj.onMetaObjectDestroyed);
+                catch MEForListener
+                    if isa(metaObjects{i}, 'nansen.metadata.abstract.BaseSchema')
+                        warning(MEForListener.identifier, 'Failed to add listener to meta object. Reason:\n%s\n', MEForListener.message)
+                    end
+                    % Todo: Either throw warning or implement interface for
+                    % easily implementing PropertyChanged on any table
+                    % class..
+                end
+            end
+
+            try
+                metaObjects = [metaObjects{:}];
+            catch
+                % Pass for now. Todo: Error, warning or handle some way?
+            end
+
+            if nargout == 1
+                clear status
+            end
+        end
+
+        function ids = getObjectId(obj, object)
+            idName = obj.SchemaIdName;
+            if isa(object, 'table')
+                ids = object.(idName);
+            else
+                ids = {object.(idName)};
+            end
+
+            ids = nansen.metadata.MetaTable.normalizeIdentifier(ids);
+        end
+
+        function entryIndex = getIndexById(obj, objectId)
+            idName = obj.SchemaIdName;
+            allIds = obj.entries.(idName);
+
+            entryIndex = find( strcmp(allIds, objectId) );
+        end
+
+        function updateMetaObjectCacheMembers(obj)
+        %updateMetaObjectCacheMembers Update list of ids for members of the
+        % metaobject cache
+            idName = obj.SchemaIdName;
+            obj.MetaObjectCacheMembers = {obj.MetaObjectCache.(idName)};
+            obj.MetaObjectCacheMembers = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaObjectCacheMembers);
+        end
+        
+        function onMetaObjectPropertyChanged(obj, src, evt)
+        % onMetaObjectPropertyChanged - Callback to handle value change of meta object
+            if ~isvalid(src); return; end
+
+            objectID = obj.getObjectId(src); % sessionID / itemID
+
+            % Todo: Use getEntry
+            metaTableEntryIdx = find(strcmp(obj.members, objectID));
+            
+            if numel(metaTableEntryIdx) > 1
+                % metaTableEntryIdx = metaTableEntryIdx(1);
+                error('NANSEN:MetaTable:DuplicateEntries', ...
+                    'Multiple entries have the ID "%s"', objectID)
+            end
+            
+            obj.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
+
+            rowIdx = metaTableEntryIdx;
+            colIdx = find(strcmp(obj.entries.Properties.VariableNames, evt.Property));
+            newValue = obj.getFormattedTableData(colIdx, rowIdx);
+            newValue = table2cell(newValue);
+
+            evtData = nansen.metadata.event.MetaTableCellChangedEventData(...
+                "RowIndex", rowIdx, ...
+                "ColumnIndex", colIdx, ...
+                "NewValue", newValue);
+            obj.notify('TableEntryChanged', evtData)
+        end
+        
+        function onMetaObjectDestroyed(obj, src, ~)
+            if ~isvalid(obj); return; end
+            
+            objectID = obj.getObjectId(src);
+                        
+            [~, ~, iC] = intersect(objectID, obj.MetaObjectCacheMembers);
+            if isempty(iC)
+                warning('Object was not found in cache member registry. Object will not be removed.')
+            end
+            obj.MetaObjectCache(iC) = [];
+
+            obj.updateMetaObjectCacheMembers();
+        end
+    end
+
     methods (Access = private) % Methods related to updating table variables
         function updateFcn = getTableVariableUpdateFunction(obj, variableName)
         % getTableVariableUpdateFunction - Get function name of table variable update function
-            
+                    
             % Todo: Think about whether we always want to get tables from 
             % the current project, or if we also want to be able to specify
             % which project to use.
             currentProject = nansen.getCurrentProject();
             refVariableAttributes = currentProject.getTable('TableVariable');
-                         
-            tableType = lower(obj.MetaTableClass);
-
+         
+            tableType = lower(obj.getTableType());
             refVariableAttributes(refVariableAttributes.TableType ~= tableType, :) = [];
             
             isVariableEntry = refVariableAttributes.TableType == tableType & ...
@@ -1475,13 +1773,16 @@ classdef MetaTable < handle
             obj.entries = obj.entries(iA,:);
             obj.MetaTableMembers = obj.entries.(varName);
             obj.sort()
-            obj.save()
+            if ~isempty(obj.filepath)
+                obj.save()
+            end
         end
     end
 
     methods (Access = private) % Static??
        
-        function openMetaTableSelectionDialog(obj)
+        function openMetaTableSelectionDialog(~)
+            error('Not implemented yet')
             % Todo:
             
             % Open a quest dialog to ask if user wants to open a metatable
@@ -1510,7 +1811,8 @@ classdef MetaTable < handle
                 entry = MT(isClassMatch & MT.IsMaster, :);
                 obj.filepath = fullfile(entry.SavePath{:}, entry.FileName{:});
             else
-                error('No MetaTable found matching the given name ("%s")', inputName)
+                error("NANSEN:MetaTable:MetaTableNotFound", ...
+                    'No MetaTable found matching the given name ("%s")', inputName)
             end
             
             obj.load()
@@ -1548,35 +1850,49 @@ classdef MetaTable < handle
             
             % If keyword is provided, use this:
             elseif any( strcmp(varargin{1}, {'master', 'dummy'} ) )
-                error('Not implemented yet.')
-                metaTable.setMaster(varargin{1})
+                throw(nansen.common.exception.NotImplemented("New MetaTable from keywords."))
+                % Todo: metaTable.setMaster(varargin{1})
             end
         end
         
-        function metaTable = open(varargin)
-            
+        function metaTable = open(nameOrFilepath)
+        % open - Open a MetaTable from a specified file or name
+        %
+        % Syntax:
+        %   metaTable = nansen.metadata.MetaTable.open(nameOrFilepath) Opens 
+        %   a MetaTable using the given name or file path.
+        %
+        % Input Arguments:
+        %   nameOrFilepath (string) - The name or file path of the MetaTable 
+        %   to open.
+        %
+        % Output Arguments:
+        %   metaTable - An instance of the MetaTable class containing the 
+        %   loaded data.
+
+            arguments
+                nameOrFilepath (1,1) string {mustBeNonzeroLengthText}
+            end
+
             metaTable = nansen.metadata.MetaTable();
-            
+
+            % NOT IMPLEMENTED:
             % If no input is provided, open a list selection and let user
             % select a MetaTable to open from the MetaTableCatalog
-            if isempty( varargin )
-                metaTable.openMetaTableSelectionDialog()
-                
-            % If varargin is a filepath, open file
-            elseif ischar( varargin{1} ) && isfile( varargin{1} )
-                metaTable.openMetaTableFromFilepath(varargin{1})
-                
-            % If varargin is a char, but not a file, assume it is the name
-            % of a MetaTable and open using the name
-            elseif ischar(varargin{1})
-                metaTable.openMetaTableFromName(varargin{1})
-                
+            % % if isempty( nameOrFilepath )
+            % %     metaTable.openMetaTableSelectionDialog()
+            % % end
+
+            if isfile( nameOrFilepath )
+                % If input is a filepath, open file
+                metaTable.openMetaTableFromFilepath(nameOrFilepath)
             else
-                message = 'Can not open MetaTable based on current input';
-                error(message)
+                % If input is not a file, assume it is the name
+                % of a MetaTable and open using the name
+                metaTable.openMetaTableFromName(nameOrFilepath)
             end
         end
-        
+
         function filename = createFileName(S)
         %CREATEFILENAME Create filename (add extension) for metatable file
         %
@@ -1607,6 +1923,131 @@ classdef MetaTable < handle
             columnValues = repmat(initValue, numTableRows, 1);
             
             T{:, variableName} = columnValues;
+        end
+    end
+
+    methods (Static, Hidden) % Hidden instead of private to allow testing
+        function normalizedIds = normalizeIdentifier(ids)
+        %normalizeIdentifier Normalize identifiers to string cell array
+        %
+        %   normalizedIds = normalizeIdentifier(ids) converts any type of
+        %   identifier (numeric, char, string, cell array) to a cell array
+        %   of character vectors for consistent comparison and storage.
+        %
+        %   Inputs:
+        %       ids - Identifiers in various formats:
+        %             - Numeric scalar or vector
+        %             - Character vector
+        %             - String scalar or vector
+        %             - Cell array of any of the above
+        %
+        %   Outputs:
+        %       normalizedIds - Cell array of character vectors
+
+        % Todo: Future: Represent ids as string arrays
+        
+            if isempty(ids)
+                normalizedIds = {};
+                return
+            end
+            
+            % Handle numeric inputs
+            if isnumeric(ids)
+                normalizedIds = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
+                return
+            end
+            
+            % Handle string inputs
+            if isstring(ids)
+                normalizedIds = cellstr(ids);
+                return
+            end
+            
+            % Handle character vector
+            if ischar(ids) && height(ids)
+                normalizedIds = {ids};
+                return
+            end
+            
+            % Handle cell array inputs
+            if iscell(ids)
+                % Check if cells contain numeric values
+                if ~isempty(ids) && isnumeric(ids{1})
+                    normalizedIds = cellfun(@num2str, ids, 'UniformOutput', false);
+                % Check if cells contain strings
+                elseif ~isempty(ids) && isstring(ids{1})
+                    normalizedIds = cellfun(@char, ids, 'UniformOutput', false);
+                else
+                    % Already character cells
+                    normalizedIds = ids;
+                end
+                return
+            end
+            
+            % Fallback: convert to string
+            normalizedIds = {char(string(ids))};
+        end
+        
+        function propertyArgs = filterMetaObjectPropertyArgs( ...
+                objectPropertyName, objectPropertyValue, keepNames)
+                
+            arguments
+                objectPropertyName (1,:) string
+                objectPropertyValue (1,:) cell
+                keepNames (1,:) string
+            end
+
+            objectPropertyName = string(objectPropertyName);
+
+            [keepNames, keepIndex] = intersect(objectPropertyName, keepNames, 'stable');
+            keepValues = objectPropertyValue(keepIndex);
+
+            propertyArgs = cat(1, cellstr(keepNames), keepValues);
+        end
+        
+        function [isValid, newValue] = validateVariableValue(defaultValue, newValue)
+        % validateVariableValue - Validate a table variable value
+            arguments
+                defaultValue 
+                newValue 
+            end
+
+            % Todo: 
+            % Maintain a list of valid types and if the value is
+            % valid, just check that the defaultValue and the newValue is
+            % of same class instead of having an if check for each type
+
+            % String values need to be converted to char as the table
+            % currently does not support string type.
+            if isa(newValue, 'string')
+                newValue = char(newValue); 
+            end
+
+            isValid = false;
+
+            if isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}) % Character vectors should be in a scalar cell
+                if iscell(newValue) && numel(newValue)==1 && ischar(newValue{1})
+                    newValue = newValue{1};
+                    isValid = true;
+                elseif isa(newValue, 'char')
+                    isValid = true;
+                end
+
+            elseif isa(defaultValue, 'double')
+                isValid = isnumeric(newValue);
+
+            elseif isa(defaultValue, 'logical')
+                isValid = islogical(newValue);
+                
+            elseif isa(defaultValue, 'struct')
+                isValid = isstruct(newValue);
+
+            elseif isa(defaultValue, 'categorical')
+                isValid = isa(newValue, 'categorical');
+
+            else
+                % Invalid;
+            end
         end
     end
 end
