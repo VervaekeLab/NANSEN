@@ -92,7 +92,11 @@ classdef MetadataEntity < ...
                 updateFcnName = dynamicVariables.UpdateFunctionName{iVar};
                 
                 [propertyValue, ~] = obj.getDynamicVariableValue(updateFcnName);
-                obj.(variableName) = propertyValue;
+                % Use delegation instead of direct assignment
+                for i = 1:numel(obj)
+                    obj(i).setDynamicProperty(variableName, propertyValue{i});
+                    %obj.(variableName) = propertyValue;
+                end
             else
                 error('Variable does not have update function')
             end

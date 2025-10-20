@@ -1333,6 +1333,14 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             % Todo?
         end
     end
+
+    methods (Access = protected)
+        function setDynamicProperty(obj, propName, propValue)
+            % Delegate property assignment from base class
+            % This method has the necessary access rights to set protected properties
+            obj.(propName) = propValue;
+        end
+    end
     
     methods (Static)
                 

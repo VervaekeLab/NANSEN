@@ -25,14 +25,14 @@ classdef MetadataEntityTest < matlab.unittest.TestCase
             targetFolder = fullfile(targetFolder, '+session');
             if ~isfolder(targetFolder); mkdir(targetFolder); end
 
-            sourceFile = dir(fullfile(nansentools.projectdir(), 'tools', 'tests', '**', '*BrainRegion.m'));
+            sourceFile = dir(fullfile(nansentools.projectdir(), 'tests', '**', '*BrainRegion.m'));
             sourceFile = fullfile(sourceFile.folder, sourceFile.name);
             copyfile(sourceFile, targetFolder)
 
             sessionObject.addDynamicTableVariables()
 
             sessionObject.updateDynamicVariable('BrainRegion')
-            keyboard
+            %keyboard
         end
         
         function testAddTableVariable(testCase)
