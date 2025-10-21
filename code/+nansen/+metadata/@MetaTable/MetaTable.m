@@ -1437,8 +1437,10 @@ classdef MetaTable < handle
                     metaObjects = metaObjectsCached;
                     status = statusOld;
                 elseif ~isempty(matchedIds)
-                    metaObjects = utility.insertIntoArray(metaObjectsNew, metaObjectsCached, indInTableEntries);
-                    status = utility.insertIntoArray(statusNew, true(1,numel(metaObjectsCached)), indInTableEntries);
+                    assert(isrow(metaObjectsNew), 'Expected new meta objects to be a row vector')
+                    assert(isrow(metaObjectsCached), 'Expected cached meta objects to be a row vector')
+                    metaObjects = utility.insertIntoArray(metaObjectsNew, metaObjectsCached, indInTableEntries, 2);
+                    status = utility.insertIntoArray(statusNew, true(1, numel(metaObjectsCached)), indInTableEntries, 2);
                 else
                     metaObjects = metaObjectsNew;
                     status = statusNew;
