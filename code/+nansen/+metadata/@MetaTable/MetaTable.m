@@ -45,8 +45,6 @@ classdef MetaTable < handle
 
         MetaTableKey = '';
         MetaTableName = '';
-        MetaTableClass = '';
-        MetaTableIdVarname = '';
         
         % MetaTableMembers - cell array of character vectors representing
         % unique identifiers for all entries of the table
@@ -66,6 +64,8 @@ classdef MetaTable < handle
 
     properties (SetAccess = private)
         ItemClassName = '';
+        MetaTableClass = '';
+        MetaTableIdVarname = '';
     end
 
     properties (Dependent)
@@ -765,18 +765,20 @@ classdef MetaTable < handle
             obj.MetaTableVariables = obj.entries.Properties.VariableNames;
         end
         
-        function addMissingVarsToMetaTable(obj, metaTableType)
+        function addMissingVarsToMetaTable(obj, metaTableType, options)
         %addMissingVarsToMetaTable Add variable to table if it is missing.
         %
-        %   If a table is present in the table variable definitions, but
-        %   missing from the table, this functions adds a new variable to
+        %   If a table variable is present in the table variable definitions, 
+        %   but missing from the table, this functions adds a new variable to
         %   the table and initializes with the default value based on the
         %   table variable definition.
-                    
-            if nargin < 2
-                metaTableType = 'session';
-            end
-            
+
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                metaTableType = 'session'
+                options.AutoUpdateValues (1,1) logical = true
+             end
+
             tableVarNames = obj.entries.Properties.VariableNames;
             
             currentProject = nansen.getCurrentProject();
@@ -811,13 +813,15 @@ classdef MetaTable < handle
                     defaultValue = fcnResult;
                 end
                 obj.addTableVariable(thisName, defaultValue)
-
-                if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
-                    % Update for all items of the metatable
-                    tableRowInd = 1:height(obj.entries);
-                    updateFcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
-                    wasUpdated = obj.updateTableVariable(thisName, tableRowInd, str2func(updateFcnName)); %#ok<NASGU>
-                    % Todo: Show warning if any fails to update?
+                
+                if options.AutoUpdateValues
+                    if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
+                        % Update for all items of the metatable
+                        tableRowInd = 1:height(obj.entries);
+                        updateFcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
+                        wasUpdated = obj.updateTableVariable(thisName, tableRowInd, str2func(updateFcnName)); %#ok<NASGU>
+                        % Todo: Show warning if any fails to update?
+                    end
                 end
             end
             if not( isempty(obj.filepath) )
@@ -966,7 +970,7 @@ classdef MetaTable < handle
             obj.addTable(T)
         end
 
-        function addTable(obj, T)
+        function addTable(obj, T, options)
         %addTable Add table rows to the MetaTable
         %
         %   addTable(obj, T) adds rows from a table directly to the
@@ -975,6 +979,13 @@ classdef MetaTable < handle
         %   from external sources or merging MetaTables.
         
             % Set MetaTable class if this is the first time entries are added
+
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                T (:,:) table
+                options.AutoUpdateValues (1,1) logical = true
+            end
+
             if isempty(obj.MetaTableMembers)
                 if isempty(obj.MetaTableClass) % Don't override if already set
                     obj.MetaTableClass = 'table';
@@ -993,11 +1004,11 @@ classdef MetaTable < handle
             end
             
             % Use common append logic
-            obj.appendTableRows(T);
+            obj.appendTableRows(T, "AutoUpdateValues", options.AutoUpdateValues);
         end
 
         % Add entry/entries to MetaTable table
-        function addEntries(obj, newEntries)
+        function addEntries(obj, newEntries, options)
         %addEntries Add schema object entries to the MetaTable
         %
         %   addEntries(obj, newEntries) adds one or more schema objects
@@ -1006,6 +1017,13 @@ classdef MetaTable < handle
         %   then converted to a table and appended.
         
             % Make sure entries are based on the MetadataEntity class.
+
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                newEntries
+                options.AutoUpdateValues (1,1) logical = true
+            end
+
             isValid = isa(newEntries, 'nansen.metadata.abstract.MetadataEntity');
             message = 'MetaTable entries must inherit from the MetadataEntity class';
 
@@ -1028,7 +1046,7 @@ classdef MetaTable < handle
             newTableRows = newEntries.makeTable();
             
             % Use common append logic
-            obj.appendTableRows(newTableRows);
+            obj.appendTableRows(newTableRows, "AutoUpdateValues", options.AutoUpdateValues);
         end
 
         function entries = getEntry(obj, listOfEntryIds)
@@ -1516,7 +1534,7 @@ classdef MetaTable < handle
             end
         end
 
-        function appendTableRows(obj, newTableRows)
+        function appendTableRows(obj, newTableRows, options)
         %appendTableRows Append table rows to MetaTable with duplicate checking
         %
         %   This is a private helper method that consolidates the common
@@ -1528,7 +1546,13 @@ classdef MetaTable < handle
         %     - Sorting by ID
         %
         %   This method is called by both addEntries and addTable.
-        
+
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                newTableRows
+                options.AutoUpdateValues (1,1) logical = true
+            end
+
             if isempty(newTableRows)
                 return
             end
@@ -1554,19 +1578,25 @@ classdef MetaTable < handle
             if isempty(newEntryIds)
                 return; % Nothing to add
             end
+
+            % Temporarily create a new MetaTable and add missing table
+            % variables
+            tempTable = nansen.metadata.MetaTable.newLike(newTableRows, obj);
+            tempTable.addMissingVarsToMetaTable(tmpMetaTable.MetaTableClass, ...
+                "AutoUpdateValues", options.AutoUpdateValues);
             
-            % Todo:
+            % Todo (alternative to creating a temp table):
             % - expand entries if table has dynamic table variables
             % % updateEntries(obj, listOfEntryIds) [Not implemented]
 
             % Concatenate tables
             try
                 % Try direct concatenation
-                obj.entries = [obj.entries; newTableRows];
+                obj.entries = [obj.entries; tmpMetaTable.entries];
             catch
                 % Fallback: convert to struct, concatenate, then back to table
                 obj.entries = struct2table([table2struct(obj.entries); ...
-                                            table2struct(newTableRows)]);
+                                            table2struct(tmpMetaTable.entries)]);
             end
             
             % Update member list
@@ -1822,6 +1852,17 @@ classdef MetaTable < handle
     end
     
     methods (Static)
+        function metaTable = newLike(entries, metaTable)
+            arguments
+                entries table
+                metaTable (1,1) nansen.metadata.MetaTable
+            end
+
+            metaTable = nansen.metadata.MetaTable(entries, ...
+                "ItemClassName", metaTable.ItemClassName, ...
+                "MetaTableClass", metaTable.MetaTableClass, ...
+                "MetaTableIdVarname", metaTable.MetaTableIdVarname);
+        end
         
         function metaTable = new(varargin)
         %NEW Create a new MetaTable
