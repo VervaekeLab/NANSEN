@@ -1581,8 +1581,8 @@ classdef MetaTable < handle
 
             % Temporarily create a new MetaTable and add missing table
             % variables
-            tempTable = nansen.metadata.MetaTable.newLike(newTableRows, obj);
-            tempTable.addMissingVarsToMetaTable(tmpMetaTable.MetaTableClass, ...
+            tempMetaTable = nansen.metadata.MetaTable.newLike(newTableRows, obj);
+            tempMetaTable.addMissingVarsToMetaTable(tmpMetaTable.MetaTableClass, ...
                 "AutoUpdateValues", options.AutoUpdateValues);
             
             % Todo (alternative to creating a temp table):
@@ -1592,11 +1592,11 @@ classdef MetaTable < handle
             % Concatenate tables
             try
                 % Try direct concatenation
-                obj.entries = [obj.entries; tmpMetaTable.entries];
+                obj.entries = [obj.entries; tempMetaTable.entries];
             catch
                 % Fallback: convert to struct, concatenate, then back to table
                 obj.entries = struct2table([table2struct(obj.entries); ...
-                                            table2struct(tmpMetaTable.entries)]);
+                                            table2struct(tempMetaTable.entries)]);
             end
             
             % Update member list
