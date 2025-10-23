@@ -1582,7 +1582,7 @@ classdef MetaTable < handle
             % Temporarily create a new MetaTable and add missing table
             % variables
             tempMetaTable = nansen.metadata.MetaTable.newLike(newTableRows, obj);
-            tempMetaTable.addMissingVarsToMetaTable(tmpMetaTable.MetaTableClass, ...
+            tempMetaTable.addMissingVarsToMetaTable(tempMetaTable.MetaTableClass, ...
                 "AutoUpdateValues", options.AutoUpdateValues);
             
             % Todo (alternative to creating a temp table):
