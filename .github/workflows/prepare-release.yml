@@ -28,7 +28,7 @@ jobs:
       
       # Path to directory containing tests. This directory will be used for 
       # locating MATLAB  test suites
-      tests_directory: tools/tests
+      tests_directory: tests
 
       # Path to directory containing tools and MLToolboxInfo.json. Used for finding
       # unit tests, running customized MatBox tasks, and determining toolbox metadata
