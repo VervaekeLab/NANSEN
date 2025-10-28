@@ -1,0 +1,53 @@
+name: Prepare toolbox release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+' # Matches tags like v1.2.3
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number in major.minor.patch format'
+        required: true
+        type: string
+
+jobs:
+  prepare-release:
+    name: Prepare toolbox release
+    uses: ehennestad/matbox-actions/.github/workflows/prepare-release-workflow.yml@v1
+    with:
+      # Do not change
+      version: ${{ inputs.version }}
+      
+      # Do not change
+      ref_name: ${{ github.ref_name }}
+      
+      # Path to directory containing source code. This directory will be packaged
+      # into the toolbox. Important: This should not be a namespace directory
+      source_directory: code
+      
+      # Path to directory containing tests. This directory will be used for 
+      # locating MATLAB  test suites
+      tests_directory: tools/tests
+
+      # Path to directory containing tools and MLToolboxInfo.json. Used for finding
+      # unit tests, running customized MatBox tasks, and determining toolbox metadata
+      tools_directory: tools
+      
+      # JSON array of MATLAB versions to test. If empty (default), versions will be
+      # automatically determined from MLToolboxInfo.json. Example for manual override:
+      # matlab_versions: '["R2023a", "R2023b", "R2024a"]'
+      matlab_versions: '[]'
+      
+      # Optional list of MATLAB products to install. Example if adding multiple 
+      # products (use ">" and one product per line):
+      matlab_products: >
+        Image_Processing_Toolbox
+        Statistics_and_Machine_Learning_Toolbox
+        Parallel_Computing_Toolbox
+        
+    secrets:
+      # SSH deploy key for pushing to protected branches. Required for creating
+      # releases and updating badges. Generate an SSH key pair and add the public
+      # key as a deploy key with write access, then add the private key as this secret
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
