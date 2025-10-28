@@ -230,11 +230,13 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         function updateColumnEditableState(obj)
         %updateColumnEditableState Update the state of column editable for all variables
             
-            %  Also, need to call this
-            % whenever a table variable was edited in sessionbrowser/nansen
-            % and when new tables are loaded.
+            % Also, need to call this whenever a table variable was edited in 
+            % sessionbrowser/nansen and when new tables are loaded.
             
             p = nansen.getCurrentProject();
+            % Return early if no project is active.
+            if isempty(p); return; end
+
             tableVariableAttributes = p.getTable('TableVariable');
             
             for i = 1:numel(obj.settings)
