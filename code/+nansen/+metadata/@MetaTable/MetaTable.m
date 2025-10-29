@@ -1055,7 +1055,14 @@ classdef MetaTable < handle
             [~, IND, ~] = intersect(obj.members, listOfEntryIds);
             entries = obj.entries(IND, :);
         end
-        
+
+        function entryIndex = getIndexById(obj, objectId)
+            idName = obj.SchemaIdName;
+            allIds = obj.entries.(idName);
+
+            entryIndex = find( strcmp(allIds, objectId) );
+        end
+
         function editEntries(obj, rowInd, varName, newValue)
         %editEntries Edit entries given some parameters.
             
@@ -1701,13 +1708,6 @@ classdef MetaTable < handle
             end
 
             ids = nansen.metadata.MetaTable.normalizeIdentifier(ids);
-        end
-
-        function entryIndex = getIndexById(obj, objectId)
-            idName = obj.SchemaIdName;
-            allIds = obj.entries.(idName);
-
-            entryIndex = find( strcmp(allIds, objectId) );
         end
 
         function updateMetaObjectCacheMembers(obj)
