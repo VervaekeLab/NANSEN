@@ -31,7 +31,13 @@ classdef MetadataEntityTest < matlab.unittest.TestCase
 
             sessionObject.addDynamicTableVariables()
 
-            sessionObject.updateDynamicVariable('BrainRegion')
+            try
+                sessionObject.updateDynamicVariable('BrainRegion')
+            catch
+                pause(1)
+                rehash
+                sessionObject.updateDynamicVariable('BrainRegion')
+            end
             %keyboard
         end
         
