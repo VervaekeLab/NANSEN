@@ -31,7 +31,7 @@ classdef MetadataEntityTest < matlab.unittest.TestCase
 
             % Pause for a second to to give some time for internal
             % registration of the new table variable. 
-            % Todo: this shoud be immediatelty updated
+            % Todo: this should be immediately updated
             pause(1)
             sessionObject.addDynamicTableVariables()
 
