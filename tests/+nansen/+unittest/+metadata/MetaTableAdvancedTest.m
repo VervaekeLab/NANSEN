@@ -30,6 +30,9 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
                 error('MetaTable class not found on path');
             end
         end
+        function setupProject(testCase)
+            testCase.applyFixture(nansen.fixture.ProjectFixture)
+        end
     end
     
     methods (TestMethodSetup)
