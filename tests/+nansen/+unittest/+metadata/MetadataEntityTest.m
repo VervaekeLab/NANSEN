@@ -29,16 +29,13 @@ classdef MetadataEntityTest < matlab.unittest.TestCase
             sourceFile = fullfile(sourceFile.folder, sourceFile.name);
             copyfile(sourceFile, targetFolder)
 
+            % Pause for a second to to give some time for internal
+            % registration of the new table variable. 
+            % Todo: this shoud be immediatelty updated
+            pause(1)
             sessionObject.addDynamicTableVariables()
 
-            try
-                sessionObject.updateDynamicVariable('BrainRegion')
-            catch
-                pause(1)
-                rehash
-                sessionObject.updateDynamicVariable('BrainRegion')
-            end
-            %keyboard
+            sessionObject.updateDynamicVariable('BrainRegion')
         end
         
         function testAddTableVariable(testCase)

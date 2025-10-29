@@ -122,7 +122,6 @@ classdef MetadataEntity < ...
 
             currentProject = nansen.getCurrentProject();
             variableAttributes = currentProject.getTable('TableVariable');
-            disp(variableAttributes)
             
             keep = variableAttributes.TableType == lower(entityType) ...
                 & variableAttributes.IsCustom;
