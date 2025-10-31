@@ -8,7 +8,7 @@
         "AuthorCompany": "VervaekeLab",
         "Summary": "A collection of apps and modules for processing, analysis and visualization of two-photon imaging data.",
         "Description": "",
-        "MinimumMatlabRelease": "R2022b",
+        "MinimumMatlabRelease": "R2023a",
         "MaximumMatlabRelease": "",
         "ToolboxImageFile": "resources/images/toolbox_image.png",
         "ToolboxGettingStartedGuide": "code/GettingStarted.mlx"
