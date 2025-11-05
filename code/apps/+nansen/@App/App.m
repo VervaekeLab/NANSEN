@@ -84,6 +84,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % Context menu for session table. Todo: Need to generalize this to
         % flexibly update when tables are changed.
         SessionContextMenu matlab.ui.container.ContextMenu
+
+        % SideMenu - Side panel with quick action buttons
+        SideMenu nansen.SideMenu
     end
 
     properties (Access = {?nansen.App, ?nansen.config.MenuCustomizationDialog})
@@ -376,6 +379,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createStatusField()
                   
             app.createTabPages()
+
+            app.createSideMenu()
         end
 
         %% Create and configure ui menus
@@ -475,6 +480,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             mitem = uimenu(hMenu, 'Text','Clear SessionObject Cache', 'Tag', 'core.nansen.clear_cache');
             mitem.MenuSelectedFcn = @app.menuCallback_ClearCachedMetaObjects;
+
+            mitem = uimenu(hMenu, 'Text', 'Toggle Side Menu', 'Separator', 'on', 'Tag', 'core.nansen.toggle_side_menu');
+            mitem.MenuSelectedFcn = @(s,e) app.SideMenu.toggle();
 
             % % % % % % Create EXIT menu items % % % % % %
             mitem = uimenu(hMenu, 'Text','Close All Figures', 'Separator', 'on', 'Tag', 'core.nansen.close_all');
@@ -1345,6 +1353,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             addlistener(app.DiskConnectionMonitor, 'DiskRemoved', ...
                 @(s,e) app.onAvailableDisksChanged);
         end
+
+        function createSideMenu(app)
+        %createSideMenu Initialize the side menu panel
+            
+            app.SideMenu = nansen.SideMenu(app.hLayout.SidePanel, app.Figure, app);
+            
+            % Keep it hidden by default (can be toggled with a keyboard shortcut or button)
+            app.SideMenu.hide();
+        end
     
         function updateAvailableTableTypes(app)
             metatableTypes = app.CurrentProject.MetaTableCatalog.Table.MetaTableClass;
@@ -1775,6 +1792,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.hLayout.MainPanel.BackgroundColor = app.Theme.FigureBackgroundColor;
             % app.hLayout.StatusPanel.BackgroundColor = app.Theme.FigureBackgroundColor;
             
+            % Apply theme to side menu
+            if ~isempty(app.SideMenu) && isvalid(app.SideMenu)
+                app.SideMenu.Theme = app.Theme;
+            end
+            
             % Something like this:
             % app.UiMetaTableViewer.HTable.Theme = uim.style.tableDark;
         end
@@ -1938,6 +1960,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 case 'w'
                     app.sendToWorkspace()
+                
+                case 's'
+                    % Toggle side menu with 's' key
+                    if ~isempty(app.SideMenu) && isvalid(app.SideMenu)
+                        app.SideMenu.toggle();
+                    end
             end
         end
         
@@ -1965,7 +1993,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.hLayout.StatusPanel.Position = [0, 0, 1, normalizedHeight];
             app.hLayout.MainPanel.Position = [0, normalizedHeight, 1, 1-normalizedHeight];
             
-            if strcmp(app.hLayout.SidePanel.Visible, 'on')
+            % Update side menu position if it exists
+            if ~isempty(app.SideMenu) && isvalid(app.SideMenu)
+                app.SideMenu.updatePosition();
+            elseif strcmp(app.hLayout.SidePanel.Visible, 'on')
                 app.hLayout.SidePanel.Position = [w-250, 20, 250, h-20];
             else
                 app.hLayout.SidePanel.Position = [w, 20, 250, h-20];
