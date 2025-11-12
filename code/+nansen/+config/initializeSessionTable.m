@@ -54,11 +54,18 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
     
     % Create a list of session metadata objects
     numSessions = numel(sessionFolders);
+    if numSessions == 0
+        % Todo: Add more detailed how-to solution
+        error('NANSEN:InitializeSessionArray:NoSessionsDetected', ...
+            ['No sessions were detected. Please ensure that your ' ...
+            'configuration correctly identifies session folders/files.'])
+    end
+
     sessionArray = cell(numSessions, 1);
     for i = 1:numSessions
         sessionArray{i} = sessionConstructorFcn(sessionFolders(i), 'DataLocationModel', dataLocationModel);
     end
-    
+
     sessionArray = cat(1, sessionArray{:});
     
     if ~options.SkipInteractiveSteps
@@ -66,6 +73,18 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
         sessionIDs = {sessionArray.sessionID};
         if numel(sessionIDs) ~= numel(unique(sessionIDs))
             [sessionArray, wasAborted] = nansen.manage.uiresolveDuplicateSessions(sessionArray, hFigure);
+            numSessionPostExclusion = numel(sessionArray);
+                      
+            % Todo: Why are all duplicates excluded? I.e keep first one...
+
+            if numSessionPostExclusion == 0
+                % Todo: Add more detailed how-to solution
+                error('NANSEN:InitializeSessionArray:DuplicateSessionIDs', ...
+                    ['%d sessions were excluded because they share duplicate session IDs:\n%s\n' ...
+                     'Please ensure all session IDs are unique before continuing.'], ...
+                     numel(sessionIDs), strjoin(unique(sessionIDs), ', '));
+            end
+
             % Todo: Rerun initialization from here if sessions were resolved
             if wasAborted
                 return
