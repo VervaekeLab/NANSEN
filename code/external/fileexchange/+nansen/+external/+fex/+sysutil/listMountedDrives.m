@@ -1,8 +1,8 @@
-function infoTable = listPhysicalDrives()
-%listPhysicalDrives List physical drives present on system
+function infoTable = listMountedDrives()
+%listMountedDrives List physical drives present on system
 %
-%   infoTable = system.listPhysicalDrives() returns a table which contains
-%       the following variables:
+%   infoTable = nansen.external.fex.sysutil.listMountedDrives() returns a table 
+%       which contains the following variables:
 %
 %       DeviceID        : The device id (drive letter / disk number)
 %       VolumeName      : Name of drive / volume

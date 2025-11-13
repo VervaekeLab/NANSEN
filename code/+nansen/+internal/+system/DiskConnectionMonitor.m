@@ -106,7 +106,7 @@ classdef DiskConnectionMonitor < handle
 
         function checkDiskPc(obj)
             %volumeList = system.
-            volumeInfoTable = nansen.external.fex.sysutil.listPhysicalDrives();
+            volumeInfoTable = nansen.external.fex.sysutil.listMountedDrives();
             
             % Convert string array to cell array of character vectors in
             % order to create struct array below

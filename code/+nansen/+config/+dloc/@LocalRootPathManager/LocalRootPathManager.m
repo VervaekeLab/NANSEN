@@ -164,7 +164,7 @@ classdef LocalRootPathManager < handle
         %   name of the disk and the current letter assignment.
             
             if ispc
-                volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
+                volumeInfo = nansen.external.fex.sysutil.listMountedDrives();
                 
                 for i = 1:numel(data) % Loop through DataLocations
                     if ~isfield(data(i), 'RootPath')
@@ -245,7 +245,7 @@ classdef LocalRootPathManager < handle
         %   updateVolumeInfo(obj) updates volume info using system utilities.
         %   updateVolumeInfo(obj, volumeInfo) uses the provided volume info.
             
-            import nansen.external.fex.sysutil.listPhysicalDrives
+            import nansen.external.fex.sysutil.listMountedDrives
             if nargin < 2
                 volumeInfo = listPhysicalDrives();
             end

@@ -15,7 +15,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
         return
     end
 
-    volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
+    volumeInfo = nansen.external.fex.sysutil.listMountedDrives();
 
     if ~isfield(dataLocationRootInfo, 'DiskType')
         [dataLocationRootInfo(:).DiskType] = deal('External');
