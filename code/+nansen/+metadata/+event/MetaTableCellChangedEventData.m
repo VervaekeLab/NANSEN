@@ -1,7 +1,7 @@
 classdef MetaTableCellChangedEventData < event.EventData & matlab.mixin.SetGet
     properties
-        RowIndex (1,1) {mustBeInteger, mustBePositive}
-        ColumnIndex (1,1) {mustBeInteger, mustBePositive}
+        RowIndex (1,1) {mustBeInteger, mustBePositive} = 1
+        ColumnIndex (1,1) {mustBeInteger, mustBePositive} = 1
         NewValue
     end
 
