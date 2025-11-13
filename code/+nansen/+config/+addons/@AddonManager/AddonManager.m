@@ -605,6 +605,9 @@ classdef AddonManager < handle
             
             % Rename folder to remove main/master tag
             renamedDir = fullfile(rootDir, newName);
+            if isfolder(renamedDir)
+                rmdir(renamedDir, 's')
+            end
             movefile(newDir, renamedDir)
             folderPath = renamedDir;
         end

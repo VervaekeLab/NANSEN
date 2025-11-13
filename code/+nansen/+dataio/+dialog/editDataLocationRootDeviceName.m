@@ -10,13 +10,17 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
 %       [ ] Is it possible to indicate that the diskname is a dropdown?
 %       [ ] Update dropdowns if drives are connected or disconnected
 
-    if isunix && ~ismac
-        errordlg('This feature is not implemented for linux/unix systems')
-        return
+    try
+        volumeInfo = nansen.external.fex.sysutil.listMountedDrives();
+    catch MECause
+        ME = MException('NANSEN:DataIO:FailedToListDrives', ...
+            ['Failed to list mounted drives using system command. ' ...
+            'Please report if you see this error.']);
+        ME = ME.addCause(MECause);
+        errordlg('Failed to list mounted drives using system command. See MATLAB''s command window for details.')
+        throw(ME)
     end
-
-    volumeInfo = nansen.external.fex.sysutil.listPhysicalDrives();
-
+    
     if ~isfield(dataLocationRootInfo, 'DiskType')
         [dataLocationRootInfo(:).DiskType] = deal('External');
     end
