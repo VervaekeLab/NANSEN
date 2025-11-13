@@ -7,7 +7,7 @@ function addYamlJarToJavaClassPath()
         error('The snakeyaml Java Archive was not found.')
     end
     
-    wasSuccess = utility.system.addFilepathToStaticJavapath(jarFilePath);
+    wasSuccess = nansen.internal.setup.java.addFilepathToStaticJavapath(jarFilePath);
 
     if ~wasSuccess
         error('Failed to add the snakeyaml Java Archive to the static javapath')
@@ -19,6 +19,6 @@ function addYamlJarToJavaClassPath()
     % the static javapath
     spath = javaclasspath('-static');
     if ~any( contains(spath, jarFilePath) )
-        utility.system.addFilepathToDynamicJavapath(jarFilePath)
+        nansen.internal.setup.java.addFilepathToDynamicJavapath(jarFilePath)
     end
 end

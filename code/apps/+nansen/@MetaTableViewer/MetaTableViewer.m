@@ -596,7 +596,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 catch ME
                     switch ME.identifier
                         case 'MATLAB:Java:ClassLoad'
-                            nansen.config.path.addUiwidgetsJarToJavaClassPath()
+                            nansen.internal.setup.addUiwidgetsJarToJavaClassPath()
                         otherwise
                             rethrow(ME)
                     end

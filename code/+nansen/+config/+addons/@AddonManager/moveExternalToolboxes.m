@@ -33,7 +33,7 @@ function moveExternalToolboxes(obj)
             if ~isfolder( oldPath ); continue; end
             
             % Remove java items from the javaclasspath
-            utility.system.removeFilepathFromStaticJavaPath(oldPath)
+            nansen.internal.setup.java.removeFilepathFromStaticJavaPath(oldPath)
 
             rmpath(genpath(oldPath))
             
@@ -57,8 +57,8 @@ function moveExternalToolboxes(obj)
         obj.saveAddonList()
         
         % Update javaclasspath
-        nansen.config.path.addYamlJarToJavaClassPath()
-        nansen.config.path.addUiwidgetsJarToJavaClassPath()
+        nansen.internal.setup.addYamlJarToJavaClassPath()
+        nansen.internal.setup.addUiwidgetsJarToJavaClassPath()
 
         % Save changes to matlabs savepath.
         savepath()

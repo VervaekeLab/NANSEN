@@ -47,6 +47,8 @@ elseif startsWith(S(selection), 'Nansen - Two-photon Quickstart')
     warnCleanup = onCleanup(@() warning(warnState));
     disp('Installing two-photon addons...')
     nansen.internal.setup.installAddons()
+    % Some users had problems where Yaml was not added to java path
+    nansen.internal.setup.addYamlJarToJavaClassPath
 end
 
 % Check if project is already in the catalog
