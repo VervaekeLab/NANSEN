@@ -1,6 +1,6 @@
 % NANSEN - Neuro Analysis Software Ensemble
-% Version 0.9.1 14-06-2024
+% Version 0.11.0 (R2023a+) 13-Nov-2025
 %
-% Copyright (c) 2024 VervaekeLab, Eivind Hennestad
-%
+% Copyright (c) 2025, VervaekeLab
+% -------------------------------
 % Contains code which make up the NANSEN package
