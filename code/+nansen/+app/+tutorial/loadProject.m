@@ -29,6 +29,8 @@ if ok
         case "EBRAINS D&K - L2/3 + L5 Visual occlusion (Calcium Imaging)"
             repositoryName = "EBRAINS-VisualOcclusion-TwoPhoton";
     end
+else
+    error('User canceled.')
 end
 
 if startsWith(S(selection), 'Allen Brain Observatory')
