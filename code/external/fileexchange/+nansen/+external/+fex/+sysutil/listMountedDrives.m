@@ -125,10 +125,10 @@ function infoTable = convertListToTablePc(infoStr)
     % Parse CSV output from PowerShell Get-Volume
     infostrCell = splitStringIntoRows(infoStr);
 
-    % Remove quotes and split by comma
-    C = cellfun(@(row) strsplit(strrep(row, '"', ''), ','), ...
-        infostrCell, 'UniformOutput', false);
+    % Split by comma and remove quotes and s
+    C = cellfun(@(row) strsplit(row, ','), infostrCell, 'UniformOutput', false);
     C = vertcat(C{:});
+    C = strrep(C, '"', '');
 
     % Rename columns to match expected format
     C{1,1} = 'DeviceID';
