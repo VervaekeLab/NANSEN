@@ -54,11 +54,11 @@ function [status, teardownObjects] = setupNansenTestEnvironment(options)
         end
     
         %% Create a "test" UserSession
-        nansen.internal.user.NansenUserSession.instance("", "reset");
-        warning('off', 'Nansen:NoProjectsAvailable')
-        nansen.internal.user.NansenUserSession.instance("test");
-        warning('on', 'Nansen:NoProjectsAvailable')
-        teardownObjects(end+1) = onCleanup( @resetTestUserSession );
+        % nansen.internal.user.NansenUserSession.instance("", "reset");
+        % warning('off', 'Nansen:NoProjectsAvailable')
+        % nansen.internal.user.NansenUserSession.instance("test");
+        % warning('on', 'Nansen:NoProjectsAvailable')
+        % teardownObjects(end+1) = onCleanup( @resetTestUserSession );
 
         %% Reset search path to default factory path
         restoredefaultpath()
