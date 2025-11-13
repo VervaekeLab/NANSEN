@@ -153,7 +153,7 @@ classdef DiskConnectionMonitor < handle
             persistent listDrivesWorks
             if isempty(listDrivesWorks)
                 try
-                    nansen.external.fex.sysutil.listMountedDrives()
+                    nansen.external.fex.sysutil.listMountedDrives();
                     listDrivesWorks = true;
                 catch
                     listDrivesWorks = false;
