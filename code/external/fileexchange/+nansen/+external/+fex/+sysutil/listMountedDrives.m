@@ -26,24 +26,32 @@ function infoTable = listMountedDrives()
 % [ ] On mac, parse result when using -plist instead?
 % [ ] On linux, add serial number (use lsblk -o +UUID or blkid)
 
-    if ismac % Use diskutil
-        [~, infoStr] = system('diskutil list physical');
-        infoTable = convertListToTableMac(infoStr);
+    try
+        if ismac % Use diskutil
+            [~, infoStr] = system('diskutil list physical');
+            infoTable = convertListToTableMac(infoStr);
+    
+        elseif ispc % Use PowerShell Get-Volume
+            [~, infoStr] = system(['powershell -Command "Get-Volume | ', ...
+                'Where-Object {$_.DriveLetter} | ', ...
+                'Select-Object DriveLetter, FileSystemLabel, FileSystem, ', ...
+                'Size, DriveType | ', ...
+                'ConvertTo-Csv -NoTypeInformation"']);
+            infoTable = convertListToTablePc(infoStr);
+    
+        elseif isunix % Use lsblk
+            [~, infoStr] = system('lsblk -o NAME,LABEL,FSTYPE,SIZE,TYPE,MOUNTPOINT -P -b');
+            infoTable = convertListToTableLinux(infoStr);
+        end
 
-    elseif ispc % Use PowerShell Get-Volume
-        [~, infoStr] = system(['powershell -Command "Get-Volume | ', ...
-            'Where-Object {$_.DriveLetter} | ', ...
-            'Select-Object DriveLetter, FileSystemLabel, FileSystem, ', ...
-            'Size, DriveType | ', ...
-            'ConvertTo-Csv -NoTypeInformation"']);
-        infoTable = convertListToTablePc(infoStr);
+        infoTable = postprocessTable(infoTable);
 
-    elseif isunix % Use lsblk
-        [~, infoStr] = system('lsblk -o NAME,LABEL,FSTYPE,SIZE,TYPE,MOUNTPOINT -P -b');
-        infoTable = convertListToTableLinux(infoStr);
+    catch MECause
+        ME = MException('SYSTEMUTIL:ListMountedDrives:FailedToListDrives', ...
+            'Failed to list mounted drives using system command.');
+        ME = ME.addCause(MECause);
+        throw(ME)
     end
-
-    infoTable = postprocessTable(infoTable);
 end
 
 % % Local functions:

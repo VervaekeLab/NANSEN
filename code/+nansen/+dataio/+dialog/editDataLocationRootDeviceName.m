@@ -13,12 +13,11 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     try
         volumeInfo = nansen.external.fex.sysutil.listMountedDrives();
     catch MECause
-
         ME = MException('NANSEN:DataIO:FailedToListDrives', ...
             ['Failed to list mounted drives using system command. ' ...
             'Please report if you see this error.']);
         ME = ME.addCause(MECause);
-        errordlg('Failed to list mounted drives using system command. See MATLAB''s command window for details')
+        errordlg('Failed to list mounted drives using system command. See MATLAB''s command window for details.')
         throw(ME)
     end
     

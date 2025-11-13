@@ -3,7 +3,6 @@ classdef DiskConnectionMonitor < handle
     % Todo
     %   - Streamline getting drive info from nansen.external.fex.sysutil.listMountedDrives
     %   - Create event data?
-    %   - Add error handling
     %   - Use drive instead of disk in class/method/event names
 
     properties (Dependent)
@@ -28,11 +27,15 @@ classdef DiskConnectionMonitor < handle
     methods
         
         function obj = DiskConnectionMonitor
-            if ismac || ispc
-                obj.initializeTimer()
-            else
-                % pass (not implemented for linux)
+
+            if ispc || (isunix && ~ismac)
+                if ~obj.checkListDrivesWorks()
+                    obj.displayListDrivesNotWorkingWarning()
+                    return
+                end
             end
+
+            obj.initializeTimer()
         end
 
         function delete(obj)
@@ -144,6 +147,28 @@ classdef DiskConnectionMonitor < handle
             volumeList = struct('Name', string2cellchar(volumeInfoTable.VolumeName) );
             
             obj.updateDiskList(volumeList)
+        end
+    
+        function tf = checkListDrivesWorks(~)
+            persistent listDrivesWorks
+            if isempty(listDrivesWorks)
+                try
+                    nansen.external.fex.sysutil.listMountedDrives()
+                    listDrivesWorks = true;
+                catch
+                    listDrivesWorks = false;
+                end
+            end
+            tf = listDrivesWorks;
+        end
+
+        function displayListDrivesNotWorkingWarning(~)
+            nansen.common.tracelesswarning(sprintf([...
+                'Failed to list mounted drives using system command.\nIf you ', ...
+                'want NANSEN to dynamically update when drives are ', ...
+                'connected/disconnected, please run ', ...
+                '`nansen.external.fex.sysutil.listMountedDrives` and ', ...
+                'report the error you are seeing.']))
         end
     end
 
