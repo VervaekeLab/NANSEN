@@ -1,5 +1,11 @@
 classdef DiskConnectionMonitor < handle
     
+    % Todo
+    %   - Streamline getting drive info from nansen.external.fex.sysutil.listMountedDrives
+    %   - Create event data?
+    %   - Add error handling
+    %   - Use drive instead of disk in class/method/event names
+
     properties (Dependent)
         TimerUpdateInterval
     end
@@ -130,7 +136,14 @@ classdef DiskConnectionMonitor < handle
         end
 
         function checkDiskUnix(obj)
-            error('Not implemented yet')
+            volumeInfoTable = nansen.external.fex.sysutil.listMountedDrives();
+            
+            % Convert string array to cell array of character vectors in
+            % order to create struct array below
+            string2cellchar = @(strArray) arrayfun(@char, strArray, 'uni', false); %convertStringsToChars, cellstr
+            volumeList = struct('Name', string2cellchar(volumeInfoTable.VolumeName) );
+            
+            obj.updateDiskList(volumeList)
         end
     end
 
