@@ -7,6 +7,7 @@
 # NANSEN - Neuro ANalysis Software ENsemble
 [![YouTube](https://img.shields.io/youtube/channel/views/UCKOzL-MVWgy7oOMo6x_GSkQ?style=social)](https://www.youtube.com/channel/UCKOzL-MVWgy7oOMo6x_GSkQ)
 
+[![Version Number](https://img.shields.io/github/v/release/VervaekeLab/NANSEN?label=version)](https://github.com/VervaekeLab/NANSEN/releases/latest)
 [![Codespell](https://github.com/VervaekeLab/NANSEN/actions/workflows/run-codespell.yml/badge.svg?branch=dev)](https://github.com/VervaekeLab/NANSEN/actions/workflows/run-codespell.yml)
 [![Run tests](https://github.com/VervaekeLab/NANSEN/actions/workflows/test-code.yml/badge.svg?branch=dev)](https://github.com/VervaekeLab/NANSEN/actions/workflows/test-code.yml)
 [![codecov](https://codecov.io/github/VervaekeLab/NANSEN/branch/dev/graph/badge.svg?token=4B2A694WZ2)](https://codecov.io/github/VervaekeLab/NANSEN)
