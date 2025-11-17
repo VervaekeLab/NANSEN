@@ -4556,16 +4556,70 @@ methods % Misc, most can be outsourced
             restrainCropSelection = makeConstrainToRectFcn('imrect', [1, obj.imWidth], [1, obj.imHeight]);
             hrect.setPositionConstraintFcn( restrainCropSelection );
             uiwait(obj.Figure)
-            rcc = round(hrect.getPosition);
+            if isfield(obj.Figure.UserData, 'lastKey') && strcmp(obj.Figure.UserData.lastKey, 'escape')
+                rcc = [];
+            else
+                rcc = round(hrect.getPosition);
+            end
         else
             hrect = drawrectangle(obj.uiaxes.imdisplay, 'Position', rccInit);
             hrect.Color = plotColor;
             hrect.DrawingArea = [1, 1, obj.imWidth, obj.imHeight];
             uiwait(obj.Figure)
-            rcc = round(hrect.Position);
+            if isfield(obj.Figure.UserData, 'lastKey') && strcmp(obj.Figure.UserData.lastKey, 'escape')
+                rcc = [];
+            else
+                rcc = round(hrect.Position);
+            end
         end
         
-        delete(hrect);
+        if isvalid(hrect)
+            delete(hrect);
+        end
+    end
+    
+    function circle = selectCircularRoi(obj, circleInit)
+
+        plotColor = [128, 128, 128]./255;
+
+        % Calculate a default circle in the center of the image
+        centerX = obj.imWidth / 2;
+        centerY = obj.imHeight / 2;
+        defaultRadius = min([obj.imWidth, obj.imHeight]) / 4;
+        
+        if nargin < 2 || isempty(circleInit)
+            circleInit = [centerX - defaultRadius, centerY - defaultRadius, 2*defaultRadius, 2*defaultRadius];
+        end
+        
+        % Move to non-class function
+        if obj.isMatlabPre2018b
+            hcirc = imellipse(obj.uiaxes.imdisplay, circleInit); %#ok<IMELLPS>
+            hcirc.setColor(plotColor)
+            hcirc.setFixedAspectRatioMode(true);
+            restrainCircSelection = makeConstrainToRectFcn('imellipse', [1, obj.imWidth], [1, obj.imHeight]);
+            hcirc.setPositionConstraintFcn( restrainCircSelection );
+            uiwait(obj.Figure)
+            if isfield(obj.Figure.UserData, 'lastKey') && strcmp(obj.Figure.UserData.lastKey, 'escape')
+                circle = [];
+            else
+                circle = round(hcirc.getPosition);
+            end
+        else
+            hcirc = drawcircle(obj.uiaxes.imdisplay, 'Center', circleInit(1:2) + circleInit(3:4)/2, 'Radius', circleInit(3)/2);
+            hcirc.Color = plotColor;
+            hcirc.DrawingArea = [1, 1, obj.imWidth, obj.imHeight];
+            uiwait(obj.Figure)
+            if isfield(obj.Figure.UserData, 'lastKey') && strcmp(obj.Figure.UserData.lastKey, 'escape')
+                circle = [];
+            else
+                % Convert center and radius to position format [x, y, width, height]
+                circle = round([hcirc.Center - hcirc.Radius, 2*hcirc.Radius, 2*hcirc.Radius]);
+            end
+        end
+        
+        if isvalid(hcirc)
+            delete(hcirc);
+        end
     end
     
     function coords = polySelect(obj)
