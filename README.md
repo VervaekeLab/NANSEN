@@ -34,7 +34,8 @@ A collection of apps and modules for processing, analysis and visualization of t
 The NANSEN toolbox is still under development, so don't be surprised if you find occasional bugs here and there! If you manage to break something, please report under the issues section! Also, suggestions for improvements and general feedback are very welcome!
 
 ## Requirements
-MATLAB Release 2020b or later
+- MATLAB Release 2020b or later is recommended.
+- NANSEN is not compatible with R2025a or newer yet; support is planned for 2026.
 
 ## Installation
  1) Clone the repository and add all subfolders to MATLAB's search path. 
