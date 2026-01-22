@@ -293,7 +293,7 @@ classdef MetaTable < handle
             formattedMessage = sprintf( msg);
             answer = questdlg(formattedMessage, titleStr, choices{:}, options);
 
-            switch lower(answer)
+            switch answer
                 case KEEP_CURRENT_VERSION
                     tf = false;
                 case LOAD_NEWER_VERSION_AND_DROP
