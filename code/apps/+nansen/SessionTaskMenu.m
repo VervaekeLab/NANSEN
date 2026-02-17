@@ -48,8 +48,8 @@ classdef SessionTaskMenu < handle
 
     properties (Constant, Hidden)
         ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Help', 'Restart'} % Available modes
-        MenuOrder = {'+data', '+process', '+analyze', '+plot'}              % Todo: preference?
-        %MenuOrder = {'+data', '+processing', '+analysis', '+plotting'}              % Todo: preference?
+        MenuOrder = {'+data', '+process', '+analyze', '+plot'}                   % Todo: preference?
+        %MenuOrder = {'+data', '+processing', '+analysis', '+plotting'}          % Todo: preference?
 
     end
     
@@ -80,7 +80,8 @@ classdef SessionTaskMenu < handle
     end
     
     properties (Access = private)
-        IsConstructed = false;
+        IsConstructed (1,1) logical = false
+        SkipRefresh (1,1) logical = false % Flag to skip refresh of menu
         ProjectChangedListener event.listener % Not implemented yet
     end
     
@@ -89,9 +90,9 @@ classdef SessionTaskMenu < handle
         MethodSelected
     end
 
-    methods
+    methods % Constructors
         
-        function obj = SessionTaskMenu(appHandle, currentProject)
+        function obj = SessionTaskMenu(appHandle, currentProject, currentItemType)
         %SessionTaskMenu Create a SessionTaskMenu object
         %
         %   obj = SessionTaskMenu(appHandle, modules) creates a
@@ -107,6 +108,10 @@ classdef SessionTaskMenu < handle
             if nargin < 2
                 currentProject = nansen.ProjectManager().getCurrentProject();
             end
+
+            if nargin < 3
+                currentItemType = "session";
+            end
             
             % NB: This assumes that the ParentApp has a Figure property
             hFig = obj.ParentApp.Figure;
@@ -114,6 +119,8 @@ classdef SessionTaskMenu < handle
                 'App does not have a valid figure')
             
             obj.CurrentProject = currentProject;
+            obj.CurrentItemType = currentItemType;
+            
             assert(~isempty(obj.MethodsRootPath), ...
                 ['No root directories for session methods have been assigned. ', ...
                 'Please report if you see this.'])
@@ -171,6 +178,19 @@ classdef SessionTaskMenu < handle
     end
     
     methods
+        function updateSource(obj, project, itemType)
+            arguments
+                obj (1,1) nansen.SessionTaskMenu
+                project (1,1) nansen.config.project.Project
+                itemType (1,1) string
+            end
+            obj.SkipRefresh = true;
+            skipRefreshCleanup = onCleanup(@obj.resetSkipRefreshFlag);
+            obj.CurrentProject = project;
+            obj.CurrentItemType = itemType;
+            clear skipRefreshCleanup
+            obj.refresh()
+        end
 
         function refresh(obj)
         %refresh Refresh the menu. Delete all items and recreate them.
@@ -506,7 +526,7 @@ classdef SessionTaskMenu < handle
         end
 
         function onMethodsRootPathSet(obj)
-            if obj.IsConstructed
+            if obj.IsConstructed && ~obj.SkipRefresh
                 obj.refresh()
             end
         end
@@ -514,6 +534,10 @@ classdef SessionTaskMenu < handle
         function menuName = styleTopLevelMenuTitle(obj, menuName)
             menuName = sprintf('<HTML><FONT color="%s">%s</Font></HTML>', ...
                 obj.TitleColor, menuName);
+        end
+
+        function resetSkipRefreshFlag(obj)
+            obj.SkipRefresh = false;
         end
 
         function packagePathList = listPackageHierarchy(obj)

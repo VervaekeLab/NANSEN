@@ -401,7 +401,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             uimenu(app.Figure, 'Text', '|', 'Enable', 'off'); % Separator
 
-            app.SessionTaskMenu = nansen.SessionTaskMenu(app);
+            app.SessionTaskMenu = nansen.SessionTaskMenu(app, app.CurrentProject, app.CurrentItemType);
             app.SessionTaskMenuUpdatedListener = addlistener(...
                 app.SessionTaskMenu, 'MenuUpdated', @app.onSessionTaskMenuUpdated);
             
@@ -1100,6 +1100,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
             % m3 = uimenu(hContextMenu, 'Text', 'Update Session', 'Callback', @app.updateSessionObjects, 'Enable', 'on');
             % m1 = uimenu(hContextMenu, 'Text', 'Remove Session', 'Callback', @app.buttonCallback_RemoveSession, 'Separator', 'on');
+        
+            % Disable context menu if current type is not a session
+            metaTableType = app.CurrentItemType;
+            if ~strcmpi(metaTableType, 'session')
+                app.disableSessionContextMenu()
+            end
         end
         
         function enableSessionContextMenu(app)
@@ -1355,6 +1361,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function updateCurrentTableType(app)
 
         end
+
+        function updateItemSpecificMenus(app, metaTableType)
+            if nargin < 2 || isempty(metaTableType)
+                metaTableType = app.CurrentItemType;
+            end
+            
+            app.SessionTaskMenu.CurrentItemType = metaTableType;
+            
+            % Todo: generalize context menu in the same way as task/action menus.
+            if strcmpi(metaTableType, 'session')
+                app.enableSessionContextMenu()
+            else
+                app.disableSessionContextMenu()
+            end
+        end
     end
 
     methods (Access = private) % Internal callbacks
@@ -1562,14 +1583,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             drawnow
             currentProjectName = app.ProjectManager.CurrentProject;
             currentProject = app.ProjectManager.getProjectObject(currentProjectName);
-            app.SessionTaskMenu.CurrentProject = currentProject;
 
             % Load new project's task list
             taskListFilepath = currentProject.getDataFilePath('TaskList');
             app.BatchProcessor.openTaskList(taskListFilepath)
 
             % Update menus
-            app.SessionTaskMenu.refresh()
+            app.SessionTaskMenu.updateSource(currentProject, app.CurrentItemType)
             app.SessionContextMenu = app.createSessionTableContextMenu();
             app.updateMenu_PipelineItems()
             app.updateTableVariableMenuItems()
@@ -2163,12 +2183,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             metaTableType = src.Text;
             app.MetaTable.resetMetaObjectCache()
             app.openMetaTable(metaTableType)
-            app.SessionTaskMenu.CurrentItemType = metaTableType;
-            if strcmpi(metaTableType, 'session')
-                app.enableSessionContextMenu()
-            else
-                app.disableSessionContextMenu()
-            end
+            
+            app.updateItemSpecificMenus(metaTableType)
         end
 
         function onTableItemSelectionChanged(app, src, evt)
