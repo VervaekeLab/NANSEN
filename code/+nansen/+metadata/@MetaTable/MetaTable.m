@@ -786,7 +786,9 @@ classdef MetaTable < handle
 
             % Todo: Create method for getting table variable info given a
             % type, a name an potentially other attributes like "isCustom"
-            refVariableAttributes(refVariableAttributes.TableType ~= metaTableType, :) = [];
+            % Todo: Add more robust detection of matching "TableType".
+            % I dont think this should be case sensitive
+            refVariableAttributes(lower(refVariableAttributes.TableType) ~= lower(metaTableType), :) = [];
 
             isCustom = refVariableAttributes.IsCustom;
             customVariableNames = refVariableAttributes{isCustom, 'Name'};
