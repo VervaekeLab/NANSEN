@@ -554,7 +554,9 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             subFolderStructure = thisDataLocation.SubfolderStructure;
 
             for i = 1:numel(h)
-                %itemInd = oldValues(i);
+                % Todo: Subfolder level needs to be reset if the number of
+                % subfolders is changed in the model. See newt warning
+                % below
                 itemIdx = M(i).SubfolderLevel;
                 
                 % If there is no selection, try to infer from the data
@@ -565,11 +567,15 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 
                 if isempty(itemIdx)
                     itemIdx = 0;
-                elseif numel(itemIdx)>1
+                elseif ~isscalar(itemIdx)
                     itemIdx = itemIdx(1);
                 end
                 
-                set(h(i), 'Value', h(i).Items{itemIdx+1})
+                if itemIdx > numel(h(i).Items) - 1
+                    warning('Model is inconsistent. Working on fix')
+                else
+                    set(h(i), 'Value', h(i).Items{itemIdx+1})
+                end
             end
         end
 
