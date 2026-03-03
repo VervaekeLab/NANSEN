@@ -271,7 +271,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
 
             % Create SelectDataLocationDropDown
             obj.SelectDataLocationDropDown = uidropdown(hPanel);
-            obj.SelectDataLocationDropDown.Items = {'Rawdata'};
+            obj.SelectDataLocationDropDown.Items = {'Rawdata'}; % Todo: Should this be hardcoded?
             obj.SelectDataLocationDropDown.ValueChangedFcn = @obj.onDataLocationSelectionChanged;
             obj.SelectDataLocationDropDown.Position = [Xl(2) Y Wl(2) 22];
             obj.SelectDataLocationDropDown.Value = 'Rawdata';
@@ -607,7 +607,10 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.updateSubfolderItems( iRow+1 )
             
             % Remove subfolders on successive rows if present
-            for i = iRow+2:numel(obj.NumRows)
+            % Todo: Should update model, and list folders. If new folder
+            % hierarchy is inconsistent with current UI selection, should
+            % throw error and/or remove rows.
+            for i = iRow+2:obj.NumRows
                 obj.removeRow()
             end
         end
@@ -666,10 +669,21 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             % Look for subfolders in the folderpath
             [~, dirName] = utility.path.listSubDir(parentPath, ...
                 S(iRow).Expression, S(iRow).IgnoreList);
-            
+
             % Look for files and concatenate files and folders
-            [~, fileName] = utility.path.listFiles(parentPath);
-            dirName = [dirName, fileName];
+            % [~, fileName] = utility.path.listFiles(parentPath);
+            
+            relativeFilePath = recursiveDir(parentPath, ...
+                'Expression', S(iRow).Expression, ...
+                'IgnoreList', S(iRow).IgnoreList, ...
+                'OutputType','RelativeFilePath' , ...
+                'Type', 'file', ...
+                'RecursionDepth', 1);
+            fileName = arrayfun(@(str) string(str{1}(2:end)), relativeFilePath);
+            
+            dirName = [dirName, fileName'];
+
+
             
             % Get handle to dropdown control
             hSubfolderDropdown = obj.RowControls(iRow).SubfolderDropdown;
@@ -775,7 +789,16 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                 end
 
                 absolutePathName = fullfile(parentPath, S(j).Name);
-                S(j).IsFolder = isfolder(absolutePathName);
+                
+                if isempty(S(j).IsFolder)
+                    S(j).IsFolder = isfolder(absolutePathName);
+                elseif j == numel(obj.RowControls)
+                    S(j).IsFolder = isfolder(absolutePathName);
+                else
+                    % keyboard
+                    % Should not change IsFolder if the item is not the
+                    % last item in the list
+                end
 
                 % Update for next iteration
                 parentPath = absolutePathName;
@@ -1097,6 +1120,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
                     end
                                         
                 otherwise
+                    % do nothing
             end
         end
         
