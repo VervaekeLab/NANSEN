@@ -1200,7 +1200,12 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             project = nansen.getCurrentProject();
             targetPath = project.getFileAdapterFolder();
-            nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterAttributes)
+
+            adapterType = fileAdapterAttributes.AdapterType;
+            fileAdapterAttributes = rmfield(fileAdapterAttributes, 'AdapterType');
+            fileAdapterMetadata = nansen.plugin.fileadapter.FileAdapterMeta(fileAdapterAttributes);
+
+            nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterMetadata, adapterType)
         end
 
         function tf = isNodeExpanded(obj, treeNode)
