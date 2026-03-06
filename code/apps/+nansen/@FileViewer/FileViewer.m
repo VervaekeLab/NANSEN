@@ -1204,7 +1204,8 @@ classdef FileViewer < nansen.AbstractTabPageModule
             adapterType = fileAdapterAttributes.AdapterType;
             fileAdapterAttributes = rmfield(fileAdapterAttributes, 'AdapterType');
             fileAdapterMetadata = nansen.plugin.fileadapter.FileAdapterMeta(fileAdapterAttributes);
-
+            fileAdapterMetadata.ImplementationType = 'Class';
+            
             nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterMetadata, adapterType)
         end
 
