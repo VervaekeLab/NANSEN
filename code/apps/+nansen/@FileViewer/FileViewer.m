@@ -825,9 +825,12 @@ classdef FileViewer < nansen.AbstractTabPageModule
             mitem = uimenu(m, 'Text', 'Create New Variable from File...', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onCreateVariableMenuItemClicked();
             
+            mitem = uimenu(m, 'Text', 'Import File Adapter...');
+            mitem.Callback = @(s, e) obj.onCreateFileAdapterMenuItemClicked();
+            
             mitem = uimenu(m, 'Text', 'Create File Adapter for File...');
             mitem.Callback = @(s, e) obj.onCreateFileAdapterMenuItemClicked();
-                     
+
             mitem = uimenu(m, 'Text', 'View File Adapter', "Enable", "off");
             obj.ViewFileAdapterSubMenu = mitem;
 
@@ -1150,6 +1153,8 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             if endsWith(filePath, '.mat')
                 obj.createDataVariableBatch(); return
+            elseif endsWith(filePath, '.csv')
+                obj.createDataVariableBatch(); return
             end
             sessionObject = obj.CurrentSessionObj;
             currentDataLocation = obj.TabGroup.SelectedTab.Title;
@@ -1204,8 +1209,8 @@ classdef FileViewer < nansen.AbstractTabPageModule
             adapterType = fileAdapterAttributes.AdapterType;
             fileAdapterAttributes = rmfield(fileAdapterAttributes, 'AdapterType');
             fileAdapterMetadata = nansen.plugin.fileadapter.FileAdapterMeta(fileAdapterAttributes);
-            fileAdapterMetadata.ImplementationType = 'Class';
             
+            fileAdapterMetadata.ImplementationType = 'Class';
             nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterMetadata, adapterType)
         end
 
