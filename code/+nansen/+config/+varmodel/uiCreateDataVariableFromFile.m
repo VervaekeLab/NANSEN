@@ -93,5 +93,7 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     
     % Get data type from file adapter
     fileAdapterIdx = strcmp({fileAdapterList.FileAdapterName}, S.FileAdapter);
-    varItem.DataType = fileAdapterList(fileAdapterIdx).DataType;
+    
+    % Normalize to char. Todo: Should support string type
+    varItem.DataType = char( fileAdapterList(fileAdapterIdx).DataType );
 end

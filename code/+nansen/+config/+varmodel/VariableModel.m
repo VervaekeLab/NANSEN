@@ -171,7 +171,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 end
             end
             
-            if ~isfield(obj.Data, 'DataType')
+            if ~isfield(obj.Data, 'DataType') % Infer from file adapter
                 [obj.Data(:).DataType] = deal('');
                 for i = 1:numel(obj.Data)
                     if ~strcmp(obj.Data(i).FileAdapter, 'Default')
@@ -182,6 +182,13 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                         else
                             % pass
                         end
+                    end
+                end
+            else
+                % Normalize existing DataType to char. Todo: support string
+                for i = 1:numel(obj.Data)
+                    if isstring(obj.Data(i).DataType)
+                        obj.Data(i).DataType = char(obj.Data(i).DataType);
                     end
                 end
             end
@@ -638,6 +645,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 isMatch = strcmp({fileAdapterList.FileAdapterName}, variableItem.FileAdapter);
                 if any(isMatch)
                     fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+                    
                     variableItem.DataType = fileAdapterFcn().DataType;
                 else
                     % pass
