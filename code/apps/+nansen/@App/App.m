@@ -1,7 +1,7 @@
 classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     applify.HasTheme
-% NANSEN - Data manager application with table overviews, dynamic item
-% representations, configurable tasks and file integrations.
+% NANSEN - Dataset processing platform for managing metadata records,
+% running configurable processing tasks and exploring data files.
 
     % Todo:
     %   [ ] Add a splash screen when this is starting up
@@ -26,14 +26,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties (Constant) % Name of pages / modules to include
-        % Pages = {'Overview', 'File Viewer', 'Data Viewer', 'Task Processor'}%, 'Figures'}
-        Pages = {'Overview', 'File Viewer', 'Task Processor'} %, 'Figures'}
+        Pages = enumeration('nansen.enum.AppPage');
     end
     
     properties (Dependent) % Main program dependables
         CurrentProject % Currently selected project
         CurrentItemType % Name of currently selected table/item type.
-        CurrentObjectSelection % Current selection of data objects.
+        % CurrentObjectSelection % Current selection of data objects. Todo?
     end
 
     properties (Access = private) % Page modules
@@ -128,6 +127,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             [isAppOpen, hApp] = app.isOpen();
             if isAppOpen
                 app = hApp;
+                figure(app.Figure) % Bring figure into focus
                 return
             else
                 app.Figure.Visible = 'on';
@@ -1146,23 +1146,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             for i = 1:numel(app.Pages)
                 
-                pageName = app.Pages{i};
+                currentPage = app.Pages(i);
                 
                 hTab = uitab(app.hLayout.TabGroup);
-                hTab.Title = pageName;
+                hTab.Title = currentPage.Label;
                 
-                switch pageName
-                    case 'Overview'
+                switch currentPage
+                    case nansen.enum.AppPage.DatasetExplorer
                         app.initializeMetaTableViewer(hTab)
                         
-                    case 'File Viewer'
+                    case nansen.enum.AppPage.FileViewer
                         app.initializeFileViewer(hTab)
 
-                    case 'Data Viewer'
+                    case 'Data Viewer' % Not implemented yet
                         h = nansen.DataViewer(hTab);
                         app.UiDataViewer = h;
 
-                    case 'Task Processor'
+                    case nansen.enum.AppPage.TaskProcessor
+                        % Initialized on demand
                 end
             end
             
@@ -1231,7 +1232,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if nargin < 2
                 % Todo: make method or better way of retrieving this
                 hTabTitles = {app.hLayout.TabGroup.Children.Title};
-                isTableTab = strcmp(hTabTitles, 'Overview');
+                isTableTab = strcmp(hTabTitles, nansen.enum.AppPage.DatasetExplorer.Label);
                 hTab = app.hLayout.TabGroup.Children(isTableTab);
             end
 
@@ -1281,7 +1282,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             if nargin < 2
                 hTabs = app.hLayout.TabGroup.Children;
-                tabIdx = strcmp({hTabs.Title}, 'File Viewer');
+                tabIdx = strcmp({hTabs.Title}, nansen.enum.AppPage.FileViewer.Label);
                 hTab = hTabs(tabIdx);
             end
 
@@ -1326,7 +1327,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
             if nargin < 2
                 hTabs = app.hLayout.TabGroup.Children;
-                hContainer = hTabs(strcmp({hTabs.Title}, 'Task Processor'));
+                hContainer = hTabs(strcmp({hTabs.Title}, nansen.enum.AppPage.TaskProcessor.Label));
             end
             
             h = nansen.BatchProcessorUI(app.BatchProcessor, hContainer);
@@ -1606,7 +1607,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateProjectList()
 
             % Re-initialize file viewer if tab is open.
-            if strcmp(app.hLayout.TabGroup.SelectedTab.Title, 'File Viewer')
+            if strcmp(app.hLayout.TabGroup.SelectedTab.Title, nansen.enum.AppPage.FileViewer.Label)
                 app.initializeFileViewer()
                 app.ActiveTabModule = app.UiFileViewer;
             end
@@ -1802,11 +1803,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onFigureSizeChanged(app)
             app.updateLayoutPositions()
             drawnow
+            
             % Todo: Table position only needs to be updated if the
             % overview/table page is active. Need a flag and a call to
             % updateTablePosition on tab change if the flag is dirty.
             %
-            % if strcmp(app.hLayout.TabGroup.SelectedTab.Title, 'Overview')
+            % if strcmp(app.hLayout.TabGroup.SelectedTab.Title, ...
+            %   nansen.enum.AppPage.DataExplorer.Label)
             app.updateMetaTableViewerPosition()
             % end
         end
@@ -1824,10 +1827,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             switch evt.NewValue.Title
                 
-                case 'Overview'
+                case nansen.enum.AppPage.DatasetExplorer.Label
                     app.ActiveTabModule = app.UiMetaTableViewer;
                     
-                case 'File Viewer'
+                case nansen.enum.AppPage.FileViewer.Label
 
                     try
                         nansen.FileViewer.assertFileViewerSupported(app.MetaTable)
@@ -1889,7 +1892,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.UiDataViewer.update(selectedSessionObj(1))
                     end
 
-                case 'Task Processor'
+                case nansen.enum.AppPage.TaskProcessor.Label
 
                     if isempty(app.BatchProcessorUI)
                         app.initializeBatchProcessorUI(evt.NewValue)
@@ -2841,7 +2844,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.onNewMetaTableSet()
             if isvalid(hDlg); delete(hDlg); end
         end
-        
+
         function onMetaTableModifiedChanged(app, ~, evt)
             if app.settings.MetadataTable.AutosaveMetaTable
                 if evt.AffectedObject.IsModified
@@ -2849,7 +2852,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
         end
-        
+
         function metaTable = updateDataLocationFromModel(app, metaTable)
         %updateDataLocationFromModel Update dataLocations in meta table
         %
@@ -3267,6 +3270,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.addTasksToQueue(taskConfiguration)
                 end
             end
+
+            app.refreshTable()
         end
         
         function runTasksWithDefaults(app, taskConfiguration)
@@ -4119,7 +4124,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if any(figMatch)
                     matchedFigure = openFigures(figMatch);
                     hApp = getappdata(matchedFigure, 'AppInstance');
-                    figure(matchedFigure) % Bring figure into focus
                     tf = true;
                 else
                     tf = false;
