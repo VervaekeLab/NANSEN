@@ -4109,6 +4109,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     methods (Static)
             
         S = getDefaultSettings() % Defined in external file
+    
+        function updateTable()
+            nansen.App.getInstance().refreshTable()
+        end
+
+        function appInstance = getInstance()
+            [tf, appInstance] = nansen.App.isOpen();
+            if ~tf
+                error('NANSEN:App:ApplicationNotRunning', ...
+                    'NANSEN is not running. Start the application by running nansen.')
+            end
+        end
 
         function [tf, hApp] = isOpen()
         %ISOPEN Check if app figure is open bring to focus if it is.
