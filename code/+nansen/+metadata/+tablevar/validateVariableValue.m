@@ -39,6 +39,9 @@ function [isValid, newValue] = validateVariableValue(defaultValue, newValue)
     elseif isa(defaultValue, 'categorical')
         isValid = isa(newValue, 'categorical');
 
+    elseif isa(defaultValue, 'datetime')
+        isValid = isa(newValue, 'datetime');
+    
     else
         % Invalid;
     end

@@ -10,5 +10,7 @@ function defaultValue = getDefaultValue(dataType)
             defaultValue = nan;
         case 'text'
             defaultValue = {'N/A'};
+        case 'datetime'
+            defaultValue = NaT;
     end
 end
