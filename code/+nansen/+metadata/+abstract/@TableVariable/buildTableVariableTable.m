@@ -146,6 +146,6 @@ function [isOverridden, fcnName] = isMethodOverridden(metaclassObject, className
     BASE_CLASS = 'nansen.metadata.abstract.TableVariable';
     methodInfo = nansen.internal.introspection.getClassMethodInfo(...
         metaclassObject, methodName, "AttributeName", "DefiningClass");
-    isOverridden = ~strcmp(methodInfo{'DefiningClass'}.Name, BASE_CLASS);
+    isOverridden = ~strcmp(methodInfo{methodName, 'DefiningClass'}.Name, BASE_CLASS);
     fcnName = strjoin({className, methodName}, '.');
 end
