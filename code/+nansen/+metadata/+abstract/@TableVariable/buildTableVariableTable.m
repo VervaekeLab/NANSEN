@@ -94,8 +94,9 @@ function attributeTable = buildTableVariableTable(fileList)
         end
 
         if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
-            
+
             S(idx).HasClassDefinition = true;
+            S(idx).ClassName = thisFcnName;
 
             if fcnResult.IS_EDITABLE
                 S(idx).IsEditable = true;

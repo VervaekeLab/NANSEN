@@ -44,7 +44,7 @@ function [formatterFcnHandle, varNames] = getColumnFormatter(varNames, tableClas
     tableVariablesAttributes = tableVariablesAttributes(keep, :);
 
     hasFormatter = tableVariablesAttributes.HasRendererFunction;
-    fcnNames = tableVariablesAttributes.RendererFunctionName(hasFormatter);
+    fcnNames = tableVariablesAttributes.ClassName(hasFormatter);
     formatterFcnHandle = cellfun(@str2func, fcnNames, 'UniformOutput', false);
     if nargout == 2
         varNames = tableVariablesAttributes.Name(hasFormatter);
