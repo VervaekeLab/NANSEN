@@ -1395,24 +1395,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             % Get name of column which was clicked
-            [~,thisVarName] = app.UiMetaTableViewer.getColumnNames(thisCol);
+            [~,thisVariableName] = app.UiMetaTableViewer.getColumnNames(thisCol);
 
             % Use table variable attributes to check if a double click
             % callback function exists for the current table column
             TVA = app.getTableVariableAttributes('HasDoubleClickFunction');
             
-            isMatch = strcmp(thisColumnName, {TVA.Name});
+            isMatch = strcmp(thisVariableName, {TVA.Name}) & ...
+                strcmp(app.UiMetaTableViewer.MetaTableType,[TVA.TableType]);
 
             if any( isMatch )
-                tableVariableFunctionName = TVA(isMatch).RendererFunctionName;
+                tableVariableFunctionName = TVA(isMatch).DoubleClickFunctionName;
                 if isempty(tableVariableFunctionName); return; end
                 
                 tableRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow); % Visible row to data row transformation
-                tableValue = app.MetaTable.entries{tableRowIdx, thisColumnName};
-                tableVariableObj = feval(tableVariableFunctionName, tableValue);
-                
                 metaObj = app.getMetaObjects( tableRowIdx );
-                tableVariableObj.onCellDoubleClick( metaObj );
+                feval(tableVariableFunctionName, metaObj);
             end
         end
         
